@@ -11,10 +11,9 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
-import { user_tracking } from "../user-tracking";
+import { user_tracking } from "@cocalc/frontend/user-tracking";
 import {
   FONT_SIZE_ICONS_NORMAL,
-  NAV_HEIGHT_PX,
   PageStyle,
   TOP_BAR_ELEMENT_CLASS,
 } from "./top-nav-consts";
@@ -22,7 +21,6 @@ import { blur_active_element } from "./util";
 
 interface Props {
   height: number; // px
-  narrow: boolean; // if true, there is need to have room for the fullscreen button
   pageStyle: PageStyle;
   on_click?: () => void;
 }
@@ -30,33 +28,40 @@ interface Props {
 const BASE_STYLE: CSS = {
   fontSize: FONT_SIZE_ICONS_NORMAL,
   display: "inline",
-  color: "grey",
-};
+  color: COLORS.GRAY_M,
+} as const;
 
 export const ConnectionIndicator: React.FC<Props> = React.memo(
   (props: Props) => {
-    const { on_click, height, narrow, pageStyle } = props;
+    const { on_click, height, pageStyle } = props;
     const { topPaddingIcons, sidePaddingIcons, fontSizeIcons } = pageStyle;
     const connection_status = useTypedRedux("page", "connection_status");
     const mesg_info = useTypedRedux("account", "mesg_info");
     const actions = useActions("page");
 
-    const CONNECTING_STYLE: CSS = {
-      backgroundColor: "#FFA500",
+    const connecting_style: CSS = {
+      flex: "1",
       color: "white",
-      padding: `${topPaddingIcons} ${sidePaddingIcons}`,
       overflow: "hidden",
-      zIndex: 101, // tick more than fullscreen!
+      margin: "auto 0",
     };
 
-    const style: CSS = {
-      display: "flex",
+    const outer_style: CSS = {
       flex: "0 0 auto",
+      display: "flex",
+      alignItems: "center",
       color: COLORS.GRAY_M,
-      lineHeight: "18px",
       cursor: "pointer",
-      maxHeight: `${height}px`,
-      marginRight: narrow ? "0px" : `${NAV_HEIGHT_PX + 5}px`,
+      height: `${height}px`,
+      padding: `${topPaddingIcons} ${sidePaddingIcons}`,
+      ...(connection_status !== "connected"
+        ? {
+            backgroundColor:
+              connection_status === "disconnected"
+                ? COLORS.ANTD_RED_WARN
+                : COLORS.ORANGE_WARN,
+          }
+        : {}),
     };
 
     function render_connection_status() {
@@ -72,15 +77,11 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
           // working well but doing something minimal
           icon_style.color = "#00c";
         }
-        return (
-          <div style={{ padding: "7px" }}>
-            <Icon name="wifi" style={icon_style} />
-          </div>
-        );
+        return <Icon name="wifi" style={icon_style} />;
       } else if (connection_status === "connecting") {
-        return <div style={CONNECTING_STYLE}>connecting...</div>;
+        return <div style={connecting_style}>connecting...</div>;
       } else if (connection_status === "disconnected") {
-        return <div style={CONNECTING_STYLE}>disconnected</div>;
+        return <div style={connecting_style}>disconnected</div>;
       }
     }
 
@@ -96,7 +97,7 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
     return (
       <div
         className={TOP_BAR_ELEMENT_CLASS}
-        style={style}
+        style={outer_style}
         onClick={connection_click}
       >
         {render_connection_status()}

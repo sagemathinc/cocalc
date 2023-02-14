@@ -41,14 +41,13 @@ import {
   FONT_SIZE_ICONS_NARROW,
   FONT_SIZE_ICONS_NORMAL,
   HIDE_LABEL_THRESHOLD,
+  NARROW_THRESHOLD_PX,
   NAV_CLASS,
+  NAV_HEIGHT_NARROW_PX,
   NAV_HEIGHT_PX,
   PageStyle,
 } from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
-
-// below this, the "page" is considered "narrow" and we use a different style
-export const NARROW_THRESHOLD_PX = 500;
 
 function calcStyle(isNarrow: boolean): PageStyle {
   const fontSizeIcons: string = isNarrow
@@ -57,8 +56,10 @@ function calcStyle(isNarrow: boolean): PageStyle {
   const topPaddingIcons: string = isNarrow ? "5px" : "5px";
   const sidePaddingIcons: string = isNarrow ? "7px" : "14px";
 
+  const height = isNarrow ? NAV_HEIGHT_NARROW_PX : NAV_HEIGHT_PX;
+
   const topBarStyle: CSS = {
-    height: `${NAV_HEIGHT_PX}px`,
+    height: `${height}px`,
   } as const;
 
   const fileUseStyle: CSS = {
@@ -74,7 +75,7 @@ function calcStyle(isNarrow: boolean): PageStyle {
     padding: "4px",
     position: "fixed",
     right: "5vw",
-    top: `${NAV_HEIGHT_PX}px`,
+    top: `${height}px`,
     width: isNarrow ? "90vw" : "50vw",
     zIndex: 110,
   } as const;
@@ -84,7 +85,8 @@ function calcStyle(isNarrow: boolean): PageStyle {
         /* this makes it so the projects tabs are on a separate row; otherwise, there is literally no room for them at all... */
         width: "100vw",
         marginTop: "4px",
-        height: `${NAV_HEIGHT_PX}px`,
+        height: `${height}px`,
+        // no flex!
       }
     : {
         flex: "1 1 auto", // necessary to stretch out to the full width
@@ -98,6 +100,7 @@ function calcStyle(isNarrow: boolean): PageStyle {
     sidePaddingIcons,
     topPaddingIcons,
     fontSizeIcons,
+    height,
   };
 }
 
@@ -251,17 +254,19 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_admin_tab(): JSX.Element {
-    return (
-      <NavTab
-        name="admin"
-        label={"Admin"}
-        label_class={NAV_CLASS}
-        icon={"users"}
-        active_top_tab={active_top_tab}
-        hide_label={!show_label}
-      />
-    );
+  function render_admin_tab(): JSX.Element | undefined {
+    if (is_logged_in && groups?.includes("admin")) {
+      return (
+        <NavTab
+          name="admin"
+          label={"Admin"}
+          label_class={NAV_CLASS}
+          icon={"users"}
+          active_top_tab={active_top_tab}
+          hide_label={!show_label}
+        />
+      );
+    }
   }
 
   function sign_in_tab_clicked() {
@@ -270,15 +275,15 @@ export const Page: React.FC = () => {
     }
   }
 
-  function render_sign_in_tab(): JSX.Element {
-    let style;
+  function render_sign_in_tab(): JSX.Element | null {
+    if (is_logged_in) return null;
+
+    let style: CSS | undefined = undefined;
     if (active_top_tab !== "account") {
       // Strongly encourage clicking on the sign in tab.
       // Especially important if user got signed out due
       // to cookie expiring or being deleted (say).
       style = { backgroundColor: COLORS.TOP_BAR.SIGN_IN_BG, fontSize: "16pt" };
-    } else {
-      style = undefined;
     }
     return (
       <NavTab
@@ -334,33 +339,38 @@ export const Page: React.FC = () => {
     );
   }
 
+  function render_fullscreen(): JSX.Element | undefined {
+    if (isNarrow || is_anonymous) return;
+
+    return <FullscreenButton pageStyle={pageStyle} />;
+  }
+
   function render_right_nav(): JSX.Element {
-    const logged_in = is_logged_in;
     return (
       <div
         className="smc-right-tabs-fixed"
         style={{
           display: "flex",
           flex: "0 0 auto",
-          height: `${NAV_HEIGHT_PX}px`,
+          height: `${pageStyle.height}px`,
           margin: "0",
           overflowY: "hidden",
           alignItems: "center",
         }}
       >
-        {logged_in && groups?.includes("admin") && render_admin_tab()}
-        {!logged_in && render_sign_in_tab()}
+        {render_admin_tab()}
+        {render_sign_in_tab()}
         {render_support()}
-        {logged_in && render_account_tab()}
+        {is_logged_in && render_account_tab()}
         {render_mentions()}
         {render_bell()}
         {!is_anonymous && (
           <ConnectionIndicator
-            height={NAV_HEIGHT_PX}
-            narrow={isNarrow}
+            height={pageStyle.height}
             pageStyle={pageStyle}
           />
         )}
+        {render_fullscreen()}
       </div>
     );
   }
@@ -369,7 +379,7 @@ export const Page: React.FC = () => {
     return (
       <NavTab
         style={{
-          height: `${NAV_HEIGHT_PX}px`,
+          height: `${pageStyle.height}px`,
           margin: "0",
           overflow: "hidden",
         }}
@@ -441,10 +451,10 @@ export const Page: React.FC = () => {
       {local_storage_warning && <LocalStorageWarning />}
       {!fullscreen && (
         <nav className="smc-top-bar" style={topBarStyle}>
-          <AppLogo />
+          <AppLogo size={pageStyle.height} />
           {is_logged_in && render_project_nav_button()}
           {!isNarrow ? (
-            <ProjectsNav height={NAV_HEIGHT_PX} style={projectsNavStyle} />
+            <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
           ) : (
             // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
             <div style={{ flex: "1 1 auto" }} />
@@ -452,9 +462,9 @@ export const Page: React.FC = () => {
           {render_right_nav()}
         </nav>
       )}
-      {!isNarrow && !is_anonymous && <FullscreenButton pageStyle={pageStyle} />}
+      {fullscreen && render_fullscreen()}
       {isNarrow && (
-        <ProjectsNav height={NAV_HEIGHT_PX} style={projectsNavStyle} />
+        <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
       )}
       <ActiveContent />
     </div>

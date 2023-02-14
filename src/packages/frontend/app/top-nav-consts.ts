@@ -5,11 +5,17 @@
 
 import { CSS } from "@cocalc/frontend/app-framework";
 
+// below this, the "page" is considered "narrow" and we use a different style
+export const NARROW_THRESHOLD_PX = 550;
+
 // show labels of projects, if there are less than this many
 export const HIDE_LABEL_THRESHOLD = 6;
 
 // the width of the top bar
 export const NAV_HEIGHT_PX = 36;
+
+// … and on narrower screens, a bit tigher
+export const NAV_HEIGHT_NARROW_PX = 28;
 
 export const NAV_CLASS = "hidden-xs";
 
@@ -28,4 +34,5 @@ export interface PageStyle {
   topPaddingIcons: string; // {n}px
   sidePaddingIcons: string; // {n}px
   isNarrow: boolean;
+  height: number;
 }

@@ -13,12 +13,19 @@ const STYLE: React.CSSProperties = {
   display: "inline-block",
   backgroundSize: "contain",
   backgroundRepeat: "no-repeat",
-  height: "32px",
-  width: "32px",
   position: "relative",
 } as const;
 
-export const AppLogo: React.FC = React.memo(() => {
+interface Props {
+  size: number;
+}
+
+export const AppLogo: React.FC<Props> = React.memo((props: Props) => {
+  const { size } = props;
+  const marginVal = Math.max(1, Math.round(size / 20));
+  const margin = `${marginVal}px`;
+  const dimension = `${size - 2 * marginVal}px`;
+
   const logo_square: string | undefined = useTypedRedux(
     "customize",
     "logo_square"
@@ -30,9 +37,9 @@ export const AppLogo: React.FC = React.memo(() => {
     <A
       href={appBasePath}
       style={{
-        height: "32px",
-        width: "32px",
-        margin: "2px",
+        height: dimension,
+        width: dimension,
+        margin: margin,
         display: "inline-block",
       }}
     >
@@ -48,6 +55,8 @@ export const AppLogo: React.FC = React.memo(() => {
           }}
           style={{
             ...STYLE,
+            height: dimension,
+            width: dimension,
             backgroundImage,
           }}
         ></div>

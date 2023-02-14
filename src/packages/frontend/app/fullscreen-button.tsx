@@ -7,18 +7,18 @@ import {
   CSS,
   React,
   useActions,
-  useRedux,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
+import { user_tracking } from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
-import { user_tracking } from "../user-tracking";
 import {
   NAV_HEIGHT_PX,
   PageStyle,
   TOP_BAR_ELEMENT_CLASS,
 } from "./top-nav-consts";
 
-const TIP_STYLE: CSS = {
+const TIP_STYLE_FULLSCREEN: CSS = {
   position: "fixed",
   zIndex: 100,
   right: 0,
@@ -33,10 +33,7 @@ export const FullscreenButton: React.FC<Props> = React.memo((props: Props) => {
   const { pageStyle } = props;
   const { fontSizeIcons } = pageStyle;
 
-  const fullscreen: undefined | "default" | "kiosk" | "project" = useRedux(
-    "page",
-    "fullscreen"
-  );
+  const fullscreen = useTypedRedux("page", "fullscreen");
   const page_actions = useActions("page");
 
   if (fullscreen == "kiosk" || fullscreen == "project") {
@@ -66,7 +63,7 @@ export const FullscreenButton: React.FC<Props> = React.memo((props: Props) => {
 
   return (
     <Tip
-      style={TIP_STYLE}
+      style={fullscreen === "default" ? TIP_STYLE_FULLSCREEN : undefined}
       title={"Fullscreen mode, focused on the current document or page."}
       placement={"bottomRight"}
       delayShow={2000}
