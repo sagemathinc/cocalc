@@ -3,20 +3,22 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React, { CSSProperties } from "react";
 import { Button, Tooltip } from "antd";
+import React, { CSSProperties } from "react";
+
 import { Icon, IconName } from "@cocalc/frontend/components";
-import { formatAction } from "../format";
+import { COLORS } from "@cocalc/util/theme";
 import { SlateEditor } from "../editable-markdown";
-import { Marks } from "./marks";
+import { formatAction } from "../format";
 import ColorButton from "./color-button";
 import FontFamily from "./font-family";
 import FontSize from "./font-size";
 import Heading from "./heading";
 import Insert from "./insert";
+import { Marks } from "./marks";
 
 export const BUTTON_STYLE = {
-  color: "#666",
+  color: COLORS.GRAY_M,
   height: "24px",
   borderLeft: "1px solid lightgray",
   borderRight: "1px solid lightgray",
@@ -73,7 +75,8 @@ const TITLES = {
   sub: "Subscript",
 };
 
-export const MarksBar: React.FC<MarksBarProps> = ({ marks, editor }) => {
+export const MarksBar: React.FC<MarksBarProps> = (props: MarksBarProps) => {
+  const { marks, editor } = props;
   const v: JSX.Element[] = [];
   v.push(<Insert key="insert" editor={editor} />);
   for (const mark of MARKS) {

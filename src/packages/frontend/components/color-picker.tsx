@@ -1,22 +1,27 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 import { Button, Modal, Select } from "antd";
-const { Option } = Select;
-import { Icon } from "./icon";
-
 import { CSSProperties, ReactNode, useState } from "react";
 import {
-  CirclePicker,
-  ChromePicker,
-  PhotoshopPicker,
-  GithubPicker,
-  TwitterPicker,
-  SwatchesPicker,
-  SketchPicker,
   BlockPicker,
-  SliderPicker,
+  ChromePicker,
+  CirclePicker,
   CompactPicker,
+  GithubPicker,
+  PhotoshopPicker,
+  SketchPicker,
+  SliderPicker,
+  SwatchesPicker,
+  TwitterPicker,
 } from "react-color";
 
+const { Option } = Select;
+
 import { capitalize } from "@cocalc/util/misc";
+import { Icon } from "./icon";
+import { COLORS } from "@cocalc/util/theme";
 
 const Pickers = {
   circle: CirclePicker,
@@ -39,14 +44,15 @@ interface Props {
   toggle?: ReactNode;
   justifyContent?: "flex-start" | "flex-end" | "center";
 }
-export default function ColorPicker({
-  color,
-  onChange,
-  style,
-  defaultPicker,
-  toggle,
-  justifyContent = "center",
-}: Props) {
+export default function ColorPicker(props: Props) {
+  const {
+    color,
+    onChange,
+    style,
+    defaultPicker,
+    toggle,
+    justifyContent = "center",
+  } = props;
   const [visible, setVisible] = useState<boolean>(!toggle);
   const [picker, setPicker] = useState<keyof typeof Pickers>(
     defaultPicker ?? localStorage["defaultColorPicker"] ?? "circle"
@@ -101,7 +107,7 @@ export default function ColorPicker({
             float: "right",
             fontSize: "12px",
             marginTop: "20px",
-            color: "#666",
+            color: COLORS.GRAY_M,
           }}
         >
           Color Picker
@@ -128,13 +134,8 @@ interface ButtonProps {
   type?: "default" | "link" | "text" | "ghost" | "primary" | "dashed";
   onClick?: () => boolean | undefined;
 }
-export function ColorButton({
-  onChange,
-  title,
-  style,
-  type,
-  onClick,
-}: ButtonProps) {
+export function ColorButton(props: ButtonProps) {
+  const { onChange, title, style, type, onClick } = props;
   const [show, setShow] = useState<boolean>(false);
   return (
     <>
@@ -142,7 +143,7 @@ export function ColorButton({
         transitionName=""
         maskTransitionName=""
         title={title ?? "Select a Color"}
-        visible={show}
+        open={show}
         onOk={() => setShow(false)}
         onCancel={() => setShow(false)}
       >
