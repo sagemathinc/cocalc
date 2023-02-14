@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux, React, useRedux } from "../app-framework";
-import { html_to_text } from "../misc";
 import { Avatar } from "antd";
+
+import { React, redux, useRedux } from "@cocalc/frontend/app-framework";
+import { html_to_text } from "../misc";
 
 interface Props {
   project_id: string;
@@ -14,13 +15,11 @@ interface Props {
   noClick?: boolean;
 }
 
-export const ProjectTitle: React.FC<Props> = ({
-  project_id,
-  handle_click,
-  style,
-  noClick,
-}) => {
+export const ProjectTitle: React.FC<Props> = (props: Props) => {
+  const { project_id, handle_click, style, noClick = false } = props;
+
   const title = useRedux(["projects", "project_map", project_id, "title"]);
+
   const avatar = useRedux([
     "projects",
     "project_map",
@@ -30,7 +29,7 @@ export const ProjectTitle: React.FC<Props> = ({
 
   function onClick(e): void {
     if (noClick) return;
-    if (handle_click != null) {
+    if (typeof handle_click === "function") {
       handle_click(e);
     } else {
       // fallback behavior
@@ -51,6 +50,7 @@ export const ProjectTitle: React.FC<Props> = ({
       {html_to_text(title)}
     </>
   );
+
   if (noClick) return <span style={style}>{body}</span>;
 
   return (

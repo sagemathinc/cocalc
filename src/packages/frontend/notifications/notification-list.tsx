@@ -9,11 +9,13 @@ import { Button, Collapse, Space } from "antd";
 const { Panel } = Collapse;
 
 import { CSS, redux } from "@cocalc/frontend/app-framework";
+import { Icon, MarkAll } from "@cocalc/frontend/components";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { unreachable } from "@cocalc/util/misc";
 import { MentionRow } from "./mentions/mention-row";
 import { MentionFilter, MentionsMap } from "./mentions/types";
 import { NoNewNotifications } from "./no-new-notifications";
+import { BOOKMARK_ICON_NAME } from "./mentions/util";
 
 interface Props {
   account_id: string;
@@ -45,15 +47,11 @@ export const NotificationList: React.FC<Props> = (props: Props) => {
     const opposite: MentionFilter = filter === "read" ? "unread" : "read";
     return (
       <Space direction="horizontal" size="small">
-        <Button
-          onClick={(e) => {
-            e.stopPropagation();
-            markRead(project_id, opposite);
-          }}
+        <MarkAll<"read" | "unread">
+          how={opposite}
           size="small"
-        >
-          Mark all {opposite}
-        </Button>
+          onClick={(how) => markRead(project_id, how)}
+        />
         <Button
           onClick={(e) => {
             e.stopPropagation();
@@ -61,7 +59,7 @@ export const NotificationList: React.FC<Props> = (props: Props) => {
           }}
           size="small"
         >
-          Save all
+          <Icon name={BOOKMARK_ICON_NAME} /> Save all
         </Button>
       </Space>
     );

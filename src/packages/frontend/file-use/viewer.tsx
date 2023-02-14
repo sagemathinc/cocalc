@@ -12,6 +12,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import {
   Icon,
+  MarkAll,
   SearchInput,
   Title,
   VisibleMDLG,
@@ -124,9 +125,7 @@ export default function FileUseViewer({
 
   function render_mark_all_read_button() {
     return (
-      <Button key="mark_all_read_button" onClick={() => click_mark_all_read()}>
-        <Icon name="check-square" /> Mark All Read
-      </Button>
+      <MarkAll<"read"> how={"read"} onClick={() => click_mark_all_read()} />
     );
   }
 
