@@ -5,7 +5,7 @@
 
 import React from "react";
 import { Popconfirm, Popover } from "antd";
-import { NavItem } from "@cocalc/frontend/antd-bootstrap";
+
 import { AccountActions } from "../account";
 
 interface Props {
@@ -17,14 +17,18 @@ interface Props {
   user_label: string;
 }
 
-export const AccountTabDropdown: React.FC<Props> = ({
-  icon,
-  links,
-  label_class,
-  show_label,
-  is_active,
-  user_label,
-}) => {
+interface AccountTabProps {
+  icon;
+  links;
+  label_class;
+  show_label;
+  is_active;
+  user_label;
+}
+
+export const AccountTabDropdown: React.FC<Props> = (props: AccountTabProps) => {
+  const { icon, links, label_class, show_label, is_active, user_label } = props;
+
   // If icon is a string then use the Icon component
   // Else (it is a node already) just render icon
   return (
@@ -34,21 +38,23 @@ export const AccountTabDropdown: React.FC<Props> = ({
       trigger="click"
       content={links}
     >
-      <NavItem
-        active={is_active}
+      <div
         style={{
+          display: "flex",
+          flex: "0 0 auto",
           float: "left",
           position: "relative",
           height: "30px",
+          padding: "8px",
+          whiteSpace: "nowrap",
+          ...(is_active && { backgroundColor: "white" }),
         }}
       >
-        <div style={{ padding: "10px" }}>
-          {icon}
-          <span style={{ marginLeft: 5 }} className={label_class}>
-            {show_label ? "Account" : undefined}
-          </span>
-        </div>
-      </NavItem>
+        {icon}
+        <span style={{ marginLeft: 5 }} className={label_class}>
+          {show_label ? "Account" : undefined}
+        </span>
+      </div>
     </Popover>
   );
 };

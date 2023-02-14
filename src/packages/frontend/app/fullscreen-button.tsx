@@ -3,31 +3,37 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useRedux, useActions } from "../app-framework";
-import { Icon, Tip } from "../components";
+import {
+  CSS,
+  React,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Tip } from "@cocalc/frontend/components";
+import { user_tracking } from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
-import { user_tracking } from "../user-tracking";
+import {
+  NAV_HEIGHT_PX,
+  PageStyle,
+  TOP_BAR_ELEMENT_CLASS,
+} from "./top-nav-consts";
 
-const TIP_STYLE: React.CSSProperties = {
+const TIP_STYLE_FULLSCREEN: CSS = {
   position: "fixed",
   zIndex: 100,
   right: 0,
-  top: "-1px",
-  borderRadius: "3px",
+  top: 0,
 } as const;
 
-const ICON_STYLE: React.CSSProperties = {
-  fontSize: "13pt",
-  padding: 2,
-  color: COLORS.GRAY,
-  cursor: "pointer",
-} as const;
+interface Props {
+  pageStyle: PageStyle;
+}
 
-export const FullscreenButton: React.FC = React.memo(() => {
-  const fullscreen: undefined | "default" | "kiosk" | "project" = useRedux(
-    "page",
-    "fullscreen"
-  );
+export const FullscreenButton: React.FC<Props> = React.memo((props: Props) => {
+  const { pageStyle } = props;
+  const { fontSizeIcons } = pageStyle;
+
+  const fullscreen = useTypedRedux("page", "fullscreen");
   const page_actions = useActions("page");
 
   if (fullscreen == "kiosk" || fullscreen == "project") {
@@ -36,21 +42,34 @@ export const FullscreenButton: React.FC = React.memo(() => {
   }
 
   const icon = fullscreen ? "compress" : "expand";
-  const icon_style = {
-    ...ICON_STYLE,
+  const icon_style: CSS = {
+    fontSize: fontSizeIcons,
+    color: COLORS.GRAY,
+    cursor: "pointer",
     ...(fullscreen
-      ? { background: "#fff", opacity: 0.7, border: "1px solid grey" }
-      : undefined),
+      ? {
+          background: "white",
+          opacity: 0.7,
+          border: "1px solid grey",
+        }
+      : {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: `${NAV_HEIGHT_PX}px`,
+          width: `${NAV_HEIGHT_PX}px`,
+        }),
   };
 
   return (
     <Tip
-      style={TIP_STYLE}
+      style={fullscreen === "default" ? TIP_STYLE_FULLSCREEN : undefined}
       title={"Fullscreen mode, focused on the current document or page."}
-      placement={"left"}
+      placement={"bottomRight"}
       delayShow={2000}
     >
       <Icon
+        className={TOP_BAR_ELEMENT_CLASS}
         style={icon_style}
         name={icon}
         onClick={(_) => {

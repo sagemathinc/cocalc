@@ -25,6 +25,7 @@ export { Icon, IconName, isIconName } from "./icon";
 export { LabeledRow } from "./labeled-row";
 export { Estimate as LoadingEstimate, Loading } from "./loading";
 export { LoginLink } from "./login-link";
+export { MarkAll } from "./mark-all";
 export { Markdown } from "./markdown";
 export { NoWrap } from "./nowrap";
 export { NumberInput } from "./number-input";

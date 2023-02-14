@@ -7,18 +7,18 @@ import { AppRedux } from "@cocalc/frontend/app-framework";
 import { MentionsStore, MentionsState } from "./store";
 import { MentionsActions } from "./actions";
 import { MentionsTable } from "./table";
-import { redux_name } from "./util";
+import { REDUX_NAME } from "./util";
 
 export function init(redux: AppRedux) {
-  if (redux.getStore(redux_name) != undefined) {
+  if (redux.getStore(REDUX_NAME) != undefined) {
     return;
   }
-  redux.createStore<MentionsState, MentionsStore>(redux_name, MentionsStore, {
+  redux.createStore<MentionsState, MentionsStore>(REDUX_NAME, MentionsStore, {
     filter: "unread",
   });
   redux.createActions<MentionsState, MentionsActions>(
-    redux_name,
+    REDUX_NAME,
     MentionsActions
   );
-  redux.createTable(redux_name, MentionsTable);
+  redux.createTable(REDUX_NAME, MentionsTable);
 }

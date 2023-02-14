@@ -8,15 +8,20 @@ Functionality and UI to ensure a user with given email (or account_id) is sync'd
 */
 
 import { List } from "immutable";
-import { Row, Col, Button } from "../../antd-bootstrap";
-import { Component, Rendered, rclass, rtypes } from "../../app-framework";
-import { Icon } from "../../components";
 import { DebounceInput } from "react-debounce-input";
 
+import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import {
+  Component,
+  rclass,
+  Rendered,
+  rtypes,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Title } from "@cocalc/frontend/components";
 import { User } from "@cocalc/frontend/frame-editors/generic/client";
-import { UserResult } from "./user";
-import { User as UserMap } from "./store";
 import { actions } from "./actions";
+import { User as UserMap } from "./store";
+import { UserResult } from "./user";
 
 interface ReduxProps {
   view?: boolean;
@@ -120,7 +125,8 @@ class UserSearch extends Component<ReduxProps> {
 
   private render_header_toggle(): Rendered {
     return (
-      <h4
+      <Title
+        level={4}
         onClick={() => actions.set_view(!this.props.view)}
         style={{ cursor: "pointer" }}
       >
@@ -129,7 +135,7 @@ class UserSearch extends Component<ReduxProps> {
           name={this.props.view ? "caret-down" : "caret-right"}
         />{" "}
         Users
-      </h4>
+      </Title>
     );
   }
 

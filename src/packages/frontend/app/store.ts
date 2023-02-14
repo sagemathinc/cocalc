@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { parse_target } from "../history";
+import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import target from "@cocalc/frontend/client/handle-target";
-import { redux, Store, TypedMap } from "../app-framework";
+import { parse_target } from "../history";
 
 type TopTab =
   | "about" // the "/help" page

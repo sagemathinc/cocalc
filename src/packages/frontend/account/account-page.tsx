@@ -10,24 +10,23 @@ for different account related information
 and configuration.
 */
 
+import { SignOut } from "@cocalc/frontend/account/sign-out";
+import { Col, Row, Tab, Tabs } from "@cocalc/frontend/antd-bootstrap";
+import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon, Loading } from "@cocalc/frontend/components";
+import { LandingPage } from "@cocalc/frontend/landing-page/landing-page";
 import { local_storage_length } from "@cocalc/frontend/misc/local-storage";
-import { React, redux, useTypedRedux } from "../app-framework";
-import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
-import { LandingPage } from "../landing-page/landing-page";
-import { AccountPreferences } from "./account-preferences";
-import { BillingPage } from "../billing/billing-page";
-import { UpgradesPage } from "./upgrades/upgrades-page";
-import { LicensesPage } from "./licenses/licenses-page";
-
-import { SupportTickets } from "../support";
-import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
-import { Icon, Loading } from "../components";
-import { SignOut } from "../account/sign-out";
+import { SupportTickets } from "@cocalc/frontend/support";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
+import { BillingPage } from "../billing/billing-page";
+import { AccountPreferences } from "./account-preferences";
+import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
+import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
+import { UpgradesPage } from "./upgrades/upgrades-page";
 
 export const AccountPage: React.FC = () => {
   const active_page = useTypedRedux("account", "active_page");
@@ -263,7 +262,10 @@ export const AccountPage: React.FC = () => {
   }
 
   return (
-    <div style={{ overflow: "auto", paddingLeft: "5%", paddingRight: "5%" }}>
+    <div
+      className="smc-vfill"
+      style={{ overflow: "auto", paddingLeft: "5%", paddingRight: "5%" }}
+    >
       {is_logged_in && !get_api_key
         ? render_logged_in_view()
         : render_landing_page()}

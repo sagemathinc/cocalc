@@ -4,29 +4,30 @@
  */
 
 import { useEffect } from "react";
-import { file_options } from "@cocalc/frontend/editor-tmp";
+
 import {
-  Col,
-  Row,
-  ButtonToolbar,
-  ControlLabel,
   Button,
+  ButtonToolbar,
+  Col,
+  ControlLabel,
   Form,
+  Row,
 } from "@cocalc/frontend/antd-bootstrap";
+import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
-  SearchInput,
-  SelectorInput,
   Icon,
   Loading,
+  SearchInput,
+  SelectorInput,
 } from "@cocalc/frontend/components";
+import { file_options } from "@cocalc/frontend/editor-tmp";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import {
   NewFilenameFamilies,
   NewFilenames,
 } from "@cocalc/frontend/project/utils";
-import { FileSpec } from "../file-associations";
 import { NEW_FILENAMES } from "@cocalc/util/db-schema";
-import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { FileSpec } from "../file-associations";
 
 interface Props {
   project_id: string;
