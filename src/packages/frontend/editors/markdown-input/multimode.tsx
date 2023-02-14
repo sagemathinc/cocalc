@@ -21,6 +21,7 @@ import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc";
 import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { BLURED_STYLE, FOCUSED_STYLE, MarkdownInput } from "./component";
 
@@ -41,9 +42,17 @@ const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 
 // markdown uses codemirror
 // editor uses slate.  TODO: this should be "text", not "editor".  Oops.
-export type Mode = "markdown" | "editor";
+const Modes = ["markdown", "editor"] as const;
+export type Mode = typeof Modes[number];
 
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
+
+function getLocalStorageMode(): Mode | undefined {
+  const m = get_local_storage(LOCAL_STORAGE_KEY);
+  if (typeof m === "string" && Modes.includes(m as any)) {
+    return m as Mode;
+  }
+}
 
 interface Props {
   cacheId?: string; // unique **within this file**; the project_id and path are automatically also used
@@ -174,7 +183,7 @@ export default function MultiMarkdownInput(props: Props) {
     fixedMode ??
       getCache()?.mode ??
       defaultMode ??
-      localStorage[LOCAL_STORAGE_KEY] ??
+      getLocalStorageMode() ??
       (IS_MOBILE ? "markdown" : "editor")
   );
 
@@ -183,7 +192,7 @@ export default function MultiMarkdownInput(props: Props) {
   }, []);
 
   const setMode = (mode: Mode) => {
-    localStorage[LOCAL_STORAGE_KEY] = mode;
+    set_local_storage(LOCAL_STORAGE_KEY, mode);
     setMode0(mode);
     onModeChange?.(mode);
     if (cacheId !== undefined) {

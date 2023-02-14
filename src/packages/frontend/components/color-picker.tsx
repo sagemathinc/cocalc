@@ -19,9 +19,10 @@ import {
 
 const { Option } = Select;
 
+import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc";
 import { capitalize } from "@cocalc/util/misc";
-import { Icon } from "./icon";
 import { COLORS } from "@cocalc/util/theme";
+import { Icon } from "./icon";
 
 const Pickers = {
   circle: CirclePicker,
@@ -35,6 +36,17 @@ const Pickers = {
   slider: SliderPicker,
   compact: CompactPicker,
 };
+
+type TPickers = keyof typeof Pickers;
+
+const LS_PICKER_KEY = "defaultColorPicker";
+
+function getLocalStoragePicker(): TPickers | undefined {
+  const p = get_local_storage(LS_PICKER_KEY);
+  if (typeof p === "string" && Pickers[p] != null) {
+    return p as TPickers;
+  }
+}
 
 interface Props {
   color?: string;
@@ -53,9 +65,10 @@ export default function ColorPicker(props: Props) {
     toggle,
     justifyContent = "center",
   } = props;
+
   const [visible, setVisible] = useState<boolean>(!toggle);
-  const [picker, setPicker] = useState<keyof typeof Pickers>(
-    defaultPicker ?? localStorage["defaultColorPicker"] ?? "circle"
+  const [picker, setPicker] = useState<TPickers>(
+    defaultPicker ?? getLocalStoragePicker() ?? "circle"
   );
   const Picker = Pickers[picker];
   const v: ReactNode[] = [];
@@ -117,7 +130,7 @@ export default function ColorPicker(props: Props) {
           style={{ width: "120px", marginTop: "10px" }}
           onChange={(picker) => {
             setPicker(picker);
-            localStorage["defaultColorPicker"] = picker;
+            set_local_storage(LS_PICKER_KEY, picker);
           }}
         >
           {v}
