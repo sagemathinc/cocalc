@@ -2360,7 +2360,7 @@ export function rowBackground({
   checked,
 }: {
   index: number;
-  checked: boolean;
+  checked?: boolean;
 }): string {
   if (checked) {
     if (index % 2 === 0) {
