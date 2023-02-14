@@ -1,5 +1,9 @@
+/*
+
+*/
+
 import { useRef } from "react";
-import { Checkbox } from "antd";
+import { Checkbox, Tooltip } from "antd";
 import { Selection } from "./use-selection";
 import useMouse from "@react-hook/mouse-position";
 
@@ -21,12 +25,11 @@ export default function SelectableIndex({
   if (mouse.isOver || selection.has(primaryKey)) {
     body = (
       <Checkbox
-        disabled={selection.all}
-        onClick={(/*e*/) => {
+        onClick={(e) => {
           if (selection.has(primaryKey)) {
             selection.delete(primaryKey);
           } else {
-            selection.add(primaryKey /*, e.shiftKey*/);
+            selection.add(primaryKey, index, e.shiftKey);
           }
         }}
         checked={selection.has(primaryKey)}
@@ -35,8 +38,8 @@ export default function SelectableIndex({
   } else {
     body = (
       <span
-        onClick={() => {
-          selection.add(primaryKey);
+        onClick={(e) => {
+          selection.add(primaryKey, index, e.shiftKey);
         }}
         style={{ color: "#707070" }}
       >
@@ -58,23 +61,24 @@ export default function SelectableIndex({
   );
 }
 
-export function SelectAll({
-  selection,
-}: {
-  selection: Selection;
-  numItems: number;
-}) {
+export function SelectAll({ selection }: { selection: Selection }) {
   return (
-    <div
-      style={{
-        minWidth: "30px",
-        padding: "5px",
-      }}
+    <Tooltip
+      title={`${selection.all ? "Unselect" : "Select"} all ${
+        selection.size
+      } items`}
     >
-      <Checkbox
-        checked={selection.all}
-        onChange={(e) => selection.setAll(e.target.checked)}
-      />
-    </div>
+      <div
+        style={{
+          minWidth: "30px",
+          padding: "5px",
+        }}
+      >
+        <Checkbox
+          checked={selection.all}
+          onChange={() => selection.setAll(!selection.all)}
+        />
+      </div>
+    </Tooltip>
   );
 }

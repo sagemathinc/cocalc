@@ -33,7 +33,11 @@ export default function Grid({
   rowKey,
   id,
 }: Props) {
-  const selection = useSelection(id);
+  const selection = useSelection({
+    id,
+    size: data.length,
+    getKey: (index) => data[index]?.[rowKey ?? ""],
+  });
   const [fieldWidths, setFieldWidths] = useFieldWidths({ id });
 
   return (
@@ -49,7 +53,6 @@ export default function Grid({
           fieldWidths={fieldWidths}
           setFieldWidths={setFieldWidths}
           selection={selection}
-          numItems={data.length}
         />
       )}
       itemContent={(index) => (
@@ -172,7 +175,6 @@ function Header({
   fieldWidths,
   setFieldWidths,
   selection,
-  numItems,
 }) {
   const directions = useMemo(() => {
     if (sortFields == null) return {};
@@ -181,10 +183,7 @@ function Header({
 
   return (
     <tr style={{ position: "relative" }}>
-      <ColumnHeading
-        width={30}
-        title={<SelectAll selection={selection} numItems={numItems} />}
-      />
+      <ColumnHeading width={30} title={<SelectAll selection={selection} />} />
       {columns.map((column) => (
         <ColumnHeading
           {...column}
