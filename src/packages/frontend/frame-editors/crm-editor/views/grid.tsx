@@ -1,4 +1,4 @@
-import { CSSProperties, ReactNode, useMemo, useRef, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
 import { Divider, Modal } from "antd";
 import type { ColumnsType } from "../fields";
@@ -6,12 +6,15 @@ import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
 import { Data } from "./gallery";
 import Json from "./json";
-import { sortDirections, SortDirection } from "../syncdb/use-sort-fields";
+import { sortDirections } from "../syncdb/use-sort-fields";
 import useFieldWidths from "../syncdb/use-field-widths";
-import Draggable from "react-draggable";
 import useSelection from "./use-selection";
 import SelectableIndex, { SelectAll } from "./selectable-index";
 import { rowBackground } from "@cocalc/util/misc";
+import {
+  ColumnHeading,
+  nextSortState,
+} from "@cocalc/frontend/components/data-grid";
 
 const DEFAULT_WIDTH = 150;
 
@@ -40,12 +43,11 @@ export default function Grid({
     getKey: (index) => data[index]?.[rowKey ?? ""],
   });
   const [fieldWidths, setFieldWidths] = useFieldWidths({ id });
-
   return (
     <TableVirtuoso
       overscan={500}
       style={{ height: "100%", overflow: "auto" }}
-      data={data}
+      totalCount={data.length}
       fixedHeaderContent={() => (
         <Header
           columns={columns}
@@ -165,16 +167,6 @@ function GridRow({
   );
 }
 
-function nextSortState(direction?: SortDirection | null) {
-  if (direction == "descending") {
-    return "ascending";
-  } else if (direction == "ascending") {
-    return null;
-  } else {
-    return "descending";
-  }
-}
-
 function Header({
   columns,
   sortFields,
@@ -208,89 +200,5 @@ function Header({
         />
       ))}
     </tr>
-  );
-}
-
-const DIRECTION_STYLE = {
-  float: "right",
-  marginTop: "2.5px",
-  cursor: "pointer",
-} as CSSProperties;
-
-function ColumnHeading({
-  width,
-  title,
-  direction,
-  onSortClick,
-  setWidth,
-}: {
-  width: number;
-  title?: ReactNode;
-  direction?: SortDirection;
-  onSortClick?: () => void;
-  setWidth?: (number) => void;
-}) {
-  const ignoreClickRef = useRef<boolean>(false);
-  return (
-    <th
-      style={{
-        cursor: "pointer",
-        width: width ?? 150,
-        color: "#428bca",
-        background: "rgb(250, 250, 250)",
-        padding: "10px 5px",
-        border: "1px solid #eee",
-        position: "relative",
-      }}
-      onClick={
-        onSortClick
-          ? () => {
-              if (ignoreClickRef.current) {
-                ignoreClickRef.current = false;
-                return;
-              }
-              onSortClick();
-            }
-          : undefined
-      }
-    >
-      {title}
-      {direction && (
-        <Icon
-          style={DIRECTION_STYLE}
-          name={direction == "ascending" ? "caret-down" : "caret-up"}
-        />
-      )}
-      {setWidth && (
-        <ResizeHandle
-          setWidth={setWidth}
-          width={width}
-          ignoreClick={() => {
-            ignoreClickRef.current = true;
-          }}
-        />
-      )}
-    </th>
-  );
-}
-
-function ResizeHandle({ setWidth, width, ignoreClick }) {
-  const [pos, setPos] = useState<any>(undefined);
-  return (
-    <Draggable
-      onMouseDown={ignoreClick}
-      position={pos}
-      axis="x"
-      onStop={() => {
-        setPos({ x: 0, y: 0 });
-      }}
-      onDrag={(_, data) => {
-        setPos({ x: 0, y: 0 });
-        ignoreClick();
-        setWidth(width + data.deltaX);
-      }}
-    >
-      <span className="cocalc-crm-grid-column-resizer"></span>
-    </Draggable>
   );
 }

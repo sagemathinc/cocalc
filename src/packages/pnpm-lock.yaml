@@ -180,6 +180,7 @@ importers:
       copy-to-clipboard: ^3.0.8
       create-react-class: ^15.7.0
       css-color-names: 0.0.4
+      csv-parse: ^5.3.5
       d3: ^3.5.6
       darkreader: 4.9.35
       dayjs: ^1.11.7
@@ -319,6 +320,7 @@ importers:
       copy-to-clipboard: 3.3.3
       create-react-class: 15.7.0
       css-color-names: 0.0.4
+      csv-parse: 5.3.5
       d3: 3.5.17
       darkreader: 4.9.35
       dayjs: 1.11.7
@@ -7027,6 +7029,10 @@ packages:
 
   /csstype/3.1.1:
     resolution: {integrity: sha512-DJR/VvkAvSZW9bTouZue2sSxDwdTN92uHjqeKVm+0dAqdfNykRzQ95tay8aXMBAAPpUiq4Qcug2L7neoRh2Egw==}
+
+  /csv-parse/5.3.5:
+    resolution: {integrity: sha512-8O5KTIRtwmtD3+EVfW6BCgbwZqJbhTYsQZry12F1TP5RUp0sD9tp1UnCWic3n0mLOhzeocYaCZNYxOGSg3dmmQ==}
+    dev: false
 
   /cuint/0.2.2:
     resolution: {integrity: sha512-d4ZVpCW31eWwCMe1YT3ur7mUDnTXbgwyzaL320DrcRT45rfjYxkt5QWLrmOJ+/UEAI2+fQgKe/fCjR8l4TpRgw==}
