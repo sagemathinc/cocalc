@@ -14,7 +14,7 @@ import "./ant-hacks.css";
 
 export default function TableEditor({ actions }) {
   return (
-    <div style={{ height: "100%", overflow: "auto" }}>
+    <div style={{ height: "100%" }}>
       <SyncdbContext.Provider value={{ syncdb: actions._syncstring }}>
         <TagsProvider>
           <AgentsProvider>
