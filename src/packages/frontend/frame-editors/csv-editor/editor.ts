@@ -8,19 +8,25 @@ Top-level react component for editing CSV files
 */
 
 import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
 import { set } from "@cocalc/util/misc";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
-
-import { ICON } from "./register";
+import Grid from "./grid";
 
 const EDITOR_SPEC = {
+  grid: {
+    short: "Grid",
+    name: "Grid",
+    icon: "table",
+    component: Grid,
+    buttons: set(["print", "decrease_font_size", "increase_font_size"]),
+  },
+
   cm: {
-    short: "CSV",
-    name: "CSV Data",
-    icon: ICON,
+    short: "Raw",
+    name: "Raw Data",
+    icon: "code",
     component: CodemirrorEditor,
     buttons: set([
       "print",
@@ -36,17 +42,16 @@ const EDITOR_SPEC = {
       "copy",
       "undo",
       "redo",
-      "format",
     ]),
-  } as EditorDescription,
+  },
 
   terminal,
 
   time_travel,
-};
+} as const;
 
 export const Editor = createEditor({
-  format_bar: true,
+  format_bar: false,
   editor_spec: EDITOR_SPEC,
   display_name: "CSV Editor",
 });

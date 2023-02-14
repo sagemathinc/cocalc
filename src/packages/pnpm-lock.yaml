@@ -147,6 +147,7 @@ importers:
       '@microlink/react-json-view': ^1.22.2
       '@react-hook/hover': ^4.0.0
       '@react-hook/mouse-position': ^4.1.3
+      '@silevis/reactgrid': ^4.0.4
       '@types/chai': ^4.2.11
       '@types/codemirror': ^5.60.5
       '@types/jquery': ^3.5.5
@@ -181,6 +182,7 @@ importers:
       copy-to-clipboard: ^3.0.8
       create-react-class: ^15.7.0
       css-color-names: 0.0.4
+      csv-parse: ^5.3.5
       d3: ^3.5.6
       darkreader: 4.9.35
       dayjs: ^1.11.7
@@ -303,6 +305,7 @@ importers:
       '@lumino/widgets': 1.36.0
       '@microlink/react-json-view': 1.22.2_ib3m5ricvtkl2cll7qpr2f6lvq
       '@react-hook/hover': 4.0.0_react@18.2.0
+      '@silevis/reactgrid': 4.0.4_biqbaboplfbrettd7655fr4n2y
       '@use-gesture/react': 10.2.24_react@18.2.0
       '@zippytech/react-notify-resize': 4.0.4_sh5qlbywuemxd2y3xkrw2y2kr4
       antd: 5.1.6_biqbaboplfbrettd7655fr4n2y
@@ -320,6 +323,7 @@ importers:
       copy-to-clipboard: 3.3.3
       create-react-class: 15.7.0
       css-color-names: 0.0.4
+      csv-parse: 5.3.5
       d3: 3.5.17
       darkreader: 4.9.35
       dayjs: 1.11.7
@@ -4331,6 +4335,17 @@ packages:
       - debug
     dev: false
 
+  /@silevis/reactgrid/4.0.4_biqbaboplfbrettd7655fr4n2y:
+    resolution: {integrity: sha512-kP6w5zPv5xUMRJwcvMph8fFaNpXybm4EqZ68O0h2D5AqGvwt0H3Y8zsstqT/4nYcuGidCemX7gU65vjMkRF/3g==}
+    peerDependencies:
+      react: ^16.13.1 || ^17.0.0
+      react-dom: ^16.13.1 || ^17.0.0
+    dependencies:
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+      tslib: 2.4.1
+    dev: false
+
   /@sinclair/typebox/0.24.51:
     resolution: {integrity: sha512-1P1OROm/rdubP5aFDSZQILU0vrLCJ4fvHt6EoqHEM+2D/G5MK3bIaymUKLit8Js9gbns5UyJnkP/TZROLw4tUA==}
     dev: true
@@ -7037,6 +7052,10 @@ packages:
 
   /csstype/3.1.1:
     resolution: {integrity: sha512-DJR/VvkAvSZW9bTouZue2sSxDwdTN92uHjqeKVm+0dAqdfNykRzQ95tay8aXMBAAPpUiq4Qcug2L7neoRh2Egw==}
+
+  /csv-parse/5.3.5:
+    resolution: {integrity: sha512-8O5KTIRtwmtD3+EVfW6BCgbwZqJbhTYsQZry12F1TP5RUp0sD9tp1UnCWic3n0mLOhzeocYaCZNYxOGSg3dmmQ==}
+    dev: false
 
   /cuint/0.2.2:
     resolution: {integrity: sha512-d4ZVpCW31eWwCMe1YT3ur7mUDnTXbgwyzaL320DrcRT45rfjYxkt5QWLrmOJ+/UEAI2+fQgKe/fCjR8l4TpRgw==}
