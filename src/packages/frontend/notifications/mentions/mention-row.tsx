@@ -48,20 +48,41 @@ export function MentionRow(props: Props) {
   const is_read = mention.getIn(["users", target, "read"]);
   const is_saved = mention.getIn(["users", target, "saved"]);
 
-  const read_icon: IconName = is_read ? "check-square-o" : "square-o";
+  const read_icon: IconName =
+    (is_read && !clicked) || (!is_read && clicked)
+      ? "check-square-o"
+      : "square-o";
+
+  // think of "in transition" between read and unread
   const clickedStyle: CSS =
-    !is_read && clicked && filter === "unread"
-      ? { backgroundColor: COLORS.GRAY }
+    clicked && (filter === "unread" || filter === "read")
+      ? { backgroundColor: COLORS.GRAY_LL }
       : {};
-  const row_style: CSS = is_read
-    ? { color: "rgb(88, 96, 105)", ...clickedStyle }
-    : { ...clickedStyle };
+
+  const row_style: CSS =
+    is_read && !clicked
+      ? { color: "rgb(88, 96, 105)", ...clickedStyle }
+      : { ...clickedStyle };
+
+  function markReadState(how: "read" | "unread") {
+    if (filter === "unread" || filter === "read") {
+      // the timeout is because visually seeing the mention disappear
+      // right when you click on it is disturbing.
+      setClicked(true); // a visual feedback, that user did just click on it
+      setTimeout(() => {
+        setClicked(false);
+        redux.getActions("mentions")?.mark(mention, id, how);
+      }, 1000);
+    } else {
+      // row won't disappear, hence no need to indicate a click + delay
+      redux.getActions("mentions")?.mark(mention, id, how);
+    }
+  }
 
   function on_read_unread_click(e) {
     e.preventDefault();
     e.stopPropagation();
-    const actions = redux.getActions("mentions");
-    actions.mark(mention, id, is_read ? "unread" : "read");
+    markReadState(is_read ? "unread" : "read");
   }
 
   function on_save_unsave_click(e) {
@@ -81,18 +102,7 @@ export function MentionRow(props: Props) {
       fragmentId,
     });
 
-    if (filter === "unread") {
-      // the timeout is because visually seeing the mention disappear
-      // right when you click on it is disturbing.
-      setClicked(true); // a visual feedback, that user did just click on it
-      setTimeout(() => {
-        setClicked(false);
-        redux.getActions("mentions")?.mark(mention, id, "read");
-      }, 1000);
-    } else {
-      // row won't disappear, hence no need to indicate a click + delay
-      redux.getActions("mentions")?.mark(mention, id, "read");
-    }
+    markReadState("read");
   }
 
   return (

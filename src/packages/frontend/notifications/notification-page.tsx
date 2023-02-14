@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Col, Row } from "antd";
 import React from "react";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Paragraph, Title } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
-import { Col, Row } from "antd";
 import { MentionFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
 import { NotificationNav } from "./notification-nav";
@@ -19,7 +19,8 @@ const OUTER_STYLE: CSS = {
   flexDirection: "column",
   height: "100%",
   margin: "0",
-  overflow: "none",
+  overflowY: "hidden",
+  overflowX: "auto",
 } as const;
 
 const INNER_STYLE: CSS = {
@@ -28,8 +29,9 @@ const INNER_STYLE: CSS = {
   flex: "1",
   flexDirection: "column",
   margin: "0px auto",
+  padding: "0 10px",
   maxWidth: "800px",
-  overflow: "none",
+  overflow: "hidden",
 } as const;
 
 const CONTENT_STYLE: CSS = {
@@ -37,7 +39,7 @@ const CONTENT_STYLE: CSS = {
   flex: "1 1 0",
   flexDirection: "row",
   height: "100%",
-  overflow: "none",
+  overflow: "hidden",
 };
 
 const NAV_STYLE: CSS = {
@@ -51,7 +53,7 @@ const LIST_CONTAINER_STYLE: CSS = {
   display: "flex",
   flexDirection: "column",
   height: "100%",
-  overflow: "none",
+  overflow: "hidden",
 } as const;
 
 const LIST_STYLE: CSS = {
@@ -77,9 +79,9 @@ export const NotificationPage: React.FC<{}> = () => {
         ellipsis={{
           rows: 1,
           expandable: true,
-          symbol: <strong>read more…</strong>,
+          symbol: <strong>...read more</strong>,
         }}
-        style={{ color: COLORS.GRAY_D }}
+        style={{ color: COLORS.GRAY_D, flex: "0 0 auto" }}
       >
         Someone used @your_name to explicitly mention you as a collaborator.
         This could have happened in a{" "}
@@ -87,7 +89,7 @@ export const NotificationPage: React.FC<{}> = () => {
         of{" "}
         <A href="https://doc.cocalc.com/teaching-interactions.html#mention-collaborators-in-chat">
           teaching
-        </A>{" "}
+        </A>
         , or{" "}
         <A href="https://doc.cocalc.com/markdown.html#mentions">
           when editing files.
@@ -103,7 +105,7 @@ export const NotificationPage: React.FC<{}> = () => {
 
   function renderContent() {
     return (
-      <Row style={CONTENT_STYLE}>
+      <Row style={CONTENT_STYLE} gutter={[20, 20]}>
         <Col span={6}>
           <NotificationNav
             filter={filter}
@@ -128,7 +130,7 @@ export const NotificationPage: React.FC<{}> = () => {
   return (
     <div style={OUTER_STYLE}>
       <div style={INNER_STYLE}>
-        <Title level={2} style={{ textAlign: "center" }}>
+        <Title level={2} style={{ textAlign: "center", flex: "0 0 auto" }}>
           Mentions of You
         </Title>
         {renderExplanation()}
