@@ -164,6 +164,8 @@ importers:
       '@types/react-redux': ^7.1.25
       '@use-gesture/react': ^10.2.24
       '@zippytech/react-notify-resize': ^4.0.4
+      ag-grid-community: ^29.0.0
+      ag-grid-react: ^29.0.0
       antd: ^5.1.6
       async: ^2.6.3
       async-await-utils: ^3.0.1
@@ -181,6 +183,7 @@ importers:
       copy-to-clipboard: ^3.0.8
       create-react-class: ^15.7.0
       css-color-names: 0.0.4
+      csv-parse: ^5.3.5
       d3: ^3.5.6
       darkreader: 4.9.35
       dayjs: ^1.11.7
@@ -305,6 +308,8 @@ importers:
       '@react-hook/hover': 4.0.0_react@18.2.0
       '@use-gesture/react': 10.2.24_react@18.2.0
       '@zippytech/react-notify-resize': 4.0.4_sh5qlbywuemxd2y3xkrw2y2kr4
+      ag-grid-community: 29.0.0
+      ag-grid-react: 29.0.0_xuacsscfwz2hsrosypjd6msikq
       antd: 5.1.6_biqbaboplfbrettd7655fr4n2y
       async: 2.6.4
       async-await-utils: 3.0.1
@@ -320,6 +325,7 @@ importers:
       copy-to-clipboard: 3.3.3
       create-react-class: 15.7.0
       css-color-names: 0.0.4
+      csv-parse: 5.3.5
       d3: 3.5.17
       darkreader: 4.9.35
       dayjs: 1.11.7
@@ -5340,6 +5346,23 @@ packages:
       object-assign: 4.1.1
     dev: false
 
+  /ag-grid-community/29.0.0:
+    resolution: {integrity: sha512-onAQIqjhP1L93W5myAsfLBMBUyZPrWDb8FRulJuhjQKo8DEA4GSZ+oJHxwwLymm4biLu54zvZ+9GkTftha8gAg==}
+    dev: false
+
+  /ag-grid-react/29.0.0_xuacsscfwz2hsrosypjd6msikq:
+    resolution: {integrity: sha512-R8rE6fXXzl1SocGhfQGkfdGWUN0KmYOCVwyn4ZPNu0Ofsxb7/KZd0RwuetvH1J8hSlHmSsoou6qzalPbSC4jLQ==}
+    peerDependencies:
+      ag-grid-community: ~29.0.0
+      react: ^16.3.0 || ^17.0.0 || ^18.0.0
+      react-dom: ^16.3.0 || ^17.0.0 || ^18.0.0
+    dependencies:
+      ag-grid-community: 29.0.0
+      prop-types: 15.8.1
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+    dev: false
+
   /agent-base/6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
@@ -7037,6 +7060,10 @@ packages:
 
   /csstype/3.1.1:
     resolution: {integrity: sha512-DJR/VvkAvSZW9bTouZue2sSxDwdTN92uHjqeKVm+0dAqdfNykRzQ95tay8aXMBAAPpUiq4Qcug2L7neoRh2Egw==}
+
+  /csv-parse/5.3.5:
+    resolution: {integrity: sha512-8O5KTIRtwmtD3+EVfW6BCgbwZqJbhTYsQZry12F1TP5RUp0sD9tp1UnCWic3n0mLOhzeocYaCZNYxOGSg3dmmQ==}
+    dev: false
 
   /cuint/0.2.2:
     resolution: {integrity: sha512-d4ZVpCW31eWwCMe1YT3ur7mUDnTXbgwyzaL320DrcRT45rfjYxkt5QWLrmOJ+/UEAI2+fQgKe/fCjR8l4TpRgw==}
