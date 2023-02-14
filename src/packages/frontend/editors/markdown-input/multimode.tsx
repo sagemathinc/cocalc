@@ -2,26 +2,28 @@
 Edit with either plain text input **or** WYSIWYG slate-based input.
 */
 
-import { MutableRefObject, useEffect } from "react";
 import { Radio } from "antd";
-import "@cocalc/frontend/editors/slate/elements/math/math-widget";
-import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
-import { MarkdownInput } from "./component";
+import { fromJS, Map as ImmutableMap } from "immutable";
+import LRU from "lru-cache";
 import {
   CSSProperties,
+  MutableRefObject,
   ReactNode,
   RefObject,
+  useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { FOCUSED_STYLE, BLURED_STYLE } from "./component";
-import { fromJS, Map as ImmutableMap } from "immutable";
-import LRU from "lru-cache";
-import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
-import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+
+import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
+import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc";
+import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { BLURED_STYLE, FOCUSED_STYLE, MarkdownInput } from "./component";
 
 // NOTE: on mobile there is very little suppport for "editor" = "slate", but
 // very good support for "markdown", hence the default below.
@@ -40,9 +42,17 @@ const multimodeStateCache = new LRU<string, MultimodeState>({ max: 500 });
 
 // markdown uses codemirror
 // editor uses slate.  TODO: this should be "text", not "editor".  Oops.
-export type Mode = "markdown" | "editor";
+const Modes = ["markdown", "editor"] as const;
+export type Mode = typeof Modes[number];
 
 const LOCAL_STORAGE_KEY = "markdown-editor-mode";
+
+function getLocalStorageMode(): Mode | undefined {
+  const m = get_local_storage(LOCAL_STORAGE_KEY);
+  if (typeof m === "string" && Modes.includes(m as any)) {
+    return m as Mode;
+  }
+}
 
 interface Props {
   cacheId?: string; // unique **within this file**; the project_id and path are automatically also used
@@ -117,49 +127,50 @@ interface Props {
   refresh?: any;
 }
 
-export default function MultiMarkdownInput({
-  cacheId,
-  value,
-  defaultMode,
-  fixedMode,
-  onChange,
-  getValueRef,
-  onModeChange,
-  onShiftEnter,
-  placeholder,
-  fontSize,
-  height = "auto",
-  style,
-  autoFocus,
-  enableMentions,
-  enableUpload = true,
-  onUploadStart,
-  onUploadEnd,
-  submitMentionsRef,
-  extraHelp,
-  saveDebounceMs = SAVE_DEBOUNCE_MS,
-  hideHelp,
-  onBlur,
-  onFocus,
-  minimal,
-  editBarStyle,
-  onCursors,
-  cursors,
-  noVfill,
-  editorDivRef,
-  cmOptions,
-  onUndo,
-  onRedo,
-  onSave,
-  onCursorTop,
-  onCursorBottom,
-  compact,
-  isFocused,
-  registerEditor,
-  unregisterEditor,
-  modeSwitchStyle,
-  refresh,
-}: Props) {
+export default function MultiMarkdownInput(props: Props) {
+  const {
+    cacheId,
+    value,
+    defaultMode,
+    fixedMode,
+    onChange,
+    getValueRef,
+    onModeChange,
+    onShiftEnter,
+    placeholder,
+    fontSize,
+    height = "auto",
+    style,
+    autoFocus,
+    enableMentions,
+    enableUpload = true,
+    onUploadStart,
+    onUploadEnd,
+    submitMentionsRef,
+    extraHelp,
+    saveDebounceMs = SAVE_DEBOUNCE_MS,
+    hideHelp,
+    onBlur,
+    onFocus,
+    minimal,
+    editBarStyle,
+    onCursors,
+    cursors,
+    noVfill,
+    editorDivRef,
+    cmOptions,
+    onUndo,
+    onRedo,
+    onSave,
+    onCursorTop,
+    onCursorBottom,
+    compact,
+    isFocused,
+    registerEditor,
+    unregisterEditor,
+    modeSwitchStyle,
+    refresh,
+  } = props;
   const { project_id, path } = useFrameContext();
 
   function getCache() {
@@ -172,7 +183,7 @@ export default function MultiMarkdownInput({
     fixedMode ??
       getCache()?.mode ??
       defaultMode ??
-      localStorage[LOCAL_STORAGE_KEY] ??
+      getLocalStorageMode() ??
       (IS_MOBILE ? "markdown" : "editor")
   );
 
@@ -181,7 +192,7 @@ export default function MultiMarkdownInput({
   }, []);
 
   const setMode = (mode: Mode) => {
-    localStorage[LOCAL_STORAGE_KEY] = mode;
+    set_local_storage(LOCAL_STORAGE_KEY, mode);
     setMode0(mode);
     onModeChange?.(mode);
     if (cacheId !== undefined) {
