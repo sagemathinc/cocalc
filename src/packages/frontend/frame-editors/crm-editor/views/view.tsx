@@ -186,7 +186,8 @@ export default function View({
       data={filteredData}
       viewCount={filteredData?.length ?? 0}
       tableLowerBound={data?.length ?? 0}
-      columns={allColumns}
+      allColumns={allColumns}
+      columns={columns}
       limit={limit}
       setLimit={setLimit}
       sortFields={sortFields}

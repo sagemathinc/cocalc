@@ -9,6 +9,8 @@ import { join } from "path";
 import { Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { redux } from "@cocalc/frontend/app-framework";
+import { stringify as csvStringify } from "csv-stringify/sync";
+import type { ColumnsType } from "../../fields";
 
 // sort of arbitrary; I know 10MB will blow up, since there is a tight message size limit.
 // TODO: eliminate this somehow...
@@ -21,6 +23,7 @@ interface Props {
   selected: Set<any> | undefined;
   data: object[];
   primaryKey: string;
+  columns: ColumnsType[];
 }
 
 export default function Export({
@@ -30,6 +33,7 @@ export default function Export({
   selected,
   data,
   primaryKey,
+  columns,
 }: Props) {
   const { path: curPath, project_id } = useFrameContext();
   const [path, setPath] = useState<string>(
@@ -41,13 +45,26 @@ export default function Export({
   const [state, setState] = useState<"input" | "saving" | "done">("input");
   const [error, setError] = useState<string>("");
   const content = useMemo(() => {
-    return JSON.stringify(
+    const records =
       primaryKey != null
         ? data.filter((x) => selected?.has(x[primaryKey]))
-        : data,
-      undefined,
-      2
-    );
+        : data;
+    if (type == "json") {
+      return JSON.stringify(records, undefined, 2);
+    } else if (type == "csv") {
+      if (records.length == 0) {
+        return "";
+      }
+      const rows: any[] = [columns.map((column) => column.title)];
+      const keys = columns.map((column) => column.key);
+      for (const record of records) {
+        rows.push(keys.map((key) => record[key]));
+      }
+      return csvStringify(rows);
+    } else {
+      setError(`unknown type ${type}`);
+      return "";
+    }
   }, [selected, data, primaryKey]);
 
   const doExport = useCallback(

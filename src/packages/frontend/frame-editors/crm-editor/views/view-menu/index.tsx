@@ -20,6 +20,7 @@ export default function ViewMenu({
   viewCount,
   tableLowerBound,
   columns,
+  allColumns,
   limit,
   setLimit,
   hiddenFields,
@@ -56,9 +57,10 @@ export default function ViewMenu({
         data={data}
         title={title}
         primaryKey={primaryKey}
+        columns={columns}
       />
       <HideFieldsMenu
-        columns={columns}
+        columns={allColumns}
         hiddenFields={hiddenFields}
         setHiddenField={setHiddenField}
         orderFields={orderFields}
@@ -66,14 +68,14 @@ export default function ViewMenu({
         rowKey={rowKey}
       />
       <SearchMenu
-        columns={columns}
+        columns={allColumns}
         search={search}
         setSearch={setSearch}
         query={query}
       />
-      {/* <GroupMenu columns={columns} /> */}
+      {/* <GroupMenu columns={allColumns} /> */}
       <SortMenu
-        columns={columns}
+        columns={allColumns}
         sortFields={sortFields}
         setSortField={setSortField}
       />

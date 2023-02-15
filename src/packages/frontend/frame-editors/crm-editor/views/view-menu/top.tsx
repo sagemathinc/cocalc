@@ -11,6 +11,7 @@ import { capitalize } from "@cocalc/util/misc";
 export default function TopMenu({
   id,
   name,
+  columns,
   dbtable,
   view,
   viewCount,
@@ -146,6 +147,7 @@ export default function TopMenu({
           selected={selected}
           onClose={() => setModal(null)}
           data={data}
+          columns={columns}
           primaryKey={primaryKey}
         />
       )}
@@ -156,6 +158,7 @@ export default function TopMenu({
           onClose={() => setModal(null)}
           selected={selected}
           data={data}
+          columns={columns}
           primaryKey={primaryKey}
         />
       )}
