@@ -15,6 +15,12 @@ import { useEditor, Actions } from "../actions";
 import { Set } from "immutable";
 import { useRef, useState } from "react";
 
+export function useSelected({ id }: { id: string }): Set<any> | undefined {
+  const editor = useEditor();
+  const sel = editor("selection");
+  return sel?.get(id);
+}
+
 export interface Selection {
   has: (key: any) => boolean;
   add: (key: any, index: number, shiftKey?: boolean) => void;

@@ -1,16 +1,26 @@
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TYPE_TO_ICON } from "../index";
-import { Divider, Menu, Popover, Statistic } from "antd";
-import Count from "../count";
+import { Divider, Menu } from "antd";
+import Count, { Stat } from "../count";
+import { useSelected } from "../use-selection";
+import { plural } from "@cocalc/util/misc";
+import { useState } from "react";
+import Export from "./export";
+import { capitalize } from "@cocalc/util/misc";
 
 export default function TopMenu({
+  id,
   name,
-  title,
   dbtable,
   view,
   viewCount,
   tableLowerBound,
+  data,
+  title,
 }) {
+  const [modal, setModal] = useState<"csv-export" | "json-export" | null>(null);
+  const selected = useSelected({ id });
+  const numSelected = selected?.size ?? 0;
   const items = [
     {
       label: (
@@ -29,25 +39,43 @@ export default function TopMenu({
       children: [
         {
           type: "group",
+          label: (
+            <Divider>
+              {capitalize(view)} View of {title}
+            </Divider>
+          ),
+          children: [
+            {
+              label: <Stat title="Visible results" value={viewCount} />,
+              key: "results",
+            },
+            {
+              label: <Count dbtable={dbtable} lowerBound={tableLowerBound} />,
+              key: "count",
+            },
+          ],
+        },
+        {
+          type: "group",
           label: <Divider>Properties</Divider>,
           children: [
             {
-              label: "Rename view",
-              key: "rename",
-            },
-            {
-              label: "Change view type",
+              icon: <Icon name="swap" />,
+              label: "Change view type...",
               key: "change",
             },
             {
+              icon: <Icon name="copy" />,
+              label: "Copy another view's configuration...",
+              key: "copy",
+            },
+            {
+              icon: <Icon name="tags-outlined" />,
               label: "Duplicate view",
               key: "duplicate",
             },
             {
-              label: "Copy another view's configuration",
-              key: "copy",
-            },
-            {
+              icon: <Icon name="trash" />,
               danger: true,
               label: "Delete view",
               key: "delete",
@@ -59,25 +87,47 @@ export default function TopMenu({
           label: <Divider>Import</Divider>,
           children: [
             {
-              label: "Import CSV",
+              icon: <Icon name="csv" />,
+              label: "Import CSV...",
               key: "csv-import",
             },
             {
-              label: "Import JSON",
+              icon: <Icon name="js-square" />,
+              label: "Import JSON...",
               key: "json-import",
             },
           ],
         },
         {
           type: "group",
-          label: <Divider>Export</Divider>,
+          label: (
+            <Divider>
+              <Icon name="file-export" /> Export
+            </Divider>
+          ),
           children: [
             {
-              label: "Export CSV",
+              icon: <Icon name="csv" />,
+              disabled: numSelected == 0,
+              label:
+                numSelected == 0
+                  ? "Export CSV (select some records)"
+                  : `Export ${selected?.size ?? 0} ${plural(
+                      numSelected,
+                      "record"
+                    )} to CSV...`,
               key: "csv-export",
             },
             {
-              label: "Export JSON",
+              icon: <Icon name="js-square" />,
+              disabled: numSelected == 0,
+              label:
+                numSelected == 0
+                  ? "Export JSON (select some records)"
+                  : `Export ${selected?.size ?? 0} ${plural(
+                      numSelected,
+                      "record"
+                    )} to JSON...`,
               key: "json-export",
             },
           ],
@@ -86,24 +136,36 @@ export default function TopMenu({
     },
   ];
   return (
-    <Popover
-      mouseEnterDelay={0.7}
-      title={
-        <>
-          <Icon name={TYPE_TO_ICON[view]} /> {name}
-        </>
-      }
-      placement="left"
-      content={
-        <div>
-          Table: {title}
-          <Divider>Statistics</Divider>
-          <Statistic title="Results in Filtered View" value={viewCount} />
-          <Count name={title} dbtable={dbtable} lowerBound={tableLowerBound} />
-        </div>
-      }
-    >
-      <Menu triggerSubMenuAction={"click"} items={items} />
-    </Popover>
+    <>
+      {modal == "csv-export" && (
+        <Export
+          type="csv"
+          selected={selected}
+          onCancel={() => setModal(null)}
+          data={data}
+        />
+      )}
+      {modal == "json-export" && (
+        <Export
+          type="json"
+          onCancel={() => setModal(null)}
+          selected={selected}
+          data={data}
+        />
+      )}
+      <Menu
+        style={{ background: numSelected == 0 ? undefined : "#a3d4ff" }}
+        triggerSubMenuAction={"click"}
+        items={items}
+        onClick={({ key }) => {
+          switch (key) {
+            case "csv-export":
+            case "json-export":
+              setModal(key);
+              break;
+          }
+        }}
+      />
+    </>
   );
 }

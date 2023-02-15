@@ -170,12 +170,14 @@ export default function View({
 
   const header = (
     <ViewMenu
+      id={id}
       query={query}
       name={name}
       title={title ?? fieldToLabel(table)}
       dbtable={dbtable}
       table={table}
       view={view}
+      data={filteredData}
       viewCount={filteredData?.length ?? 0}
       tableLowerBound={data?.length ?? 0}
       columns={allColumns}

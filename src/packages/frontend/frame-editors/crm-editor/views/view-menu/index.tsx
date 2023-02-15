@@ -9,12 +9,14 @@ import LimitsMenu from "./limits";
 import NewMenu from "./new";
 
 export default function ViewMenu({
+  id,
   query,
   name,
   title,
   table,
   dbtable,
   view,
+  filteredData,
   viewCount,
   tableLowerBound,
   columns,
@@ -44,12 +46,14 @@ export default function ViewMenu({
       style={{ maxHeight: "135px", overflowY: "auto" }}
     >
       <TopMenu
+        id={id}
         name={name}
-        title={title}
         dbtable={dbtable}
         view={view}
         viewCount={viewCount}
         tableLowerBound={tableLowerBound}
+        data={filteredData}
+        title={title}
       />
       <HideFieldsMenu
         columns={columns}
