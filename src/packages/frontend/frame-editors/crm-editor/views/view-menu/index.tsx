@@ -33,6 +33,7 @@ export default function ViewMenu({
   orderFields,
   setOrderFields,
   rowKey,
+  primaryKey,
   addNew,
   addedRecords,
   setAddedRecords,
@@ -54,7 +55,7 @@ export default function ViewMenu({
         tableLowerBound={tableLowerBound}
         data={data}
         title={title}
-        rowKey={rowKey}
+        primaryKey={primaryKey}
       />
       <HideFieldsMenu
         columns={columns}

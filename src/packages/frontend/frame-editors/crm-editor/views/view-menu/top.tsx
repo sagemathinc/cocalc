@@ -1,6 +1,6 @@
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TYPE_TO_ICON } from "../index";
-import { Divider, Menu } from "antd";
+import { Divider, Menu, Modal } from "antd";
 import Count, { Stat } from "../count";
 import { useSelected } from "../use-selection";
 import { plural } from "@cocalc/util/misc";
@@ -17,9 +17,11 @@ export default function TopMenu({
   tableLowerBound,
   data,
   title,
-  rowKey,
+  primaryKey,
 }) {
-  const [modal, setModal] = useState<"csv-export" | "json-export" | null>(null);
+  const [modal, setModal] = useState<
+    "csv-export" | "json-export" | "not-implemented" | null
+  >(null);
   const selected = useSelected({ id });
   const numSelected = selected?.size ?? 0;
   const items = [
@@ -58,7 +60,12 @@ export default function TopMenu({
         },
         {
           type: "group",
-          label: <Divider>Properties</Divider>,
+          label: (
+            <Divider>
+              {" "}
+              <Icon name="gear" style={{ marginRight: "10px" }} /> Properties
+            </Divider>
+          ),
           children: [
             {
               icon: <Icon name="swap" />,
@@ -70,22 +77,16 @@ export default function TopMenu({
               label: "Copy another view's configuration...",
               key: "copy",
             },
-            {
-              icon: <Icon name="tags-outlined" />,
-              label: "Duplicate view",
-              key: "duplicate",
-            },
-            {
-              icon: <Icon name="trash" />,
-              danger: true,
-              label: "Delete view",
-              key: "delete",
-            },
           ],
         },
         {
           type: "group",
-          label: <Divider>Import</Divider>,
+          label: (
+            <Divider>
+              <Icon name="cloud-upload" style={{ marginRight: "10px" }} />{" "}
+              Import
+            </Divider>
+          ),
           children: [
             {
               icon: <Icon name="csv" />,
@@ -103,13 +104,13 @@ export default function TopMenu({
           type: "group",
           label: (
             <Divider>
-              <Icon name="file-export" /> Export
+              <Icon name="file-export" style={{ marginRight: "10px" }} /> Export
             </Divider>
           ),
           children: [
             {
               icon: <Icon name="csv" />,
-              disabled: numSelected == 0,
+              disabled: primaryKey != null && numSelected == 0,
               label:
                 numSelected == 0
                   ? "Export CSV (select some records)"
@@ -121,7 +122,7 @@ export default function TopMenu({
             },
             {
               icon: <Icon name="js-square" />,
-              disabled: numSelected == 0,
+              disabled: primaryKey != null && numSelected == 0,
               label:
                 numSelected == 0
                   ? "Export JSON (select some records)"
@@ -138,24 +139,36 @@ export default function TopMenu({
   ];
   return (
     <>
-      {modal == "csv-export" && selected && (
+      {modal == "csv-export" && (primaryKey == null || selected) && (
         <Export
           type="csv"
           title={title}
           selected={selected}
           onClose={() => setModal(null)}
           data={data}
-          rowKey={rowKey}
+          primaryKey={primaryKey}
         />
       )}
-      {modal == "json-export" && selected && (
+      {modal == "json-export" && (primaryKey == null || selected) && (
         <Export
           type="json"
           title={title}
           onClose={() => setModal(null)}
           selected={selected}
           data={data}
-          rowKey={rowKey}
+          primaryKey={primaryKey}
+        />
+      )}
+      {modal == "not-implemented" && (
+        <Modal
+          open
+          title="This menu item is not yet implemented."
+          onCancel={() => {
+            setModal(null);
+          }}
+          onOk={() => {
+            setModal(null);
+          }}
         />
       )}
       <Menu
@@ -169,6 +182,8 @@ export default function TopMenu({
             case "json-export":
               setModal(key);
               break;
+            default:
+              setModal("not-implemented");
           }
         }}
       />

@@ -24,7 +24,7 @@ interface Props {
   sortFields;
   setSortField;
   recordHeight?: number;
-  rowKey?: string; // the primary key
+  primaryKey?: string; // the primary key -- undefined if there is a compound primary key (TODO!?)
   id: string;
 }
 
@@ -34,13 +34,13 @@ export default function Grid({
   sortFields,
   setSortField,
   recordHeight,
-  rowKey,
+  primaryKey,
   id,
 }: Props) {
   const selection = useSelection({
     id,
     size: data.length,
-    getKey: (index) => data[index]?.[rowKey ?? ""],
+    getKey: (index) => data[index]?.[primaryKey ?? ""],
   });
   const [fieldWidths, setFieldWidths] = useFieldWidths({ id });
   return (
@@ -56,12 +56,13 @@ export default function Grid({
           fieldWidths={fieldWidths}
           setFieldWidths={setFieldWidths}
           selection={selection}
+          primaryKey={primaryKey}
         />
       )}
       itemContent={(index) => (
         <GridRow
           index={index}
-          rowKey={rowKey}
+          primaryKey={primaryKey}
           data={data[index]}
           columns={columns}
           fieldWidths={fieldWidths}
@@ -79,32 +80,34 @@ function GridRow({
   columns,
   recordHeight,
   fieldWidths,
-  rowKey,
+  primaryKey,
   selection,
 }) {
   const background = rowBackground({
     index,
-    checked: selection.has(data[rowKey]),
+    checked: selection.has(data[primaryKey]),
   });
-  const v: ReactNode[] = [
-    <td
-      key="index"
-      style={{
-        cursor: "pointer",
-        border: "1px solid #eee",
-        padding: "0 5px",
-        color: "#666",
-        textAlign: "center",
-        background,
-      }}
-    >
-      <SelectableIndex
-        index={index}
-        primaryKey={data[rowKey]}
-        selection={selection}
-      />
-    </td>,
-  ];
+  const v: ReactNode[] = primaryKey
+    ? [
+        <td
+          key="index"
+          style={{
+            cursor: "pointer",
+            border: "1px solid #eee",
+            padding: "0 5px",
+            color: "#666",
+            textAlign: "center",
+            background,
+          }}
+        >
+          <SelectableIndex
+            index={index}
+            primaryKey={data[primaryKey]}
+            selection={selection}
+          />
+        </td>,
+      ]
+    : [];
   const [open, setOpen] = useState<boolean>(false);
   for (const column of columns) {
     const text = data?.[column.dataIndex];
@@ -174,6 +177,7 @@ function Header({
   fieldWidths,
   setFieldWidths,
   selection,
+  primaryKey,
 }) {
   const directions = useMemo(() => {
     if (sortFields == null) return {};
@@ -182,7 +186,9 @@ function Header({
 
   return (
     <tr style={{ position: "relative" }}>
-      <ColumnHeading width={30} title={<SelectAll selection={selection} />} />
+      {primaryKey && (
+        <ColumnHeading width={30} title={<SelectAll selection={selection} />} />
+      )}
       {columns.map((column) => (
         <ColumnHeading
           {...column}

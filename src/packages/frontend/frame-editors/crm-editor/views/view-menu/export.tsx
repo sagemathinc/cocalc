@@ -18,9 +18,9 @@ interface Props {
   type: "json" | "csv";
   title: string;
   onClose: () => void;
-  selected: Set<any>;
+  selected: Set<any> | undefined;
   data: object[];
-  rowKey: string;
+  primaryKey: string;
 }
 
 export default function Export({
@@ -29,7 +29,7 @@ export default function Export({
   onClose,
   selected,
   data,
-  rowKey,
+  primaryKey,
 }: Props) {
   const { path: curPath, project_id } = useFrameContext();
   const [path, setPath] = useState<string>(
@@ -42,11 +42,13 @@ export default function Export({
   const [error, setError] = useState<string>("");
   const content = useMemo(() => {
     return JSON.stringify(
-      data.filter((x) => selected.has(x[rowKey])),
+      primaryKey != null
+        ? data.filter((x) => selected?.has(x[primaryKey]))
+        : data,
       undefined,
       2
     );
-  }, [selected, data, rowKey]);
+  }, [selected, data, primaryKey]);
 
   const doExport = useCallback(
     async (path) => {
@@ -71,7 +73,7 @@ export default function Export({
         setError(`Error writing '${path}' -- ${err}`);
       }
     },
-    [selected, data, rowKey]
+    [selected, data, primaryKey]
   );
 
   return (
@@ -80,9 +82,10 @@ export default function Export({
       footer={null}
       title={
         <div style={{ margin: "0 15px" }}>
-          <Icon name="file-export" /> Export {selected.size}{" "}
-          {plural(selected.size, "record")} in {type} format from {title} to the
-          following file:
+          <Icon name="file-export" /> Export{" "}
+          {primaryKey == null ? "all" : selected?.size}{" "}
+          {plural(primaryKey == null ? 2 : selected?.size, "record")} in {type}{" "}
+          format from {title} to the following file:
         </div>
       }
       onCancel={onClose}

@@ -107,7 +107,13 @@ export default function View({
   const rowKey = useMemo(() => {
     const keys = client_db.primary_keys(dbtable);
     return keys[0];
-  }, [table]);
+  }, [dbtable]);
+
+  // only defined if there is not a compound primary key
+  const primaryKey = useMemo(() => {
+    const keys = client_db.primary_keys(dbtable);
+    return keys.length == 1 ? keys[0] : undefined;
+  }, [dbtable]);
 
   const {
     data,
@@ -194,6 +200,7 @@ export default function View({
       orderFields={orderFields}
       setOrderFields={setOrderFields}
       rowKey={rowKey}
+      primaryKey={primaryKey}
       addNew={allowCreate ? addNew : undefined}
       addedRecords={addedRecords}
       setAddedRecords={setAddedRecords}
@@ -275,7 +282,7 @@ export default function View({
           columns={columns}
           sortFields={sortFields}
           setSortField={setSortField}
-          rowKey={rowKey}
+          primaryKey={primaryKey}
         />
       );
       break;
