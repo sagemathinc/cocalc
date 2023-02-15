@@ -7,21 +7,25 @@
 Customization and selection of the build command.
 */
 
+import { Alert, Dropdown, Form, Input } from "antd";
 import { List } from "immutable";
-import { Loading, Icon } from "@cocalc/frontend/components";
-import { Alert } from "react-bootstrap";
-import { Input, Form, Dropdown, Menu } from "antd";
+
+import { DownOutlined, SaveOutlined } from "@ant-design/icons";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
-import { SaveOutlined, DownOutlined } from "@ant-design/icons";
 import { React } from "@cocalc/frontend/app-framework";
-import { split } from "@cocalc/util/misc";
 import {
-  ENGINES,
-  Engine,
-  build_command as latexmk_build_command,
-} from "./latexmk";
+  Icon,
+  Loading,
+  MenuItems,
+  Paragraph,
+} from "@cocalc/frontend/components";
+import { split } from "@cocalc/util/misc";
 import { Actions } from "./actions";
-import { COLORS } from "@cocalc/util/theme";
+import {
+  build_command as latexmk_build_command,
+  Engine,
+  ENGINES,
+} from "./latexmk";
 
 // cmd could be undefined -- https://github.com/sagemathinc/cocalc/issues/3290
 function build_command_string(cmd: string | List<string>): string {
@@ -96,18 +100,21 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
     actions.init_build_directive(true);
   }
 
-  function render_engine_options(): JSX.Element {
-    const v: JSX.Element[] = ENGINES.map((engine) => (
-      <Menu.Item key={engine}>{engine}</Menu.Item>
-    ));
-    return <Menu onClick={(e) => select_engine(e.key as Engine)}>{v}</Menu>;
+  function engineOptions(): MenuItems {
+    return ENGINES.map((engine) => {
+      return {
+        key: engine,
+        label: engine,
+        onClick: () => select_engine(engine),
+      };
+    });
   }
 
   function render_engines(): JSX.Element {
     return (
       <Dropdown
         placement={"bottomRight"}
-        overlay={render_engine_options()}
+        menu={{ items: engineOptions() }}
         trigger={["hover", "click"]}
         disabled={build_command_hardcoded}
       >
@@ -197,16 +204,57 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
   function render_help() {
     if (!focus) return null;
     return (
-      <Alert bsStyle="info">
-        <div style={{ color: COLORS.GRAY }}>
-          <h4>Build Command</h4>
-          Select a build engine from the menu at the right, or enter absolutely
-          any custom build command line you want. Custom build commands are run
-          using bash, so you can separate multiple commands with a semicolon. If
-          there is no semicolon, then the command line must end with the
-          filename (not including the directory).
-        </div>
-      </Alert>
+      <Alert
+        type="info"
+        style={{ padding: "10px 10px 0 10px" }}
+        showIcon={false}
+        message={"Build Command Help"}
+        description={
+          <Paragraph style={{ fontSize: "90%" }}>
+            Select a build engine from the menu at the right, or enter
+            absolutely any custom build command line you want. Custom build
+            commands are run using bash, so you can separate multiple commands
+            with a semicolon. If there is no semicolon, then the command line
+            must end with the filename (not including the directory).
+          </Paragraph>
+        }
+      />
+    );
+  }
+
+  function renderHardcodedInfo() {
+    if (!show_hardcoded_info) return null;
+    return (
+      <Alert
+        type="warning"
+        showIcon={false}
+        style={{ padding: "10px 10px 0 10px" }}
+        description={
+          <>
+            <Paragraph>
+              There is a <code>% !TeX cocalc = ...</code> directive in your
+              document. This hardcodes the build command for this document. The
+              command is sanitized to work well with this editor by e.g. always
+              replacing the last token to the current file name. To disable any
+              sanitization, add a semicolon at the end or use a semicolon to
+              issue more than one command.
+            </Paragraph>
+            <Paragraph>
+              After changing the build command directive, commenting it out via{" "}
+              <code>%% </code> or removing it, make sure to{" "}
+              <a onClick={() => rescan()}>rescan the document</a>.
+            </Paragraph>
+            <Paragraph>
+              Example:{" "}
+              <code>
+                % !TeX cocalc = latexmk -pdf -f -g -bibtex -deps -synctex=1
+                -interaction=nonstopmode file.tex
+              </code>
+              .
+            </Paragraph>
+          </>
+        }
+      />
     );
   }
 
@@ -230,33 +278,7 @@ export const BuildCommand: React.FC<Props> = React.memo((props: Props) => {
           </a>
         </h4>
         <pre style={{ whiteSpace: "pre-line" }}>{build_command}</pre>
-        {show_hardcoded_info && (
-          <Alert bsStyle="warning">
-            <div style={{ color: COLORS.GRAY }}>
-              <p>
-                There is a <code>% !TeX cocalc = ...</code> directive in your
-                document. This hardcodes the build command for this document.
-                The command is sanitized to work well with this editor by e.g.
-                always replacing the last token to the current file name. To
-                disable any sanitization, add a semicolon at the end or use a
-                semicolon to issue more than one command.
-              </p>
-              <p>
-                After changing the build command directive, commenting it out
-                via <code>%% </code> or removing it, make sure to{" "}
-                <a onClick={() => rescan()}>rescan the document</a>.
-              </p>
-              <p>
-                Example:{" "}
-                <code>
-                  % !TeX cocalc = latexmk -pdf -f -g -bibtex -deps -synctex=1
-                  -interaction=nonstopmode file.tex
-                </code>
-                .
-              </p>
-            </div>
-          </Alert>
-        )}
+        {renderHardcodedInfo()}
       </>
     );
   }
