@@ -8,7 +8,7 @@ import {
   React,
   Rendered,
   TypedMap,
-  useState,
+  useState
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { plural } from "@cocalc/util/misc";
@@ -23,7 +23,7 @@ import {
   isUpgradFieldsType as isUpgradeFieldsType,
   license_field_names,
   upgrade_fields,
-  upgrade_fields_type,
+  upgrade_fields_type
 } from "./types";
 import { presets } from "./upgrade-presets";
 interface UpgradeParams {

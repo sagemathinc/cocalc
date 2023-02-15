@@ -6,15 +6,16 @@
 // This is for selecting the "standard" compute images Ubuntu XX.YY, etc.
 
 import { DownOutlined } from "@ant-design/icons";
+import { Button, Dropdown, MenuProps } from "antd";
+import { fromJS } from "immutable";
+
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Space } from "@cocalc/frontend/components";
+import { Icon, Loading, Space, Text } from "@cocalc/frontend/components";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Button, Dropdown, Menu, MenuProps, Typography } from "antd";
-import { fromJS } from "immutable";
-const { Text } = Typography;
+
 type MenuItem = Required<MenuProps>["items"][number];
 
 const title = (x) => x.get("short") ?? x.get("title") ?? x.get("id") ?? "";
@@ -115,19 +116,17 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
     return GROUPS.map(render_menu_group);
   }
 
-  function render_menu() {
-    return (
-      <Menu
-        onClick={(e) => onSelect(e.key)}
-        style={{ maxHeight: "400px", overflowY: "auto" }}
-        items={menu_items()}
-      />
-    );
+  function getMenu() {
+    return {
+      onClick: (e) => onSelect(e.key),
+      style: { maxHeight: "50vh", overflow: "auto" },
+      items: menu_items(),
+    };
   }
 
   function render_selector() {
     return (
-      <Dropdown overlay={render_menu()}>
+      <Dropdown menu={getMenu()} trigger={["click", "hover"]}>
         <Button onBlur={onBlur} onFocus={onFocus}>
           {selected_title} <DownOutlined />
         </Button>
