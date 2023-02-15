@@ -6,30 +6,31 @@
 // NOTE: some code here is similar to code in
 // src/@cocalc/frontend/course/configuration/upgrades.tsx
 
+import { Card, Popover } from "antd";
+import { Map } from "immutable";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { redux, Rendered, useState } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
+import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
-import { Card, Popover } from "antd";
-import { Map } from "immutable";
-import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 
 interface Props {
   project_id: string;
   site_license?: Map<string, Map<string, number>>;
 }
 
-export async function applyLicense({
-  project_id,
-  license_id,
-}: {
+interface ALOpts {
   project_id: string;
   license_id: string;
-}): Promise<void> {
+}
+
+export async function applyLicense(opts: ALOpts): Promise<void> {
+  const { project_id, license_id } = opts;
   const actions = redux.getActions("projects");
   // newly added licenses
   try {

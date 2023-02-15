@@ -37,7 +37,7 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Card, Col, Form, Input, Row } from "antd";
+import { Card, Col, Form, Input, Popconfirm, Row } from "antd";
 import { delay } from "awaiting";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
@@ -54,6 +54,8 @@ type EditState = "edit" | "view" | "saving";
 export const NewProjectCreator: React.FC<Props> = (props: Props) => {
   const { start_in_edit_mode, default_value } = props;
 
+  const managed_licenses = useTypedRedux("billing", "managed_licenses");
+
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(
     start_in_edit_mode ? "edit" : "view"
@@ -64,6 +66,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
   const [show_add_license, set_show_add_license] = useState<boolean>(false);
   const [title_prefill, set_title_prefill] = useState<boolean>(false);
   const [license_id, set_license_id] = useState<string>("");
+  const [warnBoost, setWarnBoost] = useState<boolean>(false);
 
   const [custom_software, set_custom_software] =
     useState<SoftwareEnvironmentState>({});
@@ -268,14 +271,27 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function addSiteLicense(lic: string): void {
+    const license = managed_licenses?.get(lic)?.toJS();
+    setWarnBoost(license?.quota?.boost === true);
+    set_license_id(lic);
+  }
+
   function render_add_license() {
     if (!show_add_license) return;
     return (
       <Card size="small" title="Select license" style={CARD_STYLE}>
         <SiteLicenseInput
           confirmLabel={"Add this license"}
-          onChange={(lic) => set_license_id(lic)}
+          onChange={addSiteLicense}
         />
+        {warnBoost && (
+          <Alert bsStyle="warning">
+            This license is for boosting on top of an already applied and active
+            license. This one alone will not provide any upgrades to this
+            project!
+          </Alert>
+        )}
       </Card>
     );
   }

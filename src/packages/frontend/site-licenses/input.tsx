@@ -6,11 +6,11 @@
 // Inputing a site license, e.g., for a project, course, etc.
 
 import {
+  CSS,
   React,
   redux,
-  useTypedRedux,
   useEffect,
-  CSS,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import SelectLicense, { License } from "./select-license";
@@ -32,6 +32,7 @@ interface Props {
   confirmLabel?: string;
   exclude?: string[];
   style?: CSS;
+  check?: { msg: string; fn: (license_id) => boolean };
 }
 
 export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
@@ -42,6 +43,7 @@ export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
     exclude,
     style,
     confirmLabel = "Apply License",
+    check,
   } = props;
 
   const managedLicenses = useManagedLicenses();
