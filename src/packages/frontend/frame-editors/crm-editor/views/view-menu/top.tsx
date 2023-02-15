@@ -137,7 +137,7 @@ export default function TopMenu({
   ];
   return (
     <>
-      {modal == "csv-export" && (
+      {modal == "csv-export" && selected && (
         <Export
           type="csv"
           selected={selected}
@@ -145,7 +145,7 @@ export default function TopMenu({
           data={data}
         />
       )}
-      {modal == "json-export" && (
+      {modal == "json-export" && selected && (
         <Export
           type="json"
           onCancel={() => setModal(null)}

@@ -16,7 +16,7 @@ export default function ViewMenu({
   table,
   dbtable,
   view,
-  filteredData,
+  data,
   viewCount,
   tableLowerBound,
   columns,
@@ -52,7 +52,7 @@ export default function ViewMenu({
         view={view}
         viewCount={viewCount}
         tableLowerBound={tableLowerBound}
-        data={filteredData}
+        data={data}
         title={title}
       />
       <HideFieldsMenu

@@ -11,6 +11,7 @@ interface Props {
 }
 
 export default function Export({ type, onCancel, selected, data }: Props) {
+  console.log({ type, data });
   return (
     <Modal
       open
