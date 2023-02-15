@@ -12,6 +12,7 @@ import { IS_TOUCH } from "../feature";
 
 // overlay={menu} is deprecated. Instead, use MenuItems as items={...}.
 export type MenuItems = NonNullable<MenuProps["items"]>;
+export type MenuItem = MenuItems[number];
 
 /**
  * NOTE: to work with this, make sure your list is typed as MenuItems. Then:
