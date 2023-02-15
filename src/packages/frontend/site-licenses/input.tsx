@@ -10,7 +10,7 @@ import {
   React,
   redux,
   useEffect,
-  useTypedRedux,
+  useTypedRedux
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import SelectLicense, { License } from "./select-license";
@@ -32,7 +32,7 @@ interface Props {
   confirmLabel?: string;
   exclude?: string[];
   style?: CSS;
-  check?: { msg: string; fn: (license_id) => boolean };
+  extra?: React.ReactNode;
 }
 
 export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
@@ -43,7 +43,7 @@ export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
     exclude,
     style,
     confirmLabel = "Apply License",
-    check,
+    extra,
   } = props;
 
   const managedLicenses = useManagedLicenses();
@@ -59,6 +59,7 @@ export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
       managedLicenses={managedLicenses.toJS() as { [id: string]: License }}
       confirmLabel={confirmLabel}
       style={style}
+      extra={extra}
     />
   );
 };

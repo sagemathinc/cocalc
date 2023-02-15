@@ -7,21 +7,26 @@
 // src/@cocalc/frontend/course/configuration/upgrades.tsx
 
 import { Card, Popover } from "antd";
-import { Map } from "immutable";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
-import { redux, Rendered, useState } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import {
+  redux,
+  Rendered,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Paragraph, Text } from "@cocalc/frontend/components";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
+import { SiteLicense as SiteLicenseT } from "./types";
 
 interface Props {
   project_id: string;
-  site_license?: Map<string, Map<string, number>>;
+  site_license?: SiteLicenseT; // of that project!
 }
 
 interface ALOpts {
@@ -48,13 +53,16 @@ export async function applyLicense(opts: ALOpts): Promise<void> {
 export const SiteLicense: React.FC<Props> = (props: Props) => {
   const { project_id, site_license } = props;
 
+  // all licenses known to the client, not just for the project
+  const managed_licenses = useTypedRedux("billing", "managed_licenses");
+
+  const [boostWarning, setBoostWarning] = useState<boolean>(false);
   const [show_site_license, set_show_site_license] = useState<boolean>(false);
 
   function render_site_license_text(): Rendered {
     if (!show_site_license) return;
     return (
-      <div>
-        <br />
+      <Paragraph style={{ marginTop: "20px" }}>
         Enter a license key below to apply upgrades from that license to this
         project.{" "}
         <strong>
@@ -70,8 +78,31 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
             applyLicense({ project_id, license_id });
           }}
           onCancel={() => set_show_site_license(false)}
+          onChange={(license_id) => {
+            if (license_id == null) {
+              setBoostWarning(false);
+            } else {
+              const license = managed_licenses?.get(license_id)?.toJS();
+              const isBoost = license?.quota?.boost === true;
+              // this ignores other licenses, which do not have the boost field
+              const noRegular = !site_license?.some(
+                (x) => x.get("quota")?.get("boost") === false
+              );
+              // check if there is any other license with boost===false
+              setBoostWarning(isBoost && noRegular);
+            }
+          }}
+          extra={
+            boostWarning ? (
+              <Paragraph>
+                Warning: this license is <Text strong>a boost license</Text>,
+                which is only useful on top of another regular license, which is
+                valid and active. It won't provide upgrades on its own.
+              </Paragraph>
+            ) : undefined
+          }
         />
-      </div>
+      </Paragraph>
     );
   }
 

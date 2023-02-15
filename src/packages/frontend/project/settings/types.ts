@@ -4,7 +4,11 @@
  */
 
 import { Map } from "immutable";
-import { TypedMap } from "../../app-framework";
+
+import { TypedMap } from "@cocalc/frontend/app-framework";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import { LicenseStatus } from "@cocalc/util/upgrades/quota";
+
 export type { DatastoreConfig } from "@cocalc/util/types";
 
 type UserRecord = TypedMap<{
@@ -22,9 +26,14 @@ export type ProjectStatus = TypedMap<{
 
 export type ProjectSettings = Map<string, any>;
 
-export type SiteLicense = TypedMap<{
-  [license_id: string]: { [prop: string]: number };
-}>;
+// this is the "correct" type you get, when doing e.g. project.get('site_license')
+export type SiteLicense = Map<
+  string,
+  TypedMap<{
+    quota?: TypedMap<SiteLicenseQuota>;
+    status?: LicenseStatus;
+  }>
+>;
 
 export type Project = TypedMap<{
   title: string;
@@ -38,5 +47,5 @@ export type Project = TypedMap<{
   status: ProjectStatus;
   settings: ProjectSettings;
   compute_image: string;
-  site_license: SiteLicense;
+  site_license?: SiteLicense;
 }>;

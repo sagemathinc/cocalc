@@ -7,6 +7,9 @@
 Create a new project
 */
 
+import { Card, Col, Form, Input, Row } from "antd";
+import { delay } from "awaiting";
+
 import {
   Alert,
   Button,
@@ -37,8 +40,6 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Card, Col, Form, Input, Popconfirm, Row } from "antd";
-import { delay } from "awaiting";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
 const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
