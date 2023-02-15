@@ -54,6 +54,7 @@ export default function ViewMenu({
         tableLowerBound={tableLowerBound}
         data={data}
         title={title}
+        rowKey={rowKey}
       />
       <HideFieldsMenu
         columns={columns}

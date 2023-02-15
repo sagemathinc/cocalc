@@ -17,6 +17,7 @@ export default function TopMenu({
   tableLowerBound,
   data,
   title,
+  rowKey,
 }) {
   const [modal, setModal] = useState<"csv-export" | "json-export" | null>(null);
   const selected = useSelected({ id });
@@ -140,20 +141,25 @@ export default function TopMenu({
       {modal == "csv-export" && selected && (
         <Export
           type="csv"
+          title={title}
           selected={selected}
-          onCancel={() => setModal(null)}
+          onClose={() => setModal(null)}
           data={data}
+          rowKey={rowKey}
         />
       )}
       {modal == "json-export" && selected && (
         <Export
           type="json"
-          onCancel={() => setModal(null)}
+          title={title}
+          onClose={() => setModal(null)}
           selected={selected}
           data={data}
+          rowKey={rowKey}
         />
       )}
       <Menu
+        selectable={false}
         style={{ background: numSelected == 0 ? undefined : "#a3d4ff" }}
         triggerSubMenuAction={"click"}
         items={items}
