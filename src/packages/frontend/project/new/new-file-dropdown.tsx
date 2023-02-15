@@ -3,15 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../../app-framework";
 import { Button } from "antd";
-import { Icon, MenuItem, DropdownMenu } from "../../components";
-import { file_associations } from "../../file-associations";
-import { COLORS } from "@cocalc/util/theme";
+
+import { React } from "@cocalc/frontend/app-framework";
+import { DropdownMenu, Icon } from "@cocalc/frontend/components";
+import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
+import { file_associations } from "@cocalc/frontend/file-associations";
 import * as misc from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { file_options } = require("../../editor");
+const { file_options } = require("@cocalc/frontend/editor");
 
 interface Props {
   create_file: (ext?: string) => void;
@@ -20,7 +22,8 @@ interface Props {
 export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
   const { create_file } = props;
 
-  const new_file_button_types = React.useMemo((): string[] => {
+  // TODO maybe filter by configuration.get("main", {disabled_ext: undefined}) ?
+  const items = React.useMemo((): MenuItems => {
     const list = misc.keys(file_associations).sort();
     const extensions: string[] = [];
     const file_types_so_far = {};
@@ -33,7 +36,7 @@ export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
         extensions.push(ext);
       }
     }
-    return extensions;
+    return extensions.map(dropdown_item);
   }, misc.keys(file_associations));
 
   function dropdown_item(ext: string) {
@@ -44,11 +47,12 @@ export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
         <span style={{ color: COLORS.GRAY }}>(.{ext})</span>
       </>
     );
-    return (
-      <MenuItem className={"dropdown-menu-left"} key={ext}>
-        <Icon name={data.icon} /> {text}
-      </MenuItem>
-    );
+
+    return {
+      key: ext,
+      onClick: () => create_file(ext),
+      label: text,
+    };
   }
 
   return (
@@ -63,9 +67,7 @@ export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
           </span>
         </Button>
 
-        <DropdownMenu onClick={(ext) => create_file(ext)} button={true}>
-          {new_file_button_types.map(dropdown_item)}
-        </DropdownMenu>
+        <DropdownMenu button={true} items={items} />
       </Button.Group>
     </span>
   );

@@ -184,7 +184,7 @@ function AddTable({ setAdding, tables, setTables }) {
           placeholder="Add Tables..."
           optionFilterProp="children"
           filterOption={(input, option) =>
-            `${option?.label ?? ""}`.toLowerCase().includes(input.toLowerCase())
+            `${option?.value ?? ""}`.toLowerCase().includes(input.toLowerCase())
           }
           options={options}
         />

@@ -1,6 +1,11 @@
-import { BUTTON_STYLE } from "./marks-bar";
-import { formatAction } from "../format";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import HeadingMenu from "@cocalc/frontend/components/heading-menu";
+import { formatAction } from "../format";
+import { BUTTON_STYLE } from "./marks-bar";
 
 export default function Component({ editor }) {
   return (

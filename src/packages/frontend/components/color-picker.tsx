@@ -1,22 +1,32 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
 import { Button, Modal, Select } from "antd";
-const { Option } = Select;
-import { Icon } from "./icon";
-
 import { CSSProperties, ReactNode, useState } from "react";
 import {
-  CirclePicker,
-  ChromePicker,
-  PhotoshopPicker,
-  GithubPicker,
-  TwitterPicker,
-  SwatchesPicker,
-  SketchPicker,
   BlockPicker,
-  SliderPicker,
+  ChromePicker,
+  CirclePicker,
   CompactPicker,
+  GithubPicker,
+  PhotoshopPicker,
+  SketchPicker,
+  SliderPicker,
+  SwatchesPicker,
+  TwitterPicker,
 } from "react-color";
 
+const { Option } = Select;
+
+// must be imported from misc/local-storage, because otherwise the "static" build fails
+import {
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
 import { capitalize } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { Icon } from "./icon";
 
 const Pickers = {
   circle: CirclePicker,
@@ -31,6 +41,17 @@ const Pickers = {
   compact: CompactPicker,
 };
 
+type TPickers = keyof typeof Pickers;
+
+const LS_PICKER_KEY = "defaultColorPicker";
+
+function getLocalStoragePicker(): TPickers | undefined {
+  const p = get_local_storage(LS_PICKER_KEY);
+  if (typeof p === "string" && Pickers[p] != null) {
+    return p as TPickers;
+  }
+}
+
 interface Props {
   color?: string;
   onChange?: (htmlColor: string) => void;
@@ -39,17 +60,19 @@ interface Props {
   toggle?: ReactNode;
   justifyContent?: "flex-start" | "flex-end" | "center";
 }
-export default function ColorPicker({
-  color,
-  onChange,
-  style,
-  defaultPicker,
-  toggle,
-  justifyContent = "center",
-}: Props) {
+export default function ColorPicker(props: Props) {
+  const {
+    color,
+    onChange,
+    style,
+    defaultPicker,
+    toggle,
+    justifyContent = "center",
+  } = props;
+
   const [visible, setVisible] = useState<boolean>(!toggle);
-  const [picker, setPicker] = useState<keyof typeof Pickers>(
-    defaultPicker ?? localStorage["defaultColorPicker"] ?? "circle"
+  const [picker, setPicker] = useState<TPickers>(
+    defaultPicker ?? getLocalStoragePicker() ?? "circle"
   );
   const Picker = Pickers[picker];
   const v: ReactNode[] = [];
@@ -101,7 +124,7 @@ export default function ColorPicker({
             float: "right",
             fontSize: "12px",
             marginTop: "20px",
-            color: "#666",
+            color: COLORS.GRAY_M,
           }}
         >
           Color Picker
@@ -111,7 +134,7 @@ export default function ColorPicker({
           style={{ width: "120px", marginTop: "10px" }}
           onChange={(picker) => {
             setPicker(picker);
-            localStorage["defaultColorPicker"] = picker;
+            set_local_storage(LS_PICKER_KEY, picker);
           }}
         >
           {v}
@@ -126,14 +149,18 @@ interface ButtonProps {
   title?: ReactNode;
   style?: CSSProperties;
   type?: "default" | "link" | "text" | "ghost" | "primary" | "dashed";
+  onClick?: () => boolean | undefined;
 }
-export function ColorButton({ onChange, title, style, type }: ButtonProps) {
+export function ColorButton(props: ButtonProps) {
+  const { onChange, title, style, type, onClick } = props;
   const [show, setShow] = useState<boolean>(false);
   return (
     <>
       <Modal
+        transitionName=""
+        maskTransitionName=""
         title={title ?? "Select a Color"}
-        visible={show}
+        open={show}
         onOk={() => setShow(false)}
         onCancel={() => setShow(false)}
       >
@@ -144,7 +171,14 @@ export function ColorButton({ onChange, title, style, type }: ButtonProps) {
           }}
         />
       </Modal>
-      <Button onClick={() => setShow(!show)} style={style} type={type}>
+      <Button
+        onClick={() => {
+          if (onClick?.()) return;
+          setShow(!show);
+        }}
+        style={style}
+        type={type}
+      >
         <Icon name="colors" />
       </Button>
     </>

@@ -49,12 +49,12 @@ export function mentionableUsers(project_id: string, search?: string): Item[] {
     const s = fullname.toLowerCase();
     if (search != null && s.indexOf(search) == -1) continue;
     const name = trunc_middle(fullname, 64);
-    const elt = (
+    const label = (
       <span>
         <Avatar account_id={account_id} size={24} /> {name}
       </span>
     );
-    v.push({ value: account_id, elt, search: s });
+    v.push({ value: account_id, label, search: s });
   }
   return v;
 }

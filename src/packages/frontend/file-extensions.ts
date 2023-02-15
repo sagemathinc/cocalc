@@ -79,6 +79,7 @@ export function hasSpecialViewer(ext: string): boolean {
     ext === "ipynb" ||
     ext === "sagews" ||
     ext === "board" ||
+    ext == "slides" ||
     isMarkdown(ext) ||
     isCodemirror(ext) ||
     isHTML(ext)

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { React, useTypedRedux } from "../app-framework";
 import { APP_ICON } from "../art";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -8,12 +13,19 @@ const STYLE: React.CSSProperties = {
   display: "inline-block",
   backgroundSize: "contain",
   backgroundRepeat: "no-repeat",
-  height: "32px",
-  width: "32px",
   position: "relative",
 } as const;
 
-export const AppLogo: React.FC = React.memo(() => {
+interface Props {
+  size: number;
+}
+
+export const AppLogo: React.FC<Props> = React.memo((props: Props) => {
+  const { size } = props;
+  const marginVal = Math.max(1, Math.round(size / 20));
+  const margin = `${marginVal}px`;
+  const dimension = `${size - 2 * marginVal}px`;
+
   const logo_square: string | undefined = useTypedRedux(
     "customize",
     "logo_square"
@@ -25,19 +37,26 @@ export const AppLogo: React.FC = React.memo(() => {
     <A
       href={appBasePath}
       style={{
-        height: "32px",
-        width: "32px",
-        margin: "2px",
+        height: dimension,
+        width: dimension,
+        margin: margin,
         display: "inline-block",
       }}
     >
-      <Tooltip title="Open the main website in a new tab." mouseEnterDelay={1} mouseLeaveDelay={0} placement="right">
+      <Tooltip
+        title="Open the main website in a new tab."
+        mouseEnterDelay={1}
+        mouseLeaveDelay={0}
+        placement="right"
+      >
         <div
           onClick={() => {
             console.log("click");
           }}
           style={{
             ...STYLE,
+            height: dimension,
+            width: dimension,
             backgroundImage,
           }}
         ></div>

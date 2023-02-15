@@ -136,32 +136,32 @@ export const TOOLS: { [tool: string]: ToolDescription } = {
     key: "f",
     type: "frame",
   },
-  search: {
-    icon: "search",
-    tip: "Search",
-    onClick: (actions) => {
-      setTimeout(() => {
-        const id = actions.show_focused_frame_of_type(
-          "search",
-          "col",
-          false,
-          0.8
-        );
-        if (id != null) {
-          actions.set_frame_tree({ id, font_size: 10 });
-        }
-      }, 0);
-    },
-  },
-  pages: {
-    icon: "files",
-    tip: "Pages",
-    onClick: (actions) => {
-      setTimeout(() => {
-        actions.show_focused_frame_of_type("pages", "col", false, 0.8);
-      }, 0);
-    },
-  },
+  //   search: {
+  //     icon: "search",
+  //     tip: "Search",
+  //     onClick: (actions) => {
+  //       setTimeout(() => {
+  //         const id = actions.show_focused_frame_of_type(
+  //           "search",
+  //           "col",
+  //           false,
+  //           0.8
+  //         );
+  //         if (id != null) {
+  //           actions.set_frame_tree({ id, font_size: 10 });
+  //         }
+  //       }, 0);
+  //     },
+  //   },
+  //   pages: {
+  //     icon: "files",
+  //     tip: "Pages",
+  //     onClick: (actions) => {
+  //       setTimeout(() => {
+  //         actions.show_focused_frame_of_type("pages", "col", false, 0.8);
+  //       }, 0);
+  //     },
+  //   },
   //shape: { icon: "square", cursor: "crosshair", tip: "Shape", key:"s" },
 };
 

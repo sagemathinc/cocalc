@@ -9,7 +9,7 @@ Whiteboard frame Editor Actions
 
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { Map as ImmutableMap, fromJS } from "immutable";
-import { FrameTree } from "../frame-tree/types";
+import type { FrameTree } from "../frame-tree/types";
 import {
   Actions as BaseActions,
   CodeEditorState,
@@ -20,6 +20,7 @@ import {
   Element,
   ElementsMap,
   ElementType,
+  MainFrameType,
   PagesMap,
   SortedPageList,
   Point,
@@ -32,6 +33,7 @@ import {
   getPageSpan,
   centerRectsAt,
   centerOfRect,
+  topOfRect,
   rectSpan,
   translateRectsZ,
   roundRectParams,
@@ -73,18 +75,22 @@ export interface State extends CodeEditorState {
   contents?: TableOfContentsEntryList; // table of contents data.
 }
 
-export class Actions extends BaseActions<State> {
+export class Actions<T extends State = State> extends BaseActions<T | State> {
   protected doctype: string = "syncdb";
   protected primary_keys: string[] = ["id"];
   protected string_cols: string[] = ["str"];
   private keyHandler?: (event) => void;
+  readonly mainFrameType: MainFrameType = "whiteboard";
+  // fixedElements are on every page automatically.
+  // They should have {data:{selectable:false},...}
+  readonly fixedElements: { [id: string]: Element } = {};
 
   _raw_default_frame_tree(): FrameTree {
-    // return { type: "whiteboard" };
+    // return { type: this.mainFrameType };
     return {
       direction: "col",
       type: "node",
-      first: { type: "whiteboard" },
+      first: { type: this.mainFrameType },
       second: {
         direction: "row",
         type: "node",
@@ -127,34 +133,20 @@ export class Actions extends BaseActions<State> {
       const sortedPageIds0 = this.store.get("sortedPageIds");
       let somePageChanged = false;
       let elements = elements0 ?? ImmutableMap({});
-      let pages: PagesMap = (this.store.get("pages") ??
-        ImmutableMap({})) as PagesMap;
-      keys.forEach((key) => {
+      let pages: PagesMap = (pages0 ?? ImmutableMap()) as PagesMap;
+      for (const key of keys) {
         const id = key.get("id");
-        if (id) {
-          const element = this._syncstring.get_one(key);
-          const oldElement = elements.get(id);
-          if (!element) {
-            // there is a delete.
-            if (oldElement?.get("type") == "page") {
-              // deleting a page
-              pages = pages.delete(oldElement.get("id"));
-            } else {
-              // deleting an element on a page
-              const page = oldElement?.get("page");
-              if (page) {
-                let elementsOnPage = pages.get(page);
-                if (elementsOnPage != null) {
-                  elementsOnPage = elementsOnPage.delete(id);
-                  pages = pages.set(page, elementsOnPage);
-                }
-              }
-            }
-            elements = elements.delete(id);
-          } else if (!element.get("type")) {
-            // no valid type field - discard
-            this._syncstring.delete({ id });
-            elements = elements.delete(id);
+        if (!id) continue;
+        const element = this._syncstring.get_one(key);
+        if (element?.get("invisible")) continue;
+        const oldElement = elements.get(id);
+        if (!element) {
+          // there is a delete.
+          if (oldElement?.get("type") == "page") {
+            // deleting a page
+            pages = pages.delete(oldElement.get("id"));
+          } else {
+            // deleting an element on a page
             const page = oldElement?.get("page");
             if (page) {
               let elementsOnPage = pages.get(page);
@@ -163,44 +155,62 @@ export class Actions extends BaseActions<State> {
                 pages = pages.set(page, elementsOnPage);
               }
             }
-          } else if (element.get("type") == "page") {
-            // this is a page
-            somePageChanged = true;
-            if (!pages.has(id)) {
-              pages = pages.set(id, ImmutableMap({}));
+          }
+          elements = elements.delete(id);
+        } else if (!element.get("type")) {
+          // no valid type field - discard
+          this._syncstring.delete({ id });
+          elements = elements.delete(id);
+          const page = oldElement?.get("page");
+          if (page) {
+            let elementsOnPage = pages.get(page);
+            if (elementsOnPage != null) {
+              elementsOnPage = elementsOnPage.delete(id);
+              pages = pages.set(page, elementsOnPage);
             }
-            elements = elements.set(id, element);
-          } else {
-            // create or change an element on a specific page
-            // @ts-ignore
-            elements = elements.set(id, element);
-            const oldPage = oldElement?.get("page");
-            const newPage = element.get("page");
-            if (newPage) {
-              const elementsOnNewPage = pages.get(newPage) ?? ImmutableMap({});
-              pages = pages.set(newPage, elementsOnNewPage.set(id, element));
-            }
-            if (oldPage && oldPage != newPage) {
-              // change page, so delete element from the old page
-              let elementsOnOldPage = pages.get(oldPage);
-              if (elementsOnOldPage !== undefined) {
-                elementsOnOldPage = elementsOnOldPage.delete(id);
-                if (elementsOnOldPage.size == 0) {
-                  pages = pages.delete(oldPage);
-                } else {
-                  pages = pages.set(oldPage, elementsOnOldPage);
-                }
+          }
+        } else if (element.get("type") == "page") {
+          // this is a page
+          somePageChanged = true;
+          if (!pages.has(id)) {
+            pages = pages.set(id, ImmutableMap(fromJS(this.fixedElements)));
+          }
+          elements = elements.set(id, element);
+        } else {
+          // create or change an element on a specific page
+          // @ts-ignore
+          elements = elements.set(id, element);
+          const oldPage = oldElement?.get("page");
+          const newPage = element.get("page");
+          if (newPage) {
+            const elementsOnNewPage =
+              pages.get(newPage) ?? ImmutableMap(fromJS(this.fixedElements));
+            pages = pages.set(newPage, elementsOnNewPage.set(id, element));
+          }
+          if (oldPage && oldPage != newPage) {
+            // change page, so delete element from the old page
+            let elementsOnOldPage = pages.get(oldPage);
+            if (elementsOnOldPage !== undefined) {
+              elementsOnOldPage = elementsOnOldPage.delete(id);
+              if (elementsOnOldPage.size == 0) {
+                pages = pages.delete(oldPage);
+              } else {
+                pages = pages.set(oldPage, elementsOnOldPage);
               }
             }
           }
         }
-      });
+      }
 
       if (elements !== elements0) {
         this.setState({ elements });
       }
 
-      if (somePageChanged || sortedPageIds0 == null) {
+      if (
+        somePageChanged ||
+        sortedPageIds0 == null ||
+        pages.size != pages0?.size
+      ) {
         const v: { id: string; pos: number }[] = [];
         for (const [id] of pages ?? []) {
           v.push({
@@ -213,8 +223,18 @@ export class Actions extends BaseActions<State> {
         this.setState({ sortedPageIds });
       }
 
-      if (pages !== pages0) {
+      if (pages != pages0) {
         this.setState({ pages });
+        if (pages.size != pages0?.size) {
+          // number of pages changed -- update the page count for every frame.
+          for (const frameId in this._get_leaf_ids()) {
+            this.setPages(frameId, pages.size);
+          }
+        }
+      }
+
+      if (pages.size == 0 && pages0 == null) {
+        setTimeout(() => this.createPage(), 0);
       }
     };
 
@@ -475,7 +495,7 @@ export class Actions extends BaseActions<State> {
 
   private setFragmentIdToPage(frameId: string): void {
     const node = this._get_frame_node(frameId);
-    if (node?.get("type") != "whiteboard") return;
+    if (node?.get("type") != this.mainFrameType) return;
     const page = node?.get("page");
     if (this.store.get("visible")) {
       if (page != null) {
@@ -553,7 +573,7 @@ export class Actions extends BaseActions<State> {
       this.setEditFocus(frameId, type == "only" && size(selection) == 1);
       this.set_frame_tree({ id: frameId, selection });
     } finally {
-      if (node.get("type") != "whiteboard") return;
+      if (node.get("type") != this.mainFrameType) return;
 
       if (this.store.get("visible")) {
         if (size(selection) == 0) {
@@ -675,14 +695,14 @@ export class Actions extends BaseActions<State> {
     this.set_frame_tree({ id, viewport });
   }
 
-  setViewportCenter(id: string, center: Point) {
+  setViewportCenter(frameId: string, center: Point) {
     // translates whatever the last saved viewport is to have the given center.
-    const node = this._get_frame_node(id);
+    const node = this._get_frame_node(frameId);
     if (node == null) return;
     const viewport = node.get("viewport")?.toJS();
     if (viewport == null) return;
     centerRectsAt([viewport], center);
-    this.saveViewport(id, viewport);
+    this.saveViewport(frameId, viewport);
   }
 
   // define this, so icon shows up at top
@@ -775,7 +795,6 @@ export class Actions extends BaseActions<State> {
       frameId != null
         ? this.numberToPageId(this._get_frame_node(frameId)?.get("page"))
         : this.defaultPageId();
-    console.log("page = ", page);
     for (const element of elements) {
       if (element.type == "edge" && element.data != null) {
         // need to update adjacent vertices.
@@ -800,7 +819,9 @@ export class Actions extends BaseActions<State> {
     str,
   }: {
     id: string; // id of cell to run
-    str?: string; // input -- we allow specifying this instead of taking it from the store, in case it just changed and hasn't been saved to the store yet.
+    // str of input-- we allow specifying this instead of taking it from the store,
+    // in case it just changed and hasn't been saved to the store yet.
+    str?: string;
   }) {
     const element = this.store.get("elements")?.get(id)?.toJS();
     if (element == null || element.type != "code") {
@@ -941,7 +962,7 @@ export class Actions extends BaseActions<State> {
     _value?: string | true | undefined,
     nextTo?: Element[]
   ): void {
-    if (frameId && this._get_frame_type(frameId) != "whiteboard") return;
+    if (frameId && this._get_frame_type(frameId) != this.mainFrameType) return;
     const pastedElements = pasteFromInternalClipboard();
     let target: Point = { x: 0, y: 0 };
     if (nextTo != null) {
@@ -960,17 +981,33 @@ export class Actions extends BaseActions<State> {
     }
   }
 
-  centerElement(id: string, frameId?: string) {
+  scrollElementIntoView(
+    id: string,
+    frameId: string | undefined = undefined,
+    loc: "center" | "top" = "top"
+  ) {
     const element = this.getElement(id);
     if (element == null) return;
-    frameId = frameId ?? this.show_focused_frame_of_type("whiteboard");
+    frameId = frameId ?? this.show_focused_frame_of_type(this.mainFrameType);
+    if (frameId == null) return;
     this.setPageId(frameId, element.page ?? this.defaultPageId());
-    this.setViewportCenter(frameId, centerOfRect(element));
-  }
-
-  scrollElementIntoView(id: string, frameId?: string) {
-    // TODO: for now just center it
-    this.centerElement(id, frameId);
+    let center;
+    if (loc == "center") {
+      center = centerOfRect(element);
+    } else {
+      const node = this._get_frame_node(frameId);
+      const viewport = node?.get("viewport")?.toJS();
+      if (viewport == null) return;
+      const top = topOfRect(element);
+      center = { x: top.x, y: top.y + viewport.h / 2 - viewport.h / 10 };
+    }
+    this.setViewportCenter(frameId, center);
+    setTimeout(() => {
+      if (frameId != null) {
+        // just for typescript
+        this.setViewportCenter(frameId, center);
+      }
+    }, 1);
   }
 
   gotoUser(account_id: string, frameId?: string) {
@@ -981,7 +1018,7 @@ export class Actions extends BaseActions<State> {
     if (locs == null) return; // no info
     for (const loc of locs) {
       if (loc.id != null) {
-        this.centerElement(loc.id, frameId);
+        this.scrollElementIntoView(loc.id, frameId);
         return;
       }
     }
@@ -1176,7 +1213,7 @@ export class Actions extends BaseActions<State> {
   }
 
   enableWhiteboardKeyHandler(frameId: string) {
-    if (this._get_frame_type(frameId) != "whiteboard") return;
+    if (this._get_frame_type(frameId) != this.mainFrameType) return;
     this.keyHandler = getKeyHandler(this, frameId);
     this.set_active_key_handler(this.keyHandler);
   }
@@ -1197,7 +1234,7 @@ export class Actions extends BaseActions<State> {
       id = this._get_active_id();
     }
     const node = this._get_frame_node(id);
-    if (node?.get("type") == "whiteboard") {
+    if (node?.get("type") == this.mainFrameType) {
       this.enableWhiteboardKeyHandler(id);
     } else {
       this.disableWhiteboardKeyHandler();
@@ -1225,7 +1262,7 @@ export class Actions extends BaseActions<State> {
   }
 
   setEditFocus(id: string, editFocus: boolean): void {
-    if (this._get_frame_type(id) != "whiteboard") return;
+    if (this._get_frame_type(id) != this.mainFrameType) return;
     this.set_frame_tree({ id, editFocus });
   }
 
@@ -1261,17 +1298,19 @@ export class Actions extends BaseActions<State> {
       return;
     }
     if (frameId == null) {
-      frameId = this.show_focused_frame_of_type("whiteboard");
+      frameId = this.show_focused_frame_of_type(this.mainFrameType);
     }
 
     const elementId = `${line}`;
-    this.centerElement(elementId, frameId);
+    this.scrollElementIntoView(elementId, frameId);
     this.zoom100(frameId);
   }
 
   async gotoFragment(fragmentId: FragmentId) {
     // console.log("gotoFragment ", fragmentId);
-    const frameId = await this.waitUntilFrameReady({ type: "whiteboard" });
+    const frameId = await this.waitUntilFrameReady({
+      type: this.mainFrameType,
+    });
     if (!frameId) return;
     const { id, page } = fragmentId as any;
     if (page != null) {
@@ -1287,7 +1326,7 @@ export class Actions extends BaseActions<State> {
       return;
     }
     if (id != null) {
-      this.centerElement(id, frameId);
+      this.scrollElementIntoView(id, frameId);
       return;
     }
   }
@@ -1296,12 +1335,11 @@ export class Actions extends BaseActions<State> {
     _id: string | undefined = undefined
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
-      "whiteboard_table_of_contents",
+      "table_of_contents",
       "col",
       true,
       0.2
     );
-    // the click to select TOC focuses the active id back on the notebook
     await delay(0);
     if (this._state === "closed") return;
     this.set_active_id(id, true);
@@ -1366,13 +1404,6 @@ export class Actions extends BaseActions<State> {
     return this.createPage();
   }
 
-  setPage(frameId: string, pageNumber: number): void {
-    const node = this._get_frame_node(frameId);
-    if (node == null) return;
-    super.setPage(frameId, pageNumber);
-    this.setFragmentIdToPage(frameId);
-  }
-
   setPageId(frameId: string, pageId: string): void {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
@@ -1380,11 +1411,14 @@ export class Actions extends BaseActions<State> {
     this.setFragmentIdToPage(frameId);
   }
 
-  newPage(frameId: string): string {
+  newPage(frameId: string, commit: boolean = true): string {
     const n = this.store.get("pages")?.size ?? 1;
     const page = this.createPage(false);
     this.setPages(frameId, n + 1);
     this.setPageId(frameId, page);
+    if (commit) {
+      this.syncstring_commit();
+    }
     return page;
   }
 
@@ -1459,9 +1493,11 @@ export class Actions extends BaseActions<State> {
 
   // delete page with given id along with everything that
   // is one that page.
-  deletePage(id: string, commit: boolean = true): void {
-    // TODO: this is NOT implemented yet, and not used in the UI, yet.
-    console.log("deletePage", { id, commit });
+  deletePage(pageId: string, commit: boolean = true): void {
+    const page = this.store.getIn(["pages", pageId]);
+    if (page == null) return;
+    this.deleteElements(Object.values(page.toJS()), false);
+    this.delete(pageId, commit);
   }
 }
 

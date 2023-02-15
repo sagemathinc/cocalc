@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Metadata } from "./types";
 import { IconName } from "@cocalc/frontend/components/icon";
+import { Metadata } from "./types";
 
 type Language = "python" | "julia" | "r" | "sage" | "octave";
 
@@ -539,9 +539,10 @@ or memorize the syntax of nbgrader...
 */
 export function value_to_template_content(
   value: string,
-  language: string,
+  language: string | undefined,
   type: string
 ): string {
+  if (language == null) return "";
   if (value == "instructor") {
     return type == "code"
       ? "# Put anything here to help with developing this notebook.\n# It will be removed from the student version.\n"
@@ -558,8 +559,8 @@ export function value_to_template_content(
   }
   const template = x.template;
   if (template == null) return "";
-  if (typeof template == "string") return template.trim();
-  if (language == "sage" && template[language] == null) {
+  if (typeof template === "string") return template.trim();
+  if (language === "sage" && template[language] == null) {
     language = "python";
   }
   const content = template[language];

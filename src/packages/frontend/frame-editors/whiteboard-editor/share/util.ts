@@ -1,4 +1,4 @@
-import { Element } from "../types";
+import type { Element } from "../types";
 import { field_cmp } from "@cocalc/util/misc";
 
 // the old page format
@@ -28,20 +28,27 @@ export function parseSyncdbFileUsingPageNumbers(content: string): Element[][] {
 }
 
 // the new page format.
-function parseSyncdbFileUsingPageIds(content: string): Element[][] {
+function parseSyncdbFileUsingPageIds(
+  content: string,
+  fixedElements: Element[]
+): Element[][] {
   const v: { pos: number; id: string }[] = [];
   const pageMap: { [id: string]: Element[] } = {};
   for (const line of content.split("\n")) {
     try {
       const element = JSON.parse(line);
+      if (element.invisible) {
+        // e.g., speaker notes are not visible and shouldn't get rendered
+        continue;
+      }
       if (element.type == "page") {
         v.push({ pos: element.data.pos, id: element.id });
         if (pageMap[element.id] == null) {
-          pageMap[element.id] = [];
+          pageMap[element.id] = [...fixedElements];
         }
       } else {
         if (pageMap[element.page] == null) {
-          pageMap[element.page] = [];
+          pageMap[element.page] = [...fixedElements];
         }
         pageMap[element.page].push(element);
       }
@@ -68,10 +75,13 @@ function isOldPageFormat(content: string): boolean {
   }
 }
 
-export function parseSyncdbFile(content: string): Element[][] {
+export function parseSyncdbFile(
+  content: string,
+  fixedElements: Element[] = []
+): Element[][] {
   if (isOldPageFormat(content)) {
     return parseSyncdbFileUsingPageNumbers(content);
   } else {
-    return parseSyncdbFileUsingPageIds(content);
+    return parseSyncdbFileUsingPageIds(content, fixedElements);
   }
 }

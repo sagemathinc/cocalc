@@ -30,7 +30,7 @@ import {
   Rendered,
   TypedMap,
 } from "@cocalc/frontend/app-framework";
-import { ErrorDisplay, Icon, Saving } from "@cocalc/frontend/components";
+import { ErrorDisplay, Icon, Saving, Title } from "@cocalc/frontend/components";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
 import { cmp_dayjs, round1, secure_random_token } from "@cocalc/util/misc";
@@ -574,13 +574,17 @@ export const RegistrationToken: React.FC<{}> = () => {
 
   function render_header(): Rendered {
     return (
-      <h4 onClick={() => set_show((v) => !v)} style={{ cursor: "pointer" }}>
+      <Title
+        level={4}
+        onClick={() => set_show((v) => !v)}
+        style={{ cursor: "pointer" }}
+      >
         <Icon
           style={{ width: "20px" }}
           name={show ? "caret-down" : "caret-right"}
         />{" "}
         Registration Tokens
-      </h4>
+      </Title>
     );
   }
 

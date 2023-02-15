@@ -17,7 +17,7 @@ import type { ChatActions } from "./actions";
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",
   borderRadius: "3px",
-  paddingTop: "2.5px",
+  paddingTop: "5px",
 };
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
@@ -83,10 +83,7 @@ export const ChatIndicator: React.FC<Props> = ({
     return (
       <div
         style={{
-          cursor: "pointer",
           color,
-          marginLeft: "5px",
-          marginRight: "5px",
         }}
         className={is_new_chat ? "smc-chat-notification" : undefined}
       >

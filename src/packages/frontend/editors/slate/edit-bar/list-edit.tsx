@@ -9,6 +9,7 @@ import { ReactEditor } from "../slate-react";
 import { ListProperties, setListProperties } from "./list";
 import { Button, Checkbox, InputNumber } from "antd";
 import { indentListItem, unindentListItem } from "../format/indent";
+import { moveListItemUp, moveListItemDown } from "../format/list-move";
 
 interface Props {
   listProperties: ListProperties | undefined;
@@ -101,6 +102,36 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       />
     );
   }
+
+  v.push(
+    <Button
+      key="move-up"
+      size="small"
+      title="Move list item up"
+      style={{ color: "#666" }}
+      onClick={() => {
+        moveListItemUp(editor);
+        ReactEditor.focus(editor);
+      }}
+    >
+      <Icon name={"arrow-up"} />
+    </Button>
+  );
+
+  v.push(
+    <Button
+      key="move-down"
+      size="small"
+      title="Move list item down"
+      style={{ color: "#666" }}
+      onClick={() => {
+        moveListItemDown(editor);
+        ReactEditor.focus(editor);
+      }}
+    >
+      <Icon name={"arrow-down"} />
+    </Button>
+  );
 
   v.push(
     <Button

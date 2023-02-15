@@ -24,7 +24,6 @@ CONSIDERATIONS:
 
 declare var $;
 
-
 export const FONT_SIZES = [
   "xx-small",
   "x-small",
@@ -53,11 +52,13 @@ export const FONT_FACES = [
   "Palatino",
   "Tahoma",
   "Times New Roman",
+  "Ubuntu",
   "Verdana",
-];
+] as const;
+
 let i, j, k;
 
-export let commands = {
+export const commands = {
   shell: {
     comment: {
       wrap: {
@@ -360,8 +361,7 @@ $$\
     },
     table: {
       wrap: {
-        left:
-          "\n\\begin{center}\\begin{tabular}{|c|c|}\n\\hline\ncell1 & cell2 \\\\\ncell3 & cell4 \\\\\n\\hline",
+        left: "\n\\begin{center}\\begin{tabular}{|c|c|}\n\\hline\ncell1 & cell2 \\\\\ncell3 & cell4 \\\\\n\\hline",
         right: "\n\\end{tabular}\\end{center}\n",
       },
     },
@@ -1199,8 +1199,7 @@ print(MyClass(5))\
       url: "https://github.com/sagemathinc/cocalc/wiki/Keyboard-Shortcuts",
     },
     sagesyntaxerrors: {
-      url:
-        "https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors",
+      url: "https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors",
     },
     cocalcwiki: {
       url: "https://doc.cocalc.com/sagews.html",
@@ -1784,7 +1783,7 @@ nlm(fn, p = c(200, 0.1), hessian = TRUE)\
 `,
     },
   },
-};
+} as const;
 
 /*
     fricas:

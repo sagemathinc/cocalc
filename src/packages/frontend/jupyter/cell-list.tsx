@@ -70,24 +70,24 @@ const ITEM_STYLE: CSS = {
 
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything is read only
-  name?: string;
   cell_list: immutable.List<string>; // list of ids of cells in order
-  cells: immutable.Map<string, any>;
-  font_size: number;
-  sel_ids?: immutable.Set<string>; // set of selected cells
-  md_edit_ids?: immutable.Set<string>;
-  cur_id?: string; // cell with the green cursor around it; i.e., the cursor cell
-  mode: NotebookMode;
-  hook_offset?: number;
-  scroll?: Scroll; // scroll by this amount
-  cm_options: immutable.Map<string, any>;
-  project_id?: string;
-  directory?: string;
-  scrollTop?: any;
-  complete?: immutable.Map<string, any>; // status of tab completion
-  is_focused?: boolean;
-  more_output?: immutable.Map<string, any>;
   cell_toolbar?: string;
+  cells: immutable.Map<string, any>;
+  cm_options: immutable.Map<string, any>;
+  complete?: immutable.Map<string, any>; // status of tab completion
+  cur_id?: string; // cell with the green cursor around it; i.e., the cursor cell
+  directory?: string;
+  font_size: number;
+  hook_offset?: number;
+  is_focused?: boolean;
+  md_edit_ids?: immutable.Set<string>;
+  mode: NotebookMode;
+  more_output?: immutable.Map<string, any>;
+  name?: string;
+  project_id?: string;
+  scroll?: Scroll; // scroll by this amount
+  scrollTop?: any;
+  sel_ids?: immutable.Set<string>; // set of selected cells
   trust?: boolean;
   use_windowed_list?: boolean;
 }
@@ -95,24 +95,24 @@ interface CellListProps {
 export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const {
     actions,
-    name,
     cell_list,
-    cells,
-    font_size,
-    sel_ids,
-    md_edit_ids,
-    cur_id,
-    mode,
-    hook_offset,
-    scroll,
-    cm_options,
-    project_id,
-    directory,
-    scrollTop,
-    complete,
-    is_focused,
-    more_output,
     cell_toolbar,
+    cells,
+    cm_options,
+    complete,
+    cur_id,
+    directory,
+    font_size,
+    hook_offset,
+    is_focused,
+    md_edit_ids,
+    mode,
+    more_output,
+    name,
+    project_id,
+    scroll,
+    scrollTop,
+    sel_ids,
     trust,
     use_windowed_list,
   } = props;
@@ -279,6 +279,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
     if (scroll.startsWith("cell")) {
       // find index of cur_id cell.
+      if (cur_id == null) return;
       const cellList = actions?.store.get("cell_list");
       const index = cellList?.indexOf(cur_id);
       if (index == null) return;

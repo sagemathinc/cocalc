@@ -17,8 +17,12 @@ export function addUserProfileCallback(opts: UserProfileCallbackOpts) {
   strategy_instance.userProfile = function userProfile(accessToken, done) {
     L2(`userinfoURL=${userinfoURL}, accessToken=${accessToken}`);
 
-    this._oauth2.useAuthorizationHeaderforGET(true);
-    this._oauth2.get(userinfoURL, accessToken, (err, body) => {
+    let oauth = this._oauth;
+    if (this._oauth2) {
+      oauth = this._oauth2;
+      oauth.useAuthorizationHeaderforGET(true);
+    }
+    oauth.get(userinfoURL, accessToken, (err, body) => {
       L2(`get->body = ${safeJsonStringify(body)}`);
 
       let json;

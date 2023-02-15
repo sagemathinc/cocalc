@@ -17,11 +17,11 @@ import { Map } from "immutable";
 import { useRedux } from "@cocalc/frontend/app-framework/redux-hooks";
 import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema/defaults";
 
-export interface IFrameContext {
+export interface IFrameContext<T = Actions> {
   id: string;
   project_id: string;
   path: string;
-  actions: Actions;
+  actions: T;
   desc: Map<string, any>; // frame tree description for this particular frame, e.g., things like scroll, font size, etc.
   isFocused: boolean; // true if this is the focused frame, i.e., active_id == id.
   font_size: number;
@@ -39,9 +39,9 @@ export const defaultFrameContext = {
 
 export const FrameContext = createContext<IFrameContext>(defaultFrameContext);
 
-export const useFrameContext: () => IFrameContext = () => {
-  return useContext(FrameContext);
-};
+export function useFrameContext<T = Actions>(): IFrameContext<T> {
+  return useContext(FrameContext) as IFrameContext<T>;
+}
 
 export function useFrameRedux(pathInStore: string[]) {
   const { project_id, path } = useFrameContext();

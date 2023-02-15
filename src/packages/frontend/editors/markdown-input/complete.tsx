@@ -10,24 +10,17 @@ for jupyter, code editors, (etc.'s) complete.  E.g., I already
 rewrote this to use the Antd dropdown, which is more dynamic.
 */
 
-import {
-  CSS,
-  React,
-  ReactDOM,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "../../app-framework";
+import { FC, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+
+import { CSS, ReactDOM } from "../../app-framework";
 
 import { Dropdown, Menu } from "antd";
 
 export interface Item {
-  elt?: JSX.Element;
+  label?: ReactNode;
   value: string;
   search?: string; // useful for clients
 }
-
 interface Props0 {
   items: Item[]; // we assume at least one item
   onSelect: (value: string) => void;
@@ -49,7 +42,7 @@ type Props = Props1 | Props2;
 // WARNING: Complete closing when clicking outside the complete box
 // is handled in cell-list on_click.  This is ugly code (since not localized),
 // but seems to work well for now.  Could move.
-export const Complete: React.FC<Props> = ({
+export const Complete: FC<Props> = ({
   items,
   onSelect,
   onCancel,
@@ -76,8 +69,12 @@ export const Complete: React.FC<Props> = ({
     [onSelect, onCancel]
   );
 
-  function render_item({ elt, value }: Item): JSX.Element {
-    return <Menu.Item key={value}>{elt ?? value}</Menu.Item>;
+  function render_item({ label, value }: Item): JSX.Element {
+    return (
+      <Menu.Item key={value} style={{ fontSize: "16pt" }}>
+        {label ?? value}
+      </Menu.Item>
+    );
   }
 
   const onKeyDown = useCallback(
@@ -114,6 +111,8 @@ export const Complete: React.FC<Props> = ({
       document.removeEventListener("click", onCancel);
     };
   }, [onKeyDown, onCancel]);
+
+  if (items.length == 0) return null;
 
   // The bottom margin wrapper below is so the current
   // line is not obscured if antd makes the menu *above*

@@ -13,52 +13,52 @@ declare var require: {
   ) => void;
 };
 
-import {
-  React,
-  CSS,
-  useEffect,
-  useState,
-  useStore,
-  useActions,
-  useMemo,
-  useRedux,
-} from "../../../app-framework";
-import { alert_message } from "@cocalc/frontend/alerts";
-import { sortBy, debounce, isEmpty, merge } from "lodash";
-import { JupyterEditorActions } from "../actions";
-import { JupyterStore } from "../../../jupyter/store";
-import { NotebookFrameStore } from "../cell-notebook/store";
-import { A, Loading } from "../../../components";
-import { isMainConfiguration } from "../../../project_configuration";
-import { COLORS } from "@cocalc/util/theme";
 import { QuestionCircleOutlined } from "@ant-design/icons";
 import {
+  Alert,
   Button,
-  Collapse,
   Checkbox,
-  Typography,
+  Col,
+  Collapse,
   Input,
   Row,
-  Col,
-  Alert,
+  Typography,
 } from "antd";
+import { debounce, isEmpty, merge, sortBy } from "lodash";
+
 import {
   CaretRightOutlined,
-  PlusSquareOutlined,
-  MinusSquareOutlined,
   LeftSquareOutlined,
+  MinusSquareOutlined,
+  PlusSquareOutlined,
 } from "@ant-design/icons";
-
-import { SnippetDoc, SnippetEntry, SnippetEntries, Snippets } from "./types";
+import { alert_message } from "@cocalc/frontend/alerts";
 import {
+  CSS,
+  React,
+  useActions,
+  useEffect,
+  useMemo,
+  useRedux,
+  useState,
+  useStore,
+} from "@cocalc/frontend/app-framework";
+import { COLORS } from "@cocalc/util/theme";
+import { A, Loading } from "../../../components";
+import { JupyterStore } from "../../../jupyter/store";
+import { isMainConfiguration } from "../../../project_configuration";
+import { JupyterEditorActions } from "../actions";
+import { NotebookFrameStore } from "../cell-notebook/store";
+import { Copy, Highlight } from "./components";
+import { SnippetDoc, SnippetEntries, SnippetEntry, Snippets } from "./types";
+import {
+  CUSTOM_SNIPPETS_TITLE,
   filterSnippets,
   generateSetupCode,
+  GLOBAL_CUSTOM_DIR,
   loadCustomSnippets,
   LOCAL_CUSTOM_DIR,
-  GLOBAL_CUSTOM_DIR,
-  CUSTOM_SNIPPETS_TITLE,
 } from "./utils";
-import { Copy, Highlight } from "./components";
 
 const URL = "https://github.com/sagemathinc/cocalc-snippets";
 const BUTTON_TEXT = "pick";

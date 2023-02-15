@@ -9,15 +9,18 @@ import LimitsMenu from "./limits";
 import NewMenu from "./new";
 
 export default function ViewMenu({
+  id,
   query,
   name,
   title,
   table,
   dbtable,
   view,
+  data,
   viewCount,
   tableLowerBound,
   columns,
+  allColumns,
   limit,
   setLimit,
   hiddenFields,
@@ -31,6 +34,7 @@ export default function ViewMenu({
   orderFields,
   setOrderFields,
   rowKey,
+  primaryKey,
   addNew,
   addedRecords,
   setAddedRecords,
@@ -44,15 +48,19 @@ export default function ViewMenu({
       style={{ maxHeight: "135px", overflowY: "auto" }}
     >
       <TopMenu
+        id={id}
         name={name}
-        title={title}
         dbtable={dbtable}
         view={view}
         viewCount={viewCount}
         tableLowerBound={tableLowerBound}
+        data={data}
+        title={title}
+        primaryKey={primaryKey}
+        columns={columns}
       />
       <HideFieldsMenu
-        columns={columns}
+        columns={allColumns}
         hiddenFields={hiddenFields}
         setHiddenField={setHiddenField}
         orderFields={orderFields}
@@ -60,14 +68,14 @@ export default function ViewMenu({
         rowKey={rowKey}
       />
       <SearchMenu
-        columns={columns}
+        columns={allColumns}
         search={search}
         setSearch={setSearch}
         query={query}
       />
-      {/* <GroupMenu columns={columns} /> */}
+      {/* <GroupMenu columns={allColumns} /> */}
       <SortMenu
-        columns={columns}
+        columns={allColumns}
         sortFields={sortFields}
         setSortField={setSortField}
       />

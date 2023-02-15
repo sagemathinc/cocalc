@@ -3,12 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button, MenuProps } from "antd";
 
+import { DropdownMenu, Icon } from "@cocalc/frontend/components";
+import { ProjectActions } from "@cocalc/frontend/project_store";
+import { COLORS } from "@cocalc/util/theme";
 import { Configuration } from "./explorer";
 import { EXTs as ALL_FILE_BUTTON_TYPES } from "./file-listing/utils";
-import { Button } from "antd";
-import { Icon, MenuItem, MenuDivider, DropdownMenu } from "../../components";
-import { ProjectActions } from "@cocalc/frontend/project_store";
+
+const { file_options } = require("@cocalc/frontend/editor");
 
 interface Props {
   file_search: string;
@@ -53,16 +56,19 @@ export const NewButton: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function file_dropdown_item(ext: string): JSX.Element {
-    const { file_options } = require("../../editor");
+  function file_dropdown_item(ext: string) {
     const data = file_options("x." + ext);
-    return (
-      <MenuItem key={ext}>
-        <Icon name={data.icon} />{" "}
-        <span style={{ textTransform: "capitalize" }}>{data.name} </span>{" "}
-        <span style={{ color: "#666" }}>(.{ext})</span>
-      </MenuItem>
-    );
+    return {
+      key: ext,
+      onClick: () => on_dropdown_entry_clicked(ext),
+      label: (
+        <>
+          <Icon name={data.icon} />{" "}
+          <span style={{ textTransform: "capitalize" }}>{data.name} </span>{" "}
+          <span style={{ color: COLORS.GRAY_D }}>(.{ext})</span>
+        </>
+      ),
+    };
   }
 
   function choose_extension(ext: string): void {
@@ -103,7 +109,19 @@ export const NewButton: React.FC<Props> = (props: Props) => {
     }
   }
 
-  // console.log("ProjectFilesNew configuration", configuration?.toJS())
+  const items: MenuProps["items"] = [
+    ...new_file_button_types().map(file_dropdown_item),
+    { type: "divider" },
+    {
+      key: "folder",
+      onClick: () => on_dropdown_entry_clicked("folder"),
+      label: (
+        <>
+          <Icon name="folder" /> Folder
+        </>
+      ),
+    },
+  ];
 
   return (
     <Button.Group>
@@ -111,17 +129,7 @@ export const NewButton: React.FC<Props> = (props: Props) => {
         {file_dropdown_icon()}{" "}
       </Button>
 
-      <DropdownMenu
-        title={""}
-        onClick={on_dropdown_entry_clicked}
-        button={true}
-      >
-        {new_file_button_types().map(file_dropdown_item)}
-        <MenuDivider />
-        <MenuItem key="folder">
-          <Icon name="folder" /> Folder
-        </MenuItem>
-      </DropdownMenu>
+      <DropdownMenu title={""} button={true} items={items} />
     </Button.Group>
   );
 };

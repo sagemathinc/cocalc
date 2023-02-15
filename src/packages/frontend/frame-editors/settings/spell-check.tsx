@@ -20,8 +20,12 @@ Internally which of the above is stored in a single string, with the following p
 
 */
 
-import { React, Rendered } from "../../app-framework";
-import { MenuItem, MenuDivider, DropdownMenu } from "@cocalc/frontend/components";
+import { React, Rendered } from "@cocalc/frontend/app-framework";
+import { DropdownMenu, Paragraph, Text } from "@cocalc/frontend/components";
+import {
+  MenuDivider,
+  MenuItems,
+} from "@cocalc/frontend/components/dropdown-menu";
 import { is_different } from "@cocalc/util/misc";
 import { DICTS, dict_desc } from "./aspell-dicts";
 
@@ -35,12 +39,17 @@ export const SpellCheck: React.FC<Props> = React.memo(
   (props: Props) => {
     const { value, set, available } = props;
 
-    function render_other_items(): Rendered[] {
-      const v: Rendered[] = [];
+    function render_other_items(): MenuItems {
+      const v: MenuItems = [];
       for (const lang of DICTS) {
-        v.push(<MenuItem key={lang}>{dict_desc(lang)}</MenuItem>);
+        v.push({
+          key: lang,
+          label: dict_desc(lang),
+          onClick: () => set(lang),
+        });
+
         if (lang == "disabled") {
-          v.push(<MenuDivider key={"div"} />);
+          v.push(MenuDivider);
         }
       }
       return v;
@@ -50,11 +59,9 @@ export const SpellCheck: React.FC<Props> = React.memo(
       return (
         <DropdownMenu
           title={dict_desc(value)}
-          onClick={(lang) => set(lang)}
           button={true}
-        >
-          {render_other_items()}
-        </DropdownMenu>
+          items={render_other_items()}
+        />
       );
     }
 
@@ -69,23 +76,21 @@ export const SpellCheck: React.FC<Props> = React.memo(
       }
     }
 
-    const style = { fontSize: "11pt", paddingRight: "10px" };
     if (available) {
       return (
-        <div>
-          <span style={style}>
-            <b>Spellcheck language</b> for this file{render_updates()}:
-          </span>
-          {render_dropdown()}
-        </div>
+        <>
+          <Paragraph>
+            <Text strong>Spellcheck language</Text> for this file
+            {render_updates()}:
+          </Paragraph>
+          <Paragraph>{render_dropdown()}</Paragraph>
+        </>
       );
     } else {
       return (
-        <div>
-          <span style={style}>
-            <b>Spellcheck</b> is not available for this editor.
-          </span>
-        </div>
+        <Paragraph>
+          <Text strong>Spellcheck</Text> is not available for this editor.
+        </Paragraph>
       );
     }
   },

@@ -17,32 +17,27 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 // TODO: What we haven't converted yet, but do use in CoCalc:
 export {
   ControlLabel,
+  Form,
   FormControl,
   FormGroup,
-  Form,
   InputGroup,
-  Navbar,
-  Nav,
-  NavItem,
-  Table,
 } from "react-bootstrap";
-
-import { MouseEventHandler } from "react";
-import { Rendered } from "./app-framework";
-import { r_join } from "./components/r_join";
-import { Space } from "./components/space";
-
 import {
   Alert as AntdAlert,
   Button as AntdButton,
   Card as AntdCard,
-  Tabs as AntdTabs,
-  Modal as AntdModal,
   Checkbox as AntdCheckbox,
-  Row as AntdRow,
   Col as AntdCol,
+  Modal as AntdModal,
+  Row as AntdRow,
+  Tabs as AntdTabs,
   Tooltip,
 } from "antd";
+import { MouseEventHandler } from "react";
+
+import { Rendered } from "@cocalc/frontend/app-framework";
+import { r_join } from "@cocalc/frontend/components/r_join";
+import { Space } from "@cocalc/frontend/components/space";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful
@@ -398,7 +393,7 @@ export function Modal(props: {
   children?: any;
 }) {
   return (
-    <AntdModal visible={props.show} footer={null} closable={false}>
+    <AntdModal open={props.show} footer={null} closable={false}>
       {props.children}
     </AntdModal>
   );

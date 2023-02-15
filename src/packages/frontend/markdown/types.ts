@@ -7,14 +7,14 @@ export interface Token {
   hidden?: boolean; // See https://markdown-it.github.io/markdown-it/#Token.prototype.hidden
   type: string;
   tag?: string;
-  attrs?: string[][];
-  children?: Token[];
+  attrs?: [string, string][] | null;
+  children?: Token[] | null;
   content: string;
   block?: boolean;
   markup?: string;
   checked?: boolean;
   info?: string;
-  map?: number[]; // source map: pair of 0-based line numbers of source that produced this token.
+  map?: [number, number] | null; // source map: pair of 0-based line numbers of source that produced this token.
   level: number;
 }
 

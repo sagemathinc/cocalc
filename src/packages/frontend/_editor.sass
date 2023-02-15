@@ -536,14 +536,25 @@ code
     background : #428bca
 
 .cc-vertical-drag-bar
-  cursor        : ew-resize
-  background    : #eee
-  width         : 6px
-  border        : 0.5px solid lightgrey
+  cursor     : ew-resize
+  background : #eee
+  padding    : 3px
+  border     : 1px solid #ddd
   &:hover
     background : #428bca
 
 .cc-vertical-drag-bar-dragging
+  z-index       : 100
+
+.cc-horizontal-drag-bar
+  cursor        : ns-resize
+  background    : #eee
+  padding       : 3px
+  border        : 1px solid #ddd
+  &:hover
+    background : #428bca
+
+.cc-horizontal-drag-bar-dragging
   z-index       : 100
 
 .webapp-editor-html-md-preview

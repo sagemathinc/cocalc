@@ -7,14 +7,14 @@
 The format bar.
 */
 
-import { React, Rendered } from "../../app-framework";
-import { SetMap } from "./types";
-import { ButtonGroup, Button } from "../../antd-bootstrap";
+import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon, isIconName, Space } from "@cocalc/frontend/components";
 import { ColorButton } from "@cocalc/frontend/components/color-picker";
 import FontFamilyMenu from "@cocalc/frontend/components/font-family";
 import FontSizeMenu from "@cocalc/frontend/components/font-size";
 import HeadingMenu from "@cocalc/frontend/components/heading-menu";
+import { SetMap } from "./types";
 
 interface Props {
   actions: any; // type of file being edited, which impacts what buttons are shown.

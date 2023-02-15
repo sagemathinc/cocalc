@@ -1,10 +1,17 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { reuseInFlight } from "async-await-utils/hof";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
-import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
+import { aux_file } from "@cocalc/util/misc";
+
 export type { JupyterActions };
-import { reuseInFlight } from "async-await-utils/hof";
 
 async function getJupyterActions0({
   project_id,
@@ -38,7 +45,7 @@ export async function getJupyterFrameEditorActions({
     | undefined;
   if (actions == null) {
     const projectActions = redux.getProjectActions(project_id);
-    await projectActions.initFileRedux(aux_path);
+    await projectActions.initFileRedux(aux_path, false, "ipynb-cocalc-jupyter");
     actions = redux.getEditorActions(project_id, aux_path) as
       | JupyterEditorActions
       | undefined;
@@ -57,7 +64,9 @@ export function openJupyterNotebook({
   path: string;
 }): void {
   const aux_path = pathToIpynb(path);
-  redux.getProjectActions(project_id).open_file({ path: aux_path });
+  redux
+    .getProjectActions(project_id)
+    .open_file({ path: aux_path, ext: "ipynb-cocalc-jupyter" });
 }
 
 export function pathToIpynb(pathToWhiteboard: string): string {

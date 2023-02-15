@@ -456,6 +456,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.push_state("info", "");
         }
         break;
+      case "home":
+        if (opts.change_history) {
+          this.push_state("home", "");
+        }
+        break;
       default:
         // editor...
         const path = misc.tab_to_path(key);
@@ -504,7 +509,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           (async () => {
             const { name, Editor } = await this.init_file_react_redux(
               path,
-              is_public
+              is_public,
+              this.open_files?.get(path, "ext")
             );
             if (this.open_files == null) return;
             info.redux_name = name;
@@ -770,7 +776,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   */
   async initFileRedux(
     path: string,
-    is_public: boolean = false
+    is_public: boolean = false,
+    ext?: string // use this extension even instead of path's extension.
   ): Promise<string | undefined> {
     // LAZY IMPORT, so that editors are only available
     // when you are going to use them.  Helps with code splitting.
@@ -781,23 +788,27 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path,
       this.redux,
       this.project_id,
-      is_public
+      is_public,
+      undefined,
+      ext
     );
     return name;
   }
 
   private async init_file_react_redux(
     path: string,
-    is_public: boolean
+    is_public: boolean,
+    ext?: string
   ): Promise<{ name: string | undefined; Editor: any }> {
-    const name = await this.initFileRedux(path, is_public);
+    const name = await this.initFileRedux(path, is_public, ext);
 
     // Make the Editor react component
     const Editor = await project_file.generateAsync(
       path,
       this.redux,
       this.project_id,
-      is_public
+      is_public,
+      ext
     );
 
     // Log that we opened the file.
@@ -2358,7 +2369,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.log({ event: "file_action", action: "created", files: [p + "/"] });
   }
 
-  async create_file(opts) {
+  async create_file(opts: {
+    name: string;
+    ext?: string;
+    current_path?: string;
+    switch_over?: boolean;
+  }) {
     let p;
     opts = defaults(opts, {
       name: undefined,
@@ -2376,7 +2392,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     if (misc.is_only_downloadable(name)) {
-      this.new_file_from_web(name, opts.current_path);
+      this.new_file_from_web(name, opts.current_path ?? "");
       return;
     }
     if (name[name.length - 1] === "/") {

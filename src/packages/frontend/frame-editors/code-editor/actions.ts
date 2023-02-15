@@ -2411,7 +2411,7 @@ export class Actions<
     if (shell_id == null) {
       // No such terminal already, so we make one and focus it.
       shell_id = this.split_frame("col", id, "terminal");
-      if(shell_id == null) return;
+      if (shell_id == null) return;
     }
     if (no_switch) return;
 
@@ -2507,6 +2507,44 @@ export class Actions<
     const id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
     this.set_active_id(id);
     return id;
+  }
+
+  public async show_pages(_id: string | undefined = undefined): Promise<void> {
+    const id = this.show_focused_frame_of_type("pages", "col", true, 0.15);
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
+  public async show_overview(
+    _id: string | undefined = undefined
+  ): Promise<void> {
+    const id = this.show_focused_frame_of_type("overview", "col", true, 0.3);
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
+  public async show_speaker_notes(
+    _id: string | undefined = undefined
+  ): Promise<void> {
+    const id = this.show_focused_frame_of_type(
+      "speaker_notes",
+      "row",
+      false,
+      0.8
+    );
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
+  public async show_search(_id: string | undefined = undefined): Promise<void> {
+    const id = this.show_focused_frame_of_type("search", "col", false, 0.8);
+    if (id == null) return;
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
   }
 
   // Closes the most recently focused frame of the given type.
@@ -2693,9 +2731,21 @@ export class Actions<
     this.set_frame_tree({ id, page });
   }
 
-  // Set ordered list of all pages in the document
+  // Set ordered list of all pages in the document, or total number of pages
   setPages(id: string, pages: string[] | number | null): void {
     this.set_frame_tree({ id, pages });
+    if (pages != null) {
+      const curPage = this._get_frame_node(id)?.get("page");
+      if (typeof pages == "number") {
+        if (curPage > pages) {
+          this.setPage(id, pages);
+        }
+      } else if (pages.length > 0) {
+        if (!pages.includes(curPage)) {
+          this.setPage(id, pages[0]);
+        }
+      }
+    }
   }
 
   // returns '' if will never be ready; otherwise, returns frame id.

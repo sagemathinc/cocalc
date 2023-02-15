@@ -11,13 +11,12 @@ import {
   React,
   useEffect,
   useFrameContext,
+  useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { startswith } from "@cocalc/util/misc";
 import { SlateCodeMirror } from "../codemirror";
 import { useFocused, useSelected } from "../../slate-react";
 import { useCollapsed } from "../hooks";
-import { FOCUSED_COLOR } from "../../util";
 import { StaticElement } from "./index";
 
 interface Props {
@@ -30,13 +29,14 @@ export const SlateMath: React.FC<Props> = React.memo(
   ({ value, onChange, isInline }) => {
     const [editMode, setEditMode] = useState<boolean>(false);
     const frameContext = useFrameContext();
+    const justBlurred = useRef<boolean>(false);
 
     const focused = useFocused();
     const selected = useSelected();
     const collapsed = useCollapsed();
 
     useEffect(() => {
-      if (focused && selected && collapsed) {
+      if (focused && selected && collapsed && !justBlurred.current) {
         setEditMode(true);
       }
     }, [selected, focused, collapsed]);
@@ -45,11 +45,21 @@ export const SlateMath: React.FC<Props> = React.memo(
       if (!editMode) return;
       return (
         <SlateCodeMirror
+          style={{
+            border: "1px solid lightgrey",
+            boxShadow: "4px 4px 3px #aaa",
+          }}
           value={value}
           onChange={(value) => {
             onChange?.(value.trim().replace(/^\s*[\r\n]/gm, ""));
           }}
-          onBlur={() => setEditMode(false)}
+          onBlur={() => {
+            justBlurred.current = true;
+            setTimeout(() => {
+              justBlurred.current = false;
+            }, 1);
+            setEditMode(false);
+          }}
           info="tex"
           options={{
             lineWrapping: true,
@@ -63,6 +73,7 @@ export const SlateMath: React.FC<Props> = React.memo(
     function renderLaTeX() {
       return (
         <span
+          style={editMode ? { color: "#337ab7" } : undefined}
           onClick={async (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -71,7 +82,7 @@ export const SlateMath: React.FC<Props> = React.memo(
             frameContext.actions.set_active_id(frameContext.id);
           }}
         >
-          {/* any below since we are abusing the StaticElement component a bit */}
+          {/* below since we are abusing the StaticElement component a bit */}
           <StaticElement
             element={
               { value, type: isInline ? "math_inline" : "math_block" } as any
@@ -84,31 +95,10 @@ export const SlateMath: React.FC<Props> = React.memo(
     }
 
     return (
-      <span
-        contentEditable={false}
-        style={
-          editMode
-            ? {
-                display: "block",
-                padding: "10px",
-                cursor: "pointer",
-                border: "1px solid lightgrey",
-                boxShadow: "8px 8px 4px #888",
-                borderRadius: "5px",
-                margin: "5px 10%",
-              }
-            : {
-                display: startswith(value, "$$") ? "block" : "inline",
-                cursor: "pointer",
-                border:
-                  focused && selected
-                    ? `1px solid ${FOCUSED_COLOR}`
-                    : undefined,
-              }
-        }
-      >
-        {renderEditMode()}
+      <span contentEditable={false} style={{ cursor: "pointer" }}>
+        {!isInline && renderEditMode()}
         {renderLaTeX()}
+        {isInline && renderEditMode()}
       </span>
     );
   }

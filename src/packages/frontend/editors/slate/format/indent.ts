@@ -92,7 +92,7 @@ export function unindentListItem(editor: Editor): boolean {
   return true;
 }
 
-function getNode(
+export function getNode(
   editor,
   match,
   at: Location | undefined = undefined

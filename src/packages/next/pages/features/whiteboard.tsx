@@ -32,13 +32,13 @@ export default function Whiteboard({ customize }) {
             logo={<Icon name="layout" style={{ fontSize: "100px" }} />}
             startup={"Whiteboard"}
             title={
-              "Online Collaborative Computational Whiteboards for Mathematics and Computation"
+              "Online Collaborative Whiteboard with Jupyter Code Cells and LaTeX Mathematics"
             }
             subtitleBelow={true}
             subtitle={
               <>
-                Sketch out ideas and run Jupyter code cells with CoCalc's
-                computational whiteboard
+                Sketch out ideas and run Jupyter code cells with CoCalc
+                Whiteboard
               </>
             }
             image={WhiteboardImage}
@@ -166,6 +166,13 @@ export default function Whiteboard({ customize }) {
           <Paragraph>
             Try it in any CoCalc project by clicking +New, then clicking
             "Whiteboard".
+            <br />
+            <br />
+            We also offer <A href="/features/slides">
+              slide presentations
+            </A>{" "}
+            with similar functionality.
+            <br />
             <SignIn startup={"Whiteboard"} />
             <Image
               alt="Screenshot showing whiteboard with post-it notes."

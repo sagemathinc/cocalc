@@ -107,20 +107,10 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     index: number,
     link_target?: string // if given, is a known symlink to this file
   ): Rendered {
-    let color;
     const checked = checked_files.has(misc.path_to_file(current_path, name));
+    const color = misc.rowBackground({ index, checked });
     const { is_public } = file_map[name];
-    if (checked) {
-      if (index % 2 === 0) {
-        color = "#a3d4ff";
-      } else {
-        color = "#a3d4f0";
-      }
-    } else if (index % 2 === 0) {
-      color = "#eee";
-    } else {
-      color = "white";
-    }
+
     return (
       <FileRow
         isdir={isdir}

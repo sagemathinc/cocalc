@@ -4,7 +4,7 @@
  */
 
 import { List } from "immutable";
-import { search_split, search_match } from "@cocalc/util/misc";
+import { rowBackground, search_split, search_match } from "@cocalc/util/misc";
 import {
   React,
   redux,
@@ -160,9 +160,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
         event={x.get("event").toJS()}
         account_id={x.get("account_id")}
         user_map={user_map}
-        backgroundStyle={
-          index % 2 === 0 ? { backgroundColor: "#eee" } : undefined
-        }
+        backgroundStyle={{ background: rowBackground({ index }) }}
         project_id={project_id}
       />
     );

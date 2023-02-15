@@ -3,30 +3,70 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions, useTypedRedux} from "../app-framework";
+import {
+  CSS,
+  React,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
+import { user_tracking } from "@cocalc/frontend/user-tracking";
+import {
+  FONT_SIZE_ICONS_NORMAL,
+  PageStyle,
+  TOP_BAR_ELEMENT_CLASS,
+} from "./top-nav-consts";
 import { blur_active_element } from "./util";
-import { user_tracking } from "../user-tracking";
-import { Icon } from "../components";
-import { NavItem } from "@cocalc/frontend/antd-bootstrap";
 
 interface Props {
+  height: number; // px
+  pageStyle: PageStyle;
   on_click?: () => void;
 }
 
+const BASE_STYLE: CSS = {
+  fontSize: FONT_SIZE_ICONS_NORMAL,
+  display: "inline",
+  color: COLORS.GRAY_M,
+} as const;
+
 export const ConnectionIndicator: React.FC<Props> = React.memo(
-  ({ on_click }) => {
+  (props: Props) => {
+    const { on_click, height, pageStyle } = props;
+    const { topPaddingIcons, sidePaddingIcons, fontSizeIcons } = pageStyle;
     const connection_status = useTypedRedux("page", "connection_status");
     const mesg_info = useTypedRedux("account", "mesg_info");
     const actions = useActions("page");
 
+    const connecting_style: CSS = {
+      flex: "1",
+      color: "white",
+      overflow: "hidden",
+      margin: "auto 0",
+    };
+
+    const outer_style: CSS = {
+      flex: "0 0 auto",
+      display: "flex",
+      alignItems: "center",
+      color: COLORS.GRAY_M,
+      cursor: "pointer",
+      height: `${height}px`,
+      padding: `${topPaddingIcons} ${sidePaddingIcons}`,
+      ...(connection_status !== "connected"
+        ? {
+            backgroundColor:
+              connection_status === "disconnected"
+                ? COLORS.ANTD_RED_WARN
+                : COLORS.ORANGE_WARN,
+          }
+        : {}),
+    };
+
     function render_connection_status() {
       if (connection_status === "connected") {
-        const icon_style = {
-          marginRight: "16px",
-          fontSize: "13pt",
-          display: "inline",
-          color: "grey",
-        };
+        const icon_style: CSS = { ...BASE_STYLE, fontSize: fontSizeIcons };
         if (mesg_info?.get("enqueued") ?? 0 > 6) {
           // serious backlog of data!
           icon_style.color = "red";
@@ -37,37 +77,11 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
           // working well but doing something minimal
           icon_style.color = "#00c";
         }
-        return (
-          <div style={{ padding: "9px" }}>
-            <Icon name="wifi" style={icon_style} />
-          </div>
-        );
+        return <Icon name="wifi" style={icon_style} />;
       } else if (connection_status === "connecting") {
-        return (
-          <div
-            style={{
-              backgroundColor: "#FFA500",
-              color: "white",
-              padding: "1ex",
-              overflow: "hidden",
-            }}
-          >
-            connecting...
-          </div>
-        );
+        return <div style={connecting_style}>connecting...</div>;
       } else if (connection_status === "disconnected") {
-        return (
-          <div
-            style={{
-              backgroundColor: "#FFA500",
-              color: "white",
-              padding: "1ex",
-              overflow: "hidden",
-            }}
-          >
-            disconnected
-          </div>
-        );
+        return <div style={connecting_style}>disconnected</div>;
       }
     }
 
@@ -81,18 +95,13 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
     }
 
     return (
-      <NavItem
-        style={{
-          color: "#666",
-          fontSize: "10pt",
-          lineHeight: "10pt",
-          cursor: "pointer",
-          float: "left",
-        }}
+      <div
+        className={TOP_BAR_ELEMENT_CLASS}
+        style={outer_style}
         onClick={connection_click}
       >
-        <div style={{ paddingTop: "3px" }}>{render_connection_status()}</div>
-      </NavItem>
+        {render_connection_status()}
+      </div>
     );
   }
 );

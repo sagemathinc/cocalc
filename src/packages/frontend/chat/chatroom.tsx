@@ -5,31 +5,37 @@
 
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
-import { history_path } from "@cocalc/util/misc";
-import { sanitize_html_safe } from "@cocalc/frontend/misc";
-import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
-import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
-import { ChatInput } from "./input";
-import { mark_chat_as_read_if_unseen, INPUT_HEIGHT } from "./utils";
+
+import {
+  Button,
+  ButtonGroup,
+  Col,
+  Row,
+  Well,
+} from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   redux,
   useActions,
   useEffect,
-  useRef,
   useRedux,
+  useRef,
 } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   Loading,
-  Tip,
   SearchInput,
+  Tip,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
-import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
-import { ChatLog } from "./chat-log";
-import VideoChatButton from "./video/launch-button";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
+import { sanitize_html_safe } from "@cocalc/frontend/misc";
+import { history_path } from "@cocalc/util/misc";
+import { ChatLog } from "./chat-log";
+import { ChatInput } from "./input";
+import { INPUT_HEIGHT, mark_chat_as_read_if_unseen } from "./utils";
+import VideoChatButton from "./video/launch-button";
 
 const PREVIEW_STYLE: React.CSSProperties = {
   background: "#f5f5f5",
@@ -39,7 +45,7 @@ const PREVIEW_STYLE: React.CSSProperties = {
   paddingBottom: "20px",
   maxHeight: "40vh",
   overflowY: "auto",
-};
+} as const;
 
 const GRID_STYLE: React.CSSProperties = {
   maxWidth: "1200px",
@@ -47,7 +53,7 @@ const GRID_STYLE: React.CSSProperties = {
   flexDirection: "column",
   width: "100%",
   margin: "auto",
-};
+} as const;
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
   margin: "0",
@@ -55,7 +61,7 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
   background: "white",
   flex: "1 0 auto",
   position: "relative",
-};
+} as const;
 
 interface Props {
   project_id: string;
@@ -326,7 +332,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           />
           {is_preview && render_preview_message()}
         </div>
-        <div style={{ display: "flex", marginBottom: "5px" }}>
+        <div style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}>
           <div
             style={{
               flex: "1",
@@ -343,6 +349,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               }}
               submitMentionsRef={submitMentionsRef}
               syncdb={actions.syncdb}
+              editBarStyle={{ overflow: "auto" }}
             />
           </div>
           <div

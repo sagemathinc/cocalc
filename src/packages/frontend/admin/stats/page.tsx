@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useTypedRedux } from "../../app-framework";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Title } from "@cocalc/frontend/components";
 
 import { HistoricalStats } from "./historical-stats";
 
@@ -14,7 +15,7 @@ export const UsageStatistics: React.FC = () => {
   } else {
     return (
       <div>
-        <h3>Usage Statistics</h3>
+        <Title level={4}>Usage Statistics</Title>
         <HistoricalStats />
       </div>
     );

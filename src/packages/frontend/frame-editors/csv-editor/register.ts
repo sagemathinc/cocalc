@@ -9,11 +9,9 @@ Register the CSV editor
 
 import { register_file_editor } from "../frame-tree/register";
 
-export const ICON = "table";
-
 register_file_editor({
   ext: "csv",
-  icon: "table",
+  icon: "csv",
   editor: async () => await import("./editor"),
   actions: async () => await import("./actions"),
 });

@@ -30,6 +30,7 @@ import {
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { server_seconds_ago } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { DOC_TRIAL } from "./project-banner";
 
@@ -41,10 +42,6 @@ const STYLE: CSSProperties = {
   fontSize: "40px",
   textAlign: "center",
   color: "#666666",
-  marginBottom: "15px",
-  borderBottom: "1px solid grey",
-  borderTop: "1px solid grey",
-  paddingBottom: "10px",
 } as const;
 
 export const StartButton: React.FC<Props> = ({ project_id }) => {
@@ -117,7 +114,7 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
                   Connecting... <Icon name="cocalc-ring" spin />
                 </span>
               }
-              type="warning"
+              type="info"
             />
           </div>
         </Delay>
@@ -186,6 +183,7 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
   function render_admin_view() {
     return (
       <Alert
+        banner={true}
         type="error"
         message="Admin Project View"
         description={
@@ -202,16 +200,23 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
   function render_normal_view() {
     return (
       <Alert
+        banner={true}
+        showIcon={false}
         message={
           <>
-            <span style={{ fontSize: "20pt", color: "#666" }}>
+            <span
+              style={{
+                fontSize: "20pt",
+                color: COLORS.GRAY_D,
+              }}
+            >
               <ProjectState state={state} show_desc={allowed} />
             </span>
             {render_start_project_button()}
             {!allowed && render_not_allowed()}
           </>
         }
-        type="warning"
+        type="info"
       />
     );
   }

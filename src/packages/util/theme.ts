@@ -110,6 +110,8 @@ const MAIN_COLORS = {
 
   COCALC_BLUE: "#4474c0", // blue used for the logo
   COCALC_ORANGE: "#fcc861", // orange used for the logo
+
+  ORANGE_WARN: "#FFA500", // e.g. connecting… indicator. use $ANTD_RED_WARN for more severe warnings
 } as const;
 
 export const COLORS = {

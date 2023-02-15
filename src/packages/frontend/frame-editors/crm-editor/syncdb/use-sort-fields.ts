@@ -1,7 +1,7 @@
 import useRecord from "./use-record";
 import { useCallback, useMemo } from "react";
-
-export type SortDirection = "ascending" | "descending";
+import type { SortDirection } from "@cocalc/frontend/components/data-grid";
+export type { SortDirection };
 
 export function sortDirections(sortFields: string[]): {
   [field: string]: SortDirection;

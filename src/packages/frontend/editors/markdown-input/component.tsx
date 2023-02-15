@@ -681,7 +681,7 @@ export function MarkdownInput(props: Props) {
         style={{
           color: "#767676",
           fontSize: "12px",
-          padding: "2.5px 15px",
+          padding: "3px 15px",
           background: "white",
           ...instructionsStyle,
         }}
@@ -862,9 +862,11 @@ export function MarkdownInput(props: Props) {
     );
   }
 
+  const showInstructions = !!value?.trim();
+
   let body: JSX.Element = (
-    <div>
-      {value != "" ? render_instructions() : undefined}
+    <div style={{ height: showInstructions ? "calc(100% - 22px)" : "100%" }}>
+      {showInstructions ? render_instructions() : undefined}
       <div
         ref={divRef}
         style={{

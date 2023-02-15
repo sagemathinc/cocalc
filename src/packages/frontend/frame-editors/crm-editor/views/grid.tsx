@@ -1,4 +1,4 @@
-import { CSSProperties, ReactNode, useMemo, useRef, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
 import { Divider, Modal } from "antd";
 import type { ColumnsType } from "../fields";
@@ -6,9 +6,15 @@ import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
 import { Data } from "./gallery";
 import Json from "./json";
-import { sortDirections, SortDirection } from "../syncdb/use-sort-fields";
+import { sortDirections } from "../syncdb/use-sort-fields";
 import useFieldWidths from "../syncdb/use-field-widths";
-import Draggable from "react-draggable";
+import useSelection from "./use-selection";
+import SelectableIndex, { SelectAll } from "./selectable-index";
+import { rowBackground } from "@cocalc/util/misc";
+import {
+  ColumnHeading,
+  nextSortState,
+} from "@cocalc/frontend/components/data-grid";
 
 const DEFAULT_WIDTH = 150;
 
@@ -18,6 +24,7 @@ interface Props {
   sortFields;
   setSortField;
   recordHeight?: number;
+  primaryKey?: string; // the primary key -- undefined if there is a compound primary key (TODO!?)
   id: string;
 }
 
@@ -27,15 +34,20 @@ export default function Grid({
   sortFields,
   setSortField,
   recordHeight,
+  primaryKey,
   id,
 }: Props) {
+  const selection = useSelection({
+    id,
+    size: data.length,
+    getKey: (index) => data[index]?.[primaryKey ?? ""],
+  });
   const [fieldWidths, setFieldWidths] = useFieldWidths({ id });
-
   return (
     <TableVirtuoso
       overscan={500}
       style={{ height: "100%", overflow: "auto" }}
-      data={data}
+      totalCount={data.length}
       fixedHeaderContent={() => (
         <Header
           columns={columns}
@@ -43,36 +55,59 @@ export default function Grid({
           setSortField={setSortField}
           fieldWidths={fieldWidths}
           setFieldWidths={setFieldWidths}
+          selection={selection}
+          primaryKey={primaryKey}
         />
       )}
       itemContent={(index) => (
         <GridRow
           index={index}
+          primaryKey={primaryKey}
           data={data[index]}
           columns={columns}
           fieldWidths={fieldWidths}
           recordHeight={recordHeight}
+          selection={selection}
         />
       )}
     />
   );
 }
 
-function GridRow({ index, data, columns, recordHeight, fieldWidths }) {
-  const v: ReactNode[] = [
-    <td
-      key="index"
-      style={{
-        cursor: "pointer",
-        border: "1px solid #eee",
-        padding: "0 5px",
-        color: "#666",
-        textAlign: "center",
-      }}
-    >
-      {index + 1}
-    </td>,
-  ];
+function GridRow({
+  index,
+  data,
+  columns,
+  recordHeight,
+  fieldWidths,
+  primaryKey,
+  selection,
+}) {
+  const background = rowBackground({
+    index,
+    checked: selection.has(data[primaryKey]),
+  });
+  const v: ReactNode[] = primaryKey
+    ? [
+        <td
+          key="index"
+          style={{
+            cursor: "pointer",
+            border: "1px solid #eee",
+            padding: "0 5px",
+            color: "#666",
+            textAlign: "center",
+            background,
+          }}
+        >
+          <SelectableIndex
+            index={index}
+            primaryKey={data[primaryKey]}
+            selection={selection}
+          />
+        </td>,
+      ]
+    : [];
   const [open, setOpen] = useState<boolean>(false);
   for (const column of columns) {
     const text = data?.[column.dataIndex];
@@ -87,6 +122,7 @@ function GridRow({ index, data, columns, recordHeight, fieldWidths }) {
           cursor: "pointer",
           width,
           border: "1px solid #eee",
+          background,
         }}
       >
         <div
@@ -134,22 +170,14 @@ function GridRow({ index, data, columns, recordHeight, fieldWidths }) {
   );
 }
 
-function nextSortState(direction?: SortDirection | null) {
-  if (direction == "descending") {
-    return "ascending";
-  } else if (direction == "ascending") {
-    return null;
-  } else {
-    return "descending";
-  }
-}
-
 function Header({
   columns,
   sortFields,
   setSortField,
   fieldWidths,
   setFieldWidths,
+  selection,
+  primaryKey,
 }) {
   const directions = useMemo(() => {
     if (sortFields == null) return {};
@@ -158,7 +186,9 @@ function Header({
 
   return (
     <tr style={{ position: "relative" }}>
-      <ColumnHeading width={30} />
+      {primaryKey && (
+        <ColumnHeading width={30} title={<SelectAll selection={selection} />} />
+      )}
       {columns.map((column) => (
         <ColumnHeading
           {...column}
@@ -176,89 +206,5 @@ function Header({
         />
       ))}
     </tr>
-  );
-}
-
-const DIRECTION_STYLE = {
-  float: "right",
-  marginTop: "2.5px",
-  cursor: "pointer",
-} as CSSProperties;
-
-function ColumnHeading({
-  width,
-  title,
-  direction,
-  onSortClick,
-  setWidth,
-}: {
-  width: number;
-  title?: ReactNode;
-  direction?: SortDirection;
-  onSortClick?: () => void;
-  setWidth?: (number) => void;
-}) {
-  const ignoreClickRef = useRef<boolean>(false);
-  return (
-    <th
-      style={{
-        cursor: "pointer",
-        width: width ?? 150,
-        color: "#428bca",
-        background: "rgb(250, 250, 250)",
-        padding: "10px 5px",
-        border: "1px solid #eee",
-        position: "relative",
-      }}
-      onClick={
-        onSortClick
-          ? () => {
-              if (ignoreClickRef.current) {
-                ignoreClickRef.current = false;
-                return;
-              }
-              onSortClick();
-            }
-          : undefined
-      }
-    >
-      {title}
-      {direction && (
-        <Icon
-          style={DIRECTION_STYLE}
-          name={direction == "ascending" ? "caret-down" : "caret-up"}
-        />
-      )}
-      {setWidth && (
-        <ResizeHandle
-          setWidth={setWidth}
-          width={width}
-          ignoreClick={() => {
-            ignoreClickRef.current = true;
-          }}
-        />
-      )}
-    </th>
-  );
-}
-
-function ResizeHandle({ setWidth, width, ignoreClick }) {
-  const [pos, setPos] = useState<any>(undefined);
-  return (
-    <Draggable
-      onMouseDown={ignoreClick}
-      position={pos}
-      axis="x"
-      onStop={() => {
-        setPos({ x: 0, y: 0 });
-      }}
-      onDrag={(_, data) => {
-        setPos({ x: 0, y: 0 });
-        ignoreClick();
-        setWidth(width + data.deltaX);
-      }}
-    >
-      <span className="cocalc-crm-grid-column-resizer"></span>
-    </Draggable>
   );
 }

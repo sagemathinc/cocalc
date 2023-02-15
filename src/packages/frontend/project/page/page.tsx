@@ -4,35 +4,37 @@
  */
 
 import { Modal } from "antd";
-import { Loading } from "../../components";
-import { DeletedProjectWarning } from "../warnings/deleted";
-import { Content } from "./content";
+
 import {
   React,
+  redux,
   useActions,
   useRedux,
   useTypedRedux,
-  redux,
 } from "@cocalc/frontend/app-framework";
-import { DiskSpaceWarning } from "../warnings/disk-space";
-import { RamWarning } from "../warnings/ram";
-import { OOMWarning } from "../warnings/oom";
-import { ProjectWarningBanner } from "../project-banner";
-import { SoftwareEnvUpgrade } from "./software-env-upgrade";
-import { AnonymousName } from "../anonymous-name";
-import { StartButton } from "../start-button";
-import { useProjectStatus } from "./project-status-hook";
+import { Loading } from "@cocalc/frontend/components";
 import {
   defaultFrameContext,
   FrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import Tabs from "./tabs";
+import { AnonymousName } from "../anonymous-name";
+import { ProjectWarningBanner } from "../project-banner";
+import { StartButton } from "../start-button";
+import { DeletedProjectWarning } from "../warnings/deleted";
+import { DiskSpaceWarning } from "../warnings/disk-space";
+import { OOMWarning } from "../warnings/oom";
+import { RamWarning } from "../warnings/ram";
+import { Content } from "./content";
+import HomePageButton from "./home-page/button";
+import { useProjectStatus } from "./project-status-hook";
+import { SoftwareEnvUpgrade } from "./software-env-upgrade";
+import Tabs, { VerticalFixedTabs } from "./tabs";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   flex: 1,
-  overflow: "auto",
+  overflow: "hidden",
 } as const;
 
 interface Props {
@@ -40,7 +42,8 @@ interface Props {
   is_active: boolean;
 }
 
-export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
+export const ProjectPage: React.FC<Props> = (props: Props) => {
+  const { project_id, is_active } = props;
   const actions = useActions({ project_id });
   const is_deleted = useRedux([
     "projects",
@@ -115,7 +118,7 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
     return (
       <Modal
         title={modal?.get("title")}
-        visible={is_active && modal != null}
+        open={is_active && modal != null}
         onOk={() => {
           actions?.clear_modal();
           modal?.get("onOk")?.();
@@ -148,13 +151,40 @@ export const ProjectPage: React.FC<Props> = ({ project_id, is_active }) => {
       <SoftwareEnvUpgrade project_id={project_id} />
       <ProjectWarningBanner project_id={project_id} />
       {(!fullscreen || fullscreen == "project") && (
-        <Tabs project_id={project_id} />
+        <div style={{ display: "flex", margin: "2.5px" }}>
+          <HomePageButton
+            project_id={project_id}
+            active={active_project_tab == "home"}
+          />
+          <div style={{ flex: 1, overflow: "hidden" }}>
+            <Tabs project_id={project_id} />
+          </div>
+        </div>
       )}
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
-      {renderEditorContent()}
-      {render_project_content()}
-      {render_project_modal()}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {(!fullscreen || fullscreen == "project") && (
+          <div
+            style={{
+              background: "rgba(0, 0, 0, 0.02)",
+              borderTop: "1px solid #eee",
+              borderRight: "1px solid #eee",
+              borderRadius: "5px",
+            }}
+          >
+            <VerticalFixedTabs
+              project_id={project_id}
+              activeTab={active_project_tab}
+            />
+          </div>
+        )}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          {renderEditorContent()}
+          {render_project_content()}
+          {render_project_modal()}
+        </div>
+      </div>
     </div>
   );
 };

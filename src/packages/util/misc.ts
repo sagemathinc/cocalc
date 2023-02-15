@@ -2354,3 +2354,23 @@ export function test_valid_jsonpatch(patch: any): boolean {
   }
   return true;
 }
+
+export function rowBackground({
+  index,
+  checked,
+}: {
+  index: number;
+  checked?: boolean;
+}): string {
+  if (checked) {
+    if (index % 2 === 0) {
+      return "#a3d4ff";
+    } else {
+      return "#a3d4f0";
+    }
+  } else if (index % 2 === 0) {
+    return "#f4f4f4";
+  } else {
+    return "white";
+  }
+}

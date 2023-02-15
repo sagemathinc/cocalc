@@ -1,25 +1,27 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { getJupyterActions } from "./actions";
 
-export default async function run({
-  project_id,
-  path,
-  input,
-  id,
-  set,
-}: {
+interface Opts {
   project_id: string;
   path: string;
   input: string;
   id: string;
   set: (object) => void;
-}) {
+}
+
+export default async function run(opts: Opts) {
+  const { project_id, path, input, id, set } = opts;
   const jupyter_actions = await getJupyterActions({ project_id, path });
   const store = jupyter_actions.store;
   let cell = store.get("cells").get(id);
   if (cell == null) {
     // make new cell at the bottom of the notebook.
-    const pos =
-      store.getIn(["cells", store.get_cell_list().last()])?.get("pos", 0) + 1;
+    const last_cell_id: string = store.get_cell_list().last();
+    const pos = store.getIn(["cells", last_cell_id])?.get("pos", 0) + 1;
     jupyter_actions.insert_cell_at(pos, false, id);
   }
   jupyter_actions.clear_outputs([id], false);

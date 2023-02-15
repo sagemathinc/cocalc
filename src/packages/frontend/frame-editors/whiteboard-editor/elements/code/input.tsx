@@ -1,3 +1,9 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { fromJS, Map } from "immutable";
 import {
   MutableRefObject,
   useCallback,
@@ -5,21 +11,21 @@ import {
   useMemo,
   useState,
 } from "react";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { cm_options } from "@cocalc/frontend/jupyter/cm_options";
+import {
+  Actions as EditorActions,
+  CodeMirrorEditor,
+} from "@cocalc/frontend/jupyter/codemirror-editor";
+import { codemirror_to_jupyter_pos } from "@cocalc/frontend/jupyter/util";
+import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
+import { Actions as WhiteboardActions } from "../../actions";
 import { useFrameContext } from "../../hooks";
 import { Element } from "../../types";
-import { fromJS, Map } from "immutable";
-import { cm_options } from "@cocalc/frontend/jupyter/cm_options";
-import { codemirror_to_jupyter_pos } from "@cocalc/frontend/jupyter/util";
-import {
-  CodeMirrorEditor,
-  Actions as EditorActions,
-} from "@cocalc/frontend/jupyter/codemirror-editor";
-import { redux } from "@cocalc/frontend/app-framework";
-import { getJupyterActions } from "./actions";
-import { Actions as WhiteboardActions } from "../../actions";
-import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
-import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
 import { SELECTED_BORDER_COLOR } from "../style";
+import { getJupyterActions } from "./actions";
 
 interface Props {
   element: Element;
@@ -132,7 +138,7 @@ export default function Input({
               if (!id) return;
               frame.actions.setSelectedTool(frame.id, "select");
               frame.actions.setSelection(frame.id, id);
-              frame.actions.centerElement(id);
+              frame.actions.scrollElementIntoView(id);
               */
             } else if (e.ctrlKey) {
               // this is "evaluate keeping focus", so nothing further to do.
@@ -295,7 +301,6 @@ function getCMOptions(mode) {
   const account = redux.getStore("account");
   const immutable_editor_settings = account?.get("editor_settings");
   const editor_settings = immutable_editor_settings?.toJS() ?? {};
-  const line_numbers =
-    immutable_editor_settings?.get("jupyter_line_numbers") ?? false;
+  const line_numbers = false; // always false, since scaling + line numbers is very broken.
   return fromJS(cm_options(mode, editor_settings, line_numbers, false));
 }

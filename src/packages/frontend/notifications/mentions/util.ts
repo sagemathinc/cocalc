@@ -3,4 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export const redux_name = "mentions";
+import { IconName } from "@cocalc/frontend/components";
+
+export const REDUX_NAME = "mentions";
+
+export const BOOKMARK_ICON_NAME: IconName = "book";
