@@ -1209,6 +1209,8 @@ class exports.Client extends EventEmitter
                         cb : (err, settings) =>
                             if err
                                 cb(err)
+                            else if not settings?
+                                cb("no server settings -- no database connection?")
                             else
                                 locals.settings = settings
                                 cb()
@@ -1255,7 +1257,7 @@ class exports.Client extends EventEmitter
                         email_address : locals.email_address
                         title         : mesg.title
                         allow_urls    : await @allow_urls_in_emails(mesg.project_id)
-                        replyto       : mesg.replyto ? settings.organization_email
+                        replyto       : mesg.replyto ? locals.settings.organization_email
                         replyto_name  : mesg.replyto_name
                         link2proj     : mesg.link2proj
                         settings      : locals.settings
@@ -1402,6 +1404,8 @@ class exports.Client extends EventEmitter
                             cb: (err, settings) =>
                                 if err
                                     cb(err)
+                                else if not settings?
+                                    cb("no server settings -- no database connection?")
                                 else
                                     locals.settings = settings
                                     cb()
@@ -1428,7 +1432,7 @@ class exports.Client extends EventEmitter
                             email_address : email_address
                             title         : mesg.title
                             allow_urls    : await @allow_urls_in_emails(mesg.project_id)
-                            replyto       : mesg.replyto ? settings.organization_email
+                            replyto       : mesg.replyto ? locals.settings.organization_email
                             replyto_name  : mesg.replyto_name
                             link2proj     : mesg.link2proj
                             settings      : locals.settings
