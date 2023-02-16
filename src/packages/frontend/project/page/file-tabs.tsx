@@ -1,19 +1,26 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+
+/*
 Tabs for the open files in a project.
 */
 
-import { Tabs } from "antd";
 import type { TabsProps } from "antd";
-import { file_tab_labels } from "../file-tab-labels";
-import { FileTab } from "./file-tab";
+import { Tabs } from "antd";
+
 import { useActions } from "@cocalc/frontend/app-framework";
 import {
   renderTabBar,
   SortableTabs,
-  useSortable,
   useItemContext,
+  useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
 import { path_to_tab } from "@cocalc/util/misc";
+import { file_tab_labels } from "../file-tab-labels";
+import { FileTab } from "./file-tab";
 
 function Label({ path, project_id, label }) {
   const { width } = useItemContext();
@@ -132,6 +139,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
           if (actions == null) return;
           actions.set_active_tab(path_to_tab(keyToPath(key)));
         }}
+        popupClassName={"cocalc-files-tabs-more"}
       />
     </SortableTabs>
   );
