@@ -94,6 +94,7 @@ export function VerticalFixedTabs({ project_id, activeTab }) {
         key={name}
         project_id={project_id}
         name={name as FixedTab}
+        isFixedTab={true}
         iconStyle={{
           fontSize: "24px",
           margin: "0px 3px",
