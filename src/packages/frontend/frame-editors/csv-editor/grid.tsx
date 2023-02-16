@@ -13,17 +13,19 @@ export default function Grid({ value }) {
     >
       <CSV
         value={value}
-        errHint=<div>
-          Try using{" "}
-          <a
-            onClick={() => {
-              actions.show_focused_frame_of_type("cm");
-            }}
-          >
-            the Raw Data frame
-          </a>{" "}
-          instead.
-        </div>
+        errHint={
+          <div>
+            Try using{" "}
+            <a
+              onClick={() => {
+                actions.show_focused_frame_of_type("cm");
+              }}
+            >
+              the Raw Data frame
+            </a>{" "}
+            instead.
+          </div>
+        }
       />
     </div>
   );
