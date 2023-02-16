@@ -1,14 +1,20 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Tabs in a particular project.
 */
 
 import { ReactNode } from "react";
-import { tab_to_path } from "@cocalc/util/misc";
-import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
-import { ShareIndicator } from "./share-indicator";
-import { FIXED_PROJECT_TABS, FileTab, FixedTab } from "./file-tab";
-import FileTabs from "./file-tabs";
+
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
+import { tab_to_path } from "@cocalc/util/misc";
+import { FileTab, FixedTab, FIXED_PROJECT_TABS } from "./file-tab";
+import FileTabs from "./file-tabs";
+import { ShareIndicator } from "./share-indicator";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",

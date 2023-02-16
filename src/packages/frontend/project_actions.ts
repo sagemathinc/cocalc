@@ -49,6 +49,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { IconName } from "./components";
 import { default_filename } from "./account";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { FixedTab } from "./project/page/file-tab";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -444,6 +445,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "search":
         if (opts.change_history) {
           this.push_state(`search/${store.get("current_path")}`, "");
+        }
+        break;
+      case "servers":
+        if (opts.change_history) {
+          this.push_state("servers", "");
         }
         break;
       case "settings":
@@ -2824,7 +2830,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const full_path = segments.slice(1).join("/");
     const parent_path = segments.slice(1, segments.length - 1).join("/");
     const last = segments.slice(-1).join();
-    const main_segment = segments[0];
+    const main_segment = segments[0] as FixedTab;
     switch (main_segment) {
       case "files":
         if (target.endsWith("/") || full_path === "") {
@@ -2890,6 +2896,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_active_tab("settings", { change_history: change_history });
         break;
 
+      case "servers":
+        this.set_active_tab("servers", { change_history: change_history });
+        break;
+
       case "search":
         this.set_current_path(full_path);
         this.set_active_tab("search", { change_history: change_history });
@@ -2900,6 +2910,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         break;
 
       default:
+        misc.unreachable(main_segment);
         console.warn(`project/load_target: don't know segment ${main_segment}`);
     }
   }
