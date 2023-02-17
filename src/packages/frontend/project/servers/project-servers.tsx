@@ -16,8 +16,8 @@ import { HelpEmailLink } from "../../customize";
 import { SagewsControl } from "../settings/sagews-control";
 
 const ROOT_STYLE: CSS = {
-  marginLeft: "15px",
-  marginRight: "15px",
+  marginLeft: "20px",
+  marginRight: "20px",
   maxWidth: "1000px",
 } as const;
 

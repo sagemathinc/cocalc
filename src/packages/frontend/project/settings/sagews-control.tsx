@@ -4,8 +4,10 @@
  */
 
 import React from "react";
+import { Button } from "react-bootstrap";
 
 import { alert_message } from "@cocalc/frontend/alerts";
+import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
@@ -15,86 +17,72 @@ import {
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COLORS } from "@cocalc/util/theme";
-import { Button } from "react-bootstrap";
 
 interface Props {
   project_id: string;
 }
 
-interface State {
-  loading: boolean;
-}
+export const SagewsControl: React.FC<Props> = (props: Props) => {
+  const { project_id } = props;
 
-export class SagewsControl extends React.Component<Props, State> {
-  private _mounted: boolean;
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | undefined>(undefined);
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      loading: false,
-    };
-  }
+  const isMounted = useIsMountedRef();
 
-  componentDidMount() {
-    this._mounted = true;
-  }
-
-  componentWillUnmount() {
-    this._mounted = false;
-  }
-
-  restart_worksheet = async () => {
-    this.setState({ loading: true });
+  async function restart_worksheet() {
+    setLoading(true);
+    setError(undefined);
     try {
-      await webapp_client.project_client.exec({
-        project_id: this.props.project_id,
+      const ret = await webapp_client.project_client.exec({
+        project_id,
         command: "smc-sage-server stop; sleep 1; smc-sage-server start",
         timeout: 30,
       });
-      if (!this._mounted) return;
+      if (!isMounted) return;
+      if (ret?.stderr) throw new Error(ret.stderr);
       alert_message({
         type: "info",
         message:
           "Worksheet server restarted. Restarted worksheets will use a new Sage session.",
       });
     } catch (err) {
-      if (!this._mounted) return;
+      if (!isMounted) return;
+      setError(err.toString());
       alert_message({
         type: "error",
         message:
           "Error trying to restart worksheet server. Try restarting the entire project instead.",
       });
     }
-    if (this._mounted) {
+    if (isMounted) {
       // see https://github.com/sagemathinc/cocalc/issues/1684
-      this.setState({ loading: false });
+      setLoading(false);
     }
-  };
-
-  render() {
-    return (
-      <SettingBox title="Restart Sage Worksheet Server" icon="refresh">
-        <Paragraph>
-          This restarts the underlying{" "}
-          <A href={"https://doc.cocalc.com/sagews.html"}>Sage Worksheet</A>{" "}
-          server. You have to do this, if you customized your{" "}
-          <Text code>$HOME/bin/sage</Text>.
-        </Paragraph>
-        <Paragraph style={{ color: COLORS.GRAY_D }}>
-          Existing worksheet sessions are unaffected. This means you have to
-          restart your worksheet as well to use the new version of Sage.
-        </Paragraph>
-        <Paragraph style={{ textAlign: "center" }}>
-          <Button
-            bsStyle="warning"
-            disabled={this.state.loading}
-            onClick={this.restart_worksheet}
-          >
-            <Icon name="refresh" spin={this.state.loading} /> Restart SageWS
-            Server
-          </Button>
-        </Paragraph>
-      </SettingBox>
-    );
   }
-}
+
+  return (
+    <SettingBox title="Restart Sage Worksheet Server" icon="refresh">
+      <Paragraph>
+        This restarts the underlying{" "}
+        <A href={"https://doc.cocalc.com/sagews.html"}>Sage Worksheet</A>{" "}
+        server. In case you customized your <Text code>$HOME/bin/sage</Text>,
+        you have to do this, in order to to pick up the new version of Sage.
+      </Paragraph>
+      <Paragraph style={{ color: COLORS.GRAY_D }}>
+        Existing worksheet sessions are unaffected. This means you have to
+        restart your worksheet as well to use the new version of Sage.
+      </Paragraph>
+      <Paragraph style={{ textAlign: "center" }}>
+        <Button
+          bsStyle="warning"
+          disabled={loading}
+          onClick={restart_worksheet}
+        >
+          <Icon name="refresh" spin={loading} /> Restart SageWS Server
+        </Button>
+      </Paragraph>
+      {error && <Text type="danger">{error}</Text>}
+    </SettingBox>
+  );
+};
