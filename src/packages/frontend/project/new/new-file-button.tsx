@@ -16,12 +16,13 @@ const STYLE: CSS = {
   width: "100%",
   height: "auto",
   whiteSpace: "normal",
-};
+  padding: "10px",
+} as const;
 
 const ICON_STYLE: CSS = {
   fontSize: "200%",
   color: COLORS.FILE_ICON,
-};
+} as const;
 
 interface Props {
   name: string;

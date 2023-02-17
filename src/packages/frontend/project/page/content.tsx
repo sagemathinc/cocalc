@@ -58,7 +58,7 @@ const DEFAULT_CHAT_WIDTH = IS_MOBILE ? 0.5 : 0.3;
 
 const MAIN_STYLE: React.CSSProperties = {
   overflowX: "hidden",
-  flex: 1,
+  flex: "1 1 auto",
   height: 0,
   position: "relative",
 } as const;
@@ -99,9 +99,7 @@ interface TabContentProps {
   is_visible: boolean;
 }
 
-export const TabContent: React.FC<TabContentProps> = (
-  props: TabContentProps
-) => {
+const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
   const { project_id, tab_name, is_visible } = props;
   const open_files =
     useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();

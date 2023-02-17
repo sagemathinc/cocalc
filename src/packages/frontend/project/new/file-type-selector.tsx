@@ -11,6 +11,7 @@ import { useActions } from "@cocalc/frontend/app-framework";
 import { Tip } from "@cocalc/frontend/components";
 import { useAvailableFeatures } from "../use-available-features";
 import { NewFileButton } from "./new-file-button";
+import { TITLE as SERVERS_TITLE } from "../servers";
 
 interface Props {
   create_file: (name?: string) => void;
@@ -267,10 +268,10 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
             />
           </Tip>
         </Col>
-        <Col sm={24}>{children}</Col>
-        <Col md={12} offset={6}>
+        <Col sm={12}>{children}</Col>
+        <Col md={12}>
           <NewFileButton
-            name={'Servers moved to "Servers" tab.'}
+            name={`Jupyter, VS Code and Pluto moved to the "${SERVERS_TITLE}" tab.`}
             icon={"server"}
             on_click={() => {
               project_actions?.set_active_tab("servers", {

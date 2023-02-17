@@ -21,6 +21,7 @@ import { isCoCalcURL, parseCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { filename_extension, path_split } from "@cocalc/util/misc";
+import { TITLE as SERVERS_TITLE } from "../project/servers";
 
 interface Options {
   project_id: string;
@@ -205,10 +206,10 @@ function CoCalcURL({ href, title, children, project_id }) {
       );
     } else if (target.startsWith("servers")) {
       if (replaceChildren) {
-        children = <>Servers</>;
+        children = <>{SERVERS_TITLE}</>;
       }
       icon = "server";
-      heading = "Servers";
+      heading = SERVERS_TITLE;
       message = (
         <>
           Open server management in{" "}

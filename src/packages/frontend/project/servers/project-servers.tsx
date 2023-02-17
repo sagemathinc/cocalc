@@ -3,21 +3,22 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Modal, Row } from "antd";
+import { Col, Divider, Modal, Row } from "antd";
 import { Gutter } from "antd/es/grid/row";
 
 import { CSS, useState } from "@cocalc/frontend/app-framework";
-import { Paragraph, Text, Title } from "@cocalc/frontend/components";
+import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
+import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import { NamedServerPanel } from "../named-server-panel";
 import { NewFileButton } from "../new/new-file-button";
-import { useAvailableFeatures } from "../use-available-features";
-import { HelpEmailLink } from "../../customize";
 import { SagewsControl } from "../settings/sagews-control";
+import { useAvailableFeatures } from "../use-available-features";
+import { ICON_NAME, TITLE } from "./consts";
 
 const ROOT_STYLE: CSS = {
-  marginLeft: "20px",
-  marginRight: "20px",
+  paddingLeft: "20px",
+  paddingRight: "20px",
   maxWidth: "1000px",
 } as const;
 
@@ -122,7 +123,7 @@ export function ProjectServers(props: Props) {
         </Row>
 
         <Row gutter={gutter} style={newRowStyle}>
-          <Col sm={16} push={4}>
+          <Col sm={18}>
             {showNamedServer && (
               <NamedServerPanel
                 project_id={project_id}
@@ -139,7 +140,9 @@ export function ProjectServers(props: Props) {
     return (
       <Row gutter={gutter} style={newRowStyle}>
         <Col sm={24} md={12}>
-          <Title level={3}>Sage Worksheet Server</Title>
+          <Title level={3}>
+            <Icon name="sagemath" /> Sage Worksheet Server
+          </Title>
           <SagewsControl key="worksheet" project_id={project_id} />
         </Col>
       </Row>
@@ -148,13 +151,20 @@ export function ProjectServers(props: Props) {
 
   return (
     <div style={ROOT_STYLE}>
-      <Title level={2}>Servers</Title>
+      <Title level={2}>
+        <Icon name={ICON_NAME} /> {TITLE}
+      </Title>
       <Paragraph>
         You can run various servers inside this project. They run in the same
         environment, have access to the same files, and stop, when the project
-        stops.
+        stops. If you're advanteous, you can also{" "}
+        <A href={"https://doc.cocalc.com/howto/webserver.html"}>
+          run your own servers
+        </A>
+        .
       </Paragraph>
       {renderNamedServers()}
+      <Divider plain />
       {renderSageServerControl()}
     </div>
   );

@@ -27,6 +27,7 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { is_different } from "@cocalc/util/misc";
 import { NewFileButton } from "../new/new-file-button";
+import { ICON_NAME as SERVERS_ICON, TITLE as TITLE_SERVERS } from "../servers";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { NonMemberProjectWarning } from "../warnings/non-member";
 import { AboutBox } from "./about-box";
@@ -211,11 +212,11 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             <Paragraph>
               The panel for restarting the Sage Worksheet server and other
               servers like Jupyter Classic, JupyterLab, and VS Code have been
-              moved to the "Servers" tab.
+              moved to the "{TITLE_SERVERS}" tab.
             </Paragraph>
             <NewFileButton
-              name={'Servers moved to "Servers" tab.'}
-              icon={"server"}
+              name={`Moved to "${TITLE_SERVERS}" tab.`}
+              icon={SERVERS_ICON}
               on_click={() => {
                 project_actions?.set_active_tab("servers", {
                   change_history: true,

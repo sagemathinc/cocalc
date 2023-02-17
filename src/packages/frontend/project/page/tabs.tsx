@@ -7,22 +7,28 @@
 Tabs in a particular project.
 */
 
-import { ReactNode } from "react";
+import { throttle } from "lodash";
+import { ReactNode, useLayoutEffect, useRef, useState } from "react";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
 import { tab_to_path } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { FileTab, FixedTab, FIXED_PROJECT_TABS } from "./file-tab";
 import FileTabs from "./file-tabs";
 import { ShareIndicator } from "./share-indicator";
-import { COLORS } from "@cocalc/util/theme";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
   paddingLeft: "5px",
 } as const;
 
-export default function ProjectTabs({ project_id }) {
+interface PTProps {
+  project_id: string;
+}
+
+export default function ProjectTabs(props: PTProps) {
+  const { project_id } = props;
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
 
@@ -66,8 +72,55 @@ export default function ProjectTabs({ project_id }) {
   );
 }
 
-export function VerticalFixedTabs({ project_id, activeTab }) {
+interface FVTProps {
+  project_id: string;
+  activeTab: string;
+}
+
+export function VerticalFixedTabs(props: FVTProps) {
+  const { project_id, activeTab } = props;
   const isAnonymous = useTypedRedux("account", "is_anonymous");
+  const parent = useRef<HTMLDivElement>(null);
+  const tabs = useRef<HTMLDivElement>(null);
+  const breakPoint = useRef<number>(0);
+  const [condensed, setCondensed] = useState(false);
+
+  const calcCondensed = throttle(
+    () => {
+      if (tabs.current == null) return;
+      if (parent.current == null) return;
+
+      const th = tabs.current.clientHeight;
+      const ph = parent.current.clientHeight;
+
+      if (condensed) {
+        // 5px slack to avoid flickering
+        if (ph > breakPoint.current + 5) {
+          setCondensed(false);
+        }
+      } else {
+        if (ph < th) {
+          setCondensed(true);
+          breakPoint.current = ph;
+        }
+      }
+    },
+    50,
+    { trailing: true, leading: true }
+  );
+
+  useLayoutEffect(
+    () => {
+      window.addEventListener("resize", calcCondensed);
+      return () => {
+        window.removeEventListener("resize", calcCondensed);
+      };
+    },
+    [condensed] // necessary, because otherwise the state of condensed in calcCondensed is not updated
+  );
+
+  useLayoutEffect(() => calcCondensed(), []);
+
   const items: ReactNode[] = [];
   for (const name in FIXED_PROJECT_TABS) {
     const v = FIXED_PROJECT_TABS[name];
@@ -75,13 +128,15 @@ export function VerticalFixedTabs({ project_id, activeTab }) {
       continue;
     }
     const color =
-      activeTab == name ? { color: COLORS.PROJECT.FIXED_LEFT_ACTIVE } : undefined;
+      activeTab == name
+        ? { color: COLORS.PROJECT.FIXED_LEFT_ACTIVE }
+        : undefined;
 
     // uncomment this to move the processes and settings to the bottom like in vscode.
     // some of us do NOT like that.
-    //     if (name == "info") {
-    //       items.push(<div style={{ flex: 1 }}></div>);
-    //     }
+    // if (name == "info") {
+    //   items.push(<div style={{ flex: 1 }}></div>);
+    // }
     items.push(
       <FileTab
         style={{
@@ -95,18 +150,33 @@ export function VerticalFixedTabs({ project_id, activeTab }) {
         key={name}
         project_id={project_id}
         name={name as FixedTab}
+        label={condensed ? "" : undefined}
         isFixedTab={true}
         iconStyle={{
           fontSize: "24px",
-          margin: "0px 3px",
+          margin: "0px 6px",
           ...color,
         }}
       />
     );
   }
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {items}
+    <div
+      ref={parent}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflowY: "auto", // this gives users on small screens a chance  to get to the bottom of the tabs
+        overflowX: "hidden",
+      }}
+    >
+      <div
+        ref={tabs}
+        style={{ display: "flex", flexDirection: "column", flex: "1 1 0" }}
+      >
+        {items}
+      </div>
     </div>
   );
 }

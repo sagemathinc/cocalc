@@ -22,6 +22,7 @@ import { HiddenXSSM, Icon, IconName } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { TITLE as SERVERS_TITLE } from "../servers";
 import { PROJECT_INFO_TITLE } from "../info";
 
 const { file_options } = require("@cocalc/frontend/editor");
@@ -70,7 +71,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noAnonymous: false,
   },
   servers: {
-    label: "Servers",
+    label: SERVERS_TITLE,
     icon: "server",
     tooltip: "Servers running in this project (e.g., Jupyter, Pluto, …)",
     noAnonymous: true,
