@@ -83,6 +83,7 @@ export function VerticalFixedTabs(props: FVTProps) {
   const parent = useRef<HTMLDivElement>(null);
   const tabs = useRef<HTMLDivElement>(null);
   const breakPoint = useRef<number>(0);
+  const refCondensed = useRef<boolean>(false);
   const [condensed, setCondensed] = useState(false);
 
   const calcCondensed = throttle(
@@ -93,33 +94,33 @@ export function VerticalFixedTabs(props: FVTProps) {
       const th = tabs.current.clientHeight;
       const ph = parent.current.clientHeight;
 
-      if (condensed) {
+      if (refCondensed.current) {
         // 5px slack to avoid flickering
         if (ph > breakPoint.current + 5) {
           setCondensed(false);
+          refCondensed.current = false;
         }
       } else {
         if (ph < th) {
           setCondensed(true);
-          breakPoint.current = ph;
+          refCondensed.current = true;
+          // max? because when we start with a thin window, the ph is already smaller than th
+          breakPoint.current = Math.max(th, ph);
         }
       }
     },
     50,
-    { trailing: true, leading: true }
+    { trailing: true, leading: false }
   );
 
-  useLayoutEffect(
-    () => {
-      window.addEventListener("resize", calcCondensed);
-      return () => {
-        window.removeEventListener("resize", calcCondensed);
-      };
-    },
-    [condensed] // necessary, because otherwise the state of condensed in calcCondensed is not updated
-  );
-
-  useLayoutEffect(() => calcCondensed(), []);
+  // layout effect, because it measures sizes before rendering
+  useLayoutEffect(() => {
+    calcCondensed();
+    window.addEventListener("resize", calcCondensed);
+    return () => {
+      window.removeEventListener("resize", calcCondensed);
+    };
+  }, []);
 
   const items: ReactNode[] = [];
   for (const name in FIXED_PROJECT_TABS) {
@@ -167,7 +168,9 @@ export function VerticalFixedTabs(props: FVTProps) {
         display: "flex",
         flexDirection: "column",
         height: "100%",
-        overflowY: "auto", // this gives users on small screens a chance  to get to the bottom of the tabs
+        // this gives users on small screens a chance  to get to the bottom of the tabs.
+        // also, the scrollbar is intentionally only active in condensed mode, to avoid it to show up briefly.
+        overflowY: condensed ? "auto" : "hidden",
         overflowX: "hidden",
       }}
     >
