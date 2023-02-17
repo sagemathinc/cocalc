@@ -3,16 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
 import { Col, Row } from "antd";
-
-import { useState, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Tip } from "@cocalc/frontend/components";
-import { ALL_AVAIL } from "@cocalc/frontend/project_configuration";
-import { NamedServerName } from "@cocalc/util/types/servers";
-import { NamedServerPanel } from "../named-server-panel";
-import { NewFileButton } from "./new-file-button";
 import { Gutter } from "antd/es/grid/row";
+import React from "react";
+
+import { useActions } from "@cocalc/frontend/app-framework";
+import { Tip } from "@cocalc/frontend/components";
+import { useAvailableFeatures } from "../use-available-features";
+import { NewFileButton } from "./new-file-button";
 
 interface Props {
   create_file: (name?: string) => void;
@@ -25,14 +23,9 @@ interface Props {
 // Could be changed to auto adjust to a list of pre-defined button names.
 export const FileTypeSelector: React.FC<Props> = (props: Props) => {
   const { create_file, create_folder, project_id, children } = props;
-  const [showNamedServer, setShowNamedServer] = useState<"" | NamedServerName>(
-    ""
-  );
 
-  const available_features = useTypedRedux(
-    { project_id },
-    "available_features"
-  );
+  const project_actions = useActions({ project_id });
+  const available = useAvailableFeatures(project_id);
 
   if (!create_file || !create_file || !project_id) {
     return null;
@@ -44,12 +37,6 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
   const y: Gutter = 30;
   const gutter: [Gutter, Gutter] = [20, y / 2];
   const newRowStyle = { marginTop: `${y}px` };
-
-  // If the configuration is not yet available, we default to the *most likely*
-  // configuration, not the least likely configuration.
-  // See https://github.com/sagemathinc/cocalc/issues/4293
-  // This is also consistent with src/@cocalc/frontend/project/explorer/new-button.tsx
-  const available = available_features?.toJS() ?? ALL_AVAIL;
 
   // console.log("FileTypeSelector: available", available)
   return (
@@ -114,7 +101,10 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
               on_click={create_file}
               ext="slides"
             />
-          </Tip>{" "}
+          </Tip>
+        </Col>
+
+        <Col sm={sm} md={md}>
           <Tip
             title="Markdown Document"
             icon="markdown"
@@ -131,7 +121,6 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
 
         {available.sage && (
           <Col sm={sm} md={md}>
-            {" "}
             <Tip
               icon="sagemath-bold"
               title="Sage Worksheet"
@@ -146,6 +135,7 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
             </Tip>{" "}
           </Col>
         )}
+
         {available.latex && (
           <Col sm={sm} md={md}>
             <Tip
@@ -162,6 +152,7 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
             </Tip>
           </Col>
         )}
+
         {available.x11 && (
           <Col sm={sm} md={md}>
             <Tip
@@ -196,6 +187,7 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
           </Tip>
         </Col>
       </Row>
+
       <Row gutter={gutter} style={newRowStyle}>
         <Col sm={sm} md={md}>
           <Tip
@@ -228,6 +220,7 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
           </Tip>
         </Col>
       </Row>
+
       <Row gutter={gutter} style={newRowStyle}>
         {available.rmd && (
           <Col sm={sm} md={md}>
@@ -275,64 +268,16 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
           </Tip>
         </Col>
         <Col sm={24}>{children}</Col>
-        {available.jupyter_notebook && (
-          <Col sm={sm} md={md}>
-            <NewFileButton
-              name={"Jupyter Classic..."}
-              icon={"ipynb"}
-              on_click={(): void => {
-                showNamedServer == "jupyter"
-                  ? setShowNamedServer("")
-                  : setShowNamedServer("jupyter");
-              }}
-            />
-          </Col>
-        )}
-        {available.jupyter_lab && (
-          <Col sm={sm} md={md}>
-            <NewFileButton
-              name={"JupyterLab..."}
-              icon={"ipynb"}
-              on_click={(): void => {
-                showNamedServer == "jupyterlab"
-                  ? setShowNamedServer("")
-                  : setShowNamedServer("jupyterlab");
-              }}
-            />
-          </Col>
-        )}
-        {available.vscode && (
-          <Col sm={sm} md={md}>
-            <NewFileButton
-              name={"VS Code..."}
-              icon={"vscode"}
-              on_click={(): void => {
-                showNamedServer == "code"
-                  ? setShowNamedServer("")
-                  : setShowNamedServer("code");
-              }}
-            />
-          </Col>
-        )}
-        {available.julia && (
-          <Col sm={sm} md={md}>
-            <NewFileButton
-              name={"Pluto..."}
-              icon={"julia"}
-              on_click={(): void => {
-                showNamedServer == "pluto"
-                  ? setShowNamedServer("")
-                  : setShowNamedServer("pluto");
-              }}
-            />
-          </Col>
-        )}
-      </Row>
-      <Row gutter={gutter} style={newRowStyle}>
-        <Col sm={16} push={4}>
-          {showNamedServer && (
-            <NamedServerPanel project_id={project_id} name={showNamedServer} />
-          )}
+        <Col md={12} offset={6}>
+          <NewFileButton
+            name={'Servers moved to "Servers" tab.'}
+            icon={"server"}
+            on_click={() => {
+              project_actions?.set_active_tab("servers", {
+                change_history: true,
+              });
+            }}
+          />
         </Col>
       </Row>
     </>

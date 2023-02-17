@@ -15,6 +15,7 @@ import { tab_to_path } from "@cocalc/util/misc";
 import { FileTab, FixedTab, FIXED_PROJECT_TABS } from "./file-tab";
 import FileTabs from "./file-tabs";
 import { ShareIndicator } from "./share-indicator";
+import { COLORS } from "@cocalc/util/theme";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
@@ -68,13 +69,13 @@ export default function ProjectTabs({ project_id }) {
 export function VerticalFixedTabs({ project_id, activeTab }) {
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const items: ReactNode[] = [];
-  // <div style={{ textAlign: "center", color: "#666" }}>Project</div>,
   for (const name in FIXED_PROJECT_TABS) {
     const v = FIXED_PROJECT_TABS[name];
     if (isAnonymous && v.noAnonymous) {
       continue;
     }
-    const color = activeTab == name ? { color: "#1677ff" } : undefined;
+    const color =
+      activeTab == name ? { color: COLORS.PROJECT.FIXED_LEFT_ACTIVE } : undefined;
 
     // uncomment this to move the processes and settings to the bottom like in vscode.
     // some of us do NOT like that.
@@ -87,7 +88,7 @@ export function VerticalFixedTabs({ project_id, activeTab }) {
           margin: "5px 0px",
           ...color,
           borderLeft: `4px solid ${
-            activeTab == name ? "#1677ff" : "transparent"
+            activeTab == name ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
           }`,
         }}
         placement={"right"}

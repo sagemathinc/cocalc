@@ -69,16 +69,16 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     tooltip: "Search files in the project",
     noAnonymous: false,
   },
-  info: {
-    label: PROJECT_INFO_TITLE,
-    icon: "microchip",
-    tooltip: "Running processes, resource usage, …",
-    noAnonymous: true,
-  },
   servers: {
     label: "Servers",
     icon: "server",
     tooltip: "Servers running in this project (e.g., Jupyter, Pluto, …)",
+    noAnonymous: true,
+  },
+  info: {
+    label: PROJECT_INFO_TITLE,
+    icon: "microchip",
+    tooltip: "Running processes, resource usage, …",
     noAnonymous: true,
   },
   settings: {

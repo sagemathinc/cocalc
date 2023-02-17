@@ -3,11 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useEffect, useIsMountedRef, useState } from "../app-framework";
-import { Loading, Space, Icon } from "../components";
 import { Button } from "antd";
+
+import {
+  useEffect,
+  useIsMountedRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Loading, Space } from "@cocalc/frontend/components";
+import { open_new_tab } from "@cocalc/frontend/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
-import { open_new_tab } from "../misc";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   href: string;
@@ -92,9 +98,11 @@ const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
             </span>
           )}
           {error && (
-            <span style={{ color: "darkred" }}>
-              <Space /> (failed to load){" "}
-            </span>
+            <>
+              <span style={{ color: COLORS.ANTD_RED_WARN }}>
+                <Space /> (failed to load)
+              </span>
+            </>
           )}
         </span>
       );
@@ -105,7 +113,11 @@ const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
           {loading ? (
             <Icon name="cocalc-ring" spin />
           ) : (
-            error && <span style={{ color: "darkred" }}>(failed to load)</span>
+            error && (
+              <span style={{ color: COLORS.ANTD_RED_WARN }}>
+                (failed to load)
+              </span>
+            )
           )}
         </Button>
       );

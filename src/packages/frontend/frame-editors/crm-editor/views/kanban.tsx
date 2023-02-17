@@ -1,19 +1,20 @@
-import { CSSProperties, useMemo, useState } from "react";
-import { Alert } from "antd";
-import { Virtuoso } from "react-virtuoso";
-import type { ColumnsType } from "../fields";
-import { OneCard } from "./gallery";
-import { getFieldSpec } from "../fields";
+import { Loading } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import {
   DndContext,
   DragOverlay,
   useDraggable,
   useDroppable,
 } from "@dnd-kit/core";
-import set from "../querydb/set";
-import { Loading } from "@cocalc/frontend/components";
+import { Alert } from "antd";
+import { CSSProperties, useMemo, useState } from "react";
+import { Virtuoso } from "react-virtuoso";
 import Handle from "../components/handle";
+import type { ColumnsType } from "../fields";
+import { getFieldSpec } from "../fields";
+import set from "../querydb/set";
+import { OneCard } from "./gallery";
 
 interface Props {
   rowKey: string;
@@ -261,7 +262,7 @@ function Title({ children }) {
   );
 }
 
-const DROP_COLOR = "#1677ff";
+const DROP_COLOR = COLORS.ANTD_LINK_BLUE;
 
 export function DroppableColumn({ id, children }) {
   const { isOver, setNodeRef } = useDroppable({ id });

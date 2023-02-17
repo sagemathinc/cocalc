@@ -4,14 +4,21 @@
  */
 
 import React from "react";
-import { Icon, SettingBox } from "@cocalc/frontend/components";
-import { Row, Col, Button } from "react-bootstrap";
-import { Project } from "./types";
-import { alert_message } from "../../alerts";
-import { webapp_client } from "../../webapp-client";
+
+import { alert_message } from "@cocalc/frontend/alerts";
+import {
+  A,
+  Icon,
+  Paragraph,
+  SettingBox,
+  Text,
+} from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { COLORS } from "@cocalc/util/theme";
+import { Button } from "react-bootstrap";
 
 interface Props {
-  project: Project;
+  project_id: string;
 }
 
 interface State {
@@ -40,8 +47,8 @@ export class SagewsControl extends React.Component<Props, State> {
     this.setState({ loading: true });
     try {
       await webapp_client.project_client.exec({
-        project_id: this.props.project.get("project_id"),
-        command: "smc-sage-server stop; smc-sage-server start",
+        project_id: this.props.project_id,
+        command: "smc-sage-server stop; sleep 1; smc-sage-server start",
         timeout: 30,
       });
       if (!this._mounted) return;
@@ -55,7 +62,7 @@ export class SagewsControl extends React.Component<Props, State> {
       alert_message({
         type: "error",
         message:
-          "Error trying to restart worksheet server. Try restarting the project server instead.",
+          "Error trying to restart worksheet server. Try restarting the entire project instead.",
       });
     }
     if (this._mounted) {
@@ -66,27 +73,27 @@ export class SagewsControl extends React.Component<Props, State> {
 
   render() {
     return (
-      <SettingBox title="Sage worksheet server" icon="refresh">
-        <Row>
-          <Col sm={8}>
-            Restart this Sage Worksheet server. <br />
-            <span style={{ color: "#666" }}>
-              Existing worksheet sessions are unaffected; restart this server if
-              you customize $HOME/bin/sage, so that restarted worksheets will
-              use the new version of Sage.
-            </span>
-          </Col>
-          <Col sm={4}>
-            <Button
-              bsStyle="warning"
-              disabled={this.state.loading}
-              onClick={this.restart_worksheet}
-            >
-              <Icon name="refresh" spin={this.state.loading} /> Restart Sage
-              Worksheet Server
-            </Button>
-          </Col>
-        </Row>
+      <SettingBox title="Restart Sage Worksheet Server" icon="refresh">
+        <Paragraph>
+          This restarts the underlying{" "}
+          <A href={"https://doc.cocalc.com/sagews.html"}>Sage Worksheet</A>{" "}
+          server. You have to do this, if you customized your{" "}
+          <Text code>$HOME/bin/sage</Text>.
+        </Paragraph>
+        <Paragraph style={{ color: COLORS.GRAY_D }}>
+          Existing worksheet sessions are unaffected. This means you have to
+          restart your worksheet as well to use the new version of Sage.
+        </Paragraph>
+        <Paragraph style={{ textAlign: "center" }}>
+          <Button
+            bsStyle="warning"
+            disabled={this.state.loading}
+            onClick={this.restart_worksheet}
+          >
+            <Icon name="refresh" spin={this.state.loading} /> Restart SageWS
+            Server
+          </Button>
+        </Paragraph>
       </SettingBox>
     );
   }

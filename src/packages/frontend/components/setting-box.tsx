@@ -23,16 +23,17 @@ const STYLE = {
   marginBottom: "20px",
 } as CSSProperties;
 
-export function SettingBox({
-  icon,
-  title,
-  subtitle,
-  show_header = true,
-  close,
-  children,
-  style,
-  bodyStyle,
-}: Props) {
+export function SettingBox(props: Props) {
+  const {
+    icon,
+    title,
+    subtitle,
+    show_header = true,
+    close,
+    children,
+    style,
+    bodyStyle,
+  } = props;
   return (
     // type inner for the gray background in the header
     <Card
