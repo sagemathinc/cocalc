@@ -3,13 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { List, Map } from "immutable";
 import { reduce } from "lodash";
-import { Store } from "../app-framework/Store";
-import { AccountState } from "./types";
-import { get_total_upgrades } from "@cocalc/util/upgrades";
+
+import { Store } from "@cocalc/frontend/app-framework/Store";
+import { store as customizeStore } from "@cocalc/frontend/customize";
 import { make_valid_name } from "@cocalc/util/misc";
-import { Map, List } from "immutable";
-import { store as customizeStore } from "../customize";
+import { get_total_upgrades } from "@cocalc/util/upgrades";
+import { AccountState } from "./types";
 
 // Define account store
 export class AccountStore extends Store<AccountState> {
