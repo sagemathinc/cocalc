@@ -274,7 +274,11 @@ export default function R({ customize }) {
               <strong>
                 You can edit{" "}
                 <A href="https://rmarkdown.rstudio.com/">RMarkdown files</A> in
-                CoCalc's code editor.
+                CoCalc's code editor, as{" "}
+                <A href="https://doc.cocalc.com/frame-editor.html#edit-rmd">
+                  explained here
+                </A>
+                .
               </strong>
             </Paragraph>
             <Paragraph>
