@@ -6,15 +6,17 @@
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import {
   DedicatedDiskSpeeds,
-  VMsType,
   DiskType,
   DISK_NAMES,
+  VMsType,
 } from "@cocalc/util/types/dedicated";
+import { unreachable } from "@cocalc/util/misc";
 
-type VMFamily = "n2";
+const VM_FAMILIES = ["n2", "c2", "c2d"] as const;
+type VMFamily = typeof VM_FAMILIES[number];
 
 // derive price to charge per day from the base monthly price
-function rawPrice2Retail(p: number, discount = false): number {
+export function rawPrice2Retail(p: number, discount = false): number {
   // factor of 2 and an average month
   // discount factor: for VMs, we pass it on a little bit
   const df = discount ? 90 / 100 : 1;
@@ -38,14 +40,17 @@ function deriveVMSpecs(spec: string): {
   mem: number;
   family: VMFamily;
 } {
-  const [family, size, cpu_str] = spec.split("-");
-  if (family != "n2")
+  const [familyStr, size, cpu_str] = spec.split("-");
+  if (!VM_FAMILIES.includes(familyStr as VMFamily)) {
     throw new Error(
-      `machine families beside "n2" are not supported -- implement it!`
+      `machine families besides "${VM_FAMILIES}" are not supported -- implement it!`
     );
+  }
+  const family = familyStr as VMFamily;
   const cpu = parseInt(cpu_str);
-  if (typeof cpu !== "number" || cpu <= 0)
+  if (typeof cpu !== "number" || cpu <= 0) {
     throw new Error(`core must be 2, 4, 8, ...`);
+  }
   const mem_base = deriveMemBase(size);
   const mem = cpu * mem_base;
   return { family, mem, cpu };
@@ -62,18 +67,43 @@ function deriveQuotas({ mem, cpu }): {
   };
 }
 
+interface DVMPrice {
+  mem: number;
+  cpu: number;
+  family: VMFamily;
+}
+
 // calculate the price proportional to cpu and memory
-function getDedicatedVMPrice({ mem, cpu, family }): number {
+export function getDedicatedVMPrice(opts: DVMPrice): number {
+  const { mem, cpu, family } = opts;
   switch (family) {
-    case "n2":
-      // https://cloud.google.com/compute/vm-instance-pricing#general-purpose_machine_type_family
+    case "n2": {
       // N2 machine types: us-east1 and monthly on-demand
-      // ATTN: that's with 20% usage discount – we factor it out and discount on our own
-      const cpu_montly = 18.46 / 0.8;
-      const mem_montly = 2.47 / 0.8;
+      // https://cloud.google.com/compute/vm-instance-pricing#general-purpose_machine_type_family
+      const cpu_montly = 23.07603;
+      const mem_montly = 3.09301;
       const gcp_price = cpu * cpu_montly + mem * mem_montly;
       return rawPrice2Retail(gcp_price, true);
+    }
+    case "c2": {
+      // Compute optimized C2 machine types: us-east1 and monthly on-demand
+      // https://cloud.google.com/compute/vm-instance-pricing#compute-optimized_machine_types
+      const cpu_monthly = 24.8054;
+      const mem_monthly = 3.3215;
+      const gcp_price_c2 = cpu * cpu_monthly + mem * mem_monthly;
+      return rawPrice2Retail(gcp_price_c2, true);
+    }
+    case "c2d": {
+      // Compute optimized C2D machine types: us-east1 and monthly on-demand
+      // https://cloud.google.com/compute/vm-instance-pricing#compute-optimized_machine_types
+      // They (in contrast to c2) do not have any sustianed use discount
+      const cpu_monthly = 21.58099;
+      const mem_monthly = 2.89007;
+      const gcp_price_c2d = cpu * cpu_monthly + mem * mem_monthly;
+      return rawPrice2Retail(gcp_price_c2d, false);
+    }
     default:
+      unreachable(family);
       throw new Error(`family ${family} not supported`);
   }
 }
@@ -82,12 +112,15 @@ function getDedicatedVMPrice({ mem, cpu, family }): number {
 // only append values, do not insert them in the middle or the beginning!
 const VM_MEM_SIZES = ["standard", "highmem"] as const;
 
+interface SAQOpts {
+  family: VMFamily;
+  memSize: typeof VM_MEM_SIZES[number];
+  cpus: number;
+}
+
 // this is used below to avoid wrong values and easier adjustments
-function getSpecAndQuota({
-  family,
-  memSize,
-  cpus,
-}): NonNullable<VMsType[string]> {
+function getSpecAndQuota(opts: SAQOpts): NonNullable<VMsType[string]> {
+  const { family, memSize, cpus } = opts;
   const spec = `${family}-${memSize}-${cpus}`;
   const midx = VM_MEM_SIZES.indexOf(memSize);
   const data = deriveVMSpecs(spec);
@@ -104,10 +137,23 @@ function getSpecAndQuota({
 
 // generate all dedicated VM specs we want to offer
 function* getVMData() {
-  const family = "n2";
+  // N2
   for (const memSize of VM_MEM_SIZES) {
     for (const cpus of [2, 4, 8, 16]) {
-      yield getSpecAndQuota({ family, memSize, cpus });
+      yield getSpecAndQuota({ family: "n2", memSize, cpus });
+    }
+  }
+  // Compute optimized C2 (only standard available)
+  {
+    const memSize = "standard";
+    for (const cpus of [4, 8]) {
+      yield getSpecAndQuota({ family: "c2", memSize, cpus });
+    }
+  }
+  // Compute optimized C2D
+  for (const memSize of VM_MEM_SIZES) {
+    for (const cpus of [2, 4, 8]) {
+      yield getSpecAndQuota({ family: "c2d", memSize, cpus });
     }
   }
 }
@@ -120,28 +166,28 @@ for (const vmtype of getVMData()) {
 const DISKS: DiskType = {};
 
 // we add a bit for snapshot storage
-const SNAPSHOT_FACTOR = 1.25;
+export const SNAPSHOT_FACTOR = 1.25;
 
 // price numbers are for 1 month and 1024 gb (more significant digits) and zonal storage
 const DISK_MONTHLY_1GB: { [id in DedicatedDiskSpeeds]: number } = {
-  standard: (SNAPSHOT_FACTOR * 40.96) / 1024,
+  standard: (SNAPSHOT_FACTOR * 39.76) / 1024,
   balanced: (SNAPSHOT_FACTOR * 102.4) / 1024,
   ssd: (SNAPSHOT_FACTOR * 174.08) / 1024,
-};
+} as const;
 
 // https://cloud.google.com/compute/docs/disks/performance#performance_by_disk_size
 const IOPS: { [id in DedicatedDiskSpeeds]: { read: number; write: number } } = {
   standard: { read: 0.75, write: 1.5 },
   balanced: { read: 6, write: 6 },
   ssd: { read: 30, write: 30 },
-};
+} as const;
 
 // sustained throughput
 const MBPS: { [id in DedicatedDiskSpeeds]: { read: number; write: number } } = {
   standard: { read: 0.12, write: 0.12 },
   balanced: { read: 0.28, write: 0.28 },
   ssd: { read: 0.48, write: 0.48 },
-};
+} as const;
 
 // below, we define all valid dedicated disk configurations
 export const MIN_DEDICATED_DISK_SIZE = 32;
@@ -174,13 +220,13 @@ export const DEDICATED_DISK_SPEEDS: Readonly<DedicatedDiskSpeeds[]> = [
 
 export const DEFAULT_DEDICATED_DISK_SPEED: DedicatedDiskSpeeds = "standard";
 
-export function getDedicatedDiskKey({
-  size_gb,
-  speed,
-}: {
+interface DediDiskKeyOpts {
   size_gb: number;
   speed: DedicatedDiskSpeeds;
-}): string {
+}
+
+export function getDedicatedDiskKey(opts: DediDiskKeyOpts): string {
+  const { size_gb, speed } = opts;
   return `${size_gb}-${speed}`;
 }
 
