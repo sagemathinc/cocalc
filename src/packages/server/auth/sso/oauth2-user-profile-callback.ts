@@ -63,7 +63,7 @@ export function addUserProfileCallback(opts: UserProfileCallbackOpts) {
             json = jwt_decode(body);
         }
         catch(ex){
-            return done(new Error(`Failed to parse user profile -- ${body}`));
+            return done(new Error(`Failed to parse user profile -- ${body} -- error: ${ex} `));
         }
       }
 
