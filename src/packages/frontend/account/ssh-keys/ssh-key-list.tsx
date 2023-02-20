@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Popconfirm, Typography } from "antd";
+import { Map } from "immutable";
+
 import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
 import {
@@ -13,17 +16,21 @@ import {
   TimeAgo,
 } from "@cocalc/frontend/components";
 import { cmp } from "@cocalc/util/misc";
-import { Popconfirm, Typography } from "antd";
-import { Map } from "immutable";
 
-// Children are rendered above the list of SSH Keys
-// Takes an optional Help string or node to render as a help modal
-export const SSHKeyList: React.FC<{
+interface SSHKeyListProps {
   ssh_keys?: Map<string, any>;
   project_id?: string;
   help?: JSX.Element;
   children?: any;
-}> = ({ ssh_keys, project_id, help, children }) => {
+}
+
+// Children are rendered above the list of SSH Keys
+// Takes an optional Help string or node to render as a help modal
+export const SSHKeyList: React.FC<SSHKeyListProps> = (
+  props: SSHKeyListProps
+) => {
+  const { ssh_keys, project_id, help, children } = props;
+
   function render_header() {
     return (
       <>

@@ -16,12 +16,13 @@ const STYLE: CSS = {
   width: "100%",
   height: "auto",
   whiteSpace: "normal",
-};
+  padding: "10px",
+} as const;
 
 const ICON_STYLE: CSS = {
   fontSize: "200%",
   color: COLORS.FILE_ICON,
-};
+} as const;
 
 interface Props {
   name: string;
@@ -31,15 +32,36 @@ interface Props {
   className?: string;
   disabled?: boolean;
   loading?: boolean;
+  active?: boolean;
 }
 
 export const NewFileButton = React.memo((props: Props) => {
-  const { name, icon, on_click, ext, className, disabled, loading } = props;
+  const {
+    name,
+    icon,
+    on_click,
+    ext,
+    className,
+    disabled,
+    loading,
+    active = false,
+  } = props;
+
   const displayed_icon = loading ? (
     <Icon style={ICON_STYLE} name="cocalc-ring" spin />
   ) : (
     <Icon style={ICON_STYLE} name={icon} />
   );
+
+  const style: CSS = {
+    ...STYLE,
+    ...(active
+      ? {
+          borderColor: COLORS.ANTD_LINK_BLUE,
+          backgroundColor: COLORS.ANTD_BG_BLUE_L,
+        }
+      : {}),
+  };
 
   return (
     <Button
@@ -47,14 +69,14 @@ export const NewFileButton = React.memo((props: Props) => {
       onClick={(): void => {
         on_click?.(ext);
       }}
-      style={STYLE}
+      style={style}
       className={className}
       disabled={disabled || loading}
     >
       <div>
         {displayed_icon}
         <br />
-        <span style={{ color: "#666" }}>{name}</span>
+        <span style={{ color: COLORS.GRAY_D }}>{name}</span>
       </div>
     </Button>
   );

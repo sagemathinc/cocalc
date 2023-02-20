@@ -25,6 +25,7 @@ import Handle from "../components/handle";
 import Draggable from "react-draggable";
 
 import "./views.css";
+import { COLORS } from "@cocalc/util/theme";
 
 export const TYPE_TO_ICON: { [type: string]: IconName } = {
   grid: "table",
@@ -250,7 +251,8 @@ export default function Views({ table, style }: Props) {
                     style={{
                       fontSize: "15pt",
                       marginRight: "-15px",
-                      color: view == node.key ? "#1677ff" : undefined,
+                      color:
+                        view == node.key ? COLORS.ANTD_LINK_BLUE : undefined,
                     }}
                     name={
                       TYPE_TO_ICON[getView(`${node.key}`)?.type ?? "grid"] ??

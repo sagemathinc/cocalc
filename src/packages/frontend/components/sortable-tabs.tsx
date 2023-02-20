@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import {
   DndContext,
   MouseSensor,
@@ -6,24 +11,24 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import {
-  SortableContext,
-  useSortable,
-  horizontalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import {
   restrictToHorizontalAxis,
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
 import {
+  horizontalListSortingStrategy,
+  SortableContext,
+  useSortable,
+} from "@dnd-kit/sortable";
+import useMouse from "@react-hook/mouse-position";
+import {
+  createContext,
   CSSProperties,
   ReactNode,
+  useContext,
   useMemo,
   useRef,
-  createContext,
-  useContext,
 } from "react";
 import useResizeObserver from "use-resize-observer";
-import useMouse from "@react-hook/mouse-position";
 
 export { useSortable };
 
@@ -47,13 +52,8 @@ export function useItemContext() {
   return useContext(ItemContext);
 }
 
-export function SortableTabs({
-  onDragStart,
-  onDragEnd,
-  items,
-  children,
-  style,
-}: Props) {
+export function SortableTabs(props: Props) {
+  const { onDragStart, onDragEnd, items, children, style } = props;
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
       distance: 2,
@@ -98,7 +98,7 @@ export function SortableTabs({
     }
     const itemWidth =
       Math.max(
-        150,
+        180,
         Math.min(250 + 65, (resize?.width ?? 0) / Math.max(1, items.length))
       ) - 70; // the constant accounts for the margin and x for an antd tab.
     lastRef.current = {

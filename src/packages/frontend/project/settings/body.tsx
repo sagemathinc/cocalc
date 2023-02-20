@@ -3,18 +3,22 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { List } from "immutable";
+import React from "react";
+import { Col, Row } from "react-bootstrap";
+
+import {
+  redux,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   AddCollaborators,
   CurrentCollaboratorsPanel,
 } from "@cocalc/frontend/collaborators";
-import { Icon, SettingBox } from "@cocalc/frontend/components";
+import { Icon, Paragraph, SettingBox } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { commercial } from "@cocalc/frontend/customize";
-import {
-  is_available,
-  ProjectConfiguration,
-} from "@cocalc/frontend/project_configuration";
 import { Customer, ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
@@ -22,10 +26,8 @@ import {
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
 import { is_different } from "@cocalc/util/misc";
-import { List } from "immutable";
-import React from "react";
-import { Col, Row } from "react-bootstrap";
-import { NamedServerPanel } from "../named-server-panel";
+import { NewFileButton } from "../new/new-file-button";
+import { ICON_NAME as SERVERS_ICON, TITLE as TITLE_SERVERS } from "../servers";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { NonMemberProjectWarning } from "../warnings/non-member";
 import { AboutBox } from "./about-box";
@@ -34,7 +36,6 @@ import { Environment } from "./environment";
 import { HideDeleteBox } from "./hide-delete-box";
 import { ProjectCapabilities } from "./project-capabilites";
 import { ProjectControl } from "./project-control";
-import { SagewsControl } from "./sagews-control";
 import SavingProjectSettingsError from "./saving-project-settings-error";
 import { SSHPanel } from "./ssh";
 import { Project } from "./types";
@@ -62,6 +63,8 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
   const { project_id, account_id, project, user_map, email_address, name } =
     props;
 
+  const project_actions = useActions({ project_id });
+
   const get_total_upgrades = redux.getStore("account").get_total_upgrades;
   const groups = useTypedRedux("account", "groups") ?? List<string>();
 
@@ -83,11 +86,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
     "all_projects_have_been_loaded"
   );
 
-  const configuration: ProjectConfiguration | undefined = useTypedRedux(
-    { project_id },
-    "configuration"
-  );
-
   // get the description of the share, in case the project is being shared
   const id = project_id;
 
@@ -107,9 +105,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
   const dedicated_resources =
     store.get_total_site_license_dedicated(project_id);
 
-  const available = is_available(configuration);
-  const have_jupyter_lab = available.jupyter_lab;
-  const have_jupyter_notebook = available.jupyter_notebook;
   const student = getStudentProjectFunctionality(project_id);
   const showDatastore =
     kucalc === KUCALC_COCALC_COM ||
@@ -213,19 +208,22 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             </SettingBox>
           )}
           <ProjectControl key="control" project={project} />
-          <SagewsControl key="worksheet" project={project} />
-          {have_jupyter_notebook && (
-            <NamedServerPanel project_id={id} name={"jupyter"} />
-          )}
-          {have_jupyter_lab && (
-            <NamedServerPanel project_id={id} name={"jupyterlab"} />
-          )}
-          {available.vscode && (
-            <NamedServerPanel project_id={id} name={"code"} />
-          )}
-          {available.julia && (
-            <NamedServerPanel project_id={id} name={"pluto"} />
-          )}
+          <SettingBox title="Server Control Moved" icon="move">
+            <Paragraph>
+              The panel for restarting the Sage Worksheet server and other
+              servers like Jupyter Classic, JupyterLab, and VS Code have been
+              moved to the "{TITLE_SERVERS}" tab.
+            </Paragraph>
+            <NewFileButton
+              name={`Moved to "${TITLE_SERVERS}" tab.`}
+              icon={SERVERS_ICON}
+              on_click={() => {
+                project_actions?.set_active_tab("servers", {
+                  change_history: true,
+                });
+              }}
+            />
+          </SettingBox>
         </Col>
       </Row>
     </div>

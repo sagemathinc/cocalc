@@ -2,7 +2,8 @@
 Component for viewing csv data.
 */
 
-import { useMemo } from "react";
+import { ReactNode, useMemo, useState } from "react";
+import { Alert } from "antd";
 import { parse } from "csv-parse/sync";
 import { TableVirtuoso } from "react-virtuoso";
 import { ColumnHeading } from "./headings";
@@ -23,15 +24,43 @@ function trim(x) {
 interface Props {
   value?: string;
   overscan?: number;
+  errHint?: ReactNode;
 }
 
-export default function CSV({ overscan = 500, value = "" }: Props) {
+export default function CSV({
+  overscan = 500,
+  value = "",
+  errHint = null,
+}: Props) {
+  const [error, setError] = useState<string>("");
   const data = useMemo(() => {
-    return parse(value, {
-      relax_quotes: true,
-      skip_empty_lines: true,
-    });
+    setError("");
+    try {
+      return parse(value, {
+        relax_quotes: true,
+        skip_empty_lines: true,
+      });
+    } catch (err) {
+      setError(`Unable to parse csv file: ${err}`);
+      return [];
+    }
   }, [value]);
+
+  if (error) {
+    return (
+      <Alert
+        style={{ margin: "15px 0" }}
+        message={
+          <div>
+            {error}
+            <br />
+            {errHint}
+          </div>
+        }
+        type="error"
+      />
+    );
+  }
 
   return (
     <TableVirtuoso

@@ -6,13 +6,15 @@ Component takes as input data that describes a licens.
 IMPORTANT: this component must work in *both* from nextjs and static.
 */
 
+import { Alert, Button, Checkbox, Popconfirm, Select, Space } from "antd";
+import { keys } from "lodash";
+import { ReactNode, useMemo, useRef, useState } from "react";
+
 import { CSS, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describe_quota as describeQuota } from "@cocalc/util/licenses/describe-quota";
 import { days_ago as daysAgo, isValidUUID, len } from "@cocalc/util/misc";
-import { Alert, Button, Checkbox, Select, Space } from "antd";
-import { keys } from "lodash";
-import { ReactNode, useMemo, useRef, useState } from "react";
+import { COLORS } from "@cocalc/util/theme";
 
 const { Option } = Select;
 
@@ -31,6 +33,7 @@ interface Props {
   defaultLicenseId?: string;
   confirmLabel?: ReactNode;
   style?: CSS;
+  extra?: ReactNode; // plain-text node is ok
 }
 
 export default function SelectLicense(props: Props) {
@@ -43,6 +46,7 @@ export default function SelectLicense(props: Props) {
     managedLicenses,
     confirmLabel,
     style,
+    extra,
   } = props;
   const isBlurredRef = useRef<boolean>(true);
   const [licenseId, setLicenseId] = useState<string>(defaultLicenseId ?? "");
@@ -79,7 +83,7 @@ export default function SelectLicense(props: Props) {
             message={
               <>
                 <span style={{ fontFamily: "monospace" }}>{id}</span>
-                <span style={{ color: "#666" }}>
+                <span style={{ color: COLORS.GRAY_M }}>
                   {title ? " - " + title : ""}
                   <br />
                   {quota && describeQuota(quota, true)}
@@ -96,32 +100,53 @@ export default function SelectLicense(props: Props) {
 
   const valid = isValidUUID(licenseId);
 
+  function wrapConfirm(button: JSX.Element): JSX.Element {
+    if (extra == null || onSave == null) return button;
+
+    return (
+      <Popconfirm
+        title="Are you sure you want to apply this license?"
+        description={<div style={{ maxWidth: "500px" }}>{extra}</div>}
+        onConfirm={() => onSave(licenseId)}
+        okText="Yes, apply license"
+        cancelText="No, cancel"
+      >
+        {button}
+      </Popconfirm>
+    );
+  }
+
   function renderButton(): Rendered {
     if (!(onSave || onCancel)) return;
 
     return (
       <Space>
-        {onSave && (
-          <Button
-            disabled={!valid}
-            type="primary"
-            onClick={() => {
-              onSave(licenseId);
-            }}
-          >
-            <Icon name="check" /> {confirmLabel ?? "Apply License"}
-          </Button>
-        )}
+        {onSave &&
+          wrapConfirm(
+            <Button
+              disabled={!valid}
+              type="primary"
+              onClick={() => {
+                extra == null && onSave(licenseId);
+              }}
+            >
+              <Icon name="check" /> {confirmLabel ?? "Apply License"}
+            </Button>
+          )}
         {onCancel && <Button onClick={onCancel}>Cancel</Button>}
       </Space>
     );
   }
 
   return (
-    <div style={style}>
-      <div style={{ width: "100%", display: "flex" }}>
+    <Space
+      direction="vertical"
+      size={"large"}
+      style={{ width: "100%", ...style }}
+    >
+      <div style={{ display: "flex" }}>
         <Select
-          style={{ margin: "5px 15px 10px 0", flex: 1 }}
+          style={{ width: "100%", flex: "1 1 0", marginRight: "10px" }}
           placeholder={
             "Enter license code " +
             (options.length > 0
@@ -154,7 +179,12 @@ export default function SelectLicense(props: Props) {
 
         {(showAll || licenseIds.length < len(managedLicenses)) && (
           <Checkbox
-            style={{ marginTop: "10px", color: "#666", whiteSpace: "nowrap" }}
+            style={{
+              flex: "1 0 0",
+              marginTop: "10px",
+              color: COLORS.GRAY_M,
+              whiteSpace: "nowrap",
+            }}
             checked={showAll}
             onChange={() => setShowAll(!showAll)}
           >
@@ -162,14 +192,20 @@ export default function SelectLicense(props: Props) {
           </Checkbox>
         )}
       </div>
-      {renderButton()}
       {!valid && licenseId && (
         <Alert
-          style={{ margin: "15px" }}
           type="error"
           message="Valid license keys are 36 characters long."
         />
       )}
-    </div>
+      {extra != null && (
+        <Alert
+          type="warning"
+          description={extra}
+          style={{ padding: "10px 15px 0 15px" }}
+        />
+      )}
+      {renderButton()}
+    </Space>
   );
 }

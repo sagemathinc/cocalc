@@ -37,9 +37,11 @@ import {
 const quota = quota0 as (a?, b?, c?, d?) => ReturnType<typeof quota0>;
 const reasons = reasons0 as (a?, b?, c?, d?) => ReturnType<typeof reasons0>;
 
+import { isBoostLicense } from "./upgrades/utils";
+
 import { PRICES } from "./upgrades/dedicated";
 import { LicenseIdleTimeoutsKeysOrdered } from "./consts/site-license";
-import { SiteLicenses } from "./types/site-licenses";
+import { SiteLicense, SiteLicenses } from "./types/site-licenses";
 import { deep_copy } from "./misc";
 
 describe("main quota functionality", () => {
@@ -2376,5 +2378,78 @@ describe("combine ext_rw with regular licenses", () => {
       network: true,
       privileged: false,
     });
+  });
+});
+
+describe("test heuristic to classify a boost license", () => {
+  it("detects a regular boost license", () => {
+    const l1 = {
+      quota: {
+        cpu: 0,
+        ram: 2,
+        disk: 0,
+        member: true,
+        boost: true,
+      },
+    };
+    expect(isBoostLicense(l1)).toBe(true);
+  });
+
+  it("detects a regular boost without a boost field", () => {
+    const l1 = {
+      quota: {
+        cpu: 0,
+        ram: 2,
+        disk: 0,
+      },
+    };
+    expect(isBoostLicense(l1)).toBe(true);
+  });
+
+  it("detects a regular license with a boost field", () => {
+    const l1 = {
+      quota: {
+        cpu: 1,
+        ram: 2,
+        disk: 3,
+        member: true,
+        timeout: "medium",
+        boost: false,
+      },
+    };
+    expect(isBoostLicense(l1)).toBe(false);
+  });
+
+  it("detects a regular license without a boost field", () => {
+    const l1 = {
+      quota: {
+        cpu: 1,
+        ram: 2,
+        disk: 3,
+      },
+    };
+    expect(isBoostLicense(l1)).toBe(false);
+  });
+
+  it("detects a dedicated disk license", () => {
+    const l1: SiteLicense = {
+      id: "1234-disk",
+      quota: {
+        dedicated_disk: { size_gb: 1000, speed: "ssd" },
+      },
+    };
+    expect(isBoostLicense(l1)).toBe(false);
+  });
+
+  it("also does not get confused with a vm and mem quota", () => {
+    const l1 = {
+      quota: {
+        dedicated_vm: { machine: "n1-standard-1" },
+        ram: 2,
+        disk: 0,
+        cpu: 0,
+      },
+    };
+    expect(isBoostLicense(l1)).toBe(false);
   });
 });

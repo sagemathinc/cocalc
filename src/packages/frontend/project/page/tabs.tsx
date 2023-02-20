@@ -1,21 +1,34 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Tabs in a particular project.
 */
 
-import { ReactNode } from "react";
-import { tab_to_path } from "@cocalc/util/misc";
-import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
-import { ShareIndicator } from "./share-indicator";
-import { FIXED_PROJECT_TABS, FileTab, FixedTab } from "./file-tab";
-import FileTabs from "./file-tabs";
+import { throttle } from "lodash";
+import { ReactNode, useLayoutEffect, useRef, useState } from "react";
+
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
+import { tab_to_path } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { FileTab, FixedTab, FIXED_PROJECT_TABS } from "./file-tab";
+import FileTabs from "./file-tabs";
+import { ShareIndicator } from "./share-indicator";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
   paddingLeft: "5px",
 } as const;
 
-export default function ProjectTabs({ project_id }) {
+interface PTProps {
+  project_id: string;
+}
+
+export default function ProjectTabs(props: PTProps) {
+  const { project_id } = props;
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
 
@@ -59,46 +72,114 @@ export default function ProjectTabs({ project_id }) {
   );
 }
 
-export function VerticalFixedTabs({ project_id, activeTab }) {
+interface FVTProps {
+  project_id: string;
+  activeTab: string;
+}
+
+export function VerticalFixedTabs(props: FVTProps) {
+  const { project_id, activeTab } = props;
   const isAnonymous = useTypedRedux("account", "is_anonymous");
+  const parent = useRef<HTMLDivElement>(null);
+  const tabs = useRef<HTMLDivElement>(null);
+  const breakPoint = useRef<number>(0);
+  const refCondensed = useRef<boolean>(false);
+  const [condensed, setCondensed] = useState(false);
+
+  const calcCondensed = throttle(
+    () => {
+      if (tabs.current == null) return;
+      if (parent.current == null) return;
+
+      const th = tabs.current.clientHeight;
+      const ph = parent.current.clientHeight;
+
+      if (refCondensed.current) {
+        // 5px slack to avoid flickering
+        if (ph > breakPoint.current + 5) {
+          setCondensed(false);
+          refCondensed.current = false;
+        }
+      } else {
+        if (ph < th) {
+          setCondensed(true);
+          refCondensed.current = true;
+          // max? because when we start with a thin window, the ph is already smaller than th
+          breakPoint.current = Math.max(th, ph);
+        }
+      }
+    },
+    50,
+    { trailing: true, leading: false }
+  );
+
+  // layout effect, because it measures sizes before rendering
+  useLayoutEffect(() => {
+    calcCondensed();
+    window.addEventListener("resize", calcCondensed);
+    return () => {
+      window.removeEventListener("resize", calcCondensed);
+    };
+  }, []);
+
   const items: ReactNode[] = [];
-  // <div style={{ textAlign: "center", color: "#666" }}>Project</div>,
   for (const name in FIXED_PROJECT_TABS) {
     const v = FIXED_PROJECT_TABS[name];
     if (isAnonymous && v.noAnonymous) {
       continue;
     }
-    const color = activeTab == name ? { color: "#1677ff" } : undefined;
+    const color =
+      activeTab == name
+        ? { color: COLORS.PROJECT.FIXED_LEFT_ACTIVE }
+        : undefined;
 
     // uncomment this to move the processes and settings to the bottom like in vscode.
     // some of us do NOT like that.
-    //     if (name == "info") {
-    //       items.push(<div style={{ flex: 1 }}></div>);
-    //     }
+    // if (name == "info") {
+    //   items.push(<div style={{ flex: 1 }}></div>);
+    // }
     items.push(
       <FileTab
         style={{
           margin: "5px 0px",
           ...color,
           borderLeft: `4px solid ${
-            activeTab == name ? "#1677ff" : "transparent"
+            activeTab == name ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
           }`,
         }}
         placement={"right"}
         key={name}
         project_id={project_id}
         name={name as FixedTab}
+        label={condensed ? "" : undefined}
+        isFixedTab={true}
         iconStyle={{
           fontSize: "24px",
-          margin: "0px 3px",
+          margin: "0px 6px",
           ...color,
         }}
       />
     );
   }
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {items}
+    <div
+      ref={parent}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        // this gives users on small screens a chance  to get to the bottom of the tabs.
+        // also, the scrollbar is intentionally only active in condensed mode, to avoid it to show up briefly.
+        overflowY: condensed ? "auto" : "hidden",
+        overflowX: "hidden",
+      }}
+    >
+      <div
+        ref={tabs}
+        style={{ display: "flex", flexDirection: "column", flex: "1 1 0" }}
+      >
+        {items}
+      </div>
     </div>
   );
 }

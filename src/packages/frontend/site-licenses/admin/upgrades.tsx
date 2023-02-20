@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Col, Dropdown, Row } from "antd";
+import { fromJS, Map } from "immutable";
+
 import {
   Component,
   React,
@@ -10,11 +13,9 @@ import {
   TypedMap,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, MenuItem, MenuItems } from "@cocalc/frontend/components";
 import { plural } from "@cocalc/util/misc";
 import { upgrades } from "@cocalc/util/upgrade-spec";
-import { Col, Dropdown, Menu, Row } from "antd";
-import { fromJS, Map } from "immutable";
 import { DebounceInput } from "react-debounce-input";
 import { SiteLicensePublicInfo } from "../types";
 import { actions } from "./actions";
@@ -139,34 +140,31 @@ export const EditUpgrades: React.FC<EditProps> = (props) => {
     return rows;
   }
 
-  function render_preset_item(product): Rendered {
-    return (
-      <Menu.Item
-        onClick={() =>
-          actions.set_edit(
-            props.license_id,
-            props.license_field,
-            scale_by_display_factors(fromJS(product.upgrades))
-          )
-        }
-        key={product.desc}
-      >
-        {product.desc}
-      </Menu.Item>
-    );
+  function render_preset_item(product): MenuItem {
+    return {
+      key: product.desc,
+      onClick: () => {
+        actions.set_edit(
+          props.license_id,
+          props.license_field,
+          scale_by_display_factors(fromJS(product.upgrades))
+        );
+      },
+      label: product.desc,
+    };
   }
 
   function render_presets(): Rendered {
-    const v: Rendered[] = [];
+    const items: MenuItems = [];
     const PRESETS = presets();
     for (const preset in PRESETS) {
-      v.push(render_preset_item(PRESETS[preset]));
+      items.push(render_preset_item(PRESETS[preset]));
     }
     return (
       <Row key={"presets"}>
         <Col md={8}></Col>
         <Col md={16}>
-          <Dropdown overlay={<Menu>{v}</Menu>}>
+          <Dropdown menu={{ items }}>
             <a className="ant-dropdown-link" href="#">
               Presets <Icon name="caret-down" />
             </a>

@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ReactNode, CSSProperties } from "react";
 import { Card, Typography } from "antd";
+import { CSSProperties, ReactNode } from "react";
+
 import { CloseX2 } from "./close-x2";
 import { Icon, IconName } from "./icon";
 
@@ -23,16 +24,17 @@ const STYLE = {
   marginBottom: "20px",
 } as CSSProperties;
 
-export function SettingBox({
-  icon,
-  title,
-  subtitle,
-  show_header = true,
-  close,
-  children,
-  style,
-  bodyStyle,
-}: Props) {
+export function SettingBox(props: Props) {
+  const {
+    icon,
+    title,
+    subtitle,
+    show_header = true,
+    close,
+    children,
+    style,
+    bodyStyle,
+  } = props;
   return (
     // type inner for the gray background in the header
     <Card

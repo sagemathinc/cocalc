@@ -4,19 +4,21 @@
  */
 
 import LRU from "lru-cache";
+
+import getLogger from "@cocalc/backend/logger";
+import getPool from "@cocalc/database/pool";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
+import { callback2 as cb2 } from "@cocalc/util/async-utils";
+import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
+import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import {
   AllSiteSettingsCached as ServerSettings,
   AllSiteSettingsKeys,
 } from "@cocalc/util/db-schema/types";
-export type { ServerSettings };
-import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
-import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
-import getPool from "@cocalc/database/pool";
-import { callback2 as cb2 } from "@cocalc/util/async-utils";
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import getLogger from "@cocalc/backend/logger";
-import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
+export type { ServerSettings };
+
 const L = getLogger("server:server-settings");
 
 // We're just using this to cache this result for a **few seconds**.

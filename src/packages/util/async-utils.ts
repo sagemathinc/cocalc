@@ -38,6 +38,17 @@ export function callback_opts(f: Function) {
   };
 }
 
+/**
+ * convert the given error to a string, by either serializing the object or returning the string as it is
+ */
+function err2str(err: any): string {
+  if (typeof err === "string") {
+    return err;
+  } else {
+    return JSON.stringify(err);
+  }
+}
+
 /* retry_until_success keeps calling an async function f with
   exponential backoff until f does NOT raise an exception.
   Then retry_until_success returns whatever f returned.
@@ -97,7 +108,9 @@ export async function retry_until_success<T>(
         // yep -- game over, throw an error
         let e;
         if (last_exc) {
-          e = Error(`${err} -- last error was ${last_exc} -- ${opts.desc}`);
+          e = Error(
+            `${err} -- last error was ${err2str(last_exc)} -- ${opts.desc}`
+          );
         } else {
           e = Error(`${err} -- ${opts.desc}`);
         }
