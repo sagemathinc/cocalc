@@ -31,6 +31,7 @@ import {
   Modal as AntdModal,
   Row as AntdRow,
   Tabs as AntdTabs,
+  TabsProps as AntdTabsProps,
   Tooltip,
 } from "antd";
 import { MouseEventHandler } from "react";
@@ -322,7 +323,9 @@ export function Col(props: {
   return <AntdCol {...props2}>{props.children}</AntdCol>;
 }
 
-export function Tabs(props: {
+export type AntdTabItem = NonNullable<AntdTabsProps["items"]>[number];
+
+interface TabsProps {
   id?: string;
   key?: string;
   activeKey: string;
@@ -332,18 +335,27 @@ export function Tabs(props: {
   tabBarExtraContent?;
   tabPosition?: "left" | "top" | "right" | "bottom";
   size?: "small";
-  children: any;
-}) {
-  // We do this because for antd, "There must be `tab` property on children of Tabs."
-  let tabs: Rendered[] | Rendered = [];
-  if (Symbol.iterator in Object(props.children)) {
-    for (const x of props.children) {
-      if (x == null || !x.props) continue;
-      tabs.push(Tab(x.props));
+  items?: AntdTabItem[];
+  children?: any;
+}
+
+export function Tabs(props: TabsProps) {
+  const { children, items } = props;
+
+  let tabs: Rendered[] | Rendered = undefined;
+  if (items == null && children != null) {
+    tabs = [];
+    // We do this because for antd, "There must be `tab` property on children of Tabs."
+    if (Symbol.iterator in Object(props.children)) {
+      for (const x of children) {
+        if (x == null || !x.props) continue;
+        tabs.push(Tab(x.props));
+      }
+    } else {
+      tabs = Tab(children);
     }
-  } else {
-    tabs = Tab(props.children);
   }
+
   return (
     <AntdTabs
       activeKey={props.activeKey}
@@ -353,6 +365,7 @@ export function Tabs(props: {
       tabBarExtraContent={props.tabBarExtraContent}
       tabPosition={props.tabPosition}
       size={props.size}
+      items={items}
     >
       {tabs}
     </AntdTabs>

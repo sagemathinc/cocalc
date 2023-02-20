@@ -7,35 +7,44 @@
 Display a ? "help" icon, which -- when clicked -- shows a help tip
 */
 
-import { Popover } from "antd";
-import { useState } from "../app-framework";
+import { Button, Popover } from "antd";
+
+import { React, useState } from "@cocalc/frontend/app-framework";
 import { Icon } from "./icon";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
-  title;
-  children;
+  title: string;
+  children: React.ReactNode;
+  maxWidth?: string; // default is 50vw
 }
 
-export const HelpIcon: React.FC<Props> = ({ title, children }) => {
-  const [visible, set_visible] = useState<boolean>(false);
+export const HelpIcon: React.FC<Props> = (props: Props) => {
+  const { title, children, maxWidth = "50vw" } = props;
+
+  const [open, setOpen] = useState<boolean>(false);
 
   return (
     <Popover
-      content={children}
+      content={<div style={{ maxWidth }}>{children}</div>}
       title={
         <>
           {title}
-          <a style={{ float: "right" }} onClick={() => set_visible(false)}>
+          <Button
+            type="text"
+            style={{ float: "right", fontWeight: "bold" }}
+            onClick={() => setOpen(false)}
+          >
             Close
-          </a>
+          </Button>
         </>
       }
       trigger="click"
-      visible={visible}
-      onVisibleChange={set_visible}
+      open={open}
+      onOpenChange={setOpen}
     >
       <Icon
-        style={{ color: "#5bc0de", cursor: "pointer" }}
+        style={{ color: COLORS.BS_BLUE_TEXT, cursor: "pointer" }}
         name="question-circle"
       />
     </Popover>
