@@ -8,21 +8,33 @@ A single tab in a project.
    - There is one of these for each open file in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
-const { file_options } = require("@cocalc/frontend/editor");
+
+import { Popover } from "antd";
+import { CSSProperties } from "react";
+
 import {
+  CSS,
   useActions,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { CSSProperties } from "react";
-import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { HiddenXSSM, Icon, IconName } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
-import { PROJECT_INFO_TITLE } from "../info";
-import { Popover } from "antd";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { TITLE as SERVERS_TITLE } from "../servers";
+import { PROJECT_INFO_TITLE } from "../info";
 
-export type FixedTab = "files" | "new" | "log" | "search" | "settings" | "info";
+const { file_options } = require("@cocalc/frontend/editor");
+
+export type FixedTab =
+  | "files"
+  | "new"
+  | "log"
+  | "search"
+  | "servers"
+  | "settings"
+  | "info";
 
 type FixedTabs = {
   [name in FixedTab]: {
@@ -58,6 +70,12 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     tooltip: "Search files in the project",
     noAnonymous: false,
   },
+  servers: {
+    label: SERVERS_TITLE,
+    icon: "server",
+    tooltip: "Servers running in this project (e.g., Jupyter, Pluto, …)",
+    noAnonymous: true,
+  },
   info: {
     label: PROJECT_INFO_TITLE,
     icon: "microchip",
@@ -79,6 +97,7 @@ interface Props0 {
   noPopover?: boolean;
   placement?;
   iconStyle?: CSSProperties;
+  isFixedTab?: boolean;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -91,7 +110,7 @@ interface PropsName extends Props0 {
 type Props = PropsPath | PropsName;
 
 export function FileTab(props: Props) {
-  const { project_id, path, name, label: label_prop } = props;
+  const { project_id, path, name, label: label_prop, isFixedTab } = props;
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
   // this is @cocalc/project/project-status/types::ProjectStatus
@@ -203,9 +222,12 @@ export function FileTab(props: Props) {
         </span>
       }
       content={
-        <span style={{ color: COLORS.GRAY }}>
-          Hint: Shift+click to open in new window.
-        </span>
+        // only editor-tabs can pop up
+        !isFixedTab ? (
+          <span style={{ color: COLORS.GRAY }}>
+            Hint: Shift+click to open in new window.
+          </span>
+        ) : undefined
       }
       mouseEnterDelay={0.9}
       placement={props.placement ?? "bottom"}
@@ -215,15 +237,15 @@ export function FileTab(props: Props) {
   );
 }
 
-const LABEL_STYLE = {
+const LABEL_STYLE: CSS = {
   maxWidth: "250px",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   marginRight: "-15px", // this makes a lot more of the filename visible by undoing the antd tab spacing.
-} as CSSProperties;
+} as const;
 
-const FULLPATH_LABEL_STYLE = {
+const FULLPATH_LABEL_STYLE: CSS = {
   // using a full path for the label instead of just a filename
   textOverflow: "ellipsis",
   // so the ellipsis are on the left side of the path, which is most useful

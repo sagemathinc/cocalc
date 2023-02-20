@@ -97,6 +97,8 @@ const MAIN_COLORS = {
   FG_RED: "#c9302c", // red used for text
   FG_BLUE: "#428bca", // blue used for text
 
+  ANTD_LINK_BLUE: "#1677ff", // blue used for links
+
   ATND_BG_RED_M: "#ff7875",
   ATND_BG_RED_L: "#fff2f0",
   ANTD_BG_BLUE_L: "#e6f4ff",
@@ -128,6 +130,10 @@ export const COLORS = {
     X: MAIN_COLORS.GRAY,
     X_HOVER: MAIN_COLORS.GRAY_L,
     SIGN_IN_BG: MAIN_COLORS.YELL_L,
+  },
+
+  PROJECT: {
+    FIXED_LEFT_ACTIVE: MAIN_COLORS.ANTD_LINK_BLUE,
   },
 
   // landing page

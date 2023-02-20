@@ -35,7 +35,6 @@ export function SettingBox(props: Props) {
     style,
     bodyStyle,
   } = props;
-
   return (
     // type inner for the gray background in the header
     <Card
