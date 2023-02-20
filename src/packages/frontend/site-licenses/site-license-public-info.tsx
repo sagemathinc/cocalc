@@ -248,8 +248,9 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   function renderStatusColor(status: LicenseStatus) {
     switch (status) {
       case "valid":
-      case "active":
         return "green";
+      case "active":
+        return "darkgreen";
       case "expired":
         return "darkred";
       case "exhausted":
