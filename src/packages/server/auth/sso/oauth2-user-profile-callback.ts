@@ -15,7 +15,7 @@ export function addUserProfileCallback(opts: UserProfileCallbackOpts) {
   const { strategy_instance, userinfoURL, L2, type } = opts;
   if (userinfoURL == null) throw new Error(`the userinfoURL is required`);
   strategy_instance.userProfile = function userProfile(accessToken, tokenSecret, params, done) {
-    L2(`userinfoURL=${userinfoURL}, accessToken=${accessToken}, tokenSecret=${tokenSecret} `); 
+    L2(`userinfoURL=${userinfoURL}, accessToken=${accessToken}`); 
     L2(params); 
 
     let oauth = this._oauth;
