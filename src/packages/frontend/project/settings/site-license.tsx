@@ -6,30 +6,42 @@
 // NOTE: some code here is similar to code in
 // src/@cocalc/frontend/course/configuration/upgrades.tsx
 
+import { Card, Popover } from "antd";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
-import { redux, Rendered, useState } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import {
+  redux,
+  Rendered,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Paragraph, Text } from "@cocalc/frontend/components";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
+import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
-import { Card, Popover } from "antd";
-import { Map } from "immutable";
-import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
+import { unreachable } from "@cocalc/util/misc";
+import {
+  licenseToGroupKey,
+  SiteLicenseQuotaSetting,
+} from "@cocalc/util/upgrades/quota";
+import { isBoostLicense } from "@cocalc/util/upgrades/utils";
+import { SiteLicense as SiteLicenseT } from "./types";
 
 interface Props {
   project_id: string;
-  site_license?: Map<string, Map<string, number>>;
+  site_license?: SiteLicenseT; // of that project!
 }
 
-export async function applyLicense({
-  project_id,
-  license_id,
-}: {
+interface ALOpts {
   project_id: string;
   license_id: string;
-}): Promise<void> {
+}
+
+export async function applyLicense(opts: ALOpts): Promise<void> {
+  const { project_id, license_id } = opts;
   const actions = redux.getActions("projects");
   // newly added licenses
   try {
@@ -47,13 +59,74 @@ export async function applyLicense({
 export const SiteLicense: React.FC<Props> = (props: Props) => {
   const { project_id, site_license } = props;
 
+  // all licenses known to the client, not just for the project
+  const managed_licenses = useTypedRedux("billing", "managed_licenses");
+
+  const [boostWarning, setBoostWarning] = useState<
+    "none" | "no_other" | "incompatible"
+  >("none");
   const [show_site_license, set_show_site_license] = useState<boolean>(false);
+
+  function renderBoostWarning() {
+    switch (boostWarning) {
+      case "none":
+        return;
+      case "no_other":
+        return (
+          <Paragraph>
+            Warning: this license is <Text strong>a boost license</Text>, which
+            is only useful on top of another regular license, which is valid and
+            active. It won't provide upgrades on its own.
+          </Paragraph>
+        );
+      case "incompatible":
+        return (
+          <Paragraph>
+            Warning: this license is <Text strong>a boost license</Text>, which
+            is only useful on top of another compatible, valid and active
+            regular license. It seems like the other licenses are{" "}
+            <Text strong>incompatible</Text> with this boost license.
+          </Paragraph>
+        );
+      default:
+        unreachable(boostWarning);
+    }
+  }
+
+  function site_license_onChange(license_id?: string) {
+    if (license_id == null) {
+      setBoostWarning("none");
+    } else {
+      // check, if there is any other license with boost===false
+      // thosse are "regular" licenses, which are needed for boost licenses to work
+      const license = managed_licenses?.get(license_id)?.toJS();
+      if (license != null && license.quota != null && isBoostLicense(license)) {
+        const boostGroup = licenseToGroupKey(
+          license as SiteLicenseQuotaSetting // we check that license.quota is not null above
+        );
+        // this ignores any other licenses (e.g. disks), which do not have the boost field
+        // for those which are regular licenses, we check if they're compatible with the boost license
+        let haveRegular = false;
+        const haveCompatible = site_license?.some((x) => {
+          const otherLicense = x.toJS();
+          if (isBoostLicense(otherLicense)) return false;
+          haveRegular = true;
+          const regularGroup = licenseToGroupKey(otherLicense);
+          return regularGroup === boostGroup;
+        });
+        setBoostWarning(
+          haveCompatible ? "none" : haveRegular ? "incompatible" : "no_other"
+        );
+      } else {
+        setBoostWarning("none");
+      }
+    }
+  }
 
   function render_site_license_text(): Rendered {
     if (!show_site_license) return;
     return (
-      <div>
-        <br />
+      <Paragraph style={{ marginTop: "20px" }}>
         Enter a license key below to apply upgrades from that license to this
         project.{" "}
         <strong>
@@ -69,8 +142,10 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
             applyLicense({ project_id, license_id });
           }}
           onCancel={() => set_show_site_license(false)}
+          onChange={site_license_onChange}
+          extra={renderBoostWarning()}
         />
-      </div>
+      </Paragraph>
     );
   }
 

@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button, Checkbox } from "antd";
+
 import {
   CSS,
   React,
@@ -21,7 +23,6 @@ import {
 } from "@cocalc/frontend/components";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
-import { Button, Checkbox } from "antd";
 
 export const LICENSES_STYLE: CSS = {
   margin: "30px 0",
