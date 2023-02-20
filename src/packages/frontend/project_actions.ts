@@ -10,6 +10,7 @@ import { join } from "path";
 import * as async from "async";
 import { isEqual } from "lodash";
 import { Set, List, fromJS, Map } from "immutable";
+
 import { client_db } from "@cocalc/util/schema";
 import {
   ConfigurationAspect,
@@ -25,7 +26,7 @@ import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { exec } from "./frame-editors/generic/client";
 import { API } from "./project/websocket/api";
 import { in_snapshot_path, NewFilenames, normalize } from "./project/utils";
-import { NEW_FILENAMES } from "@cocalc/util/db-schema";
+import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { transform_get_url } from "./project/transform-get-url";
 import { OpenFiles } from "./project/open-files";
 import { log_opened_time, open_file, log_file_open } from "./project/open-file";
@@ -292,14 +293,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const filenames = this.get_filenames_in_current_dir();
       // this is the type of random name generator
       const acc_store = this.redux.getStore("account") as any;
-      const dflt = NewFilenames.default_family;
-      const type = (function () {
-        if (acc_store != null) {
-          return acc_store.getIn(["other_settings", NEW_FILENAMES]);
-        } else {
-          return dflt;
-        }
-      })();
+      const type =
+        acc_store?.getIn(["other_settings", NEW_FILENAMES]) ??
+        DEFAULT_NEW_FILENAMES;
       this.new_filename_generator.set_ext(ext);
       this.setState({
         new_filename: this.new_filename_generator.gen(type, filenames),

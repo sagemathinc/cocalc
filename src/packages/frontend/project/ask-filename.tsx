@@ -22,11 +22,8 @@ import {
 } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import {
-  NewFilenameFamilies,
-  NewFilenames,
-} from "@cocalc/frontend/project/utils";
-import { NEW_FILENAMES } from "@cocalc/util/db-schema";
+import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
+import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { FileSpec } from "../file-associations";
 
 interface Props {
@@ -40,7 +37,7 @@ export default function AskNewFilename({ project_id }: Props) {
   const other_settings = useTypedRedux("account", "other_settings");
   const new_filename = useTypedRedux({ project_id }, "new_filename");
   const rfn = other_settings.get(NEW_FILENAMES);
-  const selected = rfn != null ? rfn : NewFilenames.default_family;
+  const selected = rfn ?? DEFAULT_NEW_FILENAMES;
 
   useEffect(() => {
     shuffle();

@@ -3,22 +3,23 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, Rendered, redux } from "../app-framework";
-import { Map } from "immutable";
-import { webapp_client } from "../webapp-client";
-import { Checkbox, Panel } from "../antd-bootstrap";
 import { Card, InputNumber } from "antd";
-import { IS_MOBILE, IS_TOUCH } from "../feature";
+import { Map } from "immutable";
+
+import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
+import { Component, redux, Rendered } from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
-  NumberInput,
   LabeledRow,
   Loading,
+  NumberInput,
   SelectorInput,
-} from "../components";
-import { NEW_FILENAMES } from "@cocalc/util/db-schema";
-import { NewFilenameFamilies, NewFilenames } from "../project/utils";
+} from "@cocalc/frontend/components";
+import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
+import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 
 interface Props {
@@ -143,8 +144,7 @@ export class OtherSettings extends Component<Props> {
 
   private render_new_filenames(): Rendered {
     const selected =
-      this.props.other_settings.get(NEW_FILENAMES) ??
-      NewFilenames.default_family;
+      this.props.other_settings.get(NEW_FILENAMES) ?? DEFAULT_NEW_FILENAMES;
     return (
       <LabeledRow label="Generated filenames">
         <SelectorInput
