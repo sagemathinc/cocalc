@@ -7,8 +7,5 @@ declare module "slate" {
     Text: {
       placeholder: string;
     };
-    Range: {
-      placeholder?: string;
-    };
   }
 }

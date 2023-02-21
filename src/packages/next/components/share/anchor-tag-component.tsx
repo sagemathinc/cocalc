@@ -18,11 +18,12 @@ export default function getAnchorTagComponent({ id, relativePath }: Options) {
     } else {
       return (
         <Link
+          title={title}
           href={`/share/public_paths/${id}/${
             href ? encodeURIComponent(join(relativePath, href)) : ""
           }`}
         >
-          <a title={title}>{children}</a>
+          {children}
         </Link>
       );
     }

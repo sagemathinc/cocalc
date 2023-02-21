@@ -7,57 +7,43 @@
 Top-level react component, which ties everything together
 */
 
-import {
-  redux,
-  CSS,
-  React,
-  useRedux,
-  useRef,
-  Rendered,
-} from "../app-framework";
 import * as immutable from "immutable";
 
-import { A, ErrorDisplay } from "../components";
-import { Loading } from "../components/loading";
+import {
+  CSS,
+  React,
+  redux,
+  Rendered,
+  useRedux,
+  useRef,
+} from "@cocalc/frontend/app-framework";
 
 // Support for all the MIME types
 import "./output-messages/mime-types/init-frontend";
 
 // React components that implement parts of the Jupyter notebook.
-import { TopMenubar } from "./top-menubar";
-import { TopButtonbar } from "./top-buttonbar";
-import { CellList } from "./cell-list";
-import { Kernel } from "./status";
-import { Mode } from "./mode";
+import { A, ErrorDisplay } from "@cocalc/frontend/components";
+import { Loading } from "@cocalc/frontend/components/loading";
+import { COLORS } from "@cocalc/util/theme";
+import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
-import { NBConvert } from "./nbconvert";
-import { InsertImage } from "./insert-image";
+import { JupyterActions } from "./browser-actions";
+import { CellList } from "./cell-list";
+import { ConfirmDialog } from "./confirm-dialog";
 import { EditAttachments } from "./edit-attachments";
 import { EditCellMetadata } from "./edit-cell-metadata";
 import { FindAndReplace } from "./find-and-replace";
-import { ConfirmDialog } from "./confirm-dialog";
-import { KernelSelector } from "./select-kernel";
-import { KeyboardShortcuts } from "./keyboard-shortcuts";
-// import { SnippetsDialog } from "@cocalc/frontend/assistant/dialog";
-const { SnippetsDialog } = require("@cocalc/frontend/assistant/dialog");
-import { Kernels as KernelsType } from "./util";
-import { Scroll } from "./types";
-import useKernelUsage from "./kernel-usage";
-import { JupyterActions } from "./browser-actions";
-import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
+import { InsertImage } from "./insert-image";
 import { JupyterContext } from "./jupyter-context";
-
-const KERNEL_STYLE: CSS = {
-  float: "right",
-  paddingLeft: "5px",
-  backgroundColor: "#eee",
-  display: "block",
-  overflow: "hidden",
-  borderLeft: "1px solid rgb(231,231,231)",
-  borderBottom: "1px solid rgb(231,231,231)",
-  whiteSpace: "nowrap",
-  margin: "5px",
-} as const;
+import useKernelUsage from "./kernel-usage";
+import { KeyboardShortcuts } from "./keyboard-shortcuts";
+import { NBConvert } from "./nbconvert";
+import { KernelSelector } from "./select-kernel";
+import { Kernel } from "./status";
+import { TopButtonbar } from "./top-buttonbar";
+import { TopMenubar } from "./top-menubar";
+import { NotebookMode, Scroll } from "./types";
+import { Kernels as KernelsType } from "./util";
 
 export const ERROR_STYLE: CSS = {
   whiteSpace: "pre" as "pre",
@@ -78,7 +64,7 @@ interface Props {
   // opening the file (or refreshing browser), which is nice!
   is_focused?: boolean;
   is_fullscreen?: boolean; // this means fullscreened frame inside the editor!
-  mode: "edit" | "escape";
+  mode: NotebookMode;
   font_size?: number;
 
   cur_id?: string;
@@ -223,6 +209,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return (
       <ErrorDisplay
         bsStyle="warning"
+        banner={true}
         error_component={
           <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
             {kernel_error}
@@ -251,7 +238,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return (
       <div>
         <h2 style={{ marginLeft: "10px" }}>Fatal Error loading ipynb file</h2>
-
         <ErrorDisplay error={fatal} style={{ margin: "1ex" }} />
       </div>
     );
@@ -259,15 +245,13 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
 
   function render_kernel() {
     return (
-      <span style={KERNEL_STYLE}>
-        <Kernel
-          is_fullscreen={is_fullscreen}
-          actions={actions}
-          usage={usage}
-          expected_cell_runtime={expected_cell_runtime}
-        />
-        <Mode name={name} />
-      </span>
+      <Kernel
+        is_fullscreen={is_fullscreen}
+        actions={actions}
+        usage={usage}
+        expected_cell_runtime={expected_cell_runtime}
+        mode={mode}
+      />
     );
   }
 
@@ -311,9 +295,8 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_heading() {
-    //if (!is_focused) return;
     return (
-      <div style={{ border: "1px solid rgb(231, 231, 231)" }}>
+      <div>
         {render_kernel()}
         {render_menubar()}
         {toolbar ? render_buttonbar() : undefined}
@@ -328,7 +311,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           fontSize: "24pt",
           textAlign: "center",
           marginTop: "15px",
-          color: "#888",
+          color: COLORS.GRAY,
         }}
       />
     );
@@ -357,24 +340,24 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return (
       <CellList
         actions={actions}
-        name={name}
         cell_list={cell_list}
-        cells={cells}
-        font_size={font_size}
-        sel_ids={sel_ids}
-        md_edit_ids={md_edit_ids}
-        cur_id={cur_id}
-        mode={mode}
-        hook_offset={hook_offset}
-        cm_options={cm_options}
-        project_id={project_id}
-        directory={directory}
-        scrollTop={scrollTop}
-        complete={is_focused ? complete : undefined}
-        is_focused={is_focused}
-        more_output={more_output}
-        scroll={scroll}
         cell_toolbar={cell_toolbar}
+        cells={cells}
+        cm_options={cm_options}
+        complete={is_focused ? complete : undefined}
+        cur_id={cur_id}
+        directory={directory}
+        font_size={font_size}
+        hook_offset={hook_offset}
+        is_focused={is_focused}
+        md_edit_ids={md_edit_ids}
+        mode={mode}
+        more_output={more_output}
+        name={name}
+        project_id={project_id}
+        scroll={scroll}
+        scrollTop={scrollTop}
+        sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
       />
@@ -480,15 +463,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_snippets_dialog() {
-    return (
-      <SnippetsDialog
-        name={actions.snippet_actions.name}
-        actions={actions.snippet_actions}
-      />
-    );
-  }
-
   function render_main() {
     if (!check_select_kernel_init) {
       return render_loading();
@@ -510,7 +484,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         {render_edit_cell_metadata()}
         {render_find_and_replace()}
         {render_keyboard_shortcuts()}
-        {render_snippets_dialog()}
         {render_confirm_dialog()}
       </>
     );

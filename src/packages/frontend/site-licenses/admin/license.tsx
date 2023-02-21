@@ -2,6 +2,9 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+import { Alert, Col, Row } from "antd";
+import jsonic from "jsonic";
+import { DebounceInput } from "react-debounce-input";
 
 import { Projects } from "@cocalc/frontend/admin/users/projects";
 import { Button, Checkbox } from "@cocalc/frontend/antd-bootstrap";
@@ -26,9 +29,6 @@ import {
   weeks_ago,
 } from "@cocalc/util/misc";
 import { SiteLicense } from "@cocalc/util/types/site-licenses";
-import { Alert, Col, Row } from "antd";
-import jsonic from "jsonic";
-import { DebounceInput } from "react-debounce-input";
 import { actions } from "./actions";
 import { Managers } from "./managers";
 import { DisplayQuota, EditQuota } from "./quota";
@@ -120,6 +120,16 @@ export const License: React.FC<Props> = (props: Props) => {
         </Row>
       );
     }
+    if (typeof edits?.size === "number" && edits.size > 0) {
+      const id = license.get("id");
+      v.push(
+        <Row key="save" style={{ borderTop: "1px solid lightgrey" }}>
+          <Col span={24} style={{ textAlign: "right" }}>
+            {render_save_cancel(id)}
+          </Col>
+        </Row>
+      );
+    }
     return v;
   }
 
@@ -127,274 +137,292 @@ export const License: React.FC<Props> = (props: Props) => {
     actions.set_edit(license.get("id"), field, new_val);
   }
 
+  function render_value_editing(
+    type: license_field_type,
+    field,
+    val
+  ): Rendered | string {
+    let x: Rendered | string = undefined;
+    const onChange = (new_val) => on_change(field, new_val);
+    switch (type) {
+      case "string":
+        x = (
+          <DebounceInput
+            style={merge({ width: "50ex" }, INPUT_STYLE)}
+            value={val != null ? val : ""}
+            onChange={(e) => onChange((e.target as any).value)}
+          />
+        );
+        if (field == "title") {
+          x = <span>{x} (visible to anyone who knows the id)</span>;
+        }
+        break;
+      case "paragraph":
+        x = (
+          <DebounceInput
+            element="textarea"
+            forceNotifyByEnter={false}
+            style={merge({ width: "100%" }, INPUT_STYLE)}
+            rows={5}
+            value={val != null ? val : ""}
+            onChange={(e) => onChange((e.target as any).value)}
+          />
+        );
+        if (field == "description") {
+          x = (
+            <div>
+              {x}
+              <br />
+              (description is only visible to license managers)
+            </div>
+          );
+        }
+        break;
+      case "date":
+        if (field == "created" || field == "last_used") {
+          x = <TimeAgo date={val} />;
+        } else {
+          x = (
+            <DateTimePicker
+              value={val}
+              onChange={onChange}
+              style={{ width: "100%", maxWidth: "40ex" }}
+            />
+          );
+        }
+        break;
+      case "account_id[]":
+        x = (
+          <Managers
+            managers={val}
+            license_id={license.get("id")}
+            manager_info={manager_info}
+          />
+        );
+        break;
+      case "boolean":
+        x = (
+          <Checkbox
+            checked={!!val}
+            onChange={(e) => onChange((e.target as any).checked)}
+          />
+        );
+        break;
+      case "upgrades":
+        x = (
+          <EditUpgrades
+            upgrades={val}
+            license_id={license.get("id")}
+            license_field={field}
+          />
+        );
+        break;
+      case "quota":
+        x = (
+          <EditQuota
+            quota={val}
+            license_id={license.get("id")}
+            license_field={field}
+          />
+        );
+        break;
+      case "number":
+        x = (
+          <span>
+            <DebounceInput
+              style={merge({ width: "100%" }, INPUT_STYLE)}
+              value={val != null ? val : "0"}
+              onChange={(e) => onChange((e.target as any).value)}
+            />{" "}
+            (0 = no limit)
+          </span>
+        );
+        break;
+      case "map":
+        let value: string = "";
+        if (val) {
+          if (typeof val != "string") {
+            value = JSON.stringify(val, undefined, 2);
+          } else {
+            value = val;
+          }
+        }
+        x = (
+          <div>
+            <DebounceInput
+              element="textarea"
+              forceNotifyByEnter={false}
+              placeholder={
+                '{"invoice_id":"some-structured-JSON-data", "stripe_id": "more-data"}'
+              }
+              style={merge({ width: "100%" }, INPUT_STYLE)}
+              rows={4}
+              value={value}
+              onChange={(e) => onChange((e.target as any).value)}
+              onBlur={() => {
+                try {
+                  onChange(JSON.stringify(jsonic(value), undefined, 2));
+                } catch (_err) {
+                  // This just means jsonic can't transform it to valid json.
+                }
+              }}
+            />
+            <br />
+            Input forgivingly parsed using{" "}
+            <A href="https://github.com/rjrodger/jsonic/blob/master/README.md">
+              jsonic
+            </A>
+            ; deleting fields is not implemented.
+          </div>
+        );
+        break;
+      case "readonly":
+      default:
+        if (is_date(val)) {
+          x = <TimeAgo date={val} />;
+        } else {
+          x = `${val}`;
+        }
+    }
+    return x;
+  }
+
+  function render_value_static(
+    type: license_field_type,
+    field,
+    val
+  ): Rendered | string {
+    let x: Rendered | string = undefined;
+    switch (type) {
+      case "paragraph":
+        x = (
+          <div
+            style={{
+              whiteSpace: "pre",
+              background: val ? undefined : "yellow",
+            }}
+          >
+            {val ? val : "Enter a description"}
+          </div>
+        );
+        break;
+      case "string":
+        x = (
+          <div
+            style={{
+              whiteSpace: "pre",
+              background: val ? undefined : "yellow",
+            }}
+          >
+            {val ? val : "Enter a title"}
+          </div>
+        );
+        break;
+      case "date":
+        if (val == null) {
+          x = "";
+        } else {
+          x = <TimeAgo date={val} />;
+        }
+        if (field == "expires") {
+          if (!val) {
+            x = (
+              <span style={{ background: "yellow" }}>
+                <Icon name="warning" /> Never expires -- set an expiration date
+              </span>
+            );
+          } else if (val <= new Date()) {
+            x = (
+              <span
+                style={{
+                  background: "darkred",
+                  color: "white",
+                }}
+              >
+                Expired {x}
+              </span>
+            );
+          } else {
+            x = <span>Will expire {x}</span>;
+          }
+        } else if (field == "activates") {
+          if (!val) {
+            x = (
+              <div
+                style={{
+                  background: "darkred",
+                  color: "white",
+                }}
+              >
+                <Icon name="warning" /> Never actives -- set an activation date!
+              </div>
+            );
+          } else if (val > new Date()) {
+            x = (
+              <div
+                style={{
+                  background: "darkred",
+                  color: "white",
+                }}
+              >
+                Will activate {x}
+              </div>
+            );
+          } else {
+            x = <span>Activated {x}</span>;
+          }
+        }
+        break;
+      case "account_id[]":
+        x = (
+          <Managers
+            managers={val}
+            license_id={license.get("id")}
+            manager_info={manager_info}
+          />
+        );
+        break;
+      case "upgrades":
+        x = <DisplayUpgrades upgrades={val} />;
+        break;
+      case "quota":
+        x = <DisplayQuota quota={val} />;
+        break;
+      case "map":
+        if (!val) {
+          x = "";
+        } else {
+          x = (
+            <pre style={{ margin: 0, padding: "5px" }}>
+              {JSON.stringify(val, undefined, 2)}
+            </pre>
+          );
+        }
+        break;
+      default:
+        x = `${val}`;
+    }
+    if (field == "run_limit" && !val) {
+      x = (
+        <div
+          style={{
+            background: "yellow",
+          }}
+        >
+          <Icon name="warning" /> No limit -- set a limit
+        </div>
+      );
+    }
+    return x;
+  }
+
   function render_value(field, val): Rendered | string {
     let x: Rendered | string = undefined;
     const type: license_field_type = license_fields[field];
     if (editing) {
-      const onChange = (new_val) => on_change(field, new_val);
-      switch (type) {
-        case "string":
-          x = (
-            <DebounceInput
-              style={merge({ width: "50ex" }, INPUT_STYLE)}
-              value={val != null ? val : ""}
-              onChange={(e) => onChange((e.target as any).value)}
-            />
-          );
-          if (field == "title") {
-            x = <span>{x} (visible to anyone who knows the id)</span>;
-          }
-          break;
-        case "paragraph":
-          x = (
-            <DebounceInput
-              element="textarea"
-              forceNotifyByEnter={false}
-              style={merge({ width: "100%" }, INPUT_STYLE)}
-              rows={5}
-              value={val != null ? val : ""}
-              onChange={(e) => onChange((e.target as any).value)}
-            />
-          );
-          if (field == "description") {
-            x = (
-              <div>
-                {x}
-                <br />
-                (description is only visible to license managers)
-              </div>
-            );
-          }
-          break;
-        case "date":
-          if (field == "created" || field == "last_used") {
-            x = <TimeAgo date={val} />;
-          } else {
-            x = (
-              <DateTimePicker
-                value={val}
-                onChange={onChange}
-                style={{ width: "100%", maxWidth: "40ex" }}
-              />
-            );
-          }
-          break;
-        case "account_id[]":
-          x = (
-            <Managers
-              managers={val}
-              license_id={license.get("id")}
-              manager_info={manager_info}
-            />
-          );
-          break;
-        case "boolean":
-          x = (
-            <Checkbox
-              checked={!!val}
-              onChange={(e) => onChange((e.target as any).checked)}
-            />
-          );
-          break;
-        case "upgrades":
-          x = (
-            <EditUpgrades
-              upgrades={val}
-              license_id={license.get("id")}
-              license_field={field}
-            />
-          );
-          break;
-        case "quota":
-          x = (
-            <EditQuota
-              quota={val}
-              license_id={license.get("id")}
-              license_field={field}
-            />
-          );
-          break;
-        case "number":
-          x = (
-            <span>
-              <DebounceInput
-                style={merge({ width: "100%" }, INPUT_STYLE)}
-                value={val != null ? val : "0"}
-                onChange={(e) => onChange((e.target as any).value)}
-              />{" "}
-              (0 = no limit)
-            </span>
-          );
-          break;
-        case "map":
-          let value: string = "";
-          if (val) {
-            if (typeof val != "string") {
-              value = JSON.stringify(val, undefined, 2);
-            } else {
-              value = val;
-            }
-          }
-          x = (
-            <div>
-              <DebounceInput
-                element="textarea"
-                forceNotifyByEnter={false}
-                placeholder={
-                  '{"invoice_id":"some-structured-JSON-data", "stripe_id": "more-data"}'
-                }
-                style={merge({ width: "100%" }, INPUT_STYLE)}
-                rows={4}
-                value={value}
-                onChange={(e) => onChange((e.target as any).value)}
-                onBlur={() => {
-                  try {
-                    onChange(JSON.stringify(jsonic(value), undefined, 2));
-                  } catch (_err) {
-                    // This just means jsonic can't transform it to valid json.
-                  }
-                }}
-              />
-              <br />
-              Input forgivingly parsed using{" "}
-              <A href="https://github.com/rjrodger/jsonic/blob/master/README.md">
-                jsonic
-              </A>
-              ; deleting fields is not implemented.
-            </div>
-          );
-          break;
-        case "readonly":
-        default:
-          if (is_date(val)) {
-            x = <TimeAgo date={val} />;
-          } else {
-            x = `${val}`;
-          }
-      }
+      x = render_value_editing(type, field, val);
     } else {
-      switch (type) {
-        case "paragraph":
-          x = (
-            <div
-              style={{
-                whiteSpace: "pre",
-                background: val ? undefined : "yellow",
-              }}
-            >
-              {val ? val : "Enter a description"}
-            </div>
-          );
-          break;
-        case "string":
-          x = (
-            <div
-              style={{
-                whiteSpace: "pre",
-                background: val ? undefined : "yellow",
-              }}
-            >
-              {val ? val : "Enter a title"}
-            </div>
-          );
-          break;
-        case "date":
-          if (val == null) {
-            x = "";
-          } else {
-            x = <TimeAgo date={val} />;
-          }
-          if (field == "expires") {
-            if (!val) {
-              x = (
-                <span style={{ background: "yellow" }}>
-                  <Icon name="warning" /> Never expires -- set an expiration
-                  date
-                </span>
-              );
-            } else if (val <= new Date()) {
-              x = (
-                <span
-                  style={{
-                    background: "darkred",
-                    color: "white",
-                  }}
-                >
-                  Expired {x}
-                </span>
-              );
-            } else {
-              x = <span>Will expire {x}</span>;
-            }
-          } else if (field == "activates") {
-            if (!val) {
-              x = (
-                <div
-                  style={{
-                    background: "darkred",
-                    color: "white",
-                  }}
-                >
-                  <Icon name="warning" /> Never actives -- set an activation
-                  date!
-                </div>
-              );
-            } else if (val > new Date()) {
-              x = (
-                <div
-                  style={{
-                    background: "darkred",
-                    color: "white",
-                  }}
-                >
-                  Will activate {x}
-                </div>
-              );
-            } else {
-              x = <span>Activated {x}</span>;
-            }
-          }
-          break;
-        case "account_id[]":
-          x = (
-            <Managers
-              managers={val}
-              license_id={license.get("id")}
-              manager_info={manager_info}
-            />
-          );
-          break;
-        case "upgrades":
-          x = <DisplayUpgrades upgrades={val} />;
-          break;
-        case "quota":
-          x = <DisplayQuota quota={val} />;
-          break;
-        case "map":
-          if (!val) {
-            x = "";
-          } else {
-            x = (
-              <pre style={{ margin: 0, padding: "5px" }}>
-                {JSON.stringify(val, undefined, 2)}
-              </pre>
-            );
-          }
-          break;
-        default:
-          x = `${val}`;
-      }
-      if (field == "run_limit" && !val) {
-        x = (
-          <div
-            style={{
-              background: "yellow",
-            }}
-          >
-            <Icon name="warning" /> No limit -- set a limit
-          </div>
-        );
-      }
+      x = render_value_static(type, field, val);
     }
 
     if (field == "run_limit") {
@@ -489,25 +517,29 @@ export const License: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_save_cancel(id): JSX.Element {
+    return (
+      <>
+        <Button onClick={() => actions.cancel_editing(id)} disabled={saving}>
+          Cancel
+        </Button>
+        <Space />
+        <Button
+          disabled={edits == null || edits.size <= 1 || saving}
+          bsStyle="success"
+          onClick={() => actions.save_editing(id)}
+        >
+          <Icon name={"save"} /> {saving ? "Saving..." : "Save"}
+        </Button>
+      </>
+    );
+  }
+
   function render_buttons(): Rendered {
     let buttons;
     const id = license.get("id");
     if (editing) {
-      buttons = (
-        <>
-          <Button onClick={() => actions.cancel_editing(id)} disabled={saving}>
-            Cancel
-          </Button>
-          <Space />
-          <Button
-            disabled={edits == null || edits.size <= 1 || saving}
-            bsStyle="success"
-            onClick={() => actions.save_editing(id)}
-          >
-            <Icon name={"save"} /> {saving ? "Saving..." : "Save"}
-          </Button>
-        </>
-      );
+      buttons = render_save_cancel(id);
     } else {
       buttons = (
         <Button bsStyle={"primary"} onClick={() => actions.start_editing(id)}>

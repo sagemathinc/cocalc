@@ -16,7 +16,16 @@ export default function useSyncdbRecord<T>({
   debounceMs?: number;
   defaultValue: T;
 }): [value: T, setValue: (obj: T) => void] {
+  // comparing key as object does NOT work and completely broken debounce,
+  // wasting huge amounts of space and blowing up the syncdb!
+  const jkey = JSON.stringify(key);
+
   const { syncdb } = useSyncdbContext();
+  if (syncdb == null) {
+    throw Error(
+      "useSyncdbRecord hook MUST be used inside SyncdbContext.Provider"
+    );
+  }
 
   const [value, setValue0] = useState<T>(
     syncdb?.get_one(key)?.toJS() ?? { ...defaultValue, ...key }
@@ -33,7 +42,7 @@ export default function useSyncdbRecord<T>({
         syncdb.commit();
       }
     }, debounceMs),
-    [syncdb, key]
+    [syncdb, jkey]
   );
 
   const setValue = useCallback(
@@ -69,7 +78,7 @@ export default function useSyncdbRecord<T>({
     return () => {
       syncdb.removeListener("change", handleChange);
     };
-  }, [syncdb, key]);
+  }, [syncdb, jkey]);
 
   return [value, setValue];
 }

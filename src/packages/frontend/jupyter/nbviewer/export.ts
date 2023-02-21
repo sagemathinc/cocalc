@@ -49,9 +49,15 @@ ${body}
 `;
 }
 
+// TODO regarding antd -- see https://github.com/sagemathinc/cocalc/issues/6305
+// For some reason the css for antd beyond version 4.24.7 is not available.
+// Thus for now we are just hardcoding version  4.24.7.  This is of course much
+// better than being compltely broken, but not ideal.  The CSS we actually use
+// for Jupyter notebooks from antd is very minimal, except in maybe widgets, which
+// aren't relevant for printing (yet?).
 function getVersions() {
   return {
-    antd: require("antd").version,
+    antd: "4.24.7", // require("antd").version
     codemirror: require("codemirror/package").version,
     katex: require("katex").version,
   };

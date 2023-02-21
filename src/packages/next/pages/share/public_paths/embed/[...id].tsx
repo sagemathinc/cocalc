@@ -71,9 +71,7 @@ export default function PublicPath(props: Props) {
             description={
               <div>
                 There was a problem loading "{relativePath}" in{" "}
-                <Link href={`/share/public_paths/${id}`}>
-                  <a>{path}.</a>
-                </Link>
+                <Link href={`/share/public_paths/${id}`}>{path}.</Link>
                 <br />
                 <br />
                 {error}

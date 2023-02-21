@@ -5,7 +5,7 @@
 
 import { Transforms } from "slate";
 import { SlateEditor } from "./editable-markdown";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Dropzone, FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { join } from "path";
 import { aux_file, path_split } from "@cocalc/util/misc";
@@ -24,6 +24,10 @@ export default function useUpload(
 ): JSX.Element {
   const dropzoneRef = useRef<Dropzone>(null);
   const { actions, project_id, path } = useFrameContext();
+  const actionsRef = useRef<any>(actions);
+  actionsRef.current = actions;
+  const pathRef = useRef<string>(path);
+  pathRef.current = path;
 
   // We setup the slate "plugin" change to insertData here exactly once when
   // the component is mounted, because otherwise we would have to save
@@ -56,34 +60,40 @@ export default function useUpload(
     };
   }, []);
 
-  const updloadEventHandlers = {
-    sending: ({ name }) => {
-      actions.set_status?.(`Uploading ${name}...`);
-    },
-    complete: (file: { type: string; name: string; status: string }) => {
-      actions.set_status?.("");
-      let node;
-      if (file.type.indexOf("image") == -1) {
-        node = {
-          type: "link",
-          isInline: true,
-          children: [{ text: file.name }],
-          url: uploadTarget(path, file),
-        };
-      } else {
-        node = {
-          type: "image",
-          isInline: true,
-          isVoid: true,
-          src: uploadTarget(path, file),
-          children: [{ text: "" }],
-        };
-      }
-      Transforms.insertFragment(editor, [node as any], {
-        at: getFocus(editor),
-      });
-    },
-  };
+  // NOTE: when updloadEventHandlers function changes the FileUploadWrapper doesn't properly update
+  // to reflect that (it's wrapping a third party library).  (For some reason this wasn't an issue with
+  // React 17, but is with React 18.) This is why we store what updloadEventHandlers
+  // depends on in a ref and only create it once.
+  const updloadEventHandlers = useMemo(() => {
+    return {
+      sending: ({ name }) => {
+        actionsRef.current?.set_status?.(`Uploading ${name}...`);
+      },
+      complete: (file: { type: string; name: string; status: string }) => {
+        actionsRef.current?.set_status?.("");
+        let node;
+        if (file.type.indexOf("image") == -1) {
+          node = {
+            type: "link",
+            isInline: true,
+            children: [{ text: file.name }],
+            url: uploadTarget(pathRef.current, file),
+          };
+        } else {
+          node = {
+            type: "image",
+            isInline: true,
+            isVoid: true,
+            src: uploadTarget(pathRef.current, file),
+            children: [{ text: "" }],
+          };
+        }
+        Transforms.insertFragment(editor, [node as any], {
+          at: getFocus(editor),
+        });
+      },
+    };
+  }, []);
 
   // Note: using show_upload={false} since showing the upload right in the
   // wysiwyg editor is really disconcerting.

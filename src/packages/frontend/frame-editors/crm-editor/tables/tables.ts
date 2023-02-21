@@ -3,6 +3,7 @@ import { antdColumn, ColumnsType } from "../fields";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import * as defaults from "./defaults";
 import { SCHEMA } from "@cocalc/util/db-schema";
+import type { IconName } from "@cocalc/frontend/components/icon";
 
 import "./tasks";
 import "./people";
@@ -11,20 +12,25 @@ import "./organizations";
 import "./tags";
 import "./support-tickets";
 import "./support-messages";
-
+import "./client-error-log";
+import "./central-log";
+import "./file-access-log";
+import "./file-use";
 import "./site-licenses";
 import "./accounts";
 import "./agents";
 import "./patches";
 import "./projects";
+import "./project-log";
 import "./public-paths";
 import "./shopping-cart-items";
 import "./syncstrings";
+import "./vouchers";
 
 interface TableDescription {
   name: string;
   title: ReactNode;
-  icon?: string; // todo: render this..
+  icon?: IconName; // todo: render this..
   query: object;
   columns: ColumnsType[];
   allowCreate?: boolean;

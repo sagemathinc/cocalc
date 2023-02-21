@@ -1,13 +1,20 @@
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import getStats from "lib/landing/stats";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import Statistics from "components/statistics";
 import { MAX_WIDTH } from "lib/config";
+import { Customize } from "lib/customize";
+import getStats from "lib/landing/stats";
+import withCustomize from "lib/with-customize";
+import { Paragraph, Title } from "components/misc";
 
 export default function Stats({ customize, stats }) {
   const { siteName } = customize;
@@ -30,12 +37,12 @@ export default function Stats({ customize, stats }) {
               backgroundColor: "white",
             }}
           >
-            <div style={{ textAlign: "center", color: "#444" }}>
-              <h1 style={{ fontSize: "28pt" }}>
+            <div style={{ textAlign: "center" }}>
+              <Title level={1}>
                 <Icon name="dashboard" style={{ marginRight: "30px" }} />
                 {siteName} - System Activity Status
-              </h1>
-              <p>Track how heavily {siteName} is being used.</p>
+              </Title>
+              <Paragraph>Track how heavily {siteName} is being used.</Paragraph>
             </div>
             {stats != null ? <Statistics stats={stats} /> : "(not available)"}
           </div>

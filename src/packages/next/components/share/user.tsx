@@ -11,10 +11,8 @@ interface Props {
 export default function User({ account_id, first_name, last_name }: Props) {
   return (
     <Link href={`/share/accounts/${account_id}`}>
-      <a>
-        <Avatar account_id={account_id} style={{ marginRight: "5px" }} />
-        {trunc(`${first_name} ${last_name}`, 50)}
-      </a>
+      <Avatar account_id={account_id} style={{ marginRight: "5px" }} />
+      {trunc(`${first_name} ${last_name}`, 50)}
     </Link>
   );
 }

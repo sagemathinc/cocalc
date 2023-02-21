@@ -4,13 +4,17 @@
  */
 
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
-import { redux, useRedux } from "@cocalc/frontend/app-framework";
+
+import {
+  redux,
+  useIsMountedRef,
+  useRedux,
+} from "@cocalc/frontend/app-framework";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { useDebouncedCallback } from "use-debounce";
-import { useIsMountedRef } from "@cocalc/frontend/app-framework";
-import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 
 interface Props {
   on_send: (value: string) => void;
@@ -26,6 +30,7 @@ interface Props {
   onFocus?: () => void;
   onBlur?: () => void;
   syncdb?;
+  editBarStyle?;
 }
 
 export const ChatInput: React.FC<Props> = (props) => {
@@ -150,6 +155,7 @@ export const ChatInput: React.FC<Props> = (props) => {
         saveChat.cancel();
         syncdb?.redo();
       }}
+      editBarStyle={props.editBarStyle}
     />
   );
 };

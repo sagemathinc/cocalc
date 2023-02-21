@@ -8,15 +8,17 @@ Settings and configuration for editing this file.
 */
 
 import { Map } from "immutable";
-import { Rendered, Component } from "../../app-framework";
-import { EditorDescription } from "../frame-tree/types";
+
+import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { is_different } from "@cocalc/util/misc";
+import { EditorDescription } from "../frame-tree/types";
 // import from icon only necessary for testing via Jest
 // Change to import from components when it's all typescript
-import { Icon } from "../../components/icon";
-import { Loading } from "../../components/loading";
+import { Paragraph, Title } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { Loading } from "@cocalc/frontend/components/loading";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { SpellCheck } from "./spell-check";
-import { AvailableFeatures } from "../../project_configuration";
 
 interface Props {
   id: string;
@@ -36,6 +38,7 @@ export class Settings extends Component<Props, {}> {
       return [<Loading key={"loading"} />];
     }
     const v: Rendered[] = [];
+
     this.props.settings.forEach((value, key) => {
       switch (key) {
         case "spell":
@@ -53,8 +56,13 @@ export class Settings extends Component<Props, {}> {
         // we could delete it like so -- this.props.actions.set_settings({[key]:null});
       }
     });
+
     if (v.length == 0) {
-      v.push(<div>This editor currently has no configurable settings.</div>);
+      v.push(
+        <Paragraph>
+          This editor currently has no configurable settings.
+        </Paragraph>
+      );
     }
     return v;
   }
@@ -69,14 +77,15 @@ export class Settings extends Component<Props, {}> {
           fontSize: "10pt",
         }}
       >
-        <h3
+        <Title
+          level={3}
           style={{
             borderBottom: "1px solid #ccc",
             paddingBottom: "15px",
           }}
         >
           <Icon name="wrench" /> Editor Settings
-        </h3>
+        </Title>
         {this.render_settings()}
       </div>
     );

@@ -41,7 +41,7 @@ register({
     }
 
     return (
-      <Space direction="vertical" style={{ width: "100%" }}>
+      <Space direction="vertical" size="large">
         <Save />
         <EditBoolean
           icon="list-ol"
@@ -56,7 +56,7 @@ register({
           title="New Notebook Kernel"
           desc={desc.ask_jupyter_kernel}
           label="Ask which kernel to use"
-        />{" "}
+        />
         <EditBoolean
           icon="list"
           path="editor_settings.disable_jupyter_virtualization"
@@ -64,12 +64,12 @@ register({
           desc={desc.disable_jupyter_virtualization}
           label={
             <>
-              No virtualization -- render entire notebook rather than
-              rendering just the visible part of it using{" "}
+              No virtualization -- render entire notebook rather than rendering
+              just the visible part of it using{" "}
               <A href="https://virtuoso.dev/">react-virtuoso</A>.
             </>
           }
-        />{" "}
+        />
         <EditBoolean
           icon="ipynb"
           path="editor_settings.jupyter_classic"
@@ -88,7 +88,7 @@ register({
             </>
           }
           label="Use Jupyter classic"
-        />{" "}
+        />
       </Space>
     );
   },

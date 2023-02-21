@@ -6,6 +6,12 @@
 /*
 Create a new site license.
 */
+
+import { Divider, Form, Input, Radio, Select, Typography } from "antd";
+import { sortBy } from "lodash";
+import { useRouter } from "next/router";
+import { useEffect, useRef, useState } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { HOME_PREFIX, ROOT } from "@cocalc/util/consts/dedicated";
@@ -28,16 +34,13 @@ import {
   PRICES,
 } from "@cocalc/util/upgrades/dedicated";
 import { DateRange } from "@cocalc/util/upgrades/shopping";
-import { Divider, Form, Input, Radio, Select, Typography } from "antd";
+import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import { useScrollY } from "lib/use-scroll-y";
-import { sortBy } from "lodash";
-import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
 import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { computeCost } from "./compute-cost";
@@ -47,8 +50,6 @@ import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 import { getType, loadDateRange } from "./util";
-
-const { Text } = Typography;
 
 const GCP_DISK_URL =
   "https://cloud.google.com/compute/docs/disks/performance#performance_by_disk_size";
@@ -78,23 +79,33 @@ export default function DedicatedResource(props: Props) {
 
   return (
     <>
-      <h3 ref={headerRef}>
+      <Title level={3} ref={headerRef}>
         <Icon name={"dedicated"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit Dedicated Resources License in Shopping Cart"
           : "Buy a Dedicated Resources License"}
-      </h3>
+      </Title>
       {router.query.id == null && (
-        <p>
-          A{" "}
-          <A href="https://doc.cocalc.com/licenses.html">
-            <SiteName /> dedicated resource license
-          </A>{" "}
-          can be used to outfit your project either with additional disk storage
-          or moves your project to a much more powerful virtual machine. Create
-          a dedicated resources license below then add it to your{" "}
-          <A href="/store/cart">shopping cart</A>.
-        </p>
+        <>
+          <Paragraph>
+            A{" "}
+            <A href="https://doc.cocalc.com/licenses.html">
+              <SiteName /> dedicated resource license
+            </A>{" "}
+            can be used to outfit your project either with additional disk
+            storage or moves your project to a much more powerful virtual
+            machine. Create a dedicated resources license below then add it to
+            your <A href="/store/cart">shopping cart</A>.
+          </Paragraph>
+          <Paragraph>
+            It is also possible to run <SiteName /> on your own hardware. Check
+            out the{" "}
+            <Text strong>
+              <A href={"/pricing/onprem"}>on-premises offerings</A>
+            </Text>{" "}
+            to learn more about this.
+          </Paragraph>
+        </>
       )}
       <CreateDedicatedResource
         showInfoBar={scrollY > offsetHeader}
@@ -756,7 +767,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
             {renderAdditionalInfo()}
             {renderUsageAndDuration()}
 
-            <Divider plain>Confguration</Divider>
+            <Divider plain>Configuration</Divider>
             {renderConfiguration()}
 
             <TitleDescription showExplanations={showExplanations} />

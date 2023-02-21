@@ -50,11 +50,13 @@ interface Props {
   other_settings?: immutable.Map<any, any>;
   last_scroll_top?: number;
   configuration_main?: MainConfiguration;
+  isRunning?: boolean; // true if this project is running
 }
 
 export const FileListing: React.FC<Props> = (props: Props) => {
   const {
     actions,
+    redux,
     name,
     active_file_sort,
     listing,
@@ -69,6 +71,7 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     sort_by,
     configuration_main,
     file_search = "",
+    isRunning,
   } = props;
 
   const prev_current_path = usePrevious(current_path);
@@ -104,20 +107,10 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     index: number,
     link_target?: string // if given, is a known symlink to this file
   ): Rendered {
-    let color;
     const checked = checked_files.has(misc.path_to_file(current_path, name));
+    const color = misc.rowBackground({ index, checked });
     const { is_public } = file_map[name];
-    if (checked) {
-      if (index % 2 === 0) {
-        color = "#a3d4ff";
-      } else {
-        color = "#a3d4f0";
-      }
-    } else if (index % 2 === 0) {
-      color = "#eee";
-    } else {
-      color = "white";
-    }
+
     return (
       <FileRow
         isdir={isdir}
@@ -213,6 +206,21 @@ export const FileListing: React.FC<Props> = (props: Props) => {
 
   return (
     <>
+      {!isRunning && listing.length > 0 && (
+        <div
+          style={{ textAlign: "center", marginBottom: "5px", fontSize: "12pt" }}
+        >
+          To update the directory listing,{" "}
+          <a
+            onClick={() => {
+              redux.getActions("projects").start_project(project_id);
+            }}
+          >
+            start this project
+          </a>
+          .
+        </div>
+      )}
       <Col
         sm={12}
         style={{

@@ -8,14 +8,21 @@ A button that when clicked, shows a loading indicator until the backend
 Jupyter notebook server is running, then pops it up in a new tab.
 */
 
-import { Icon, IconName, SettingBox } from "@cocalc/frontend/components";
+import { join } from "path";
+import React from "react";
+
+import {
+  Icon,
+  IconName,
+  Paragraph,
+  SettingBox,
+} from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { capitalize } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { NamedServerName } from "@cocalc/util/types/servers";
-import { join } from "path";
-import React from "react";
 
 interface Server {
   longName: string;
@@ -98,18 +105,21 @@ export const NamedServerPanel: React.FC<Props> = (props: Props) => {
   } else {
     body = (
       <>
-        <span style={{ color: "#444" }}>
+        <Paragraph style={{ color: COLORS.GRAY_D }}>
           {description}
           <br />
           <br />
-          Click the link below to start your {longName} server and open it in a
-          new browser tab.
-        </span>
-        <div style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}>
+          Click the link below to start your {longName} server. It will then
+          attempt to open in a new browser tab. If this doesn't work, check for
+          a popup blocker warning!
+        </Paragraph>
+        <Paragraph
+          style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}
+        >
           <LinkRetry href={serverURL(project_id, name)}>
             <Icon name={icon} /> {longName} Server
           </LinkRetry>
-        </div>
+        </Paragraph>
       </>
     );
   }

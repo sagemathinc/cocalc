@@ -25,20 +25,17 @@
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "dev": "npx next telemetry disable && pnpm software && next dev",
-    "dev-project": "unset PGHOST PGUSER COCALC_ROOT && export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000 && echo https://cocalc.com$BASE_PATH && pnpm inventory &&  pnpm dev",
+    "build": "pnpm build-dev && npx next telemetry disable && rm -rf .next && pnpm build-dev && NODE_OPTIONS='--max_old_space_size=8000' next build",
+    "build-dev": "rm -rf dist && pnpm software && npx tsc --build tsconfig-dist.json",
     "tsc": "npx tsc --build tsconfig-dist.json -w --pretty --preserveWatchOutput ",
     "software": "bash ./software-inventory/setup.sh",
     "build-deps": "cd ../backend && pnpm build && cd ../util && pnpm build",
-    "build": "pnpm build-deps && npx next telemetry disable && rm -rf .next && pnpm build-dist && NODE_OPTIONS='--max_old_space_size=8000' next build",
-    "build-dist": "rm -rf dist && pnpm software && npx tsc --build tsconfig-dist.json",
-    "build-project": "pnpm build-deps && npx next telemetry disable && pnpm build-dist && NODE_OPTIONS='--max_old_space_size=8000' BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
+    "build-project": "pnpm build-deps && npx next telemetry disable && pnpm build-dev && NODE_OPTIONS='--max_old_space_size=8000' BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
     "clean": "rm -rf .next dist",
-    "start": "unset PGHOST; next start",
+    "start": "unset PGHOST; pnpm exec next start",
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; pnpm start",
-    "lint": "next lint",
-    "test": "npx tsc --build tsconfig-dist.json && npx jest ./dist",
-    "prepublishOnly": "grep '\"next\"' package.json  |grep -v \\\\^ && pnpm test"
+    "test": "pnpm exec tsc --build tsconfig-dist.json && pnpm exec jest ./dist",
+    "prepublishOnly": "pnpm test"
   },
   "repository": {
     "type": "git",
@@ -63,9 +60,9 @@
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/express": "^4.17.13",
-    "@types/react": "^17.0.52",
-    "@types/react-dom": "^17.0.2",
-    "antd": "^5.1.2",
+    "@types/react": "^18.0.26",
+    "@types/react-dom": "^18.0.10",
+    "antd": "^5.1.6",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "base-64": "^1.0.0",
@@ -76,11 +73,11 @@
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "ms": "2.1.2",
-    "next": "12.3.4",
+    "next": "13.1.2",
     "password-hash": "^1.2.2",
     "pg": "^8.7.1",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-google-recaptcha": "^2.1.0",
     "react-google-recaptcha-v3": "^1.9.7",
     "serve-index": "^1.9.1",
@@ -88,10 +85,10 @@
     "sharp": "^0.30.5",
     "timeago-react": "^3.0.4",
     "tslib": "^2.3.1",
-    "typescript": "~4.7.4",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "react-test-renderer": "^17.0.2"
+    "@types/node": "^18.11.18",
+    "react-test-renderer": "^18.2.0"
   }
 }

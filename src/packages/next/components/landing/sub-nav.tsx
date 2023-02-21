@@ -4,17 +4,54 @@
  */
 
 import { Divider } from "antd";
+import { isEmpty } from "lodash";
+import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { COLORS } from "@cocalc/util/theme";
+import Logo from "components/logo";
+import { CSS } from "components/misc";
 import A from "components/misc/A";
+import { MAX_WIDTH_LANDING } from "lib/config";
 import { useCustomize } from "lib/customize";
 import {
   SoftwareEnvNames,
   SOFTWARE_ENV_DEFAULT,
   SOFTWARE_ENV_NAMES,
 } from "lib/landing/consts";
+
+const BASE_STYLE: CSS = {
+  backgroundColor: "white",
+  textAlign: "center",
+  paddingLeft: "45px",
+  paddingRight: "45px",
+  paddingTop: "10px",
+  paddingBottom: "10px",
+  width: "100%",
+  zIndex: 1,
+  lineHeight: "2rem", // important to increase line height for narrow screens, otherwise text+underline is rendered on top of each other
+  maxHeight: "5rem",
+  overflow: "hidden",
+};
+
+const FLOAT_STYLE: CSS = {
+  ...BASE_STYLE,
+  position: "fixed",
+  paddingBottom: "5px",
+  paddingRight: 0,
+  paddingLeft: 0,
+  top: "0",
+  boxShadow: "0 4px 6px 0 rgba(0.1,0.1,0.1,0.20)",
+} as const;
+
+const INNER_STYLE: CSS = {
+  maxWidth: MAX_WIDTH_LANDING,
+  marginTop: "0",
+  marginBottom: "0",
+  marginLeft: "auto",
+  marginRight: "auto",
+};
 
 const software = {
   index: {},
@@ -29,6 +66,7 @@ const software = {
 const features = {
   index: {},
   "jupyter-notebook": { label: "Jupyter" },
+  slides: { label: "Slides" },
   whiteboard: { label: "Whiteboard" },
   "latex-editor": { label: "LaTeX" },
   linux: { label: "Linux" },
@@ -109,7 +147,7 @@ export type SubPage =
   | keyof typeof support;
 
 interface Props {
-  page: Page;
+  page?: Page;
   subPage?: SubPage;
   softwareEnv?: SoftwareEnvNames;
 }
@@ -119,9 +157,26 @@ const SEP = <div style={{ width: "16px", display: "inline-block" }} />;
 export default function SubNav(props: Props) {
   const { page, subPage, softwareEnv } = props;
   const customize = useCustomize();
+
+  const [floating, setFloating] = useState(false);
+  const subnavRef = useRef<HTMLDivElement>(null);
+
+  // a hook tracking the vertical scroll position.
+  useEffect(() => {
+    const subnav = subnavRef.current;
+    if (subnav == null) return;
+    const onScroll = () => {
+      const offset = subnav.getBoundingClientRect().top;
+      setFloating(offset < 0);
+    };
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [subnavRef]);
+
+  if (page == null) return null;
   const tabs: JSX.Element[] = [];
   const p = PAGES[page];
-  if (p == null) return null;
+  if (p == null || isEmpty(p)) return null;
 
   function renderSoftwareEnvs() {
     const links = SOFTWARE_ENV_NAMES.map((name) => {
@@ -180,18 +235,73 @@ export default function SubNav(props: Props) {
       />
     );
   }
-  return (
-    <div
-      style={{
-        backgroundColor: "white",
-        textAlign: "center",
-        color: COLORS.GRAY,
-        padding: "15px 0",
-      }}
-    >
+
+  const links = (
+    <>
       {r_join(tabs, SEP)}
-      {(page == "software" || page == "features") && renderSoftwareEnvs()}
-    </div>
+      {page == "software" && renderSoftwareEnvs()}
+    </>
+  );
+
+  function renderFloating() {
+    return (
+      <div
+        style={{
+          ...FLOAT_STYLE,
+          ...{ paddingLeft: "0px" },
+          ...{ display: floating ? "block" : "none" }, // we always render it, to make sure the logo has been loaded (no flickering)
+        }}
+      >
+        <div style={INNER_STYLE}>
+          <A
+            href={"/"}
+            style={{
+              display: "inline-block",
+              float: "left",
+              position: "relative",
+              marginLeft: "10px",
+              marginRight: "5px",
+            }}
+          >
+            <Logo
+              type="icon"
+              style={{
+                height: "30px",
+                width: "30px",
+              }}
+            />
+          </A>
+          <A
+            onClick={() => window.scrollTo(0, 0)}
+            style={{
+              display: "inline-block",
+              float: "right",
+              position: "relative",
+              marginLeft: "5px",
+              marginRight: "10px",
+            }}
+          >
+            <Icon
+              name="arrow-circle-up"
+              style={{
+                color: COLORS.GRAY_D,
+                fontSize: "30px",
+              }}
+            />
+          </A>
+          {links}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div ref={subnavRef} style={BASE_STYLE}>
+        <div style={INNER_STYLE}>{links}</div>
+      </div>
+      {renderFloating()}
+    </>
   );
 }
 

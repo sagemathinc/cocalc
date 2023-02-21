@@ -3,6 +3,7 @@ import { register } from "./tables";
 register({
   name: "licenses",
   title: "Licenses",
+  icon: "key",
   query: {
     site_licenses: [
       {

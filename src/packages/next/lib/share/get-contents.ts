@@ -15,6 +15,8 @@ const LIMITS = {
   listing: 10000, // directory listing is truncated after this many files
   ipynb: 15 * MB,
   sagews: 10 * MB,
+  whiteboard: 5 * MB,
+  slides: 5 * MB,
   other: 2 * MB,
 };
 

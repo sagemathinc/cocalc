@@ -1,17 +1,30 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Button, Popover } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
+
+import { CSS, useRedux } from "@cocalc/frontend/app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { KernelSelector } from "@cocalc/frontend/jupyter/select-kernel";
 import { Kernel } from "@cocalc/frontend/jupyter/status";
 import { useFrameContext } from "../../hooks";
-import { useRedux } from "@cocalc/frontend/app-framework";
+import { PANEL_STYLE } from "../../tools/panel";
 import {
   getJupyterFrameEditorActions,
   JupyterActions,
   openJupyterNotebook,
 } from "./actions";
-import { PANEL_STYLE } from "../../tools/panel";
-import { KernelSelector } from "@cocalc/frontend/jupyter/select-kernel";
+import { COLORS } from "@cocalc/util/theme";
+
+const KERNEL_STYLE: CSS = {
+  backgroundColor: "transparent",
+  margin: "5px",
+  padding: 0,
+};
 
 export default function KernelPanel0() {
   const isMountedRef = useIsMountedRef();
@@ -47,30 +60,30 @@ export default function KernelPanel0() {
   return null;
 }
 
-function KernelPanel({ actions }: { actions: JupyterActions }) {
+function KernelPanel(props: { actions: JupyterActions }) {
+  const { actions } = props;
   const { project_id, path } = useFrameContext();
   const showKernelSelector: undefined | boolean = useRedux([
     actions.name,
     "show_kernel_selector",
   ]);
+  const style: CSS = {
+    ...PANEL_STYLE,
+    maxWidth: "calc(100vw - 200px)",
+    padding: "3px 5px 1px 5px",
+    fontSize: "14px",
+    right: 0,
+    ...(showKernelSelector && {
+      bottom: "10px",
+      top: "10px",
+      overflowY: "auto",
+    }),
+  };
   return (
-    <div
-      style={{
-        ...PANEL_STYLE,
-        maxWidth: "calc(100vw - 200px)",
-        padding: "0 5px 2px 5px",
-        fontSize: "14px",
-        right: 0,
-        ...(showKernelSelector
-          ? { bottom: "10px", top: "10px", overflowY: "auto" }
-          : undefined),
-      }}
-    >
+    <div style={style}>
       <div style={{ display: "flex" }}>
         <div style={{ flex: 1 }}></div>
-        <div>
-          <Kernel actions={actions} />
-        </div>
+        <Kernel actions={actions} style={KERNEL_STYLE} />
         <Popover
           title={
             <>
@@ -87,7 +100,7 @@ function KernelPanel({ actions }: { actions: JupyterActions }) {
           }
         >
           <Button
-            style={{ color: "#666" }}
+            style={{ color: COLORS.GRAY_D, position: "relative", top: "2px" }}
             size="small"
             onClick={() => {
               openJupyterNotebook({ project_id, path });

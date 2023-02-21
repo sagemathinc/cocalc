@@ -13,5 +13,6 @@ test("using expireTime to compute a time in the future", () => {
   const now = new Date().getTime();
   const now10 = expireTime(10).getTime();
   // sometimes, this is off by one. expect.toBeCloseTo only checks after the decimal point
-  expect(Math.abs(now10 - now - 10000)).toBeLessThanOrEqual(1);
+  // increasing to 100 due to flakiness -- https://github.com/sagemathinc/cocalc/issues/6387
+  expect(Math.abs(now10 - now - 10000)).toBeLessThanOrEqual(100);
 });

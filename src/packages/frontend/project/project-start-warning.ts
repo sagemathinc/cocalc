@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux } from "../app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 
 /* Various actions depend on the project running, so this function currently does the following:
     - Checks whether or not the project is starting or running (assuming project state known -- admins don't know).

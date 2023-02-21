@@ -17,16 +17,17 @@ import { COLORS } from "@cocalc/util/theme";
 import * as feature from "@cocalc/frontend/feature";
 
 import Draggable from "react-draggable";
-const DRAG_OFFSET = feature.IS_TOUCH ? 5 : 2;
+const DRAG_OFFSET = feature.IS_TOUCH ? 5 : 3; // 3 is consistent with width/height of 6 in several other places in cocalc.
 
 const COLS_DRAG_BAR: CSS = {
   padding: `${DRAG_OFFSET}px`,
   background: COLORS.GRAY_LL,
   cursor: "ew-resize",
+  border: "1px solid #ddd",
 } as const;
 
 const DRAG_HOVER: CSS = {
-  background: COLORS.GRAY,
+  background: "#428bca",
   opacity: 0.8,
   zIndex: 100, // so it's on top of editors and other controls
 } as const;
@@ -113,7 +114,13 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
   }
 
   return (
-    <Draggable ref={dragBarRef} axis={axis} onStop={onStop} onStart={onStart}>
+    <Draggable
+      ref={dragBarRef}
+      position={{ x: 0, y: 0 }}
+      axis={axis}
+      onStop={onStop}
+      onStart={onStart}
+    >
       <div
         style={style()}
         onMouseEnter={() => set_drag_hover(true)}

@@ -3,12 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout, Typography } from "antd";
+
+import { Icon } from "@cocalc/frontend/components/icon";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
+import { Title } from "components/misc";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
 import { Customize, useCustomize } from "lib/customize";
@@ -41,9 +42,9 @@ function Body() {
   function docker(): JSX.Element {
     return (
       <>
-        <h2>
+        <Title level={2}>
           CoCalc Docker <Icon name="docker" style={{ float: "right" }} />
-        </h2>
+        </Title>
         <Paragraph>
           <Text strong>
             <A
@@ -86,9 +87,9 @@ function Body() {
   function cloud(): JSX.Element {
     return (
       <>
-        <h2>
+        <Title level={2}>
           CoCalc Cloud <Icon name="network-wired" style={{ float: "right" }} />
-        </h2>
+        </Title>
         <Paragraph>
           This version of on-prem CoCalc runs on a full-fledged{" "}
           <A href={"https://kubernetes.io"}>Kubernetes Cluster</A>. The
@@ -171,10 +172,18 @@ function Body() {
             </li>
           </ul>
         </Paragraph>
-        <Paragraph>
-          The license is business-friendly and please{" "}
-          <A href={`mailto:${helpEmail}`}>contact us</A> for pricing.
-        </Paragraph>
+        <Alert
+          type="info"
+          banner={true}
+          showIcon={false}
+          style={{ textAlign: "center", fontSize: "125%" }}
+          message={
+            <>
+              The license is business-friendly and please{" "}
+              <A href={`mailto:${helpEmail}`}>contact us</A> for pricing.
+            </>
+          }
+        />
       </>
     );
   }
@@ -188,13 +197,10 @@ function Body() {
         backgroundColor: "white",
       }}
     >
-      <div style={{ textAlign: "center", color: COLORS.GRAY_DD }}>
-        <h1 style={{ fontSize: "28pt" }}>
-          {" "}
-          <Icon name="laptop" style={{ marginRight: "30px" }} /> CoCalc - On
-          Premises Offerings
-        </h1>
-      </div>
+      <Title level={1} style={{ textAlign: "center" }}>
+        <Icon name="laptop" style={{ marginRight: "30px" }} /> CoCalc - On
+        Premises Offerings
+      </Title>
       <div>
         <Alert
           type="info"

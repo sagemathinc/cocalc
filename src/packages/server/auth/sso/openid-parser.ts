@@ -26,8 +26,14 @@ export function parseOpenIdProfile(
       givenName: json.given_name,
       familyName: json.family_name,
     };
-    // no name? we use the email address
-  } else if (json.email) {
+  } else if (json.realname) {
+    // realname usually have form  «FirstName MiddleName… LastName»
+    const [first, ...last] = json.realname.split(" ");
+    profile.name = {
+        givenName: first,
+        familyName: last.join(" "), // Or we should get last[-1]?
+    };
+  } else if (json.email) { // no name? we use the email address
     // don't include dots, because our "spam protection" rejects domain-like patterns
     const emailacc = json.email.split("@")[0].split(".");
     const [first, ...last] = emailacc; // last is always at least []

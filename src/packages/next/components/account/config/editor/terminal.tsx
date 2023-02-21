@@ -1,11 +1,18 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Col, Row, Space } from "antd";
-import Loading from "components/share/loading";
-import register from "../register";
-import useEditTable from "lib/hooks/edit-table";
+
 import {
-  theme_desc,
   example,
+  theme_desc,
 } from "@cocalc/frontend/frame-editors/terminal-editor/theme-data";
+import Loading from "components/share/loading";
+import useEditTable from "lib/hooks/edit-table";
+import register from "../register";
+import { Paragraph, Title } from "components/misc";
 
 interface Data {
   terminal: {
@@ -19,7 +26,7 @@ const desc = {
 for a particular terminal at any time.`,
   color_scheme: `The color scheme used for terminals.`,
   font: `The CoCalc terminal uses your browser's fixed-width font, which you can change in your browser's preferences.`,
-};
+} as const;
 
 register({
   path: "editor/terminal",
@@ -38,10 +45,12 @@ register({
     }
 
     return (
-      <Space direction="vertical" style={{ width: "100%" }}>
-        <Row>
-          <Col md={14} sm={24} style={{paddingRight:'15px'}}>
-            <Save />
+      <Row gutter={[20, 30]}>
+        <Col md={24} sm={24}>
+          <Save />
+        </Col>
+        <Col md={14} sm={24}>
+          <Space direction="vertical" size="large">
             <EditNumber
               path="terminal.font_size"
               title="Terminal Font Size"
@@ -58,23 +67,27 @@ register({
               options={theme_desc}
               style={{ width: "30ex" }}
             />
-            <h3 style={{ marginTop: "15px" }}>Font</h3>
-            {desc.font}
-          </Col>
-          <Col md={10} sm={24}>
-            <h3 style={{ marginTop: "10px" }}>Preview</h3>
-            <div
-              style={{
-                fontSize: `${edited.terminal.font_size}px`,
-                overflow: "hidden",
-              }}
-              dangerouslySetInnerHTML={{
-                __html: example(edited.terminal.color_scheme),
-              }}
-            />
-          </Col>
-        </Row>
-      </Space>
+            <Space direction="vertical">
+              <Title level={2} style={{ marginTop: "15px" }}>
+                Font
+              </Title>
+              <Paragraph>{desc.font}</Paragraph>
+            </Space>
+          </Space>
+        </Col>
+        <Col md={10} sm={24}>
+          <h3 style={{ marginTop: "10px" }}>Preview</h3>
+          <div
+            style={{
+              fontSize: `${edited.terminal.font_size}px`,
+              overflow: "hidden",
+            }}
+            dangerouslySetInnerHTML={{
+              __html: example(edited.terminal.color_scheme),
+            }}
+          />
+        </Col>
+      </Row>
     );
   },
 });

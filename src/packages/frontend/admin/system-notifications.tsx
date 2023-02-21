@@ -4,23 +4,23 @@
  */
 
 import {
-  ReactDOM,
-  Component,
-  rtypes,
-  rclass,
-  redux,
-  Rendered,
-} from "@cocalc/frontend/app-framework";
-import {
   Button,
   ButtonToolbar,
-  FormGroup,
   FormControl,
+  FormGroup,
   Well,
 } from "@cocalc/frontend/antd-bootstrap";
-import { Map } from "immutable";
+import {
+  Component,
+  rclass,
+  ReactDOM,
+  redux,
+  Rendered,
+  rtypes,
+} from "@cocalc/frontend/app-framework";
+import { Icon, Loading, Title } from "@cocalc/frontend/components";
 import { plural } from "@cocalc/util/misc";
-import { Icon, Loading } from "../components";
+import { Map } from "immutable";
 
 interface Props {
   notifications?: Map<string, any>;
@@ -130,7 +130,7 @@ class SystemNotifications extends Component<Props, State> {
   render(): Rendered {
     return (
       <div>
-        <h4>System Notifications</h4>
+        <Title level={4}>System Notifications</Title>
         {this.render_body()}
       </div>
     );

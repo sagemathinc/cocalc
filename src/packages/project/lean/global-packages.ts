@@ -22,11 +22,10 @@ is unavailable in the project as soon as the project is created."
 See https://github.com/sagemathinc/cocalc/issues/4393.
 */
 
-import { callback2 } from "@cocalc/util/async-utils";
-const { execute_code } = require("@cocalc/backend/misc_node");
+import { executeCode } from "@cocalc/backend/execute-code";
 
 export async function init_global_packages(): Promise<void> {
   const command = `[ ! -d "${process.env.HOME}/.lean" ] && [ -d /ext/lean/lean/mathlib ] && leanpkg install /ext/lean/lean/mathlib`;
   // err_on_exit = false because nonzero exit code whenever we don't run the install, which is fine.
-  await callback2(execute_code, { command, bash: true, err_on_exit: false });
+  await executeCode({ command, bash: true, err_on_exit: false });
 }

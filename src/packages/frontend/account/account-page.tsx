@@ -10,24 +10,23 @@ for different account related information
 and configuration.
 */
 
+import { SignOut } from "@cocalc/frontend/account/sign-out";
+import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
+import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon, Loading } from "@cocalc/frontend/components";
+import { LandingPage } from "@cocalc/frontend/landing-page/landing-page";
 import { local_storage_length } from "@cocalc/frontend/misc/local-storage";
-import { React, redux, useTypedRedux } from "../app-framework";
-import { Col, Row, Tab, Tabs } from "../antd-bootstrap";
-import { LandingPage } from "../landing-page/landing-page";
-import { AccountPreferences } from "./account-preferences";
-import { BillingPage } from "../billing/billing-page";
-import { UpgradesPage } from "./upgrades/upgrades-page";
-import { LicensesPage } from "./licenses/licenses-page";
-
-import { SupportTickets } from "../support";
-import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
-import { Icon, Loading } from "../components";
-import { SignOut } from "../account/sign-out";
+import { SupportTickets } from "@cocalc/frontend/support";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
+import { BillingPage } from "../billing/billing-page";
+import { AccountPreferences } from "./account-preferences";
+import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
+import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
+import { UpgradesPage } from "./upgrades/upgrades-page";
 
 export const AccountPage: React.FC = () => {
   const active_page = useTypedRedux("account", "active_page");
@@ -108,124 +107,98 @@ export const AccountPage: React.FC = () => {
     );
   }
 
-  function render_account_tab(): JSX.Element {
-    return (
-      <Tab
-        key="account"
-        eventKey="account"
-        title={
-          <span>
-            <Icon name="wrench" /> Preferences
-          </span>
-        }
-      >
-        {(active_page == null || active_page === "account") && (
-          <AccountPreferences />
-        )}
-      </Tab>
-    );
+  function render_account_tab(): AntdTabItem {
+    return {
+      key: "account",
+      label: (
+        <span>
+          <Icon name="wrench" /> Preferences
+        </span>
+      ),
+      children: (active_page == null || active_page === "account") && (
+        <AccountPreferences />
+      ),
+    };
   }
 
-  function render_special_tabs(): JSX.Element[] {
+  function render_special_tabs(): AntdTabItem[] {
     // adds a few conditional tabs
     if (is_anonymous) {
       // None of these make any sense for a temporary anonymous account.
       return [];
     }
-    const v: JSX.Element[] = [];
+    const items: AntdTabItem[] = [];
     if (
       kucalc === KUCALC_COCALC_COM ||
       kucalc === KUCALC_ON_PREMISES ||
       is_commercial
     ) {
-      v.push(
-        <Tab
-          key="licenses"
-          eventKey="licenses"
-          title={
-            <span>
-              <Icon name="key" /> Licenses
-            </span>
-          }
-        >
-          {active_page === "licenses" && <LicensesPage />}
-        </Tab>
-      );
+      items.push({
+        key: "licenses",
+        label: (
+          <span>
+            <Icon name="key" /> Licenses
+          </span>
+        ),
+        children: active_page === "licenses" && <LicensesPage />,
+      });
     }
+
     if (is_commercial) {
-      v.push(
-        <Tab
-          key="billing"
-          eventKey="billing"
-          title={
-            <span>
-              <Icon name="money" /> {"Purchases"}
-            </span>
-          }
-        >
-          {active_page === "billing" && <BillingPage is_simplified={false} />}
-        </Tab>
-      );
+      items.push({
+        key: "billing",
+        label: (
+          <span>
+            <Icon name="money" /> Purchases
+          </span>
+        ),
+        children: active_page === "billing" && (
+          <BillingPage is_simplified={false} />
+        ),
+      });
     }
     if (ssh_gateway || kucalc === KUCALC_COCALC_COM) {
-      v.push(
-        <Tab
-          key="ssh-keys"
-          eventKey="ssh-keys"
-          title={
-            <span>
-              <Icon name="key" /> SSH keys
-            </span>
-          }
-        >
-          {active_page === "ssh-keys" && <SSHKeysPage />}
-        </Tab>
-      );
+      items.push({
+        key: "ssh-keys",
+        label: (
+          <span>
+            <Icon name="key" /> SSH keys
+          </span>
+        ),
+        children: active_page === "ssh-keys" && <SSHKeysPage />,
+      });
     }
     if (is_commercial) {
-      v.push(
-        <Tab
-          key="support"
-          eventKey="support"
-          title={
-            <span>
-              <Icon name="medkit" /> Support
-            </span>
-          }
-        >
-          {active_page === "support" && <SupportTickets />}
-        </Tab>
-      );
+      items.push({
+        key: "support",
+        label: (
+          <span>
+            <Icon name="medkit" /> Support
+          </span>
+        ),
+        children: active_page === "support" && <SupportTickets />,
+      });
     }
-    v.push(
-      <Tab
-        key="public-files"
-        eventKey="public-files"
-        title={
-          <span>
-            <Icon name="bullhorn" /> Public files
-          </span>
-        }
-      >
-        {active_page === "public-files" && <PublicPaths />}
-      </Tab>
-    );
+    items.push({
+      key: "public-files",
+      label: (
+        <span>
+          <Icon name="bullhorn" /> Public files
+        </span>
+      ),
+      children: active_page === "public-files" && <PublicPaths />,
+    });
+    items.push({
+      key: "upgrades",
+      label: (
+        <span>
+          <Icon name="arrow-circle-up" /> Upgrades
+        </span>
+      ),
+      children: active_page === "upgrades" && <UpgradesPage />,
+    });
 
-    v.push(
-      <Tab
-        key="upgrades"
-        eventKey="upgrades"
-        title={
-          <span>
-            <Icon name="arrow-circle-up" /> Upgrades
-          </span>
-        }
-      >
-        {active_page === "upgrades" && <UpgradesPage />}
-      </Tab>
-    );
-
-    return v;
+    return items;
   }
 
   function render_logged_in_view(): JSX.Element {
@@ -243,9 +216,12 @@ export const AccountPage: React.FC = () => {
         </div>
       );
     }
-    const tabs: JSX.Element[] = [render_account_tab()].concat(
-      render_special_tabs()
-    );
+
+    const tabs: AntdTabItem[] = [
+      render_account_tab(),
+      ...render_special_tabs(),
+    ];
+
     return (
       <Row>
         <Col md={12}>
@@ -254,16 +230,18 @@ export const AccountPage: React.FC = () => {
             onSelect={handle_select}
             animation={false}
             tabBarExtraContent={<SignOut everywhere={false} highlight={true} />}
-          >
-            {tabs}
-          </Tabs>
+            items={tabs}
+          />
         </Col>
       </Row>
     );
   }
 
   return (
-    <div style={{ overflow: "auto", paddingLeft: "5%", paddingRight: "5%" }}>
+    <div
+      className="smc-vfill"
+      style={{ overflow: "auto", paddingLeft: "5%", paddingRight: "5%" }}
+    >
       {is_logged_in && !get_api_key
         ? render_logged_in_view()
         : render_landing_page()}

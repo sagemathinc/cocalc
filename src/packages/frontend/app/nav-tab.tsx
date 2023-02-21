@@ -3,119 +3,147 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, useActions } from "../app-framework";
-import { NavItem } from "react-bootstrap";
-import { user_tracking } from "../user-tracking";
-import { Icon, IconName } from "../components";
+import { Tooltip } from "antd";
+
+import { CSS, React, useActions } from "@cocalc/frontend/app-framework";
+import { Icon, IconName } from "@cocalc/frontend/components";
+import { user_tracking } from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
+import { TOP_BAR_ELEMENT_CLASS } from "./top-nav-consts";
 
 const ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE;
 
 interface Props {
-  name?: string;
-  label?: string | JSX.Element;
-  label_class?: string;
-  icon?: IconName | JSX.Element;
-  close?: boolean;
-  on_click?: () => void;
+  //close?: boolean;
   active_top_tab?: string;
-  style?: React.CSSProperties;
-  inner_style?: React.CSSProperties;
-  add_inner_style?: React.CSSProperties;
+  add_inner_style?: CSS;
+  children?: React.ReactNode;
   hide_label?: boolean;
+  icon?: IconName | JSX.Element;
   is_project?: boolean;
+  label_class?: string;
+  label?: string | JSX.Element;
+  name?: string;
+  on_click?: () => void;
+  style?: CSS;
+  tooltip?: string;
 }
 
-export const NavTab: React.FC<Props> = React.memo((props) => {
+export const NavTab: React.FC<Props> = React.memo((props: Props) => {
+  const {
+    //close,
+    active_top_tab,
+    add_inner_style = {},
+    children,
+    hide_label,
+    icon,
+    is_project,
+    label_class,
+    label,
+    name,
+    on_click,
+    style = {},
+    tooltip,
+  } = props;
   const page_actions = useActions("page");
 
   function render_label() {
-    if (!props.hide_label && props.label != null) {
+    if (!hide_label && label != null) {
       return (
         <span
-          style={{ marginLeft: "5px", marginTop: "-3px" }}
-          className={props.label_class}
-          cocalc-test={props.name}
+          style={{ marginLeft: "5px" }}
+          className={label_class}
+          cocalc-test={name}
         >
-          {props.label}
+          {label}
         </span>
       );
     }
   }
 
   function render_icon() {
-    if (props.icon != null) {
-      if (typeof props.icon === "string") {
-        return (
-          <Icon
-            name={props.icon}
-            style={{ paddingRight: 2, fontSize: "20px" }}
-          />
-        );
+    if (icon != null) {
+      if (typeof icon === "string") {
+        return <Icon name={icon} style={{ fontSize: "20px" }} />;
       } else {
-        return props.icon;
+        return icon;
       }
     }
   }
 
-  function onClick(_) {
-    props.on_click?.();
+  function onClick() {
+    on_click?.();
 
-    if (props.is_project) {
+    if (is_project) {
       user_tracking("top_nav", {
         name: "project",
-        project_id: props.name,
+        project_id: name,
       });
     } else {
       user_tracking("top_nav", {
-        name: props.name ?? props.label,
+        name: name ?? label,
       });
     }
 
-    if (props.name != null) {
-      page_actions.set_active_tab(props.name);
+    if (name != null) {
+      page_actions.set_active_tab(name);
     }
   }
 
-  let inner_style: React.CSSProperties, outer_style: React.CSSProperties;
-  const is_active = props.active_top_tab === props.name;
+  const is_active = active_top_tab === name;
 
-  if (props.style != null) {
-    outer_style = props.style;
-  } else {
-    outer_style = {};
-  }
+  const outer_style: CSS = {
+    fontSize: "14px",
+    cursor: "pointer",
+    float: "left",
+    flex: "0 0 auto",
+    display: "flex",
+    border: "none",
+    ...style,
+    ...(is_active && { backgroundColor: ACTIVE_BG_COLOR }),
+  };
 
-  outer_style.float = "left";
+  const inner_style: CSS = {
+    padding: "12px",
+    display: "flex",
+    flexDirection: "row",
+    verticalAlign: "middle",
+    alignItems: "center",
+    whiteSpace: "nowrap",
+    ...add_inner_style,
+  };
 
-  if (outer_style.fontSize == null) {
-    outer_style.fontSize = "14px";
-  }
-  if (outer_style.cursor == null) {
-    outer_style.cursor = "pointer";
-  }
-  outer_style.border = "none";
-
-  if (is_active) {
-    outer_style.backgroundColor = ACTIVE_BG_COLOR;
-  }
-
-  if (props.inner_style) {
-    ({ inner_style } = props);
-  } else {
-    inner_style = { padding: "10px" };
-  }
-  if (props.add_inner_style) {
-    inner_style = { ...inner_style, ...props.add_inner_style };
-  }
-
-  return (
-    <NavItem active={is_active} onClick={onClick} style={outer_style}>
+  function renderInner(): JSX.Element {
+    const inner = (
       <div style={inner_style}>
         {render_icon()}
         {render_label()}
-        {props.children}
+        {children}
       </div>
-    </NavItem>
+    );
+    if (tooltip != null) {
+      return (
+        <Tooltip
+          title={tooltip}
+          mouseEnterDelay={1}
+          mouseLeaveDelay={0}
+          placement="bottom"
+        >
+          {inner}
+        </Tooltip>
+      );
+    } else {
+      return inner;
+    }
+  }
+
+  return (
+    <div
+      onClick={onClick}
+      style={outer_style}
+      className={TOP_BAR_ELEMENT_CLASS}
+    >
+      {renderInner()}
+    </div>
   );
 });

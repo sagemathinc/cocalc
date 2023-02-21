@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useFrameContext } from "../hooks";
 import { Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "../tools/defaults";
@@ -18,16 +18,56 @@ interface Props {
   canvasScale: number;
   readOnly?: boolean;
   cursors?: { [account_id: string]: any[] };
+  markdownProps?: object;
+  resizable?: boolean;
+  style?: CSSProperties;
 }
 
 export default function Text(props: Props) {
+  const [mode, setMode] = useState<string>("");
+  return (
+    <TextEditor
+      resizable
+      {...props}
+      markdownProps={{
+        onModeChange: setMode,
+        editBarStyle: {
+          visibility:
+            !props.focused || mode == "markdown" ? "hidden" : undefined,
+          top: `${-55 - 5}px`,
+          left: "-24px",
+          position: "absolute",
+          boxShadow: "1px 3px 5px #ccc",
+          margin: "5px",
+          minWidth: "500px",
+          background: "white",
+          fontFamily: "sans-serif",
+          paddingRight: 0, // undoing a temporary hack
+        },
+        modeSwitchStyle: {
+          top: "-82px",
+          left: "-18px",
+        },
+        placeholder: props.element.data?.placeholder ?? PLACEHOLDER,
+        noVfill: true,
+        minimal: true,
+        compact: true,
+        hideHelp: true,
+      }}
+    />
+  );
+}
+
+// This is less specialized to the whiteboard.  E.g., it is
+// more reusable, for speakern notes.
+export function TextEditor(props: Props) {
   if (
     (props.readOnly || !props.focused || props.element.locked) &&
     props.cursors == null
   ) {
     // NOTE: not using static whenever possible (e.g., when not focused) results
     // in massive performance problems when there are many notes.
-    return <TextStatic element={props.element} />;
+    return <TextStatic element={props.element} style={props.style} />;
   }
   return <EditText {...props} />;
 }
@@ -38,58 +78,61 @@ function EditText({
   cursors,
   focused,
   readOnly,
+  markdownProps,
+  resizable,
 }: {
   element: Element;
   canvasScale: number;
   cursors?;
   focused?: boolean;
   readOnly?: boolean;
+  markdownProps?: object;
+  resizable?: boolean;
 }) {
   const { actions } = useFrameContext();
-  const [mode, setMode] = useState<string>("");
   const [editFocus, setEditFocus] = useEditFocus(false);
+  const getValueRef = useRef<any>(null);
+  const saveValueRef = useRef<any>(() => {});
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
 
   const mouseClickDrag = useMouseClickDrag({ editFocus, setEditFocus });
 
-  const saveEditorValue = useCallback(
-    (str?) => {
+  useEffect(() => {
+    saveValueRef.current = (str?) => {
+      const id = element.id;
       if (str == null) {
         if (!getValueRef.current) return;
         str = getValueRef.current();
       }
-      if (str == (element.str ?? "")) {
-        // No change so do NOT save -- see comment about similar code in code/input.tsx.
-        return;
-      }
       actions.setElement({
-        obj: { id: element.id, str },
+        obj: { id, str },
       });
-    },
-    [element.id]
-  );
+    };
+    actions._syncstring.on("before-change", saveValueRef.current);
+    return () => {
+      actions._syncstring.removeListener("before-change", saveValueRef.current);
+      saveValueRef.current();
+    };
+  }, [element.id]);
+
+  useEffect(() => {
+    const f = () => saveValueRef.current();
+    actions._syncstring.on("before-change", f);
+    return () => {
+      actions._syncstring.removeListener("before-change", f);
+    };
+  }, []);
 
   // On component unmount, save any unsaved changes.
   useEffect(() => {
     return () => {
       // has to happen in different exec loop, since it updates store,
       // which updates component right as unmounted, which is a warning in react.
-      setTimeout(saveEditorValue, 0);
+      setTimeout(saveValueRef.current, 0);
     };
   }, []);
-
-  const getValueRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (actions._syncstring == null) return;
-    actions._syncstring.on("before-change", saveEditorValue);
-    return () => {
-      actions._syncstring.removeListener("before-change", saveEditorValue);
-      saveEditorValue();
-    };
-  }, [element.id]);
 
   // Automatic resizing:
   const divRef = useRef<HTMLDivElement>(null);
@@ -99,7 +142,7 @@ function EditText({
   });
   const resizeRef = useRef<Function | null>(null);
   useEffect(() => {
-    if (readOnly || !editFocus) {
+    if (!resizable || readOnly || !editFocus) {
       resizeRef.current = null;
       return;
     }
@@ -135,6 +178,60 @@ function EditText({
     resizeRef.current?.();
   }, [resize]);
 
+  /* Important: do NOT set cacheId for MultiMarkdownInput; for some reason restoring selection in markdown (=codemirror) mode
+            breaks the whiteboard layout badly; it's also probably not a very intuitive feature in a whiteboard,
+            whereas it makes a lot of sense, e.g., in a Jupyter notebook.
+            Reproduce the weird behavior in a whiteboard with cacheId.
+            1. Open new whiteboard and create a note.
+            2. Edit it in Markdown mode
+            3. Close whiteboard, then open it again.
+            4. Gone!
+            The problem is that opening it immediately restores selection, and that breaks something about
+            CSS/layout/etc.  Not sure why, but I'm ok with not having this feature for now.
+            */
+  const body = (
+    <MultiMarkdownInput
+      getValueRef={getValueRef}
+      fixedMode={element.rotate || !focused ? "editor" : undefined}
+      refresh={canvasScale}
+      isFocused={editFocus && focused}
+      onFocus={() => {
+        setEditFocus(true);
+        // NOTE: we do not do "setEditFocus(false)" with onBlur, because
+        // there are many ways to "blur" the slate editor technically, but
+        // still want to consider it focused, e.g., editing math and code
+        // cells, and clicking a checkbox.
+      }}
+      value={element.str ? element.str : element.data?.initStr ?? ""}
+      fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
+      onChange={() => {
+        /* MultiMarkdownInput's onChange is debounced by default */
+        saveValueRef.current();
+      }}
+      cmOptions={{
+        lineNumbers: false, // implementation of line numbers in codemirror is incompatible with CSS scaling, so ensure disabled, even if on in account prefs
+      }}
+      onCursors={(cursors) => {
+        actions.setCursors(element.id, cursors);
+      }}
+      cursors={cursors}
+      onSave={() => {
+        actions.save(true);
+      }}
+      onUndo={() => {
+        actions.undo();
+      }}
+      onRedo={() => {
+        actions.redo();
+      }}
+      {...markdownProps}
+    />
+  );
+
+  if (!resizable) {
+    return body;
+  }
+
   return (
     <div
       {...(mouseClickDrag ?? {})}
@@ -145,75 +242,7 @@ function EditText({
       }}
       className={editFocus ? "nodrag" : undefined}
     >
-      <div ref={divRef}>
-        {/* Important: do NOT set cacheId; for some reason restoring selection in markdown (=codemirror) mode
-            breaks the whiteboard layout badly; it's also probably not a very intuitive feature in a whiteboard,
-            whereas it makes a lot of sense, e.g., in a Jupyter notebook.
-            Reproduce the weird behavior in a whiteod with cacheId.
-            1. Open new whiteboard and create a note.
-            2. Edit it in Markdown mode
-            3. Close whiteboard, then open it again.
-            4. Gone!
-            The problem is that opening it immediately restores selection, and that breaks something about
-            CSS/layout/etc.  Not sure why, but I'm ok with not having this feature.
-            */}
-        <MultiMarkdownInput
-          getValueRef={getValueRef}
-          fixedMode={element.rotate || !focused ? "editor" : undefined}
-          refresh={canvasScale}
-          noVfill
-          minimal
-          hideHelp
-          placeholder={PLACEHOLDER}
-          isFocused={editFocus && focused}
-          onFocus={() => {
-            setEditFocus(true);
-            // NOTE: we do not do "setEditFocus(false)" with onBlur, because
-            // there are many ways to "blur" the slate editor technically, but
-            // still want to consider it focused, e.g., editing math and code
-            // cells, and clicking a checkbox.
-          }}
-          value={element.str}
-          fontSize={element.data?.fontSize ?? DEFAULT_FONT_SIZE}
-          onChange={
-            saveEditorValue /* MultiMarkdownInput's onChange is debounced by default */
-          }
-          cmOptions={{
-            lineNumbers: false, // implementation of line numbers in codemirror is incompatible with CSS scaling, so ensure disabled, even if on in account prefs
-          }}
-          onModeChange={setMode}
-          editBarStyle={{
-            visibility: !focused || mode == "markdown" ? "hidden" : undefined,
-            top: `${-55 - 5}px`,
-            left: "-24px",
-            position: "absolute",
-            boxShadow: "1px 3px 5px #ccc",
-            margin: "5px",
-            minWidth: "500px",
-            background: "white",
-            fontFamily: "sans-serif",
-            paddingRight: 0, // undoing a temporary hack
-          }}
-          modeSwitchStyle={{
-            top: "-82px",
-            left: "-18px",
-          }}
-          onCursors={(cursors) => {
-            actions.setCursors(element.id, cursors);
-          }}
-          cursors={cursors}
-          onSave={() => {
-            actions.save(true);
-          }}
-          onUndo={() => {
-            actions.undo();
-          }}
-          onRedo={() => {
-            actions.redo();
-          }}
-          compact
-        />
-      </div>
+      <div ref={divRef}>{body}</div>
     </div>
   );
 }

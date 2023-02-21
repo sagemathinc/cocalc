@@ -9,6 +9,7 @@ import {
   redux,
   rtypes,
   TypedMap,
+  project_redux_name,
 } from "@cocalc/frontend/app-framework";
 import { ShallowTypedMap } from "@cocalc/frontend/app-framework/ShallowTypedMap";
 import { BillingPage } from "@cocalc/frontend/billing/billing-page";
@@ -52,6 +53,7 @@ import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import { ListingItem } from "./types";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 const STUDENT_COURSE_PRICE = require("@cocalc/util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
 
@@ -130,9 +132,20 @@ interface State {
   show_pay: boolean;
   shift_is_down: boolean;
 }
+
+export function Explorer({ project_id }) {
+  return (
+    <Explorer0
+      name={project_redux_name(project_id)}
+      project_id={project_id}
+      actions={redux.getProjectActions(project_id)}
+    />
+  );
+}
+
 // TODO: change/rewrite Explorer to not have any rtypes.objects and
 // add a shouldComponentUpdate!!
-export const Explorer = rclass(
+const Explorer0 = rclass(
   class Explorer extends React.Component<ReactProps & ReduxProps, State> {
     static reduxProps = ({ name }) => {
       return {
@@ -524,6 +537,13 @@ export const Explorer = rclass(
             }}
           >
             <FileListing
+              isRunning={
+                this.props.project_map?.getIn([
+                  this.props.project_id,
+                  "state",
+                  "state",
+                ]) == "running"
+              }
               name={this.props.name}
               active_file_sort={this.props.active_file_sort}
               listing={listing}
@@ -574,31 +594,33 @@ export const Explorer = rclass(
             alignItems: "stretch",
           }}
         >
-          <div
-            style={{ flex: "1 0 20%", marginRight: "10px", minWidth: "20em" }}
-          >
-            <SearchBar
-              project_id={this.props.project_id}
-              key={this.props.current_path}
-              file_search={this.props.file_search}
-              actions={this.props.actions}
-              current_path={this.props.current_path}
-              selected_file={
-                visible_listing != undefined
-                  ? visible_listing[this.props.selected_file_index || 0]
-                  : undefined
-              }
-              selected_file_index={this.props.selected_file_index}
-              file_creation_error={this.props.file_creation_error}
-              num_files_displayed={
-                visible_listing != undefined
-                  ? visible_listing.length
-                  : undefined
-              }
-              create_file={this.create_file}
-              create_folder={this.create_folder}
-            />
-          </div>
+          {!IS_MOBILE && (
+            <div
+              style={{ flex: "1 0 20%", marginRight: "10px", minWidth: "20em" }}
+            >
+              <SearchBar
+                project_id={this.props.project_id}
+                key={this.props.current_path}
+                file_search={this.props.file_search}
+                actions={this.props.actions}
+                current_path={this.props.current_path}
+                selected_file={
+                  visible_listing != undefined
+                    ? visible_listing[this.props.selected_file_index || 0]
+                    : undefined
+                }
+                selected_file_index={this.props.selected_file_index}
+                file_creation_error={this.props.file_creation_error}
+                num_files_displayed={
+                  visible_listing != undefined
+                    ? visible_listing.length
+                    : undefined
+                }
+                create_file={this.create_file}
+                create_folder={this.create_folder}
+              />
+            </div>
+          )}
           <div
             style={{
               flex: "0 1 auto",

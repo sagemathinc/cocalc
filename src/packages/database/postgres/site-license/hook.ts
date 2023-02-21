@@ -3,6 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Map } from "immutable";
+import { isEqual, sortBy } from "lodash";
+
+import getLogger from "@cocalc/backend/logger";
 import { callback2 } from "@cocalc/util/async-utils";
 import { is_valid_uuid_string, len } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
@@ -11,22 +15,21 @@ import {
   isSiteLicenseQuotaSetting,
   LicenseStatus,
   licenseToGroupKey,
-  quota_with_reasons as compute_total_quota_with_reasons,
   QuotaSetting,
+  quota_with_reasons as compute_total_quota_with_reasons,
+  Reasons,
   SiteLicenseQuotaSetting,
   SiteLicenses,
   siteLicenseSelectionKeys,
-  Reasons,
+  SiteSettingsQuotas,
 } from "@cocalc/util/upgrades/quota";
-import { Map } from "immutable";
-import { isEqual, sortBy } from "lodash";
 import { query } from "../query";
 import { PostgreSQL } from "../types";
 import { number_of_running_projects_using_license } from "./analytics";
+import { getQuotaSiteSettings } from "./quota-site-settings";
 
 type QuotaMap = TypedMap<SiteLicenseQuota>;
 
-import getLogger from "@cocalc/backend/logger";
 const LOGGER_NAME = "site-license-hook";
 
 const ORDERING_GROUP_KEYS = Array.from(siteLicenseSelectionKeys());
@@ -88,6 +91,7 @@ class SiteLicenseHook {
   private dbg: ReturnType<typeof getLogger>;
   private projectSiteLicenses: SiteLicenses = {};
   private nextSiteLicense: SiteLicenses = {};
+  private site_settings: SiteSettingsQuotas | undefined;
   private project: { site_license: any; settings: any; users: any };
 
   constructor(db: PostgreSQL, project_id: string) {
@@ -128,6 +132,8 @@ class SiteLicenseHook {
   async process() {
     this.dbg.verbose("checking for site licenses");
     this.project = await this.getProject();
+    this.site_settings = await getQuotaSiteSettings();
+    this.dbg.verbose("site_settings_quotas=", this.site_settings);
 
     if (
       this.project.site_license == null ||
@@ -243,6 +249,15 @@ class SiteLicenseHook {
     return orderedIds;
   }
 
+  private computeQuotas(licenses) {
+    return compute_total_quota_with_reasons(
+      this.project.settings,
+      this.project.users,
+      licenses,
+      this.site_settings
+    );
+  }
+
   /**
    * Calculates the next site license situation, replacing whatever the project is currently licensed as.
    * A particular site license will only be used if it actually causes the upgrades to increase.
@@ -270,20 +285,12 @@ class SiteLicenseHook {
         const upgrades: QuotaSetting = this.extractUpgrades(license);
 
         this.dbg.verbose(`computing run quotas by adding ${license_id}...`);
-        const { quota: run_quota } = compute_total_quota_with_reasons(
-          this.project.settings,
-          this.project.users,
-          nextLicense
-        );
+        const { quota: run_quota } = this.computeQuotas(nextLicense);
         const { quota: run_quota_with_license, reasons: newReasons } =
-          compute_total_quota_with_reasons(
-            this.project.settings,
-            this.project.users,
-            {
-              ...nextLicense,
-              ...{ [license_id]: upgrades },
-            }
-          );
+          this.computeQuotas({
+            ...nextLicense,
+            ...{ [license_id]: upgrades },
+          });
 
         Object.assign(reasons, newReasons);
 

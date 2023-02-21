@@ -1,40 +1,47 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
+
+import { Icon } from "@cocalc/frontend/components/icon";
 import Content from "components/landing/content";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+import Footer from "components/landing/footer";
 import Head from "components/landing/head";
+import Header from "components/landing/header";
 import Info from "components/landing/info";
 import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 import screenshot from "public/features/api-screenshot.png";
 
 const title = "API";
 
 export default function API({ customize }) {
+  const { siteName } = customize;
   return (
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
         <Header page="features" subPage="api" />
         <Layout.Content>
-          <div style={{ backgroundColor: "#c7d9f5" }}>
-            <Content
-              startup={"CoCalc"}
-              title={title}
-              subtitle={
-                <>
-                  Programmatically control CoCalc from your own server. Embed
-                  CoCalc within other products with a customized external look
-                  and feel.
-                </>
-              }
-              image={screenshot}
-              alt={"Using the API"}
-            />
-          </div>
-
+          <Content
+            landing
+            startup={siteName}
+            title={title}
+            logo={<Icon name="api" style={{ fontSize: "60px" }} />}
+            subtitle={
+              <>
+                Programmatically control CoCalc from your own server. Embed
+                CoCalc within other products with a customized external look and
+                feel.
+              </>
+            }
+            image={screenshot}
+            alt={"Using the API"}
+          />
           <Info.Heading
             description={
               <>

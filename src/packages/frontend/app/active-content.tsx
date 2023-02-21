@@ -3,24 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ProjectPage } from "@cocalc/frontend/project/page/page";
-import {
-  React,
-  useTypedRedux,
-  useActions,
-  CSS,
-} from "@cocalc/frontend/app-framework";
-import { ProjectsPage } from "@cocalc/frontend/projects/projects-page";
 import { AccountPage } from "@cocalc/frontend/account/account-page";
-import { KioskModeBanner } from "./kiosk-mode-banner";
-import { FileUsePage } from "@cocalc/frontend/file-use/page";
-import { NotificationPage } from "@cocalc/frontend/notifications";
 import { AdminPage } from "@cocalc/frontend/admin";
-import { Connecting } from "@cocalc/frontend/landing-page/connecting";
+import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import {
+  CSS,
+  React,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { SiteName } from "@cocalc/frontend/customize";
+import { FileUsePage } from "@cocalc/frontend/file-use/page";
+import { Connecting } from "@cocalc/frontend/landing-page/connecting";
+import { NotificationPage } from "@cocalc/frontend/notifications";
+import { ProjectPage } from "@cocalc/frontend/project/page/page";
+import { ProjectsPage } from "@cocalc/frontend/projects/projects-page";
+import { KioskModeBanner } from "./kiosk-mode-banner";
 
 const STYLE_SIGNIN_WARNING: CSS = {
   textAlign: "center",

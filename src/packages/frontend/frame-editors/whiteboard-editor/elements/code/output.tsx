@@ -1,12 +1,18 @@
-import { useEffect, useRef, useState } from "react";
-import { CellOutput } from "@cocalc/frontend/jupyter/cell-output";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { fromJS } from "immutable";
-import { useFrameContext } from "../../hooks";
-import { path_split } from "@cocalc/util/misc";
-import { getJupyterActions } from "./actions";
+import { useEffect, useRef, useState } from "react";
+
 import { useIsMountedRef, useRedux } from "@cocalc/frontend/app-framework";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { CellOutput } from "@cocalc/frontend/jupyter/cell-output";
+import { path_split } from "@cocalc/util/misc";
+import { useFrameContext } from "../../hooks";
 import useWheel from "../scroll-wheel";
+import { getJupyterActions } from "./actions";
 import { moreOutput } from "./static";
 
 // Support for all the output Jupyter MIME types must be explicitly loaded.

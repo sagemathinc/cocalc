@@ -10,18 +10,18 @@ element, if enabled (e.g., for links in sticky notes in the
 whiteboard).
 */
 
-import { CSSProperties, ReactNode } from "react";
-import { A } from "@cocalc/frontend/components";
-import { isCoCalcURL, parseCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
-import { redux } from "@cocalc/frontend/app-framework";
-import { join } from "path";
-import { path_split } from "@cocalc/util/misc";
 import { Popover } from "antd";
-import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { filename_extension } from "@cocalc/util/misc";
+import { join } from "path";
+import { CSSProperties, ReactNode } from "react";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { A, Icon, IconName } from "@cocalc/frontend/components";
 import { file_associations } from "@cocalc/frontend/file-associations";
-import { Icon, IconName } from "@cocalc/frontend/components";
+import { isCoCalcURL, parseCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { filename_extension, path_split } from "@cocalc/util/misc";
+import { TITLE as SERVERS_TITLE } from "../project/servers";
 
 interface Options {
   project_id: string;
@@ -196,6 +196,23 @@ function CoCalcURL({ href, title, children, project_id }) {
       message = (
         <>
           Open project settings in{" "}
+          {project_id == target_project_id ? (
+            "this project"
+          ) : (
+            <ProjectTitle project_id={target_project_id} />
+          )}
+          .
+        </>
+      );
+    } else if (target.startsWith("servers")) {
+      if (replaceChildren) {
+        children = <>{SERVERS_TITLE}</>;
+      }
+      icon = "server";
+      heading = SERVERS_TITLE;
+      message = (
+        <>
+          Open server management in{" "}
           {project_id == target_project_id ? (
             "this project"
           ) : (

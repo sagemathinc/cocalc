@@ -64,7 +64,7 @@ STYLES = {
     top=2cm,
     bottom=2cm,
     includeheadfoot]{geometry}
-\usepackage[automark,headsepline,ilines,komastyle]{scrpage2}
+\usepackage[automark,headsepline,ilines,komastyle]{scrlayer-scrpage}
 \pagestyle{scrheadings}
 
 \usepackage{fixltx2e}

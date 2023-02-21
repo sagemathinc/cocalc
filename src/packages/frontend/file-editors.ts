@@ -134,7 +134,8 @@ export function register_file_editor(opts: FileEditorInfo): void {
 function get_ed(
   project_id: string | undefined,
   path: string,
-  is_public?: boolean
+  is_public?: boolean,
+  ext?: string
 ): FileEditorSpec {
   const is_pub = `${!!is_public}`;
   const noext = `noext-${path_split(path).tail}`.toLowerCase();
@@ -143,7 +144,10 @@ function get_ed(
   if (e != null) {
     return e;
   }
-  let ext = filename_extension_notilde(path).toLowerCase();
+  ext =
+    ext ??
+    altExt[key(project_id, path)] ??
+    filename_extension_notilde(path).toLowerCase();
 
   // TODO: temporary hack because we have two kinds of ipynb editors.  This will go away.
   if (
@@ -179,9 +183,10 @@ export async function initializeAsync(
   redux,
   project_id: string | undefined,
   is_public: boolean,
-  content?: string
+  content?: string,
+  ext?: string
 ): Promise<string | undefined> {
-  const editor = get_ed(project_id, path, is_public);
+  const editor = get_ed(project_id, path, is_public, ext);
   if (editor.init != null) {
     return editor.init(path, redux, project_id, content);
   }
@@ -204,37 +209,21 @@ export function initialize(
   return editor.init(path, redux, project_id, content);
 }
 
-// Returns an editor instance for the path
-export function generate(
-  path: string,
-  redux,
-  project_id: string | undefined,
-  is_public: boolean
-) {
-  const e = get_ed(project_id, path, is_public);
-  const { generator } = e;
-  if (generator != null) {
-    return generator(path, redux, project_id);
-  }
-  const { component } = e;
-  if (component == null) {
-    return () =>
-      React.createElement(
-        "div",
-        `No editor for ${path} or fallback editor yet`
-      );
-  }
-  return component;
-}
-
+// This altExt gets used in the future if nothing is specified.
+// This makes it so we don't have to explicitly specify ext
+// for other functions like initialize and remove.
+const key = (project_id, path) => `${project_id}-${path}`;
+const altExt: { [project_id_path: string]: string | undefined } = {};
 // Returns an editor instance for the path
 export async function generateAsync(
   path: string,
   redux,
   project_id: string | undefined,
-  is_public: boolean
+  is_public: boolean,
+  ext?: string // use instead of path ext
 ) {
-  const e = get_ed(project_id, path, is_public);
+  altExt[key(project_id, path)] = ext;
+  const e = get_ed(project_id, path, is_public, ext);
   const { generator } = e;
   if (generator != null) {
     return generator(path, redux, project_id);

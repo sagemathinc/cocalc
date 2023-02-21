@@ -65,6 +65,7 @@ export default function Stopwatch(props: StopwatchProps) {
         title={`Start the ${
           props.countdown != null ? "countdown timer" : "stopwatch"
         }`}
+        mouseEnterDelay={1}
       >
         <Button
           icon={<PlayCircleTwoTone />}
@@ -80,6 +81,7 @@ export default function Stopwatch(props: StopwatchProps) {
   function renderResetButton() {
     return (
       <Tooltip
+        mouseEnterDelay={1}
         title={
           <>
             Reset the{" "}
@@ -107,7 +109,7 @@ export default function Stopwatch(props: StopwatchProps) {
     if (setCountdown == null) return;
     return (
       <div>
-        <Tooltip title="Edit countdown timer">
+        <Tooltip title="Edit countdown timer" mouseEnterDelay={1}>
           <Button icon={<EditTwoTone />} onClick={() => setEditingTime(true)}>
             {!props.compact ? "Edit" : undefined}
           </Button>
@@ -141,6 +143,7 @@ export default function Stopwatch(props: StopwatchProps) {
     if (props.compact || props.noDelete) return;
     return (
       <Tooltip
+        mouseEnterDelay={1}
         title={`Delete this ${
           props.countdown != null ? "countdown timer" : "stopwatch"
         }`}
@@ -157,7 +160,7 @@ export default function Stopwatch(props: StopwatchProps) {
 
   function renderPauseButton() {
     return (
-      <Tooltip title="Pause the stopwatch">
+      <Tooltip mouseEnterDelay={1} title="Pause the stopwatch">
         <Button
           icon={<PauseCircleTwoTone />}
           onClick={() => props.clickButton("pause")}
@@ -222,7 +225,7 @@ export default function Stopwatch(props: StopwatchProps) {
                 {frame.path}" is Finished
               </>
             }
-            visible={true}
+            open
             onOk={() => {
               props.clickButton("reset");
               redux
@@ -352,11 +355,11 @@ export default function Stopwatch(props: StopwatchProps) {
       >
         <div style={{ float: "right", fontSize: "24px", color: "#666" }}>
           {props.countdown != null ? (
-            <Tooltip title="Countdown Timer">
+            <Tooltip title="Countdown Timer" mouseEnterDelay={1}>
               <Icon name="hourglass-half" />
             </Tooltip>
           ) : (
-            <Tooltip title="Stopwatch">
+            <Tooltip title="Stopwatch" mouseEnterDelay={1}>
               <Icon name="stopwatch" />
             </Tooltip>
           )}

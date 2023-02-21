@@ -1,20 +1,37 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import {
+  Alert,
+  Checkbox,
+  Col,
+  Divider,
+  List,
+  Radio,
+  Row,
+  Space,
+  Upload,
+} from "antd";
 import { useEffect, useState } from "react";
-import register from "../register";
-import { Alert, Checkbox, Col, Row, Radio, Space, Upload } from "antd";
-import Loading from "components/share/loading";
-import useEditTable from "lib/hooks/edit-table";
-import { ColorPicker } from "@cocalc/frontend/colorpicker";
-import { Icon } from "@cocalc/frontend/components/icon";
-import A from "components/misc/A";
-import { DisplayAvatar } from "components/account/avatar";
-import useProfile from "lib/hooks/profile";
-import useCustomize from "lib/use-customize";
+
+import { InboxOutlined } from "@ant-design/icons";
+import ImgCrop from "@cocalc/antd-img-crop";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import gravatarUrl from "@cocalc/frontend/account/gravatar-url";
-import ImgCrop from "@cocalc/antd-img-crop";
-import { InboxOutlined } from "@ant-design/icons";
-import Code from "components/landing/code";
+import { ColorPicker } from "@cocalc/frontend/colorpicker";
+import { Icon } from "@cocalc/frontend/components/icon";
 import imageToDataURL from "@cocalc/frontend/misc/image-to-data";
+import { DisplayAvatar } from "components/account/avatar";
+import Code from "components/landing/code";
+import { Paragraph, Title } from "components/misc";
+import A from "components/misc/A";
+import Loading from "components/share/loading";
+import useEditTable from "lib/hooks/edit-table";
+import useProfile from "lib/hooks/profile";
+import useCustomize from "lib/use-customize";
+import register from "../register";
 
 interface Data {
   email_address?: string;
@@ -59,21 +76,16 @@ register({
 
     return (
       <Space direction="vertical">
-        <Save />
-        <Row>
+        <Row gutter={[20, 30]}>
+          <Col md={24} sm={24}>
+            <Save />
+          </Col>
           <Col md={6} sm={24}>
-            <div style={{ marginRight: "15px" }}>
-              <h3 style={{ marginTop: "10px" }}>
-                <DisplayAvatar
-                  style={{ marginRight: "10px" }}
-                  size={40}
-                  color={edited.profile.color}
-                  image={edited.profile.image}
-                  letter={profile?.first_name?.[0]}
-                />
-                Preview
-              </h3>
-              <br />
+            <Title level={3}>
+              <Icon name="solution" /> Preview
+            </Title>
+            <List>
+              <Paragraph type="secondary">Name</Paragraph>
               {profile && (
                 <span
                   style={{
@@ -86,41 +98,51 @@ register({
                   {profile?.first_name} {profile?.last_name}
                 </span>
               )}
-              <br />
-              <br />
+              <Divider plain />
+              <Paragraph type="secondary">Small</Paragraph>
+              <DisplayAvatar
+                style={{ marginRight: "10px" }}
+                size={40}
+                color={edited.profile.color}
+                image={edited.profile.image}
+                letter={profile?.first_name?.[0]}
+              />
+              <Divider plain />
+              <Paragraph type="secondary">Large</Paragraph>
               <DisplayAvatar
                 size={120}
                 color={edited.profile.color}
                 image={edited.profile.image}
                 letter={profile?.first_name?.[0]}
               />
-              <br />
-              <br />
-              <div style={{ fontSize: "10px", color: "#666" }}>
+              <Paragraph
+                type="secondary"
+                style={{ fontSize: "10px", marginTop: "20px" }}
+              >
                 (It will take a while for your avatar to update at the top of
                 the page, even after you save it.)
-              </div>
-            </div>
+              </Paragraph>
+            </List>
           </Col>
           <Col md={18} sm={24}>
-            <Space direction="vertical">
-              <h3>
-                <Icon name="colors" /> Color
-              </h3>
-              <div>
+            <Title level={3}>
+              <Icon name="colors" /> Color
+            </Title>
+            <Space direction="vertical" size="middle">
+              <Paragraph>
                 {desc.color}{" "}
                 <A href="/config/account/name">Change your name.</A>
-              </div>
-              <div style={{ width: "100%" }}>
+              </Paragraph>
+              <div style={{ margin: "20px 0" }}>
                 <ColorPicker
                   color={edited.profile.color}
-                  style={{ width: "200px", margin: "auto" }}
+                  style={{ width: "100%" }}
                   onChange={(color) => setEdited(color, "profile.color")}
                 />
               </div>
-              <h3>
+              <Title level={3}>
                 <Icon name="image" /> Image
-              </h3>
+              </Title>
               {desc.image}
               <Checkbox
                 checked={useImage}
@@ -186,12 +208,12 @@ function EditImage({ value, email_address, onChange }) {
           type="info"
           style={{ maxWidth: "500px" }}
           message={
-            <>
+            <Paragraph>
               Gravatar is a service for using a common avatar across websites.
               Go to the{" "}
               <A href="https://gravatar.com">Wordpress Gravatar site</A> and
               sign in (or create an account) using <Code>{email_address}</Code>.
-            </>
+            </Paragraph>
           }
         />
       )}

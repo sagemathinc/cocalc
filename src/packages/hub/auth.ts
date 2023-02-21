@@ -782,14 +782,16 @@ export async function is_password_correct(
     cb: required,
   });
 
+  const { account_id, email_address } = opts;
+
   if (opts.password_hash != null) {
     const r = verifyPassword(opts.password, opts.password_hash);
     opts.cb(undefined, r);
-  } else if (opts.account_id != null || opts.email_address != null) {
+  } else if (account_id != null || email_address != null) {
     try {
       const account = await cb2(opts.database.get_account, {
-        account_id: opts.account_id,
-        email_address: opts.email_address,
+        account_id,
+        email_address,
         columns: ["password_hash"],
       });
 
@@ -822,7 +824,14 @@ export async function is_password_correct(
   }
 }
 
-export async function verify_email_send_token(opts) {
+interface VerifyEmailOpts {
+  database: PostgreSQL;
+  account_id: string;
+  only_verify: boolean;
+  cb: (err?) => void;
+}
+
+export async function verify_email_send_token(opts: VerifyEmailOpts) {
   opts = defaults(opts, {
     database: required,
     account_id: required,
@@ -831,12 +840,12 @@ export async function verify_email_send_token(opts) {
   });
 
   try {
-    const { token, email_address } = await cb2(
-      opts.database.verify_email_create_token,
-      {
-        account_id: opts.account_id,
-      }
-    );
+    const { token, email_address } = await cb2<{
+      token: string;
+      email_address: string;
+    }>(opts.database.verify_email_create_token, {
+      account_id: opts.account_id,
+    });
     const settings = await cb2(opts.database.get_server_settings_cached);
     await cb2(welcome_email, {
       to: email_address,

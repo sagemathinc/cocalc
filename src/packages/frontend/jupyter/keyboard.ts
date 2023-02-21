@@ -10,11 +10,12 @@ Keyboard event handler
 declare const $: any; // jQuery
 
 import json from "json-stable-stringify";
-import { merge, copy_without } from "@cocalc/util/misc";
-import { KeyboardCommand, commands } from "./commands";
+
+import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { copy_without, merge } from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
-import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
+import { commands, KeyboardCommand } from "./commands";
 import { NotebookMode } from "./types";
 
 export function keyCode_to_chr(keyCode: number): string {

@@ -17,8 +17,7 @@ making it so that if it is triggered, it disables itself after running once.
 import Crash from "./crash";
 import CrashMessage from "./crash-message";
 import React from "react";
-// @ts-ignore
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 
 function handleError(event) {
   if (event.defaultPrevented) {
@@ -55,7 +54,7 @@ function handleError(event) {
   }
   const stack = error?.stack ?? "<no stacktrace>"; // note: we actually ignore error == null above.
   console.warn({ errorbox }, "rendering", { msg, lineno });
-  ReactDOM.render(
+  createRoot(errorbox).render(
     React.createElement(CrashMessage, {
       msg,
       lineNo: lineno,
@@ -63,18 +62,21 @@ function handleError(event) {
       url,
       stack,
       showLoadFail,
-    }),
-    errorbox
+    })
   );
 }
 
 export default function init() {
   // console.log("installing window error handler");
   // Add a banner in case react crashes (it will be revealed)
-  ReactDOM.render(
-    React.createElement(Crash),
-    document.getElementById("cocalc-crash-container")
-  );
+  const crashContainer = document.getElementById("cocalc-crash-container");
+  if (crashContainer != null) {
+    createRoot(crashContainer).render(React.createElement(Crash));
+  } else {
+    throw Error(
+      "there must be a div with id cocalc-crash-container in the document!"
+    );
+  }
 
   // Install error handler.
   window.addEventListener("error", handleError);

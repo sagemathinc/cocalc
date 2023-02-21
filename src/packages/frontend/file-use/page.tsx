@@ -4,11 +4,17 @@
  */
 
 import { delay } from "awaiting";
-import { redux, rclass, rtypes, Component, Rendered } from "../app-framework";
+import { Map as iMap } from "immutable";
+
+import {
+  Component,
+  rclass,
+  redux,
+  Rendered,
+  rtypes,
+} from "@cocalc/frontend/app-framework";
 import { Loading } from "../components";
 import FileUseViewer from "./viewer";
-import { Map as iMap } from "immutable";
-import { MentionsMap } from "../notifications/mentions/types";
 
 interface Props {
   // reduxProps
@@ -16,8 +22,6 @@ interface Props {
   get_sorted_file_use_list2?: Function;
   user_map?: iMap<string, any>;
   project_map?: iMap<string, any>;
-  mentions?: MentionsMap;
-  get_unseen_size?: (mentions: MentionsMap) => number;
 }
 
 class FileUsePage extends Component<Props, {}> {
@@ -32,10 +36,6 @@ class FileUsePage extends Component<Props, {}> {
       },
       projects: {
         project_map: rtypes.immutable,
-      },
-      mentions: {
-        mentions: rtypes.immutable.Map,
-        get_unseen_size: rtypes.func,
       },
     };
   }
@@ -58,9 +58,7 @@ class FileUsePage extends Component<Props, {}> {
       redux == null ||
       this.props.user_map == null ||
       this.props.project_map == null ||
-      this.props.mentions == null ||
       this.props.get_sorted_file_use_list2 == null ||
-      this.props.get_unseen_size == null ||
       account_id == null
     ) {
       return <Loading />;
@@ -72,7 +70,6 @@ class FileUsePage extends Component<Props, {}> {
         user_map={this.props.user_map}
         project_map={this.props.project_map}
         account_id={account_id}
-        unseen_mentions_size={this.props.get_unseen_size(this.props.mentions)}
       />
     );
   }

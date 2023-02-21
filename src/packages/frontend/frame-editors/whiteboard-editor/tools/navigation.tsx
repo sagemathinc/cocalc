@@ -22,7 +22,7 @@ import { getPageSpan, fontSizeToZoom, MAX_ELEMENTS } from "../math";
 import { DEFAULT_FONT_SIZE, MIN_ZOOM, MAX_ZOOM } from "./defaults";
 import { PANEL_STYLE } from "./panel";
 import Canvas from "../canvas";
-import { Element, ElementsMap } from "../types";
+import { Element, ElementsMap, MainFrameType } from "../types";
 import Draggable from "react-draggable";
 import {
   SELECTED_BORDER_COLOR,
@@ -121,6 +121,7 @@ interface Props {
   elements: Element[];
   elementsMap?: ElementsMap;
   whiteboardDivRef: MutableRefObject<HTMLDivElement | null>;
+  mainFrameType?: MainFrameType;
 }
 
 export default function Navigation({
@@ -128,6 +129,7 @@ export default function Navigation({
   elements,
   elementsMap,
   whiteboardDivRef,
+  mainFrameType,
 }: Props) {
   const [resize, setResize] = useState<{ x: number; y: number }>({
     x: 0,
@@ -165,9 +167,13 @@ export default function Navigation({
     setZoomSlider(Math.round(100 * fontSizeToZoom(fontSize)));
   }, [fontSize]);
 
+  const navMap = desc.get("navMap", mainFrameType == "slides" ? "hide" : "map");
+
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
-    v.push(<Tool key={tool} tool={tool} zoomSlider={zoomSlider} />);
+    v.push(
+      <Tool key={tool} tool={tool} zoomSlider={zoomSlider} navMap={navMap} />
+    );
   }
   const setFontSize = useCallback(
     throttle((value) => {
@@ -189,7 +195,6 @@ export default function Navigation({
       }}
     />
   );
-  const navMap = desc.get("navMap", "map");
   const showMap = navMap != "hide" && elements != null;
   return (
     <>
@@ -239,10 +244,9 @@ export default function Navigation({
   );
 }
 
-function Tool({ tool, zoomSlider }) {
-  const { actions, id, desc } = useFrameContext();
+function Tool({ tool, zoomSlider, navMap }) {
+  const { actions, id } = useFrameContext();
   const { icon, tip, click, width } = TOOLS[tool];
-  const navMap = desc.get("navMap", "map");
   return (
     <Tooltip placement="top" title={tip}>
       <Button
@@ -332,48 +336,51 @@ export function Overview({
     >
       <Canvas
         isNavigator
+        mainFrameType={actions.mainFrameType}
         previewMode={IS_TOUCH || navMap == "preview"}
         margin={margin * scale}
         elements={elements}
         elementsMap={elementsMap}
         scale={scale}
       />
-      <Draggable
-        disabled={resize == null}
-        position={{ x: 0, y: 0 }}
-        bounds={{
-          right: Math.max(0, width - MAP_WIDTH),
-          bottom: Math.max(0, height - MAP_HEIGHT / 2),
-        }}
-        onDrag={(_, data) => {
-          setResize?.({ x: -data.x, y: -data.y });
-        }}
-        onStop={(_, data) => {
-          setTimeout(() => {
-            setResize?.({ x: 0, y: 0 });
-            actions.set_frame_tree({
-              id,
-              navWidth: (width ?? 100) - data.x,
-              navHeight: (height ?? 100) - data.y,
-            });
-          }, 0);
-        }}
-      >
-        <Icon
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            zIndex: 1011,
-            cursor: "nwse-resize",
-            background: "white",
-            color: "#888",
-            visibility:
-              resize == null || resize.x || resize.y ? "hidden" : undefined,
+      {setResize != null && (
+        <Draggable
+          disabled={resize == null}
+          position={{ x: 0, y: 0 }}
+          bounds={{
+            right: Math.max(0, width - MAP_WIDTH),
+            bottom: Math.max(0, height - MAP_HEIGHT / 2),
           }}
-          name="square"
-        />
-      </Draggable>
+          onDrag={(_, data) => {
+            setResize?.({ x: -data.x, y: -data.y });
+          }}
+          onStop={(_, data) => {
+            setTimeout(() => {
+              setResize?.({ x: 0, y: 0 });
+              actions.set_frame_tree({
+                id,
+                navWidth: (width ?? 100) - data.x,
+                navHeight: (height ?? 100) - data.y,
+              });
+            }, 0);
+          }}
+        >
+          <Icon
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              zIndex: 1011,
+              cursor: "nwse-resize",
+              background: "white",
+              color: "#888",
+              visibility:
+                resize == null || resize.x || resize.y ? "hidden" : undefined,
+            }}
+            name="square"
+          />
+        </Draggable>
+      )}
     </div>
   );
 }

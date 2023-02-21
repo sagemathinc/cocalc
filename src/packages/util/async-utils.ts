@@ -38,6 +38,17 @@ export function callback_opts(f: Function) {
   };
 }
 
+/**
+ * convert the given error to a string, by either serializing the object or returning the string as it is
+ */
+function err2str(err: any): string {
+  if (typeof err === "string") {
+    return err;
+  } else {
+    return JSON.stringify(err);
+  }
+}
+
 /* retry_until_success keeps calling an async function f with
   exponential backoff until f does NOT raise an exception.
   Then retry_until_success returns whatever f returned.
@@ -97,7 +108,9 @@ export async function retry_until_success<T>(
         // yep -- game over, throw an error
         let e;
         if (last_exc) {
-          e = Error(`${err} -- last error was ${last_exc} -- ${opts.desc}`);
+          e = Error(
+            `${err} -- last error was ${err2str(last_exc)} -- ${opts.desc}`
+          );
         } else {
           e = Error(`${err} -- ${opts.desc}`);
         }
@@ -114,6 +127,7 @@ export async function retry_until_success<T>(
 }
 
 import { EventEmitter } from "events";
+import { CB } from "./types/database";
 
 /* Wait for an event emitter to emit any event at all once.
    Returns array of args emitted by that event.
@@ -167,12 +181,16 @@ async function once_with_timeout(
   return val;
 }
 
-// Alternative to callback_opts that behaves like the
-// callback defined in awaiting.
-export async function callback2(f: Function, opts: any = {}): Promise<any> {
-  function g(cb): void {
-    opts.cb = cb;
-    f(opts);
+// Alternative to callback_opts that behaves like the callback defined in awaiting.
+// Pass in the type of the returned value, and it will be inferred.
+export async function callback2<R = any>(
+  f: (opts) => void,
+  opts?: object
+): Promise<R> {
+  const optsCB = (opts ?? {}) as typeof opts & { cb: CB<R> };
+  function g(cb: CB<R>): void {
+    optsCB.cb = cb;
+    f(optsCB);
   }
   return await awaiting.callback(g);
 }

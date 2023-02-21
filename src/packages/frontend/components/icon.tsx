@@ -7,6 +7,7 @@ declare var DEBUG: boolean; // comes from static webpack; not defined in other c
 
 import React from "react";
 import { CSS } from "../app-framework";
+import useOnFrontend from "./use-on-frontend";
 
 import {
   AimOutlined,
@@ -14,6 +15,7 @@ import {
   AlignLeftOutlined,
   AlignRightOutlined,
   ApiOutlined,
+  AppstoreOutlined,
   AreaChartOutlined,
   ArrowDownOutlined,
   ArrowLeftOutlined,
@@ -118,6 +120,7 @@ import {
   OrderedListOutlined,
   PauseCircleOutlined,
   PercentageOutlined,
+  PicCenterOutlined,
   PlayCircleFilled,
   PlayCircleOutlined,
   PlusCircleOutlined,
@@ -154,6 +157,12 @@ import {
   SwapOutlined,
   SyncOutlined,
   TableOutlined,
+  TagOutlined,
+  TagsOutlined,
+  TagFilled,
+  TagsFilled,
+  TagTwoTone,
+  TagsTwoTone,
   ThunderboltOutlined,
   TwitterOutlined,
   UnderlineOutlined,
@@ -312,7 +321,7 @@ const IconSpec = {
   forward: ForwardOutlined,
   frame: { IconFont: "frame" },
   frown: FrownOutlined,
-  FundProjectionScreenOutlined,
+  slides: FundProjectionScreenOutlined,
   gavel: { IconFont: "gavel" },
   gears: ControlOutlined,
   gear: ControlOutlined,
@@ -387,10 +396,12 @@ const IconSpec = {
   "node-js": { IconFont: "node-js" },
   note: { IconFont: "note-text" },
   octave: { IconFont: "octave" },
+  overview: AppstoreOutlined,
   outdent: { IconFont: "outdent" },
   pause: PauseCircleOutlined,
   "paper-plane": SendOutlined,
   paste: { IconFont: "paste" },
+  "pic-centered": PicCenterOutlined,
   pen: { IconFont: "pen" },
   pencil: EditOutlined,
   "pencil-alt": EditOutlined,
@@ -464,6 +475,12 @@ const IconSpec = {
   table: TableOutlined,
   "tachometer-alt": DashboardOutlined,
   tasks: { IconFont: "tasks" },
+  "tag-outlined": TagOutlined,
+  "tags-outlined": TagsOutlined,
+  "tag-filled": TagFilled,
+  "tags-filled": TagsFilled,
+  "tag-two-tone": TagTwoTone,
+  "tags-two-tone": TagsTwoTone,
   terminal: CodeOutlined,
   tex: { IconFont: "tex" },
   text: { IconFont: "text" },
@@ -507,7 +524,7 @@ const IconSpec = {
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us
 import { createFromIconfontCN } from "@ant-design/icons";
-let IconFont: any = undefined;
+export let IconFont: any = undefined;
 try {
   if (typeof window != "undefined") {
     // obviously won't work if window is undefined based on looking at the code...
@@ -596,6 +613,11 @@ const missing: any = {};
 // Converted from https://github.com/andreypopp/react-fa
 
 export const Icon: React.FC<Props> = (props: Props) => {
+  // IMPORTANT: This hook is needed for next.js to support server side rendering.
+  // Otherwise, at least with next 13, it crashes when rendering icons.
+  const onFrontend = useOnFrontend();
+  if (!onFrontend) return null;
+
   if (props.unicode != null) {
     return (
       <span style={{ ...UNICODE_STYLE, ...props.style }}>
@@ -616,7 +638,7 @@ export const Icon: React.FC<Props> = (props: Props) => {
     if (typeof C.IconFont == "string") {
       // @ts-ignore
       if (IconFont == null) {
-        return <div>(IconFonts not available)</div>;
+        return <span>(IconFonts not available)</span>;
       }
       return <IconFont type={"icon-" + C.IconFont} {...props} alt={name} />;
     }

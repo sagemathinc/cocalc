@@ -10,6 +10,17 @@ export interface Emoji extends SlateElement {
   content: string;
 }
 
+export function createEmoji(content: string, markup: string): Emoji {
+  return {
+    type: "emoji",
+    isVoid: true,
+    isInline: true,
+    content,
+    children: [{ text: "" }],
+    markup,
+  } as Emoji;
+}
+
 register({
   slateType: "emoji",
 
@@ -18,14 +29,5 @@ register({
     return <span {...attributes}>{element.content}</span>;
   },
 
-  toSlate: ({ token }) => {
-    return {
-      type: "emoji",
-      isVoid: true,
-      isInline: true,
-      content: token.content,
-      children: [{ text: "" }],
-      markup: token.markup,
-    };
-  },
+  toSlate: ({ token }) => createEmoji(token.content, token.markup),
 });

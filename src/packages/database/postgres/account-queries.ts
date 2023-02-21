@@ -136,7 +136,7 @@ export async function set_email_address_verified(
   const { db, account_id, email_address } = opts;
   assert_valid_account_id(account_id);
   assert_valid_email_address(email_address);
-  return await db.async_query({
+  await db.async_query({
     query: "UPDATE accounts",
     jsonb_set: { email_address_verified: { [email_address]: new Date() } },
     where: { "account_id = $::UUID": account_id },

@@ -14,7 +14,7 @@ import { TaskActions } from "./actions";
 interface Props {
   actions?: TaskActions;
   done: boolean;
-  read_only: boolean;
+  read_only?: boolean;
   task_id: string;
 }
 

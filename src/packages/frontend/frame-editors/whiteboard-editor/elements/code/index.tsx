@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* Jupyter cells
 
 
@@ -7,22 +12,23 @@
   breaking it.   Also, it matches with jupyter notebook.
 */
 
+import { debounce } from "lodash";
 import { useEffect, useRef, useState } from "react";
+import { useAsyncEffect } from "use-async-effect";
+import useResizeObserver from "use-resize-observer";
+
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import { codemirrorMode } from "@cocalc/frontend/file-extensions";
+import { useFrameContext } from "../../hooks";
 import { Element } from "../../types";
+import useEditFocus from "../edit-focus";
+import { getMode } from "./actions";
 import ControlBar from "./control";
 import Input from "./input";
 import InputPrompt from "./input-prompt";
 import InputStatic from "./input-static";
 import Output from "./output";
 import getStyle from "./style";
-import useEditFocus from "../edit-focus";
-import { useAsyncEffect } from "use-async-effect";
-import { getMode } from "./actions";
-import { codemirrorMode } from "@cocalc/frontend/file-extensions";
-import { useFrameContext } from "../../hooks";
-import useResizeObserver from "use-resize-observer";
-import { debounce } from "lodash";
-import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
 const EXTRA_HEIGHT = 30;
 const MIN_HEIGHT = 78;

@@ -5,6 +5,8 @@ register({
 
   title: "Tags",
 
+  icon: "tags-outlined",
+
   allowCreate: true,
   changes: true,
 
@@ -15,6 +17,7 @@ register({
         icon: null,
         color: null,
         description: null,
+        notes: null,
         last_edited: null,
         last_modified_by: null,
         created: null,

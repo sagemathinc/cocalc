@@ -2,7 +2,7 @@ import apiPost from "lib/api/post";
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Alert } from "antd";
-import SquareLogo from "components/logo-square";
+import Logo from "components/logo";
 import { LOGIN_STYLE } from "./shared";
 import Contact from "components/landing/contact";
 
@@ -79,7 +79,7 @@ export default function RedeemVerifyEmail({ token, email_address }: Props) {
   return (
     <div style={{ padding: "15px" }}>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
-        <SquareLogo style={{ width: "100px", height: "100px" }} />
+        <Logo type="icon" style={{ width: "100px", height: "100px" }} />
         <h1>
           {success ? "Successfully " : ""}Verif{success ? "ied" : "y"} Your
           Email Address

@@ -1,4 +1,4 @@
-import { CSSProperties, ReactNode, useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
 import { Divider, Modal } from "antd";
 import type { ColumnsType } from "../fields";
@@ -6,7 +6,17 @@ import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
 import { Data } from "./gallery";
 import Json from "./json";
-import { sortDirections, SortDirection } from "../syncdb/use-sort-fields";
+import { sortDirections } from "../syncdb/use-sort-fields";
+import useFieldWidths from "../syncdb/use-field-widths";
+import useSelection from "./use-selection";
+import SelectableIndex, { SelectAll } from "./selectable-index";
+import { rowBackground } from "@cocalc/util/misc";
+import {
+  ColumnHeading,
+  nextSortState,
+} from "@cocalc/frontend/components/data-grid";
+
+const DEFAULT_WIDTH = 150;
 
 interface Props {
   data: any[];
@@ -14,6 +24,8 @@ interface Props {
   sortFields;
   setSortField;
   recordHeight?: number;
+  primaryKey?: string; // the primary key -- undefined if there is a compound primary key (TODO!?)
+  id: string;
 }
 
 export default function Grid({
@@ -22,37 +34,86 @@ export default function Grid({
   sortFields,
   setSortField,
   recordHeight,
+  primaryKey,
+  id,
 }: Props) {
+  const selection = useSelection({
+    id,
+    size: data.length,
+    getKey: (index) => data[index]?.[primaryKey ?? ""],
+  });
+  const [fieldWidths, setFieldWidths] = useFieldWidths({ id });
   return (
     <TableVirtuoso
       overscan={500}
       style={{ height: "100%", overflow: "auto" }}
-      data={data}
+      totalCount={data.length}
       fixedHeaderContent={() => (
         <Header
           columns={columns}
           sortFields={sortFields}
           setSortField={setSortField}
+          fieldWidths={fieldWidths}
+          setFieldWidths={setFieldWidths}
+          selection={selection}
+          primaryKey={primaryKey}
         />
       )}
       itemContent={(index) => (
         <GridRow
+          index={index}
+          primaryKey={primaryKey}
           data={data[index]}
           columns={columns}
+          fieldWidths={fieldWidths}
           recordHeight={recordHeight}
+          selection={selection}
         />
       )}
     />
   );
 }
 
-function GridRow({ data, columns, recordHeight }) {
-  const v: any[] = [];
+function GridRow({
+  index,
+  data,
+  columns,
+  recordHeight,
+  fieldWidths,
+  primaryKey,
+  selection,
+}) {
+  const background = rowBackground({
+    index,
+    checked: selection.has(data[primaryKey]),
+  });
+  const v: ReactNode[] = primaryKey
+    ? [
+        <td
+          key="index"
+          style={{
+            cursor: "pointer",
+            border: "1px solid #eee",
+            padding: "0 5px",
+            color: "#666",
+            textAlign: "center",
+            background,
+          }}
+        >
+          <SelectableIndex
+            index={index}
+            primaryKey={data[primaryKey]}
+            selection={selection}
+          />
+        </td>,
+      ]
+    : [];
   const [open, setOpen] = useState<boolean>(false);
   for (const column of columns) {
     const text = data?.[column.dataIndex];
     const content = column.render != null ? column.render(text, data) : text;
-    const width = column.width ?? 150;
+    const width =
+      fieldWidths[column.dataIndex] ?? column.width ?? DEFAULT_WIDTH;
     const col = (
       <td
         key={column.key}
@@ -61,6 +122,7 @@ function GridRow({ data, columns, recordHeight }) {
           cursor: "pointer",
           width,
           border: "1px solid #eee",
+          background,
         }}
       >
         <div
@@ -108,25 +170,33 @@ function GridRow({ data, columns, recordHeight }) {
   );
 }
 
-function nextSortState(direction?: SortDirection | null) {
-  if (direction == "descending" || direction == null) {
-    return "ascending";
-  } else {
-    return "descending";
-  }
-}
-
-function Header({ columns, sortFields, setSortField }) {
+function Header({
+  columns,
+  sortFields,
+  setSortField,
+  fieldWidths,
+  setFieldWidths,
+  selection,
+  primaryKey,
+}) {
   const directions = useMemo(() => {
     if (sortFields == null) return {};
     return sortDirections(sortFields);
   }, [sortFields]);
 
   return (
-    <tr>
+    <tr style={{ position: "relative" }}>
+      {primaryKey && (
+        <ColumnHeading width={30} title={<SelectAll selection={selection} />} />
+      )}
       {columns.map((column) => (
-        <Column
+        <ColumnHeading
           {...column}
+          width={fieldWidths[column.dataIndex] ?? column.width ?? DEFAULT_WIDTH}
+          setWidth={(newWidth) => {
+            if (newWidth < 20) return;
+            setFieldWidths({ ...fieldWidths, [column.dataIndex]: newWidth });
+          }}
           direction={directions[column.dataIndex]}
           onSortClick={(_event) => {
             // change sort direction and move to top priority field for sort.
@@ -136,45 +206,5 @@ function Header({ columns, sortFields, setSortField }) {
         />
       ))}
     </tr>
-  );
-}
-
-const DIRECTION_STYLE = {
-  float: "right",
-  marginTop: "2.5px",
-  cursor: "pointer",
-} as CSSProperties;
-
-function Column({
-  width,
-  title,
-  direction,
-  onSortClick,
-}: {
-  width?: number | string;
-  title: ReactNode;
-  direction?: SortDirection;
-  onSortClick?: () => void;
-}) {
-  return (
-    <th
-      style={{
-        cursor: "pointer",
-        width: width ?? 150,
-        color: "#428bca",
-        background: "rgb(250, 250, 250)",
-        padding: "10px 5px",
-        border: "1px solid #eee",
-      }}
-      onClick={onSortClick}
-    >
-      {title}
-      {direction && (
-        <Icon
-          style={DIRECTION_STYLE}
-          name={direction == "ascending" ? "caret-down" : "caret-up"}
-        />
-      )}
-    </th>
   );
 }

@@ -2,14 +2,12 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+import { Input, InputRef, Popover } from "antd";
+import humanizeList from "humanize-list";
+import { isEqual } from "lodash";
 
 import { alert_message } from "@cocalc/frontend/alerts";
-import {
-  Button,
-  FormControl,
-  FormGroup,
-  Well,
-} from "@cocalc/frontend/antd-bootstrap";
+import { Button, FormGroup, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   Component,
   rclass,
@@ -25,7 +23,8 @@ import {
   Icon,
   LabeledRow,
   Markdown,
-  Space /*, Tip*/,
+  Space,
+  Title,
 } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
@@ -41,9 +40,7 @@ import { site_settings_conf } from "@cocalc/util/schema";
 import { version } from "@cocalc/util/smc-version";
 import { COLORS } from "@cocalc/util/theme";
 import { ON_PREM_DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
-import { Input, InputRef } from "antd";
-import humanizeList from "humanize-list";
-import { isEqual } from "lodash";
+import { JsonEditor } from "./json-editor";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -125,7 +122,10 @@ class SiteSettingsComponent extends Component<
         },
       });
     } catch (err) {
-      this.setState({ state: "error", error: err });
+      this.setState({
+        state: "error",
+        error: `${err} – query error, please try again…`,
+      });
       return;
     }
     const data: { [name: string]: string } = {};
@@ -147,6 +147,7 @@ class SiteSettingsComponent extends Component<
   private toggle_view() {
     switch (this.state.state) {
       case "view":
+      case "error":
         this.load();
       case "edit":
         this.cancel();
@@ -247,37 +248,33 @@ class SiteSettingsComponent extends Component<
     );
   }
 
-  private on_json_entry_change(name) {
+  private on_json_entry_change(name: string, new_val?: string) {
     const e = copy(this.state.edited);
     try {
-      const new_val = findDOMNode(this.refs[name])?.value;
       if (new_val == null) return;
       JSON.parse(new_val); // does it throw?
       e[name] = new_val;
       this.setState({ edited: e });
     } catch (err) {
-      console.log("default quota error:", err.message);
+      console.log(`error saving json of ${name}`, err.message);
     }
   }
 
   // this is specific to on-premises kubernetes setups
   // the production site works differently
   // TODO make this a more sophisticated data editor
-  private render_json_entry(name, data) {
+  private render_json_entry(name, data, readonly: boolean) {
     const jval = JSON.parse(data ?? "{}") ?? {};
     const dflt = FIELD_DEFAULTS[name];
     const quotas = Object.assign({}, dflt, jval);
     const value = JSON.stringify(quotas);
     return (
-      <FormGroup>
-        <FormControl
-          ref={name}
-          type="text"
-          value={value}
-          onChange={() => this.on_json_entry_change(name)}
-        />
-        (the entry above must be JSON)
-      </FormGroup>
+      <JsonEditor
+        value={value}
+        readonly={readonly}
+        rows={10}
+        onSave={(value) => this.on_json_entry_change(name, value)}
+      />
     );
   }
 
@@ -439,13 +436,31 @@ class SiteSettingsComponent extends Component<
     multiline?: number
   ) {
     if (this.state.isReadonly == null) return; // typescript
+    const renderReadonly = (readonly) => {
+      if (readonly)
+        return (
+          <>
+            Value controlled via{" "}
+            <code>
+              ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
+            </code>
+            .
+          </>
+        );
+    };
     if (row_type == ("header" as RowType)) {
       return <div />;
     } else {
       switch (name) {
         case "default_quotas":
         case "max_upgrades":
-          return this.render_json_entry(name, value);
+          const ro: boolean = this.state.isReadonly[name];
+          return (
+            <>
+              {this.render_json_entry(name, value, ro)}
+              {renderReadonly(ro)}
+            </>
+          );
         default:
           return (
             <FormGroup>
@@ -460,15 +475,7 @@ class SiteSettingsComponent extends Component<
               <div style={{ fontSize: "90%", display: "inlineBlock" }}>
                 {this.render_row_version_hint(name, value)}
                 {hint}
-                {this.state.isReadonly[name] && (
-                  <>
-                    Value controlled via{" "}
-                    <code>
-                      ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
-                    </code>
-                    .
-                  </>
-                )}
+                {renderReadonly(this.state.isReadonly[name])}
                 {this.render_row_entry_parsed(displayed_val)}
                 {this.render_row_entry_valid(valid)}
               </div>
@@ -493,6 +500,26 @@ class SiteSettingsComponent extends Component<
     return this.render_row(name, conf);
   }
 
+  private renderRowHelp(help?: string) {
+    if (typeof help !== "string") return;
+    return (
+      <Popover
+        content={
+          <StaticMarkdown
+            className={"admin-site-setting-popover-help"}
+            style={{ fontSize: "90%" }}
+            value={help}
+          />
+        }
+        trigger={["hover", "click"]}
+        placement="right"
+        overlayStyle={{ maxWidth: "500px" }}
+      >
+        <Icon style={{ color: COLORS.GRAY }} name="question-circle" />
+      </Popover>
+    );
+  }
+
   private render_row(name: string, conf: Config): Rendered | undefined {
     // don't show certain fields, i.e. where show evals to false
     if (typeof conf.show == "function" && !conf.show(this.state.edited)) {
@@ -513,7 +540,7 @@ class SiteSettingsComponent extends Component<
 
     const label = (
       <>
-        <strong>{conf.name}</strong>
+        <strong>{conf.name}</strong> {this.renderRowHelp(conf.help)}
         <br />
         <StaticMarkdown style={{ fontSize: "90%" }} value={conf.desc} />
       </>
@@ -731,13 +758,17 @@ class SiteSettingsComponent extends Component<
 
   render_header(): Rendered {
     return (
-      <h4 onClick={() => this.toggle_view()} style={{ cursor: "pointer" }}>
+      <Title
+        level={4}
+        onClick={() => this.toggle_view()}
+        style={{ cursor: "pointer" }}
+      >
         <Icon
           style={{ width: "20px" }}
           name={this.state.state == "edit" ? "caret-down" : "caret-right"}
         />{" "}
         Site Settings
-      </h4>
+      </Title>
     );
   }
 

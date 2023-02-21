@@ -74,12 +74,7 @@ function PeopleList({
   if (people.length == 0) return null;
   if (inline) {
     return (
-      <div
-        style={{
-          maxHeight: "6em",
-          overflow: "auto",
-        }}
-      >
+      <div>
         {people.map((id) => (
           <Person key={id} id={id} inline />
         ))}

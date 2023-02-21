@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { CSSProperties } from "react";
+export type CSS = CSSProperties;
+
 // just convenience
 import { Typography } from "antd";
 export const { Title, Paragraph, Text } = Typography;

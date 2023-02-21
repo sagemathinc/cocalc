@@ -3,6 +3,7 @@ import { register } from "./tables";
 register({
   name: "syncstrings",
   title: "Documents",
+  icon: "files",
   query: {
     crm_syncstrings: [
       {

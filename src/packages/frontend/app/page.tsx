@@ -10,81 +10,122 @@ everything on *desktop*, once the user has signed in.
 
 declare var DEBUG: boolean;
 
-import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
-import { Tooltip } from "antd";
-import { COLORS } from "@cocalc/util/theme";
-import { IS_SAFARI, IS_MOBILE, IS_IOS } from "../feature";
-import { Button, Navbar, Nav } from "@cocalc/frontend/antd-bootstrap";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import {
+  CSS,
   React,
   useActions,
   useEffect,
+  useMemo,
   useState,
   useTypedRedux,
-  CSS,
 } from "@cocalc/frontend/app-framework";
-import { SiteName } from "@cocalc/frontend/customize";
-import { alert_message } from "@cocalc/frontend/alerts";
-import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { NavTab } from "./nav-tab";
 import { Loading } from "@cocalc/frontend/components";
-import { ActiveContent } from "./active-content";
-import { FullscreenButton } from "./fullscreen-button";
-import { VersionWarning, CookieWarning, LocalStorageWarning } from "./warnings";
-import { AppLogo } from "./logo";
-import { ConnectionInfo } from "./connection-info";
-import { ConnectionIndicator } from "./connection-indicator";
+import { IconName } from "@cocalc/frontend/components/icon";
+import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
-import { NotificationBell } from "./notification-bell";
+import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
 import openSupportTab from "@cocalc/frontend/support/open";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
+import { IS_IOS, IS_MOBILE, IS_SAFARI } from "../feature";
+import { ActiveContent } from "./active-content";
+import { ConnectionIndicator } from "./connection-indicator";
+import { ConnectionInfo } from "./connection-info";
+import { FullscreenButton } from "./fullscreen-button";
+import { AppLogo } from "./logo";
+import { NavTab } from "./nav-tab";
+import { Notification } from "./notifications";
+import {
+  FONT_SIZE_ICONS_NARROW,
+  FONT_SIZE_ICONS_NORMAL,
+  HIDE_LABEL_THRESHOLD,
+  NARROW_THRESHOLD_PX,
+  NAV_CLASS,
+  NAV_HEIGHT_NARROW_PX,
+  NAV_HEIGHT_PX,
+  PageStyle,
+} from "./top-nav-consts";
+import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
 
-// This is not responsive -- but I just need something is actually
-// usable on my phone.  TODO: if you load with phone in landscape mode,
-// then switch to portrait, this is broken.  But it's better than
-// always being 100% broken.
-const IS_PHONE =
-  IS_MOBILE && window.innerWidth != null && window.innerWidth <= 480;
+function calcStyle(isNarrow: boolean): PageStyle {
+  const fontSizeIcons: string = isNarrow
+    ? FONT_SIZE_ICONS_NARROW
+    : FONT_SIZE_ICONS_NORMAL;
+  const topPaddingIcons: string = isNarrow ? "2px" : "5px";
+  const sidePaddingIcons: string = isNarrow ? "7px" : "14px";
 
-const HIDE_LABEL_THRESHOLD = 6;
-const NAV_HEIGHT = IS_PHONE ? 72 : 36;
-const NAV_CLASS = "hidden-xs";
+  const height = isNarrow ? NAV_HEIGHT_NARROW_PX : NAV_HEIGHT_PX;
 
-const TOP_BAR_STYLE: CSS = {
-  display: "flex",
-  marginBottom: 0,
-  width: "100%",
-  minHeight: `${NAV_HEIGHT}px`,
-  position: "fixed",
-  right: 0,
-  zIndex: 100,
-  borderRadius: 0,
-  top: 0,
-} as const;
+  const topBarStyle: CSS = {
+    height: `${height}px`,
+  } as const;
 
-const FILE_USE_STYLE: CSS = {
-  zIndex: 110,
-  marginLeft: "0",
-  position: "fixed",
-  boxShadow: "0 0 15px #aaa",
-  border: "2px solid #ccc",
-  top: `${NAV_HEIGHT - 2}px`,
-  background: "#fff",
-  right: "2em",
-  overflowY: "auto",
-  overflowX: "hidden",
-  fontSize: "10pt",
-  padding: "4px",
-  borderRadius: "5px",
-  width: "50%",
-  height: "90%",
-} as const;
+  const fileUseStyle: CSS = {
+    background: "white",
+    border: `2px solid ${COLORS.GRAY_DDD}`,
+    borderRadius: "5px",
+    boxShadow: "0 0 15px #aaa",
+    fontSize: "10pt",
+    height: "90%",
+    margin: 0,
+    overflowX: "hidden",
+    overflowY: "auto",
+    padding: "4px",
+    position: "fixed",
+    right: "5vw",
+    top: `${height}px`,
+    width: isNarrow ? "90vw" : "50vw",
+    zIndex: 110,
+  } as const;
 
-const PROJECTS_STYLE: CSS = {
-  whiteSpace: "nowrap",
-  float: "right",
-  padding: "10px 7px",
-} as const;
+  const projectsNavStyle: CSS | undefined = isNarrow
+    ? {
+        /* this makes it so the projects tabs are on a separate row; otherwise, there is literally no room for them at all... */
+        width: "100vw",
+        marginTop: "4px",
+        height: `${height}px`,
+        // no flex!
+      }
+    : {
+        flex: "1 1 auto", // necessary to stretch out to the full width
+      };
+
+  return {
+    topBarStyle,
+    fileUseStyle,
+    projectsNavStyle,
+    isNarrow,
+    sidePaddingIcons,
+    topPaddingIcons,
+    fontSizeIcons,
+    height,
+  };
+}
+
+function isNarrow(): boolean {
+  return window.innerWidth != null && window.innerWidth <= NARROW_THRESHOLD_PX;
+}
+
+function usePageStyle(): PageStyle {
+  //const [style, setStyle] = useState<PageStyle>(calcStyle(narrow()));
+
+  const [narrow, setNarrow] = useState<boolean>(isNarrow());
+
+  useEffect(() => {
+    const handleResize = () => {
+      setNarrow(isNarrow());
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // avoid updating the style on every resize event
+  return useMemo(() => {
+    return calcStyle(narrow);
+  }, [narrow]);
+}
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -95,7 +136,7 @@ const PROJECTS_STYLE: CSS = {
 // https://liuhao.im/english/2015/05/29/ios-safari-window-height.html
 // ...
 // https://lukechannings.com/blog/2021-06-09-does-safari-15-fix-the-vh-bug/
-let page_height: string =
+const PAGE_HEIGHT: string =
   IS_MOBILE || IS_SAFARI
     ? `calc(100vh - env(safe-area-inset-bottom) - ${IS_IOS ? 80 : 20}px)`
     : "100vh";
@@ -103,16 +144,17 @@ let page_height: string =
 const PAGE_STYLE: CSS = {
   display: "flex",
   flexDirection: "column",
-  height: page_height, // see note
+  height: PAGE_HEIGHT, // see note
   width: "100vw",
   overflow: "hidden",
   background: "white",
 } as const;
 
-const positionHackHeight = `${NAV_HEIGHT - 4}px`;
-
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
+
+  const pageStyle = usePageStyle();
+  const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
 
   const open_projects = useTypedRedux("projects", "open_projects");
   const [show_label, set_show_label] = useState<boolean>(true);
@@ -130,6 +172,7 @@ export const Page: React.FC = () => {
   }, []);
 
   const active_top_tab = useTypedRedux("page", "active_top_tab");
+  const show_mentions = active_top_tab === "notifications";
   const show_connection = useTypedRedux("page", "show_connection");
   const show_file_use = useTypedRedux("page", "show_file_use");
   const fullscreen = useTypedRedux("page", "fullscreen");
@@ -149,12 +192,11 @@ export const Page: React.FC = () => {
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
 
-  function render_account_tab(): JSX.Element {
-    let a, label, style;
+  function account_tab_icon(): IconName | JSX.Element {
     if (is_anonymous) {
-      a = undefined;
+      return <></>;
     } else if (account_id) {
-      a = (
+      return (
         <Avatar
           size={20}
           account_id={account_id}
@@ -163,15 +205,19 @@ export const Page: React.FC = () => {
         />
       );
     } else {
-      a = "cog";
+      return "cog";
     }
+  }
 
+  function render_account_tab(): JSX.Element {
+    const icon = account_tab_icon();
+    let label, style;
     if (is_anonymous) {
       let mesg;
       style = { fontWeight: "bold", opacity: 0 };
       if (
         when_account_created &&
-        new Date().valueOf() - when_account_created.valueOf() >= 1000 * 60 * 60
+        Date.now() - when_account_created.valueOf() >= 1000 * 60 * 60
       ) {
         mesg = "Sign Up NOW to avoid losing all of your work!";
         style.width = "400px";
@@ -183,7 +229,7 @@ export const Page: React.FC = () => {
           {mesg}
         </Button>
       );
-      style = { marginTop: "-10px" }; // compensate for using a button
+      style = { marginTop: "-8px" }; // compensate for using a button
       /* We only actually show the button if it is still there a few
         seconds later.  This avoids flickering it for a moment during
         normal sign in.  This feels like a hack, but was super
@@ -201,25 +247,26 @@ export const Page: React.FC = () => {
         label={label}
         style={style}
         label_class={NAV_CLASS}
-        icon={a}
+        icon={icon}
         active_top_tab={active_top_tab}
         hide_label={!show_label}
       />
     );
   }
 
-  function render_admin_tab(): JSX.Element {
-    return (
-      <NavTab
-        name="admin"
-        label={"Admin"}
-        label_class={NAV_CLASS}
-        icon={"users"}
-        inner_style={{ padding: "10px", display: "flex" }}
-        active_top_tab={active_top_tab}
-        hide_label={!show_label}
-      />
-    );
+  function render_admin_tab(): JSX.Element | undefined {
+    if (is_logged_in && groups?.includes("admin")) {
+      return (
+        <NavTab
+          name="admin"
+          label={"Admin"}
+          label_class={NAV_CLASS}
+          icon={"users"}
+          active_top_tab={active_top_tab}
+          hide_label={!show_label}
+        />
+      );
+    }
   }
 
   function sign_in_tab_clicked() {
@@ -228,15 +275,15 @@ export const Page: React.FC = () => {
     }
   }
 
-  function render_sign_in_tab(): JSX.Element {
-    let style;
+  function render_sign_in_tab(): JSX.Element | null {
+    if (is_logged_in) return null;
+
+    let style: CSS | undefined = undefined;
     if (active_top_tab !== "account") {
       // Strongly encourage clicking on the sign in tab.
       // Especially important if user got signed out due
       // to cookie expiring or being deleted (say).
       style = { backgroundColor: COLORS.TOP_BAR.SIGN_IN_BG, fontSize: "16pt" };
-    } else {
-      style = undefined;
     }
     return (
       <NavTab
@@ -244,7 +291,6 @@ export const Page: React.FC = () => {
         label="Sign in"
         label_class={NAV_CLASS}
         icon="sign-in"
-        inner_style={{ padding: "10px", display: "flex" }}
         on_click={sign_in_tab_clicked}
         active_top_tab={active_top_tab}
         style={style}
@@ -264,15 +310,11 @@ export const Page: React.FC = () => {
     // get rewritten.
     return (
       <NavTab
-        label={
-          <span style={{ paddingTop: "3px", display: "inline-block" }}>
-            Help
-          </span>
-        }
+        name={undefined} // does not open a tab, just a popup
+        active_top_tab={active_top_tab} // it's never supposed to be active!
+        label={"Help"}
         label_class={NAV_CLASS}
         icon={"medkit"}
-        inner_style={{ padding: "10px", display: "flex" }}
-        active_top_tab={active_top_tab}
         on_click={openSupportTab}
         hide_label={!show_label}
       />
@@ -280,56 +322,73 @@ export const Page: React.FC = () => {
   }
 
   function render_bell(): JSX.Element | undefined {
-    if (!is_logged_in || is_anonymous) {
-      return;
-    }
-    return <NotificationBell active={show_file_use} />;
+    if (!is_logged_in || is_anonymous) return;
+    return (
+      <Notification type="bell" active={show_file_use} pageStyle={pageStyle} />
+    );
+  }
+
+  function render_mentions(): JSX.Element | undefined {
+    if (!is_logged_in || is_anonymous) return;
+    return (
+      <Notification
+        type="mentions"
+        active={show_mentions}
+        pageStyle={pageStyle}
+      />
+    );
+  }
+
+  function render_fullscreen(): JSX.Element | undefined {
+    if (isNarrow || is_anonymous) return;
+
+    return <FullscreenButton pageStyle={pageStyle} />;
   }
 
   function render_right_nav(): JSX.Element {
-    const logged_in = is_logged_in;
     return (
-      <Nav
-        id="smc-right-tabs-fixed"
+      <div
+        className="smc-right-tabs-fixed"
         style={{
-          height: `${NAV_HEIGHT}px`,
-          lineHeight: "20px",
+          display: "flex",
+          flex: "0 0 auto",
+          height: `${pageStyle.height}px`,
           margin: "0",
           overflowY: "hidden",
+          alignItems: "center",
         }}
       >
-        {logged_in && groups?.includes("admin") && render_admin_tab()}
-        {!logged_in && render_sign_in_tab()}
+        {render_admin_tab()}
+        {render_sign_in_tab()}
         {render_support()}
-        {logged_in && render_account_tab()}
+        {is_logged_in && render_account_tab()}
+        {render_mentions()}
         {render_bell()}
-        {!is_anonymous && <ConnectionIndicator />}
-      </Nav>
+        {!is_anonymous && (
+          <ConnectionIndicator
+            height={pageStyle.height}
+            pageStyle={pageStyle}
+          />
+        )}
+        {render_fullscreen()}
+      </div>
     );
   }
 
   function render_project_nav_button(): JSX.Element {
     return (
-      <Nav
-        style={{ height: `${NAV_HEIGHT}px`, margin: "0", overflow: "hidden" }}
-      >
-        <NavTab
-          name={"projects"}
-          inner_style={{ padding: "0px" }}
-          active_top_tab={active_top_tab}
-        >
-          <Tooltip
-            title="Show all the projects on which you collaborate."
-            mouseEnterDelay={1}
-            mouseLeaveDelay={0}
-            placement="right"
-          >
-            <div style={PROJECTS_STYLE} cocalc-test="project-button">
-              <Icon name="edit" /> Projects
-            </div>
-          </Tooltip>
-        </NavTab>
-      </Nav>
+      <NavTab
+        style={{
+          height: `${pageStyle.height}px`,
+          margin: "0",
+          overflow: "hidden",
+        }}
+        name={"projects"}
+        active_top_tab={active_top_tab}
+        tooltip="Show all the projects on which you collaborate."
+        icon="edit"
+        label="Projects"
+      />
     );
   }
 
@@ -382,7 +441,7 @@ export const Page: React.FC = () => {
       onDrop={drop}
     >
       {show_file_use && (
-        <div style={FILE_USE_STYLE} className="smc-vfill">
+        <div style={fileUseStyle} className="smc-vfill">
           <FileUsePage />
         </div>
       )}
@@ -391,27 +450,22 @@ export const Page: React.FC = () => {
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}
       {!fullscreen && (
-        <Navbar className="smc-top-bar" style={TOP_BAR_STYLE}>
-          <AppLogo />
+        <nav className="smc-top-bar" style={topBarStyle}>
+          <AppLogo size={pageStyle.height} />
           {is_logged_in && render_project_nav_button()}
-          <ProjectsNav
-            style={
-              IS_PHONE
-                ? {
-                    /* this makes it so the projects tabs are on a separate row; otherwise, there is literally no room for them at all... */
-                    top: "32px",
-                    left: 0,
-                    position: "absolute",
-                    width: "100vw",
-                  }
-                : undefined
-            }
-          />
+          {!isNarrow ? (
+            <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
+          ) : (
+            // we need an expandable placeholder, otherwise the right-nav-buttons won't align to the right
+            <div style={{ flex: "1 1 auto" }} />
+          )}
           {render_right_nav()}
-        </Navbar>
+        </nav>
       )}
-      {!fullscreen && <div style={{ minHeight: positionHackHeight }}></div>}
-      {!is_anonymous && <FullscreenButton />}
+      {fullscreen && render_fullscreen()}
+      {isNarrow && (
+        <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
+      )}
       <ActiveContent />
     </div>
   );

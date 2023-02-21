@@ -3,9 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Typography } from "antd";
+import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
-const { Text, Paragraph } = Typography;
 
 export function listedPrices(): JSX.Element {
   return (
@@ -20,7 +19,7 @@ export function listedPrices(): JSX.Element {
 export function pricingQuestions(): JSX.Element {
   return (
     <>
-      <h2>Questions</h2>
+      <Title level={2}>Questions</Title>
       <Paragraph>
         Please immediately email us at{" "}
         <A href="mailto:help@cocalc.com">help@cocalc.com</A> if anything is
@@ -37,7 +36,7 @@ export function pricingQuestions(): JSX.Element {
 
 export function applyLicense(): JSX.Element {
   return (
-    <p>
+    <Paragraph>
       Any subscription or{" "}
       <A href="https://doc.cocalc.com/account/licenses.html">license upgrade</A>{" "}
       must be{" "}
@@ -49,6 +48,6 @@ export function applyLicense(): JSX.Element {
         distributed to student projects
       </A>
       .
-    </p>
+    </Paragraph>
   );
 }

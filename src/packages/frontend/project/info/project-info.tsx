@@ -49,7 +49,6 @@ const SSH_KEYS_DOC = "https://doc.cocalc.com/project-settings.html#ssh-keys";
 const DETAILS_BTN_TEXT = "Details";
 
 interface Props {
-  name: string;
   project_id: string;
 }
 
@@ -483,7 +482,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
             return (
               <Modal
                 title="Process info"
-                visible={true}
+                open
                 width={"75vw"}
                 footer={render_modal_footer()}
                 onCancel={() => set_modal(undefined)}
@@ -644,7 +643,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
               <Table.Column<ProcessRow>
                 key="process"
                 title="Process"
-                width="58%"
+                width="40%"
                 align={"left"}
                 ellipsis={true}
                 render={(proc) => (
@@ -657,9 +656,13 @@ export const ProjectInfo: React.FC<Props> = React.memo(
               <Table.Column<ProcessRow>
                 key="cocalc"
                 title={cocalc_title}
-                width="10%"
+                width="15%"
                 align={"left"}
-                render={(proc) => render_cocalc(proc)}
+                render={(proc) => (
+                  <div style={{ width: "100%", overflow: "hidden" }}>
+                    {render_cocalc(proc)}
+                  </div>
+                )}
                 sorter={field_cmp("cocalc")}
               />
               <Table.Column<ProcessRow>

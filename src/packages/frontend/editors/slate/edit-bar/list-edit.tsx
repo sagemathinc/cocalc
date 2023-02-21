@@ -9,6 +9,7 @@ import { ReactEditor } from "../slate-react";
 import { ListProperties, setListProperties } from "./list";
 import { Button, Checkbox, InputNumber } from "antd";
 import { indentListItem, unindentListItem } from "../format/indent";
+import { moveListItemUp, moveListItemDown } from "../format/list-move";
 
 interface Props {
   listProperties: ListProperties | undefined;
@@ -52,7 +53,13 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
         color: "#666",
       }}
       onClick={() => {
-        setListProperties(editor, { ...listProperties, start: undefined });
+        if (listProperties.start == null) {
+          // see https://github.com/sagemathinc/cocalc/issues/6451
+          unindentListItem(editor);
+        } else {
+          setListProperties(editor, { ...listProperties, start: undefined });
+        }
+        ReactEditor.focus(editor);
       }}
     >
       <Icon name={"list-ul"} />
@@ -71,7 +78,11 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       onClick={() => {
         if (listProperties.start == null) {
           setListProperties(editor, { ...listProperties, start: 1 });
+        } else {
+          // see https://github.com/sagemathinc/cocalc/issues/6451
+          unindentListItem(editor);
         }
+        ReactEditor.focus(editor);
       }}
     >
       <Icon name={"list-ol"} />
@@ -97,10 +108,41 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
             ...listProperties,
             start,
           });
+          ReactEditor.focus(editor);
         }}
       />
     );
   }
+
+  v.push(
+    <Button
+      key="move-up"
+      size="small"
+      title="Move list item up"
+      style={{ color: "#666" }}
+      onClick={() => {
+        moveListItemUp(editor);
+        ReactEditor.focus(editor);
+      }}
+    >
+      <Icon name={"arrow-up"} />
+    </Button>
+  );
+
+  v.push(
+    <Button
+      key="move-down"
+      size="small"
+      title="Move list item down"
+      style={{ color: "#666" }}
+      onClick={() => {
+        moveListItemDown(editor);
+        ReactEditor.focus(editor);
+      }}
+    >
+      <Icon name={"arrow-down"} />
+    </Button>
+  );
 
   v.push(
     <Button

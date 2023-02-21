@@ -87,7 +87,7 @@ export default function PublicPath({
   useCounter(id);
   const [numStars, setNumStars] = useState<number>(stars);
 
-  const [isStarred, setIsStarred] = useState<boolean | null | undefined >(
+  const [isStarred, setIsStarred] = useState<boolean | null | undefined>(
     isStarred0 ?? null
   );
   useEffect(() => {
@@ -389,9 +389,7 @@ export default function PublicPath({
               <div>
                 There was a problem loading{" "}
                 {relativePath ? relativePath : "this file"} in{" "}
-                <Link href={`/share/public_paths/${id}`}>
-                  <a>{path}.</a>
-                </Link>
+                <Link href={`/share/public_paths/${id}`}>{path}.</Link>
                 <br />
                 <br />
                 {error}

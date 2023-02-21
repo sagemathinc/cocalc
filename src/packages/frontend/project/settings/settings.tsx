@@ -4,7 +4,12 @@
  */
 
 import { Alert as AntdAlert } from "antd";
-import { rclass, rtypes } from "@cocalc/frontend/app-framework";
+import {
+  redux,
+  rclass,
+  rtypes,
+  project_redux_name,
+} from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
 import {
   Customer,
@@ -42,8 +47,18 @@ interface State {
   admin_project?: string;
 }
 
-export const ProjectSettings = rclass<ReactProps>(
-  class ProjectSettings extends React.Component<
+export function ProjectSettings({ project_id }) {
+  return (
+    <ProjectSettings0
+      project_id={project_id}
+      name={project_redux_name(project_id)}
+      group={redux.getStore("projects").get_my_group(project_id)}
+    />
+  );
+}
+
+const ProjectSettings0 = rclass<ReactProps>(
+  class ProjectSettings1 extends React.Component<
     ReactProps & ReduxProps,
     State
   > {
@@ -131,8 +146,7 @@ export const ProjectSettings = rclass<ReactProps>(
       ) {
         return <Loading />;
       }
-      let project =
-        this.props.project_map.get(this.props.project_id);
+      let project = this.props.project_map.get(this.props.project_id);
       if (
         this.props.group != "admin" &&
         this.props.group != "owner" &&

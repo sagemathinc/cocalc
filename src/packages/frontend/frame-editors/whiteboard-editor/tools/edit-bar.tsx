@@ -2,33 +2,35 @@
 Editing bar for editing one (or more) selected elements.
 */
 
+import { Button, Dropdown, InputNumber, Select, Tooltip } from "antd";
 import { CSSProperties, ReactNode, useMemo, useState } from "react";
-import { Button, InputNumber, Menu, Dropdown, Select, Tooltip } from "antd";
 const { Option } = Select;
-import { Element } from "../types";
-import { PANEL_STYLE } from "./panel";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { useFrameContext } from "../hooks";
-import { Actions, extendToIncludeEdges } from "../actions";
-import { BrushPreview } from "./pen";
-import ColorPicker from "@cocalc/frontend/components/color-picker";
-import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-button-bar";
-import { getPageSpan } from "../math";
-import { ConfigParams, TOOLS } from "./desc";
-import { copyToClipboard } from "./clipboard";
-import LockButton, { isLocked } from "./lock-button";
-import HideButton, { isHidden } from "./hide-button";
-import { ELEMENTS } from "../elements/desc";
 
+import { CSS } from "@cocalc/frontend/app-framework";
+import ColorPicker from "@cocalc/frontend/components/color-picker";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { FONT_FACES as FONT_FAMILIES } from "@cocalc/frontend/editors/editor-button-bar";
+import { MenuItems } from "../../../components";
+import { Actions, extendToIncludeEdges } from "../actions";
+import { ELEMENTS } from "../elements/desc";
+import { useFrameContext } from "../hooks";
+import { getPageSpan } from "../math";
+import { Element } from "../types";
+import { copyToClipboard } from "./clipboard";
 import {
-  DEFAULT_FONT_SIZE,
-  DEFAULT_FONT_FAMILY,
-  minFontSize,
-  maxFontSize,
   defaultOpacity,
   defaultRadius,
+  DEFAULT_FONT_FAMILY,
+  DEFAULT_FONT_SIZE,
+  maxFontSize,
   maxRadius,
+  minFontSize,
 } from "./defaults";
+import { ConfigParams, TOOLS } from "./desc";
+import HideButton, { isHidden } from "./hide-button";
+import LockButton, { isLocked } from "./lock-button";
+import { PANEL_STYLE } from "./panel";
+import { BrushPreview } from "./pen";
 
 interface Props {
   elements: Element[]; // selected ones
@@ -36,7 +38,8 @@ interface Props {
   readOnly?: boolean;
 }
 
-export default function EditBar({ elements, allElements, readOnly }: Props) {
+export default function EditBar(opts: Props) {
+  const { elements, allElements, readOnly } = opts;
   const { actions } = useFrameContext();
   const configParams = useMemo(() => {
     return getCommonConfigParams(elements);
@@ -63,7 +66,7 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
           : undefined),
       }}
     >
-      <div style={{ display: "flex" }}>
+      <Button.Group>
         {!(readOnly || locked || hidden) && (
           <>
             {configParams.has("color") && <ColorButton {...props} />}
@@ -83,17 +86,17 @@ export default function EditBar({ elements, allElements, readOnly }: Props) {
         {!readOnly && !locked && <HideButton elements={elements} />}
         {!(readOnly || locked || hidden) && <DeleteButton {...props} />}
         <OtherOperations {...props} />
-      </div>
+      </Button.Group>
     </div>
   );
 }
 
-export const BUTTON_STYLE = {
+export const BUTTON_STYLE: CSS = {
   fontSize: "22px",
   color: "#666",
   height: "42px",
   padding: "4px 5px",
-};
+} as const;
 
 interface ButtonProps {
   actions: Actions;
@@ -105,8 +108,7 @@ function DeleteButton({ elements }: ButtonProps) {
   return (
     <Tooltip title="Delete selected">
       <Button
-        style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
-        type="text"
+        style={{ ...BUTTON_STYLE }}
         onClick={() => {
           actions.deleteElements(elements);
           actions.clearSelection(id);
@@ -124,7 +126,6 @@ function DuplicateButton({ elements }: ButtonProps) {
     <Tooltip title="Duplicate selected">
       <Button
         style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
-        type="text"
         onClick={() => {
           actions.duplicateElements(elements, id);
         }}
@@ -135,7 +136,8 @@ function DuplicateButton({ elements }: ButtonProps) {
   );
 }
 
-function ColorButton({ actions, elements }: ButtonProps) {
+function ColorButton(props: ButtonProps) {
+  const { actions, elements } = props;
   const [showPicker, setShowPicker] = useState<boolean>(false);
   const [color, setColor0] = useState<string | undefined>(getColor(elements));
 
@@ -147,11 +149,7 @@ function ColorButton({ actions, elements }: ButtonProps) {
   return (
     <>
       <Tooltip title="Color">
-        <Button
-          style={BUTTON_STYLE}
-          type="text"
-          onClick={() => setShowPicker(!showPicker)}
-        >
+        <Button style={BUTTON_STYLE} onClick={() => setShowPicker(!showPicker)}>
           <BrushPreview radius={maxRadius} color={color ?? "black"} />
         </Button>
       </Tooltip>
@@ -174,7 +172,8 @@ function ColorButton({ actions, elements }: ButtonProps) {
   );
 }
 
-function GroupButton({ actions, elements }: ButtonProps) {
+function GroupButton(props: ButtonProps) {
+  const { actions, elements } = props;
   if (elements.length <= 1) return null;
   let grouped = false;
   for (const element of elements) {
@@ -189,7 +188,6 @@ function GroupButton({ actions, elements }: ButtonProps) {
     >
       <Button
         style={{ ...BUTTON_STYLE, borderLeft: "1px solid #ccc" }}
-        type="text"
         onClick={() => {
           const ids = elements.map((element) => element.id);
           if (grouped) {
@@ -213,7 +211,8 @@ function getColor(elements: Element[]): string | undefined {
   }
 }
 
-function FontSize({ actions, elements }: ButtonProps) {
+function FontSize(props: ButtonProps) {
+  const { actions, elements } = props;
   return (
     <Tooltip title="Font size (pixels)">
       <InputNumber
@@ -243,7 +242,8 @@ function getFontSize(elements: Element[]): number | undefined {
   return DEFAULT_FONT_SIZE;
 }
 
-function Radius({ actions, elements }: ButtonProps) {
+function Radius(props: ButtonProps) {
+  const { actions, elements } = props;
   return (
     <Tooltip title="Radius (pixels)">
       <InputNumber
@@ -279,7 +279,8 @@ function getRadius(elements: Element[]): number | undefined {
   return defaultRadius;
 }
 
-function Opacity({ actions, elements }: ButtonProps) {
+function Opacity(props: ButtonProps) {
+  const { actions, elements } = props;
   return (
     <Tooltip title="Opacity: 1 is solid; less than 1 is transparent">
       <InputNumber
@@ -315,7 +316,8 @@ function getOpacity(elements: Element[]): number | undefined {
   return defaultOpacity;
 }
 
-function FontFamily({ actions, elements }: ButtonProps) {
+function FontFamily(props: ButtonProps) {
+  const { actions, elements } = props;
   return (
     <SelectFontFamily
       onChange={(fontFamily) => {
@@ -328,19 +330,16 @@ function FontFamily({ actions, elements }: ButtonProps) {
   );
 }
 
-export function SelectFontFamily({
-  onChange,
-  value,
-  defaultValue,
-  size,
-  style,
-}: {
+interface SFFOpts {
   onChange?: (fontFamily: string) => void;
   defaultValue?: string;
   value?: string;
   size?: any;
   style?: CSSProperties;
-}) {
+}
+
+export function SelectFontFamily(opts: SFFOpts) {
+  const { onChange, value, defaultValue, size, style } = opts;
   const v: ReactNode[] = [];
   for (const fontFamily of FONT_FAMILIES) {
     v.push(
@@ -392,114 +391,136 @@ function getFontFamily(elements: Element[]): string | undefined {
   return DEFAULT_FONT_FAMILY;
 }
 
-function OtherOperations({ actions, elements, allElements, readOnly }) {
+function OtherOperations(opts) {
+  const { actions, elements, allElements, readOnly } = opts;
   const frame = useFrameContext();
   const hidden = isHidden(elements);
   const locked = isLocked(elements);
-  const menu = (
-    <Menu
-      onClick={({ key }) => {
-        if (key == "bring-to-front") {
-          const { zMax } = getPageSpan(allElements);
-          let z = zMax + 1;
-          for (const element of elements) {
-            actions.setElement({ obj: { ...element, z }, save: false });
-            z += 1;
-          }
-          actions.syncstring_commit();
-          actions.clearSelection(frame.id);
-          return;
-        } else if (key == "send-to-back") {
-          const { zMin } = getPageSpan(allElements);
-          let z = zMin - 1;
-          for (const element of elements) {
-            actions.setElement({ obj: { id: element.id, z }, save: false });
-            z -= 1;
-          }
-          actions.syncstring_commit();
-          actions.clearSelection(frame.id);
-          return;
-        } else if (key == "copy") {
-          extendToIncludeEdges(elements, allElements);
-          copyToClipboard(elements);
-        } else if (key == "duplicate") {
-          actions.duplicateElements(elements, frame.id);
-        } else if (key == "cut") {
-          extendToIncludeEdges(elements, allElements);
-          copyToClipboard(elements);
-          actions.deleteElements(elements);
-          actions.clearSelection(frame.id);
-        } else if (key == "delete") {
-          actions.deleteElements(elements);
-          actions.clearSelection(frame.id);
-        } else if (key == "paste") {
-          actions.paste(frame.id);
-        } else if (key == "lock") {
-          actions.lockElements(elements);
-        } else if (key == "unlock") {
-          actions.unlockElements(elements);
-        } else if (key == "hide") {
-          actions.hideElements(elements);
-        } else if (key == "unhide") {
-          actions.unhideElements(elements);
+
+  const menuItems: MenuItems = [];
+
+  if (!readOnly && !locked) {
+    menuItems.push({
+      key: "bring-to-front",
+      icon: <Icon name={"arrow-circle-up"} />,
+      label: "Bring to front",
+      onClick: () => {
+        const { zMax } = getPageSpan(allElements);
+        let z = zMax + 1;
+        for (const element of elements) {
+          actions.setElement({ obj: { ...element, z }, save: false });
+          z += 1;
         }
-      }}
-    >
-      {!readOnly && !locked && (
-        <Menu.Item key="bring-to-front">
-          <Icon name={"arrow-circle-up"} /> Bring to front
-        </Menu.Item>
-      )}
-      {!readOnly && !locked && (
-        <Menu.Item key="send-to-back">
-          <Icon name={"arrow-circle-down"} /> Send to back
-        </Menu.Item>
-      )}
-      {!readOnly && !locked && (
-        <Menu.Item key="cut">
-          <Icon name="cut" /> Cut
-        </Menu.Item>
-      )}
-      <Menu.Item key="copy">
-        <Icon name="copy" /> Copy
-      </Menu.Item>
-      {/*!readOnly && (
-        <Menu.Item key="paste">
-          {" "}
-          <Icon name="paste" /> Paste
-        </Menu.Item>
-      )*/}
-      {!readOnly && (
-        <Menu.Item key="duplicate">
-          <Icon name="clone" /> Duplicate
-        </Menu.Item>
-      )}
-      {!readOnly && !locked && (
-        <Menu.Item key="delete">
-          {" "}
-          <Icon name="trash" /> Delete
-        </Menu.Item>
-      )}
-      {!readOnly && !hidden && !locked && (
-        <Menu.Item key="hide">
-          <Icon name={"eye-slash"} /> Hide
-        </Menu.Item>
-      )}
-      {!readOnly && hidden && !locked && (
-        <Menu.Item key="unhide">
-          <Icon name={"eye"} /> Unhide
-        </Menu.Item>
-      )}
-      {!readOnly && !locked && (
-        <Menu.Item key="lock">
-          <Icon name={"lock"} /> Lock
-        </Menu.Item>
-      )}
-    </Menu>
-  );
+        actions.syncstring_commit();
+        actions.clearSelection(frame.id);
+      },
+    });
+    menuItems.push({
+      key: "send-to-back",
+      icon: <Icon name={"arrow-circle-down"} />,
+      label: "Send to back",
+      onClick: () => {
+        const { zMin } = getPageSpan(allElements);
+        let z = zMin - 1;
+        for (const element of elements) {
+          actions.setElement({ obj: { id: element.id, z }, save: false });
+          z -= 1;
+        }
+        actions.syncstring_commit();
+        actions.clearSelection(frame.id);
+      },
+    });
+    menuItems.push({
+      key: "cut",
+      icon: <Icon name="cut" />,
+      label: "Cut",
+      onClick: () => {
+        extendToIncludeEdges(elements, allElements);
+        copyToClipboard(elements);
+        actions.deleteElements(elements);
+        actions.clearSelection(frame.id);
+      },
+    });
+  }
+
+  menuItems.push({
+    key: "copy",
+    icon: <Icon name="copy" />,
+    label: "Copy",
+    onClick: () => {
+      extendToIncludeEdges(elements, allElements);
+      copyToClipboard(elements);
+    },
+  });
+
+  // if (!readOnly) {
+  //   menuItems.push({
+  //     key: "paste",
+  //     icon: <Icon name="paste" />,
+  //     label: "Paste",
+  //     onClick: () => {
+  //       actions.paste(frame.id);
+  //   });
+  // })
+
+  if (!readOnly) {
+    menuItems.push({
+      key: "duplicate",
+      icon: <Icon name="clone" />,
+      label: "Duplicate",
+      onClick: () => {
+        actions.duplicateElements(elements, frame.id);
+      },
+    });
+  }
+
+  if (!readOnly && !locked) {
+    menuItems.push({
+      key: "delete",
+      icon: <Icon name="trash" />,
+      label: "Delete",
+      onClick: () => {
+        actions.deleteElements(elements);
+        actions.clearSelection(frame.id);
+      },
+    });
+  }
+
+  if (!readOnly && !hidden && !locked) {
+    menuItems.push({
+      key: "hide",
+      icon: <Icon name={"eye-slash"} />,
+      label: "Hide",
+      onClick: () => {
+        actions.hideElements(elements);
+      },
+    });
+  }
+
+  if (!readOnly && hidden && !locked) {
+    menuItems.push({
+      key: "unhide",
+      icon: <Icon name={"eye"} />,
+      label: "Unhide",
+      onClick: () => {
+        actions.unhideElements(elements);
+      },
+    });
+  }
+
+  if (!readOnly && !locked) {
+    menuItems.push({
+      key: "lock",
+      icon: <Icon name={"lock"} />,
+      label: "Lock",
+      onClick: () => {
+        actions.lockElements(elements);
+      },
+    });
+  }
 
   return (
-    <Dropdown overlay={menu} trigger={["click"]}>
+    <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
       <Icon
         name="ellipsis"
         style={{
@@ -512,16 +533,13 @@ function OtherOperations({ actions, elements, allElements, readOnly }) {
   );
 }
 
-function setDataField(
-  {
-    elements,
-    actions,
-  }: {
-    elements: Element[];
-    actions: Actions;
-  },
-  obj: object
-) {
+interface DFProps {
+  elements: Element[];
+  actions: Actions;
+}
+
+function setDataField(props: DFProps, obj: object) {
+  const { elements, actions } = props;
   for (const element of elements) {
     actions.setElementData({ element, obj, commit: false, cursors: [{}] });
     if (obj["fontSize"] != null && element.data != null) {

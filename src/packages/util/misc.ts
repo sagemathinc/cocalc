@@ -589,7 +589,10 @@ export function delete_null_fields(obj: object): void {
 
 // for switch/case -- https://www.typescriptlang.org/docs/handbook/advanced-types.html
 export function unreachable(x: never) {
-  throw new Error(`All types should be exhausted, but I got ${x}`);
+  // if this fails a typecheck here, go back to your switch/case.
+  // you either made a typo in one of the cases or you missed one.
+  const tmp: never = x;
+  tmp;
 }
 
 // Get *all* methods of an object (including from base classes!).
@@ -2329,4 +2332,45 @@ export function isAcademic(s?: string): boolean {
   if (domain.endsWith(".edu")) return true;
   if (academicCountry.test(domain)) return true;
   return false;
+}
+
+/**
+ * Test, if the given object is a valid list of JSON-Patch operations.
+ * @returns boolean
+ */
+export function test_valid_jsonpatch(patch: any): boolean {
+  if (!is_array(patch)) {
+    return false;
+  }
+  for (const op of patch) {
+    if (!is_object(op)) return false;
+    if (op.op == null) return false;
+    if (!["add", "remove", "replace", "move", "copy", "test"].includes(op.op)) {
+      return false;
+    }
+    if (op.path == null) return false;
+    if (op.from != null && typeof op.from !== "string") return false;
+    // we don't test on value
+  }
+  return true;
+}
+
+export function rowBackground({
+  index,
+  checked,
+}: {
+  index: number;
+  checked?: boolean;
+}): string {
+  if (checked) {
+    if (index % 2 === 0) {
+      return "#a3d4ff";
+    } else {
+      return "#a3d4f0";
+    }
+  } else if (index % 2 === 0) {
+    return "#f4f4f4";
+  } else {
+    return "white";
+  }
 }

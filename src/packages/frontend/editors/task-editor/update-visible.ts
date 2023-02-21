@@ -75,7 +75,7 @@ export function update_visible(
   };
   let current_is_visible = false;
 
-  const sort_column = local_view_state.getIn(["sort", "column"]) ?? "Changed";
+  const sort_column = local_view_state.getIn(["sort", "column"]) ?? "Custom Order";
   if (SORT_INFO[sort_column] == null) {
     SORT_INFO[sort_column] = SORT_INFO[HEADINGS[0]];
   }

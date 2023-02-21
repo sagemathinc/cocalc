@@ -5,6 +5,8 @@ register({
 
   title: "Accounts",
 
+  icon: "user",
+
   query: {
     crm_accounts: [
       {
@@ -14,6 +16,9 @@ register({
         email_address: null,
         last_active: null,
         created: null,
+        banned: null,
+        unlisted: null,
+        groups: null,
       },
     ],
   },

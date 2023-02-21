@@ -3,19 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Layout } from "antd";
 import Link from "next/link";
-import { Button, Layout } from "antd";
-
-import SquareLogo from "components/logo-square";
-import A from "components/misc/A";
 import { join } from "path";
-import { useCustomize } from "lib/customize";
-import basePath from "lib/base-path";
-import SubNav, { Page, SubPage } from "./sub-nav";
-import Analytics from "components/analytics";
-import AccountNavTab from "components/account/navtab";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { COLORS } from "@cocalc/util/theme";
+import AccountNavTab from "components/account/navtab";
+import Analytics from "components/analytics";
+import Logo from "components/logo";
+import A from "components/misc/A";
+import basePath from "lib/base-path";
+import { useCustomize } from "lib/customize";
 import { SoftwareEnvNames } from "lib/landing/consts";
+import SubNav, { Page, SubPage } from "./sub-nav";
 
 const GAP = "4%";
 
@@ -27,7 +29,7 @@ export const LinkStyle: React.CSSProperties = {
 
 const SelectedStyle: React.CSSProperties = {
   ...LinkStyle,
-  color: "#c7d9f5",
+  color: COLORS.LANDING.TOP_BG,
   fontWeight: "bold",
   borderBottom: "5px solid #c7d9f5",
 } as const;
@@ -48,10 +50,46 @@ export default function Header(props: Props) {
     shareServer,
     landingPages,
     account,
-    imprintOrPolicies,
+    onCoCalcCom,
   } = useCustomize();
 
   if (basePath == null) return null;
+
+  function ask() {
+    if (onCoCalcCom && !IS_MOBILE) {
+      return (
+        <span
+          style={{
+            float: "right",
+            right: 15,
+            top: 25,
+            color: "white",
+            backgroundColor: COLORS.BLUE_D,
+            outline: `1px solid ${COLORS.BLUE_DD}`,
+            padding: "2px 8px",
+            borderRadius: "5px",
+          }}
+        >
+          <A
+            type="primary"
+            size="large"
+            href="/support/new?hideExtra=true&type=question&subject=&body=&title=Ask%20Us%20Anything!"
+            title="Ask a question"
+            style={{
+              color: "white",
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <Icon style={{ fontSize: "20px" }} name="question-circle" />{" "}
+            <div>Ask</div>
+          </A>
+        </span>
+      );
+    }
+  }
 
   return (
     <>
@@ -65,35 +103,26 @@ export default function Header(props: Props) {
           textAlign: "center",
         }}
       >
-        {isCommercial && (
-          <Button
-            type="primary"
-            size="large"
-            href="/support/new?hideExtra=true&type=question&subject=&body=&title=Ask%20Us%20Anything!"
-            title="Ask a question"
-            style={{ float: "left" }}
-          >
-            <Icon name="question-circle" /> Ask Us Anything!
-          </Button>
-        )}{" "}
+        {ask()}
         <A href="/">
           {/* WARNING: This mess is all to support using the next/image component for the image via our Image component.  It's ugly. */}
           <div
             style={{
               position: "relative",
               display: "inline-block",
+              top: "15px",
               height: "40px",
               width: "40px",
               marginTop: "-30px",
               marginRight: "64px",
             }}
           >
-            <SquareLogo
+            <Logo
+              type="icon"
               style={{
                 height: "40px",
                 width: "40px",
                 position: "absolute",
-                top: "15px",
               }}
             />
           </div>
@@ -149,13 +178,12 @@ export default function Header(props: Props) {
           Docs
         </A>
         {shareServer && (
-          <Link href={"/share/public_paths/page/1"}>
-            <a
-              style={page == "share" ? SelectedStyle : LinkStyle}
-              title="View files that people have published."
-            >
-              Share
-            </a>
+          <Link
+            href={"/share/public_paths/page/1"}
+            style={page == "share" ? SelectedStyle : LinkStyle}
+            title="View files that people have published."
+          >
+            Share
           </Link>
         )}
         <A
@@ -165,15 +193,6 @@ export default function Header(props: Props) {
         >
           Support
         </A>{" "}
-        {!account && anonymousSignup && (
-          <A
-            style={page == "try" ? SelectedStyle : LinkStyle}
-            href={"/auth/try"}
-            title={`Try ${siteName} immediately without creating an account.`}
-          >
-            Try
-          </A>
-        )}{" "}
         {account ? (
           <AccountNavTab
             style={page == "account" ? SelectedStyle : LinkStyle}
@@ -196,10 +215,17 @@ export default function Header(props: Props) {
             </A>
           </>
         )}
+        {!account && anonymousSignup && (
+          <A
+            style={page == "try" ? SelectedStyle : LinkStyle}
+            href={"/auth/try"}
+            title={`Try ${siteName} immediately without creating an account.`}
+          >
+            Try
+          </A>
+        )}{" "}
       </Layout.Header>
-      {page && (page === "software" || landingPages || imprintOrPolicies) && (
-        <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
-      )}
+      <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
     </>
   );
 }

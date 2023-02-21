@@ -19,6 +19,7 @@ import { TableOfContents } from "../markdown-editor/table-of-contents";
 import Whiteboard from "./whiteboard";
 import Search from "./search";
 import Pages from "./pages";
+import Overview from "./overview";
 
 export const whiteboardButtons = set([
   "decrease_font_size",
@@ -32,6 +33,9 @@ export const whiteboardButtons = set([
   "copy",
   "paste",
   "show_table_of_contents",
+  "show_pages",
+  "show_search",
+  "show_overview",
   "help",
 ]);
 
@@ -53,8 +57,15 @@ export const EDITOR_SPEC = {
   pages: {
     short: "Pages",
     name: "Pages",
-    icon: "files" as IconName,
+    icon: "pic-centered" as IconName,
     component: Pages,
+  },
+  overview: {
+    short: "Overview",
+    name: "Overview",
+    icon: "overview" as IconName,
+    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+    component: Overview,
   },
   terminal,
   time_travel,
@@ -65,7 +76,7 @@ export const EDITOR_SPEC = {
     component: Introspect,
     buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
   } as EditorDescription,
-  whiteboard_table_of_contents: {
+  table_of_contents: {
     short: "Contents",
     name: "Table of Contents",
     icon: "align-right",

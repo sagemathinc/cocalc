@@ -3,14 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useState, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Tip } from "@cocalc/frontend/components";
-import { ALL_AVAIL } from "@cocalc/frontend/project_configuration";
+import { Col, Row } from "antd";
+import { Gutter } from "antd/es/grid/row";
 import React from "react";
-import { Col, Row } from "react-bootstrap";
-import { NamedServerPanel } from "../named-server-panel";
+
+import { useActions } from "@cocalc/frontend/app-framework";
+import { Tip } from "@cocalc/frontend/components";
+import { useAvailableFeatures } from "../use-available-features";
 import { NewFileButton } from "./new-file-button";
-import { NamedServerName } from "@cocalc/util/types/servers";
+import { TITLE as SERVERS_TITLE } from "../servers";
 
 interface Props {
   create_file: (name?: string) => void;
@@ -21,39 +22,29 @@ interface Props {
 
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
-export const FileTypeSelector: React.FC<Props> = ({
-  create_file,
-  create_folder,
-  project_id,
-  children,
-}: Props): JSX.Element | null => {
-  const [showNamedServer, setShowNamedServer] = useState<"" | NamedServerName>(
-    ""
-  );
+export const FileTypeSelector: React.FC<Props> = (props: Props) => {
+  const { create_file, create_folder, project_id, children } = props;
 
-  const available_features = useTypedRedux(
-    { project_id },
-    "available_features"
-  );
+  const project_actions = useActions({ project_id });
+  const available = useAvailableFeatures(project_id);
 
   if (!create_file || !create_file || !project_id) {
     return null;
   }
 
-  const row_style = { marginBottom: "8px" };
-
-  // If the configuration is not yet available, we default to the *most likely*
-  // configuration, not the least likely configuration.
-  // See https://github.com/sagemathinc/cocalc/issues/4293
-  // This is also consistent with src/@cocalc/frontend/project/explorer/new-button.tsx
-  const available = available_features?.toJS() ?? ALL_AVAIL;
+  // col width of Antd's 24 grid system
+  const md = 6;
+  const sm = 12;
+  const y: Gutter = 30;
+  const gutter: [Gutter, Gutter] = [20, y / 2];
+  const newRowStyle = { marginTop: `${y}px` };
 
   // console.log("FileTypeSelector: available", available)
   return (
     <>
-      <Row style={row_style}>
-        <Col sm={12}>
-          {available.jupyter_notebook ? (
+      <Row gutter={gutter}>
+        {available.jupyter_notebook && (
+          <Col sm={sm} md={md}>
             <Tip
               icon="jupyter"
               title="Jupyter notebook"
@@ -66,7 +57,10 @@ export const FileTypeSelector: React.FC<Props> = ({
                 ext={"ipynb"}
               />
             </Tip>
-          ) : undefined}
+          </Col>
+        )}
+
+        <Col sm={sm} md={md}>
           <Tip
             title="Linux Terminal"
             icon="terminal"
@@ -79,6 +73,9 @@ export const FileTypeSelector: React.FC<Props> = ({
               ext="term"
             />
           </Tip>
+        </Col>
+
+        <Col sm={sm} md={md}>
           <Tip
             icon="layout"
             title="Computational Whiteboard"
@@ -86,11 +83,29 @@ export const FileTypeSelector: React.FC<Props> = ({
           >
             <NewFileButton
               icon="layout"
-              name="Computational Whiteboard"
+              name="Whiteboard"
               on_click={create_file}
               ext="board"
             />
           </Tip>
+        </Col>
+
+        <Col sm={sm} md={md}>
+          <Tip
+            icon="slides"
+            title="Slides"
+            tip="Create a slideshow with Jupyter code cells."
+          >
+            <NewFileButton
+              icon="slides"
+              name="Slides"
+              on_click={create_file}
+              ext="slides"
+            />
+          </Tip>
+        </Col>
+
+        <Col sm={sm} md={md}>
           <Tip
             title="Markdown Document"
             icon="markdown"
@@ -98,12 +113,15 @@ export const FileTypeSelector: React.FC<Props> = ({
           >
             <NewFileButton
               icon="markdown"
-              name="Markdown Document"
+              name="Markdown"
               on_click={create_file}
               ext="md"
             />
           </Tip>
-          {available.sage ? (
+        </Col>
+
+        {available.sage && (
+          <Col sm={sm} md={md}>
             <Tip
               icon="sagemath-bold"
               title="Sage Worksheet"
@@ -115,9 +133,12 @@ export const FileTypeSelector: React.FC<Props> = ({
                 on_click={create_file}
                 ext="sagews"
               />
-            </Tip>
-          ) : undefined}
-          {available.latex ? (
+            </Tip>{" "}
+          </Col>
+        )}
+
+        {available.latex && (
+          <Col sm={sm} md={md}>
             <Tip
               title="LaTeX Document"
               icon="tex-file"
@@ -130,8 +151,11 @@ export const FileTypeSelector: React.FC<Props> = ({
                 ext="tex"
               />
             </Tip>
-          ) : undefined}
-          {available.x11 ? (
+          </Col>
+        )}
+
+        {available.x11 && (
+          <Col sm={sm} md={md}>
             <Tip
               title="Linux X11 Desktop"
               icon="window-restore"
@@ -139,12 +163,15 @@ export const FileTypeSelector: React.FC<Props> = ({
             >
               <NewFileButton
                 icon="window-restore"
-                name="Linux Graphical X11 desktop"
+                name="Graphical desktop"
                 on_click={create_file}
                 ext="x11"
               />
             </Tip>
-          ) : undefined}
+          </Col>
+        )}
+
+        <Col sm={sm} md={md}>
           <Tip
             title={"Create a Folder"}
             placement={"left"}
@@ -161,8 +188,9 @@ export const FileTypeSelector: React.FC<Props> = ({
           </Tip>
         </Col>
       </Row>
-      <Row style={row_style}>
-        <Col sm={12}>
+
+      <Row gutter={gutter} style={newRowStyle}>
+        <Col sm={sm} md={md}>
           <Tip
             title="Create a Chatroom"
             placement="bottom"
@@ -171,11 +199,13 @@ export const FileTypeSelector: React.FC<Props> = ({
           >
             <NewFileButton
               icon="comment"
-              name="Create a chatroom"
+              name="Chatroom"
               on_click={create_file}
               ext="sage-chat"
             />
           </Tip>
+        </Col>
+        <Col sm={sm} md={md}>
           <Tip
             title="Manage a Course"
             placement="bottom"
@@ -191,9 +221,10 @@ export const FileTypeSelector: React.FC<Props> = ({
           </Tip>
         </Col>
       </Row>
-      <Row style={row_style}>
-        <Col sm={12}>
-          {available.rmd ? (
+
+      <Row gutter={gutter} style={newRowStyle}>
+        {available.rmd && (
+          <Col sm={sm} md={md}>
             <Tip
               title="RMarkdown File"
               icon="r"
@@ -206,7 +237,10 @@ export const FileTypeSelector: React.FC<Props> = ({
                 ext="rmd"
               />
             </Tip>
-          ) : undefined}
+          </Col>
+        )}
+
+        <Col sm={sm} md={md}>
           <Tip
             title="Todo List"
             icon="tasks"
@@ -219,76 +253,32 @@ export const FileTypeSelector: React.FC<Props> = ({
               ext="tasks"
             />
           </Tip>
+        </Col>
+        <Col sm={sm} md={md}>
           <Tip
-            title="Stopwatch"
+            title="Stopwatch and Timers"
             icon="stopwatch"
             tip="Create collaborative stopwatches and timers to coordinate time."
           >
             <NewFileButton
               icon="stopwatch"
-              name="Stopwatches and Timers"
+              name="Timers"
               on_click={create_file}
               ext="time"
             />
           </Tip>
         </Col>
-      </Row>
-      <Row style={row_style}>
         <Col sm={12}>{children}</Col>
-      </Row>
-      <Row style={row_style}>
-        <Col sm={12}>
-          {available.jupyter_notebook && (
-            <NewFileButton
-              name={"Jupyter Classic Server..."}
-              icon={"ipynb"}
-              on_click={(): void => {
-                showNamedServer == "jupyter"
-                  ? setShowNamedServer("")
-                  : setShowNamedServer("jupyter");
-              }}
-            />
-          )}
-          {available.jupyter_lab && (
-            <NewFileButton
-              name={"JupyterLab Server..."}
-              icon={"ipynb"}
-              on_click={(): void => {
-                showNamedServer == "jupyterlab"
-                  ? setShowNamedServer("")
-                  : setShowNamedServer("jupyterlab");
-              }}
-            />
-          )}
-          {available.vscode && (
-            <NewFileButton
-              name={"VS Code Server..."}
-              icon={"vscode"}
-              on_click={(): void => {
-                showNamedServer == "code"
-                  ? setShowNamedServer("")
-                  : setShowNamedServer("code");
-              }}
-            />
-          )}
-          {available.julia && (
-            <NewFileButton
-              name={"Pluto server..."}
-              icon={"julia"}
-              on_click={(): void => {
-                showNamedServer == "pluto"
-                  ? setShowNamedServer("")
-                  : setShowNamedServer("pluto");
-              }}
-            />
-          )}
-        </Col>
-      </Row>
-      <Row style={row_style}>
-        <Col sm={12}>
-          {showNamedServer && (
-            <NamedServerPanel project_id={project_id} name={showNamedServer} />
-          )}
+        <Col md={12}>
+          <NewFileButton
+            name={`Jupyter, VS Code and Pluto moved to the "${SERVERS_TITLE}" tab.`}
+            icon={"server"}
+            on_click={() => {
+              project_actions?.set_active_tab("servers", {
+                change_history: true,
+              });
+            }}
+          />
         </Col>
       </Row>
     </>

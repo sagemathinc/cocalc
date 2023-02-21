@@ -43,13 +43,13 @@ export default function Congrats() {
       <>
         <h2>Here are your next steps</h2>
         <ul>
-          <li>
+          <li style={{ marginBottom: "15px" }}>
             You are a manager for each of the licenses you purchased.{" "}
             <A href="/licenses/managed">You can see your managed licenses</A>,
             add other people as managers, edit the title and description of each
             license, and see how a license is being used.
           </li>
-          <li>
+          <li style={{ marginBottom: "15px" }}>
             You can{" "}
             <A href="https://doc.cocalc.com/project-settings.html#project-add-license">
               apply a license to projects
@@ -62,7 +62,7 @@ export default function Congrats() {
             <A href="https://doc.cocalc.com/licenses.html">explained here</A>.
             It's time to make your <SiteName /> projects much, much better.
           </li>
-          <li>
+          <li style={{ marginBottom: "15px" }}>
             You can <A href="/billing/receipts">download your receipt</A> and{" "}
             <A href="/billing/subscriptions">
               check on the status of subscriptions.

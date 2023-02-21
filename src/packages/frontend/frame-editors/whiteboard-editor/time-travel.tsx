@@ -7,9 +7,15 @@ import { useFrameContext } from "./hooks";
 import ToolPanel from "./tools/panel";
 import { Element, ElementsMap } from "./types";
 import { Map as iMap } from "immutable";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
+import { field_cmp } from "@cocalc/util/misc";
 
-export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
+export default function WhiteboardTimeTravel({
+  syncdb,
+  version,
+  font_size,
+  mainFrameType,
+}) {
   const { id, isFocused, desc, actions } = useFrameContext();
   const whiteboardDivRef = useRef<HTMLDivElement | null>(null);
   let elements = syncdb.version(version).get();
@@ -19,31 +25,42 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
     elementsMap = elementsMap.set(element.get("id"), element);
   }
 
-  useEffect(() => {
-    let pages = 1;
+  const pageIds: string[] = useMemo(() => {
+    const v: { id: string; pos: number }[] = [];
     elementsMap.forEach((element) => {
-      if ((element.get("page") ?? 1) > pages) {
-        pages = element.get("page") ?? 1;
+      if (element.get("type") == "page") {
+        v.push({
+          id: element.get("id"),
+          pos: element.getIn(["data", "pos"], 0),
+        });
       }
     });
-    if (desc.get("pages") == null || desc.get("pages") < pages) {
-      actions.setPages(id, pages);
+    v.sort(field_cmp("pos"));
+    const numPages = v.length;
+
+    if (desc.get("pages") == null || desc.get("pages") != numPages) {
+      actions.setPages(id, numPages);
     }
+    const pageIds = v.map((x) => x.id);
     if (desc.get("page") == null) {
       actions.setPage(id, 1);
     }
+    if (desc.get("page") > numPages) {
+      actions.setPage(id, numPages);
+    }
+    return pageIds;
   }, [elementsMap]);
 
   const elementsOnPage = useMemo(() => {
-    const page = desc.get("page") ?? 1;
+    const pageId = pageIds[desc.get("page", 1) - 1] ?? pageIds[0];
     const v: Element[] = [];
     elementsMap.forEach((element) => {
-      if ((element.get("page") ?? 1) == page) {
+      if (element.get("page") == pageId) {
         v.push(element.toJS());
       }
     });
     return v;
-  }, [elementsMap, desc.get("page") ?? 1]);
+  }, [elementsMap, desc.get("page")]);
 
   const selectedTool = desc.get("selectedTool") ?? "hand";
   return (
@@ -56,6 +73,7 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
         <>
           <ToolPanel selectedTool={selectedTool} readOnly />
           <NavigationPanel
+            mainFrameType={mainFrameType}
             fontSize={font_size}
             elements={elementsOnPage}
             whiteboardDivRef={whiteboardDivRef}
@@ -63,6 +81,7 @@ export default function WhiteboardTimeTravel({ syncdb, version, font_size }) {
         </>
       )}
       <Canvas
+        mainFrameType={mainFrameType}
         elementsMap={elementsMap}
         elements={elementsOnPage}
         font_size={font_size}

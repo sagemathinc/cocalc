@@ -3,13 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Row } from "antd";
-import SignIn from "components/landing/sign-in";
-import SanitizedMarkdown from "components/misc/sanitized-markdown";
+import { Col, Row, Space } from "antd";
 import { ReactNode } from "react";
-import Image from "./image";
-import useCustomize from "lib/use-customize";
+
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
+import SignIn from "components/landing/sign-in";
+import { CSS, Paragraph, Title } from "components/misc";
+import SanitizedMarkdown from "components/misc/sanitized-markdown";
+import { MAX_WIDTH_LANDING } from "lib/config";
+import useCustomize from "lib/use-customize";
+import Image from "./image";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -20,58 +25,92 @@ interface StaticImageData {
 }
 
 interface Props {
+  aboveImage?: ReactNode;
+  alignItems?: "center" | "flex-start";
   alt?: string;
   caption?: string;
   description?: ReactNode;
   image?: string | StaticImageData;
-  aboveImage?: ReactNode;
-  indexInfo?: string;
+  imageAlternative?: JSX.Element | string; // string as markdown, replaces the image
+  landing?: boolean;
   logo?: ReactNode | string | StaticImageData;
   startup?: ReactNode;
+  style?: React.CSSProperties;
   subtitle: ReactNode;
   subtitleBelow?: boolean;
   title: ReactNode;
 }
 
+const SUBTITLE_STYLE: CSS = {
+  color: COLORS.GRAY_D,
+  textAlign: "center",
+};
+
 function Logo({ logo, title }) {
   if (!logo) return null;
-  if (typeof logo == "string" || logo?.src != null) {
-    return (
-      <Image src={logo} style={{ width: "200px" }} alt={`${title} logo`} />
-    );
+  if (typeof logo === "string" || logo.src != null) {
+    return <Image src={logo} style={{ width: "40%" }} alt={`${title} logo`} />;
+  } else {
+    return logo;
   }
-  return logo;
 }
 
 export default function Content(props: Props) {
   const {
-    title,
+    aboveImage,
+    alignItems = "center",
     alt,
     caption,
     description,
     image,
-    aboveImage,
-    indexInfo,
+    imageAlternative,
+    landing = false, // for all pages on /landing/* – makes the splash content background at the top blue-ish
     logo,
     startup,
+    style,
     subtitle,
     subtitleBelow = false,
+    title,
   } = props;
 
   const { sandboxProjectId } = useCustomize();
 
   function renderIndexInfo() {
-    if (!indexInfo) return;
-    return (
-      <Col xs={20}>
-        <SanitizedMarkdown value={indexInfo} style={{ padding: "20xp" }} />
-      </Col>
-    );
+    if (!imageAlternative) return;
+    if (typeof imageAlternative === "string") {
+      return (
+        <Col xs={20}>
+          <SanitizedMarkdown
+            value={imageAlternative}
+            style={{ padding: "20xp" }}
+          />
+        </Col>
+      );
+    } else {
+      return <Col xs={20}>{imageAlternative}</Col>;
+    }
+  }
+
+  function renderTitle() {
+    if (title)
+      return (
+        <Title level={2} style={{ color: COLORS.GRAY_DD }}>
+          {title}
+        </Title>
+      );
   }
 
   function renderSubtitleTop() {
     if (subtitleBelow) return;
-    return <h2 style={{ color: "#333" }}>{subtitle}</h2>;
+    return (
+      <Title level={4} style={SUBTITLE_STYLE}>
+        {typeof subtitle === "string" ? (
+          <StaticMarkdown value={subtitle} />
+        ) : (
+          subtitle
+        )}
+      </Title>
+    );
   }
 
   function renderSubtitleBelow() {
@@ -80,9 +119,9 @@ export default function Content(props: Props) {
       <>
         <Col xs={0} sm={4}></Col>
         <Col xs={24} sm={16}>
-          <h2 style={{ color: "#333", textAlign: "center", marginTop: "30px" }}>
+          <Title level={4} style={SUBTITLE_STYLE}>
             {subtitle}
-          </h2>
+          </Title>
         </Col>
       </>
     );
@@ -90,68 +129,104 @@ export default function Content(props: Props) {
 
   function renderImage() {
     // if the index info is anything more than an empty string, we render this here instead
-    if (!!indexInfo) return renderIndexInfo();
+    if (!!imageAlternative) return renderIndexInfo();
     if (!image) return;
     return (
       <>
         <Image
           src={image}
           priority={true}
-          style={{ padding: "15px" }}
+          style={{ paddingRight: "15px", paddingLeft: "15px" }}
           alt={alt ?? `Image illustrating ${title}`}
         />
-        <div style={{ textAlign: "center", color: "#333", fontSize: "12pt" }}>
+        <Paragraph
+          style={{
+            textAlign: "center",
+            color: COLORS.GRAY_DD,
+            fontSize: "12pt",
+          }}
+        >
           {caption}
-        </div>
+        </Paragraph>
       </>
     );
   }
 
   function renderAboveImage() {
-    return aboveImage != null
-      ? aboveImage
-      : sandboxProjectId && (
-          <div style={{ margin: "15px" }}>
-            <Path
-              style={{ marginBottom: "15px" }}
-              project_id={sandboxProjectId}
-              description="Public Sandbox"
-            />
-          </div>
-        );
+    if (aboveImage != null) return aboveImage;
+  }
+
+  function renderBelowImage() {
+    if (aboveImage == null && sandboxProjectId) {
+      return (
+        <div style={{ margin: "15px" }}>
+          <Path
+            style={{ marginBottom: "15px" }}
+            project_id={sandboxProjectId}
+            description="Public Sandbox"
+          />
+        </div>
+      );
+    }
+  }
+
+  function renderLogo() {
+    if (typeof logo === "string" || (logo as StaticImageData)?.src != null) {
+      return <Logo logo={logo} title={title} />;
+    } else {
+      return <>{logo}</>;
+    }
   }
 
   return (
-    <div style={{ padding: "30px 0" }}>
-      <Row>
+    <div
+      style={{
+        ...(landing && { backgroundColor: COLORS.LANDING.TOP_BG }),
+        ...style,
+      }}
+    >
+      <Row
+        gutter={[20, 30]}
+        style={{
+          padding: "30px 0",
+          maxWidth: MAX_WIDTH_LANDING,
+          marginTop: "0",
+          marginBottom: "0",
+          marginLeft: "auto",
+          marginRight: "auto",
+        }}
+      >
         <Col
           sm={10}
           xs={24}
           style={{
             display: "flex",
-            alignItems: "center",
-            paddingTop: "15px",
+            alignItems: alignItems,
           }}
         >
-          <div
-            style={{ textAlign: "center", margin: "auto", padding: "0 10%" }}
+          <Space
+            size="large"
+            direction="vertical"
+            style={{ textAlign: "center", width: "100%" }}
           >
-            <Logo logo={logo} title={title} />
-            <br />
-            <br />
-
-            <h1 style={{ color: "#333" }}>{title}</h1>
+            {renderLogo()}
+            {renderTitle()}
             {renderSubtitleTop()}
-            <h3 style={{ color: "#666" }}>{description}</h3>
-          </div>
+            <Title level={4} style={{ color: COLORS.GRAY }}>
+              {description}
+            </Title>
+          </Space>
         </Col>
         <Col sm={14} xs={24}>
           {renderAboveImage()}
           {renderImage()}
+          {renderBelowImage()}
         </Col>
         {renderSubtitleBelow()}
+        <Col lg={24}>
+          <SignIn startup={startup ?? title} hideFree={true} />
+        </Col>
       </Row>
-      <SignIn startup={startup ?? title} hideFree={true} />
     </div>
   );
 }

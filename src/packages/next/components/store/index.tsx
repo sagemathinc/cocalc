@@ -2,18 +2,18 @@
  *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
+import { Alert, Layout } from "antd";
+import { useRouter } from "next/router";
+import { useEffect } from "react";
 
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Alert, Layout } from "antd";
 import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import { MAX_WIDTH } from "lib/config";
 import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
 import Boost from "./boost";
 import Cart from "./cart";
 import Checkout from "./checkout";
@@ -116,6 +116,7 @@ export default function StoreLayout({ page }: Props) {
         return requireAccount(Congrats);
       default:
         unreachable(main);
+        return { notFound: true };
     }
   }
 
@@ -136,8 +137,10 @@ export default function StoreLayout({ page }: Props) {
           }}
         >
           <div style={{ maxWidth: MAX_WIDTH, margin: "auto" }}>
-            <Menu main={main} />
-            {body()}
+            <>
+              <Menu main={main} />
+              {body()}
+            </>
           </div>
         </Content>
       </Layout>

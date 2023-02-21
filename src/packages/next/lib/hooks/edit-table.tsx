@@ -1,3 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Space } from "antd";
+import { cloneDeep, get, keys, set } from "lodash";
 import {
   CSSProperties,
   ReactNode,
@@ -6,16 +13,16 @@ import {
   useRef,
   useState,
 } from "react";
-import useDatabase from "lib/hooks/database";
-import SaveButton from "components/misc/save-button";
-import { get, set, cloneDeep, keys } from "lodash";
-import { Space } from "antd";
-import { SCHEMA } from "@cocalc/util/schema";
-import Checkbox from "components/misc/checkbox";
-import IntegerSlider from "components/misc/integer-slider";
-import SelectWithDefault from "components/misc/select-with-default";
+
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
+import { SCHEMA } from "@cocalc/util/schema";
+import { Paragraph, Title } from "components/misc";
+import Checkbox from "components/misc/checkbox";
+import IntegerSlider from "components/misc/integer-slider";
+import SaveButton from "components/misc/save-button";
+import SelectWithDefault from "components/misc/select-with-default";
+import useDatabase from "lib/hooks/database";
 
 /*
 WARNING: the code below is some pretty complicated use of React hooks,
@@ -34,7 +41,25 @@ interface Options {
   noSave?: boolean;
 }
 
-export default function useEditTable<T extends object>(query: object, options?: Options) {
+interface HeadingProps {
+  path?: string;
+  title?: string;
+  desc?: ReactNode;
+  icon?: IconName;
+}
+
+interface EditBooleanProps {
+  path: string;
+  title?: string;
+  desc?: ReactNode;
+  label?: ReactNode;
+  icon?: IconName;
+}
+
+export default function useEditTable<T extends object>(
+  query: object,
+  options?: Options
+) {
   const { loading, value } = useDatabase(query);
   const [original, setOriginal] = useState<T | undefined>(undefined);
   const [edited, setEdited0] = useState<T | undefined>(undefined);
@@ -79,41 +104,21 @@ export default function useEditTable<T extends object>(query: object, options?: 
     );
   }
 
-  function Heading({
-    path,
-    title,
-    icon,
-    desc,
-  }: {
-    path?: string;
-    title?: string;
-    desc?: ReactNode;
-    icon?: IconName;
-  }) {
+  function Heading(props: HeadingProps) {
+    const { path, title, icon, desc } = props;
     return (
       <>
-        <h3>
+        <Title level={3}>
           {icon && <Icon name={icon} style={{ marginRight: "10px" }} />}
           {getTitle(path, title)}
-        </h3>
-        {desc && <div>{desc}</div>}
+        </Title>
+        {desc && <Paragraph>{desc}</Paragraph>}
       </>
     );
   }
 
-  function EditBoolean({
-    path,
-    title,
-    desc,
-    label,
-    icon,
-  }: {
-    path: string;
-    title?: string;
-    desc?: ReactNode;
-    label?: ReactNode;
-    icon?: IconName;
-  }) {
+  function EditBoolean(props: EditBooleanProps) {
+    const { path, title, desc, label, icon } = props;
     return (
       <Space direction="vertical" style={{ marginTop: "15px" }}>
         <Heading path={path} title={title} icon={icon} desc={desc} />

@@ -1,16 +1,30 @@
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TYPE_TO_ICON } from "../index";
-import { Divider, Menu, Popover, Statistic } from "antd";
-import Count from "../count";
+import { Divider, Menu, Modal } from "antd";
+import Count, { Stat } from "../count";
+import { useSelected } from "../use-selection";
+import { plural } from "@cocalc/util/misc";
+import { useState } from "react";
+import Export from "./export";
+import { capitalize } from "@cocalc/util/misc";
 
 export default function TopMenu({
+  id,
   name,
-  title,
+  columns,
   dbtable,
   view,
   viewCount,
   tableLowerBound,
+  data,
+  title,
+  primaryKey,
 }) {
+  const [modal, setModal] = useState<
+    "csv-export" | "json-export" | "not-implemented" | null
+  >(null);
+  const selected = useSelected({ id });
+  const numSelected = selected?.size ?? 0;
   const items = [
     {
       label: (
@@ -29,55 +43,94 @@ export default function TopMenu({
       children: [
         {
           type: "group",
-          label: <Divider>Properties</Divider>,
+          label: (
+            <Divider>
+              {capitalize(view)} View of {title}
+            </Divider>
+          ),
           children: [
             {
-              label: "Rename view",
-              key: "rename",
+              label: <Stat title="Visible results" value={viewCount} />,
+              key: "results",
             },
             {
-              label: "Change view type",
-              key: "change",
-            },
-            {
-              label: "Duplicate view",
-              key: "duplicate",
-            },
-            {
-              label: "Copy another view's configuration",
-              key: "copy",
-            },
-            {
-              danger: true,
-              label: "Delete view",
-              key: "delete",
+              label: <Count dbtable={dbtable} lowerBound={tableLowerBound} />,
+              key: "count",
             },
           ],
         },
         {
           type: "group",
-          label: <Divider>Import</Divider>,
+          label: (
+            <Divider>
+              {" "}
+              <Icon name="gear" style={{ marginRight: "10px" }} /> Properties
+            </Divider>
+          ),
           children: [
             {
-              label: "Import CSV",
+              icon: <Icon name="swap" />,
+              label: "Change view type...",
+              key: "change",
+            },
+            {
+              icon: <Icon name="copy" />,
+              label: "Copy another view's configuration...",
+              key: "copy",
+            },
+          ],
+        },
+        {
+          type: "group",
+          label: (
+            <Divider>
+              <Icon name="cloud-upload" style={{ marginRight: "10px" }} />{" "}
+              Import
+            </Divider>
+          ),
+          children: [
+            {
+              icon: <Icon name="csv" />,
+              label: "Import CSV...",
               key: "csv-import",
             },
             {
-              label: "Import JSON",
+              icon: <Icon name="js-square" />,
+              label: "Import JSON...",
               key: "json-import",
             },
           ],
         },
         {
           type: "group",
-          label: <Divider>Export</Divider>,
+          label: (
+            <Divider>
+              <Icon name="file-export" style={{ marginRight: "10px" }} /> Export
+            </Divider>
+          ),
           children: [
             {
-              label: "Export CSV",
+              icon: <Icon name="csv" />,
+              disabled: primaryKey != null && numSelected == 0,
+              label:
+                numSelected == 0
+                  ? "Export CSV (select some records)"
+                  : `Export ${selected?.size ?? 0} ${plural(
+                      numSelected,
+                      "record"
+                    )} to CSV...`,
               key: "csv-export",
             },
             {
-              label: "Export JSON",
+              icon: <Icon name="js-square" />,
+              disabled: primaryKey != null && numSelected == 0,
+              label:
+                numSelected == 0
+                  ? "Export JSON (select some records)"
+                  : `Export ${selected?.size ?? 0} ${plural(
+                      numSelected,
+                      "record"
+                    )} to JSON...`,
               key: "json-export",
             },
           ],
@@ -86,24 +139,57 @@ export default function TopMenu({
     },
   ];
   return (
-    <Popover
-      mouseEnterDelay={0.7}
-      title={
-        <>
-          <Icon name={TYPE_TO_ICON[view]} /> {name}
-        </>
-      }
-      placement="left"
-      content={
-        <div>
-          Table: {title}
-          <Divider>Statistics</Divider>
-          <Statistic title="Results in Filtered View" value={viewCount} />
-          <Count name={title} dbtable={dbtable} lowerBound={tableLowerBound} />
-        </div>
-      }
-    >
-      <Menu triggerSubMenuAction={"click"} items={items} />
-    </Popover>
+    <>
+      {modal == "csv-export" && (primaryKey == null || selected) && (
+        <Export
+          type="csv"
+          title={title}
+          selected={selected}
+          onClose={() => setModal(null)}
+          data={data}
+          columns={columns}
+          primaryKey={primaryKey}
+        />
+      )}
+      {modal == "json-export" && (primaryKey == null || selected) && (
+        <Export
+          type="json"
+          title={title}
+          onClose={() => setModal(null)}
+          selected={selected}
+          data={data}
+          columns={columns}
+          primaryKey={primaryKey}
+        />
+      )}
+      {modal == "not-implemented" && (
+        <Modal
+          open
+          title="This menu item is not yet implemented."
+          onCancel={() => {
+            setModal(null);
+          }}
+          onOk={() => {
+            setModal(null);
+          }}
+        />
+      )}
+      <Menu
+        selectable={false}
+        style={{ background: numSelected == 0 ? undefined : "#a3d4ff" }}
+        triggerSubMenuAction={"click"}
+        items={items}
+        onClick={({ key }) => {
+          switch (key) {
+            case "csv-export":
+            case "json-export":
+              setModal(key);
+              break;
+            default:
+              setModal("not-implemented");
+          }
+        }}
+      />
+    </>
   );
 }

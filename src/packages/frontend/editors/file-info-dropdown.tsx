@@ -4,11 +4,22 @@
  */
 
 // info button inside the editor when editing a file. links you back to the file listing with the action prompted
-import { CSS, React, ReactDOM, useActions } from "../app-framework";
-import { capitalize, filename_extension } from "@cocalc/util/misc";
-import { file_actions } from "../project_store";
-import { DropdownMenu, HiddenXS, MenuItem, Icon, IconName, Space } from "../components";
+
+import { createRoot } from "react-dom/client";
+
+import { CSS, React, useActions } from "@cocalc/frontend/app-framework";
+import {
+  DropdownMenu,
+  HiddenXS,
+  Icon,
+  IconName,
+  Space,
+} from "@cocalc/frontend/components";
+import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { file_actions } from "@cocalc/frontend/project_store";
+import { capitalize, filename_extension } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   filename: string; // expects the full path name
@@ -19,11 +30,11 @@ interface Props {
 }
 
 export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
-  ({ filename, project_id, is_public, label, style }) => {
+  (props: Props) => {
+    const { filename, project_id, is_public, label, style } = props;
     const actions = useActions({ project_id });
-    const student_project_functionality = useStudentProjectFunctionality(
-      project_id
-    );
+    const student_project_functionality =
+      useStudentProjectFunctionality(project_id);
     if (student_project_functionality.disableActions) {
       return <span></span>;
     }
@@ -55,18 +66,25 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
       }
     }
 
-    function render_menu_item(name: string, icon: IconName): JSX.Element {
-      return (
-        <MenuItem key={name} eventKey={name}>
-          <Icon name={icon} style={{ width: "1.125em" }} />{" "}
-          {`${capitalize(name)}...`}
-        </MenuItem>
-      );
+    function render_menu_item(name: string, icon: IconName): MenuItems[0] {
+      return {
+        key: name,
+        onClick: () => handle_click(name),
+        label: (
+          <>
+            <Icon
+              name={icon}
+              style={{ width: "1.125em", color: COLORS.FILE_ICON }}
+            />{" "}
+            {`${capitalize(name)}...`}
+          </>
+        ),
+      };
     }
 
-    function render_menu_items() {
+    function render_menu_items(): MenuItems {
       let items: { [key: string]: IconName };
-      const v: JSX.Element[] = [];
+      const v: MenuItems = [];
       if (is_public) {
         // Fewer options when viewing the action dropdown in public mode:
         items = {
@@ -93,7 +111,6 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     function render_title() {
       return (
         <span>
-          {" "}
           <Icon name={"file"} />
           {label && (
             <HiddenXS>
@@ -108,13 +125,11 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     return (
       <DropdownMenu
         button={true}
-        style={{ ...{ height: "100%", marginRight: "3px" }, ...style }}
+        style={{ ...{ height: "100%" }, ...style }}
         id="file_info_button"
         title={render_title()}
-        onClick={handle_click}
-      >
-        {render_menu_items()}
-      </DropdownMenu>
+        items={render_menu_items()}
+      />
     );
   },
   (prev, next) =>
@@ -128,14 +143,14 @@ export function render_file_info_dropdown(
   dom_node,
   is_public?
 ) {
-  return ReactDOM.render(
+  const root = createRoot(dom_node);
+  root.render(
     <EditorFileInfoDropdown
       filename={filename}
       project_id={project_id}
       is_public={is_public}
-      label={"File"}
+      label={"Action"}
       style={{ height: "34px" }}
-    />,
-    dom_node
+    />
   );
 }

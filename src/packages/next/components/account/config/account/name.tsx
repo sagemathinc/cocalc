@@ -3,14 +3,16 @@ Very bad experimental first account name configuration page.
 This is extremely preliminary and just for experimentation.
 */
 
-import { useEffect, useState } from "react";
 import { Alert, Checkbox, Input, Space } from "antd";
+import { useEffect, useState } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { Paragraph, Text } from "components/misc";
+import A from "components/misc/A";
+import SaveButton from "components/misc/save-button";
 import Loading from "components/share/loading";
 import useDatabase from "lib/hooks/database";
-import SaveButton from "components/misc/save-button";
-import A from "components/misc/A";
 import register from "../register";
-import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Data {
   first_name?: string;
@@ -99,23 +101,26 @@ function ConfigureName() {
               table="accounts"
             />
             <br />
-            <b>First Name</b> {firstNameDesc}
+            <Paragraph>
+              <Text strong>First Name</Text> {firstNameDesc}
+            </Paragraph>
             <Input
               addonBefore={"First name"}
               defaultValue={get.value.accounts.first_name}
               onChange={onChange("first_name")}
             />
             <br />
-            <b>Last Name</b> {lastNameDesc}
+            <Paragraph>
+              <Text strong>Last Name</Text> {lastNameDesc}
+            </Paragraph>
             <Input
               addonBefore={"Last name"}
               defaultValue={get.value.accounts.last_name}
               onChange={onChange("last_name")}
             />
             <br />
-            <b>Username</b>
-            <div>
-              Your username provides a{" "}
+            <Paragraph>
+              <Text strong>Username</Text> Your username provides a{" "}
               {edited.name ? (
                 <A external href={`/${edited.name}`}>
                   nice URL
@@ -130,17 +135,19 @@ function ConfigureName() {
                   (Changing your name could break links that you have shared.)
                 </>
               )}
-            </div>
+            </Paragraph>
             <Input
               addonBefore={"Name"}
               defaultValue={get.value.accounts.name}
               onChange={onChange("name")}
             />
             <br />
-            <b>
-              <Icon name="user-secret" /> Unlisted
-            </b>
-            <div>{unlistedDesc}</div>
+            <Paragraph>
+              <Text strong>
+                <Icon name="user-secret" /> Unlisted
+              </Text>{" "}
+              {unlistedDesc}
+            </Paragraph>
             <Checkbox
               defaultChecked={get.value.accounts.unlisted}
               onChange={onChange("unlisted", "checked")}

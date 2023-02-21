@@ -141,9 +141,9 @@ class X11Channel {
     try {
       const sub = spawn(command, args, options);
       sub.unref();
-      pid2path[sub.pid] = this.path;
+      pid2path[sub.pid ?? 0] = this.path;
       sub.on("exit", () => {
-        delete pid2path[sub.pid];
+        delete pid2path[sub.pid ?? 0];
       });
     } catch (err) {
       this.channel.write({

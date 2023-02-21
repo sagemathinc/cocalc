@@ -6,7 +6,7 @@ import { plural } from "@cocalc/util/misc";
 import useDebounceEffect from "@cocalc/frontend/app-framework/use-debounce-effect";
 import { FilterOutlined } from "@ant-design/icons";
 
-export default function useFilterInput({ data, id, title }): {
+export default function useFilterInput({ data, id }): {
   filteredData: any[];
   Filter: ReactNode;
   numHidden: number;
@@ -47,7 +47,7 @@ export default function useFilterInput({ data, id, title }): {
               textOverflow: "ellipsis",
             }}
           >
-            <FilterOutlined /> {title}
+            <FilterOutlined /> Filter
           </div>
         }
         style={{ width: 250, marginBottom: "5px" }}

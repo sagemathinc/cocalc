@@ -82,6 +82,10 @@ interface Json {
   editable?: boolean;
 }
 
+interface JsonString {
+  type: "json-string";
+}
+
 interface People {
   type: "people";
   editable?: boolean;
@@ -160,6 +164,7 @@ export type RenderSpec =
   | Image
   | Invalid
   | Json
+  | JsonString
   | Number
   | Organizations
   | People

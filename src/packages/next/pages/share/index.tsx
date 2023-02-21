@@ -1,12 +1,18 @@
-import Link from "next/link";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
+import Link from "next/link";
+
 import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/share/customize";
 import Head from "components/landing/head";
-import SquareLogo from "components/logo-square";
+import Header from "components/landing/header";
+import Logo from "components/logo";
 import SiteName from "components/share/site-name";
+import { Customize } from "lib/share/customize";
+import withCustomize from "lib/with-customize";
 
 export default function Home({ customize }) {
   return (
@@ -15,15 +21,13 @@ export default function Home({ customize }) {
       <Layout>
         <Header />
         <div style={{ fontSize: "16pt", textAlign: "center", margin: "60px" }}>
-          <SquareLogo style={{ width: "120px", height: "120px" }} />
+          <Logo type="icon" style={{ width: "120px", height: "120px" }} />
           <br />
           <br />
           <br />
           Browse recent{" "}
           <Link href="/share/public_paths/page/1">
-            <a>
-              <SiteName /> Shared Public Files...
-            </a>
+            <SiteName /> Shared Public Files...
           </Link>
         </div>
         <Footer />

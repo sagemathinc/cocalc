@@ -6,6 +6,7 @@
 import * as message from "@cocalc/util/message";
 import { is_array } from "@cocalc/util/misc";
 import { validate_client_query } from "@cocalc/util/schema-validate";
+import { CB } from "@cocalc/util/types/database";
 
 declare const $: any; // jQuery
 
@@ -37,7 +38,7 @@ export class QueryClient {
     no_post?: boolean; // DEPRECATED -- didn't turn out to be worth it.
     ignore_response?: boolean; // if true, be slightly efficient by not waiting for any response or
     // error (just assume it worked; don't care about response)
-    cb?: Function; // used for changefeed outputs if changes is true
+    cb?: CB; // used for changefeed outputs if changes is true
   }): Promise<any> {
     if (opts.options != null && !is_array(opts.options)) {
       // should never happen...

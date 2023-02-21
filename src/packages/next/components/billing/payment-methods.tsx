@@ -11,21 +11,24 @@ There are other types of sources, e.g., "ACH credit transfer".
 In the *near* future we will support more payment methods!
 */
 
+import { Alert, Button, Popconfirm, Table } from "antd";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
-import useAPI from "lib/hooks/api";
-import Loading from "components/share/loading";
-import HelpEmail from "components/misc/help-email";
-import A from "components/misc/A";
-import { Alert, Button, Popconfirm, Table } from "antd";
+
 import { Icon } from "@cocalc/frontend/components/icon";
-import apiPost from "lib/api/post";
 import { cmp } from "@cocalc/util/misc";
+import salesTax from "@cocalc/util/stripe/sales-tax";
+import { COLORS } from "@cocalc/util/theme";
+import { Paragraph, Title } from "components/misc";
+import A from "components/misc/A";
+import HelpEmail from "components/misc/help-email";
+import Loading from "components/share/loading";
+import SiteName from "components/share/site-name";
+import apiPost from "lib/api/post";
+import useAPI from "lib/hooks/api";
+import useIsMounted from "lib/hooks/mounted";
 import useCustomize from "lib/use-customize";
 import Script from "next/script";
-import useIsMounted from "lib/hooks/mounted";
-import SiteName from "components/share/site-name";
-import salesTax from "@cocalc/util/stripe/sales-tax";
 
 const STRIPE_CLIENT_LIBRARY = "https://js.stripe.com/v3/";
 
@@ -200,9 +203,11 @@ const columns = (onChange) => [
 interface Props {
   startMinimized?: boolean;
   setTaxRate?: (rate: number) => void; // use to find out the sales tax rate for default billing method
+  setHaveCreditCard?: (have: boolean) => void;
 }
 
-export default function PaymentMethods({ startMinimized, setTaxRate }: Props) {
+export default function PaymentMethods(props: Props) {
+  const { startMinimized, setTaxRate, setHaveCreditCard } = props;
   const [minimized, setMinimized] = useState<boolean>(!!startMinimized);
   const { result, error, call } = useAPI("billing/get-customer");
   if (error) {
@@ -233,6 +238,9 @@ export default function PaymentMethods({ startMinimized, setTaxRate }: Props) {
   // default stays stable (since moving is confusing).
   cards.sort((x, y) => cmp(x.id, y.id));
 
+  // Tell the parent if we have a credit card or not.
+  setHaveCreditCard?.(cards.length > 0);
+
   if (minimized) {
     let defaultCard: undefined | CardProps = undefined;
     for (const card of cards) {
@@ -262,12 +270,14 @@ export default function PaymentMethods({ startMinimized, setTaxRate }: Props) {
       )}
       {!startMinimized && (
         <>
-          <h3>Credit Cards ({cards.length})</h3>
-          {cards.length > 0 ? (
-            <>These are the credit cards that you have currently setup.</>
-          ) : (
-            <>Please enter your credit card below.</>
-          )}{" "}
+          <Title level={2}>Credit Cards ({cards.length})</Title>
+          <Paragraph>
+            {cards.length > 0 ? (
+              <>These are the credit cards that you have currently setup.</>
+            ) : (
+              <>Please enter your credit card below.</>
+            )}
+          </Paragraph>
         </>
       )}
       <AddPaymentMethod
@@ -301,11 +311,8 @@ interface AddPaymentMethodProps {
   defaultAdding?: boolean; // starts initially in creating mode
 }
 
-function AddPaymentMethod({
-  onChange,
-  style,
-  defaultAdding,
-}: AddPaymentMethodProps) {
+function AddPaymentMethod(props: AddPaymentMethodProps) {
+  const { onChange, style, defaultAdding } = props;
   const [error, setError] = useState<string>("");
   const [adding, setAdding] = useState<boolean>(!!defaultAdding);
   const [creating, setCreating] = useState<boolean>(false);
@@ -433,7 +440,7 @@ function AddPaymentMethod({
               )}
             </Button>
           </div>
-          <div style={{ color: "#666", marginTop: "15px" }}>
+          <Paragraph style={{ color: COLORS.GRAY, margin: "25px 0 0 0" }}>
             <SiteName /> does not directly store any credit card numbers;
             instead they are stored securely by{" "}
             <A href="https://stripe.com/" external>
@@ -441,7 +448,7 @@ function AddPaymentMethod({
             </A>
             . PayPal or wire transfers for non-recurring purchases above $100
             are also possible. <HelpEmail />.
-          </div>
+          </Paragraph>
         </div>
       )}
     </div>

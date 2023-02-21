@@ -13,14 +13,14 @@ fully unit test it via mocking of components.
 */
 
 import * as immutable from "immutable";
+import json_stable from "json-stable-stringify";
+import * as underscore from "underscore";
+
 import { JupyterActions as JupyterActions0 } from "./actions";
 
 import { callback2, once } from "@cocalc/util/async-utils";
 //import { reuseInFlight } from "async-await-utils/hof";
-
-import * as underscore from "underscore";
 import * as misc from "@cocalc/util/misc";
-import json_stable from "json-stable-stringify";
 import { OutputHandler } from "./output-handler";
 import { RunAllLoop } from "./run-all-loop";
 
@@ -39,6 +39,29 @@ export class JupyterActions extends JupyterActions0 {
   private run_all_loop?: RunAllLoop;
   private clear_kernel_error?: any;
   private running_manager_run_cell_process_queue: boolean = false;
+
+  public run_cell(
+    id: string,
+    save: boolean = true,
+    no_halt: boolean = false
+  ): void {
+    if (this.store.get("read_only")) return;
+    const cell = this.store.getIn(["cells", id]);
+    if (cell == null) {
+      throw Error(`can't run cell ${id} since it does not exist`);
+    }
+    const cell_type = cell.get("cell_type", "code");
+    if (cell_type == "code") {
+      // when the backend is running code, just don't worry about
+      // trying to parse things like "foo?" out. We can't do
+      // it without CodeMirror, and it isn't worth it for that
+      // application.
+      this.run_code_cell(id, save, no_halt);
+    }
+    if (save) {
+      this.save_asap();
+    }
+  }
 
   private set_backend_state(backend_state: BackendState): void {
     this.dbg("set_backend_state")(backend_state);
@@ -119,11 +142,7 @@ export class JupyterActions extends JupyterActions0 {
     const dbg = this.dbg("initialize_manager");
     dbg();
 
-    let cells = this.store.get("cells");
-    if (cells != null) {
-      5;
-      cells = cells.toJS();
-    }
+    let cells = this.store.get("cells")?.toJS();
     dbg(`cells at manage_init = ${JSON.stringify(cells)}`);
 
     this.sync_exec_state = underscore.debounce(this.sync_exec_state, 2000);
@@ -252,15 +271,11 @@ export class JupyterActions extends JupyterActions0 {
   ensure_backend_kernel_setup = () => {
     const dbg = this.dbg("ensure_backend_kernel_setup");
     const kernel = this.store.get("kernel");
-    if (kernel == null) {
-      dbg("no kernel set -- can't do anything");
-      return;
-    }
 
     let current: string | undefined = undefined;
     if (this.jupyter_kernel != null) {
       current = this.jupyter_kernel.name;
-      if (current === kernel && this.jupyter_kernel.get_state() != "closed") {
+      if (current == kernel && this.jupyter_kernel.get_state() != "closed") {
         dbg("everything is properly setup and working");
         return;
       }

@@ -196,7 +196,10 @@ export class AppRedux {
     }
   }
 
-  createStore<State, C extends Store<State> = Store<State>>(
+  createStore<
+    State extends Record<string, any>,
+    C extends Store<State> = Store<State>
+  >(
     name: string,
     store_class?: StoreConstructorType<State, C>,
     init?: {} | State
@@ -244,9 +247,10 @@ export class AppRedux {
   getStore(name: "users"): types.UsersStore;
   getStore(name: ComputeImageStoreType): types.ComputeImagesStore;
 
-  getStore<State>(name: string): Store<State>;
-  getStore<State, C extends Store<State>>(nam: string): C | undefined;
-  //  getStore<State, C extends Store<State>>(name: string): C | undefined
+  getStore<State extends Record<string, any>>(name: string): Store<State>;
+  getStore<State extends Record<string, any>, C extends Store<State>>(
+    nam: string
+  ): C | undefined;
   getStore(name) {
     if (!this.hasStore(name)) {
       return undefined;
@@ -664,16 +668,12 @@ export function project_redux_name(project_id: string, name?: string): string {
   return s;
 }
 
-export class Redux extends React.Component {
-  render() {
-    return React.createElement(
-      Provider,
-      { store: redux._redux_store },
-      this.props.children
-    );
-  }
+export function Redux({ children }) {
+  return React.createElement(Provider, {
+    store: redux._redux_store,
+    children,
+  });
 }
-
 // The lines above are just the non-tsx version of this:
 //<Provider store={redux._redux_store}>
 //    {@props.children}

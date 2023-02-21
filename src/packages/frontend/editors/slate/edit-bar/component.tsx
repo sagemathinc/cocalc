@@ -4,13 +4,13 @@
  */
 
 import React from "react";
-import { SlateEditor } from "../editable-markdown";
 
-import { MarksBar } from "./marks-bar";
-import { Marks } from "./marks";
+import { SlateEditor } from "../editable-markdown";
 import { LinkEdit } from "./link-edit";
 import { ListProperties } from "./list";
 import { ListEdit } from "./list-edit";
+import { Marks } from "./marks";
+import { MarksBar } from "./marks-bar";
 
 interface Props {
   Search: JSX.Element;
@@ -25,16 +25,18 @@ interface Props {
 
 const HEIGHT = "25px";
 
-export const EditBar: React.FC<Props> = ({
-  isCurrent,
-  Search,
-  marks,
-  linkURL,
-  listProperties,
-  editor,
-  style,
-  hideSearch,
-}) => {
+export const EditBar: React.FC<Props> = (props: Props) => {
+  const {
+    isCurrent,
+    Search,
+    marks,
+    linkURL,
+    listProperties,
+    editor,
+    style,
+    hideSearch,
+  } = props;
+
   function renderContent() {
     return (
       <>

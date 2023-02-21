@@ -10,16 +10,18 @@ declare const $: any;
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 import { debounce } from "lodash";
-import { MutableRefObject, useCallback, useEffect, useMemo } from "react";
+import {
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { useDebounce } from "use-debounce";
 
-import {
-  CSS,
-  React,
-  useIsMountedRef,
-  useRef,
-} from "@cocalc/frontend/app-framework";
+import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
@@ -29,6 +31,12 @@ import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
 import { InsertCell } from "./insert-cell";
 import { NotebookMode, Scroll } from "./types";
+
+import {
+  SortableList,
+  SortableItem,
+  DragHandle,
+} from "@cocalc/frontend/components/sortable-list";
 
 import { createContext, useContext } from "react";
 interface IFrameContextType {
@@ -61,25 +69,25 @@ const ITEM_STYLE: CSS = {
 };
 
 interface CellListProps {
-  actions?: JupyterActions; // if not defined, then everything read only
-  name?: string;
+  actions?: JupyterActions; // if not defined, then everything is read only
   cell_list: immutable.List<string>; // list of ids of cells in order
-  cells: immutable.Map<string, any>;
-  font_size: number;
-  sel_ids?: immutable.Set<string>; // set of selected cells
-  md_edit_ids?: immutable.Set<string>;
-  cur_id?: string; // cell with the green cursor around it; i.e., the cursor cell
-  mode: NotebookMode;
-  hook_offset?: number;
-  scroll?: Scroll; // scroll by this amount
-  cm_options: immutable.Map<string, any>;
-  project_id?: string;
-  directory?: string;
-  scrollTop?: any;
-  complete?: immutable.Map<string, any>; // status of tab completion
-  is_focused?: boolean;
-  more_output?: immutable.Map<string, any>;
   cell_toolbar?: string;
+  cells: immutable.Map<string, any>;
+  cm_options: immutable.Map<string, any>;
+  complete?: immutable.Map<string, any>; // status of tab completion
+  cur_id?: string; // cell with the green cursor around it; i.e., the cursor cell
+  directory?: string;
+  font_size: number;
+  hook_offset?: number;
+  is_focused?: boolean;
+  md_edit_ids?: immutable.Set<string>;
+  mode: NotebookMode;
+  more_output?: immutable.Map<string, any>;
+  name?: string;
+  project_id?: string;
+  scroll?: Scroll; // scroll by this amount
+  scrollTop?: any;
+  sel_ids?: immutable.Set<string>; // set of selected cells
   trust?: boolean;
   use_windowed_list?: boolean;
 }
@@ -87,24 +95,24 @@ interface CellListProps {
 export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const {
     actions,
-    name,
     cell_list,
-    cells,
-    font_size,
-    sel_ids,
-    md_edit_ids,
-    cur_id,
-    mode,
-    hook_offset,
-    scroll,
-    cm_options,
-    project_id,
-    directory,
-    scrollTop,
-    complete,
-    is_focused,
-    more_output,
     cell_toolbar,
+    cells,
+    cm_options,
+    complete,
+    cur_id,
+    directory,
+    font_size,
+    hook_offset,
+    is_focused,
+    md_edit_ids,
+    mode,
+    more_output,
+    name,
+    project_id,
+    scroll,
+    scrollTop,
+    sel_ids,
     trust,
     use_windowed_list,
   } = props;
@@ -167,6 +175,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   function save_scroll(): void {
     if (use_windowed_list) {
       // TODO -- virtuoso
+      // We don't actually need to do anything though since our virtuoso
+      // integration automatically solves this same problem.
     } else {
       if (cell_list_node.current != null) {
         frameActions.current?.set_scrollTop(cell_list_node.current.scrollTop);
@@ -175,7 +185,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }
 
   async function restore_scroll(): Promise<void> {
-    if (scrollTop == null) return;
+    if (scrollTop == null || use_windowed_list) return;
     /* restore scroll state -- as rendering happens dynamically
        and asynchronously, and I have no idea how to know when
        we are done, we can't just do this once.  Instead, we
@@ -184,13 +194,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     let scrollHeight: number = 0;
     for (const tm of [0, 1, 100, 250, 500, 1000]) {
       if (!is_mounted.current) return;
-      if (!use_windowed_list) {
-        const elt = cell_list_node.current;
-        if (elt != null && elt.scrollHeight !== scrollHeight) {
-          // dynamically rendering actually changed something
-          elt.scrollTop = scrollTop;
-          scrollHeight = elt.scrollHeight;
-        }
+      const elt = cell_list_node.current;
+      if (elt != null && elt.scrollHeight !== scrollHeight) {
+        // dynamically rendering actually changed something
+        elt.scrollTop = scrollTop;
+        scrollHeight = elt.scrollHeight;
       }
       await delay(tm);
     }
@@ -271,6 +279,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
     if (scroll.startsWith("cell")) {
       // find index of cur_id cell.
+      if (cur_id == null) return;
       const cellList = actions?.store.get("cell_list");
       const index = cellList?.indexOf(cur_id);
       if (index == null) return;
@@ -385,37 +394,55 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   function render_cell(
     id: string,
-    isScrolling: boolean,
-    index: number,
+    isScrolling?: boolean,
+    index?: number,
     delayRendering?: number
   ) {
     const cell = cells.get(id);
     if (cell == null) return null;
+    if (index == null) {
+      index = cell_list.indexOf(id) ?? 0;
+    }
     return (
-      <Cell
-        key={id}
-        id={id}
-        index={index}
-        actions={actions}
-        name={name}
-        cm_options={cm_options}
-        cell={cell}
-        is_current={id === cur_id}
-        hook_offset={hook_offset}
-        is_selected={sel_ids?.contains(id)}
-        is_markdown_edit={md_edit_ids?.contains(id)}
-        mode={mode}
-        font_size={font_size}
-        project_id={project_id}
-        directory={directory}
-        complete={complete}
-        is_focused={is_focused}
-        more_output={more_output?.get(id)}
-        cell_toolbar={cell_toolbar}
-        trust={trust}
-        is_scrolling={isScrolling}
-        delayRendering={delayRendering}
-      />
+      <div>
+        {actions?.store.is_cell_editable(id) && (
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <DragHandle
+              id={id}
+              style={{
+                position: "absolute",
+                left: 15,
+                top: 2.5,
+                color: "#aaa",
+              }}
+            />
+          </div>
+        )}
+        <Cell
+          key={id}
+          id={id}
+          index={index}
+          actions={actions}
+          name={name}
+          cm_options={cm_options}
+          cell={cell}
+          is_current={id === cur_id}
+          hook_offset={hook_offset}
+          is_selected={sel_ids?.contains(id)}
+          is_markdown_edit={md_edit_ids?.contains(id)}
+          mode={mode}
+          font_size={font_size}
+          project_id={project_id}
+          directory={directory}
+          complete={complete}
+          is_focused={is_focused}
+          more_output={more_output?.get(id)}
+          cell_toolbar={cell_toolbar}
+          trust={trust}
+          is_scrolling={isScrolling}
+          delayRendering={delayRendering}
+        />
+      </div>
     );
   }
 
@@ -433,6 +460,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     offset: 0,
     id: "",
   });
+
   const cellListRef = useRef<any>(cell_list);
   cellListRef.current = cell_list;
   const virtuosoScroll = useVirtuosoScrollHook(
@@ -446,11 +474,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           onScroll: (scrollState) => {
             lastScrollStateRef.current = {
               ...scrollState,
-              id: cellListRef.current?.get(scrollState.index - 1),
+              id: cellListRef.current?.get(scrollState.index - EXTRA_TOP_CELLS),
             };
-            setTimeout(() => {
-              frameActions.current?.set_scrollTop(scrollState);
-            }, 0);
             for (const key in iframeOnScrolls) {
               iframeOnScrolls[key]();
             }
@@ -460,7 +485,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       : { disabled: true }
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!use_windowed_list) return;
     if (lastScrollStateRef.current == null) {
       return;
@@ -578,16 +603,18 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             } else if (index == cell_list.size + EXTRA_TOP_CELLS) {
               return BOTTOM_PADDING_CELL;
             }
-            const key = cell_list.get(index - EXTRA_TOP_CELLS);
-            if (key == null) return null;
-            const is_last: boolean = key === cell_list.get(-1);
+            const id = cell_list.get(index - EXTRA_TOP_CELLS);
+            if (id == null) return null;
+            const is_last: boolean = id === cell_list.get(-1);
             const h = virtuosoHeightsRef.current[index];
             return (
-              <DivTempHeight height={h ? `${h}px` : undefined}>
-                {render_insert_cell(key, "above")}
-                {render_cell(key, false, index - EXTRA_TOP_CELLS)}
-                {is_last ? render_insert_cell(key, "below") : undefined}
-              </DivTempHeight>
+              <SortableItem id={id}>
+                <DivTempHeight height={h ? `${h}px` : undefined}>
+                  {render_insert_cell(id, "above")}
+                  {render_cell(id, false, index - EXTRA_TOP_CELLS)}
+                  {is_last ? render_insert_cell(id, "below") : undefined}
+                </DivTempHeight>
+              </SortableItem>
             );
           }}
           rangeChanged={(visibleRange) => {
@@ -600,14 +627,16 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   } else {
     // This is needed for **the share server**, which hasn't had
     // windowing implemented/tested for yet and also for the
-    // non-windowed mode, which we still support as an option.
+    // non-windowed mode, which we will always support as an option.
     const v: (JSX.Element | null)[] = [];
     let index: number = 0;
     cell_list.forEach((id: string) => {
-      if (actions != null) {
-        v.push(render_insert_cell(id));
-      }
-      v.push(render_cell(id, false, index, index));
+      v.push(
+        <SortableItem id={id}>
+          {actions != null && render_insert_cell(id)}
+          {render_cell(id, false, index, index)}
+        </SortableItem>
+      );
       index += 1;
     });
     if (actions != null && v.length > 0) {
@@ -644,7 +673,32 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     <FileContext.Provider
       value={{ ...fileContext, noSanitize: !!trust, HeadingTagComponent }}
     >
-      {body}
+      <SortableList
+        disabled={actions == null}
+        items={cell_list.toJS()}
+        Item={({ id }) => (
+          <div
+            style={{
+              background: "white",
+              boxShadow: "8px 8px 4px 4px #ccc",
+            }}
+          >
+            {render_insert_cell(id, "above")}
+            {render_cell(id)}
+          </div>
+        )}
+        onDragStart={(id) => {
+          frameActions.current?.set_cur_id(id);
+        }}
+        onDragStop={(oldIndex, newIndex) => {
+          actions?.moveCell(oldIndex, newIndex);
+          setTimeout(() => {
+            frameActions.current?.scroll("cell visible");
+          }, 0);
+        }}
+      >
+        {body}
+      </SortableList>
     </FileContext.Provider>
   );
 };

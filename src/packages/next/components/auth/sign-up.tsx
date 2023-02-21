@@ -3,23 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert, Button, Checkbox, Input } from "antd";
+import { CSSProperties, useEffect, useRef, useState } from "react";
+import {
+  GoogleReCaptchaProvider,
+  useGoogleReCaptcha,
+} from "react-google-recaptcha-v3";
+
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
   is_valid_email_address as isValidEmailAddress,
   len,
 } from "@cocalc/util/misc";
 import { Strategy } from "@cocalc/util/types/sso";
-import { Alert, Button, Checkbox, Input } from "antd";
-import SquareLogo from "components/logo-square";
+import Logo from "components/logo";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
-import { CSSProperties, useEffect, useRef, useState } from "react";
-import {
-  GoogleReCaptchaProvider,
-  useGoogleReCaptcha,
-} from "react-google-recaptcha-v3";
 import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 
@@ -178,7 +179,8 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
     <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
-          <SquareLogo
+          <Logo
+            type="icon"
             style={{ width: "100px", height: "100px", marginBottom: "15px" }}
             priority={true}
           />

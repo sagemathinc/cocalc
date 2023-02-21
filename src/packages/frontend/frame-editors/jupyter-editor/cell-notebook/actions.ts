@@ -3,6 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { delay } from "awaiting";
+import { Set } from "immutable";
+import { isEqual } from "lodash";
+
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { move_selected_cells } from "@cocalc/frontend/jupyter/cell-utils";
 import {
@@ -19,9 +23,6 @@ import {
   is_whitespace,
   lstrip,
 } from "@cocalc/util/misc";
-import { delay } from "awaiting";
-import { Set } from "immutable";
-import { isEqual } from "lodash";
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
 require("@cocalc/frontend/jupyter/types");
@@ -419,7 +420,8 @@ export class NotebookFrameActions {
   }
 
   // Set which cell is currently the cursor.
-  public set_cur_id(cur_id: string): void {
+  public set_cur_id(cur_id: string | undefined): void {
+    if (cur_id == null) return;
     this.validate({ id: cur_id });
     const store = this.jupyter_actions.store;
     if (
@@ -780,7 +782,6 @@ export class NotebookFrameActions {
       return;
     }
     const cells = this.jupyter_actions.store.get("cells");
-    // const changes = immutable.Set(); // TODO: unused
     for (let pos = 0; pos < w.length; pos++) {
       const id = w[pos];
       if (cells.getIn([id, "pos"]) !== pos) {

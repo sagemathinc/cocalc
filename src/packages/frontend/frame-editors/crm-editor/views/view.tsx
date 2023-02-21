@@ -107,7 +107,13 @@ export default function View({
   const rowKey = useMemo(() => {
     const keys = client_db.primary_keys(dbtable);
     return keys[0];
-  }, [table]);
+  }, [dbtable]);
+
+  // only defined if there is not a compound primary key
+  const primaryKey = useMemo(() => {
+    const keys = client_db.primary_keys(dbtable);
+    return keys.length == 1 ? keys[0] : undefined;
+  }, [dbtable]);
 
   const {
     data,
@@ -121,7 +127,6 @@ export default function View({
   const { filteredData, numHidden, Filter, filter } = useFilterInput({
     data,
     id,
-    title,
   });
 
   const [addError, setAddError] = useState<string>("");
@@ -171,15 +176,18 @@ export default function View({
 
   const header = (
     <ViewMenu
+      id={id}
       query={query}
       name={name}
       title={title ?? fieldToLabel(table)}
       dbtable={dbtable}
       table={table}
       view={view}
+      data={filteredData}
       viewCount={filteredData?.length ?? 0}
       tableLowerBound={data?.length ?? 0}
-      columns={allColumns}
+      allColumns={allColumns}
+      columns={columns}
       limit={limit}
       setLimit={setLimit}
       sortFields={sortFields}
@@ -193,6 +201,7 @@ export default function View({
       orderFields={orderFields}
       setOrderFields={setOrderFields}
       rowKey={rowKey}
+      primaryKey={primaryKey}
       addNew={allowCreate ? addNew : undefined}
       addedRecords={addedRecords}
       setAddedRecords={setAddedRecords}
@@ -203,7 +212,7 @@ export default function View({
           {numHidden > 0 && (
             <div style={{ marginBottom: "5px", color: "#666" }}>
               <Icon name="warning" /> Showing {filteredData.length} of{" "}
-              {data.length} {plural(data.length, "result")}
+              {data.length} {plural(data.length, "match", "matches")}
             </div>
           )}
           {view == "calendar" && (
@@ -268,11 +277,13 @@ export default function View({
     case "grid":
       body = (
         <Grid
+          id={id}
           recordHeight={recordHeight}
           data={filteredData}
           columns={columns}
           sortFields={sortFields}
           setSortField={setSortField}
+          primaryKey={primaryKey}
         />
       );
       break;

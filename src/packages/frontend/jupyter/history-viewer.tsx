@@ -9,7 +9,8 @@ History viewer for Jupyter notebooks
 
 import { fromJS, List, Map } from "immutable";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
-import { ReactDOM, Redux, useTypedRedux } from "../app-framework";
+import { Redux, useTypedRedux } from "../app-framework";
+import { createRoot } from "react-dom/client";
 import { path_split } from "@cocalc/util/misc";
 import * as cell_utils from "./cell-utils";
 import { CellList } from "./cell-list";
@@ -98,23 +99,23 @@ export function to_ipynb(syncdb: SyncDB, version: Date): object {
 
 export function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
   const elt = $("<div class='smc-vfill'></div>");
+  const root = createRoot(elt[0]);
   return {
     element: elt,
     show() {
-      return elt.show();
+      elt.show();
     },
     hide() {
-      return elt.hide();
+      elt.hide();
     },
     remove() {
-      return ReactDOM.unmountComponentAtNode(elt[0]);
+      root.unmount();
     },
     set_version(version) {
-      return ReactDOM.render(
+      root.render(
         <Redux>
           <HistoryViewer syncdb={syncdb} version={version} />
-        </Redux>,
-        elt[0]
+        </Redux>
       );
     },
     to_str(version) {

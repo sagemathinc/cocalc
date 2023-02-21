@@ -4,17 +4,17 @@
  */
 
 // Initialize various things related to the overall page and query params (e.g., fullscreen).
-import { is_valid_uuid_string } from "@cocalc/util/misc";
-import { QueryParams } from "@cocalc/frontend/misc/query-params";
-import { COCALC_FULLSCREEN } from "../fullscreen";
-import { redux } from "../app-framework";
-import { parse_target } from "../history";
+import { redux } from "@cocalc/frontend/app-framework";
 import target from "@cocalc/frontend/client/handle-target";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { COCALC_FULLSCREEN } from "@cocalc/frontend/fullscreen";
+import { parse_target } from "@cocalc/frontend/history";
 import {
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { QueryParams } from "@cocalc/frontend/misc/query-params";
+import { is_valid_uuid_string } from "@cocalc/util/misc";
 
 export function init_query_params(): void {
   const actions = redux.getActions("page");

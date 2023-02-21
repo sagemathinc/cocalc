@@ -4,41 +4,47 @@
  */
 
 // The Menu bar across the top
-//
 // File, Edit, etc....
-import { React, useTypedRedux, useRedux, Rendered } from "../app-framework";
-import { user_activity } from "../tracker";
+
 import * as immutable from "immutable";
+
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
-  Icon,
-  r_join,
-  DropdownMenu,
-  MenuItem,
-  MenuDivider,
-} from "../components";
-import { KeyboardShortcut } from "./keyboard-shortcuts";
-import { open_new_tab } from "../misc";
+  React,
+  Rendered,
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
+  DropdownMenu,
+  Icon,
+  MenuDivider,
+  MenuItems,
+  r_join,
+} from "@cocalc/frontend/components";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import { user_activity } from "@cocalc/frontend/tracker";
+import {
+  all_fields_equal,
   capitalize,
   copy,
   endswith,
-  all_fields_equal,
 } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { get_help_links } from "./help-links";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { KeyboardShortcut } from "./keyboard-shortcuts";
 
-type MenuItemName =
-  | string
-  | { name: string; display?: string; style?: object }
-  | Rendered;
+type MenuItemName = string | { name: string; display?: string; style?: object };
 
 const TITLE_STYLE: React.CSSProperties = {
-  color: "#666",
+  color: COLORS.GRAY_D,
+  margin: 0,
+  padding: "6px 10px",
   border: 0,
-  backgroundColor: "rgb(247,247,247)",
 } as const;
+
 const SELECTED_STYLE: React.CSSProperties = {
   color: "#2196F3",
   fontWeight: "bold",
@@ -91,6 +97,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
     const toolbar_state: boolean | undefined = useRedux([name, "toolbar"]);
     const cell_toolbar: string | undefined = useRedux([name, "cell_toolbar"]);
     const read_only: boolean | undefined = useRedux([name, "read_only"]);
+    const trust: boolean | undefined = useRedux([name, "trust"]);
 
     const fullscreen: string | undefined = useTypedRedux("page", "fullscreen");
 
@@ -106,6 +113,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         // changes, rather than only when the notebook loads.
         return;
       }
+
       let script_entry: any = undefined;
       if (backend_kernel_info != null) {
         const ext = backend_kernel_info.getIn([
@@ -122,16 +130,14 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
           };
         }
       }
+
       if (script_entry === undefined) {
         script_entry = ">nbconvert script";
       }
 
-      let trust;
-      if (trust) {
-        trust = { name: "<trust notebook", display: "Trusted notebook" };
-      } else {
-        trust = { name: "trust notebook", display: "Trust notebook..." };
-      }
+      const trust_entry = trust
+        ? { name: "<trust notebook", display: "Trusted notebook" }
+        : { name: "trust notebook", display: "Trust notebook..." };
 
       let save = "save notebook";
       if (!has_unsaved_changes || read_only) {
@@ -159,7 +165,6 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         "table of contents",
         "time travel",
         "",
-        "print preview",
         "slideshow",
         "nbconvert slides",
         "<Save and Download as...",
@@ -178,12 +183,14 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         ">nbconvert lab html",
         ">nbconvert lab pdf",
         "",
-        trust,
+        trust_entry,
       ];
       if (fullscreen !== "kiosk") {
-        names.push("");
-        names.push("switch to classical notebook");
+        names.push("", "switch to classical notebook");
       }
+
+      // bottom of "File" is the usual spot to exit a desktop application
+      names.push("", close_and_halt);
 
       return render_menu({
         heading: "File",
@@ -320,25 +327,22 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       user_activity("cocal_jupyter", "change kernel", kernel_name);
     }
 
-    function render_kernel_item(kernel: any): Rendered {
+    function render_kernel_item(kernel: any): MenuItems[0] {
       const style: React.CSSProperties = { marginLeft: "4ex" };
       if (kernel.name === kernel) {
         style.color = "#2196F3";
         style.fontWeight = "bold";
       }
-      return (
-        <MenuItem
-          key={kernel.name}
-          onClick={() => {
-            handle_kernel_select(kernel.name);
-          }}
-        >
-          <span style={style}> {kernel.display_name} </span>
-        </MenuItem>
-      );
+      return {
+        key: kernel.name,
+        label: <span style={style}> {kernel.display_name} </span>,
+        onClick: () => {
+          handle_kernel_select(kernel.name);
+        },
+      };
     }
 
-    function render_kernel_items(): Rendered[] | undefined {
+    function render_kernel_items(): MenuItems[0][] | undefined {
       if (kernels == null) {
         return;
       }
@@ -357,9 +361,14 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         ">confirm restart kernel and run all cells",
         ">confirm restart kernel and run all cells without halting on error",
         "",
-        "<Change kernel...",
       ]
+        .concat([
+          items?.length ?? 0 > 0
+            ? "<Change kernel..."
+            : "<No Kernels available!",
+        ])
         .concat((items as any) || [])
+        .concat(["", "no kernel"])
         .concat(["", "refresh kernels"])
         .concat(["", "custom kernel"]);
 
@@ -375,7 +384,8 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       frameActions.current?.focus(true);
     }
 
-    function handle_command(name: string): void {
+    function handle_command(name?: string): void {
+      if (name == null) return;
       frameActions.current?.command(name);
       $(":focus").blur(); // battling with react-bootstrap stupidity... ?
       const c = frameActions.current?.commands[name];
@@ -401,44 +411,30 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
 
     function render_menu_item(
       key: string,
-      name: MenuItemName
-    ): { item: Rendered; command_name: string } {
-      if (name === "") {
-        return { item: <MenuDivider key={key} />, command_name: "" };
+      name1: MenuItemName | MenuItems[0]
+    ): MenuItems[0] {
+      if (!name1) return MenuDivider;
+      if (name1["label"] != null) {
+        // it is of type MenuItem[0]
+        return name1 as MenuItems[0];
       }
 
-      if (name != null && (name as any).props != null) {
-        return { item: name as Rendered, command_name: "" }; // it's already a MenuItem components
-      }
-
+      let name = typeof name1 === "string" ? name1 : undefined;
       let display: undefined | string;
       let style: React.CSSProperties | undefined = undefined;
 
-      if (typeof name === "object") {
+      if (typeof name1 === "object") {
         // use {name:'>nbconvert script', display:"Executable Script (.zzz)..."}, say, to be explicit about custom name to show
-        ({ name, display, style } = name as any);
+        ({ name, display, style } = name1 as any);
         if (style != null) {
           style = copy(style);
         }
       } else {
         display = undefined;
       }
+      if (!name) return MenuDivider;
 
-      if (style == null) {
-        style = {};
-      }
-
-      if (typeof name != "string") {
-        // HEISENBUG: This was reported once in production and led to a complete browser crash, preventing
-        // the user to use Jupyter.  No clue how this is possible, and it's probably the result
-        // of some other mystery problem.  But it probably can't hurt to make this non-fatal,
-        // just in case it happens in some edge case that we're just not thinking of.
-        console.warn(
-          "bug -- name must be a string at this point; working around this.  name=",
-          name
-        );
-        name = `${name}`;
-      }
+      style ??= {};
 
       let disabled: boolean;
       if (name[0] === "<") {
@@ -454,12 +450,12 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       }
       const obj = frameActions.current?.commands[name];
       if (obj == null) {
-        const item = (
-          <MenuItem disabled={disabled} key={key}>
-            <span style={style}>{display != null ? display : name}</span>
-          </MenuItem>
-        );
-        return { item, command_name: "" };
+        const item: MenuItems[0] = {
+          key: key,
+          disabled: true,
+          label: <span style={style}>{display != null ? display : name}</span>,
+        };
+        return item;
       }
 
       let s: Rendered;
@@ -479,33 +475,30 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         s = <span />;
       }
 
-      if (!display) display = obj.menu;
-      if (!display) display = obj.m;
-      if (!display) display = name;
+      display ??= obj.menu ?? obj.m ?? name;
 
-      const item = (
-        <MenuItem key={key} disabled={disabled}>
+      const item: MenuItems[0] = {
+        key,
+        disabled,
+        label: (
           <span style={style}>
             {s} {display}{" "}
-            {/* shortcut must be first! -- https://github.com/sagemathinc/cocalc/issues/1935 */}
+            {/* shortcut must be first! --  https://github.com/sagemathinc/cocalc/issues/1935 */}
           </span>
-        </MenuItem>
-      );
-      return { item, command_name: name };
+        ),
+        onClick: () => handle_command(name),
+      };
+
+      return item;
     }
 
-    function render_menu_items(names: MenuItemName[]): {
-      items: Rendered[];
-      command_names: { [key: string]: string };
-    } {
-      const items: Rendered[] = [];
-      const command_names: { [key: string]: string } = {};
+    function render_menu_items(names: MenuItemName[]): MenuItems {
+      const items: MenuItems = [];
       for (const key in names) {
-        const { item, command_name } = render_menu_item(key, names[key]);
+        const item = render_menu_item(key, names[key]);
         items.push(item);
-        command_names[key] = command_name;
       }
-      return { items, command_names };
+      return items;
     }
 
     function render_menu(opts: {
@@ -515,108 +508,121 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
     }): Rendered {
       let { heading, names, disabled } = opts;
       if (disabled == null) disabled = false;
-      const { items, command_names } = render_menu_items(names);
+      const items = render_menu_items(names);
       return (
         <DropdownMenu
           title={heading}
           key={heading}
           id={heading}
           disabled={opts.disabled}
-          onClick={(key) => {
-            const name = command_names[key];
-            if (name == null) return;
-            handle_command(name);
-          }}
-        >
-          {items}
-        </DropdownMenu>
+          style={TITLE_STYLE}
+          items={items}
+        />
       );
     }
 
-    function render_links(): Rendered[] {
+    function render_links(): MenuItems {
       if (kernel_info == null) return [];
-      const v: Rendered[] = [];
       const lang = kernel_info.get("language");
       const links = get_help_links(lang);
+      const v: MenuItems = [];
       if (links == null) return v;
       for (const name in links) {
         const url = links[name];
         v.push(external_link(name, url));
       }
+      if (v.length > 0) {
+        v.unshift(MenuDivider);
+      }
       return v;
     }
 
     function render_help(): Rendered {
+      const items: MenuItems = [
+        {
+          key: "help-about",
+          label: (
+            <>
+              <Icon name="question-circle" /> About...
+            </>
+          ),
+          onClick: () => actions.show_about(),
+        },
+        MenuDivider,
+        {
+          key: "help-keyboard",
+          label: (
+            <>
+              <Icon name="keyboard" /> Keyboard shortcuts...
+            </>
+          ),
+          onClick: command("edit keyboard shortcuts"),
+        },
+        MenuDivider,
+        external_link(
+          "Notebook help",
+          "http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb"
+        ),
+        external_link(
+          "Jupyter in CoCalc",
+          "https://doc.cocalc.com/jupyter.html"
+        ),
+        external_link(
+          "nbgrader in CoCalc",
+          "https://doc.cocalc.com/teaching-nbgrader.html"
+        ),
+        external_link(
+          "Custom Jupyter kernels",
+          "https://doc.cocalc.com/howto/custom-jupyter-kernel.html"
+        ),
+        external_link(
+          "Markdown",
+          "https://help.github.com/articles/basic-writing-and-formatting-syntax"
+        ),
+        ...render_links(),
+      ];
+
       return (
         <DropdownMenu
           key="help"
           id="menu-help"
           title={"Help"}
           style={TITLE_STYLE}
-        >
-          <MenuItem key="help-about" onClick={() => actions.show_about()}>
-            <Icon name="question-circle" /> About...
-          </MenuItem>
-          <MenuDivider />
-          <MenuItem
-            key="help-keyboard"
-            onClick={command("edit keyboard shortcuts")}
-          >
-            <Icon name="keyboard" /> Keyboard shortcuts...
-          </MenuItem>
-          <MenuDivider />
-          {external_link(
-            "Notebook help",
-            "http://nbviewer.jupyter.org/github/ipython/ipython/blob/3.x/examples/Notebook/Index.ipynb"
-          )}
-          {external_link(
-            "Jupyter in CoCalc",
-            "https://doc.cocalc.com/jupyter.html"
-          )}
-          {external_link(
-            "nbgrader in CoCalc",
-            "https://doc.cocalc.com/teaching-nbgrader.html"
-          )}
-          {external_link(
-            "Custom Jupyter kernels",
-            "https://doc.cocalc.com/howto/custom-jupyter-kernel.html"
-          )}
-          {external_link(
-            "Markdown",
-            "https://help.github.com/articles/basic-writing-and-formatting-syntax"
-          )}
-          <MenuDivider />
-          {render_links()}
-        </DropdownMenu>
+          items={items}
+        />
       );
     }
 
     return (
-      <div
+      <ButtonGroup
+        className="cocalc-jupyter-menu"
         style={{
-          backgroundColor: "rgb(247,247,247)",
-          border: "1px solid #e7e7e7",
+          display: "block",
+          backgroundColor: COLORS.GRAY_LLL,
+          padding: "8px 0px",
         }}
       >
-        <ButtonGroup>
-          {render_file()}
-          {render_edit()}
-          {render_view()}
-          {render_insert()}
-          {render_cell()}
-          {render_kernel()}
-          {render_help()}
-        </ButtonGroup>
-      </div>
+        {render_file()}
+        {render_edit()}
+        {render_view()}
+        {render_insert()}
+        {render_cell()}
+        {render_kernel()}
+        {render_help()}
+      </ButtonGroup>
     );
   },
   should_memoize
 );
 
-function external_link(name: string, url: string): Rendered {
-  return (
-    <MenuItem key={name} onClick={() => open_new_tab(url)}>
-      <Icon name="external-link" /> {name}
-    </MenuItem>
-  );
+function external_link(name: string, url: string): MenuItems[0] {
+  return {
+    key: name,
+    label: (
+      <>
+        <Icon name="external-link" /> {name}
+      </>
+    ),
+    onClick: () => open_new_tab(url),
+  };
 }

@@ -10,6 +10,7 @@ import { join } from "path";
 import * as async from "async";
 import { isEqual } from "lodash";
 import { Set, List, fromJS, Map } from "immutable";
+
 import { client_db } from "@cocalc/util/schema";
 import {
   ConfigurationAspect,
@@ -25,7 +26,7 @@ import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { exec } from "./frame-editors/generic/client";
 import { API } from "./project/websocket/api";
 import { in_snapshot_path, NewFilenames, normalize } from "./project/utils";
-import { NEW_FILENAMES } from "@cocalc/util/db-schema";
+import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { transform_get_url } from "./project/transform-get-url";
 import { OpenFiles } from "./project/open-files";
 import { log_opened_time, open_file, log_file_open } from "./project/open-file";
@@ -49,6 +50,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { IconName } from "./components";
 import { default_filename } from "./account";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { FixedTab } from "./project/page/file-tab";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -291,14 +293,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const filenames = this.get_filenames_in_current_dir();
       // this is the type of random name generator
       const acc_store = this.redux.getStore("account") as any;
-      const dflt = NewFilenames.default_family;
-      const type = (function () {
-        if (acc_store != null) {
-          return acc_store.getIn(["other_settings", NEW_FILENAMES]);
-        } else {
-          return dflt;
-        }
-      })();
+      const type =
+        acc_store?.getIn(["other_settings", NEW_FILENAMES]) ??
+        DEFAULT_NEW_FILENAMES;
       this.new_filename_generator.set_ext(ext);
       this.setState({
         new_filename: this.new_filename_generator.gen(type, filenames),
@@ -446,6 +443,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.push_state(`search/${store.get("current_path")}`, "");
         }
         break;
+      case "servers":
+        if (opts.change_history) {
+          this.push_state("servers", "");
+        }
+        break;
       case "settings":
         if (opts.change_history) {
           this.push_state("settings", "");
@@ -454,6 +456,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "info":
         if (opts.change_history) {
           this.push_state("info", "");
+        }
+        break;
+      case "home":
+        if (opts.change_history) {
+          this.push_state("home", "");
         }
         break;
       default:
@@ -504,7 +511,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           (async () => {
             const { name, Editor } = await this.init_file_react_redux(
               path,
-              is_public
+              is_public,
+              this.open_files?.get(path, "ext")
             );
             if (this.open_files == null) return;
             info.redux_name = name;
@@ -770,7 +778,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   */
   async initFileRedux(
     path: string,
-    is_public: boolean = false
+    is_public: boolean = false,
+    ext?: string // use this extension even instead of path's extension.
   ): Promise<string | undefined> {
     // LAZY IMPORT, so that editors are only available
     // when you are going to use them.  Helps with code splitting.
@@ -781,23 +790,27 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       path,
       this.redux,
       this.project_id,
-      is_public
+      is_public,
+      undefined,
+      ext
     );
     return name;
   }
 
   private async init_file_react_redux(
     path: string,
-    is_public: boolean
+    is_public: boolean,
+    ext?: string
   ): Promise<{ name: string | undefined; Editor: any }> {
-    const name = await this.initFileRedux(path, is_public);
+    const name = await this.initFileRedux(path, is_public, ext);
 
     // Make the Editor react component
     const Editor = await project_file.generateAsync(
       path,
       this.redux,
       this.project_id,
-      is_public
+      is_public,
+      ext
     );
 
     // Log that we opened the file.
@@ -2358,7 +2371,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.log({ event: "file_action", action: "created", files: [p + "/"] });
   }
 
-  async create_file(opts) {
+  async create_file(opts: {
+    name: string;
+    ext?: string;
+    current_path?: string;
+    switch_over?: boolean;
+  }) {
     let p;
     opts = defaults(opts, {
       name: undefined,
@@ -2376,7 +2394,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     if (misc.is_only_downloadable(name)) {
-      this.new_file_from_web(name, opts.current_path);
+      this.new_file_from_web(name, opts.current_path ?? "");
       return;
     }
     if (name[name.length - 1] === "/") {
@@ -2808,7 +2826,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const full_path = segments.slice(1).join("/");
     const parent_path = segments.slice(1, segments.length - 1).join("/");
     const last = segments.slice(-1).join();
-    const main_segment = segments[0];
+    const main_segment = segments[0] as FixedTab;
     switch (main_segment) {
       case "files":
         if (target.endsWith("/") || full_path === "") {
@@ -2874,6 +2892,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_active_tab("settings", { change_history: change_history });
         break;
 
+      case "servers":
+        this.set_active_tab("servers", { change_history: change_history });
+        break;
+
       case "search":
         this.set_current_path(full_path);
         this.set_active_tab("search", { change_history: change_history });
@@ -2884,6 +2906,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         break;
 
       default:
+        misc.unreachable(main_segment);
         console.warn(`project/load_target: don't know segment ${main_segment}`);
     }
   }

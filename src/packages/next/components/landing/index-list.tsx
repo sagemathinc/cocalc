@@ -8,7 +8,7 @@ import { ReactNode, useMemo } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
-import { Paragraph } from "components/misc";
+import { Paragraph, Title } from "components/misc";
 import Image, { StaticImageData } from "components/landing/image";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
@@ -54,7 +54,7 @@ export default function IndexList({ title, description, dataSource }: Props) {
         backgroundColor: "white",
       }}
     >
-      <div
+      <Paragraph
         style={{
           maxWidth: MAX_WIDTH,
           margin: "15px auto",
@@ -62,75 +62,83 @@ export default function IndexList({ title, description, dataSource }: Props) {
           backgroundColor: "white",
         }}
       >
-        <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
+        <Title
+          level={1}
+          style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}
+        >
           {title}
-        </h1>
+        </Title>
         <Paragraph style={{ fontSize: "13pt" }}>{description}</Paragraph>
         <DataList dataSource={filtedDataSource} />
-      </div>
+      </Paragraph>
     </Layout.Content>
   );
 }
 
 function DataList({ dataSource }: { dataSource: Item[] }) {
+  function renderItem(item): ReactNode {
+    const icon = (
+      <div style={{ marginTop: "2.5px" }}>
+        {typeof item.logo === "string" ? (
+          <Icon name={item.logo} style={{ fontSize: "75px" }} />
+        ) : (
+          <Image src={item.logo} width={75} height={75} alt="Logo" />
+        )}
+      </div>
+    );
+    const extra = item.image && (
+      <div
+        className="cc-hidden-mobile"
+        style={{ width: item.imageWidth ?? "275px" }}
+      >
+        <A href={item.link}>
+          <Image
+            src={item.image}
+            alt={`Screenshot illustrating ${item.title}`}
+          />
+        </A>
+      </div>
+    );
+    return (
+      <List.Item key={item.link} extra={extra}>
+        <List.Item.Meta
+          avatar={
+            item.logo && (
+              <A href={item.link} alt={item.title + " logo "}>
+                <Avatar
+                  style={{
+                    marginTop: "20px",
+                    backgroundColor: item.logoBackground,
+                  }}
+                  alt={item.title + " logo "}
+                  size={80}
+                  shape="square"
+                  icon={icon}
+                />
+              </A>
+            )
+          }
+          title={
+            <A href={item.link} style={{ fontSize: "16pt" }}>
+              {item.title}
+            </A>
+          }
+          description={
+            <Paragraph style={{ color: COLORS.GRAY, fontSize: "12pt" }}>
+              {item.description}
+            </Paragraph>
+          }
+        />
+      </List.Item>
+    );
+  }
+
   return (
     <List
       itemLayout="vertical"
       size="large"
       dataSource={dataSource}
-      renderItem={(item) => {
-        const icon = (
-          <div style={{ marginTop: "2.5px" }}>
-            {typeof item.logo == "string" ? (
-              <Icon name={item.logo} style={{ fontSize: "75px" }} />
-            ) : (
-              <Image src={item.logo} width={75} height={75} alt="Logo" />
-            )}
-          </div>
-        );
-        const extra = item.image && (
-          <div style={{ width: item.imageWidth ?? "275px" }}>
-            <A href={item.link}>
-              <Image
-                src={item.image}
-                alt={`Screenshot illustrating ${item.title}`}
-              />
-            </A>
-          </div>
-        );
-        return (
-          <List.Item key={item.link} extra={extra}>
-            <List.Item.Meta
-              avatar={
-                item.logo && (
-                  <A href={item.link} alt={item.title + " logo "}>
-                    <Avatar
-                      style={{
-                        marginTop: "20px",
-                        backgroundColor: item.logoBackground ,
-                      }}
-                      alt={item.title + " logo "}
-                      size={80}
-                      shape="square"
-                      icon={icon}
-                    />
-                  </A>
-                )
-              }
-              title={
-                <A href={item.link} style={{ fontSize: "16pt" }}>
-                  {item.title}
-                </A>
-              }
-              description={
-                <span style={{ color: COLORS.GRAY, fontSize: "12pt" }}>
-                  {item.description}
-                </span>
-              }
-            />
-          </List.Item>
-        );
-      }}
+      renderItem={renderItem}
     />
   );
 }

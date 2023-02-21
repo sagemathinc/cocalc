@@ -1,5 +1,13 @@
 import ReactDOM from "react-dom";
-import { Editor, Node, Path, Operation, Transforms, Range } from "slate";
+import {
+  Editor,
+  Element,
+  Descendant,
+  Path,
+  Operation,
+  Transforms,
+  Range,
+} from "slate";
 
 import { ReactEditor } from "./react-editor";
 import { Key } from "../utils/key";
@@ -25,7 +33,8 @@ export const withReact = <T extends Editor>(editor: T) => {
 
     if (editor.selection && Range.isCollapsed(editor.selection)) {
       const parentBlockEntry = Editor.above(editor, {
-        match: (n) => Editor.isBlock(editor, n),
+        match: (node) =>
+          Element.isElement(node) && Editor.isBlock(editor, node),
         at: editor.selection,
       });
 
@@ -164,16 +173,8 @@ export const withReact = <T extends Editor>(editor: T) => {
 
     if (fragment) {
       const decoded = decodeURIComponent(window.atob(fragment));
-      const parsed = JSON.parse(decoded) as Node[];
-      if (e.selection != null && e.selection.focus.path.length <= 2) {
-        // We do this at the top level
-        // @ts-ignore -- typing seems to not like an array, but works...
-        e.insertNode(parsed);
-      } else {
-        // When we're in some nested structure, e.g., a list, this
-        // seems to work much better.
-        e.insertFragment(parsed);
-      }
+      const parsed = JSON.parse(decoded) as Descendant[];
+      e.insertFragment(parsed);
       return;
     }
 
@@ -267,7 +268,11 @@ export const withReact = <T extends Editor>(editor: T) => {
       // around randomly and you sometimes can't scroll the image into view.
       // Better to just do nothing in this case.
       for (const [node] of Editor.nodes(e, { at: selection.focus })) {
-        if (Editor.isVoid(e, node) && !SCROLL_WHITELIST.has(node["type"])) {
+        if (
+          Element.isElement(node) &&
+          Editor.isVoid(e, node) &&
+          !SCROLL_WHITELIST.has(node["type"])
+        ) {
           return;
         }
       }

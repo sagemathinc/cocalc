@@ -10,24 +10,19 @@ for jupyter, code editors, (etc.'s) complete.  E.g., I already
 rewrote this to use the Antd dropdown, which is more dynamic.
 */
 
-import {
-  CSS,
-  React,
-  ReactDOM,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "../../app-framework";
+import type { MenuProps } from "antd";
+import { Dropdown } from "antd";
+import { FC, ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
-import { Dropdown, Menu } from "antd";
+import { CSS, ReactDOM } from "@cocalc/frontend/app-framework";
+import { MenuItems } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 
 export interface Item {
-  elt?: JSX.Element;
+  label?: ReactNode;
   value: string;
   search?: string; // useful for clients
 }
-
 interface Props0 {
   items: Item[]; // we assume at least one item
   onSelect: (value: string) => void;
@@ -49,13 +44,8 @@ type Props = Props1 | Props2;
 // WARNING: Complete closing when clicking outside the complete box
 // is handled in cell-list on_click.  This is ugly code (since not localized),
 // but seems to work well for now.  Could move.
-export const Complete: React.FC<Props> = ({
-  items,
-  onSelect,
-  onCancel,
-  offset,
-  position,
-}) => {
+export const Complete: FC<Props> = (props: Props) => {
+  const { items, onSelect, onCancel, offset, position } = props;
   const [selected, set_selected] = useState<number>(0);
   const selected_ref = useRef<number>(selected);
   useEffect(() => {
@@ -75,10 +65,6 @@ export const Complete: React.FC<Props> = ({
     },
     [onSelect, onCancel]
   );
-
-  function render_item({ elt, value }: Item): JSX.Element {
-    return <Menu.Item key={value}>{elt ?? value}</Menu.Item>;
-  }
 
   const onKeyDown = useCallback(
     (e) => {
@@ -115,35 +101,52 @@ export const Complete: React.FC<Props> = ({
     };
   }, [onKeyDown, onCancel]);
 
+  if (items.length == 0) return null;
+
   // The bottom margin wrapper below is so the current
   // line is not obscured if antd makes the menu *above*
   // the current line instead of below it.
   selected_keys_ref.current =
     items[selected % (items.length ? items.length : 1)]?.value;
-  const menu = (
-    <div style={{ marginBottom: "15px" }}>
-      <Menu
-        selectedKeys={[selected_keys_ref.current]}
-        onClick={select}
-        style={{
-          border: "1px solid lightgrey",
-          maxHeight: "45vh", // so can always position menu above/below current line not obscuring it.
-          overflow: "auto",
-        }}
+
+  const menuItems: MenuItems = items.map(({ label, value }) => {
+    return {
+      key: value,
+      label: label ?? value,
+      style: { fontSize: "120%" },
+    };
+  });
+
+  const menu: MenuProps = {
+    selectedKeys: [selected_keys_ref.current],
+    onClick: select,
+    items: menuItems,
+    style: {
+      border: `1px solid ${COLORS.GRAY_L}`,
+      maxHeight: "45vh", // so can always position menu above/below current line not obscuring it.
+      overflow: "auto",
+    },
+  };
+
+  function renderDropdown(): JSX.Element {
+    return (
+      <Dropdown
+        menu={menu}
+        open
+        placement="topRight" // always on top, and paddingBottom makes the entire line visible
+        overlayStyle={{ paddingBottom: "1em" }}
       >
-        {items.map(render_item)}
-      </Menu>
-    </div>
-  );
+        <span />
+      </Dropdown>
+    );
+  }
 
   if (offset != null) {
     // Relative positioning of the popup (this is in the same React tree).
     return (
       <div style={{ position: "relative" }}>
         <div style={{ ...offset, position: "absolute" }}>
-          <Dropdown overlay={menu} visible={true}>
-            <span />
-          </Dropdown>
+          {renderDropdown()}
         </div>
       </div>
     );
@@ -151,11 +154,7 @@ export const Complete: React.FC<Props> = ({
     // Absolute position of the popup (this uses a totally different React tree)
     return (
       <Portal>
-        <div style={{ ...STYLE, ...position }}>
-          <Dropdown overlay={menu} visible={true}>
-            <span />
-          </Dropdown>
-        </div>
+        <div style={{ ...STYLE, ...position }}>{renderDropdown()}</div>
       </Portal>
     );
   } else {

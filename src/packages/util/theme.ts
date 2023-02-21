@@ -50,7 +50,7 @@ export const sign_up_id = "44ZfCImosncQhP3jwQM";
 
 // documentation
 export const JUPYTER_CLASSIC_MODERN =
-  "https://doc.cocalc.com/jupyter.html#classical-versus-cocalc";
+  "https://doc.cocalc.com/jupyter-classical-vs-cocalc.html";
 
 // this is used in packages/hub/email.coffee and hub.coffee to specify the template and ASM groups for sendgrid
 export const SENDGRID_TEMPLATE_ID = "0375d02c-945f-4415-a611-7dc3411e2a78";
@@ -71,6 +71,8 @@ const MAIN_COLORS = {
   BRWN: "#593E05",
   YELL_D: "#bf7b00",
   YELL_L: "#fbb635",
+  YELL_LL: "#fddc7f",
+  YELL_LLL: "#fff2d0",
   GRAY_DDD: "#dddddd",
   GRAY_DD: "#303030",
   GRAY_D: "#434343",
@@ -95,6 +97,8 @@ const MAIN_COLORS = {
   FG_RED: "#c9302c", // red used for text
   FG_BLUE: "#428bca", // blue used for text
 
+  ANTD_LINK_BLUE: "#1677ff", // blue used for links
+
   ATND_BG_RED_M: "#ff7875",
   ATND_BG_RED_L: "#fff2f0",
   ANTD_BG_BLUE_L: "#e6f4ff",
@@ -108,6 +112,8 @@ const MAIN_COLORS = {
 
   COCALC_BLUE: "#4474c0", // blue used for the logo
   COCALC_ORANGE: "#fcc861", // orange used for the logo
+
+  ORANGE_WARN: "#FFA500", // e.g. connecting… indicator. use $ANTD_RED_WARN for more severe warnings
 } as const;
 
 export const COLORS = {
@@ -126,8 +132,16 @@ export const COLORS = {
     SIGN_IN_BG: MAIN_COLORS.YELL_L,
   },
 
+  PROJECT: {
+    FIXED_LEFT_ACTIVE: MAIN_COLORS.ANTD_LINK_BLUE,
+  },
+
   // landing page
-  LANDING: { LOGIN_BAR_BG: MAIN_COLORS.BLUE_D },
+  LANDING: { LOGIN_BAR_BG: MAIN_COLORS.BLUE_D, TOP_BG: MAIN_COLORS.BLUE_LLL },
 
   TAB: "#333333",
+
+  FILE_ICON: "rgb(66, 139, 202)",
+
+  FILE_EXT: "#999",
 } as const;

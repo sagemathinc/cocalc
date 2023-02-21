@@ -1,4 +1,4 @@
-This is adapted from the [](https://github.com/ianstormtaylor/slate/blob/master/site/examples/mentions.tsx)[official example﻿](https://www.slatejs.org/examples/mentions).
+This is adapted from the https://github.com/ianstormtaylor/slate/blob/master/site/examples/mentions.tsx
 
 To use this in a slate editor, you would do something like what
 is below, but with your own version of insertMention.   This isn't

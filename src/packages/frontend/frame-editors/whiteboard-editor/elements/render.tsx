@@ -7,6 +7,7 @@ import Text from "./text";
 import Note from "./note";
 import Code from "./code";
 import Frame from "./frame";
+import Slide from "./slide";
 import Generic from "./generic";
 import Pen from "./pen";
 import Timer from "./timer";
@@ -38,6 +39,8 @@ export default function Render(props: Props) {
       return <Code {...props} />;
     case "frame":
       return <Frame {...props} />;
+    case "slide":
+      return <Slide {...props} />;
     case "pen":
       return <Pen {...props} />;
     case "timer":

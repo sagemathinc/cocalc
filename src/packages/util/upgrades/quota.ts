@@ -40,13 +40,13 @@ import { isEmpty } from "lodash";
 import { DEFAULT_QUOTAS, upgrades } from "../upgrade-spec";
 
 import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
-import { len } from "../misc";
 import { VMS } from "@cocalc/util/upgrades/dedicated";
-import { SiteLicenseQuota } from "../types/site-licenses";
 import {
   LicenseIdleTimeouts,
   LicenseIdleTimeoutsKeysOrdered,
 } from "../consts/site-license";
+import { deep_copy, len, test_valid_jsonpatch } from "../misc";
+import { SiteLicenseQuota } from "../types/site-licenses";
 // TODO how to use the logger ?
 //import { getLogger } from "@cocalc/backend/logger";
 //const L = getLogger("upgrades:quota");
@@ -87,8 +87,8 @@ const MIN_MEMORY_LIMIT: Limit = Object.freeze({
 type NumParser = (s: string | number | undefined) => number;
 type Str2Num = (s: string | number) => number;
 
-// the end result
-export interface Quota {
+// this is the resulting quota, which is used in production
+interface QuotaBase {
   network?: boolean;
   member_host?: boolean;
   always_running?: boolean;
@@ -103,7 +103,17 @@ export interface Quota {
   dedicated_disks?: DedicatedDisk[];
 }
 
-type RQuota = Required<Quota>;
+// additional fields of the quota result, which are used for onprem (cocalc-cloud) applications
+interface QuotaOnPrem {
+  ext_rw?: boolean;
+  patch?: { [key: string]: string | object }[];
+}
+
+// the resulting quota is a combination of the base quota and the onprem specific one
+export type Quota = QuotaBase & QuotaOnPrem;
+
+// the output is *required* to have all fields of base quota set, and optionally the on-prem specific ones
+type RQuota = Required<QuotaBase> & QuotaOnPrem;
 
 // all are optional!
 interface Settings {
@@ -132,6 +142,8 @@ export interface Upgrades {
   always_running: number;
   ephemeral_state: number;
   ephemeral_disk: number;
+  ext_rw?: number;
+  patch?: Patch;
 }
 
 // this is onprem specific only!
@@ -227,7 +239,7 @@ export type SiteLicenses = {
  * default quotas: {"internet":true,"mintime":3600,"mem":1000,"cpu":1,"cpu_oc":10,"mem_oc":5}
  * max_upgrades: Quota
  */
-interface SiteSettingsQuotas {
+export interface SiteSettingsQuotas {
   default_quotas?: Partial<SiteSettingsDefaultQuotas>;
   max_upgrades?: Partial<Upgrades>;
 }
@@ -500,6 +512,26 @@ function selectMatchingLicenses(
   return pickGroup();
 }
 
+function extract_ext_rw(site_licenses: SiteLicenses): boolean {
+  for (const val of Object.values(site_licenses)) {
+    if (val == null) continue;
+    if (isSiteLicenseQuotaSetting(val) && val.quota.ext_rw === true)
+      return true;
+  }
+  return false;
+}
+
+function extract_patches(site_licenses: SiteLicenses): Patch {
+  const patch: Patch = [];
+  for (const val of Object.values(site_licenses)) {
+    if (val == null) continue;
+    if (isSiteLicenseQuotaSetting(val) && val.quota.patch != null) {
+      patch.push(...loadPatch(val.quota.patch));
+    }
+  }
+  return patch;
+}
+
 function selectSiteLicenses(
   site_licenses: SiteLicenses,
   reasons?: Reasons
@@ -507,9 +539,13 @@ function selectSiteLicenses(
   site_licenses: SiteLicenses;
   dedicated_disks?: DedicatedDisk[];
   dedicated_vm?: DedicatedVM;
+  ext_rw: boolean;
+  patch: Patch;
 } {
   // this "extracts" all dedicated disk upgrades from the site_licenses map
   const dedicated_disks = select_dedicated_disks(site_licenses);
+  const ext_rw = extract_ext_rw(site_licenses);
+  const patch = extract_patches(site_licenses);
   // and here we extract the dedicated VM quota
   const dedicated_vm = select_dedicated_vm(site_licenses);
   // if there is a dedicated VM, we ignore all site licenses.
@@ -525,7 +561,13 @@ function selectSiteLicenses(
       });
     }
 
-    return { site_licenses: {}, dedicated_disks, dedicated_vm: vm };
+    return {
+      site_licenses: {},
+      dedicated_disks,
+      dedicated_vm: vm,
+      ext_rw,
+      patch,
+    };
   }
 
   // will only return "regular" site licenses
@@ -549,7 +591,7 @@ function selectSiteLicenses(
     });
   }
 
-  return { site_licenses: all, dedicated_disks };
+  return { site_licenses: all, dedicated_disks, ext_rw, patch };
 }
 
 // idle_timeouts aren't added up. All are assumed to have the *same* idle_timeout
@@ -585,6 +627,8 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
     idle_timeout: dflt_num(up.mintime),
     dedicated_vm: false, // old schema has no dedicated_vm upgrades
     dedicated_disks: [] as DedicatedDisk[], // old schema has no dedicated_disk upgrades
+    ext_rw: false,
+    patch: [],
   };
 }
 
@@ -603,6 +647,8 @@ function license2quota(q: Partial<SiteLicenseQuota>): RQuota {
     idle_timeout: 0, // idle_timeout is set AFTER summing up all licenses, they're not additive
     dedicated_vm: q.dedicated_vm ?? false,
     dedicated_disks: [] as DedicatedDisk[],
+    ext_rw: !!q.ext_rw,
+    patch: q.patch ? loadPatch(q.patch) : [],
   };
 }
 
@@ -835,6 +881,13 @@ export function quota_with_reasons(
   site_licenses?: SiteLicenses,
   site_settings?: SiteSettingsQuotas
 ): { quota: Quota; reasons: { [key: string]: string } } {
+  // as a precaution (and also since we indeed ARE modifying licenses) we make deep copies of all arguments.
+  // tests to catch this are in postgres/site-license/hook.test.ts
+  settings_arg = deep_copy(settings_arg);
+  users_arg = deep_copy(users_arg);
+  site_licenses = deep_copy(site_licenses);
+  site_settings = deep_copy(site_settings);
+
   // empirically, this is sometimes a string -- we want this to be a number, though!
   if (typeof settings_arg?.disk_quota === "string") {
     settings_arg.disk_quota = to_int(settings_arg.disk_quota);
@@ -872,6 +925,8 @@ export function quota_with_reasons(
     site_licenses: site_licenses_selected,
     dedicated_disks = [],
     dedicated_vm = false,
+    ext_rw = false,
+    patch = [],
   } = selectSiteLicenses(site_licenses, reasons);
 
   site_licenses = Object.freeze(site_licenses_selected);
@@ -919,6 +974,8 @@ export function quota_with_reasons(
   });
 
   total_quota.dedicated_disks = dedicated_disks;
+  if (ext_rw === true) total_quota.ext_rw = true;
+  if (patch.length > 0) total_quota.patch = patch;
   return { quota: total_quota, reasons };
 }
 
@@ -1026,9 +1083,11 @@ total_quota =  {            max_upgrades = {
                             }
 */
 
+const IGNORED_KEYS = ["dedicated_disks", "dedicated_vm", "patch"] as const;
+
 function limit_quota(total_quota: RQuota, max_upgrades: Upgrades): Quota {
   for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {
-    if (["dedicated_disks", "dedicated_vm"].includes(key)) {
+    if (IGNORED_KEYS.includes(key as any)) {
       // they are ignored
     } else if (typeof val === "boolean") {
       total_quota[key] &&= val;
@@ -1109,4 +1168,18 @@ export function quota2upgrade_key(key: string): keyof Upgrades {
       return "cpu_shares";
   }
   return key as keyof Upgrades;
+}
+
+type Patch = { [key: string]: string | object }[];
+
+export function loadPatch(val: string): Patch {
+  try {
+    const p = JSON.parse(val);
+    if (test_valid_jsonpatch(p)) {
+      return p;
+    }
+  } catch (err) {
+    console.log(`loadPatch: ${err}`);
+  }
+  return [];
 }

@@ -16,19 +16,30 @@ import NavigationPanel from "./tools/navigation";
 import { useFrameContext, usePageInfo } from "./hooks";
 import Upload from "./tools/upload";
 import KernelPanel from "./elements/code/kernel";
+import NewPage from "./new-page";
 
 export default function Whiteboard() {
-  const { isFocused, path, project_id, desc, font_size } = useFrameContext();
+  const { actions, isFocused, path, project_id, desc, font_size } =
+    useFrameContext();
   const useEditor = useEditorRedux<State>({ project_id, path });
 
   const is_loaded = useEditor("is_loaded");
   const readOnly = useEditor("read_only");
   const pagesMap = useEditor("pages");
   const elementsMap = useEditor("elements");
+  const sortedPageIds = useEditor("sortedPageIds");
+
+  const pageId = useMemo(() => {
+    if (sortedPageIds == null || pagesMap == null) return null;
+    const pageNumber = desc.get("page");
+    return sortedPageIds.get(pageNumber - 1);
+  }, [desc.get("page"), sortedPageIds]);
 
   const elementsOnPage = useMemo(() => {
-    return elementsList(pagesMap?.get(desc.get("page") ?? 1)) ?? [];
-  }, [pagesMap?.get(desc.get("page") ?? 1)]);
+    if (sortedPageIds == null || pagesMap == null) return null;
+    if (pageId == null) return [];
+    return elementsList(pagesMap.get(pageId)) ?? [];
+  }, [pagesMap?.get(pageId ?? "")]);
 
   usePageInfo(pagesMap);
 
@@ -66,6 +77,18 @@ export default function Whiteboard() {
     );
   }
 
+  if (pageId == null) {
+    // there are no pages at all.
+    return (
+      <div className="smc-vfill" style={{ justifyContent: "center" }}>
+        <NewPage
+          tip={"There are no pages.  Click here to create the first page."}
+          label={"Create Page"}
+        />
+      </div>
+    );
+  }
+
   const tool = desc.get("selectedTool");
   return (
     <div
@@ -90,6 +113,7 @@ export default function Whiteboard() {
             </>
           )}
           <NavigationPanel
+            mainFrameType={actions.mainFrameType}
             fontSize={font_size}
             elements={elementsOnPage}
             elementsMap={elementsMap}
@@ -99,6 +123,7 @@ export default function Whiteboard() {
       )}
       <Upload evtToDataRef={evtToDataRef} readOnly={readOnly}>
         <Canvas
+          mainFrameType={actions.mainFrameType}
           elements={elementsOnPage}
           elementsMap={elementsMap}
           font_size={font_size}

@@ -8,19 +8,6 @@ Input box for setting the account creation token.
 */
 
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
-import { Alert } from "@cocalc/frontend/antd-bootstrap";
-import {
-  React,
-  redux,
-  Rendered,
-  TypedMap,
-} from "@cocalc/frontend/app-framework";
-import { ErrorDisplay, Icon, Saving } from "@cocalc/frontend/components";
-import { query } from "@cocalc/frontend/frame-editors/generic/client";
-import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
-import { cmp_dayjs, round1, secure_random_token } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
-import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import {
   Button as AntdButton,
   Checkbox,
@@ -32,9 +19,23 @@ import {
   Switch,
   Table,
 } from "antd";
+import dayjs from "dayjs";
 import { List } from "immutable";
 import { pick, sortBy } from "lodash";
-import dayjs from "dayjs";
+
+import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import {
+  React,
+  redux,
+  Rendered,
+  TypedMap,
+} from "@cocalc/frontend/app-framework";
+import { ErrorDisplay, Icon, Saving, Title } from "@cocalc/frontend/components";
+import { query } from "@cocalc/frontend/frame-editors/generic/client";
+import { RegistrationTokenSetFields } from "@cocalc/util/db-schema/types";
+import { cmp_dayjs, round1, secure_random_token } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 
 interface Token {
   key?: string; // used in the table, not for the database
@@ -573,13 +574,17 @@ export const RegistrationToken: React.FC<{}> = () => {
 
   function render_header(): Rendered {
     return (
-      <h4 onClick={() => set_show((v) => !v)} style={{ cursor: "pointer" }}>
+      <Title
+        level={4}
+        onClick={() => set_show((v) => !v)}
+        style={{ cursor: "pointer" }}
+      >
         <Icon
           style={{ width: "20px" }}
           name={show ? "caret-down" : "caret-right"}
         />{" "}
         Registration Tokens
-      </h4>
+      </Title>
     );
   }
 

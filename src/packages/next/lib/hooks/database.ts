@@ -1,4 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { useEffect, useState } from "react";
+
 import apiPost from "lib/api/post";
 import useIsMounted from "./mounted";
 import { removeNulls } from "@cocalc/util/misc";

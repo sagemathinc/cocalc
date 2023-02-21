@@ -4,6 +4,7 @@
  */
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
 import {
@@ -30,7 +31,8 @@ export default function Overview() {
         Welcome to the <SiteName /> Store!
       </h2>
       <div style={{ fontSize: "13pt" }}>
-        Shop below or explore an <A href="/pricing">overview of products and pricing</A>.
+        Shop below or explore an{" "}
+        <A href="/pricing">overview of products and pricing</A>.
       </div>
       <OverviewRow>
         <Product
@@ -59,15 +61,22 @@ export default function Overview() {
           Move your project to a much more powerful VM.
         </Product>
       </OverviewRow>
-      <div style={{ marginTop: "4em" }}>
+      <Paragraph style={{ marginTop: "4em" }}>
         If you already selected one or more items, view your{" "}
         <A href="/store/cart">shopping cart</A> or go straight to{" "}
         <A href="/store/checkout">checkout</A>.
-      </div>
-      <p>
+      </Paragraph>
+      <Paragraph>
+        It is also possible to run <SiteName /> on your own infrastructure:{" "}
+        <Text strong>
+          <A href={"/pricing/onprem"}>on-premises offerings</A>
+        </Text>
+        .
+      </Paragraph>
+      <Paragraph>
         You can also browse your <A href="/billing">billing records</A> or{" "}
         <A href="/licenses">licenses</A>.
-      </p>
+      </Paragraph>
     </div>
   );
 }

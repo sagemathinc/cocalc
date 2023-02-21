@@ -20,6 +20,7 @@ export default function Search() {
 
   const isLoaded = useEditor("is_loaded");
   const readOnly = useEditor("read_only");
+  const sortedPageIds = useEditor("sortedPageIds");
   const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export default function Search() {
   const elements: undefined | Element[] = useMemo(() => {
     if (elementsMap == null) return undefined;
     const search = desc.get("search")?.toLowerCase().trim();
-    return sortedElements(elementsMap, search);
+    return sortedElements(elementsMap, sortedPageIds, search);
   }, [elementsMap, desc.get("search")]);
 
   const virtuosoScroll = useVirtuosoScrollHook({
@@ -89,11 +90,11 @@ export default function Search() {
               >
                 <div
                   onClick={() => {
-                    const frameId =
-                      actions.show_focused_frame_of_type("whiteboard");
+                    const frameId = actions.show_focused_frame_of_type(
+                      actions.mainFrameType
+                    );
                     if (frameId) {
-                      actions.centerElement(element.id, frameId);
-                      actions.zoom100(frameId);
+                      actions.scrollElementIntoView(element.id, frameId, "top");
                     }
                   }}
                   style={{

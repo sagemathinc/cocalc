@@ -4,10 +4,14 @@
  */
 
 import { List, Map } from "immutable";
-import { NewFilenameTypes } from "../project/utils";
+
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
-import { TypedMap } from "../app-framework";
-import { MessageInfo } from "../client/hub";
+import { TypedMap } from "@cocalc/frontend/app-framework";
+import { MessageInfo } from "@cocalc/frontend/client/hub";
+import {
+  NewFilenameTypes,
+  NEW_FILENAMES,
+} from "@cocalc/util/db-schema/defaults";
 
 // this is incomplete...
 
@@ -31,7 +35,7 @@ export interface AccountState {
   other_settings: TypedMap<{
     confirm_close: string;
     page_size?: number;
-    new_filenames?: NewFilenameTypes;
+    [NEW_FILENAMES]?: NewFilenameTypes;
     no_free_warnings?: boolean;
     time_ago_absolute: boolean;
     dark_mode: boolean;

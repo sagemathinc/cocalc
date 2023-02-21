@@ -3,36 +3,29 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as os_path from "path";
-import {
-  encode_path,
-  path_split,
-  to_iso_path,
-  startswith,
-  unreachable,
-  capitalize,
-  uuid,
-  sha1,
-  separate_file_extension,
-} from "@cocalc/util/misc";
-import { generate as heroku } from "project-name-generator";
-import * as superb from "superb";
 import * as catNames from "cat-names";
 import * as dogNames from "dog-names";
-import { file_options } from "../editor-tmp";
-import { DEFAULT_NEW_FILENAMES } from "@cocalc/util/db-schema";
-import { webapp_client } from "../webapp-client";
-import { BASE_URL } from "../misc";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import * as os_path from "path";
+import { generate as heroku } from "project-name-generator";
+import * as superb from "superb";
 
-export type NewFilenameTypes =
-  | "iso"
-  | "heroku"
-  | "pet"
-  | "ymd_heroku"
-  | "ymd_pet"
-  | "semantic"
-  | "ymd_semantic";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { file_options } from "@cocalc/frontend/editor-tmp";
+import { BASE_URL } from "@cocalc/frontend/misc";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { DEFAULT_NEW_FILENAMES } from "@cocalc/util/db-schema";
+import { NewFilenameTypes } from "@cocalc/util/db-schema/defaults";
+import {
+  capitalize,
+  encode_path,
+  path_split,
+  separate_file_extension,
+  sha1,
+  startswith,
+  to_iso_path,
+  unreachable,
+  uuid,
+} from "@cocalc/util/misc";
 
 export const NewFilenameFamilies: { [name in NewFilenameTypes]: string } = {
   iso: "Current time",
@@ -44,10 +37,12 @@ export const NewFilenameFamilies: { [name in NewFilenameTypes]: string } = {
   ymd_semantic: "Semantic (prefix today) ",
 } as const;
 
-export class NewFilenames {
-  // TODO iso is the "old way". Change it to "semantic" after a week or two…
-  static default_family = DEFAULT_NEW_FILENAMES as NewFilenameTypes;
+// check that the given argument is of type NewFilenameTypes
+function isNewFilenameType(x: unknown): x is NewFilenameTypes {
+  return typeof x === "string" && NewFilenameFamilies[x] != null;
+}
 
+export class NewFilenames {
   private ext?: string;
   private effective_ext?: string;
   private fullname: boolean;
@@ -67,12 +62,22 @@ export class NewFilenames {
     this.effective_ext = ext != null ? ext.toLowerCase() : undefined;
   }
 
+  private sanitize_type(type: unknown): NewFilenameTypes {
+    if (type == null) return DEFAULT_NEW_FILENAMES;
+    if (isNewFilenameType(type)) {
+      return type;
+    } else {
+      console.warn(`unknown new filename family type ${type}`);
+      return DEFAULT_NEW_FILENAMES;
+    }
+  }
+
   // generate a new filename, by optionally avoiding the keys in the dictionary
   public gen(
     type?: NewFilenameTypes,
     avoid?: { [name: string]: boolean }
   ): string {
-    type = type != null ? type : NewFilenames.default_family;
+    type = this.sanitize_type(type);
     // reset the enumeration if type changes
     if (this.type != type) this.start = 0;
     this.type = type;
@@ -123,7 +128,8 @@ export class NewFilenames {
     }
     // in some cases, prefix with the current day
     if (this.type.startsWith("ymd_")) {
-      tokens.unshift(new Date().toISOString().slice(0, 10));
+      const ts = new Date().toISOString().slice(0, 10);
+      tokens.unshift(ts.replace(/-/g, this.filler()));
     }
     switch (this.effective_ext) {
       case "java": // CamelCase!
@@ -140,6 +146,8 @@ export class NewFilenames {
 
   private semantic(): string[] {
     switch (this.effective_ext) {
+      case "/":
+        return ["folder"];
       case "ipynb":
         return ["notebook"];
       case "sagews":
@@ -155,6 +163,10 @@ export class NewFilenames {
         return ["sage", "code"];
       case "py":
         return ["python", "code"];
+      case "x11":
+        return ["desktop"];
+      case "zip":
+        return ["archive"];
       default:
         const info = file_options(`foo.${this.effective_ext}`);
         // the "Spec" for file associations makes sure that "name" != null
@@ -200,7 +212,7 @@ export class NewFilenames {
     }
   }
 
-  private filler(): string {
+  private filler(): "-" | "_" {
     switch (this.effective_ext) {
       case "py":
       case "sage":
@@ -210,6 +222,7 @@ export class NewFilenames {
     }
   }
 }
+
 export function editor_id(project_id: string, path: string): string {
   return `cocalc-editor-${sha1(project_id + path)}`;
 }

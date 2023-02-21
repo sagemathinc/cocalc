@@ -1,8 +1,23 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 /* The "Account" navigation tab in the bar at the top. */
-import { Icon, isIconName } from "@cocalc/frontend/components/icon";
+
 import type { MenuProps } from "antd";
-import { Dropdown, Menu } from "antd";
+import { Dropdown } from "antd";
+import { join } from "path";
+import { CSSProperties } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
 import Avatar from "components/account/avatar";
+import {
+  menuGroup,
+  menuItem,
+  MenuItem,
+  MenuItems,
+} from "components/antd-menu-items";
 import { LinkStyle } from "components/landing/header";
 import A from "components/misc/A";
 import apiPost from "lib/api/post";
@@ -10,40 +25,6 @@ import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import { useRouter } from "next/router";
-import { join } from "path";
-import { CSSProperties } from "react";
-
-type MenuItem = Required<MenuProps>["items"][number];
-
-function makeItem(
-  key: React.Key,
-  label: React.ReactNode,
-  icon?: React.ReactNode | string,
-  children?: MenuItem[]
-): MenuItem {
-  if (typeof icon === "string" && isIconName(icon)) {
-    icon = <Icon name={icon} />;
-  }
-  return {
-    key,
-    icon,
-    children,
-    label,
-  } as MenuItem;
-}
-
-function makeGroup(
-  key: React.Key,
-  label: React.ReactNode,
-  children: MenuItem[]
-): MenuItem {
-  return {
-    key,
-    children,
-    label,
-    type: "group",
-  } as MenuItem;
-}
 
 const DIVIDER = {
   type: "divider",
@@ -64,7 +45,7 @@ export default function AccountNavTab({ style }: Props) {
 
   const profile_url = name ? `/${name}` : `/share/accounts/${account_id}`;
 
-  const signedIn = makeItem(
+  const signedIn = menuItem(
     "signed-in",
     <A href={is_anonymous ? "/config/search/input" : profile_url}>
       Signed into {siteName} as
@@ -76,7 +57,7 @@ export default function AccountNavTab({ style }: Props) {
     </A>
   );
 
-  const docs = makeItem(
+  const docs = menuItem(
     "docs",
     <A href="https://doc.cocalc.com" external>
       Documentation
@@ -84,7 +65,7 @@ export default function AccountNavTab({ style }: Props) {
     "book"
   );
 
-  const configuration = makeGroup(
+  const configuration = menuGroup(
     "configuration",
     <A href="/config/search/input">
       <span style={{ color: "#a4acb3" }}>
@@ -92,13 +73,13 @@ export default function AccountNavTab({ style }: Props) {
       </span>
     </A>,
     [
-      makeItem("account", <A href="/config/account/name">Account</A>, "user"),
-      makeItem(
+      menuItem("account", <A href="/config/account/name">Account</A>, "user"),
+      menuItem(
         "editor",
         <A href="/config/editor/appearance">Editor</A>,
         "edit"
       ),
-      makeItem(
+      menuItem(
         "system",
         <A href="/config/system/appearance">System</A>,
         "gear"
@@ -108,11 +89,11 @@ export default function AccountNavTab({ style }: Props) {
 
   function profileItems() {
     if (!profile) return [];
-    const ret: MenuItem[] = [];
+    const ret: MenuItems = [];
     ret.push(signedIn);
     if (is_anonymous) {
       ret.push(
-        makeItem(
+        menuItem(
           "sign-up",
           <A href="/config/search/input">
             <b>Sign Up (save your work)!</b>
@@ -123,7 +104,7 @@ export default function AccountNavTab({ style }: Props) {
     }
     ret.push(docs);
     if (isCommercial) {
-      ret.push(makeItem("store", <A href="/store">Store</A>, "shopping-cart"));
+      ret.push(menuItem("store", <A href="/store">Store</A>, "shopping-cart"));
     }
     ret.push(DIVIDER);
     ret.push(configuration);
@@ -134,7 +115,7 @@ export default function AccountNavTab({ style }: Props) {
   function yourPages(): MenuItem[] {
     const yours: MenuItem[] = [];
     yours.push(
-      makeItem(
+      menuItem(
         "projects",
         <A href={join(basePath, "projects")} external>
           {is_anonymous ? "Project" : "Projects"}
@@ -144,16 +125,16 @@ export default function AccountNavTab({ style }: Props) {
     );
 
     if (!is_anonymous) {
-      yours.push(makeItem("licenses", <A href="/licenses">Licenses</A>, "key"));
+      yours.push(menuItem("licenses", <A href="/licenses">Licenses</A>, "key"));
 
       if (isCommercial) {
         yours.push(
-          makeItem("billing", <A href="/billing">Billing</A>, "credit-card")
+          menuItem("billing", <A href="/billing">Billing</A>, "credit-card")
         );
       }
       if (sshGateway) {
         yours.push(
-          makeItem(
+          menuItem(
             "ssh",
             <A href={join(basePath, "settings", "ssh-keys")} external>
               SSH keys
@@ -165,7 +146,7 @@ export default function AccountNavTab({ style }: Props) {
 
       if (shareServer) {
         yours.push(
-          makeItem(
+          menuItem(
             "shared",
             <A
               href={
@@ -180,13 +161,13 @@ export default function AccountNavTab({ style }: Props) {
         );
 
         yours.push(
-          makeItem("stars", <A href="/stars">Stars</A>, "star-filled")
+          menuItem("stars", <A href="/stars">Stars</A>, "star-filled")
         );
       }
     }
 
     return [
-      makeGroup(
+      menuGroup(
         "your",
         <A href={join(basePath, "app")} external>
           <span style={{ color: "#a4acb3" }}>
@@ -202,19 +183,19 @@ export default function AccountNavTab({ style }: Props) {
     if (!is_admin) return [];
     return [
       DIVIDER,
-      makeItem(
+      menuItem(
         "admin",
         <A href={join(basePath, "admin")} external>
           Site Administration
         </A>,
         "settings"
-      )
+      ),
     ];
   }
 
   const signout: MenuItem[] = [
     DIVIDER,
-    makeItem(
+    menuItem(
       "sign-out",
       <A
         onClick={async () => {
@@ -234,10 +215,10 @@ export default function AccountNavTab({ style }: Props) {
     ...signout,
   ];
 
-  const menu = <Menu mode="vertical" theme="dark" items={items} />;
-
+  // NOTE: we had a dark theme before for the menu, but that's deprecated from antd
+  // https://github.com/ant-design/ant-design/issues/4903
   return (
-    <Dropdown overlay={menu} trigger={"click" as any}>
+    <Dropdown menu={{ items }}>
       <div style={{ ...LinkStyle, cursor: "pointer", ...style }}>
         {/* The negative margin fixes some weird behavior that stretches header. */}
         {account_id && (

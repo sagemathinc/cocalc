@@ -5,35 +5,66 @@
 
 import React from "react";
 
-import { MentionsMap, MentionFilter } from "./mentions/types";
-import { MentionRow } from "./mentions/mention-row";
+import { Button, Collapse, Space } from "antd";
+const { Panel } = Collapse;
 
+import { CSS, redux } from "@cocalc/frontend/app-framework";
+import { Icon, MarkAll } from "@cocalc/frontend/components";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { unreachable } from "@cocalc/util/misc";
+import { MentionRow } from "./mentions/mention-row";
+import { MentionFilter, MentionsMap } from "./mentions/types";
+import { BOOKMARK_ICON_NAME } from "./mentions/util";
 import { NoNewNotifications } from "./no-new-notifications";
 
-import { ProjectTitle } from "../projects/project-title";
-
-const { Panel } = require("react-bootstrap");
-
-function assertNever(x: never): never {
-  throw new Error("Unexpected filter: " + x);
-}
-
-export function NotificationList({
-  account_id,
-  mentions,
-  filter,
-  style,
-  user_map,
-}: {
+interface Props {
   account_id: string;
   mentions: MentionsMap;
   filter: MentionFilter;
-  style: React.CSSProperties;
-  user_map: any;
-}) {
+  style: CSS;
+  user_map;
+}
+
+export const NotificationList: React.FC<Props> = (props: Props) => {
+  const { account_id, mentions, filter, style, user_map } = props;
+
   if (mentions == undefined || mentions.size == 0) {
     return <NoMentions filter={filter} style={style} />;
   }
+
+  function markRead(project_id: string, filter: "read" | "unread") {
+    const actions = redux.getActions("mentions");
+    actions.markAll(project_id, filter);
+  }
+
+  function saveAll(project_id: string, filter: "read" | "unread") {
+    const actions = redux.getActions("mentions");
+    actions.saveAll(project_id, filter);
+  }
+
+  function renderMarkAll(project_id: string) {
+    if (filter === "saved" || filter === "all") return null;
+    const opposite: MentionFilter = filter === "read" ? "unread" : "read";
+    return (
+      <Space direction="horizontal" size="small">
+        <MarkAll<"read" | "unread">
+          how={opposite}
+          size="small"
+          onClick={(how) => markRead(project_id, how)}
+        />
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            saveAll(project_id, filter);
+          }}
+          size="small"
+        >
+          <Icon name={BOOKMARK_ICON_NAME} /> Save all
+        </Button>
+      </Space>
+    );
+  }
+
   const mentions_per_project: any = {};
   const project_panels: any = [];
   const project_id_order: string[] = [];
@@ -56,7 +87,7 @@ export function NotificationList({
         case "all":
           return true;
         default:
-          assertNever(filter);
+          unreachable(filter);
       }
     })
     .map((notification, id) => {
@@ -69,6 +100,7 @@ export function NotificationList({
       }
       mentions_per_project[project_id].push(
         <MentionRow
+          filter={filter}
           key={path + time.getTime()}
           id={id}
           mention={notification}
@@ -84,29 +116,32 @@ export function NotificationList({
 
   for (const project_id of project_id_order) {
     project_panels.push(
-      <Panel key={project_id} header={<ProjectTitle project_id={project_id} />}>
-        <ul>{mentions_per_project[project_id]}</ul>
-      </Panel>
+      <Collapse
+        defaultActiveKey={project_id_order}
+        key={project_id}
+        className="cocalc-notification-list"
+      >
+        <Panel
+          key={project_id}
+          header={<ProjectTitle project_id={project_id} />}
+          extra={renderMarkAll(project_id)}
+        >
+          <ul>{mentions_per_project[project_id]}</ul>
+        </Panel>
+      </Collapse>
     );
   }
 
   return (
-    <div
-      className={"smc-notificationlist"}
-      style={Object.assign({}, notification_list_style, style)}
-    >
-      {project_panels}
+    <div className={"smc-notificationlist"} style={style}>
+      <Space direction="vertical" size="large">
+        {project_panels}
+      </Space>
     </div>
   );
-}
+};
 
-function NoMentions({
-  filter,
-  style,
-}: {
-  filter: MentionFilter;
-  style: React.CSSProperties;
-}) {
+function NoMentions({ filter, style }: { filter: MentionFilter; style: CSS }) {
   let text = "No new mentions";
   switch (filter) {
     case "unread":
@@ -122,13 +157,7 @@ function NoMentions({
       text = "No mentions";
       break;
     default:
-      assertNever(filter);
+      unreachable(filter);
   }
   return <NoNewNotifications text={text} style={style} />;
 }
-
-const notification_list_style: React.CSSProperties = {
-  height: "100%",
-  width: "100%",
-  padding: "0px",
-};

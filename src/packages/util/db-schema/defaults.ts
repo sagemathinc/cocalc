@@ -5,9 +5,18 @@
 
 export const DEFAULT_FONT_SIZE = 14;
 
+export type NewFilenameTypes =
+  | "iso"
+  | "heroku"
+  | "pet"
+  | "ymd_heroku"
+  | "ymd_pet"
+  | "semantic"
+  | "ymd_semantic";
+
 // key for new filenames algorithm in account/other_settings and associated default value
 export const NEW_FILENAMES = "new_filenames";
-export const DEFAULT_NEW_FILENAMES = "iso";
+export const DEFAULT_NEW_FILENAMES: NewFilenameTypes = "ymd_semantic";
 
 // This is used on cocalc.com, and the storage server has images named "default", "ubuntu2004" and "ubuntu2204"
 // For on-prem, you have to configure the "software environment" configuration, which includes a default image name.

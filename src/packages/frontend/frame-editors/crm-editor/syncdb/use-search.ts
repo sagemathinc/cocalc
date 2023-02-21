@@ -8,7 +8,6 @@ needed for our CRM project yet, at least.
 import useRecord from "./use-record";
 import { useCallback, useMemo } from "react";
 import { isEqual } from "lodash";
-export { OPERATORS } from "@cocalc/util/db-schema";
 import type { Operator } from "@cocalc/util/db-schema";
 export type { Operator };
 

@@ -8,26 +8,33 @@ A single tab in a project.
    - There is one of these for each open file in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
-const { file_options } = require("../../editor");
-import { NavItem } from "react-bootstrap";
-import {
-  React,
-  ReactDOM,
-  useActions,
-  useEffect,
-  useMemo,
-  useRedux,
-  useRef,
-  useTypedRedux,
-} from "../../app-framework";
-import { path_split, path_to_tab, trunc_left } from "@cocalc/util/misc";
-import { HiddenXS, Icon, IconName, Tip } from "../../components";
-import { COLORS } from "@cocalc/util/theme";
-import { PROJECT_INFO_TITLE } from "../info";
-import { IS_SAFARI } from "../../feature";
-import CloseX from "./close-x";
 
-type FixedTab = "files" | "new" | "log" | "search" | "settings" | "info";
+import { Popover } from "antd";
+import { CSSProperties } from "react";
+
+import {
+  CSS,
+  useActions,
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { HiddenXSSM, Icon, IconName } from "@cocalc/frontend/components";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { TITLE as SERVERS_TITLE } from "../servers";
+import { PROJECT_INFO_TITLE } from "../info";
+
+const { file_options } = require("@cocalc/frontend/editor");
+
+export type FixedTab =
+  | "files"
+  | "new"
+  | "log"
+  | "search"
+  | "servers"
+  | "settings"
+  | "info";
 
 type FixedTabs = {
   [name in FixedTab]: {
@@ -40,7 +47,7 @@ type FixedTabs = {
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
   files: {
-    label: "Files",
+    label: "Explorer",
     icon: "folder-open",
     tooltip: "Browse files",
     noAnonymous: false,
@@ -63,10 +70,10 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     tooltip: "Search files in the project",
     noAnonymous: false,
   },
-  settings: {
-    label: "Settings",
-    icon: "wrench",
-    tooltip: "Project settings and controls",
+  servers: {
+    label: SERVERS_TITLE,
+    icon: "server",
+    tooltip: "Servers running in this project (e.g., Jupyter, Pluto, …)",
     noAnonymous: true,
   },
   info: {
@@ -75,19 +82,22 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     tooltip: "Running processes, resource usage, …",
     noAnonymous: true,
   },
-} as const;
-
-export const DEFAULT_FILE_TAB_STYLES = {
-  width: 250,
-  borderRadius: "5px 5px 0px 0px",
-  flexShrink: 1,
-  overflow: "hidden",
-  padding: 0,
+  settings: {
+    label: "Settings",
+    icon: "wrench",
+    tooltip: "Project settings and controls",
+    noAnonymous: true,
+  },
 } as const;
 
 interface Props0 {
   project_id: string;
   label?: string;
+  style?: CSSProperties;
+  noPopover?: boolean;
+  placement?;
+  iconStyle?: CSSProperties;
+  isFixedTab?: boolean;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -99,38 +109,20 @@ interface PropsName extends Props0 {
 }
 type Props = PropsPath | PropsName;
 
-export const FileTab: React.FC<Props> = React.memo((props: Props) => {
-  const { project_id, path, name, label: label_prop } = props;
-  let label = label_prop; // label might be modified in some situations
+export function FileTab(props: Props) {
+  const { project_id, path, name, label: label_prop, isFixedTab } = props;
+  let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
-  const active_project_tab = useTypedRedux(
-    { project_id },
-    "active_project_tab"
-  );
   // this is @cocalc/project/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
   const status_alert =
     name === "info" && project_status?.get("alerts")?.size > 0;
-
-  // True if this tab is currently selected:
-  const is_selected: boolean = useMemo(() => {
-    return active_project_tab == (path != null ? path_to_tab(path) : name);
-  }, [active_project_tab, path, name]);
 
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
     ["open_files", path ?? "", "has_activity"],
     project_id
   );
-
-  const tab_ref = useRef(null);
-  useEffect(() => {
-    // This is a hack to get around a Firefox or react-sortable-hoc bug.  See
-    // the long comment in src/@cocalc/frontend/projects/projects-nav.tsx about
-    // how to reproduce.
-    if (tab_ref.current == null) return;
-    ReactDOM.findDOMNode(tab_ref.current)?.children[0].removeAttribute("href");
-  });
 
   function closeFile() {
     if (path == null || actions == null) return;
@@ -154,8 +146,8 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  // middle mouse click closes
-  function onMouseDown(e) {
+  // middle mouse click closes – onMouseUp is important, because otherwise the clipboard buffer is inserted (on Linux)
+  function onMouseUp(e) {
     if (e.button === 1) {
       e.stopPropagation();
       e.preventDefault();
@@ -163,54 +155,9 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function render_displayed_label({ path, label }) {
-    if (path != null) {
-      // We ONLY show tooltip for filename (it provides the full path).
-      // The "ltr" below is needed because of the direction 'rtl' in label_style, which
-      // we have to compensate for in some situations, e.g.., a file name "this is a file!"
-      // will have the ! moved to the beginning by rtl.
-      const shift_open_info = (
-        <span style={{ color: COLORS.GRAY }}>
-          Hint: Shift-Click to open in new window.
-        </span>
-      );
-      // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
-      // though our union type above guarantees this.
-      const tooltip = (
-        <span style={{ fontWeight: "bold" }}>
-          {path != null ? path : FIXED_PROJECT_TABS[name!].tooltip}
-        </span>
-      );
-
-      return (
-        <div style={label_style}>
-          <span style={{ direction: "ltr" }}>
-            <Tip
-              title={tooltip}
-              tip={shift_open_info}
-              stable={false}
-              placement={"bottom"}
-            >
-              {label}
-            </Tip>
-          </span>
-        </div>
-      );
-    } else {
-      return <HiddenXS>{label}</HiddenXS>;
-    }
-  }
-
-  let style: React.CSSProperties;
+  let style: CSSProperties;
   if (path != null) {
-    if (is_selected) {
-      style = {
-        ...DEFAULT_FILE_TAB_STYLES,
-        backgroundColor: COLORS.ANTD_BG_BLUE_L,
-      };
-    } else {
-      style = DEFAULT_FILE_TAB_STYLES;
-    }
+    style = {};
   } else {
     // highlight info tab if there is at least one alert
     if (status_alert) {
@@ -220,15 +167,9 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  const icon_style: React.CSSProperties = has_activity
-    ? { color: "orange" }
-    : {};
-
-  const label_style: React.CSSProperties = {
-    overflow: "hidden",
-    flex: 1 /* expand pushing x to the right */,
-    whiteSpace: "nowrap",
-  };
+  const icon_style: CSSProperties = has_activity
+    ? { ...props.iconStyle, color: "orange" }
+    : { color: COLORS.FILE_ICON, ...props.iconStyle };
 
   if (label == null) {
     if (name != null) {
@@ -239,63 +180,108 @@ export const FileTab: React.FC<Props> = React.memo((props: Props) => {
   }
   if (label == null) throw Error("label must not be null");
 
-  const i = label.lastIndexOf("/");
-  if (i !== -1) {
-    if (IS_SAFARI) {
-      // Safari's implementation of direction rtl combined with
-      // ellipsis is really buggy.  E.g.,
-      //   https://developer.apple.com/forums/thread/87131
-      // so for Safari we just show the filename as usual.  I tried
-      // for many hours to find a palatable workaround, but failed.
-      // So we just do something really naive but probably sort of
-      // useful.
-      label = trunc_left(label, 20);
-    } else {
-      // using a full path for the label instead of just a filename
-      label_style.textOverflow = "ellipsis";
-      // so the ellipsis are on the left side of the path, which is most useful
-      label_style.direction = "rtl";
-      label_style.padding = "0 1px"; // need less since have ...
-    }
-  }
-
   const icon =
     path != null
       ? file_options(path)?.icon ?? "code-o"
       : FIXED_PROJECT_TABS[name!].icon;
 
-  const displayed_label: JSX.Element = render_displayed_label({ path, label });
-
-  const color = is_selected ? "white" : status_alert ? COLORS.BS_RED : COLORS.TAB;
-
-  return (
-    <NavItem
-      ref={tab_ref}
-      style={style}
-      active={is_selected}
-      onClick={click}
+  let body = (
+    <div
+      style={{ ...style, ...props.style }}
       cocalc-test={label}
-      onMouseDown={onMouseDown}
+      onClick={click}
+      onMouseUp={onMouseUp}
     >
       <div
         style={{
           width: "100%",
-          color,
           cursor: "pointer",
-          display: "flex",
+          display: path != null ? "flex" : undefined,
+          textAlign: "center",
         }}
       >
-        <div style={{ paddingRight: "2px", fontSize: "10pt" }}>
-          <Icon style={icon_style} name={icon} />
+        <div>
+          <Icon style={{ ...icon_style }} name={icon} />
         </div>
-        {displayed_label}
-        {path != null && (
-          <CloseX
-            closeFile={closeFile}
-            clearGhostFileTabs={() => actions?.clear_ghost_file_tabs()}
-          />
-        )}
+        <DisplayedLabel path={path} label={label} />
       </div>
-    </NavItem>
+    </div>
   );
-});
+
+  if (props.noPopover || IS_MOBILE) {
+    return body;
+  }
+  // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
+  // though our union type above guarantees this.
+  return (
+    <Popover
+      zIndex={10000}
+      title={
+        <span style={{ fontWeight: "bold" }}>
+          {path != null ? path : FIXED_PROJECT_TABS[name!].tooltip}
+        </span>
+      }
+      content={
+        // only editor-tabs can pop up
+        !isFixedTab ? (
+          <span style={{ color: COLORS.GRAY }}>
+            Hint: Shift+click to open in new window.
+          </span>
+        ) : undefined
+      }
+      mouseEnterDelay={0.9}
+      placement={props.placement ?? "bottom"}
+    >
+      {body}
+    </Popover>
+  );
+}
+
+const LABEL_STYLE: CSS = {
+  maxWidth: "250px",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  marginRight: "-15px", // this makes a lot more of the filename visible by undoing the antd tab spacing.
+} as const;
+
+const FULLPATH_LABEL_STYLE: CSS = {
+  // using a full path for the label instead of just a filename
+  textOverflow: "ellipsis",
+  // so the ellipsis are on the left side of the path, which is most useful
+  direction: "rtl",
+  padding: "0 1px", // need less since have ..
+} as const;
+
+function DisplayedLabel({ path, label }) {
+  if (path == null) {
+    // a fixed tab (not an actual file)
+    return (
+      <HiddenXSSM>
+        <span style={{ fontSize: "9pt" }}>{label}</span>
+      </HiddenXSSM>
+    );
+  }
+
+  let ext = filename_extension(label);
+  if (ext) {
+    ext = "." + ext;
+    label = label.slice(0, -ext.length);
+  }
+  // The "ltr" below is needed because of the direction 'rtl' in label_style, which
+  // we have to compensate for in some situations, e.g., a file name "this is a file!"
+  // will have the ! moved to the beginning by rtl.
+  return (
+    <div
+      style={{
+        ...LABEL_STYLE,
+        ...(label.includes("/") ? FULLPATH_LABEL_STYLE : undefined),
+      }}
+    >
+      <span style={{ direction: "ltr" }}>
+        {label}
+        <span style={{ color: COLORS.FILE_EXT }}>{ext}</span>
+      </span>
+    </div>
+  );
+}

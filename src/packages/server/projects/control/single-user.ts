@@ -42,6 +42,7 @@ import getLogger from "@cocalc/backend/logger";
 import { query } from "@cocalc/database/postgres/query";
 import { db } from "@cocalc/database";
 import { quota } from "@cocalc/util/upgrades/quota";
+import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
 
 const winston = getLogger("project-control:single-user");
 
@@ -170,7 +171,9 @@ class Project extends BaseProject {
       one: true,
     });
 
-    const run_quota = quota(settings, users, site_license);
+    const site_settings = await getQuotaSiteSettings(); // quick, usually cached
+
+    const run_quota = quota(settings, users, site_license, site_settings);
 
     await query({
       db: db(),

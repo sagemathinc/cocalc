@@ -29,7 +29,7 @@ export default function Custom404() {
   return (
     <>
       <Head>
-        <title>{siteName ? `${siteName}  – ` : ""}404 Page Not Found</title>
+        <title>{`${siteName ? siteName + " – " : ""}404 Page Not Found`}</title>
         <meta name="description" content="404 Page Not Found" />
         <meta name="robots" content="noindex,nofollow" />
         <link rel="icon" href={favicon} />

@@ -261,6 +261,8 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           type={desc.get("type")}
           page={desc.get("page")}
           pages={desc.get("pages")}
+          is_visible={is_visible}
+          tab_is_visible={tab_is_visible}
         />
       );
     }

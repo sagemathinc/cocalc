@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
+import { Map, List } from "immutable";
 import { fromPairs, isEqual } from "lodash";
 
 import {
@@ -118,10 +118,8 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
     project_id,
     "last_edited",
   ]);
-  const runQuota: Map<string, number> | undefined = project_map?.getIn([
-    project_id,
-    "run_quota",
-  ]);
+  const runQuota: Map<string, number | List<object>> | undefined =
+    project_map?.getIn([project_id, "run_quota"]);
 
   const [currentUsage, setCurrentUsage] = useState<CurrentUsage>({});
 
@@ -225,7 +223,12 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
             case "member_host":
             case "always_running":
             case "network":
+            case "ext_rw":
               return [key, getBoolean(key)];
+            case "patch":
+              const p = runQuota?.get(key);
+              const x = List.isList(p) ? p?.size : "N/A";
+              return [key, { display: `${x}`, element: <>{x}</> }];
             default:
               return [key, { display: name, element: <>{name}</> }];
           }
@@ -244,27 +247,32 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
 }
 
 // on non cocalc.com setups, we hider the member hosting entry
-export function useDisplayedFields() {
+export function useDisplayedFields(): string[] {
   const kucalc = useTypedRedux("customize", "kucalc");
 
-  return useMemo(
-    () =>
-      PROJECT_UPGRADES.field_order.filter((key: keyof Upgrades) => {
-        // we collect dedicated quotas in the overall limit
-        if (key === "cpu_shares" || key === "memory_request") return false;
+  return useMemo(() => {
+    // we have to make a copy, because we might modify it below
+    const fields = [...PROJECT_UPGRADES.field_order];
 
-        switch (kucalc) {
-          case KUCALC_COCALC_COM:
-            // show all rows on cocalc.com
-            return true;
-          case KUCALC_ON_PREMISES:
-            // there is no member hosting and no disk quota
-            return "member_host" !== key && "disk_quota" !== key;
-          case KUCALC_DISABLED:
-            // there is not much to show
-            return "mintime" === key || "always_running" === key;
-        }
-      }),
-    [kucalc]
-  );
+    // on kucalc on-prem, we add ext_rw and patch
+    if (kucalc === KUCALC_ON_PREMISES) {
+      fields.push(...["ext_rw", "patch"]);
+    }
+
+    return fields.filter((key: keyof Upgrades) => {
+      // don't show these, because we collect dedicated quotas in the overall limit
+      if (key === "cpu_shares" || key === "memory_request") return false;
+
+      switch (kucalc) {
+        case KUCALC_COCALC_COM:
+          return true; // show everything except the two above
+        case KUCALC_ON_PREMISES:
+          // there is no member hosting and no disk quota
+          return "member_host" !== key && "disk_quota" !== key;
+        case KUCALC_DISABLED:
+          // there is not much to show
+          return "mintime" === key || "always_running" === key;
+      }
+    });
+  }, [kucalc]);
 }

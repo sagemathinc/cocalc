@@ -5,21 +5,17 @@
 
 // Return a default filename with the given ext (or not extension if ext not given)
 // this is just a wrapper for backwards compatibility
-import { NewFilenames, NewFilenameTypes } from "../project/utils";
-import { NEW_FILENAMES } from "@cocalc/util/db-schema";
-
-import { redux } from "../app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
+import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
+import { NewFilenames } from "../project/utils";
 
 const new_filenames_generator = new NewFilenames(undefined, true);
 
-export const default_filename = function (
-  ext?: string,
-  project_id?: string
-): string {
+export function default_filename(ext?: string, project_id?: string): string {
   const account_store = redux.getStore("account");
-  const type: any = account_store // [j3] I have absolutely no idea why this won't type properly.
-    ? account_store.getIn(["other_settings", NEW_FILENAMES])
-    : (NewFilenames.default_family as NewFilenameTypes);
+  const type =
+    account_store?.getIn(["other_settings", NEW_FILENAMES]) ??
+    DEFAULT_NEW_FILENAMES;
   new_filenames_generator.set_ext(ext);
 
   if (project_id != undefined) {
@@ -30,4 +26,4 @@ export const default_filename = function (
   } else {
     return new_filenames_generator.gen(type);
   }
-};
+}

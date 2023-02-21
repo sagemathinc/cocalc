@@ -52,12 +52,20 @@ import {
   ReactNode,
   MutableRefObject,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   CSSProperties,
 } from "react";
-import { Element, ElementType, ElementsMap, Point, Rect } from "./types";
+import {
+  Element,
+  ElementType,
+  ElementsMap,
+  MainFrameType,
+  Point,
+  Rect,
+} from "./types";
 import { Tool, TOOLS } from "./tools/desc";
 import RenderElement from "./elements/render";
 import RenderReadOnlyElement from "./elements/render-static";
@@ -77,6 +85,7 @@ import { useFrameContext } from "./hooks";
 import usePinchToZoom from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import useResizeObserver from "use-resize-observer";
 import Grid from "./elements/grid";
+import SlideBackground from "./elements/slide-background";
 import {
   centerOfRect,
   compressPath,
@@ -132,6 +141,7 @@ interface Props {
   style?: CSSProperties;
   previewMode?: boolean; // Use a blue box preview, instead of the actual elements.
   cursors?: { [id: string]: { [account_id: string]: any[] } };
+  mainFrameType: MainFrameType;
 }
 
 export default function Canvas({
@@ -148,6 +158,7 @@ export default function Canvas({
   style,
   previewMode,
   cursors,
+  mainFrameType,
 }: Props) {
   const isMountedRef = useIsMountedRef();
   const frame = useFrameContext();
@@ -155,7 +166,7 @@ export default function Canvas({
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
   const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
-  const gridDivRef = useRef<any>(null);
+  const backgroundDivRef = useRef<any>(null);
   const canvasRef = useRef<any>(null);
   const scaleDivRef = useRef<any>(null);
 
@@ -322,15 +333,18 @@ export default function Canvas({
 
   const transformsRef = useRef<Transforms>(getTransforms(elements, margin));
 
-  useEffect(() => {
-    // TODO: if tool is not "select", should we exclude hidden elements in computing this...?
+  // This must happen before the render, hence the useLayoutEffect
+  // (which wasn't needed before React18)!
+  useLayoutEffect(() => {
     transformsRef.current = getTransforms(elements, margin);
   }, [elements, margin]);
 
   // When the canvas elements change the extent changes and everything
   // will jump if we don't offset that change.  That's what we do below:
+  // This must happen before the render, hence the useLayoutEffect
+  // (which wasn't needed before React18)!
   const lastTransforms = useRef<Transforms | null>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isNavigator) return;
     if (lastTransforms.current != null) {
       // the transforms changed somewhow.   Maybe xmin/ymin changed.
@@ -499,7 +513,7 @@ export default function Canvas({
       const rect = rectSpan(elements);
       const s =
         Math.min(
-          1 / 0.95,
+          2 / 0.95,
           Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
         ) * 0.95; // 0.95 for extra room too.
       scale.set(s);
@@ -592,7 +606,7 @@ export default function Canvas({
         element={element}
         focused={focused}
         canvasScale={canvasScale}
-        readOnly={readOnly || isNavigator}
+        readOnly={readOnly || isNavigator || !isFinite(element.z)}
         cursors={cursors?.[id]}
       />
     );
@@ -683,6 +697,10 @@ export default function Canvas({
             frame={frame}
             canvasScale={canvasScale}
             readOnly={readOnly}
+            onDrag={() => {
+              // dragging element cancels any selection in progress.
+              mousePath.current = null;
+            }}
           >
             {elt}
           </NotFocused>
@@ -691,12 +709,12 @@ export default function Canvas({
     }
   }
 
-  const v: ReactNode[] = [];
+  const renderedElements: ReactNode[] = [];
 
   for (const element of elements) {
     const x = processElement(element);
     if (x != null) {
-      v.push(x);
+      renderedElements.push(x);
     }
   }
 
@@ -737,7 +755,7 @@ export default function Canvas({
       z: 0,
     };
 
-    v.push(
+    renderedElements.push(
       <Focused
         key={"selection"}
         canvasScale={canvasScale}
@@ -765,7 +783,7 @@ export default function Canvas({
     const element = getToolElement("edge");
     if (element.data == null) throw Error("bug");
     element.data = { ...element.data, from: edgeStart, previewTo: edgePreview };
-    v.push(
+    renderedElements.push(
       <RenderEdge
         key="edge-preview"
         element={element as Element}
@@ -780,7 +798,7 @@ export default function Canvas({
     // The navigator rectangle
     const visible = frame.desc.get("viewport")?.toJS();
     if (visible) {
-      v.unshift(
+      renderedElements.unshift(
         <Draggable
           key="nav"
           position={{ x: 0, y: 0 }}
@@ -901,7 +919,7 @@ export default function Canvas({
       return;
     }
     if (selectedTool == "select") {
-      if (e.target == gridDivRef.current) {
+      if (e.target == backgroundDivRef.current) {
         // clear selection
         frame.actions.clearSelection(frame.id);
         const edgeStart = frame.desc.get("edgeStart");
@@ -971,8 +989,10 @@ export default function Canvas({
       return;
     }
     if (selectedTool == "select" || selectedTool == "frame") {
-      if (e.target != gridDivRef.current) return;
-      // draw a rectangle to select multiple items
+      if (e.target != backgroundDivRef.current && (selection?.size ?? 0) > 0) {
+        return;
+      }
+      // drawing a rectangle to select multiple items
       const point = getMousePos(e);
       if (point == null) return;
       mousePath.current = [point];
@@ -1050,7 +1070,9 @@ export default function Canvas({
         } else {
           // select everything in selection
           const overlapping = getOverlappingElements(elements, rect);
-          const ids = overlapping.map((element) => element.id);
+          const ids = overlapping
+            .filter((element) => isFinite(element.z))
+            .map((element) => element.id);
           frame.actions.setSelectionMulti(frame.id, ids, "add");
         }
         return;
@@ -1490,10 +1512,19 @@ export default function Canvas({
             height: `${transformsRef.current.height}px`,
           }}
         >
-          {!isNavigator && (
-            <Grid transforms={transformsRef.current} divRef={gridDivRef} />
+          {!isNavigator && mainFrameType == "whiteboard" && (
+            <Grid
+              transforms={transformsRef.current}
+              divRef={backgroundDivRef}
+            />
           )}
-          {v}
+          {!isNavigator && mainFrameType == "slides" && (
+            <SlideBackground
+              transforms={transformsRef.current}
+              divRef={backgroundDivRef}
+            />
+          )}
+          {renderedElements}
         </div>
       </div>
     </div>

@@ -16,36 +16,41 @@ or Loading... if the file is still being loaded.
 
 import { Map } from "immutable";
 import Draggable from "react-draggable";
-import { hidden_meta_file } from "@cocalc/util/misc";
-import { IS_MOBILE, IS_TOUCH } from "../../feature";
+
 import {
   React,
   ReactDOM,
-  project_redux_name,
   redux,
   useForceUpdate,
   useMemo,
-  useTypedRedux,
   useRef,
-} from "../../app-framework";
-import { Loading } from "../../components";
-import { editor_id } from "../utils";
-import { drag_start_iframe_disable, drag_stop_iframe_enable } from "../../misc";
-import { webapp_client } from "../../webapp-client";
-import DeletedFile from "../deleted-file";
-import { KioskModeBanner } from "../../app/kiosk-mode-banner";
-import { Explorer } from "../explorer";
-import { ProjectNew } from "../new";
-import { ProjectInfo } from "../info";
-import { ProjectLog } from "../history";
-import { ProjectSearch } from "../search/search";
-import { ProjectSettings } from "../settings";
-import { SideChat } from "../../chat/side-chat";
-import { log_file_open } from "../open-file";
-import { FileContext } from "@cocalc/frontend/lib/file-context";
-import getUrlTransform from "./url-transform";
-import getAnchorTagComponent from "./anchor-tag-component";
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
+import { SideChat } from "@cocalc/frontend/chat/side-chat";
+import { Loading } from "@cocalc/frontend/components";
 import KaTeXAndMathJaxV2 from "@cocalc/frontend/components/math/katex-and-mathjax2";
+import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
+import { FileContext } from "@cocalc/frontend/lib/file-context";
+import {
+  drag_start_iframe_disable,
+  drag_stop_iframe_enable,
+} from "@cocalc/frontend/misc";
+import DeletedFile from "@cocalc/frontend/project/deleted-file";
+import { Explorer } from "@cocalc/frontend/project/explorer";
+import { ProjectLog } from "@cocalc/frontend/project/history";
+import { ProjectInfo } from "@cocalc/frontend/project/info";
+import { ProjectNew } from "@cocalc/frontend/project/new";
+import { log_file_open } from "@cocalc/frontend/project/open-file";
+import { ProjectSearch } from "@cocalc/frontend/project/search/search";
+import { ProjectServers } from "@cocalc/frontend/project/servers";
+import { ProjectSettings } from "@cocalc/frontend/project/settings";
+import { editor_id } from "@cocalc/frontend/project/utils";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { hidden_meta_file } from "@cocalc/util/misc";
+import getAnchorTagComponent from "./anchor-tag-component";
+import HomePage from "./home-page";
+import getUrlTransform from "./url-transform";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -53,7 +58,7 @@ const DEFAULT_CHAT_WIDTH = IS_MOBILE ? 0.5 : 0.3;
 
 const MAIN_STYLE: React.CSSProperties = {
   overflowX: "hidden",
-  flex: 1,
+  flex: "1 1 auto",
   height: 0,
   position: "relative",
 } as const;
@@ -64,11 +69,8 @@ interface Props {
   is_visible: boolean; // if false, editor is in the DOM (so all subtle DOM state preserved) but it is not visible on screen.
 }
 
-export const Content: React.FC<Props> = ({
-  project_id,
-  tab_name,
-  is_visible,
-}) => {
+export const Content: React.FC<Props> = (props: Props) => {
+  const { project_id, tab_name, is_visible } = props;
   // The className below is so we always make this div the remaining height.
   // The overflowY is hidden for editors (which don't scroll), but auto
   // otherwise, since some tabs (e.g., settings) *do* need to scroll. See
@@ -97,11 +99,8 @@ interface TabContentProps {
   is_visible: boolean;
 }
 
-export const TabContent: React.FC<TabContentProps> = ({
-  project_id,
-  tab_name,
-  is_visible,
-}) => {
+const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
+  const { project_id, tab_name, is_visible } = props;
   const open_files =
     useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();
   const fullscreen = useTypedRedux("page", "fullscreen");
@@ -119,35 +118,23 @@ export const TabContent: React.FC<TabContentProps> = ({
     return <KioskModeBanner />;
   }
 
-  // TODO: this name thing will disappear when the components
-  // that use it below switch to hooks...
-  const name = project_redux_name(project_id);
-
   switch (tab_name) {
+    case "home":
+      return <HomePage project_id={project_id} />;
     case "files":
-      return (
-        <Explorer
-          name={name}
-          project_id={project_id}
-          actions={redux.getProjectActions(project_id)}
-        />
-      );
+      return <Explorer project_id={project_id} />;
     case "new":
       return <ProjectNew project_id={project_id} />;
     case "log":
       return <ProjectLog project_id={project_id} />;
     case "search":
       return <ProjectSearch project_id={project_id} />;
+    case "servers":
+      return <ProjectServers project_id={project_id} />;
     case "settings":
-      return (
-        <ProjectSettings
-          project_id={project_id}
-          name={name}
-          group={redux.getStore("projects").get_my_group(project_id)}
-        />
-      );
+      return <ProjectSettings project_id={project_id} />;
     case "info":
-      return <ProjectInfo name={name} project_id={project_id} />;
+      return <ProjectInfo project_id={project_id} />;
     default:
       // check for "editor-[filename]"
       if (!tab_name.startsWith("editor-")) {
@@ -187,12 +174,8 @@ interface EditorProps {
   component: { Editor?; redux_name?: string };
 }
 
-const Editor: React.FC<EditorProps> = ({
-  path,
-  project_id,
-  is_visible,
-  component,
-}) => {
+const Editor: React.FC<EditorProps> = (props: EditorProps) => {
+  const { path, project_id, is_visible, component } = props;
   const { Editor: EditorComponent, redux_name } = component;
   if (EditorComponent == null) {
     return <Loading theme={"medium"} />;
@@ -225,14 +208,11 @@ interface EditorContentProps {
   component: { Editor?; redux_name?: string };
 }
 
-const EditorContent: React.FC<EditorContentProps> = ({
-  project_id,
-  path,
-  chat_width,
-  is_visible,
-  is_chat_open,
-  component,
-}) => {
+const EditorContent: React.FC<EditorContentProps> = (
+  props: EditorContentProps
+) => {
+  const { project_id, path, chat_width, is_visible, is_chat_open, component } =
+    props;
   const editor_container_ref = useRef(null);
   const force_update = useForceUpdate();
 
@@ -321,11 +301,9 @@ interface DragBarProps {
   editor_container_ref;
 }
 
-const DragBar: React.FC<DragBarProps> = ({
-  project_id,
-  path,
-  editor_container_ref,
-}) => {
+const DragBar: React.FC<DragBarProps> = (props: DragBarProps) => {
+  const { project_id, path, editor_container_ref } = props;
+
   const draggable_ref = useRef<any>(null);
 
   const reset = () => {
@@ -357,6 +335,7 @@ const DragBar: React.FC<DragBarProps> = ({
 
   return (
     <Draggable
+      position={{ x: 0, y: 0 }}
       ref={draggable_ref}
       axis="x"
       onStop={handle_drag_bar_stop}

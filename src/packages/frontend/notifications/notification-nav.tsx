@@ -3,31 +3,34 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Menu } from "antd";
 import React from "react";
-import { MentionFilter } from "./mentions/types";
-const { Nav, NavItem } = require("react-bootstrap");
 
-export function NotificationNav({
-  filter,
-  on_click,
-  style,
-}: {
+import { MentionFilter } from "./mentions/types";
+
+const ITEMS = [
+  { key: "unread", label: "Unread" },
+  { key: "read", label: "Read" },
+  { key: "saved", label: "Saved for later" },
+  { key: "all", label: "All mentions" },
+];
+
+interface Props {
   filter: MentionFilter;
   on_click: (label: MentionFilter) => void;
   style: React.CSSProperties;
-}) {
+}
+
+export function NotificationNav(props: Props) {
+  const { filter, on_click, style } = props;
+
   return (
-    <Nav
-      bsStyle="pills"
-      activeKey={filter}
-      onSelect={on_click}
-      stacked={true}
+    <Menu
+      onClick={(e) => on_click(e.key as MentionFilter)}
       style={style}
-    >
-      <NavItem eventKey={"unread"}>Unread</NavItem>
-      <NavItem eventKey={"read"}>Read</NavItem>
-      <NavItem eventKey={"saved"}>Saved for later</NavItem>
-      <NavItem eventKey={"all"}>All mentions</NavItem>
-    </Nav>
+      defaultSelectedKeys={[filter]}
+      mode="inline"
+      items={ITEMS}
+    />
   );
 }

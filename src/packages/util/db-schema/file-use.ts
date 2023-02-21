@@ -4,8 +4,8 @@
  */
 
 import { Table } from "./types";
-
 import { minutes_ago } from "../misc";
+import { SCHEMA as schema } from "./index";
 
 /* TODO: for postgres rewrite after done we MIGHT completely redo file_use to eliminate
 the id field, use project_id, path as a compound primary key, and maybe put users in
@@ -28,8 +28,7 @@ Table({
     },
     users: {
       type: "map",
-      desc:
-        "{account_id1: {action1: timestamp1, action2:timestamp2}, account_id2: {...}}",
+      desc: "{account_id1: {action1: timestamp1, action2:timestamp2}, account_id2: {...}}",
       date: "all",
     },
     last_edited: {
@@ -114,4 +113,19 @@ Table({
       },
     },
   },
+});
+
+Table({
+  name: "crm_file_use",
+  rules: {
+    virtual: "file_use",
+    primary_key: "id",
+    user_query: {
+      get: {
+        admin: true, // only admins can do get queries on this table
+        fields: schema.file_use.user_query?.get?.fields ?? {},
+      },
+    },
+  },
+  fields: schema.file_use.fields,
 });

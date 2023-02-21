@@ -16,7 +16,7 @@ export default function LinkedPath({ id, path, relativePath, isDir }: Props) {
   let href = `/share/public_paths/${id}`;
   const first = (
     <Link href={href} key={href}>
-      <a>{path}</a>
+      {path}
     </Link>
   );
   const slash = (key) => <span key={"slash" + key}> / </span>;
@@ -26,7 +26,7 @@ export default function LinkedPath({ id, path, relativePath, isDir }: Props) {
     href += `/${encodeURIComponent(segment)}`;
     segments.push(
       <Link href={href} key={href}>
-        <a>{segment}</a>
+        {segment}
       </Link>
     );
     segments.push(slash(href));

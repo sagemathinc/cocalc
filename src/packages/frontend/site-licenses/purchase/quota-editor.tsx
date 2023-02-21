@@ -12,27 +12,6 @@ Editing a quota
  - optional: also shows rows for support and network that can't be edited
 
 */
-
-import {
-  CSS,
-  React,
-  useMemo,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
-import { Space } from "@cocalc/frontend/components";
-import {
-  LicenseIdleTimeouts,
-  requiresMemberhosting,
-  untangleUptime,
-  Uptime,
-} from "@cocalc/util/consts/site-license";
-import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
-import { COSTS, GCE_COSTS } from "@cocalc/util/licenses/purchase/consts";
-import { User } from "@cocalc/util/licenses/purchase/types";
-import { money } from "@cocalc/util/licenses/purchase/utils";
-import { plural, round1 } from "@cocalc/util/misc";
-import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import {
   Button,
   Checkbox,
@@ -42,6 +21,36 @@ import {
   Select,
   Typography,
 } from "antd";
+
+import {
+  CSS,
+  React,
+  useMemo,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { A, Space } from "@cocalc/frontend/components";
+import {
+  LicenseIdleTimeouts,
+  requiresMemberhosting,
+  untangleUptime,
+  Uptime,
+} from "@cocalc/util/consts/site-license";
+import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
+import {
+  CostMap,
+  COSTS,
+  GCE_COSTS,
+} from "@cocalc/util/licenses/purchase/consts";
+import { User } from "@cocalc/util/licenses/purchase/types";
+import { money } from "@cocalc/util/licenses/purchase/utils";
+import { plural, round1, test_valid_jsonpatch } from "@cocalc/util/misc";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import { Upgrades } from "@cocalc/util/upgrades/quota";
+import Paragraph from "antd/es/typography/Paragraph";
+import { JsonEditor } from "../../admin/json-editor";
+
+const { Text } = Typography;
 
 const ROW_STYLE: CSS = {
   border: "1px solid #eee",
@@ -83,10 +92,15 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
   } = props;
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const isOnPrem = customize_kucalc === KUCALC_ON_PREMISES;
+  const max_upgrades = useTypedRedux("customize", "max_upgrades");
 
   const [show_advanced, set_show_advanced] = useState<boolean>(
     show_advanced_default ?? false
   );
+  const [jsonPatchError, setJSONPatchError] = useState<string | undefined>(
+    undefined
+  );
+
   const hosting_multiplier = useMemo(() => {
     return (
       (quota.member ? COSTS.custom_cost.member : 1) *
@@ -106,6 +120,36 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     return quota.user;
   }
 
+  // for onprem setups, the max_upgrades site setting adjust the limits of cpu and memory quotas
+  const custom_max: CostMap = React.useMemo(() => {
+    if (!isOnPrem) return COSTS.custom_max;
+    // otherwise, we make a copy and modify cpu or memory limits
+    const max: CostMap = { ...COSTS.custom_max };
+
+    if (max_upgrades == null) return max;
+    function setQuotaMax(name: keyof CostMap, quota: keyof Upgrades) {
+      let val = max_upgrades.get(quota);
+      if (val == null) return;
+      if (typeof val !== "number" || val < 0) return;
+      switch (quota) {
+        case "memory":
+        case "memory_request":
+          // this is not in MiB for historic reasons (but Math.round hides this anyways)
+          val = val / 1000;
+          break;
+        case "cpu_shares":
+          val = val / 1024;
+          break;
+      }
+      max[name] = Math.round(val);
+    }
+    setQuotaMax("cpu", "cores");
+    setQuotaMax("dedicated_cpu", "cpu_shares");
+    setQuotaMax("ram", "memory");
+    setQuotaMax("dedicated_ram", "memory_request");
+    return max;
+  }, [max_upgrades, isOnPrem]);
+
   const isDedicated =
     quota.dedicated_vm != null || quota.dedicated_disk != null;
 
@@ -116,7 +160,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <InputNumber
             disabled={disabled}
             min={adminMode ? 0 : COSTS.basic.cpu}
-            max={COSTS.custom_max.cpu}
+            max={custom_max.cpu}
             value={quota.cpu}
             onChange={(x) => {
               if (typeof x != "number") return;
@@ -128,8 +172,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Col>
         <Col md={col.max}>
           <Button
-            disabled={quota.cpu == COSTS.custom_max.cpu}
-            onClick={() => onChange({ cpu: COSTS.custom_max.cpu })}
+            disabled={quota.cpu == custom_max.cpu}
+            onClick={() => onChange({ cpu: custom_max.cpu })}
           >
             Max
           </Button>
@@ -161,7 +205,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <InputNumber
             disabled={disabled}
             min={adminMode ? 0 : COSTS.basic.ram}
-            max={COSTS.custom_max.ram}
+            max={custom_max.ram}
             value={quota.ram}
             onChange={(x) => {
               if (typeof x != "number") return;
@@ -173,8 +217,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Col>
         <Col md={col.max}>
           <Button
-            disabled={quota.ram == COSTS.custom_max.ram}
-            onClick={() => onChange({ ram: COSTS.custom_max.ram })}
+            disabled={quota.ram == custom_max.ram}
+            onClick={() => onChange({ ram: custom_max.ram })}
           >
             Max
           </Button>
@@ -204,11 +248,15 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <InputNumber
             disabled={disabled}
             min={adminMode ? 0 : COSTS.basic.dedicated_cpu}
-            max={COSTS.custom_max.dedicated_cpu}
+            max={custom_max.dedicated_cpu}
             value={quota.dedicated_cpu}
             onChange={(x) => {
               if (typeof x != "number") return;
-              onChange({ dedicated_cpu: round1(x) });
+              if (x <= 0) {
+                onChange({ dedicated_cpu: undefined });
+              } else {
+                onChange({ dedicated_cpu: round1(x) });
+              }
             }}
           />
           <Space />
@@ -218,9 +266,9 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Col>
         <Col md={col.max}>
           <Button
-            disabled={quota.dedicated_cpu == COSTS.custom_max.dedicated_cpu}
+            disabled={quota.dedicated_cpu == custom_max.dedicated_cpu}
             onClick={() =>
-              onChange({ dedicated_cpu: COSTS.custom_max.dedicated_cpu })
+              onChange({ dedicated_cpu: custom_max.dedicated_cpu })
             }
           >
             Max
@@ -253,11 +301,15 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <InputNumber
             disabled={disabled}
             min={adminMode ? 0 : COSTS.basic.dedicated_ram}
-            max={COSTS.custom_max.dedicated_ram}
+            max={custom_max.dedicated_ram}
             value={quota.dedicated_ram}
             onChange={(x) => {
               if (typeof x != "number") return;
-              onChange({ dedicated_ram: Math.round(x) });
+              if (x <= 0) {
+                onChange({ dedicated_ram: undefined });
+              } else {
+                onChange({ dedicated_ram: round1(x) });
+              }
             }}
           />
           <Space />
@@ -265,9 +317,9 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Col>
         <Col md={col.max}>
           <Button
-            disabled={quota.dedicated_ram == COSTS.custom_max.dedicated_ram}
+            disabled={quota.dedicated_ram == custom_max.dedicated_ram}
             onClick={() =>
-              onChange({ dedicated_ram: COSTS.custom_max.dedicated_ram })
+              onChange({ dedicated_ram: custom_max.dedicated_ram })
             }
           >
             Max
@@ -299,7 +351,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <InputNumber
             disabled={disabled}
             min={adminMode ? 0 : COSTS.basic.disk}
-            max={COSTS.custom_max.disk}
+            max={custom_max.disk}
             value={quota.disk}
             onChange={(x) => {
               if (typeof x != "number") return;
@@ -311,8 +363,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         </Col>
         <Col md={col.max}>
           <Button
-            disabled={quota.disk == COSTS.custom_max.disk}
-            onClick={() => onChange({ disk: COSTS.custom_max.disk })}
+            disabled={quota.disk == custom_max.disk}
+            onClick={() => onChange({ disk: custom_max.disk })}
           >
             Max
           </Button>
@@ -372,10 +424,51 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <Checkbox
             checked={quota.ext_rw}
             disabled={disabled}
+            style={{ fontWeight: "normal" }}
             onChange={(e) => onChange({ ext_rw: e.target.checked })}
           >
-            on-premises: mount <code>/ext</code> read/writeable
+            on-premises: mount <code>/ext</code> volume read/writeable (intended
+            for instructors/administrators)
           </Checkbox>
+        </Col>
+      </Row>
+    );
+  }
+
+  function on_json_patch_change(patch: string): void {
+    try {
+      const patchObj = JSON.parse(patch);
+      setJSONPatchError(undefined);
+      if (test_valid_jsonpatch(patchObj)) {
+        onChange({ patch }); // we save the string, not the object!
+      } else {
+        setJSONPatchError(
+          'Must be a list of {`[{"op": "replace", "path": "…", "value": "…"}, …]`} objects.'
+        );
+      }
+    } catch (err) {
+      setJSONPatchError(`Unable to parse JSON: ${err}`);
+    }
+  }
+
+  function render_patch_project_pod(): JSX.Element {
+    const value = quota.patch ?? "[]";
+    return (
+      <Row style={ROW_STYLE}>
+        <Col md={col.control}>
+          <Paragraph type="secondary">
+            Define a list of <A href={"https://jsonpatch.com/"}>JSON Patch</A>{" "}
+            operations for the generated project pod specification. They'll be
+            applied right before being submitted to the Kubernetes API. Beware,
+            this gives you a lot of power!
+          </Paragraph>
+          {jsonPatchError && (
+            <Text type="danger">
+              JSON Patch Error: {jsonPatchError} – Learn more at{" "}
+              <A href="https://jsonpatch.com/">JSON Patch</A>.
+            </Text>
+          )}
+          <JsonEditor rows={15} onSave={on_json_patch_change} value={value} />
         </Col>
       </Row>
     );
@@ -532,7 +625,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
   }
 
   return (
-    <div>
+    <>
       {render_cpu()}
       {render_ram()}
       {render_disk()}
@@ -544,7 +637,8 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       {show_advanced && render_dedicated_cpu()}
       {show_advanced && render_dedicated_ram()}
       {show_advanced && !hideExtra && render_dedicated()}
-      {isOnPrem && render_ext_rw()}
-    </div>
+      {show_advanced && isOnPrem && render_ext_rw()}
+      {show_advanced && isOnPrem && render_patch_project_pod()}
+    </>
   );
 };

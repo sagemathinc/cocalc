@@ -17,32 +17,28 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 // TODO: What we haven't converted yet, but do use in CoCalc:
 export {
   ControlLabel,
+  Form,
   FormControl,
   FormGroup,
-  Form,
   InputGroup,
-  Navbar,
-  Nav,
-  NavItem,
-  Table,
 } from "react-bootstrap";
-
-import { MouseEventHandler } from "react";
-import { Rendered } from "./app-framework";
-import { r_join } from "./components/r_join";
-import { Space } from "./components/space";
-
 import {
   Alert as AntdAlert,
   Button as AntdButton,
   Card as AntdCard,
-  Tabs as AntdTabs,
-  Modal as AntdModal,
   Checkbox as AntdCheckbox,
-  Row as AntdRow,
   Col as AntdCol,
+  Modal as AntdModal,
+  Row as AntdRow,
+  Tabs as AntdTabs,
+  TabsProps as AntdTabsProps,
   Tooltip,
 } from "antd";
+import { MouseEventHandler } from "react";
+
+import { Rendered } from "@cocalc/frontend/app-framework";
+import { r_join } from "@cocalc/frontend/components/r_join";
+import { Space } from "@cocalc/frontend/components/space";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful
@@ -327,28 +323,39 @@ export function Col(props: {
   return <AntdCol {...props2}>{props.children}</AntdCol>;
 }
 
-export function Tabs(props: {
+export type AntdTabItem = NonNullable<AntdTabsProps["items"]>[number];
+
+interface TabsProps {
   id?: string;
   key?: string;
   activeKey: string;
   onSelect?: (activeKey: string) => void;
   animation?: boolean;
   style?: React.CSSProperties;
-  tabBarExtraContent?: React.ReactNode;
+  tabBarExtraContent?;
   tabPosition?: "left" | "top" | "right" | "bottom";
   size?: "small";
-  children: any;
-}) {
-  // We do this because for antd, "There must be `tab` property on children of Tabs."
-  let tabs: Rendered[] | Rendered = [];
-  if (Symbol.iterator in Object(props.children)) {
-    for (const x of props.children) {
-      if (x == null || !x.props) continue;
-      tabs.push(Tab(x.props));
+  items?: AntdTabItem[];
+  children?: any;
+}
+
+export function Tabs(props: TabsProps) {
+  const { children, items } = props;
+
+  let tabs: Rendered[] | Rendered = undefined;
+  if (items == null && children != null) {
+    tabs = [];
+    // We do this because for antd, "There must be `tab` property on children of Tabs."
+    if (Symbol.iterator in Object(props.children)) {
+      for (const x of children) {
+        if (x == null || !x.props) continue;
+        tabs.push(Tab(x.props));
+      }
+    } else {
+      tabs = Tab(children);
     }
-  } else {
-    tabs = Tab(props.children);
   }
+
   return (
     <AntdTabs
       activeKey={props.activeKey}
@@ -358,6 +365,7 @@ export function Tabs(props: {
       tabBarExtraContent={props.tabBarExtraContent}
       tabPosition={props.tabPosition}
       size={props.size}
+      items={items}
     >
       {tabs}
     </AntdTabs>
@@ -398,7 +406,7 @@ export function Modal(props: {
   children?: any;
 }) {
   return (
-    <AntdModal visible={props.show} footer={null} closable={false}>
+    <AntdModal open={props.show} footer={null} closable={false}>
       {props.children}
     </AntdModal>
   );
@@ -408,34 +416,35 @@ Modal.Body = function (props: any) {
   return <>{props.children}</>;
 };
 
-export function Alert(props: {
+interface AlertProps {
   key?: string;
   bsStyle?: ButtonStyle;
   style?: React.CSSProperties;
   banner?: boolean;
   children?: any;
-}) {
+}
+
+export function Alert(props: AlertProps) {
+  const { key, bsStyle, style, banner, children } = props;
+
   let type: "success" | "info" | "warning" | "error" | undefined = undefined;
   // success, info, warning, error
-  if (
-    props.bsStyle == "success" ||
-    props.bsStyle == "warning" ||
-    props.bsStyle == "info"
-  ) {
-    type = props.bsStyle;
-  } else if (props.bsStyle == "danger") {
+  if (bsStyle == "success" || bsStyle == "warning" || bsStyle == "info") {
+    type = bsStyle;
+  } else if (bsStyle == "danger") {
     type = "error";
-  } else if (props.bsStyle == "link") {
+  } else if (bsStyle == "link") {
     type = "info";
-  } else if (props.bsStyle == "primary") {
+  } else if (bsStyle == "primary") {
     type = "success";
   }
   return (
     <AntdAlert
-      message={props.children}
+      key={key}
+      message={children}
       type={type}
-      style={props.style}
-      banner={props.banner}
+      style={style}
+      banner={banner}
     />
   );
 }

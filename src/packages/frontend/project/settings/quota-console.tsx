@@ -5,17 +5,9 @@
 
 // TODO: Remove `as any`s in this file.
 // Refer to https://github.com/microsoft/TypeScript/issues/13948
-import React, { useEffect, useState } from "react";
+
 import * as immutable from "immutable";
-import { Rendered, usePrevious } from "../../app-framework";
-import { LabeledRow, Tip, Icon, Space, Loading } from "../../components";
-import { alert_message } from "../../alerts";
-import { ProjectSettings, ProjectStatus } from "./types";
-import * as misc from "@cocalc/util/misc";
-const { User } = require("../../users"); // TODO fix typing error when importing properly
-import { webapp_client } from "../../webapp-client";
-import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
+import React, { useEffect, useState } from "react";
 const {
   Checkbox,
   Row,
@@ -23,6 +15,22 @@ const {
   ButtonToolbar,
   Button,
 } = require("react-bootstrap");
+
+import { alert_message } from "@cocalc/frontend/alerts";
+import { Rendered, usePrevious } from "@cocalc/frontend/app-framework";
+import {
+  Icon,
+  LabeledRow,
+  Loading,
+  Space,
+  Tip,
+} from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
+import * as misc from "@cocalc/util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { ProjectSettings, ProjectStatus } from "./types";
+const { User } = require("@cocalc/frontend/users"); // TODO fix typing error when importing properly
 
 interface Props {
   project_id: string;
@@ -106,7 +114,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
 
   function render_quota_row(
     name: keyof QuotaParams,
-    quota: { edit: string; view: string },
+    quota: { edit: string; view: string } | undefined,
     base_value: number,
     upgrades: QuotaParams,
     params_data: {
@@ -117,6 +125,10 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     },
     site_license: number
   ): Rendered {
+    if (quota == null) {
+      // happens for cocalc-cloud only params
+      return;
+    }
     if (
       kucalc == KUCALC_DISABLED &&
       name != "mintime" &&
@@ -126,6 +138,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
       // NONE of the other quotas are.
       return;
     }
+
     // if always_running is true, don't show idle timeout row, since not relevant
     if (
       name == "mintime" &&

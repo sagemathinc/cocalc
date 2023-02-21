@@ -16,30 +16,27 @@ const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
 
 declare const localStorage: any;
 
-import * as immutable from "immutable";
 import { reuseInFlight } from "async-await-utils/hof";
+import * as immutable from "immutable";
 import { debounce } from "lodash";
 
+import { Actions } from "@cocalc/frontend/app-framework";
+import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
-const { close, required, defaults } = misc;
 import * as awaiting from "awaiting";
-import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { Cell, KernelInfo } from "./types";
-import { Syntax } from "@cocalc/util/code-formatter";
-
-import { Actions } from "../app-framework";
 import {
   JupyterStoreState,
   JupyterStore,
   show_kernel_selector_reasons,
 } from "./store";
-import * as parsing from "./parsing";
 import * as cell_utils from "./cell-utils";
-import { cm_options } from "./cm_options";
 
-// map project_id (string) -> kernels (immutable)
-import { Kernels, Kernel } from "./util";
+const { close, required, defaults } = misc;
+
+// local cache: map project_id (string) -> kernels (immutable)
+import { Kernel, Kernels } from "./util";
 let jupyter_kernels = immutable.Map<string, Kernels>();
 
 import { IPynbImporter } from "./import-from-ipynb";
@@ -49,12 +46,10 @@ import { JupyterKernelInterface } from "./project-interface";
 import { parse_headings } from "./contents";
 
 import {
+  char_idx_to_js_idx,
   codemirror_to_jupyter_pos,
   js_idx_to_char_idx,
-  char_idx_to_js_idx,
 } from "./util";
-
-import { Config as FormatterConfig } from "@cocalc/project/formatters";
 
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { get_local_storage, set_local_storage } from "../misc/local-storage";
@@ -68,7 +63,7 @@ underlying synchronized state.
 const CellWriteProtectedException = new Error("CellWriteProtectedException");
 const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
-export class JupyterActions extends Actions<JupyterStoreState> {
+export abstract class JupyterActions extends Actions<JupyterStoreState> {
   private is_project: boolean;
   protected path: string;
   public project_id: string;
@@ -93,7 +88,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   public initialize_manager: any;
   public manager_on_cell_change: any;
   public manager_run_cell_process_queue: any;
-  public store: any;
+  public store: JupyterStore;
   public syncdb: SyncDB;
 
   public _init(
@@ -312,7 +307,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
     const cur = this.store.get("error");
     // don't show the same error more than once
-    if ((cur != null ? cur.indexOf(err) : undefined) >= 0) {
+    if ((cur?.indexOf(err) ?? -1) >= 0) {
       return;
     }
     if (cur) {
@@ -370,6 +365,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (cells == null) return; // nothing to do
     for (const id of cell_ids) {
       const cell = cells.get(id);
+      if (cell == null) continue;
       if (cell.get("output") != null || cell.get("exec_count")) {
         this._set({ type: "cell", id, output: null, exec_count: null }, false);
       }
@@ -432,6 +428,25 @@ export class JupyterActions extends Actions<JupyterStoreState> {
 
   public set_cell_pos(id: string, pos: number, save: boolean = true): void {
     this._set({ type: "cell", id, pos }, save);
+  }
+
+  public moveCell(
+    oldIndex: number,
+    newIndex: number,
+    save: boolean = true
+  ): void {
+    if (oldIndex == newIndex) return; // nothing to do
+    // Move the cell that is currently at position oldIndex to
+    // be at position newIndex.
+    const cell_list = this.store.get_cell_list();
+    const newPos = cell_utils.moveCell({
+      oldIndex,
+      newIndex,
+      size: cell_list.size,
+      getPos: (index) =>
+        this.store.getIn(["cells", cell_list.get(index) ?? "", "pos"]) ?? 0,
+    });
+    this.set_cell_pos(cell_list.get(oldIndex) ?? "", newPos, save);
   }
 
   public set_cell_type(
@@ -638,6 +653,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
               this.syncdb.commit();
             }
             break;
+
           case "nbconvert":
             if (this.is_project) {
               // before setting in store, let backend start reacting to change
@@ -646,11 +662,12 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             // Now set in our store.
             this.setState({ nbconvert: record });
             break;
+
           case "settings":
             if (record == null) {
               return;
             }
-            const orig_kernel = this.store.get("kernel");
+            const orig_kernel = this.store.get("kernel", null);
             const kernel = record.get("kernel");
             const obj: any = {
               trust: !!record.get("trust"), // case to boolean
@@ -685,7 +702,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
                 this.set_cm_options();
               }
             }
-
             break;
         }
       });
@@ -725,7 +741,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  _syncdb_init_kernel = (): void => {
+  private _syncdb_init_kernel(): void {
     // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
@@ -766,7 +782,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.set_default_kernel(this.store.get("kernel"));
       }
     }
-  };
+  }
 
   /*
   WARNING: Changes via set that are made when the actions
@@ -844,6 +860,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     // *changes* the syncdb by updating the last save time.
     try {
       // Make sure syncdb content is all sent to the project.
+      // This does not actually save the syncdb file to disk.
       await this.syncdb.save();
       if (this._state === "closed") return;
       // Export the ipynb file to disk.
@@ -967,6 +984,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         continue;
       }
       const cell = this.store.getIn(["cells", id]);
+      if (cell == null) continue;
       if (
         cell.get("cell_type", "code") == "code" &&
         cell.get("input", "").trim() == "" &&
@@ -998,54 +1016,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     return this.syncdb?.in_undo_mode() ?? false;
   }
 
-  // in the future, might throw a CellWriteProtectedException.
-  // for now, just running is ok.
-  public run_cell(
-    id: string,
-    save: boolean = true,
-    no_halt: boolean = false
-  ): void {
-    if (this.store.get("read_only")) return;
-    const cell = this.store.getIn(["cells", id]);
-    if (cell == null) {
-      throw Error(`can't run cell ${id} since it does not exist`);
-    }
-
-    const cell_type = cell.get("cell_type", "code");
-    switch (cell_type) {
-      case "code":
-        const code = this.get_cell_input(id).trim();
-        if (this.is_project) {
-          // when the backend is running code, just don't worry about
-          // trying to parse things like "foo?" out. We can't do
-          // it without CodeMirror, and it isn't worth it for that
-          // application.
-          this.run_code_cell(id, save, no_halt);
-        } else {
-          const cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
-          const language = this.store.get_kernel_language();
-          switch (parsing.run_mode(code, cm_mode, language)) {
-            case "show_source":
-              this.introspect(code.slice(0, code.length - 2), 1);
-              break;
-            case "show_doc":
-              this.introspect(code.slice(0, code.length - 1), 0);
-              break;
-            case "empty":
-              this.clear_cell(id, save);
-              break;
-            case "execute":
-              this.run_code_cell(id, save, no_halt);
-              break;
-          }
-        }
-        break;
-    }
-    if (save) {
-      this.save_asap();
-    }
-  }
-
   public run_code_cell(
     id: string,
     save: boolean = true,
@@ -1055,6 +1025,17 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     if (cell == null) {
       throw Error(`can't run cell ${id} since it does not exist`);
     }
+    const kernel = this.store.get("kernel");
+    if (kernel == null || kernel === "") {
+      // just in case, we clear any "running" indicators
+      this._set({ type: "cell", id, state: "done" });
+      // don't attempt to run a code-cell if there is no kernel defined
+      this.set_error(
+        "No kernel set for running cells. Therefore it is not possible to run a code cell. You have to select a kernel!"
+      );
+      return;
+    }
+
     if (cell.get("state", "done") != "done") {
       // already running -- stop it first somehow if you want to run it again...
       return;
@@ -1117,6 +1098,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   run_selected_cells = (): void => {
     this.deprecated("run_selected_cells");
   };
+
+  public abstract run_cell(id: string, save?: boolean, no_halt?: boolean): void;
 
   run_all_cells = (no_halt: boolean = false): void => {
     this.store.get_cell_list().forEach((id) => {
@@ -1419,7 +1402,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const cells = this.store.get("cells");
     if (delta === -1 || delta === 0) {
       // one before first selected
-      cell_before_pasted_id = this.store.get_cell_id(-1, cell_ids[0]);
+      cell_before_pasted_id = this.store.get_cell_id(-1, cell_ids[0]) ?? "";
     } else if (delta === 1) {
       // last selected
       cell_before_pasted_id = cell_ids[cell_ids.length - 1];
@@ -1540,11 +1523,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   // Version of the cell's input stored in store.
   // (A live codemirror editor could have a slightly
   // newer version, so this is only a fallback).
-  private get_cell_input(id: string): string {
+  get_cell_input(id: string): string {
     return this.store.getIn(["cells", id, "input"], "");
   }
 
-  set_kernel = (kernel: string) => {
+  set_kernel = (kernel: string | null) => {
     if (this.syncdb.get_state() != "ready") {
       console.warn("Jupyter syncdb not yet ready -- not setting kernel");
       return;
@@ -1554,9 +1537,14 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         type: "settings",
         kernel,
       });
+      // clear error when changing the kernel
+      this.set_error(null);
     }
-    if (this.store.get("show_kernel_selector")) {
+    if (this.store.get("show_kernel_selector") || kernel === "") {
       this.hide_select_kernel();
+    }
+    if (kernel === "") {
+      this.halt(); // user "detaches" kernel from notebook, we stop the kernel
     }
   };
 
@@ -2016,31 +2004,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   protected set_cm_options(): void {
-    const mode = this.store.get_cm_mode();
-    const account = this.redux.getStore("account");
-    if (account == null) return;
-    const immutable_editor_settings = account.get("editor_settings");
-    if (immutable_editor_settings == null) return;
-    const editor_settings = immutable_editor_settings.toJS();
-    const line_numbers =
-      this.store.get_local_storage("line_numbers") ??
-      immutable_editor_settings.get("jupyter_line_numbers") ??
-      false;
-    const read_only = this.store.get("read_only");
-    const x = immutable.fromJS({
-      options: cm_options(mode, editor_settings, line_numbers, read_only),
-      markdown: cm_options(
-        { name: "gfm2" },
-        editor_settings,
-        line_numbers,
-        read_only
-      ),
-    });
-
-    if (!x.equals(this.store.get("cm_options"))) {
-      // actually changed
-      this.setState({ cm_options: x });
-    }
+    // this only does something in browser-actions.
   }
 
   set_trust_notebook = (trust: any, save: boolean = true) => {
@@ -2258,7 +2222,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this._sync();
   }
 
-  set_default_kernel = (kernel: any): void => {
+  public set_default_kernel(kernel?: string): void {
+    if (kernel == null || kernel === "") return;
     // doesn't make sense for project (right now at least)
     if (this.is_project) return;
     const account_store = this.redux.getStore("account") as any;
@@ -2274,7 +2239,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     (this.redux.getTable("account") as any).set({
       editor_settings: { jupyter: cur },
     });
-  };
+  }
 
   edit_attachments = (id: string): void => {
     this.setState({ edit_attachments: id });
@@ -2528,100 +2493,15 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   }
 
-  private async api_call_formatter(
-    str: string,
-    config: FormatterConfig,
-    timeout_ms?: number
-  ): Promise<string | undefined> {
-    if (this._state === "closed") {
-      throw Error("closed");
-    }
-    return await (
-      await this.init_project_conn()
-    ).api.formatter_string(str, config, timeout_ms);
-  }
-
-  private async format_cell(id: string): Promise<void> {
-    const cell = this.store.getIn(["cells", id]);
-    if (cell == null) {
-      throw new Error(`no cell with id ${id}`);
-    }
-    let code: string = cell.get("input", "").trim();
-    let config: FormatterConfig;
-    const cell_type: string = cell.get("cell_type", "code");
-    switch (cell_type) {
-      case "code":
-        const syntax: Syntax = this.store.get_kernel_syntax();
-        if (syntax == null) {
-          return; // no-op on these.
-        }
-        config = { syntax: syntax };
-        break;
-      case "markdown":
-        config = { syntax: "markdown" };
-        break;
-      default:
-        // no-op -- do not format unknown cells
-        return;
-    }
-    //  console.log("FMT", cell_type, options, code);
-    let resp: string | undefined;
-    try {
-      code = parsing.process_magics(code, config.syntax, "escape");
-      resp = await this.api_call_formatter(code, config);
-      resp = parsing.process_magics(resp, config.syntax, "unescape");
-    } catch (err) {
-      this.set_error(err);
-      // Do not process response (probably empty anyways) if
-      // there is a problem
-      return;
-    }
-    if (resp == null) return; // make everyone happy …
-    // We additionally trim the output, because formatting code introduces
-    // a trailing newline
-    this.set_cell_input(id, JupyterActions.trim_code(resp), false);
-  }
-
-  private static trim_code(str: string): string {
-    str = str.trim();
-    if (str.length > 0 && str.slice(-1) == "\n") {
-      return str.slice(0, -2);
-    }
-    return str;
-  }
-
-  public async format_cells(
-    cell_ids: string[],
-    sync: boolean = true
-  ): Promise<void> {
-    this.set_error(null);
-    const jobs: string[] = cell_ids.filter((id) =>
-      this.store.is_cell_editable(id)
-    );
-
-    try {
-      await awaiting.map(jobs, 4, this.format_cell.bind(this));
-    } catch (err) {
-      this.set_error(err.message);
-      return;
-    }
-
-    if (sync) {
-      this._sync();
-    }
-  }
-
-  public async format_all_cells(sync: boolean = true): Promise<void> {
-    await this.format_cells(this.store.get_cell_ids_list(), sync);
-  }
-
   private check_select_kernel(): void {
     const kernel = this.store.get("kernel");
     if (kernel == null) return;
-
     let unknown_kernel = false;
-    if (this.store.get("kernels") != null)
+    if (kernel === "") {
+      unknown_kernel = false; // it's the "no kernel" kernel
+    } else if (this.store.get("kernels") != null) {
       unknown_kernel = this.store.get_kernel_info(kernel) == null;
+    }
 
     // a kernel is set, but we don't know it
     if (unknown_kernel) {
@@ -2635,6 +2515,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
         this.hide_select_kernel();
       }
     }
+
+    // also in the case when the kernel is "" we have to set this to true
     this.setState({ check_select_kernel_init: true });
   }
 
@@ -2651,7 +2533,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     const kernel = this.store.get("kernel");
     const kernel_info = this.store.get_kernel_info(kernel);
     // unknown kernel, we try to find a close match
-    if (kernel_info == null && kernel != null) {
+    if (kernel_info == null && kernel != null && kernel !== "") {
       // kernel & kernels must be defined
       closestKernel = misc.closest_kernel_match(kernel, kernels as any) as any;
       // TODO about that any above: closest_kernel_match should be moved here so it knows the typings
@@ -2698,9 +2580,11 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     });
   };
 
-  select_kernel = (kernel_name: string): void => {
+  select_kernel = (kernel_name: string | null): void => {
     this.set_kernel(kernel_name);
-    this.set_default_kernel(kernel_name);
+    if (kernel_name != null && kernel_name !== "") {
+      this.set_default_kernel(kernel_name);
+    }
     this.focus(true);
     this.hide_select_kernel();
   };

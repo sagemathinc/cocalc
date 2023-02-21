@@ -1,12 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import SignIn from "components/landing/sign-in";
-import Head from "components/landing/head";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
 import Tables, { Disclaimer } from "components/landing/compare";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import SignIn from "components/landing/sign-in";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 const component = "CoCalc";
 const title = `Run ${component} Now`;
@@ -20,7 +27,7 @@ export default function Octave({ customize }) {
         <Layout.Content>
           <div
             style={{
-              backgroundColor: "#c7d9f5",
+              backgroundColor: COLORS.LANDING.TOP_BG,
               textAlign: "center",
               padding: "60px 0",
             }}

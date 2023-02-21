@@ -6,6 +6,7 @@
 import { Editor, Element, Location, Path, Transforms } from "slate";
 import { isListElement } from "../elements/list";
 import { emptyParagraph } from "../padding";
+import { moveCursorToBeginningOfBlock } from "../control";
 
 export function unindentListItem(editor: Editor): boolean {
   const [item, path] = getNode(editor, (node) => node.type == "list_item");
@@ -39,8 +40,16 @@ export function unindentListItem(editor: Editor): boolean {
     }
     try {
       Editor.withoutNormalizing(editor, () => {
+        // First move the cursor, since cursor can't be in the middle
+        // of this list item, or we end up splitting
+        // the item itself, e.g.,
+        //    - foo
+        //    - bar[CURSOR]stuff
+        // Also, moving to beginning feels right for unindent.  We do
+        // this in all cases for consistency.
+        moveCursorToBeginningOfBlock(editor);
         if (path[path.length - 1] < list.children.length - 1) {
-          // not last child so split
+          // not last child so split:
           Transforms.splitNodes(editor, {
             match: (node) => Element.isElement(node) && isListElement(node),
             mode: "lowest",
@@ -92,7 +101,7 @@ export function unindentListItem(editor: Editor): boolean {
   return true;
 }
 
-function getNode(
+export function getNode(
   editor,
   match,
   at: Location | undefined = undefined

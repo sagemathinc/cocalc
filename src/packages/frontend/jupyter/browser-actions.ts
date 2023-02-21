@@ -7,7 +7,7 @@
 browser-actions: additional actions that are only available in the
 web browser frontend.
 */
-import { Map } from "immutable";
+import { fromJS, Map } from "immutable";
 import { debounce, isEqual } from "underscore";
 import { merge_copy, uuid } from "@cocalc/util/misc";
 import { JupyterActions as JupyterActions0 } from "./actions";
@@ -22,6 +22,11 @@ import { CellToolbarName } from "./types";
 import { open_popup_window } from "../misc";
 import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
 import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
+import * as parsing from "./parsing";
+import { Syntax } from "@cocalc/util/code-formatter";
+import { Config as FormatterConfig } from "@cocalc/project/formatters";
+import * as awaiting from "awaiting";
+import { cm_options } from "./cm_options";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -126,6 +131,129 @@ export class JupyterActions extends JupyterActions0 {
       this.account_change_editor_settings =
         account_store.get("editor_settings");
     }
+  }
+
+  public run_cell(
+    id: string,
+    save: boolean = true,
+    no_halt: boolean = false
+  ): void {
+    if (this.store.get("read_only")) return;
+    const cell = this.store.getIn(["cells", id]);
+    if (cell == null) {
+      throw Error(`can't run cell ${id} since it does not exist`);
+    }
+
+    const cell_type = cell.get("cell_type", "code");
+    if (cell_type == "code") {
+      const code = this.get_cell_input(id).trim();
+      const cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
+      const language = this.store.get_kernel_language();
+      switch (parsing.run_mode(code, cm_mode, language)) {
+        case "show_source":
+          this.introspect(code.slice(0, code.length - 2), 1);
+          break;
+        case "show_doc":
+          this.introspect(code.slice(0, code.length - 1), 0);
+          break;
+        case "empty":
+          this.clear_cell(id, save);
+          break;
+        case "execute":
+          this.run_code_cell(id, save, no_halt);
+          break;
+      }
+    }
+    if (save) {
+      this.save_asap();
+    }
+  }
+
+  private async api_call_formatter(
+    str: string,
+    config: FormatterConfig,
+    timeout_ms?: number
+  ): Promise<string | undefined> {
+    if (this._state === "closed") {
+      throw Error("closed");
+    }
+    return await (
+      await this.init_project_conn()
+    ).api.formatter_string(str, config, timeout_ms);
+  }
+
+  private async format_cell(id: string): Promise<void> {
+    const cell = this.store.getIn(["cells", id]);
+    if (cell == null) {
+      throw new Error(`no cell with id ${id}`);
+    }
+    let code: string = cell.get("input", "").trim();
+    let config: FormatterConfig;
+    const cell_type: string = cell.get("cell_type", "code");
+    switch (cell_type) {
+      case "code":
+        const syntax: Syntax | undefined = this.store.get_kernel_syntax();
+        if (syntax == null) {
+          return; // no-op on these.
+        }
+        config = { syntax: syntax };
+        break;
+      case "markdown":
+        config = { syntax: "markdown" };
+        break;
+      default:
+        // no-op -- do not format unknown cells
+        return;
+    }
+    //  console.log("FMT", cell_type, options, code);
+    let resp: string | undefined;
+    try {
+      code = parsing.process_magics(code, config.syntax, "escape");
+      resp = await this.api_call_formatter(code, config);
+      resp = parsing.process_magics(resp, config.syntax, "unescape");
+    } catch (err) {
+      this.set_error(err);
+      // Do not process response (probably empty anyways) if
+      // there is a problem
+      return;
+    }
+    if (resp == null) return; // make everyone happy …
+    // We additionally trim the output, because formatting code introduces
+    // a trailing newline
+    this.set_cell_input(id, JupyterActions.trim_code(resp), false);
+  }
+
+  private static trim_code(str: string): string {
+    str = str.trim();
+    if (str.length > 0 && str.slice(-1) == "\n") {
+      return str.slice(0, -2);
+    }
+    return str;
+  }
+
+  public async format_cells(
+    cell_ids: string[],
+    sync: boolean = true
+  ): Promise<void> {
+    this.set_error(null);
+    const jobs: string[] = cell_ids.filter((id) =>
+      this.store.is_cell_editable(id)
+    );
+
+    try {
+      await awaiting.map(jobs, 4, this.format_cell.bind(this));
+    } catch (err) {
+      this.set_error(err.message);
+      return;
+    }
+
+    if (sync) {
+      this._sync();
+    }
+  }
+
+  public async format_all_cells(sync: boolean = true): Promise<void> {
+    await this.format_cells(this.store.get_cell_ids_list(), sync);
   }
 
   private usage_info_handler(usage: ImmutableUsageInfo): void {
@@ -598,6 +726,21 @@ export class JupyterActions extends JupyterActions0 {
     }
   }
 
+  public async confirm_remove_kernel(): Promise<void> {
+    const remove = "Remove & Halt";
+    const choice = await this.confirm_dialog({
+      title: "Remove kernel?",
+      body: "You're about to remove the kernel from the notebook, which will also terminate it. All variables will be lost. Afterwards, you have to select a kernel, in order to be able to run code again.",
+      choices: [
+        { title: "Continue running" },
+        { title: remove, style: "danger", default: true },
+      ],
+    });
+    if (choice === remove) {
+      this.select_kernel(""); // this will also call this.halt()
+    }
+  }
+
   public cell_toolbar(name?: CellToolbarName): void {
     // Set which cell toolbar is visible.
     // At most one may be visible.
@@ -636,6 +779,34 @@ export class JupyterActions extends JupyterActions0 {
     while ((this.store.get("cell_list")?.size ?? 0) <= 0) {
       // wait for a change event:
       await once(this.store, "change");
+    }
+  }
+
+  protected set_cm_options(): void {
+    const mode = this.store.get_cm_mode();
+    const account = this.redux.getStore("account");
+    if (account == null) return;
+    const immutable_editor_settings = account.get("editor_settings");
+    if (immutable_editor_settings == null) return;
+    const editor_settings = immutable_editor_settings.toJS();
+    const line_numbers =
+      this.store.get_local_storage("line_numbers") ??
+      immutable_editor_settings.get("jupyter_line_numbers") ??
+      false;
+    const read_only = this.store.get("read_only");
+    const x = fromJS({
+      options: cm_options(mode, editor_settings, line_numbers, read_only),
+      markdown: cm_options(
+        { name: "gfm2" },
+        editor_settings,
+        line_numbers,
+        read_only
+      ),
+    });
+
+    if (!x.equals(this.store.get("cm_options"))) {
+      // actually changed
+      this.setState({ cm_options: x });
     }
   }
 }

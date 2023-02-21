@@ -10,6 +10,7 @@ export interface Options {
   body?: string;
   type?: "problem" | "question" | "task";
   hideExtra?: boolean;
+  context?: string; // additional context
 }
 
 export default function getURL(options: Options = {}) {
@@ -24,6 +25,8 @@ export default function getURL(options: Options = {}) {
     supportURL +
       `?hideExtra=${options.hideExtra}&url=${options.url}&type=${
         options.type ?? ""
-      }&subject=${options.subject ?? ""}&body=${options.body ?? ""}`
+      }&subject=${options.subject ?? ""}&body=${options.body ?? ""}&context=${
+        options.context ?? ""
+      }`
   );
 }

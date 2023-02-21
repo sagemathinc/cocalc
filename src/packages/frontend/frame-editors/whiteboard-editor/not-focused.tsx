@@ -12,6 +12,7 @@ interface Props {
   frame;
   canvasScale: number;
   readOnly?: boolean;
+  onDrag?: () => void;
 }
 
 export default function NotFocused({
@@ -23,6 +24,7 @@ export default function NotFocused({
   frame,
   canvasScale,
   readOnly,
+  onDrag,
 }: Props) {
   const { id } = element;
 
@@ -41,6 +43,10 @@ export default function NotFocused({
         // because Draggable fires this onStop before that onClick even happens.
         return;
       }
+      if (!isFinite(element.z)) {
+        frame.actions.clearSelection(frame.id);
+        return;
+      }
       if (readOnly || selectable) {
         select(id, e, frame);
       } else if (edgeCreate) {
@@ -50,7 +56,34 @@ export default function NotFocused({
     [selectable, edgeCreate, id, frame, readOnly]
   );
 
-  const disableDrag = readOnly || !(selectable && !element.locked);
+  const disableDrag =
+    readOnly || !(selectable && !element.locked) || !isFinite(element.z);
+
+  const body = (
+    <div
+      className={
+        edgeCreate
+          ? `cocalc-whiteboard-edge-select${edgeStart ? "ed" : ""}`
+          : undefined
+      }
+      style={{
+        width: "100%",
+        height: "100%",
+        cursor: selectable && isFinite(element.z) ? "pointer" : undefined,
+      }}
+      onClick={disableDrag ? onClick : undefined}
+    >
+      {children}
+      {edgeStart && <div style={HINT}>Select target of edge</div>}
+    </div>
+  );
+  if (disableDrag) {
+    // VERY IMPORTANT: do *NOT* wrap this in Draggable with disabled set
+    // since Draggable with disabled=true still sets a css style and
+    // does things to the children, which *totally breaks virtuoso grids*
+    // which messed up the "pages overview".
+    return body;
+  }
 
   return (
     <Draggable
@@ -68,23 +101,9 @@ export default function NotFocused({
           onClick(e);
         }
       }}
+      onDrag={onDrag}
     >
-      <div
-        className={
-          edgeCreate
-            ? `cocalc-whiteboard-edge-select${edgeStart ? "ed" : ""}`
-            : undefined
-        }
-        style={{
-          width: "100%",
-          height: "100%",
-          cursor: selectable ? "pointer" : undefined,
-        }}
-        onClick={disableDrag ? onClick : undefined}
-      >
-        {children}
-        {edgeStart && <div style={HINT}>Select target of edge</div>}
-      </div>
+      {body}
     </Draggable>
   );
 }

@@ -213,7 +213,6 @@ async function startServer(): Promise<void> {
     projectControl,
     proxyServer: !!program.proxyServer,
     nextServer: !!program.nextServer,
-    nocoDB: !!program.nocoDb,
     cert: program.httpsCert,
     key: program.httpsKey,
   });
@@ -298,7 +297,7 @@ function addErrorListeners(uncaught_exception_total) {
     winston.error(
       "BUG UNHANDLED REJECTION *********************************************************"
     );
-    database?.uncaught_exception(p);
+    database?.uncaught_exception(reason);
     uncaught_exception_total.inc(1);
   });
 }
@@ -422,7 +421,6 @@ async function main(): Promise<void> {
     program.websocketServer =
       program.proxyServer =
       program.nextServer =
-      program.nocoDb =
       program.mentions =
       program.updateDatabaseSchema =
         true;

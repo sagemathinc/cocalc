@@ -1,8 +1,14 @@
-import register from "../register";
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Space } from "antd";
+
+import A from "components/misc/A";
 import Loading from "components/share/loading";
 import useEditTable from "lib/hooks/edit-table";
-import A from "components/misc/A";
+import register from "../register";
 
 const desc = {
   code_folding: `Enable the code folding plugin.  When enabled, you can fold or unfold all
@@ -29,7 +35,7 @@ as { and } in C-like languages, cause the current line to be reindented.`,
   build_on_save: `Trigger a build of LaTex, Rmd, etc. files whenever they are saved to disk, instead of only building when you click the Build button. This is fine for small documents, but can be annoying for large documents, especially if you are a "compulsive saver".`,
   show_exec_warning:
     "Show a warning if you hit shift+enter (or other keys) when editing certain files, e.g., Python code, that is not directly executable.  This is just to avoid confusion if you create a .py file and think it is a Jupyter notebook.",
-};
+} as const;
 
 register({
   path: "editor/options",
@@ -47,7 +53,7 @@ register({
     }
 
     return (
-      <Space direction="vertical" style={{ width: "100%" }}>
+      <Space direction="vertical" size="large">
         <Save />
         <EditBoolean
           icon="caret-down"
@@ -145,7 +151,7 @@ register({
           path="editor_settings.show_exec_warning"
           desc={desc.show_exec_warning}
         />
-        <br/>
+        <br />
         <Save />
       </Space>
     );

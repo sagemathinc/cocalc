@@ -114,8 +114,8 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     } else {
       if (ci === DEFAULT_COMPUTE_IMAGE) return; // avoid clutter for the default.
       // sanitizeSoftwareEnv ensures the title is set, but maybe there is no image named $ci
-      const name = software.getIn(["environments", ci, "title"]) ?? ci;
-      const descr = software.getIn(["environments", ci, "descr"]) ?? "";
+      const name = software?.getIn(["environments", ci, "title"]) ?? ci;
+      const descr = software?.getIn(["environments", ci, "descr"]) ?? "";
       return (
         <div style={image_name_style}>
           <span title={descr}>{name}</span>

@@ -25,6 +25,7 @@ import { insertImage } from "./insert-image";
 import { insertSpecialChar } from "./insert-special-char";
 import { emptyParagraph } from "../padding";
 import { SlateEditor } from "../editable-markdown";
+import { getMarks } from "../edit-bar/marks";
 
 // currentWord:
 //
@@ -335,19 +336,27 @@ export function formatAction(editor: SlateEditor, cmd: string, args): void {
     if (cmd == "color") {
       // args = #aa00bc (the hex color)
       unformatSelectedText(editor, { prefix: "color:" });
-      formatSelectedText(editor, `color:${args.toLowerCase()}`);
+      if (args) {
+        formatSelectedText(editor, `color:${args.toLowerCase()}`);
+      } else {
+        for (const mark in getMarks(editor)) {
+          if (mark.startsWith("color:")) {
+            Editor.removeMark(editor, mark);
+          }
+        }
+      }
       return;
     }
 
     if (cmd == "font_family") {
       unformatSelectedText(editor, { prefix: "font-family:" });
-      formatSelectedText(editor, `font-family:${args.toLowerCase()}`);
+      formatSelectedText(editor, `font-family:${args}`);
       return;
     }
 
     if (startswith(cmd, "font_size")) {
       unformatSelectedText(editor, { prefix: "font-size:" });
-      formatSelectedText(editor, `font-size:${args.toLowerCase()}`);
+      formatSelectedText(editor, `font-size:${args}`);
       return;
     }
 
@@ -496,7 +505,7 @@ export function selectionToText(editor: Editor): string {
 export function formatHeading(editor, level: number): void {
   const at = getCollapsedSelection(editor);
   const options = {
-    match: (node) => Editor.isBlock(editor, node),
+    match: (node) => Element.isElement(node) && Editor.isBlock(editor, node),
     mode: "highest" as "highest",
     at,
   };
@@ -563,7 +572,7 @@ function containingBlocks(editor: Editor, at: Location): Element[] {
   return matchingNodes(editor, {
     at,
     mode: "lowest",
-    match: (node) => Editor.isBlock(editor, node),
+    match: (node) => Element.isElement(node) && Editor.isBlock(editor, node),
   });
 }
 
@@ -617,7 +626,7 @@ function formatQuote(editor): void {
     // Quote the blocks containing the selection.
     Transforms.wrapNodes(editor, { type: "blockquote" } as Element, {
       at,
-      match: (node) => Editor.isBlock(editor, node),
+      match: (node) => Element.isElement(node) && Editor.isBlock(editor, node),
       mode: "lowest",
     });
   }

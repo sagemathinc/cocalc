@@ -8,12 +8,13 @@ Comprehensive list of Jupyter notebook (version 5) commands
 we support and how they work.
 */
 
-import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
-import { JupyterActions } from "./browser-actions";
-import { NotebookFrameActions } from "../frame-editors/jupyter-editor/cell-notebook/actions";
-import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
-import { NotebookMode } from "./types";
 import { IconName } from "@cocalc/frontend/components";
+import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
+import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+
+import { JupyterActions } from "./browser-actions";
+import { NotebookMode } from "./types";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;
@@ -595,9 +596,9 @@ export function commands(
       },
     },
 
-    "print preview": {
-      m: "Print preview...",
-      f: () => jupyter_actions.show_nbconvert_dialog("html"),
+    "no kernel": {
+      m: "Remove kernel from notebook...",
+      f: () => jupyter_actions.confirm_remove_kernel(),
     },
 
     "refresh kernels": {
@@ -881,17 +882,17 @@ export function commands(
     },
 
     "write protect": {
-      m: "Edit protect -- toggle whether cells are editable",
+      m: "Edit protect -- toggle whether selected cells are editable",
       f: () => frame_actions.toggle_write_protection_on_selected_cells(),
     },
 
     "delete protect": {
-      m: "Delete protection -- toggle whether cells are deletable",
+      m: "Delete protection -- toggle whether selected cells are deletable",
       f: () => frame_actions.toggle_delete_protection_on_selected_cells(),
     },
 
     protect: {
-      m: "Protection -- toggle whether cells are editable and deletable",
+      m: "Protection -- toggle whether selected cells are editable and deletable",
       k: [
         { alt: true, which: 80 },
         { meta: true, which: 80 },

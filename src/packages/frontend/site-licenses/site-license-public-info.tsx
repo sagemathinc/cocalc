@@ -156,14 +156,14 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         const run_limit = infos?.[k]?.run_limit ?? 1;
         if (activates instanceof Date) {
           const end = activates.toISOString().slice(0, 10);
-          return `The license activated on ${end}, is still active, and its run limit of ${run_limit} is not exhausted.`;
+          return `The license activated on ${end}, is still active, and its run limit of ${run_limit} has not been exhausted when the project started.`;
         }
         return;
       }
 
       case "exhausted": {
         const run_limit = infos?.[k]?.run_limit ?? 1;
-        return `The run limit of ${run_limit} is exhausted. Other projects, which are upgraded by this license, have to stop in order to make it possible to activate this license for this project.`;
+        return `The run limit of ${run_limit} has been exhausted when the project started. Other projects, which are upgraded by this license, have to stop in order to make it possible to activate this license for this project.`;
       }
 
       case "future": {
@@ -248,8 +248,9 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   function renderStatusColor(status: LicenseStatus) {
     switch (status) {
       case "valid":
-      case "active":
         return "green";
+      case "active":
+        return "darkgreen";
       case "expired":
         return "darkred";
       case "exhausted":

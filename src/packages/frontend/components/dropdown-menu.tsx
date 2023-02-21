@@ -3,43 +3,44 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Menu, Dropdown, Button } from "antd";
 import { DownOutlined } from "@ant-design/icons";
-import { CSS, React } from "../app-framework";
+import { Button, Dropdown, Menu } from "antd";
+import type { MenuProps } from "antd";
+
+import { CSS, React } from "@cocalc/frontend/app-framework";
 import { IS_TOUCH } from "../feature";
 
+// overlay={menu} is deprecated. Instead, use MenuItems as items={...}.
+export type MenuItems = NonNullable<MenuProps["items"]>;
+export type MenuItem = MenuItems[number];
+
+/**
+ * NOTE: to work with this, make sure your list is typed as MenuItems. Then:
+ *
+ *  const v: MenuItems = [
+ *    { key: "a", label: "A", onClick: () => { action(key); } },
+ *    ...
+ *    { type: "divider" },  // for a divider
+ *    ...
+ * ]
+ */
+
 interface Props {
-  title?: JSX.Element | string;
-  id?: string;
-  onClick?: (key: string) => void;
-  style?: CSS;
-  disabled?: boolean;
   button?: boolean; // show menu as a *Button* (disabled on touch devices -- https://github.com/sagemathinc/cocalc/issues/5113)
+  disabled?: boolean;
   hide_down?: boolean;
+  id?: string;
+  items: MenuItems;
   maxHeight?: string;
-  children: React.ReactNode;
+  style?: CSS;
+  title?: JSX.Element | string;
 }
 
 const STYLE = { margin: "6px 10px", cursor: "pointer" } as CSS;
 
 export const DropdownMenu: React.FC<Props> = (props: Props) => {
-  const {
-    title,
-    id,
-    onClick,
-    style,
-    disabled,
-    button,
-    hide_down,
-    maxHeight,
-    children,
-  } = props;
-
-  function on_click(e): void {
-    if (onClick !== undefined) {
-      onClick(e.key);
-    }
-  }
+  const { button, disabled, hide_down, id, items, maxHeight, style, title } =
+    props;
 
   function render_title() {
     if (title !== "") {
@@ -88,41 +89,32 @@ export const DropdownMenu: React.FC<Props> = (props: Props) => {
   }
 
   const body = render_body();
+
   if (disabled) {
     return body;
   }
 
-  const menu = (
-    <Menu
-      onClick={on_click.bind(this)}
-      style={{
-        maxHeight: maxHeight ? maxHeight : "70vH",
-        overflow: "auto",
-      }}
-    >
-      {children}
-    </Menu>
-  );
+  const menuStyle: CSS = {
+    maxHeight: maxHeight ? maxHeight : "70vH",
+    overflow: "auto",
+  } as const;
 
+  // items is the way to go, i.e. instead of instantiating many react elements, Antd wants a list of dicts.
   return (
-    <Dropdown overlay={menu} trigger={["click"]} placement={"bottomLeft"}>
+    <Dropdown
+      trigger={["click"]}
+      placement={"bottomLeft"}
+      menu={{ items, style: menuStyle }}
+      disabled={disabled}
+    >
       {body}
     </Dropdown>
   );
 };
 
-// NOTE: we wrap and put in a fake onItemHover to work around this bug:
-//     https://github.com/react-component/menu/issues/142
 export function MenuItem(props) {
   const M: any = Menu.Item;
-  return (
-    <M
-      {...props}
-      onItemHover={props.onItemHover != null ? props.onItemHover : () => {}}
-    >
-      {props.children}
-    </M>
-  );
+  return <M {...props}>{props.children}</M>;
 }
 
-export const MenuDivider = Menu.Divider;
+export const MenuDivider = { type: "divider" } as const;

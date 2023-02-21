@@ -4,8 +4,8 @@
  */
 
 import { replace_all, split } from "@cocalc/util/misc";
-import { redux } from "../../app-framework";
-import { webapp_client } from "../../webapp-client";
+import { redux } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";

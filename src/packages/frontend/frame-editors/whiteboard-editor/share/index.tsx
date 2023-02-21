@@ -18,7 +18,7 @@ export default function ShareServerWhiteBoard({ content }: Props) {
   let i = 0;
   for (const page of pages) {
     i += 1;
-    v.push(<Canvas key={i} elements={page} />);
+    v.push(<Canvas key={i} elements={page} mainFrameType={"whiteboard"} />);
     v.push(<div key={`spacer-${i}`} style={{ height: "100px" }}></div>);
   }
   return <div>{v}</div>;

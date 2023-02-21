@@ -10,11 +10,14 @@ import { COLORS } from "@cocalc/util/theme";
 import { Icon, Tip, Space } from "@cocalc/frontend/components";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import VideoChatButton from "./video/launch-button";
+import { HiddenXSSM } from "@cocalc/frontend/components";
+import { hidden_meta_file } from "@cocalc/util/misc";
+import type { ChatActions } from "./actions";
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",
   borderRadius: "3px",
-  paddingTop: "2.5px",
+  paddingTop: "5px",
 };
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
@@ -34,14 +37,12 @@ interface Props {
   project_id: string;
   path: string;
   is_chat_open?: boolean;
-  shrink_fixed_tabs?: boolean;
 }
 
 export const ChatIndicator: React.FC<Props> = ({
   project_id,
   path,
   is_chat_open,
-  shrink_fixed_tabs,
 }) => {
   const fullscreen = useTypedRedux("page", "fullscreen");
   const file_use = useTypedRedux("file_use", "file_use");
@@ -82,10 +83,7 @@ export const ChatIndicator: React.FC<Props> = ({
     return (
       <div
         style={{
-          cursor: "pointer",
           color,
-          marginLeft: "5px",
-          marginRight: "5px",
         }}
         className={is_new_chat ? "smc-chat-notification" : undefined}
       >
@@ -97,6 +95,13 @@ export const ChatIndicator: React.FC<Props> = ({
               project_id={project_id}
               path={path}
               button={false}
+              sendChat={(value) => {
+                const actions = redux.getEditorActions(
+                  project_id,
+                  hidden_meta_file(path, "sage-chat")
+                ) as ChatActions;
+                actions.send_chat(value);
+              }}
             />
           </span>
         )}
@@ -108,14 +113,15 @@ export const ChatIndicator: React.FC<Props> = ({
           stable={false}
         >
           <span onClick={toggle_chat}>
-            <Icon name={is_chat_open ? "caret-down" : "caret-left"} />
+            <Icon
+              name={is_chat_open ? "caret-down" : "caret-left"}
+              style={{ color: COLORS.FILE_ICON }}
+            />
             <Space />
-            <Icon name="comment" />
-            {!shrink_fixed_tabs && (
-              <span style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
-                Chat
-              </span>
-            )}
+            <Icon name="comment" style={{ color: COLORS.FILE_ICON }} />
+            <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
+              Chat
+            </HiddenXSSM>
           </span>
         </Tip>
       </div>

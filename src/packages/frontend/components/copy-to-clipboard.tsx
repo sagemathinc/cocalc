@@ -3,15 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSS } from "@cocalc/frontend/app-framework";
-import { CSSProperties, ReactNode, useEffect, useMemo, useState } from "react";
 import { Button, Input, Tooltip } from "antd";
-import { CopyToClipboard } from "react-copy-to-clipboard";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 
+import { CSS } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { CopyToClipboard } from "react-copy-to-clipboard";
 interface Props {
   value: string;
-  style?: CSSProperties;
+  style?: CSS;
   label?: ReactNode;
   labelStyle?: CSS;
   inputStyle?: CSS;
