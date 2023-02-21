@@ -277,4 +277,14 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
     label: "TeXmaker",
     desc: "Free cross-platform LaTeX editor since 2003",
   },
+  zotero: {
+    icon: "tex-file",
+    label: "Zotero",
+    desc: "A free, easy-to-use tool to help you collect, organize, annotate, cite, and share research.",
+  },
+  jurism: {
+    icon: "tex-file",
+    label: "Juris-M",
+    desc: "A fork of Zotero with additional features supporting legal research and multilingual citations.",
+  },
 });

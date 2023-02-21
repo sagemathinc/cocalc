@@ -41,10 +41,11 @@ interface Props {
 const STYLE: CSSProperties = {
   fontSize: "40px",
   textAlign: "center",
-  color: "#666666",
+  color: COLORS.GRAY_M,
 } as const;
 
-export const StartButton: React.FC<Props> = ({ project_id }) => {
+export const StartButton: React.FC<Props> = (props: Props) => {
+  const { project_id } = props;
   const project_websockets = useTypedRedux("projects", "project_websockets");
   const connected = project_websockets?.get(project_id) == "online";
   const project_map = useTypedRedux("projects", "project_map");
@@ -55,7 +56,7 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
     const state = project_map?.getIn([project_id, "state"]);
     if (state != null) {
       lastNotRunningRef.current =
-        state.get("state") == "running" ? null : new Date().valueOf();
+        state.get("state") == "running" ? null : Date.now();
     }
     return state;
   }, [project_map]);
@@ -102,21 +103,23 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
       // show Connecting immediately, since then it's useful and not "flashy".
       const last = lastNotRunningRef.current;
       return (
-        <Delay
-          delayMs={
-            last != null && new Date().valueOf() - last < 60000 ? 0 : 3000
-          }
-        >
-          <div style={STYLE}>
-            <Alert
-              message={
-                <span style={{ fontSize: "20pt", color: "#666" }}>
-                  Connecting... <Icon name="cocalc-ring" spin />
-                </span>
-              }
-              type="info"
-            />
-          </div>
+        <Delay delayMs={last != null && Date.now() - last < 60000 ? 0 : 3000}>
+          <Alert
+            banner={true}
+            type="info"
+            style={STYLE}
+            showIcon={false}
+            message={
+              <span
+                style={{
+                  fontSize: "20pt",
+                  color: COLORS.GRAY_M,
+                }}
+              >
+                Connecting... <Icon name="cocalc-ring" spin />
+              </span>
+            }
+          />
         </Delay>
       );
     }
@@ -213,7 +216,7 @@ export const StartButton: React.FC<Props> = ({ project_id }) => {
               <ProjectState state={state} show_desc={allowed} />
             </span>
             {render_start_project_button()}
-            {!allowed && render_not_allowed()}
+            {render_not_allowed()}
           </>
         }
         type="info"

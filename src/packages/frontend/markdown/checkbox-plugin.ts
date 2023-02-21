@@ -24,10 +24,7 @@ function checkboxReplace(_md, _options) {
       ],
       ["type", "checkbox"],
       ["data-index", `${index}`],
-      [
-        "disabled",
-        "true",
-      ] /* disabled: anything in cocalc that is just directly
+      ["disabled", "true"] /* disabled: anything in cocalc that is just directly
            rendering this doesn't know how to change it.*/,
     ];
     if (checked) {
@@ -45,7 +42,16 @@ function checkboxReplace(_md, _options) {
   }
 
   function splitTextToken(original, Token) {
-    if (original.markup != "") return null; // don't make checkboxes, e.g., inside of `code` like `R[x]`.
+    const markup = original.markup?.[0];
+    if (markup == "$" || markup == "`") {
+      // don't make checkboxes, e.g., inside of `code` like `R[x]` or math like $\QQ[x]$.
+      // NOTE: I did have this for *any* markup at all, but that breaks this:
+      //    - foo \(stuff\)
+      // since \) is considered "markup" for some reason.  So this fix may result in some
+      // subtle bug somewhere else, which will get fixed by adding another case to the if above.
+      // See https://github.com/sagemathinc/cocalc/issues/6464
+      return null;
+    }
     const text = original.content;
     const match = text.match(pattern);
     if (match === null) {
