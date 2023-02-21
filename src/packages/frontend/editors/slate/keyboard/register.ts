@@ -50,7 +50,8 @@ export function register(
 
   const s = KeyToString(key as Key);
   if (keyHandlers[s] != null) {
-    throw Error(`BUG: there is already a handler registered for ${s}`);
+    // making this a warning to support hot module reloading.
+    console.warn(`WARNING: there is already a handler registered for ${s}`);
   }
   keyHandlers[s] = handler;
 }

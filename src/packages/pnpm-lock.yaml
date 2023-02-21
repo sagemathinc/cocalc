@@ -836,6 +836,7 @@ importers:
       awaiting: ^3.0.0
       cookies: ^0.8.0
       expect: ^26.6.2
+      jwt-decode: ^3.1.2
       lodash: ^4.17.21
       lru-cache: ^7.14.1
       node-zendesk: ^2.2.0
@@ -876,6 +877,7 @@ importers:
       await-spawn: 4.0.2
       awaiting: 3.0.0
       cookies: 0.8.0
+      jwt-decode: 3.1.2
       lodash: 4.17.21
       lru-cache: 7.14.1
       node-zendesk: 2.2.0
@@ -10341,6 +10343,10 @@ packages:
     dependencies:
       jwa: 1.4.1
       safe-buffer: 5.2.1
+    dev: false
+
+  /jwt-decode/3.1.2:
+    resolution: {integrity: sha512-UfpWE/VZn0iP50d8cz9NrZLM9lSWhcJ+0Gt/nm4by88UL+J1SiKN8/5dkjMmbEzwL2CAe+67GsegCbIKtbp75A==}
     dev: false
 
   /k3d/2.15.2:
