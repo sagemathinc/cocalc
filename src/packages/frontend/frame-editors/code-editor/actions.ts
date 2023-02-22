@@ -2525,6 +2525,15 @@ export class Actions<
     this.set_active_id(id, true);
   }
 
+  public async show_slideshow(
+    _id: string | undefined = undefined
+  ): Promise<void> {
+    const id = this.show_focused_frame_of_type("slideshow", "col", true, 0.3);
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
   public async show_speaker_notes(
     _id: string | undefined = undefined
   ): Promise<void> {

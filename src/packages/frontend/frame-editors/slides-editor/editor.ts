@@ -37,6 +37,7 @@ export const slidesButtons = set([
   "show_pages",
   "show_search",
   "show_overview",
+  "show_slideshow",
   "show_speaker_notes",
   /* "help", */ // be sure to change actions to have a proper link for this once some help is written.
 ]);
@@ -54,27 +55,43 @@ export const EDITOR_SPEC = {
     name: "Speaker Notes",
     icon: "pencil",
     component: SpeakerNotes,
-    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "set_zoom",
+      "show_slideshow",
+    ]),
   },
   search: {
     short: "Search",
     name: "Search",
     icon: "search",
     component: Search,
-    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "set_zoom",
+      "show_slideshow",
+    ]),
   },
   pages: {
     short: "Pages",
     name: "Pages",
     icon: "pic-centered",
     component: Pages,
+    buttons: set(["show_slideshow"]),
   },
   overview: {
     short: "Overview",
     name: "Overview",
     icon: "overview",
     component: Overview,
-    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+    buttons: set([
+      "show_slideshow",
+      "decrease_font_size",
+      "increase_font_size",
+      "set_zoom",
+    ]),
   },
   terminal,
   time_travel,
@@ -91,7 +108,11 @@ export const EDITOR_SPEC = {
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "show_slideshow",
+    ]),
   } as EditorDescription,
   slideshow: {
     short: "Slideshow",
