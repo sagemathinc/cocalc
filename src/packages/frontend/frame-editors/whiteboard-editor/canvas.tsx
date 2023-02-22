@@ -342,12 +342,14 @@ export default function Canvas({
 
   const innerCanvasRef = useRef<any>(null);
 
-  const transformsRef = useRef<Transforms>(getTransforms(elements, margin));
+  const transformsRef = useRef<Transforms>(
+    getTransforms(elements, margin, presentation)
+  );
 
   // This must happen before the render, hence the useLayoutEffect
   // (which wasn't needed before React18)!
   useLayoutEffect(() => {
-    transformsRef.current = getTransforms(elements, margin);
+    transformsRef.current = getTransforms(elements, margin, presentation);
   }, [elements, margin]);
 
   // When the canvas elements change the extent changes and everything
@@ -429,6 +431,10 @@ export default function Canvas({
         ),
         rect,
       };
+    }
+    if (presentation) {
+      // always re-fit to screen on resize in presentation mode.
+      frame.actions.fitToScreen(frame.id, true);
     }
   }, [resize]);
 
@@ -521,12 +527,24 @@ export default function Canvas({
         return;
       }
       lastViewport.current = viewport;
-      const rect = rectSpan(elements);
-      const s =
-        Math.min(
-          2 / 0.95,
+      let rect, s;
+      if (presentation) {
+        rect = rectSpan(elements.filter((elt) => elt.z == -Infinity));
+        s = Math.min(
+          2,
           Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
-        ) * 0.95; // 0.95 for extra room too.
+        );
+      } else {
+        rect = rectSpan(elements);
+        s =
+          Math.min(
+            2 / 0.95,
+            Math.max(
+              MIN_ZOOM,
+              fitRectToRect(rect, viewport).scale * canvasScale
+            )
+          ) * 0.95; // 0.95 for extra room too.
+      }
       scale.set(s);
       frame.actions.set_font_size(frame.id, zoomToFontSize(s));
       setCenterPositionData({
