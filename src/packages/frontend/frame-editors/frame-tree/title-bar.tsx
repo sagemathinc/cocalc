@@ -1563,17 +1563,21 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         content={() => {
           return (
             <div style={{ display: "flex" }}>
-              <div style={{ width: "3px" }}></div>
-              <div style={{ maxWidth: "390px" }}>
+              <div
+                style={{
+                  maxWidth: "390px",
+                  marginLeft: "3px",
+                  marginRight: "3px",
+                }}
+              >
                 {render_buttons(true, { maxHeight: "50vh" })}
               </div>
-              <div style={{ width: "3px" }}></div>
               <div>{render_types()}</div>
               <Icon
                 onClick={() => setShowMainButtonsPopover(false)}
                 name="times"
                 style={{
-                  color: "#666",
+                  color: COLORS.GRAY_M,
                   marginTop: "10px",
                   marginLeft: "10px",
                 }}
