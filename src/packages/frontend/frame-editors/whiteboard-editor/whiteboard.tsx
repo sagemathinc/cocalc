@@ -18,8 +18,7 @@ import Upload from "./tools/upload";
 import KernelPanel from "./elements/code/kernel";
 import NewPage from "./new-page";
 import useAutoHide from "@cocalc/frontend/components/use-auto-hide";
-import { Button } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
+import StartSlideshowButton from "./start-slideshow";
 
 interface Props {
   presentation?: boolean;
@@ -137,7 +136,7 @@ export default function Whiteboard({ presentation }: Props) {
       }}
       ref={whiteboardDivRef}
     >
-      {presentation && <Fullscreen divRef={whiteboardDivRef} />}
+      {presentation && <StartSlideshowButton divRef={whiteboardDivRef} />}
       {isFocused && showPanels && (
         <>
           {!readOnly && !minimizedTools && <KernelPanel />}
@@ -178,22 +177,5 @@ export default function Whiteboard({ presentation }: Props) {
         </Upload>
       )}
     </div>
-  );
-}
-
-function Fullscreen({ divRef }) {
-  if (document.fullscreenElement) {
-    return null;
-  }
-  return (
-    <Button
-      size="large"
-      style={{ position: "absolute", left: "64px", top: "8px", zIndex: 100000 }}
-      onClick={() => {
-        divRef.current?.requestFullscreen();
-      }}
-    >
-      <Icon name="play-square" /> Start Slideshow
-    </Button>
   );
 }
