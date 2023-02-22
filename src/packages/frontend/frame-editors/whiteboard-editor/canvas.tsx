@@ -150,7 +150,7 @@ export default function Canvas({
   font_size,
   scale: scale0,
   selection,
-  margin = 10000,
+  margin,
   readOnly,
   selectedTool,
   evtToDataRef,
@@ -164,10 +164,18 @@ export default function Canvas({
   const frame = useFrameContext();
   const editFocus = frame.desc.get("editFocus");
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
+  if (!margin) {
+    margin = getMargin(mainFrameType, canvasScale);
+  }
   const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
   const backgroundDivRef = useRef<any>(null);
+
+  // canvasRef is the div that is our main whiteboard "canvas".
+  // It is NOT an actual HTML5 canvas -- it's a div.  We only
+  // use an actual canvas to render pen strokes (see penCanvasRef).
   const canvasRef = useRef<any>(null);
+
   const scaleDivRef = useRef<any>(null);
 
   const firstOffsetRef = useRef<any>({
@@ -1469,7 +1477,6 @@ export default function Canvas({
           left: `${offsetRef.current.left}px`,
           top: `${offsetRef.current.top}px`,
           transform: `scale(${canvasScale})`,
-          /*transition: "transform left top 0.1s",*/
           transformOrigin: "top left",
         }}
       >
@@ -1540,4 +1547,17 @@ function getSelectedElements({
 }): Element[] {
   if (!selection) return [];
   return elements.filter((element) => selection.has(element.id));
+}
+
+function getMargin(mainFrameType: MainFrameType, scale: number): number {
+  switch (mainFrameType) {
+    case "slides":
+      // This is just a slightly more usable setting.  This should probably
+      // work much more like powerpoint, but that's a lot more subtle to
+      // implement.
+      return 100 / Math.min(scale, 1);
+    case "whiteboard":
+    default:
+      return 1000 / Math.min(scale, 1);
+  }
 }
