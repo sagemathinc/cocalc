@@ -189,7 +189,7 @@ export default function Canvas({
 
   const lastPinchRef = useRef<number>(0);
   const isZoomingRef = usePinchToZoom({
-    disabled: isNavigator,
+    disabled: isNavigator || presentation,
     target: canvasRef,
     min: MIN_FONT_SIZE,
     max: MAX_FONT_SIZE,

@@ -27,9 +27,16 @@ export const PANEL_STYLE: CSS = {
 interface Props {
   selectedTool: Tool;
   readOnly?: boolean;
+  minimizedTools?: boolean;
+  setMinimizedTools?: (boolean) => void;
 }
 
-export default function Panel({ selectedTool, readOnly }: Props) {
+export default function Panel({
+  selectedTool,
+  readOnly,
+  minimizedTools,
+  setMinimizedTools,
+}: Props) {
   const { actions, id } = useFrameContext();
   useEffect(() => {
     // ensure that in readonly mode the only possibly selected tool is select or hand.
@@ -39,14 +46,31 @@ export default function Panel({ selectedTool, readOnly }: Props) {
       actions.setSelectedTool(id, "hand");
     }
   }, [readOnly]);
-
-  const v: ReactNode[] = [];
-  for (const tool in TOOLS) {
-    if (TOOLS[tool].hideFromToolbar) continue;
-    if (readOnly && !TOOLS[tool].readOnly) continue;
-    v.push(
-      <ToolButton key={tool} tool={tool} isSelected={tool == selectedTool} />
-    );
+  const v: ReactNode[] = [
+    <Tooltip title="Toggle toolbar">
+      <Button
+        type="text"
+        size="small"
+        style={{
+          color: "#888",
+          background: minimizedTools ? undefined : "#eee",
+        }}
+        onClick={() => {
+          setMinimizedTools?.(!minimizedTools);
+        }}
+      >
+        <Icon name="tool" />
+      </Button>
+    </Tooltip>,
+  ];
+  if (!minimizedTools) {
+    for (const tool in TOOLS) {
+      if (TOOLS[tool].hideFromToolbar) continue;
+      if (readOnly && !TOOLS[tool].readOnly) continue;
+      v.push(
+        <ToolButton key={tool} tool={tool} isSelected={tool == selectedTool} />
+      );
+    }
   }
   return (
     <div

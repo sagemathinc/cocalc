@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { State, elementsList } from "./actions";
@@ -43,6 +43,7 @@ export default function Whiteboard({ presentation }: Props) {
   const pagesMap = useEditor("pages");
   const elementsMap = useEditor("elements");
   const sortedPageIds = useEditor("sortedPageIds");
+  const [minimizedTools, setMinimizedTools] = useState<boolean>(!!presentation);
 
   const pageId = useMemo(() => {
     if (sortedPageIds == null || pagesMap == null) return null;
@@ -133,9 +134,14 @@ export default function Whiteboard({ presentation }: Props) {
     >
       {isFocused && showPanels && (
         <>
-          {!readOnly && <KernelPanel />}
-          <ToolPanel selectedTool={tool ?? "select"} readOnly={readOnly} />
-          {!desc.get("selectedToolHidePanel") && (
+          {!readOnly && !minimizedTools && <KernelPanel />}
+          <ToolPanel
+            selectedTool={tool ?? "select"}
+            readOnly={readOnly}
+            minimizedTools={minimizedTools}
+            setMinimizedTools={setMinimizedTools}
+          />
+          {!desc.get("selectedToolHidePanel") && !minimizedTools && (
             <>
               {tool == "pen" && <PenPanel />}
               {tool == "note" && <NotePanel />}
@@ -147,13 +153,15 @@ export default function Whiteboard({ presentation }: Props) {
               {tool == "edge" && <EdgePanel />}
             </>
           )}
-          <NavigationPanel
-            mainFrameType={actions.mainFrameType}
-            fontSize={font_size}
-            elements={elementsOnPage}
-            elementsMap={elementsMap}
-            whiteboardDivRef={whiteboardDivRef}
-          />
+          {!presentation && (
+            <NavigationPanel
+              mainFrameType={actions.mainFrameType}
+              fontSize={font_size}
+              elements={elementsOnPage}
+              elementsMap={elementsMap}
+              whiteboardDivRef={whiteboardDivRef}
+            />
+          )}
         </>
       )}
       {presentation ? (
