@@ -1367,6 +1367,20 @@ export default function Canvas({
             : undefined,
         overflow: "hidden",
         position: "relative",
+        ...(presentation
+          ? {
+              left: `${
+                ((getViewportWindow()?.w ?? 0) -
+                  scaleRef.current * transformsRef.current.width) /
+                2
+              }px`,
+              top: `${
+                ((getViewportWindow()?.h ?? 0) -
+                  scaleRef.current * transformsRef.current.height) /
+                2
+              }px`,
+            }
+          : undefined),
       }}
       onClick={(evt) => {
         mousePath.current = null;

@@ -129,7 +129,10 @@ export default function Whiteboard({ presentation }: Props) {
   return (
     <div
       className="smc-vfill"
-      style={{ position: "relative" }}
+      style={{
+        position: "relative",
+        ...(presentation ? { background: "#666" } : undefined),
+      }}
       ref={whiteboardDivRef}
     >
       {isFocused && showPanels && (
