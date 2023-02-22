@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { State, elementsList } from "./actions";
@@ -18,9 +18,20 @@ import Upload from "./tools/upload";
 import KernelPanel from "./elements/code/kernel";
 import NewPage from "./new-page";
 
-export default function Whiteboard() {
-  const { actions, isFocused, path, project_id, desc, font_size } =
+interface Props {
+  presentation?: boolean;
+}
+
+export default function Whiteboard({ presentation }: Props) {
+  const { actions, isFocused, path, project_id, desc, font_size, id } =
     useFrameContext();
+  useEffect(() => {
+    // enable the keyboard on first rendering of focused whiteboard.
+    // otherwise keyboard only gets registered when focusing (by our actions).
+    if (isFocused) {
+      actions.enableWhiteboardKeyHandler(id);
+    }
+  }, []);
   const useEditor = useEditorRedux<State>({ project_id, path });
 
   const is_loaded = useEditor("is_loaded");
@@ -90,6 +101,25 @@ export default function Whiteboard() {
   }
 
   const tool = desc.get("selectedTool");
+
+  const mainWhiteboardCanvas = (
+    <Canvas
+      mainFrameType={actions.mainFrameType}
+      elements={elementsOnPage}
+      elementsMap={elementsMap}
+      font_size={font_size}
+      selection={
+        selectedTool == "select"
+          ? new Set(desc.get("selection")?.toJS() ?? [])
+          : undefined
+      }
+      selectedTool={selectedTool}
+      evtToDataRef={evtToDataRef}
+      readOnly={readOnly}
+      cursors={cursors}
+      presentation={presentation}
+    />
+  );
   return (
     <div
       className="smc-vfill"
@@ -98,8 +128,12 @@ export default function Whiteboard() {
     >
       {isFocused && (
         <>
-          {!readOnly && <KernelPanel />}
-          <ToolPanel selectedTool={tool ?? "select"} readOnly={readOnly} />
+          {!readOnly && <KernelPanel presentation={presentation} />}
+          <ToolPanel
+            selectedTool={tool ?? "select"}
+            readOnly={readOnly}
+            presentation={presentation}
+          />
           {!desc.get("selectedToolHidePanel") && (
             <>
               {tool == "pen" && <PenPanel />}
@@ -112,32 +146,24 @@ export default function Whiteboard() {
               {tool == "edge" && <EdgePanel />}
             </>
           )}
-          <NavigationPanel
-            mainFrameType={actions.mainFrameType}
-            fontSize={font_size}
-            elements={elementsOnPage}
-            elementsMap={elementsMap}
-            whiteboardDivRef={whiteboardDivRef}
-          />
+          {!presentation && (
+            <NavigationPanel
+              mainFrameType={actions.mainFrameType}
+              fontSize={font_size}
+              elements={elementsOnPage}
+              elementsMap={elementsMap}
+              whiteboardDivRef={whiteboardDivRef}
+            />
+          )}
         </>
       )}
-      <Upload evtToDataRef={evtToDataRef} readOnly={readOnly}>
-        <Canvas
-          mainFrameType={actions.mainFrameType}
-          elements={elementsOnPage}
-          elementsMap={elementsMap}
-          font_size={font_size}
-          selection={
-            selectedTool == "select"
-              ? new Set(desc.get("selection")?.toJS() ?? [])
-              : undefined
-          }
-          selectedTool={selectedTool}
-          evtToDataRef={evtToDataRef}
-          readOnly={readOnly}
-          cursors={cursors}
-        />
-      </Upload>
+      {presentation ? (
+        mainWhiteboardCanvas
+      ) : (
+        <Upload evtToDataRef={evtToDataRef} readOnly={readOnly}>
+          {mainWhiteboardCanvas}
+        </Upload>
+      )}
     </div>
   );
 }

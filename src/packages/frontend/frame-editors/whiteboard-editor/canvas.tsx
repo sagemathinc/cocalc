@@ -142,6 +142,7 @@ interface Props {
   previewMode?: boolean; // Use a blue box preview, instead of the actual elements.
   cursors?: { [id: string]: { [account_id: string]: any[] } };
   mainFrameType: MainFrameType;
+  presentation?: boolean;
 }
 
 export default function Canvas({
@@ -159,13 +160,14 @@ export default function Canvas({
   previewMode,
   cursors,
   mainFrameType,
+  presentation,
 }: Props) {
   const isMountedRef = useIsMountedRef();
   const frame = useFrameContext();
   const editFocus = frame.desc.get("editFocus");
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
   if (!margin) {
-    margin = getMargin(mainFrameType, canvasScale);
+    margin = getMargin(mainFrameType, canvasScale, presentation);
   }
   const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
@@ -1549,7 +1551,14 @@ function getSelectedElements({
   return elements.filter((element) => selection.has(element.id));
 }
 
-function getMargin(mainFrameType: MainFrameType, scale: number): number {
+function getMargin(
+  mainFrameType: MainFrameType,
+  scale: number,
+  presentation?: boolean
+): number {
+  if (presentation) {
+    return 0;
+  }
   switch (mainFrameType) {
     case "slides":
       // This is just a slightly more usable setting.  This should probably
