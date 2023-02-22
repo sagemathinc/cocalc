@@ -122,6 +122,7 @@ import { extendToIncludeEdges } from "./actions";
 
 import Cursors from "./cursors";
 
+// TODO: could penDPIFactor change if you move a window from one monitor to another
 const penDPIFactor = window.devicePixelRatio;
 
 const MIDDLE_MOUSE_BUTTON = 1;

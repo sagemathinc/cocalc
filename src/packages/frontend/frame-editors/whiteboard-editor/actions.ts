@@ -1265,7 +1265,6 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   }
 
   setEditFocus(id: string, editFocus: boolean): void {
-    if (this._get_frame_type(id) != this.mainFrameType) return;
     this.set_frame_tree({ id, editFocus });
   }
 

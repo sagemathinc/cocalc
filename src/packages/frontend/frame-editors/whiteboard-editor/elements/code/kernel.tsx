@@ -60,8 +60,11 @@ export default function KernelPanel0() {
   return null;
 }
 
-function KernelPanel(props: { actions: JupyterActions }) {
-  const { actions } = props;
+interface Props {
+  actions: JupyterActions;
+}
+
+function KernelPanel({ actions }: Props) {
   const { project_id, path } = useFrameContext();
   const showKernelSelector: undefined | boolean = useRedux([
     actions.name,

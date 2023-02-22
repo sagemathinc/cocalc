@@ -17,6 +17,7 @@ import { useFrameContext, usePageInfo } from "./hooks";
 import Upload from "./tools/upload";
 import KernelPanel from "./elements/code/kernel";
 import NewPage from "./new-page";
+import useAutoHide from "@cocalc/frontend/components/use-auto-hide";
 
 interface Props {
   presentation?: boolean;
@@ -25,6 +26,9 @@ interface Props {
 export default function Whiteboard({ presentation }: Props) {
   const { actions, isFocused, path, project_id, desc, font_size, id } =
     useFrameContext();
+
+  const showPanels = useAutoHide({ enabled: presentation && isFocused });
+
   useEffect(() => {
     // enable the keyboard on first rendering of focused whiteboard.
     // otherwise keyboard only gets registered when focusing (by our actions).
@@ -120,20 +124,17 @@ export default function Whiteboard({ presentation }: Props) {
       presentation={presentation}
     />
   );
+
   return (
     <div
       className="smc-vfill"
       style={{ position: "relative" }}
       ref={whiteboardDivRef}
     >
-      {isFocused && (
+      {isFocused && showPanels && (
         <>
-          {!readOnly && <KernelPanel presentation={presentation} />}
-          <ToolPanel
-            selectedTool={tool ?? "select"}
-            readOnly={readOnly}
-            presentation={presentation}
-          />
+          {!readOnly && <KernelPanel />}
+          <ToolPanel selectedTool={tool ?? "select"} readOnly={readOnly} />
           {!desc.get("selectedToolHidePanel") && (
             <>
               {tool == "pen" && <PenPanel />}
@@ -146,15 +147,13 @@ export default function Whiteboard({ presentation }: Props) {
               {tool == "edge" && <EdgePanel />}
             </>
           )}
-          {!presentation && (
-            <NavigationPanel
-              mainFrameType={actions.mainFrameType}
-              fontSize={font_size}
-              elements={elementsOnPage}
-              elementsMap={elementsMap}
-              whiteboardDivRef={whiteboardDivRef}
-            />
-          )}
+          <NavigationPanel
+            mainFrameType={actions.mainFrameType}
+            fontSize={font_size}
+            elements={elementsOnPage}
+            elementsMap={elementsMap}
+            whiteboardDivRef={whiteboardDivRef}
+          />
         </>
       )}
       {presentation ? (

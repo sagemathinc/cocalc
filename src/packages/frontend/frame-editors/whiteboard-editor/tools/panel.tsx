@@ -14,7 +14,6 @@ import { useFrameContext } from "../hooks";
 import { MAX_ELEMENTS } from "../math";
 import { SELECTED } from "./common";
 import { Tool, TOOLS } from "./desc";
-
 export const PANEL_STYLE: CSS = {
   zIndex: MAX_ELEMENTS + 1,
   position: "absolute",
@@ -40,6 +39,7 @@ export default function Panel({ selectedTool, readOnly }: Props) {
       actions.setSelectedTool(id, "hand");
     }
   }, [readOnly]);
+
   const v: ReactNode[] = [];
   for (const tool in TOOLS) {
     if (TOOLS[tool].hideFromToolbar) continue;
