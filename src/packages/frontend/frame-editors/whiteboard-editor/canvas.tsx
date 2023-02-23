@@ -513,7 +513,7 @@ export default function Canvas({
   // get zoom (plus offset) so everything is visible properly
   // on the page; also set fitToScreen back to false in
   // frame tree data.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isNavigator || !frame.desc.get("fitToScreen")) return;
     try {
       const viewport = getViewportData();
@@ -527,31 +527,29 @@ export default function Canvas({
         return;
       }
       lastViewport.current = viewport;
-      let rect, s;
-      if (presentation) {
+      let rect;
+      if (mainFrameType == "slides" || presentation) {
         rect = rectSpan(elements.filter((elt) => elt.z == -Infinity));
-        s = Math.min(
-          2,
-          Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
-        );
       } else {
         rect = rectSpan(elements);
-        s =
-          Math.min(
-            2 / 0.95,
-            Math.max(
-              MIN_ZOOM,
-              fitRectToRect(rect, viewport).scale * canvasScale
-            )
-          ) * 0.95; // 0.95 for extra room too.
       }
+      const factor = presentation ? 1 : 0.95; // 0.95 for extra room too.
+      const s =
+        Math.min(
+          2 / factor,
+          Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
+        ) * factor;
       scale.set(s);
       frame.actions.set_font_size(frame.id, zoomToFontSize(s));
-      setCenterPositionData({
-        x: rect.x + rect.w / 2,
-        y: rect.y + rect.h / 2,
-      });
-      saveViewport();
+      const centerIt = () => {
+        setCenterPositionData({
+          x: rect.x + rect.w / 2,
+          y: rect.y + rect.h / 2,
+        });
+        saveViewport();
+      };
+      centerIt();
+      setTimeout(centerIt, 0);
     } finally {
       frame.actions.fitToScreen(frame.id, false);
     }
@@ -1367,7 +1365,7 @@ export default function Canvas({
             : undefined,
         overflow: "hidden",
         position: "relative",
-        ...(presentation
+        ...(presentation && !isNavigator
           ? {
               left: `${
                 ((getViewportWindow()?.w ?? 0) -
@@ -1599,6 +1597,6 @@ function getMargin(
       return 100;
     case "whiteboard":
     default:
-      return 3000;
+      return 2000;
   }
 }
