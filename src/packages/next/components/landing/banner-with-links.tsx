@@ -30,9 +30,8 @@ export default function BannerWithLinks() {
           Yields.io's risk management platform.
         </A>{" "}
         There are{" "}
-        <A href="/share/public_paths/page/1">
-          thousands of other ways people use {siteName}...
-        </A>
+        <A href="/share/public_paths/page/1">thousands of other ways</A>{" "}
+        that <A href="/info/status">people use {siteName}...</A>
       </Paragraph>
     </div>
   );
