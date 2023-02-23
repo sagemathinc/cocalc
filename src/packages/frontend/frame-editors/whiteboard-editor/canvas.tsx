@@ -119,6 +119,7 @@ import { encodeForCopy, decodeForPaste } from "./tools/clipboard";
 import { aspectRatioToNumber } from "./tools/frame";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { extendToIncludeEdges } from "./actions";
+import { delay } from "awaiting";
 
 import Cursors from "./cursors";
 
@@ -498,15 +499,37 @@ export default function Canvas({
     };
   }
 
-  // set center position in Data coordinates.
-  function setCenterPositionData({ x, y }: Point): void {
-    if (!isMountedRef.current) return;
+  // set center position in Data coordinates by changing the
+  // offset; returns true if no change made.
+  function setCenterPositionData({ x, y }: Point): boolean {
+    if (!isMountedRef.current) {
+      return true;
+    }
     const t = dataToWindow({ x, y });
     const cur = getCenterPositionWindow();
-    if (cur == null) return;
+    if (cur == null) {
+      return true;
+    }
     const delta_x = t.x - cur.x;
     const delta_y = t.y - cur.y;
     offset.translate({ x: delta_x, y: delta_y });
+    return delta_x == 0 && delta_y == 0;
+  }
+
+  // This does setCenterPositionDataStable repeatedly
+  // until the offset is 0 (or a 20 attempts or unmount).
+  // TODO: This is very ugly and may reflect working
+  // around a bug, but it's better to do this temporarily than
+  // have the whiteboard be totally unusable.
+  async function setCenterPositionDataStable({ x, y }: Point) {
+    let i = 0;
+    while (isMountedRef.current && i < 20) {
+      i += 1;
+      if (setCenterPositionData({ x, y })) {
+        return;
+      }
+      await delay(0);
+    }
   }
 
   // when fitToScreen is true, compute data then set font_size to
@@ -547,11 +570,13 @@ export default function Canvas({
       }
       scale.set(s);
       frame.actions.set_font_size(frame.id, zoomToFontSize(s));
-      setCenterPositionData({
-        x: rect.x + rect.w / 2,
-        y: rect.y + rect.h / 2,
-      });
-      saveViewport();
+      (async () => {
+        await setCenterPositionDataStable({
+          x: rect.x + rect.w / 2,
+          y: rect.y + rect.h / 2,
+        });
+        saveViewport();
+      })();
     } finally {
       frame.actions.fitToScreen(frame.id, false);
     }
