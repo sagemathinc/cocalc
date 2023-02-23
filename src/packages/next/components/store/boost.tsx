@@ -330,6 +330,7 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
           showExplanations={showExplanations}
         />
         <TitleDescription
+          form={form}
           showExplanations={showExplanations}
           disabled={!confirmWarning}
         />

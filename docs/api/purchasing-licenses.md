@@ -38,11 +38,11 @@ The endpoint for adding an item to your shopping cart is `/shopping/cart/add`.
 
 ```sh
 curl -sk -u $key: -H 'Content-Type: application/json' \
-   -d '{"account_id":"a407cc35-c960-481c-9928-1238c868ff8b", "product":"site-license", "description":{"ram":16,"cpu":2,"disk":10,"member":true,"uptime": "medium", "type": "quota", "user": "business","boost": false,"period":"monthly","run_limit":1}}' \
+   -d '{"account_id":"a407cc35-c960-481c-9928-1238c868ff8b", "product":"site-license", "description":{"ram":16,"cpu":2,"disk":10,"member":true,"uptime": "medium", "type": "quota", "user": "business","boost": false,"period":"monthly","run_limit":1,"title": "my title","description": "my desc"}}' \
    $url/shopping/cart/add 
 ```
 
-See [the SiteLicenseQuota interface of](https://github.com/sagemathinc/cocalc/tree/master/src/packages/util/types/site-licenses.ts) for the possible parameters in the description field, though things are not exactly explained by that.  Also, "uptime" can be "short", "medium" or "day".
+See [the SiteLicenseQuota interface of](https://github.com/sagemathinc/cocalc/tree/master/src/packages/util/types/site-licenses.ts) for the possible parameters in the description field, though things are not fully explained by that.  Also, "uptime" can be "short", "medium" or "day", and title and description can be arbitrary strings.
 
 After you do this, visit \(or refresh\) https://cocalc.com/store/cart to see the license in your cart.
 
@@ -66,4 +66,13 @@ Output if you don't have a partner account:
 If you have a valid card on file and a partner account, then the purchase will be made and your license will be available to use.  Confirm your purchase [here](https://cocalc.com/store/congrats).
 
 _**WARNINGS**_: \(1\) There is currently no purchase quota implemented yet for partners, so a bug in your code could make numerous purchases. Be careful.  \(2\) If you add nonsense to your shopping cart, it could lead to your account being in a broken state where you can't see or remove items or checkout; if this happens, contact [help@cocalc.com](mailto:help@cocalc.com) and we'll sort it out.
+
+## Getting all of your licenses
+
+After you place your order using the API, you may want to get a list of all of the licenses that you manage.  You can do that via the `licenses/get-managed` api endpoint:
+
+```sh
+curl -sk -u $key: -H 'Content-Type: application/json' \
+   $url/licenses/get-managed
+```
 

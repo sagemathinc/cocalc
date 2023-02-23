@@ -57,7 +57,13 @@ function decodeRange(val: string): DateRange {
   }
 }
 
-const COMMON_FIELDS = ["user", "period", "range"] as const;
+const COMMON_FIELDS = [
+  "user",
+  "period",
+  "range",
+  "title",
+  "description",
+] as const;
 
 const REGULAR_FIELDS = [
   ...COMMON_FIELDS,
@@ -89,7 +95,7 @@ function getFormFields(
   }
 }
 
-export const ALL_FIELDS : Set<string> = new Set(
+export const ALL_FIELDS: Set<string> = new Set(
   REGULAR_FIELDS.concat(DEDICATED_FIELDS as any).concat(["type" as any])
 );
 

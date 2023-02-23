@@ -770,7 +770,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
             <Divider plain>Configuration</Divider>
             {renderConfiguration()}
 
-            <TitleDescription showExplanations={showExplanations} />
+            <TitleDescription showExplanations={showExplanations} form={form} />
             {renderCost()}
           </>
         )}
