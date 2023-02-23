@@ -5,6 +5,7 @@
 
 import { CSSProperties as CSS } from "react";
 import { register, SlateElement } from "../register";
+import getStyles from "./style";
 
 export interface Table extends SlateElement {
   type: "table";
@@ -55,39 +56,23 @@ function toSlate({ type, children, isEmpty, state }) {
 export const StaticElement = ({ attributes, children, element }) => {
   switch (element.type) {
     case "table":
+      const { divStyle, tableStyle } = getStyles();
       return (
-        <div
-          {...attributes}
-          className="ant-table"
-          style={{ fontSize: "inherit" }}
-        >
-          <table style={{ tableLayout: "auto" }}>{children}</table>
+        <div {...attributes} style={divStyle}>
+          <table style={tableStyle}>{children}</table>
         </div>
       );
     case "thead":
-      return (
-        <thead {...attributes} className="ant-table-thead">
-          {children}
-        </thead>
-      );
+      return <thead {...attributes}>{children}</thead>;
     case "tbody":
-      return (
-        <tbody {...attributes} className="ant-table-tbody">
-          {children}
-        </tbody>
-      );
+      return <tbody {...attributes}>{children}</tbody>;
     case "tr":
-      return (
-        <tr {...attributes} className="ant-table-row">
-          {children}
-        </tr>
-      );
+      return <tr {...attributes}>{children}</tr>;
     case "th":
       return (
         <th
           {...attributes}
           style={{ textAlign: element.align ?? "left" } as CSS}
-          className="ant-table-cell"
         >
           {children}
         </th>
@@ -97,7 +82,6 @@ export const StaticElement = ({ attributes, children, element }) => {
         <td
           {...attributes}
           style={{ textAlign: element.align ?? "left" } as CSS}
-          className="ant-table-cell"
         >
           {children}
         </td>
