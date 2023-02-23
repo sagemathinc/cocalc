@@ -14,7 +14,7 @@ export function parseHeader(markdown: string): {
     // YAML metadata header -- must contain a second line later that is exactly --- and a newline.
     const j = markdown.indexOf("\n---\n", 4);
     if (j != -1) {
-      return { header: markdown.slice(4, j - 1), body: markdown.slice(j + 4) };
+      return { header: markdown.slice(4, j), body: markdown.slice(j + 4) };
     }
   }
   return { header: undefined, body: markdown };
