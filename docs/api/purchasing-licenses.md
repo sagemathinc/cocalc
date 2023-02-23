@@ -1,4 +1,4 @@
-# Using the v2 api to buy a license
+# Using the CoCalc API to buy a license
 
 First let's do the "hello world" query using the v2 api, which is one of the [examples here.](https://doc.cocalc.com/api2/index.html)  Get your API key, then use the following curl command to send `{"query":{"accounts":{"account_id":null,"email_address":null}}}` to the `user-query` endpoint.
 

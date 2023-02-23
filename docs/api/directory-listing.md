@@ -1,4 +1,4 @@
-# Using the v2 api to get directory listings for a project from the database
+# Using the CoCalc API to get directory listings for a project via the database
 
 We assume you can do a basic query as explained in [purchasing\-licenses.md](./purchasing-licenses.md).
 
