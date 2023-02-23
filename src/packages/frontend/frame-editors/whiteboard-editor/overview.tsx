@@ -136,6 +136,7 @@ export default function Overview() {
               borderRadius: "5px",
             }}
             maxScale={2}
+            presentation={actions.mainFrameType == "slides"}
           />
           <div
             style={{

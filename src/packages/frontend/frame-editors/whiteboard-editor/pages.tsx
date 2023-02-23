@@ -133,7 +133,10 @@ export default function Pages() {
             margin={15}
             elements={elementsOnPage ?? []}
             elementsMap={elementsMap}
-            width={width - 2 * HMARGIN}
+            width={
+              width -
+              70 /* that 70 accounts for the margin/padding/buttons; without this page gets cut off on right*/
+            }
             navMap={"page"}
             style={{
               pointerEvents: "none",
@@ -142,6 +145,7 @@ export default function Pages() {
               borderRadius: "5px",
             }}
             maxScale={2}
+            presentation={actions.mainFrameType == "slides"}
           />
           <div style={{ display: "flex", flexDirection: "column" }}>
             <DeletePage pageId={`${sortedPageIds.get(index)}`} />
