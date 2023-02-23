@@ -101,7 +101,7 @@ export async function get_insert_image_opts_from_user(
             <h3>
               <Icon name="image" /> Insert Image
             </h3>
-            {note}
+            <div style={{ fontWeight: 300 }}>{note}</div>
           </div>
         }
         open
