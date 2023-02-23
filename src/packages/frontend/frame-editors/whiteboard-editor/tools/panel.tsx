@@ -47,7 +47,7 @@ export default function Panel({
     }
   }, [readOnly]);
   const v: ReactNode[] = [
-    <Tooltip title="Toggle toolbar">
+    <Tooltip title="Toggle toolbar" key="toggle">
       <Button
         type="text"
         size="small"
