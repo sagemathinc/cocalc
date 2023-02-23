@@ -40,3 +40,10 @@ html
   flex-direction: column
   > .ant-alert-banner
     display: block
+
+// The frame-editor title-bar's "..." popover has a higher z-index than e.g. the "Halt" modal
+// This makes the antd modals appear on top of all other elements
+// Ref: https://github.com/sagemathinc/cocalc/issues/6467
+// I found this ticket: https://github.com/ant-design/ant-design/issues/31513
+.ant-modal-root .ant-modal-wrap
+  z-index: 1100
