@@ -487,9 +487,14 @@ function transformToComment(editor: Editor): void {
   Transforms.insertFragment(editor, fragment);
 }
 
-// TODO: This is very buggy
+// TODO: This is very buggy and can't work in general, e.g., because
+// of virtualization.  we use it here usually for small snippets of
+// visible text, so it tends to be OK. Just temper your expectations!
 export function selectionToText(editor: Editor): string {
-  if (!editor.selection) return "";
+  if (!editor.selection) {
+    // no selection so nothing to do.
+    return "";
+  }
   // This is just directly using DOM API, not slatejs, so
   // could run into a subtle problem e.g., due to windowing.
   // However, that's very unlikely given our application.
