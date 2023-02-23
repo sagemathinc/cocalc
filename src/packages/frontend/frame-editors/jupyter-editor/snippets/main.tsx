@@ -226,6 +226,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         size={"small"}
         icon={<LeftSquareOutlined />}
         type={link ? "link" : "default"}
+        disabled={jupyterFrameID == null}
         onClick={(e) => {
           insert_snippet({ code, descr });
           e.stopPropagation();
