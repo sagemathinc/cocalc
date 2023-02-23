@@ -30,7 +30,7 @@ The above will output something like the following, but with your account\_id an
 }
 ```
 
-The user\-query API endpoint can do an enormous amount related to cocalc \-\- it's a sophisticated GraphQL\-style API, and enables reading and writing to the PostgreSQL backend database, and triggering a wide range of actions.  Someday we'll document this in detail.  In the meantime, see [the schema](https://github.com/sagemathinc/cocalc/tree/master/src/packages/util/db-schema).
+The user\-query API endpoint can do an enormous amount related to cocalc \-\- it's a sophisticated GraphQL\-style API, and enables reading and writing to the PostgreSQL backend database, and triggering a wide range of actions.  Someday we'll document this in detail.  In the meantime, see [the schema](https://github.com/sagemathinc/cocalc/tree/master/src/packages/util/db-schema).   One example is [getting a directory listing](./directory-listing.md).
 
 ## Using the API to add a license to your shopping cart
 

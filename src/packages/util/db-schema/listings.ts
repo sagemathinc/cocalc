@@ -87,7 +87,7 @@ Table({
       set: {
         // users can set that they are interested in this directory and also
         // remove paths from the list of deleted paths (e.g., in case they want
-        // to edit afile that was deleted).
+        // to edit a file that was deleted).
         fields: {
           project_id: "project_id",
           path: true,
