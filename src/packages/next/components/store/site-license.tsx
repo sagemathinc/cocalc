@@ -235,7 +235,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
           setShadowMember={setShadowMember}
           setPresetAdjusted={setPresetAdjusted}
         />
-        <TitleDescription showExplanations={showExplanations} />
+        <TitleDescription showExplanations={showExplanations} form={form} />
         <Reset
           addBox={addBox}
           form={form}

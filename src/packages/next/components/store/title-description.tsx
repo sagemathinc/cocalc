@@ -5,7 +5,7 @@
 
 import { Divider, Form, Input } from "antd";
 
-export function TitleDescription({ showExplanations, disabled = false }) {
+export function TitleDescription({ form, showExplanations, disabled = false }) {
   return (
     <>
       <Divider plain>Customizable Descriptors</Divider>
@@ -25,6 +25,10 @@ export function TitleDescription({ showExplanations, disabled = false }) {
         <Input
           disabled={disabled}
           placeholder="Enter the title of your license (optional)"
+          value={form.getFieldValue("title")}
+          onChange={(e) => {
+            form.setFieldValue({ title: e.target.value });
+          }}
         />
       </Form.Item>
       <Form.Item
@@ -44,6 +48,10 @@ export function TitleDescription({ showExplanations, disabled = false }) {
           disabled={disabled}
           placeholder="Describe your license (optional)"
           rows={2}
+          value={form.getFieldValue("description")}
+          onChange={(e) => {
+            form.setFieldValue({ description: e.target.value });
+          }}
         />
       </Form.Item>
     </>

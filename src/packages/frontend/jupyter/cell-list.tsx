@@ -156,12 +156,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }, [is_focused]);
 
   useEffect(() => {
-    // scroll state changed
+    // scroll state may have changed
     if (scroll != null) {
       scroll_cell_list(scroll);
       frameActions.current?.scroll(); // reset scroll request state
     }
-  }, [scroll]);
+  }, [cur_id, scroll]);
 
   const handleCellListRef = useCallback((node: any) => {
     cell_list_node.current = node;

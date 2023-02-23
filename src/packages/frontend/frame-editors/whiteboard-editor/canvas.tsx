@@ -122,6 +122,7 @@ import { extendToIncludeEdges } from "./actions";
 
 import Cursors from "./cursors";
 
+// TODO: could penDPIFactor change if you move a window from one monitor to another
 const penDPIFactor = window.devicePixelRatio;
 
 const MIDDLE_MOUSE_BUTTON = 1;
@@ -142,6 +143,7 @@ interface Props {
   previewMode?: boolean; // Use a blue box preview, instead of the actual elements.
   cursors?: { [id: string]: { [account_id: string]: any[] } };
   mainFrameType: MainFrameType;
+  presentation?: boolean;
 }
 
 export default function Canvas({
@@ -150,7 +152,7 @@ export default function Canvas({
   font_size,
   scale: scale0,
   selection,
-  margin = 10000,
+  margin,
   readOnly,
   selectedTool,
   evtToDataRef,
@@ -159,15 +161,24 @@ export default function Canvas({
   previewMode,
   cursors,
   mainFrameType,
+  presentation,
 }: Props) {
   const isMountedRef = useIsMountedRef();
   const frame = useFrameContext();
   const editFocus = frame.desc.get("editFocus");
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
+  if (!margin) {
+    margin = getMargin(mainFrameType, canvasScale, presentation);
+  }
   const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
   const backgroundDivRef = useRef<any>(null);
+
+  // canvasRef is the div that is our main whiteboard "canvas".
+  // It is NOT an actual HTML5 canvas -- it's a div.  We only
+  // use an actual canvas to render pen strokes (see penCanvasRef).
   const canvasRef = useRef<any>(null);
+
   const scaleDivRef = useRef<any>(null);
 
   const firstOffsetRef = useRef<any>({
@@ -178,7 +189,7 @@ export default function Canvas({
 
   const lastPinchRef = useRef<number>(0);
   const isZoomingRef = usePinchToZoom({
-    disabled: isNavigator,
+    disabled: isNavigator || presentation,
     target: canvasRef,
     min: MIN_FONT_SIZE,
     max: MAX_FONT_SIZE,
@@ -331,12 +342,14 @@ export default function Canvas({
 
   const innerCanvasRef = useRef<any>(null);
 
-  const transformsRef = useRef<Transforms>(getTransforms(elements, margin));
+  const transformsRef = useRef<Transforms>(
+    getTransforms(elements, margin, presentation)
+  );
 
   // This must happen before the render, hence the useLayoutEffect
   // (which wasn't needed before React18)!
   useLayoutEffect(() => {
-    transformsRef.current = getTransforms(elements, margin);
+    transformsRef.current = getTransforms(elements, margin, presentation);
   }, [elements, margin]);
 
   // When the canvas elements change the extent changes and everything
@@ -418,6 +431,10 @@ export default function Canvas({
         ),
         rect,
       };
+    }
+    if (presentation) {
+      // always re-fit to screen on resize in presentation mode.
+      frame.actions.fitToScreen(frame.id, true);
     }
   }, [resize]);
 
@@ -510,12 +527,24 @@ export default function Canvas({
         return;
       }
       lastViewport.current = viewport;
-      const rect = rectSpan(elements);
-      const s =
-        Math.min(
-          2 / 0.95,
+      let rect, s;
+      if (presentation) {
+        rect = rectSpan(elements.filter((elt) => elt.z == -Infinity));
+        s = Math.min(
+          2,
           Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
-        ) * 0.95; // 0.95 for extra room too.
+        );
+      } else {
+        rect = rectSpan(elements);
+        s =
+          Math.min(
+            2 / 0.95,
+            Math.max(
+              MIN_ZOOM,
+              fitRectToRect(rect, viewport).scale * canvasScale
+            )
+          ) * 0.95; // 0.95 for extra room too.
+      }
       scale.set(s);
       frame.actions.set_font_size(frame.id, zoomToFontSize(s));
       setCenterPositionData({
@@ -1338,6 +1367,20 @@ export default function Canvas({
             : undefined,
         overflow: "hidden",
         position: "relative",
+        ...(presentation
+          ? {
+              left: `${
+                ((getViewportWindow()?.w ?? 0) -
+                  scaleRef.current * transformsRef.current.width) /
+                2
+              }px`,
+              top: `${
+                ((getViewportWindow()?.h ?? 0) -
+                  scaleRef.current * transformsRef.current.height) /
+                2
+              }px`,
+            }
+          : undefined),
       }}
       onClick={(evt) => {
         mousePath.current = null;
@@ -1469,7 +1512,6 @@ export default function Canvas({
           left: `${offsetRef.current.left}px`,
           top: `${offsetRef.current.top}px`,
           transform: `scale(${canvasScale})`,
-          /*transition: "transform left top 0.1s",*/
           transformOrigin: "top left",
         }}
       >
@@ -1540,4 +1582,24 @@ function getSelectedElements({
 }): Element[] {
   if (!selection) return [];
   return elements.filter((element) => selection.has(element.id));
+}
+
+function getMargin(
+  mainFrameType: MainFrameType,
+  scale: number,
+  presentation?: boolean
+): number {
+  if (presentation) {
+    return 0;
+  }
+  switch (mainFrameType) {
+    case "slides":
+      // This is just a slightly more usable setting.  This should probably
+      // work much more like powerpoint, but that's a lot more subtle to
+      // implement.
+      return 100 / Math.min(scale, 1);
+    case "whiteboard":
+    default:
+      return 1000 / Math.min(scale, 1);
+  }
 }

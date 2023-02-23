@@ -382,7 +382,11 @@ export interface Transforms {
   zMap: { [z: number]: number };
 }
 
-export function getTransforms(elements, margin: number = 0): Transforms {
+export function getTransforms(
+  elements,
+  margin: number = 0,
+  presentation: boolean = false
+): Transforms {
   /*
   Consider the x and y coordinates of all elements, which could be anywhere in the "infinite canvas",
   Then transform to a rectangle (0,0) --> (width,height), along with a margin.
@@ -392,7 +396,29 @@ export function getTransforms(elements, margin: number = 0): Transforms {
   so we can confidently place UI elements, etc. above MAX_ELEMENTS.
 
   This doesn't do anything related to scaling.
+
+  In presentation mode, the x/y ranges are determined by the elements with
+  z=-oo (e.g., the slide).
   */
+
+  if (presentation) {
+    // We do getTransforms with everything except z=-oo excluded.
+    // However, we do need the actual zMap, so we also compute that
+    // and set it properly.
+    const zMap = zIndexMap(elements);
+    return {
+      ...getTransforms(
+        elements
+          .filter((elt) => elt.z == -Infinity)
+          .map((elt) => {
+            return { ...elt, z: 0 };
+          }),
+        margin,
+        false
+      ),
+      zMap,
+    };
+  }
 
   let { xMin, yMin, xMax, yMax, zMin, zMax } = getPageSpan(elements, margin);
   const zMap = zIndexMap(elements);
