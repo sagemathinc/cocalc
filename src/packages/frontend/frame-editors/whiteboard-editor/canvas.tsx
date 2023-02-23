@@ -168,7 +168,7 @@ export default function Canvas({
   const editFocus = frame.desc.get("editFocus");
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
   if (!margin) {
-    margin = getMargin(mainFrameType, canvasScale, presentation);
+    margin = getMargin(mainFrameType, presentation);
   }
   const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
@@ -1586,7 +1586,6 @@ function getSelectedElements({
 
 function getMargin(
   mainFrameType: MainFrameType,
-  scale: number,
   presentation?: boolean
 ): number {
   if (presentation) {
@@ -1597,9 +1596,9 @@ function getMargin(
       // This is just a slightly more usable setting.  This should probably
       // work much more like powerpoint, but that's a lot more subtle to
       // implement.
-      return 100 / Math.min(scale, 1);
+      return 100;
     case "whiteboard":
     default:
-      return 1000 / Math.min(scale, 1);
+      return 3000;
   }
 }
