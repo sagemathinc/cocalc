@@ -204,7 +204,7 @@ export const SideChat: React.FC<Props> = ({ project_id, path }: Props) => {
             onChange={(value) => actions.set_input(value)}
             submitMentionsRef={submitMentionsRef}
             syncdb={actions.syncdb}
-            editBarStyle={{ overflow: "auto" }}
+            editBarStyle={{ overflow: "none" }}
           />
           <div
             style={{
