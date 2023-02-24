@@ -237,7 +237,7 @@ function EditText({
       {...(mouseClickDrag ?? {})}
       style={{
         ...getStyle(element),
-        padding: `${PADDING}px ${PADDING}px 0 ${PADDING}px `,
+        padding: `${PADDING}px`,
         height: "100%",
       }}
       className={editFocus ? "nodrag" : undefined}
