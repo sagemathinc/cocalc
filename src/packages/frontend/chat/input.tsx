@@ -68,6 +68,8 @@ export const ChatInput: React.FC<Props> = (props: Props) => {
         ?.get("input");
       return input;
     }
+    // IMPORTANT: this is props.input, not input !!!
+    // this caused a bug where past chats can't be edited.
     return props.input ?? "";
   });
 
