@@ -128,6 +128,8 @@ interface Props {
   refresh?: any;
 
   overflowEllipsis?: boolean; // if true, show "..." button popping up all menu entries
+
+  dirtyRef?; // a boolean react ref that gets set to true whenever document changes for any reason (client should explicitly set this back to false).  
 }
 
 export default function MultiMarkdownInput(props: Props) {
@@ -174,6 +176,7 @@ export default function MultiMarkdownInput(props: Props) {
     modeSwitchStyle,
     refresh,
     overflowEllipsis = false,
+    dirtyRef,
   } = props;
   const { project_id, path } = useFrameContext();
 
@@ -394,6 +397,7 @@ export default function MultiMarkdownInput(props: Props) {
           unregisterEditor={unregisterEditor}
           refresh={refresh}
           compact={compact}
+          dirtyRef={dirtyRef}
         />
       )}
       {mode == "editor" && (
@@ -472,6 +476,7 @@ export default function MultiMarkdownInput(props: Props) {
             placeholder={placeholder ?? "Type text..."}
             submitMentionsRef={submitMentionsRef}
             editBar2={editBar2}
+            dirtyRef={dirtyRef}
           />
         </div>
       )}

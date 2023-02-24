@@ -119,6 +119,7 @@ interface Props {
   getValueRef?: MutableRefObject<() => string>; // see comment in src/packages/frontend/editors/markdown-input/multimode.tsx
   submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
   editBar2?: MutableRefObject<JSX.Element | undefined>;
+  dirtyRef?;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
@@ -155,6 +156,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     getValueRef,
     submitMentionsRef,
     editBar2,
+    dirtyRef,
   } = props;
   const { project_id, path, desc } = useFrameContext();
   const isMountedRef = useIsMountedRef();
@@ -768,6 +770,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   // way for checking if the state of the editor has changed.  Instead
   // check editor.children itself explicitly.
   const onChange = (newEditorValue) => {
+    if (dirtyRef != null) {
+      // but see comment above
+      dirtyRef.current = true;
+    }
     if (editor._hasUnsavedChanges === false) {
       // just for initial change.
       editor._hasUnsavedChanges = undefined;

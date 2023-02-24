@@ -115,6 +115,7 @@ interface Props {
   unregisterEditor?: () => void;
   refresh?: any; // refresh codemirror if this changes
   compact?: boolean;
+  dirtyRef?;
 }
 
 export function MarkdownInput(props: Props) {
@@ -157,6 +158,7 @@ export function MarkdownInput(props: Props) {
     unregisterEditor,
     refresh,
     compact,
+    dirtyRef,
   } = props;
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -292,6 +294,12 @@ export function MarkdownInput(props: Props) {
     // (window as any).cm = cm.current;
     cm.current.setValue(value ?? "");
     cm.current.on("change", saveValue);
+
+    if (dirtyRef != null) {
+      cm.current.on("change", () => {
+        dirtyRef.current = true;
+      });
+    }
 
     if (onBlur != null) {
       cm.current.on("blur", (editor) => onBlur(editor.getValue()));
