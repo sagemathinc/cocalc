@@ -131,8 +131,8 @@ export class AddPaymentMethod extends Component<Props, State> {
           </Col>
         </Row>
         <div style={{ color: "#666", marginTop: "15px" }}>
-          (PayPal or wire transfers for non-recurring purchases above $100 are
-          also possible. Please email <HelpEmailLink />
+          (Wire transfers for non-recurring purchases above $100 are possible.
+          Please email <HelpEmailLink />
           .)
         </div>
       </div>

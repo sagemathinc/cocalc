@@ -446,7 +446,7 @@ function AddPaymentMethod(props: AddPaymentMethodProps) {
             <A href="https://stripe.com/" external>
               Stripe
             </A>
-            . PayPal or wire transfers for non-recurring purchases above $100
+            . Wire transfers for non-recurring purchases above $100
             are also possible. <HelpEmail />.
           </Paragraph>
         </div>
