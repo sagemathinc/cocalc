@@ -118,6 +118,7 @@ interface Props {
   unregisterEditor?: () => void;
   getValueRef?: MutableRefObject<() => string>; // see comment in src/packages/frontend/editors/markdown-input/multimode.tsx
   submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
+  editBar2?: MutableRefObject<JSX.Element | undefined>;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
@@ -153,6 +154,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     unregisterEditor,
     getValueRef,
     submitMentionsRef,
+    editBar2,
   } = props;
   const { project_id, path, desc } = useFrameContext();
   const isMountedRef = useIsMountedRef();
@@ -823,6 +825,21 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   }, [editorValue]);
 
   const [opacity, setOpacity] = useState<number | undefined>(0);
+
+  if (editBar2 != null) {
+    editBar2.current = (
+      <EditBar
+        Search={search.Search}
+        isCurrent={is_current}
+        marks={marks}
+        linkURL={linkURL}
+        listProperties={listProperties}
+        editor={editor}
+        style={{ ...editBarStyle, paddingRight: 0 }}
+        hideSearch={hideSearch}
+      />
+    );
+  }
 
   let slate = (
     <Slate editor={editor} value={editorValue} onChange={onChange}>
