@@ -68,7 +68,7 @@ export const ChatInput: React.FC<Props> = (props: Props) => {
         ?.get("input");
       return input;
     }
-    return input ?? "";
+    return props.input ?? "";
   });
 
   const isMountedRef = useIsMountedRef();
