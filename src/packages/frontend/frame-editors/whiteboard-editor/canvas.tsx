@@ -1594,9 +1594,10 @@ function getMargin(
       // This is just a slightly more usable setting.  This should probably
       // work much more like powerpoint, but that's a lot more subtle to
       // implement.
-      return 100;
+      // It would be nice to make this smaller, but the tools and format bars get cut off.
+      return 500;
     case "whiteboard":
     default:
-      return 2000;
+      return 3000;
   }
 }
