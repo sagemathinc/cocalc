@@ -30,7 +30,10 @@ function init() {
     EMOJIS_LITE.push({ label: `${lite[value]}\t ${value}`, value });
   }
   EMOJIS_LITE.sort(field_cmp("value"));
-  EMOJIS_LITE.push({ label: "(type to search thousands of emojis)", value: "" });
+  EMOJIS_LITE.push({
+    label: "(type to search thousands of emojis)",
+    value: "",
+  });
 }
 
 interface Options {
@@ -95,54 +98,49 @@ export const useEmojis: (Options) => EmojisControl = ({
 
   // we debounce this onChange, since it is VERY expensive and can make typing feel
   // very laggy on a large document!
+  // Also, we only show the emoji dialog on :[something] rather than just :, since
+  // it is incredibly annoying and common to do the following:   something here.  See
+  // what I just did?  For the @ mentions, there's no common use in english of @[space].
   const onChange = useCallback(
     debounce(() => {
       try {
         if (!isMountedRef.current) return;
         const { selection } = editor;
-        if (selection && Range.isCollapsed(selection)) {
-          const { focus } = selection;
-          let current;
-          try {
-            [current] = Editor.node(editor, focus);
-          } catch (_err) {
-            // I think due to debounce, somehow this Editor.node above is
-            // often invalid while user is typing.
-            return;
-          }
-          if (Text.isText(current)) {
-            const charBeforeCursor = current.text[focus.offset - 1];
-            let afterMatch, beforeMatch, beforeRange, search;
-            if (charBeforeCursor == ":") {
-              beforeRange = {
-                focus: editor.selection.focus,
-                anchor: {
-                  path: editor.selection.anchor.path,
-                  offset: editor.selection.anchor.offset - 1,
-                },
-              };
-              search = "";
-              afterMatch = beforeMatch = null;
-            } else {
-              const wordBefore = Editor.before(editor, focus, { unit: "word" });
-              const before = wordBefore && Editor.before(editor, wordBefore);
-              beforeRange = before && Editor.range(editor, before, focus);
-              const beforeText =
-                beforeRange && Editor.string(editor, beforeRange);
-              beforeMatch = beforeText && beforeText.match(/^:(\w*)$/);
-              search = beforeMatch?.[1];
-              const after = Editor.after(editor, focus);
-              const afterRange = Editor.range(editor, focus, after);
-              const afterText = Editor.string(editor, afterRange);
-              afterMatch = afterText.match(/^(\s|$)/);
-            }
-            if (charBeforeCursor == ":" || (beforeMatch && afterMatch)) {
-              search = search.toLowerCase().trim();
-              setSearch(search);
-              setTarget(beforeRange);
-              return;
-            }
-          }
+        if (!selection || !Range.isCollapsed(selection)) return;
+        const { focus } = selection;
+        let current;
+        try {
+          [current] = Editor.node(editor, focus);
+        } catch (_err) {
+          // I think due to debounce, somehow this Editor.node above is
+          // often invalid while user is typing.
+          return;
+        }
+        if (!Text.isText(current)) return;
+
+        const charBeforeCursor = current.text[focus.offset - 1];
+        let afterMatch, beforeMatch, beforeRange, search;
+        if (charBeforeCursor == ":") {
+          return;
+        }
+        const wordBefore = Editor.before(editor, focus, { unit: "word" });
+        const before = wordBefore && Editor.before(editor, wordBefore);
+        beforeRange = before && Editor.range(editor, before, focus);
+        const beforeText = beforeRange && Editor.string(editor, beforeRange);
+        if (beforeText == ":") {
+          return;
+        }
+        beforeMatch = beforeText && beforeText.match(/^:(\w*)$/);
+        search = beforeMatch?.[1];
+        const after = Editor.after(editor, focus);
+        const afterRange = Editor.range(editor, focus, after);
+        const afterText = Editor.string(editor, afterRange);
+        afterMatch = afterText.match(/^(\s|$)/);
+        if (charBeforeCursor == ":" || (beforeMatch && afterMatch)) {
+          search = search.toLowerCase().trim();
+          setSearch(search);
+          setTarget(beforeRange);
+          return;
         }
 
         setTarget(undefined);
