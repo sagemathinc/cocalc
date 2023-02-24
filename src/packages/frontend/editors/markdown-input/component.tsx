@@ -115,7 +115,7 @@ interface Props {
   unregisterEditor?: () => void;
   refresh?: any; // refresh codemirror if this changes
   compact?: boolean;
-  dirtyRef?;
+  dirtyRef?: MutableRefObject<boolean>;
 }
 
 export function MarkdownInput(props: Props) {

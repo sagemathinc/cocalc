@@ -129,7 +129,7 @@ interface Props {
 
   overflowEllipsis?: boolean; // if true, show "..." button popping up all menu entries
 
-  dirtyRef?; // a boolean react ref that gets set to true whenever document changes for any reason (client should explicitly set this back to false).  
+  dirtyRef?: MutableRefObject<boolean>; // a boolean react ref that gets set to true whenever document changes for any reason (client should explicitly set this back to false).
 }
 
 export default function MultiMarkdownInput(props: Props) {
