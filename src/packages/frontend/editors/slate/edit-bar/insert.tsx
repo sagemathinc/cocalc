@@ -13,7 +13,7 @@ import { BUTTON_STYLE } from "./marks-bar";
 const ITEMS: [string, string, IconName | JSX.Element][] = [
   ["link", "Link to a URL...", "link"],
   ["image", "Image...", "image"],
-  ["SpecialChar", "Special character...", <span>Ω</span>],
+  ["SpecialChar", "Special symbol or emoji...", <span>Ω</span>],
   ["format_code", "Block of code (shortcut: ```␣)", "CodeOutlined"],
   ["insertunorderedlist", "Unordered list (shortcut: -␣)", "list"],
   ["insertorderedlist", "Ordered list (shortcut: 1.␣)", "list-ol"],
