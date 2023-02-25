@@ -129,7 +129,11 @@ function Checkout() {
     }
   }
 
-  function renderProjectID(project_id: string): JSX.Element | null {
+  function ProjectID({
+    project_id,
+  }: {
+    project_id: string;
+  }): JSX.Element | null {
     if (!project_id || !isValidUUID(project_id)) return null;
     return (
       <div>
@@ -145,7 +149,7 @@ function Checkout() {
         return (
           <div>
             <DescriptionColumn cost={cost} description={description} />
-            {renderProjectID(project_id)}
+            <ProjectID project_id={project_id} />
             <div>
               <b style={{ fontSize: "11pt" }}>
                 <DisplayCost cost={cost} simple oneLine />
@@ -172,7 +176,7 @@ function Checkout() {
       render: (_, { cost, description, project_id }) => (
         <>
           <DescriptionColumn cost={cost} description={description} />{" "}
-          {renderProjectID(project_id)}
+          <ProjectID project_id={project_id} />
         </>
       ),
     },
@@ -188,10 +192,15 @@ function Checkout() {
     },
   ];
 
-  function placeOrderButton() {
+  function PlaceOrderButton() {
     return (
       <Button
-        disabled={subTotal == 0 || placingOrder || !haveCreditCard || noEmail}
+        disabled={
+          subTotal == 0 ||
+          placingOrder ||
+          !haveCreditCard ||
+          noEmail
+        }
         style={{ marginTop: "7px", marginBottom: "15px" }}
         size="large"
         type="primary"
@@ -206,8 +215,8 @@ function Checkout() {
     );
   }
 
-  function renderOrderError() {
-    if (!orderError) return;
+  function OrderError() {
+    if (!orderError) return null;
     return (
       <Alert
         type="error"
@@ -246,7 +255,7 @@ function Checkout() {
   function nonemptyCart(items) {
     return (
       <>
-        {renderOrderError()}
+        <OrderError />
         <Row>
           <Col md={14} sm={24}>
             <div>
@@ -279,7 +288,7 @@ function Checkout() {
                   minWidth: "300px",
                 }}
               >
-                {placeOrderButton()}
+                <PlaceOrderButton />
                 <Terms />
                 <OrderSummary items={items} taxRate={taxRate} />
                 <span style={{ fontSize: "13pt" }}>
@@ -308,7 +317,9 @@ function Checkout() {
         </h4>
         <div style={{ fontSize: "12pt" }}>
           <Row>
-            <Col sm={12}>{placeOrderButton()}</Col>
+            <Col sm={12}>
+              <PlaceOrderButton />
+            </Col>
             <Col sm={12}>
               <div style={{ fontSize: "15pt" }}>
                 <TotalCost items={cart.result} taxRate={taxRate} />
@@ -322,7 +333,7 @@ function Checkout() {
     );
   }
 
-  function renderRequireEmailAddressDescr(): JSX.Element {
+  function RequireEmailAddressDescr(): JSX.Element {
     if (emailSuccess) {
       return (
         <Paragraph>
@@ -345,7 +356,7 @@ function Checkout() {
     }
   }
 
-  function renderRequireEmailAddressMesg(): JSX.Element {
+  function RequireEmailAddressMesg(): JSX.Element {
     return (
       <>
         <Title level={2}>
@@ -354,33 +365,33 @@ function Checkout() {
         </Title>
         {!emailSuccess && (
           <Paragraph>
-            To place an order, we need to know an email address of yours.
-            Please save it to your profile:
+            To place an order, we need to know an email address of yours. Please
+            save it to your profile:
           </Paragraph>
         )}
       </>
     );
   }
 
-  function renderRequireEmailAddress() {
-    if (!noEmail && !emailSuccess) return;
+  function RequireEmailAddress() {
+    if (!noEmail && !emailSuccess) return null;
 
     return (
       <Alert
         style={{ marginBottom: "30px" }}
         type={emailSuccess ? "success" : "error"}
-        message={renderRequireEmailAddressMesg()}
-        description={renderRequireEmailAddressDescr()}
+        message={<RequireEmailAddressMesg />}
+        description={<RequireEmailAddressDescr />}
       />
     );
   }
 
   return (
     <>
-      {renderRequireEmailAddress()}
+      {<RequireEmailAddress />}
       {items.length == 0 && emptyCart()}
       {items.length > 0 && nonemptyCart(items)}
-      {renderOrderError()}
+      {<OrderError />}
     </>
   );
 }
