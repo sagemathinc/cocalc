@@ -20,7 +20,7 @@ import {
   chown,
   copyPath,
   createUser,
-  deleteUser,
+//   deleteUser,
   ensureConfFilesExists,
   getEnvironment,
   getState,
@@ -138,7 +138,7 @@ class Project extends BaseProject {
     try {
       this.stateChanging = { state: "stopping" };
       await this.saveStateToDatabase(this.stateChanging);
-      await deleteUser(this.project_id);
+    //   await deleteUser(this.project_id);
       await this.wait({
         until: async () => !(await isProjectRunning(this.HOME)),
         maxTime: MAX_STOP_TIME_MS,
