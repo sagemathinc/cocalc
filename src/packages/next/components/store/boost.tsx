@@ -237,9 +237,10 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
       <Form.Item wrapperCol={{ offset: 2, span: 20 }}>
         <div
           style={{
-            border: confirmWarning ? "1px solid gray" : "3px solid red",
+            border: confirmWarning ? "1px solid gray" : "1px solid #ffe58f",
+            background: confirmWarning ? "white" : "#fffbe6",
             borderRadius: "5px",
-            padding: "10px",
+            padding: "8px 12px",
             margin: confirmWarning ? "2px" : 0, // compensate border with from above
           }}
         >
