@@ -4,6 +4,7 @@ export const StorePages = [
   "dedicated",
   "cart",
   "checkout",
+  "create-vouchers",
   "congrats",
 ] as const;
 

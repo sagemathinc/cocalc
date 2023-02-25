@@ -5,8 +5,6 @@
 import { Alert, Layout } from "antd";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
-
-import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
@@ -17,6 +15,7 @@ import useCustomize from "lib/use-customize";
 import Boost from "./boost";
 import Cart from "./cart";
 import Checkout from "./checkout";
+import CreateVouchers from "./create-vouchers";
 import Congrats from "./congrats";
 import DedicatedResource from "./dedicated";
 import Menu from "./menu";
@@ -34,6 +33,7 @@ interface Props {
     | "cart"
     | "checkout"
     | "congrats"
+    | "create-vouchers"
     | undefined
   )[];
 }
@@ -74,11 +74,23 @@ export default function StoreLayout({ page }: Props) {
   if (!profile) {
     return <Loading large center />;
   }
-  const { account_id, is_anonymous } = profile;
+  const { account_id, is_anonymous, is_partner } = profile;
   const noAccount = account_id == null;
 
   // wrapper, only the pages showing the prices will be shown to the general public or anonymous users
-  function requireAccount(StorePage): JSX.Element {
+  // If partner true, also require user to be a partner
+  function requireAccount(StorePage, opts?: { partner: boolean }): JSX.Element {
+    if (opts?.partner && !is_partner) {
+      return (
+        <Alert
+          style={{ margin: "15px auto" }}
+          type="warning"
+          message={
+            "You must be signed in as a CoCalc Partner to use this page."
+          }
+        />
+      );
+    }
     if (noAccount) {
       return (
         <Alert
@@ -112,11 +124,12 @@ export default function StoreLayout({ page }: Props) {
         return requireAccount(Cart);
       case "checkout":
         return requireAccount(Checkout);
+      case "create-vouchers":
+        return requireAccount(CreateVouchers, { partner: true });
       case "congrats":
         return requireAccount(Congrats);
       default:
-        unreachable(main);
-        return { notFound: true };
+        return <Alert type="error" message={`Invalid page ${main}`} />;
     }
   }
 
