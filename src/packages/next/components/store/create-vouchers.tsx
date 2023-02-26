@@ -21,10 +21,14 @@ import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
 import { computeCost } from "./compute-cost";
-import { DisplayCost } from "./site-license-cost";
 import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph } from "components/misc";
-import { DescriptionColumn, RequireEmailAddress } from "./checkout";
+import {
+  fullCost,
+  getColumns,
+  OrderError,
+  RequireEmailAddress,
+} from "./checkout";
 import { COLORS } from "@cocalc/util/theme";
 
 const MAX_AMOUNT = 10000;
@@ -74,12 +78,8 @@ export default function CreateVouchers() {
     try {
       setOrderError("");
       setCreatingVouchers(true);
-
       // Success!
       if (!isMounted.current) return;
-      // If the user is still viewing the page after the purchase happened, we
-      // send them to the congrats page, which shows them what they recently purchased,
-      // with links about how to use it, etc.
       router.push("/store/congrats");
     } catch (err) {
       // The purchase failed.
@@ -90,55 +90,10 @@ export default function CreateVouchers() {
     }
   }
 
-  const columns = [
-    {
-      responsive: ["xs" as "xs"],
-      render: ({ cost, description }) => {
-        return (
-          <div>
-            <DescriptionColumn cost={cost} description={description} />
-            <div>
-              <b style={{ fontSize: "11pt" }}>
-                <DisplayCost cost={cost} simple oneLine noDiscount />
-              </b>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      responsive: ["sm" as "sm"],
-      title: "Product",
-      align: "center" as "center",
-      render: () => (
-        <div style={{ color: "darkblue" }}>
-          <Icon name="key" style={{ fontSize: "24px" }} />
-          <div style={{ fontSize: "10pt" }}>License</div>
-        </div>
-      ),
-    },
-    {
-      responsive: ["sm" as "sm"],
-      width: "60%",
-      render: (_, { cost, description }) => (
-        <>
-          <DescriptionColumn cost={cost} description={description} />{" "}
-        </>
-      ),
-    },
-    {
-      responsive: ["sm" as "sm"],
-      title: "Price",
-      align: "right" as "right",
-      render: (_, { cost }) => (
-        <b style={{ fontSize: "11pt" }}>
-          <DisplayCost cost={cost} simple noDiscount />
-        </b>
-      ),
-    },
-  ];
+  const columns = getColumns({ noDiscount: true });
 
   function CreateVouchersButton() {
+    const v = plural(numVouchers, "Voucher");
     return (
       <Button
         disabled={
@@ -153,26 +108,11 @@ export default function CreateVouchers() {
         onClick={createVouchers}
       >
         {placingOrder ? (
-          <Loading delay={0}>Create Vouchers...</Loading>
+          <Loading delay={0}>Create {v}...</Loading>
         ) : (
-          "Create Vouchers"
+          <>Create {v}</>
         )}
       </Button>
-    );
-  }
-
-  function OrderError() {
-    if (!orderError) return null;
-    return (
-      <Alert
-        type="error"
-        message={
-          <>
-            <b>Error placing order:</b> {orderError}
-          </>
-        }
-        style={{ margin: "30px 0" }}
-      />
     );
   }
 
@@ -195,9 +135,11 @@ export default function CreateVouchers() {
         </h3>
         <br />
         <br />
-        You must have something in your cart to create vouchers. Shop for{" "}
-        <A href="/store/site-license">upgrades</A>, a{" "}
-        <A href="/store/boost">license boost</A>, or a{" "}
+        You must have at least one item in <A href="/store/cart">
+          your cart
+        </A>{" "}
+        to create vouchers. Shop for <A href="/store/site-license">upgrades</A>,
+        a <A href="/store/boost">license boost</A>, or a{" "}
         <A href="/dedicated">dedicated VM or disk</A>.
       </>
     );
@@ -206,13 +148,13 @@ export default function CreateVouchers() {
   function nonemptyCart(items) {
     return (
       <>
-        <OrderError />
+        <OrderError orderError={orderError} />
         <Row>
           <Col md={14} sm={24}>
             <div>
               <h3 style={{ fontSize: "16pt" }}>
                 <Icon name={"credit-card"} style={{ marginRight: "5px" }} />
-                Create Vouchers (<A href="/store/cart">{items.length} items</A>)
+                Create Vouchers
               </h3>
               As a member of the CoCalc partner program, you are allowed to
               create vouchers. These are codes that you can provide to other
@@ -280,7 +222,12 @@ export default function CreateVouchers() {
         </Row>
 
         <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
-          3. Each Voucher Provides the Following ({items.length})
+          3.{" "}
+          {numVouchers == 1
+            ? "Your Voucher"
+            : `Each of Your ${numVouchers} Vouchers`}{" "}
+          Provides the Following {items.length}{" "}
+          {plural(items.length, "License")}
         </h4>
         <div style={{ border: "1px solid #eee" }}>
           <Table
@@ -292,7 +239,7 @@ export default function CreateVouchers() {
           />
         </div>
         <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
-          4. Create Your Vouchers
+          4. Create Your {plural(numVouchers, "Voucher")}
         </h4>
         <div style={{ fontSize: "12pt" }}>
           <Row>
@@ -321,19 +268,9 @@ export default function CreateVouchers() {
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
       {items.length == 0 && emptyCart()}
       {items.length > 0 && nonemptyCart(items)}
-      <OrderError />
+      <OrderError orderError={orderError} />
     </>
   );
-}
-
-function fullCost(items) {
-  let full_cost = 0;
-  for (const { cost, checked } of items) {
-    if (checked) {
-      full_cost += cost.cost;
-    }
-  }
-  return full_cost;
 }
 
 function TotalCost({ items, taxRate, numVouchers }) {

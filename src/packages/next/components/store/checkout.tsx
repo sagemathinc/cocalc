@@ -118,68 +118,7 @@ function Checkout() {
     }
   }
 
-  function ProjectID({
-    project_id,
-  }: {
-    project_id: string;
-  }): JSX.Element | null {
-    if (!project_id || !isValidUUID(project_id)) return null;
-    return (
-      <div>
-        For project: <code>{project_id}</code>
-      </div>
-    );
-  }
-
-  const columns = [
-    {
-      responsive: ["xs" as "xs"],
-      render: ({ cost, description, project_id }) => {
-        return (
-          <div>
-            <DescriptionColumn cost={cost} description={description} />
-            <ProjectID project_id={project_id} />
-            <div>
-              <b style={{ fontSize: "11pt" }}>
-                <DisplayCost cost={cost} simple oneLine />
-              </b>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      responsive: ["sm" as "sm"],
-      title: "Product",
-      align: "center" as "center",
-      render: () => (
-        <div style={{ color: "darkblue" }}>
-          <Icon name="key" style={{ fontSize: "24px" }} />
-          <div style={{ fontSize: "10pt" }}>License</div>
-        </div>
-      ),
-    },
-    {
-      responsive: ["sm" as "sm"],
-      width: "60%",
-      render: (_, { cost, description, project_id }) => (
-        <>
-          <DescriptionColumn cost={cost} description={description} />{" "}
-          <ProjectID project_id={project_id} />
-        </>
-      ),
-    },
-    {
-      responsive: ["sm" as "sm"],
-      title: "Price",
-      align: "right" as "right",
-      render: (_, { cost }) => (
-        <b style={{ fontSize: "11pt" }}>
-          <DisplayCost cost={cost} simple />
-        </b>
-      ),
-    },
-  ];
+  const columns = getColumns();
 
   function PlaceOrderButton() {
     return (
@@ -204,21 +143,6 @@ function Checkout() {
     );
   }
 
-  function OrderError() {
-    if (!orderError) return null;
-    return (
-      <Alert
-        type="error"
-        message={
-          <>
-            <b>Error placing order:</b> {orderError}
-          </>
-        }
-        style={{ margin: "30px 0" }}
-      />
-    );
-  }
-
   function emptyCart() {
     return (
       <>
@@ -238,8 +162,10 @@ function Checkout() {
         </h3>
         <br />
         <br />
-        You must have something in your cart to checkout. Shop for{" "}
-        <A href="/store/site-license">upgrades</A>, a{" "}
+        You must have at least one item in <A href="/store/cart">
+          your cart
+        </A>{" "}
+        to checkout. Shop for <A href="/store/site-license">upgrades</A>, a{" "}
         <A href="/store/boost">license boost</A>, or a{" "}
         <A href="/dedicated">dedicated VM or disk</A>.
       </>
@@ -249,7 +175,7 @@ function Checkout() {
   function nonemptyCart(items) {
     return (
       <>
-        <OrderError />
+        <OrderError orderError={orderError} />
         <Row>
           <Col md={14} sm={24}>
             <div>
@@ -332,12 +258,12 @@ function Checkout() {
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
       {items.length == 0 && emptyCart()}
       {items.length > 0 && nonemptyCart(items)}
-      <OrderError />
+      <OrderError orderError={orderError} />
     </>
   );
 }
 
-function fullCost(items) {
+export function fullCost(items) {
   let full_cost = 0;
   for (const { cost, checked } of items) {
     if (checked) {
@@ -597,5 +523,86 @@ export function RequireEmailAddress({ profile, reloadProfile }) {
         />
       }
     />
+  );
+}
+
+export function OrderError({ orderError }) {
+  if (!orderError) return null;
+  return (
+    <Alert
+      type="error"
+      message={
+        <>
+          <b>Error placing order:</b> {orderError}
+        </>
+      }
+      style={{ margin: "30px 0" }}
+    />
+  );
+}
+
+export function getColumns({ noDiscount }: { noDiscount?: boolean } = {}) {
+  return [
+    {
+      responsive: ["xs" as "xs"],
+      render: ({ cost, description, project_id }) => {
+        return (
+          <div>
+            <DescriptionColumn cost={cost} description={description} />
+            <ProjectID project_id={project_id} />
+            <div>
+              <b style={{ fontSize: "11pt" }}>
+                <DisplayCost
+                  cost={cost}
+                  simple
+                  oneLine
+                  noDiscount={noDiscount}
+                />
+              </b>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      responsive: ["sm" as "sm"],
+      title: "Product",
+      align: "center" as "center",
+      render: () => (
+        <div style={{ color: "darkblue" }}>
+          <Icon name="key" style={{ fontSize: "24px" }} />
+          <div style={{ fontSize: "10pt" }}>License</div>
+        </div>
+      ),
+    },
+    {
+      responsive: ["sm" as "sm"],
+      width: "60%",
+      render: (_, { cost, description, project_id }) => (
+        <>
+          <DescriptionColumn cost={cost} description={description} />{" "}
+          <ProjectID project_id={project_id} />
+        </>
+      ),
+    },
+    {
+      responsive: ["sm" as "sm"],
+      title: "Price",
+      align: "right" as "right",
+      render: (_, { cost }) => (
+        <b style={{ fontSize: "11pt" }}>
+          <DisplayCost cost={cost} simple noDiscount={noDiscount} />
+        </b>
+      ),
+    },
+  ];
+}
+
+function ProjectID({ project_id }: { project_id: string }): JSX.Element | null {
+  if (!project_id || !isValidUUID(project_id)) return null;
+  return (
+    <div>
+      For project: <code>{project_id}</code>
+    </div>
   );
 }
