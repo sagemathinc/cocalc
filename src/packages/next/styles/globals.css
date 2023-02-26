@@ -58,3 +58,7 @@ h6 {
     display: none;
   }
 }
+
+body {
+  line-height: 1.5714285714285714;
+}
