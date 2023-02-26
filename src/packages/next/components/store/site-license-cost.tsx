@@ -53,7 +53,10 @@ export function DisplayCost(props: Props) {
   const discount_pct = percent_discount(cost);
   if (simple) {
     const discount = discount_pct > 0 && (
-      <>includes {discount_pct}% self-service discount</>
+      <>
+        Price includes {discount_pct}% self-service discount, only if
+        you buy now.
+      </>
     );
     return (
       <>
@@ -82,7 +85,7 @@ export function DisplayCost(props: Props) {
           {money(cost.discounted_cost)}
           {cost.input.subscription != "no" ? " " + cost.input.subscription : ""}
         </b>
-        , if you purchase here ({discount_pct}% self-service discount).
+        , if you purchase right now ({discount_pct}% self-service discount).
       </>
     );
   } else {

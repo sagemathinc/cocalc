@@ -11,7 +11,7 @@ import { Alert, Button, Col, Row, Table } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
+import { isValidUUID, plural } from "@cocalc/util/misc";
 import PaymentMethods from "components/billing/payment-methods";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -21,39 +21,28 @@ import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
 import { computeCost } from "./compute-cost";
-import { describeItem, DisplayCost } from "./site-license-cost";
+import { DisplayCost } from "./site-license-cost";
 import { useProfileWithReload } from "lib/hooks/profile";
-import { Paragraph, Title, Text } from "components/misc";
+import { Paragraph } from "components/misc";
+import { DescriptionColumn, RequireEmailAddress } from "./checkout";
 import { COLORS } from "@cocalc/util/theme";
-import { ChangeEmailAddress } from "components/account/config/account/email";
 
-export default function Voucher() {
+export default function CreateVouchers() {
   const router = useRouter();
   const isMounted = useIsMounted();
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
-  const [placingOrder, setPlacingOrder] = useState<boolean>(false);
+  const [placingOrder, setCreatingVouchers] = useState<boolean>(false);
   const [haveCreditCard, setHaveCreditCard] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [emailSuccess, setEmailSuccess] = useState<boolean>(false);
-
-  const noEmail = useMemo(
-    () => profile?.email_address == null,
-    [profile?.email_address]
-  );
 
   // most likely, user will do the purchase and then see the congratulations page
   useEffect(() => {
     router.prefetch("/store/congrats");
   }, []);
-
-  function onSuccess() {
-    reloadProfile();
-    setEmailSuccess(true);
-  }
 
   const cart = useAPI("/shopping/cart/get");
 
@@ -78,10 +67,10 @@ export default function Voucher() {
     return <Loading center />;
   }
 
-  async function placeOrder() {
+  async function createVouchers() {
     try {
       setOrderError("");
-      setPlacingOrder(true);
+      setCreatingVouchers(true);
 
       // Success!
       if (!isMounted.current) return;
@@ -94,7 +83,7 @@ export default function Voucher() {
       setOrderError(err.message);
     } finally {
       if (!isMounted.current) return;
-      setPlacingOrder(false);
+      setCreatingVouchers(false);
     }
   }
 
@@ -161,19 +150,24 @@ export default function Voucher() {
     },
   ];
 
-  function PlaceOrderButton() {
+  function CreateVouchersButton() {
     return (
       <Button
-        disabled={subTotal == 0 || placingOrder || !haveCreditCard || noEmail}
+        disabled={
+          subTotal == 0 ||
+          placingOrder ||
+          !haveCreditCard ||
+          !profile?.email_address
+        }
         style={{ marginTop: "7px", marginBottom: "15px" }}
         size="large"
         type="primary"
-        onClick={placeOrder}
+        onClick={createVouchers}
       >
         {placingOrder ? (
-          <Loading delay={0}>Placing Order...</Loading>
+          <Loading delay={0}>Create Vouchers...</Loading>
         ) : (
-          "Place Your Order"
+          "Create Vouchers"
         )}
       </Button>
     );
@@ -211,7 +205,12 @@ export default function Voucher() {
             </>
           )}
         </h3>
-        <A href="/store/site-license">Buy a License</A>
+        <br />
+        <br />
+        You must have something in your cart to create vouchers. Shop for{" "}
+        <A href="/store/site-license">upgrades</A>, a{" "}
+        <A href="/store/boost">license boost</A>, or a{" "}
+        <A href="/dedicated">dedicated VM or disk</A>.
       </>
     );
   }
@@ -224,16 +223,17 @@ export default function Voucher() {
           <Col md={14} sm={24}>
             <div>
               <h3 style={{ fontSize: "16pt" }}>
-                <Icon name={"list"} style={{ marginRight: "5px" }} />
-                Checkout (<A href="/store/cart">{items.length} items</A>)
+                <Icon name={"credit-card"} style={{ marginRight: "5px" }} />
+                Create Vouchers (<A href="/store/cart">{items.length} items</A>)
               </h3>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                1. Payment Method
+                1. Ensure a Payment Method is on File
               </h4>
-              <p>
-                The default payment method shown below will be used for this
-                purchase.
-              </p>
+              <Paragraph>
+                The default payment method shown below will be used to pay for
+                the redeemed vouchers, unless you change the payment method
+                before you are invoiced.
+              </Paragraph>
               <PaymentMethods
                 startMinimized
                 setTaxRate={setTaxRate}
@@ -252,14 +252,13 @@ export default function Voucher() {
                   minWidth: "300px",
                 }}
               >
-                <PlaceOrderButton />
+                <CreateVouchersButton />
                 <Terms />
-                <OrderSummary items={items} taxRate={taxRate} />
+                <VoucherSummary items={items} taxRate={taxRate} />
                 <span style={{ fontSize: "13pt" }}>
                   <TotalCost items={items} taxRate={taxRate} />
                 </span>
               </div>
-              <GetAQuote items={items} />
             </div>
           </Col>
         </Row>
@@ -282,7 +281,7 @@ export default function Voucher() {
         <div style={{ fontSize: "12pt" }}>
           <Row>
             <Col sm={12}>
-              <PlaceOrderButton />
+              <CreateVouchersButton />
             </Col>
             <Col sm={12}>
               <div style={{ fontSize: "15pt" }}>
@@ -297,65 +296,12 @@ export default function Voucher() {
     );
   }
 
-  function RequireEmailAddressDescr(): JSX.Element {
-    if (emailSuccess) {
-      return (
-        <Paragraph>
-          Your email address is now:{" "}
-          <Text code>{profile?.email_address ?? ""}</Text>.
-        </Paragraph>
-      );
-    } else {
-      return (
-        <Paragraph
-          style={{
-            backgroundColor: "white",
-            padding: "20px",
-            borderRadius: "10px",
-          }}
-        >
-          <ChangeEmailAddress embedded={true} onSuccess={onSuccess} />
-        </Paragraph>
-      );
-    }
-  }
-
-  function RequireEmailAddressMesg(): JSX.Element {
-    return (
-      <>
-        <Title level={2}>
-          <Icon name="envelope" />{" "}
-          {!emailSuccess ? "Missing Email Address" : "Email Address Saved"}
-        </Title>
-        {!emailSuccess && (
-          <Paragraph>
-            To place an order, we need to know an email address of yours. Please
-            save it to your profile:
-          </Paragraph>
-        )}
-      </>
-    );
-  }
-
-  function RequireEmailAddress() {
-    if (!noEmail && !emailSuccess) return null;
-
-    return (
-      <Alert
-        style={{ marginBottom: "30px" }}
-        type={emailSuccess ? "success" : "error"}
-        message={<RequireEmailAddressMesg />}
-        description={<RequireEmailAddressDescr />}
-      />
-    );
-  }
-
   return (
     <>
-      {<RequireEmailAddress />}
+      <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
       {items.length == 0 && emptyCart()}
       {items.length > 0 && nonemptyCart(items)}
-      {<OrderError />}
+      <OrderError />
     </>
   );
 }
@@ -370,18 +316,8 @@ function fullCost(items) {
   return full_cost;
 }
 
-function discountedCost(items) {
-  let discounted_cost = 0;
-  for (const { cost, checked } of items) {
-    if (checked) {
-      discounted_cost += cost.discounted_cost;
-    }
-  }
-  return discounted_cost;
-}
-
 function TotalCost({ items, taxRate }) {
-  const cost = discountedCost(items) * (1 + taxRate);
+  const cost = fullCost(items) * (1 + taxRate);
   return (
     <>
       Total: <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
@@ -389,158 +325,35 @@ function TotalCost({ items, taxRate }) {
   );
 }
 
-function OrderSummary({ items, taxRate }) {
-  const cost = discountedCost(items);
+function Terms() {
+  return (
+    <Paragraph style={{ color: COLORS.GRAY, fontSize: "10pt" }}>
+      By creating vouchers, you agree to{" "}
+      <A href="/policies/terms" external>
+        our terms of service.
+      </A>
+    </Paragraph>
+  );
+}
+
+function VoucherSummary({ items, taxRate }) {
   const full = fullCost(items);
-  const tax = cost * taxRate;
+  const tax = full * taxRate;
   return (
     <Paragraph style={{ textAlign: "left" }}>
-      <b style={{ fontSize: "14pt" }}>Order Summary</b>
+      <b style={{ fontSize: "14pt" }}>Summary</b>
+      <Paragraph style={{ color: "#666" }}>
+        You will be invoiced for up to {money(full + tax, true)}, depending on
+        how many vouchers are redeeemed.
+      </Paragraph>
       <div>
-        Items ({items.length}):{" "}
+        7 Vouchers (each for {items.length} {plural(items.length, "license")}):{" "}
         <span style={{ float: "right" }}>{money(full, true)}</span>
       </div>
-      {full - cost > 0 && (
-        <div>
-          Self-service discount (25%):{" "}
-          <span style={{ float: "right" }}>-{money(full - cost, true)}</span>
-        </div>
-      )}
       <div>
         Estimated tax:{" "}
         <span style={{ float: "right" }}>{money(tax, true)}</span>
       </div>
-    </Paragraph>
-  );
-}
-
-function Terms() {
-  return (
-    <Paragraph style={{ color: COLORS.GRAY, fontSize: "10pt" }}>
-      By placing your order, you agree to{" "}
-      <A href="/policies/terms" external>
-        our terms of service
-      </A>{" "}
-      regarding refunds and subscriptions.
-    </Paragraph>
-  );
-}
-
-function DescriptionColumn({ cost, description }) {
-  const { input } = cost;
-  return (
-    <>
-      <div style={{ fontSize: "12pt" }}>
-        {description.title && (
-          <div>
-            <b>{description.title}</b>
-          </div>
-        )}
-        {description.description && <div>{description.description}</div>}
-        {describeItem({ info: input })}
-      </div>
-    </>
-  );
-}
-
-const MIN_AMOUNT = 100;
-
-function GetAQuote({ items }) {
-  const router = useRouter();
-  const [more, setMore] = useState<boolean>(false);
-  let isSub;
-  for (const item of items) {
-    if (item.description.period != "range") {
-      isSub = true;
-      break;
-    }
-  }
-
-  function createSupportRequest() {
-    const x: any[] = [];
-    for (const item of items) {
-      x.push({
-        cost: money(item.cost.cost),
-        ...copyWithout(item, [
-          "account_id",
-          "added",
-          "removed",
-          "purchased",
-          "checked",
-          "cost",
-        ]),
-      });
-    }
-    const body = `Hello,\n\nI would like to request a quote.  I filled out the online form with the\ndetails listed below:\n\n\`\`\`\n${JSON.stringify(
-      x,
-      undefined,
-      2
-    )}\n\`\`\``;
-    router.push({
-      pathname: "/support/new",
-      query: {
-        hideExtra: true,
-        subject: "Request for a quote",
-        body,
-        type: "question",
-      },
-    });
-  }
-
-  return (
-    <Paragraph style={{ paddingTop: "15px" }}>
-      <A onClick={() => setMore(!more)}>
-        Need to obtain a quote, invoice, modified terms, a purchase order, to
-        use PayPal or pay via wire transfer, etc.?
-      </A>
-      {more && (
-        <Paragraph>
-          {fullCost(items) <= MIN_AMOUNT || isSub ? (
-            <Alert
-              showIcon
-              style={{
-                margin: "15px 0",
-                fontSize: "12pt",
-                borderRadius: "5px",
-              }}
-              type="warning"
-              message={
-                <>
-                  Customized payment is available only for{" "}
-                  <b>non-subscription purchases over ${MIN_AMOUNT}</b>. Make
-                  sure your cost before tax and discounts is over ${MIN_AMOUNT}{" "}
-                  and <A href="/store/cart">convert</A> any subscriptions in
-                  your cart to explicit date ranges, then try again. If this is
-                  confusing, <A href="/support/new">make a support request</A>.
-                </>
-              }
-            />
-          ) : (
-            <Alert
-              showIcon
-              style={{
-                margin: "15px 0",
-                fontSize: "12pt",
-                borderRadius: "5px",
-              }}
-              type="info"
-              message={
-                <>
-                  Click the button below to copy your shopping cart contents to
-                  a support request, and we will take if from there. Note that
-                  the 25% self-service discount is <b>only available</b> when
-                  you purchase from this page.
-                  <div style={{ textAlign: "center", marginTop: "5px" }}>
-                    <Button onClick={createSupportRequest}>
-                      <Icon name="medkit" /> Copy cart to support request
-                    </Button>
-                  </div>
-                </>
-              }
-            />
-          )}
-        </Paragraph>
-      )}
     </Paragraph>
   );
 }

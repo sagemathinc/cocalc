@@ -51,30 +51,19 @@ function Checkout() {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const router = useRouter();
   const isMounted = useIsMounted();
-  const { profile, reload: reloadProfile } = useProfileWithReload({
-    noCache: true,
-  });
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
   const [haveCreditCard, setHaveCreditCard] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [emailSuccess, setEmailSuccess] = useState<boolean>(false);
-
-  const noEmail = useMemo(
-    () => profile?.email_address == null,
-    [profile?.email_address]
-  );
+  const { profile, reload: reloadProfile } = useProfileWithReload({
+    noCache: true,
+  });
 
   // most likely, user will do the purchase and then see the congratulations page
   useEffect(() => {
     router.prefetch("/store/congrats");
   }, []);
-
-  function onSuccess() {
-    reloadProfile();
-    setEmailSuccess(true);
-  }
 
   const cart = useAPI("/shopping/cart/get");
 
@@ -199,7 +188,7 @@ function Checkout() {
           subTotal == 0 ||
           placingOrder ||
           !haveCreditCard ||
-          noEmail
+          !profile?.email_address
         }
         style={{ marginTop: "7px", marginBottom: "15px" }}
         size="large"
@@ -247,7 +236,12 @@ function Checkout() {
             </>
           )}
         </h3>
-        <A href="/store/site-license">Buy a License</A>
+        <br />
+        <br />
+        You must have something in your cart to checkout. Shop for{" "}
+        <A href="/store/site-license">upgrades</A>, a{" "}
+        <A href="/store/boost">license boost</A>, or a{" "}
+        <A href="/dedicated">dedicated VM or disk</A>.
       </>
     );
   }
@@ -333,65 +327,12 @@ function Checkout() {
     );
   }
 
-  function RequireEmailAddressDescr(): JSX.Element {
-    if (emailSuccess) {
-      return (
-        <Paragraph>
-          Your email address is now:{" "}
-          <Text code>{profile?.email_address ?? ""}</Text>.
-        </Paragraph>
-      );
-    } else {
-      return (
-        <Paragraph
-          style={{
-            backgroundColor: "white",
-            padding: "20px",
-            borderRadius: "10px",
-          }}
-        >
-          <ChangeEmailAddress embedded={true} onSuccess={onSuccess} />
-        </Paragraph>
-      );
-    }
-  }
-
-  function RequireEmailAddressMesg(): JSX.Element {
-    return (
-      <>
-        <Title level={2}>
-          <Icon name="envelope" />{" "}
-          {!emailSuccess ? "Missing Email Address" : "Email Address Saved"}
-        </Title>
-        {!emailSuccess && (
-          <Paragraph>
-            To place an order, we need to know an email address of yours. Please
-            save it to your profile:
-          </Paragraph>
-        )}
-      </>
-    );
-  }
-
-  function RequireEmailAddress() {
-    if (!noEmail && !emailSuccess) return null;
-
-    return (
-      <Alert
-        style={{ marginBottom: "30px" }}
-        type={emailSuccess ? "success" : "error"}
-        message={<RequireEmailAddressMesg />}
-        description={<RequireEmailAddressDescr />}
-      />
-    );
-  }
-
   return (
     <>
-      {<RequireEmailAddress />}
+      <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
       {items.length == 0 && emptyCart()}
       {items.length > 0 && nonemptyCart(items)}
-      {<OrderError />}
+      <OrderError />
     </>
   );
 }
@@ -462,7 +403,7 @@ function Terms() {
   );
 }
 
-function DescriptionColumn({ cost, description }) {
+export function DescriptionColumn({ cost, description }) {
   const { input } = cost;
   return (
     <>
@@ -578,5 +519,83 @@ function GetAQuote({ items }) {
         </Paragraph>
       )}
     </Paragraph>
+  );
+}
+
+function RequireEmailAddressDescr({
+  emailSuccess,
+  onSuccess,
+  profile,
+}): JSX.Element {
+  if (emailSuccess) {
+    return (
+      <Paragraph>
+        Your email address is now:{" "}
+        <Text code>{profile?.email_address ?? ""}</Text>.
+      </Paragraph>
+    );
+  } else {
+    return (
+      <Paragraph
+        style={{
+          backgroundColor: "white",
+          padding: "20px",
+          borderRadius: "10px",
+        }}
+      >
+        <ChangeEmailAddress embedded={true} onSuccess={onSuccess} />
+      </Paragraph>
+    );
+  }
+}
+
+function RequireEmailAddressMesg({ emailSuccess }): JSX.Element {
+  return (
+    <>
+      <Title level={2}>
+        <Icon name="envelope" />{" "}
+        {!emailSuccess ? "Missing Email Address" : "Email Address Saved"}
+      </Title>
+      {!emailSuccess && (
+        <Paragraph>
+          To place an order, we need to know an email address of yours. Please
+          save it to your profile:
+        </Paragraph>
+      )}
+    </>
+  );
+}
+
+export function RequireEmailAddress({ profile, reloadProfile }) {
+  const [emailSuccess, setEmailSuccess] = useState<boolean>(false);
+
+  if (profile == null) {
+    // profile not yet loaded.
+    // there was a bug where it would flash the alert below while
+    // loading the user's profile, which looks really dumb.
+    return null;
+  }
+  if (profile?.email_address != null && !emailSuccess) {
+    // address is defined, and they didn't just set it (so we don't
+    // have to show a message confirming that), then nothing to do.
+    return null;
+  }
+
+  return (
+    <Alert
+      style={{ marginBottom: "30px" }}
+      type={emailSuccess ? "success" : "error"}
+      message={<RequireEmailAddressMesg emailSuccess={emailSuccess} />}
+      description={
+        <RequireEmailAddressDescr
+          emailSuccess={emailSuccess}
+          profile={profile}
+          onSuccess={() => {
+            reloadProfile();
+            setEmailSuccess(true);
+          }}
+        />
+      }
+    />
   );
 }
