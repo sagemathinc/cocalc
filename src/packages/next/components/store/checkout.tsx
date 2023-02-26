@@ -155,7 +155,7 @@ function Checkout() {
       render: () => (
         <div style={{ color: "darkblue" }}>
           <Icon name="key" style={{ fontSize: "24px" }} />
-          <div style={{ fontSize: "10pt" }}>Site License</div>
+          <div style={{ fontSize: "10pt" }}>License</div>
         </div>
       ),
     },

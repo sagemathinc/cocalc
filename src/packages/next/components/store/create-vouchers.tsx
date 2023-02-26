@@ -7,11 +7,11 @@
 Voucher -- create vouchers from the contents of your shopping cart.
 */
 
-import { Alert, Button, Col, Row, Table } from "antd";
+import { Alert, Button, Col, InputNumber, Row, Table } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { isValidUUID, plural } from "@cocalc/util/misc";
+import { plural } from "@cocalc/util/misc";
 import PaymentMethods from "components/billing/payment-methods";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -27,6 +27,8 @@ import { Paragraph } from "components/misc";
 import { DescriptionColumn, RequireEmailAddress } from "./checkout";
 import { COLORS } from "@cocalc/util/theme";
 
+const MAX_AMOUNT = 10000;
+
 export default function CreateVouchers() {
   const router = useRouter();
   const isMounted = useIsMounted();
@@ -38,6 +40,7 @@ export default function CreateVouchers() {
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
+  const [numVouchers, setNumVouchers] = useState<number>(1);
 
   // most likely, user will do the purchase and then see the congratulations page
   useEffect(() => {
@@ -53,7 +56,7 @@ export default function CreateVouchers() {
     for (const item of cart.result) {
       if (!item.checked) continue;
       item.cost = computeCost(item.description);
-      subTotal += item.cost.discounted_cost;
+      subTotal += item.cost.cost;
       x.push(item);
     }
     setSubTotal(subTotal);
@@ -87,30 +90,16 @@ export default function CreateVouchers() {
     }
   }
 
-  function ProjectID({
-    project_id,
-  }: {
-    project_id: string;
-  }): JSX.Element | null {
-    if (!project_id || !isValidUUID(project_id)) return null;
-    return (
-      <div>
-        For project: <code>{project_id}</code>
-      </div>
-    );
-  }
-
   const columns = [
     {
       responsive: ["xs" as "xs"],
-      render: ({ cost, description, project_id }) => {
+      render: ({ cost, description }) => {
         return (
           <div>
             <DescriptionColumn cost={cost} description={description} />
-            <ProjectID project_id={project_id} />
             <div>
               <b style={{ fontSize: "11pt" }}>
-                <DisplayCost cost={cost} simple oneLine />
+                <DisplayCost cost={cost} simple oneLine noDiscount />
               </b>
             </div>
           </div>
@@ -124,17 +113,16 @@ export default function CreateVouchers() {
       render: () => (
         <div style={{ color: "darkblue" }}>
           <Icon name="key" style={{ fontSize: "24px" }} />
-          <div style={{ fontSize: "10pt" }}>Site License</div>
+          <div style={{ fontSize: "10pt" }}>License</div>
         </div>
       ),
     },
     {
       responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { cost, description, project_id }) => (
+      render: (_, { cost, description }) => (
         <>
           <DescriptionColumn cost={cost} description={description} />{" "}
-          <ProjectID project_id={project_id} />
         </>
       ),
     },
@@ -144,7 +132,7 @@ export default function CreateVouchers() {
       align: "right" as "right",
       render: (_, { cost }) => (
         <b style={{ fontSize: "11pt" }}>
-          <DisplayCost cost={cost} simple />
+          <DisplayCost cost={cost} simple noDiscount />
         </b>
       ),
     },
@@ -226,8 +214,28 @@ export default function CreateVouchers() {
                 <Icon name={"credit-card"} style={{ marginRight: "5px" }} />
                 Create Vouchers (<A href="/store/cart">{items.length} items</A>)
               </h3>
+              As a member of the CoCalc partner program, you are allowed to
+              create vouchers. These are codes that you can provide to other
+              people, who can then redeem them (exactly once) for the{" "}
+              {items.length} {plural(items.length, "license")} listed in Section
+              3 below.
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                1. Ensure a Payment Method is on File
+                1. How Many Vouchers?
+              </h4>
+              <Paragraph>
+                Input the number of vouchers you would like to create.
+                <div style={{ textAlign: "center", marginTop: "15px" }}>
+                  <InputNumber
+                    size="large"
+                    min={1}
+                    max={Math.ceil(MAX_AMOUNT / (subTotal ?? 1))}
+                    value={numVouchers}
+                    onChange={(value) => setNumVouchers(value ?? 1)}
+                  />
+                </div>
+              </Paragraph>
+              <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+                2. Ensure a Payment Method is on File
               </h4>
               <Paragraph>
                 The default payment method shown below will be used to pay for
@@ -254,9 +262,17 @@ export default function CreateVouchers() {
               >
                 <CreateVouchersButton />
                 <Terms />
-                <VoucherSummary items={items} taxRate={taxRate} />
+                <VoucherSummary
+                  items={items}
+                  taxRate={taxRate}
+                  numVouchers={numVouchers}
+                />
                 <span style={{ fontSize: "13pt" }}>
-                  <TotalCost items={items} taxRate={taxRate} />
+                  <TotalCost
+                    items={items}
+                    taxRate={taxRate}
+                    numVouchers={numVouchers}
+                  />
                 </span>
               </div>
             </div>
@@ -264,7 +280,7 @@ export default function CreateVouchers() {
         </Row>
 
         <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
-          2. Review Items ({items.length})
+          3. Each Voucher Provides the Following ({items.length})
         </h4>
         <div style={{ border: "1px solid #eee" }}>
           <Table
@@ -276,7 +292,7 @@ export default function CreateVouchers() {
           />
         </div>
         <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
-          3. Place Your Order
+          4. Create Your Vouchers
         </h4>
         <div style={{ fontSize: "12pt" }}>
           <Row>
@@ -285,7 +301,11 @@ export default function CreateVouchers() {
             </Col>
             <Col sm={12}>
               <div style={{ fontSize: "15pt" }}>
-                <TotalCost items={cart.result} taxRate={taxRate} />
+                <TotalCost
+                  items={cart.result}
+                  taxRate={taxRate}
+                  numVouchers={numVouchers}
+                />
                 <br />
                 <Terms />
               </div>
@@ -316,11 +336,12 @@ function fullCost(items) {
   return full_cost;
 }
 
-function TotalCost({ items, taxRate }) {
-  const cost = fullCost(items) * (1 + taxRate);
+function TotalCost({ items, taxRate, numVouchers }) {
+  const cost = numVouchers * fullCost(items) * (1 + taxRate);
   return (
     <>
-      Total: <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
+      Maximum Amount:{" "}
+      <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
     </>
   );
 }
@@ -330,24 +351,28 @@ function Terms() {
     <Paragraph style={{ color: COLORS.GRAY, fontSize: "10pt" }}>
       By creating vouchers, you agree to{" "}
       <A href="/policies/terms" external>
-        our terms of service.
-      </A>
+        our terms of service,
+      </A>{" "}
+      and agree to pay for any vouchers that are redeemed, up to the maxium
+      amount listed here.
     </Paragraph>
   );
 }
 
-function VoucherSummary({ items, taxRate }) {
-  const full = fullCost(items);
+function VoucherSummary({ items, taxRate, numVouchers }) {
+  const full = numVouchers * fullCost(items);
   const tax = full * taxRate;
   return (
     <Paragraph style={{ textAlign: "left" }}>
       <b style={{ fontSize: "14pt" }}>Summary</b>
       <Paragraph style={{ color: "#666" }}>
         You will be invoiced for up to {money(full + tax, true)}, depending on
-        how many vouchers are redeeemed.
+        how many vouchers are redeeemed. If no vouchers are redeemed you will
+        not pay anything.
       </Paragraph>
       <div>
-        7 Vouchers (each for {items.length} {plural(items.length, "license")}):{" "}
+        {numVouchers} Vouchers (each for {items.length}{" "}
+        {plural(items.length, "license")}):{" "}
         <span style={{ float: "right" }}>{money(full, true)}</span>
       </div>
       <div>

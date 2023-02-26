@@ -37,16 +37,17 @@ interface Props {
   oneLine?: boolean;
   simpleShowPeriod?: boolean;
   discountTooltip?: boolean;
+  noDiscount?: boolean;
 }
 
-export function DisplayCost(props: Props) {
-  const {
-    cost,
-    simple = false,
-    oneLine = false,
-    simpleShowPeriod = true,
-    discountTooltip = false,
-  } = props;
+export function DisplayCost({
+  cost,
+  simple = false,
+  oneLine = false,
+  simpleShowPeriod = true,
+  discountTooltip = false,
+  noDiscount = false,
+}: Props) {
   if (isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
     return <>&ndash;</>;
   }
@@ -54,13 +55,13 @@ export function DisplayCost(props: Props) {
   if (simple) {
     const discount = discount_pct > 0 && (
       <>
-        Price includes {discount_pct}% self-service discount, only if
-        you buy now.
+        Price includes {discount_pct}% self-service discount, only if you buy
+        now.
       </>
     );
     return (
       <>
-        {money(cost.discounted_cost)}
+        {money(noDiscount ? cost.cost : cost.discounted_cost)}
         {cost.period != "range" ? (
           <>
             {oneLine ? " " : <br />}
@@ -69,7 +70,8 @@ export function DisplayCost(props: Props) {
         ) : (
           ""
         )}
-        {oneLine ? null : <br />} {discount && !discountTooltip && discount}
+        {oneLine ? null : <br />}{" "}
+        {!noDiscount && discount && !discountTooltip && discount}
       </>
     );
   }
