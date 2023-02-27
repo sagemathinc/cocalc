@@ -45,6 +45,10 @@ import {
 import { COLORS } from "@cocalc/util/theme";
 import vouchers, { CharSet, MAX_VOUCHERS } from "@cocalc/util/vouchers";
 
+function dateStr(d) {
+  return d?.toDate().toLocaleDateString();
+}
+
 export default function CreateVouchers() {
   const router = useRouter();
   const isMounted = useIsMounted();
@@ -56,9 +60,11 @@ export default function CreateVouchers() {
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [numVouchers, setNumVouchers] = useState<number>(0);
+  const [numVouchers, setNumVouchers] = useState<number>(25);
   const [length, setLength] = useState<number>(8);
-  const [title, setTitle] = useState<string>("");
+  const [title, setTitle] = useState<string>(
+    `${new Date().toLocaleDateString()}`
+  );
   const [prefix, setPrefix] = useState<string>("");
   const [postfix, setPostfix] = useState<string>("");
   const [charset, setCharset] = useState<CharSet>("alphanumeric");
@@ -242,8 +248,9 @@ export default function CreateVouchers() {
               </h4>
               <Paragraph style={{ color: "#666" }}>
                 Vouchers cannot be redeemed before{" "}
-                {active?.toDate().toDateString() ?? "the date below"}. You can
-                choose a date that is up to 30 days in the future.
+                {dateStr(active) ?? "the date below"}. You can choose a date
+                that is up to 30 days in the future, but it must be before the
+                cancel by date below.
                 <div style={{ textAlign: "center", marginTop: "15px" }}>
                   <Form
                     labelCol={{ span: 9 }}
@@ -298,10 +305,10 @@ export default function CreateVouchers() {
               </Paragraph>
               <Paragraph style={{ color: "#666" }}>
                 A redeemed voucher has up until{" "}
-                {cancelBy?.toDate().toDateString() ?? "the date below"} to be
-                cancelled at no charge. You might set this to be at the end of
-                the drop period for a university. You can choose a date that is
-                up to 30 days in the future.
+                {dateStr(cancelBy) ?? "the date below"} to be cancelled at no
+                charge. You might set this to be at the end of the drop period
+                for a university. You can choose a date that is up to 30 days in
+                the future, but it must be before the expire by date below.
                 <div style={{ textAlign: "center", marginTop: "15px" }}>
                   <Form
                     labelCol={{ span: 9 }}
@@ -356,10 +363,10 @@ export default function CreateVouchers() {
               </Paragraph>{" "}
               <Paragraph style={{ color: "#666" }}>
                 Any voucher that is not redeemed by{" "}
-                {expire?.toDate().toDateString() ?? "the date below"} will
-                expire. You can choose a date that is up to 60 days in the
-                future. You will be invoiced only for vouchers that are redeemed
-                before the expiration date.
+                {dateStr(expire) ?? "the date below"} will expire. You can
+                choose a date that is up to 60 days in the future. You will be
+                invoiced only for vouchers that are redeemed before the
+                expiration date.
                 <div style={{ textAlign: "center", marginTop: "15px" }}>
                   <Form
                     labelCol={{ span: 9 }}
