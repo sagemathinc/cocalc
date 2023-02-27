@@ -145,7 +145,7 @@ export default function StoreLayout({ page }: Props) {
       >
         <Content
           style={{
-            margin: 0,
+            margin: '0 30px',
             minHeight: "60vh",
           }}
         >

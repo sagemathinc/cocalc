@@ -17,12 +17,15 @@ If this successfully runs, then the checked items in the shopping
 cart are changed in the database so that the purchased field is set.
 */
 
-import { db } from "@cocalc/database";
-import getPool from "@cocalc/database/pool";
+//import { db } from "@cocalc/database";
+//import getPool from "@cocalc/database/pool";
 import getCart from "./get";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import dayjs from "dayjs";
-import vouchers, { CharSet, MAX_VOUCHERS } from "@cocalc/util/vouchers";
+import { /*vouchers, */ CharSet, MAX_VOUCHERS } from "@cocalc/util/vouchers";
+import { getLogger } from "@cocalc/backend/logger";
+
+const logger = getLogger("createVouchers");
 
 interface Options {
   account_id: string;
@@ -50,9 +53,17 @@ export default async function createVouchers({
   // NOT subscriptions (i.e, a date range).
   const cart = (
     await getCart({ account_id, purchased: false, removed: false })
-  ).filter((item) => item.checked && item.description?.period == "range");
+  ).filter((item) => item.checked && item.description?.["period"] == "range");
+  logger.debug({
+    account_id,
+    count,
+    expire,
+    title,
+    generate,
+    cart,
+  });
 
-  const pool = getPool();
+  //const pool = getPool();
 
   // Make some checks.
 
