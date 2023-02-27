@@ -7,6 +7,8 @@ export type CharSet =
   | "lower"
   | "upper";
 
+export const MAX_VOUCHERS = 1000;
+
 interface Options {
   count: number;
   length?: number;

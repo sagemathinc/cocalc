@@ -22,9 +22,7 @@ import getPool from "@cocalc/database/pool";
 import getCart from "./get";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import dayjs from "dayjs";
-import vouchers, { CharSet } from "@cocalc/util/vouchers";
-
-const MAX_VOUCHERS = 1000; // todo: ??
+import vouchers, { CharSet, MAX_VOUCHERS } from "@cocalc/util/vouchers";
 
 interface Options {
   account_id: string;

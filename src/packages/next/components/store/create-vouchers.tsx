@@ -42,9 +42,7 @@ import {
   RequireEmailAddress,
 } from "./checkout";
 import { COLORS } from "@cocalc/util/theme";
-import vouchers, { CharSet } from "@cocalc/util/vouchers";
-
-const MAX_AMOUNT = 10000;
+import vouchers, { CharSet, MAX_VOUCHERS } from "@cocalc/util/vouchers";
 
 export default function CreateVouchers() {
   const router = useRouter();
@@ -120,19 +118,20 @@ export default function CreateVouchers() {
 
   const columns = getColumns({ noDiscount: true, voucherPeriod: true });
 
+  const disabled =
+    !numVouchers ||
+    !title?.trim() ||
+    expire == null ||
+    subTotal == 0 ||
+    placingOrder ||
+    !haveCreditCard ||
+    !profile?.email_address;
+
   function CreateVouchersButton() {
     const v = plural(numVouchers, "Voucher");
     return (
       <Button
-        disabled={
-          !numVouchers ||
-          !title?.trim() ||
-          expire == null ||
-          subTotal == 0 ||
-          placingOrder ||
-          !haveCreditCard ||
-          !profile?.email_address
-        }
+        disabled={disabled}
         style={{ marginTop: "7px", marginBottom: "15px" }}
         size="large"
         type="primary"
@@ -195,30 +194,32 @@ export default function CreateVouchers() {
           <Col md={14} sm={24}>
             <div>
               <h3 style={{ fontSize: "16pt" }}>
-                <Icon name={"credit-card"} style={{ marginRight: "5px" }} />
+                <Icon name={"credit-card"} style={{ marginRight: "10px" }} />
                 Create Vouchers
               </h3>
               As a member of the CoCalc partner program, you are allowed to
               create vouchers. These are codes that you can provide to other
-              people, who can then redeem them (exactly once) for the{" "}
-              {items.length} {plural(items.length, "license")} listed in Section
-              3 below.
+              people, who can then redeem them exactly once for the{" "}
+              {items.length} {plural(items.length, "license")} listed below.
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                1. How Many Vouchers? <Check done={numVouchers > 0} />
+                <Check done={numVouchers > 0} /> 1. How Many Vouchers?
               </h4>
               <Paragraph style={{ color: "#666" }}>
-                Input the number of vouchers you would like to create.
+                Input the number of vouchers you would like to create. (Limit:{" "}
+                {MAX_VOUCHERS})
                 <div style={{ textAlign: "center", marginTop: "15px" }}>
                   <InputNumber
                     size="large"
                     min={0}
-                    max={Math.ceil(MAX_AMOUNT / (subTotal ?? 1))}
+                    max={MAX_VOUCHERS}
+                    defaultValue={numVouchers}
                     onChange={(value) => setNumVouchers(value ?? 1)}
                   />
                 </div>
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                2. When do the Vouchers Expire? <Check done={expire != null} />
+                <Check done={expire != null} />
+                2. When do the Vouchers Expire?
               </h4>
               <Paragraph style={{ color: "#666" }}>
                 Any voucher that is not redeemed by the given date will expire.
@@ -266,11 +267,11 @@ export default function CreateVouchers() {
                 </div>
               </Paragraph>{" "}
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                3. Customize <Check done={!!title.trim()} />
+                <Check done={!!title.trim()} /> 3. Customize
               </h4>
               <Paragraph style={{ color: "#666" }}>
                 Describe this group of vouchers so you can easily find them
-                later in your voucher list.
+                later.
                 <Input
                   style={{ marginBottom: "15px", marginTop: "5px" }}
                   onChange={(e) => setTitle(e.target.value)}
@@ -324,8 +325,8 @@ export default function CreateVouchers() {
                 </Space>
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                4. Ensure a Payment Method is on File{" "}
-                <Check done={haveCreditCard} />
+                <Check done={haveCreditCard} /> 4. Ensure a Payment Method is on
+                File{" "}
               </h4>
               <Paragraph style={{ color: "#666" }}>
                 The default payment method shown below will be used to pay for
@@ -370,7 +371,7 @@ export default function CreateVouchers() {
         </Row>
 
         <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
-          5.{" "}
+          <Check done={!disabled} /> 5.{" "}
           {numVouchers == 1
             ? "Your Voucher"
             : `Each of Your ${numVouchers} Vouchers`}{" "}
@@ -394,7 +395,8 @@ export default function CreateVouchers() {
           />
         </div>
         <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
-          6. Create Your {plural(numVouchers, "Voucher")}
+          <Check done={!disabled} /> 6. Create Your{" "}
+          {plural(numVouchers, "Voucher")}
         </h4>
         <div style={{ fontSize: "12pt" }}>
           <Row>
@@ -475,13 +477,13 @@ function VoucherSummary({ items, taxRate, numVouchers }) {
   );
 }
 
-const CHECK_STYLE = { marginLeft: "15px", fontSize: "16pt" };
+const CHECK_STYLE = { marginRight: "5px", fontSize: "14pt" };
 function Check({ done }) {
   if (done) {
-    return (
-      <Icon name="check-square" style={{ ...CHECK_STYLE, color: "green" }} />
-    );
+    return <Icon name="check" style={{ ...CHECK_STYLE, color: "green" }} />;
   } else {
-    return <Icon name="box" style={{ ...CHECK_STYLE, color: "#cf1322" }} />;
+    return (
+      <Icon name="arrow-right" style={{ ...CHECK_STYLE, color: "#cf1322" }} />
+    );
   }
 }
