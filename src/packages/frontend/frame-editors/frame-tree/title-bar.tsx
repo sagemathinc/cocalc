@@ -1573,6 +1573,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function allButtonsPopover() {
     return (
       <Popover
+        overlayStyle={{ zIndex: 990 }}
         open={
           props.tab_is_visible && props.is_visible && showMainButtonsPopover
         }
