@@ -28,7 +28,7 @@ Table({
       },
     },
     expire: {
-      title: "Due",
+      title: "Expire",
       type: "timestamp",
       desc: "When this voucher expires.",
       render: {
@@ -37,9 +37,9 @@ Table({
       },
     },
     cancel_by: {
-      title: "Cancel by this date.",
+      title: "Cancel by this date",
       type: "timestamp",
-      desc: "This voucher must be canceled by this date.",
+      desc: "This voucher must be canceled by this date",
       render: {
         type: "timestamp",
         editable: true,
@@ -62,6 +62,7 @@ Table({
       desc: "How much sales tax in dollars for each redeemed voucher.",
       render: { type: "number", editable: true, format: "money", min: 0 },
     },
+    notes: NOTES,
   },
   rules: {
     desc: "Vouchers",
@@ -77,6 +78,8 @@ Table({
           expire: null,
           cancel_by: null,
           title: null,
+          cost: null,
+          tax: null,
         },
       },
       set: {
@@ -99,7 +102,16 @@ Table({
         pg_where: [],
         admin: true,
         fields: {
-          ...schema.vouchers.user_query?.get?.fields,
+          id: null,
+          created_by: null,
+          created: null,
+          active: null,
+          expire: null,
+          cancel_by: null,
+          title: null,
+          cost: null,
+          tax: null,
+          notes: null,
         },
       },
       set: {
@@ -112,6 +124,7 @@ Table({
           title: true,
           cost: true,
           tax: true,
+          notes: true,
         },
       },
     },
@@ -129,7 +142,7 @@ Table({
     },
     when_redeemed: {
       type: "timestamp",
-      title: "When Redeeemed",
+      title: "When Redeemed",
       desc: "When this voucher code was redeemed.",
       render: {
         type: "timestamp",
@@ -164,6 +177,7 @@ Table({
           when_redeemed: null,
           redeemed_by: null,
           notes: null,
+          canceled: null,
         },
       },
       set: {
@@ -174,6 +188,7 @@ Table({
           when_redeemed: true,
           redeemed_by: true,
           notes: true,
+          canceled: true,
         },
       },
     },
