@@ -172,7 +172,7 @@ function Checkout() {
     );
   }
 
-  function NonemptyCart({ items }) {
+  function nonemptyCart(items) {
     return (
       <>
         <OrderError orderError={orderError} />
@@ -257,7 +257,7 @@ function Checkout() {
     <>
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
       {items.length == 0 && <EmptyCart />}
-      {items.length > 0 && <NonemptyCart items={items} />}
+      {items.length > 0 && nonemptyCart(items)}
       <OrderError orderError={orderError} />
     </>
   );

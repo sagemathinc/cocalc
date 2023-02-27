@@ -155,7 +155,8 @@ export default function CreateVouchers() {
     );
   }
 
-  function NonemptyCart({ items }) {
+  // this can't just be a component, since it depends on a bunch of scope,
+  function nonemptyCart(items) {
     return (
       <>
         <OrderError orderError={orderError} />
@@ -173,17 +174,18 @@ export default function CreateVouchers() {
               3 below.
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
                 1. How Many Vouchers?
-                <InputNumber
-                  style={{ marginLeft: "15px", top: "-10px" }}
-                  size="large"
-                  min={1}
-                  max={Math.ceil(MAX_AMOUNT / (subTotal ?? 1))}
-                  defaultValue={numVouchers}
-                  onChange={(value) => setNumVouchers(value ?? 1)}
-                />
               </h4>
               <Paragraph>
                 Input the number of vouchers you would like to create.
+                <div style={{ textAlign: "center", marginTop: "15px" }}>
+                  <InputNumber
+                    size="large"
+                    min={1}
+                    max={Math.ceil(MAX_AMOUNT / (subTotal ?? 1))}
+                    defaultValue={numVouchers}
+                    onChange={(value) => setNumVouchers(value ?? 1)}
+                  />
+                </div>
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
                 2. Ensure a Payment Method is on File
@@ -283,7 +285,7 @@ export default function CreateVouchers() {
     <>
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
       {items.length == 0 && <EmptyCart />}
-      {items.length > 0 && <NonemptyCart items={items} />}
+      {items.length > 0 && nonemptyCart(items)}
       <OrderError orderError={orderError} />
     </>
   );
