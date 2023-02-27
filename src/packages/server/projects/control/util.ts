@@ -145,6 +145,15 @@ export async function createUser(project_id: string): Promise<void> {
   );
 }
 
+
+export async function stopProjectProcesses(project_id: string): Promise<void> {
+    const home_path = homePath(project_id);
+    const pid = await getProjectPID(home_path);
+    const scmd = `kill -9 ${pid} | true `; // | true since kill can return nonzero status. 
+    await exec(scmd); // May be here we should implement some king of GC for processes?
+}
+ 
+
 export async function deleteUser(project_id: string): Promise<void> {
   const username = getUsername(project_id);
   const uid = `${getUid(project_id)}`;

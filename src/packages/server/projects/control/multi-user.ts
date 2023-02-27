@@ -30,6 +30,7 @@ import {
   launchProjectDaemon,
   mkdir,
   setupDataPath,
+  stopProjectProcesses
 } from "./util";
 import {
   BaseProject,
@@ -40,6 +41,7 @@ import {
 } from "./base";
 import getLogger from "@cocalc/backend/logger";
 import { getUid } from "@cocalc/backend/misc";
+
 
 const winston = getLogger("project-control:multi-user");
 
@@ -138,6 +140,7 @@ class Project extends BaseProject {
     try {
       this.stateChanging = { state: "stopping" };
       await this.saveStateToDatabase(this.stateChanging);
+      await stopProjectProcesses(this.project_id);
     //   await deleteUser(this.project_id);
       await this.wait({
         until: async () => !(await isProjectRunning(this.HOME)),
