@@ -34,8 +34,23 @@ export default function Congrats() {
     return <Loading large center />;
   }
 
+  const billingInfo = (
+    <Alert
+      showIcon
+      style={{ margin: "15px 0" }}
+      type="info"
+      message={
+        <>
+          Browse your <A href="/billing/receipts">invoices, receipts</A> and{" "}
+          <A href="/billing/subscriptions">subscriptions</A> on the{" "}
+          <A href="/billing">billing page</A>.
+        </>
+      }
+    />
+  );
+
   if (result.length == 0) {
-    return <div>You have no recent purchases.</div>;
+    return <div>You have no recent purchases. {billingInfo}</div>;
   }
 
   function renderNextSteps(): JSX.Element {
@@ -74,6 +89,7 @@ export default function Congrats() {
             supporting <SiteName /> we can prioritize your request.
           </li>
         </ul>
+        {billingInfo}
       </>
     );
   }

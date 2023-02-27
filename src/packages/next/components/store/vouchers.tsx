@@ -60,11 +60,9 @@ export default function CreateVouchers() {
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [numVouchers, setNumVouchers] = useState<number>(25);
+  const [numVouchers, setNumVouchers] = useState<number>(0);
   const [length, setLength] = useState<number>(8);
-  const [title, setTitle] = useState<string>(
-    `${new Date().toLocaleDateString()}`
-  );
+  const [title, setTitle] = useState<string>("");
   const [prefix, setPrefix] = useState<string>("");
   const [postfix, setPostfix] = useState<string>("");
   const [charset, setCharset] = useState<CharSet>("alphanumeric");
@@ -121,6 +119,7 @@ export default function CreateVouchers() {
         count: numVouchers,
         expire,
         cancelBy,
+        active,
         title,
         length,
         charset,
@@ -143,6 +142,7 @@ export default function CreateVouchers() {
   const columns = getColumns({ noDiscount: true, voucherPeriod: true });
 
   const disabled =
+    active == null ||
     !numVouchers ||
     !title?.trim() ||
     expire == null ||
@@ -243,7 +243,9 @@ export default function CreateVouchers() {
                 </div>
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                <Check done={expire != null} />
+                <Check
+                  done={active != null && cancelBy != null && expire != null}
+                />
                 2. When Vouchers become Active, be Cancelled, and Expire
               </h4>
               <Paragraph style={{ color: "#666" }}>
