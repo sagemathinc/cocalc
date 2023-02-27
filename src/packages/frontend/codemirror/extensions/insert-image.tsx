@@ -174,7 +174,7 @@ CodeMirror.defineExtension("insert_image", async function (): Promise<void> {
   }
 
   if (opts == null) {
-    return; // user cancelled
+    return; // user canceled
   }
 
   const selections = cm.listSelections();

@@ -92,9 +92,9 @@ export class CodeExecutionEmitter
     this.emit("output", output);
   }
 
-  // Call this to inform anybody listening that we've cancelled
+  // Call this to inform anybody listening that we've canceled
   // this execution, and will NOT be doing it ever, and it
-  // was explicitly cancelled.
+  // was explicitly canceled.
   cancel(): void {
     this.emit("canceled");
   }

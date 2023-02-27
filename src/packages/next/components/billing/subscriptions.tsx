@@ -101,9 +101,9 @@ function Cancel({
   onChange: () => void;
 }) {
   const [error, setError] = useState<string>("");
-  const [cancelling, setCancelling] = useState<boolean>(false);
+  const [canceling, setCanceling] = useState<boolean>(false);
   const isMounted = useIsMounted();
-  const isCancelled = cancel_at_period_end || cancel_at != null;
+  const isCanceled = cancel_at_period_end || cancel_at != null;
   return (
     <div>
       <Popconfirm
@@ -119,7 +119,7 @@ function Cancel({
           </div>
         }
         onConfirm={async () => {
-          setCancelling(true);
+          setCanceling(true);
           setError("");
           try {
             await apiPost("billing/cancel-subscription", { id });
@@ -128,18 +128,18 @@ function Cancel({
             setError(err.message);
           } finally {
             if (!isMounted.current) return;
-            setCancelling(false);
+            setCanceling(false);
             onChange();
           }
         }}
         okText="Yes, cancel at period end (do not auto-renew)"
         cancelText="Make no change"
       >
-        <Button disabled={isCancelled || cancelling} type="dashed">
-          {cancelling ? (
-            <Loading delay={0}>Cancelling...</Loading>
+        <Button disabled={isCanceled || canceling} type="dashed">
+          {canceling ? (
+            <Loading delay={0}>Canceling...</Loading>
           ) : (
-            `Cancel${isCancelled ? "led" : ""}`
+            `Cancel${isCanceled ? "led" : ""}`
           )}
         </Button>
         {error && (

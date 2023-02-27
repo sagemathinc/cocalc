@@ -36,7 +36,7 @@ async function organizationsSearch(
 ): Promise<OrganizationType[] | null> {
   query = query.trim();
   if (!query) {
-    // view this as cancelling the search rather than returning everything
+    // view this as canceling the search rather than returning everything
     return null;
   }
 

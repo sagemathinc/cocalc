@@ -29,7 +29,7 @@ interface Props {
 
 export const Subscription: React.FC<Props> = ({ subscription, style }) => {
   const [confirm_cancel, set_confirm_cancel] = useState(false);
-  const [cancelling, set_cancelling] = useState(false);
+  const [canceling, set_canceling] = useState(false);
   const invoices = useTypedRedux("billing", "invoices");
   const actions = useActions("billing");
   const is_mounted_ref = useIsMountedRef();
@@ -82,9 +82,9 @@ export const Subscription: React.FC<Props> = ({ subscription, style }) => {
 
   function render_info(): JSX.Element {
     const sub = subscription;
-    const cancellable = !(
+    const cancelable = !(
       sub.cancel_at_period_end ||
-      cancelling ||
+      canceling ||
       confirm_cancel
     );
     return (
@@ -97,17 +97,17 @@ export const Subscription: React.FC<Props> = ({ subscription, style }) => {
           ){render_cancel_at_end_or_price()}
         </Col>
         <Col md={1}>
-          {cancellable ? (
+          {cancelable ? (
             <Button
               style={{ float: "right" }}
-              disabled={cancelling}
+              disabled={canceling}
               onClick={() => set_confirm_cancel(true)}
             >
-              {cancelling ? "Cancelling..." : "Cancel..."}
+              {canceling ? "Canceling..." : "Cancel..."}
             </Button>
           ) : (
             <Button style={{ float: "right" }} disabled={true}>
-              Cancelled
+              Canceled
             </Button>
           )}
         </Col>
@@ -149,10 +149,10 @@ export const Subscription: React.FC<Props> = ({ subscription, style }) => {
                 bsStyle="danger"
                 onClick={async () => {
                   set_confirm_cancel(false);
-                  set_cancelling(true);
+                  set_canceling(true);
                   await actions.cancel_subscription(subscription.id);
                   if (is_mounted_ref.current) {
-                    set_cancelling(false);
+                    set_canceling(false);
                   }
                 }}
               >

@@ -377,7 +377,7 @@ export class StripeClient {
     const subscription_id: string = get_string_field(mesg, "subscription_id");
 
     // TODO/SECURITY: We should check that this subscription actually
-    // belongs to this user.  As it is, they could be cancelling somebody
+    // belongs to this user.  As it is, they could be canceling somebody
     // else's subscription!
 
     dbg("cancel the subscription at stripe");

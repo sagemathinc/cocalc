@@ -2227,7 +2227,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # Ensure that all upgrades applied by the given user to projects are consistent,
     # truncating any that exceed their allotment.  NOTE: Unless there is a bug,
     # the only way the quotas should ever exceed their allotment would be if the
-    # user is trying to cheat... *OR* a subscription was cancelled or ended.
+    # user is trying to cheat... *OR* a subscription was canceled or ended.
     ensure_user_project_upgrades_are_valid: (opts) =>
         opts = defaults opts,
             account_id : required

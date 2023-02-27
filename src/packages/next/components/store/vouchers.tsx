@@ -246,7 +246,7 @@ export default function CreateVouchers() {
                 <Check
                   done={active != null && cancelBy != null && expire != null}
                 />
-                2. When Vouchers become Active, be Cancelled, and Expire
+                2. When Vouchers become Active, be Canceled, and Expire
               </h4>
               <Paragraph style={{ color: "#666" }}>
                 Vouchers cannot be redeemed before{" "}
@@ -307,7 +307,7 @@ export default function CreateVouchers() {
               </Paragraph>
               <Paragraph style={{ color: "#666" }}>
                 A redeemed voucher has up until{" "}
-                {dateStr(cancelBy) ?? "the date below"} to be cancelled at no
+                {dateStr(cancelBy) ?? "the date below"} to be canceled at no
                 charge. You might set this to be at the end of the drop period
                 for a university. You can choose a date that is up to 30 days in
                 the future, but it must be before the expire by date below.

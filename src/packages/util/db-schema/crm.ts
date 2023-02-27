@@ -12,6 +12,15 @@ extra things for all crm_ tables to ensure safety, e.g., ensuring admin.
 import { FieldSpec, Table } from "./types";
 import { blue, green, red, yellow } from "@ant-design/colors";
 
+export const NOTES = {
+  type: "string",
+  desc: "Open ended text in markdown about this item.",
+  render: {
+    type: "markdown",
+    editable: true,
+  },
+} as FieldSpec;
+
 export const ID = {
   type: "integer",
   desc: "Automatically generated sequential id that uniquely determines this row.",
@@ -118,11 +127,7 @@ Table({
       type: "boolean",
       desc: "True if the person has been deleted.",
     },
-    notes: {
-      type: "string",
-      desc: "Open ended text in markdown about this person.",
-      render: { type: "markdown", editable: true },
-    },
+    notes: NOTES,
     // https://stackoverflow.com/questions/13837258/what-is-an-appropriate-data-type-to-store-a-timezone
     timezone: {
       type: "string",
@@ -206,15 +211,6 @@ const PEOPLE = {
   desc: "Array of 0 or more people in the People table that are connected with this",
   render: {
     type: "people",
-    editable: true,
-  },
-} as FieldSpec;
-
-const NOTES = {
-  type: "string",
-  desc: "Open ended text in markdown about this organization.",
-  render: {
-    type: "markdown",
     editable: true,
   },
 } as FieldSpec;
@@ -747,7 +743,7 @@ Table({
         options: [
           "-None-",
           "Shut Down",
-          "Project Cancelled",
+          "Project Canceled",
           "Market Failed",
           "Active",
           "Acquired",

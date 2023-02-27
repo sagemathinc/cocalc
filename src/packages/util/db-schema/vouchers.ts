@@ -1,5 +1,5 @@
 import { Table } from "./types";
-import { CREATED, CREATED_BY, ID } from "./crm";
+import { CREATED, CREATED_BY, ID, NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
 
 Table({
@@ -39,7 +39,7 @@ Table({
     cancel_by: {
       title: "Cancel by this date.",
       type: "timestamp",
-      desc: "This voucher must be cancelled by this date.",
+      desc: "This voucher must be canceled by this date.",
       render: {
         type: "timestamp",
         editable: true,
@@ -73,7 +73,9 @@ Table({
           id: null,
           created_by: null,
           created: null,
+          active: null,
           expire: null,
+          cancel_by: null,
           title: null,
         },
       },
@@ -81,7 +83,6 @@ Table({
         fields: {
           created_by: "account_id",
           id: true,
-          title: true,
         },
       },
     },
@@ -105,8 +106,12 @@ Table({
         admin: true,
         fields: {
           id: true,
-          created_by: true,
+          active: true,
+          expire: true,
+          cancel_by: true,
           title: true,
+          cost: true,
+          tax: true,
         },
       },
     },
@@ -136,7 +141,15 @@ Table({
       render: { type: "account" },
       title: "Account",
     },
-    note: { type: "string", desc: "The random code the determines this." }, // TODO
+    canceled: {
+      type: "timestamp",
+      title: "When Canceled",
+      desc: "When this voucher code was canceled. This is used if the user redeems the code, then cancel before the cancel-by date, e.g., because they drop a class.",
+      render: {
+        type: "timestamp",
+      },
+    },
+    notes: NOTES,
   },
   rules: {
     desc: "Voucher codes",
@@ -150,6 +163,17 @@ Table({
           id: null,
           when_redeemed: null,
           redeemed_by: null,
+          notes: null,
+        },
+      },
+      set: {
+        admin: true,
+        fields: {
+          code: true,
+          id: true,
+          when_redeemed: true,
+          redeemed_by: true,
+          notes: true,
         },
       },
     },

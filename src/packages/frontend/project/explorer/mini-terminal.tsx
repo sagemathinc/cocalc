@@ -126,7 +126,7 @@ class MiniTerminal0 extends React.Component<Props, State> {
       err_on_exit: false,
       cb: (err, output) => {
         if (this._id !== id) {
-          // computation was cancelled -- ignore result.
+          // computation was canceled -- ignore result.
           return;
         }
         if (err) {

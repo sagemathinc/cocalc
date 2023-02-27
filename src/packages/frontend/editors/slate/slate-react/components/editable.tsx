@@ -274,7 +274,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         const data = event.dataTransfer || event.data || undefined;
 
         // These two types occur while a user is composing text and can't be
-        // cancelled. Let them through and wait for the composition to end.
+        // canceled. Let them through and wait for the composition to end.
         if (
           type === "insertCompositionText" ||
           type === "deleteCompositionText"

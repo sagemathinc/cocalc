@@ -270,12 +270,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg = @_dbg("user_query_cancel_changefeed(id='#{opts.id}')")
         feed = @_changefeeds?[opts.id]
         if feed?
-            dbg("actually cancelling feed")
+            dbg("actually canceling feed")
             @_dec_changefeed_count(opts.id)
             delete @_changefeeds[opts.id]
             feed.close()
         else
-            dbg("already cancelled before (no such feed)")
+            dbg("already canceled before (no such feed)")
         opts.cb?()
 
     _user_get_query_columns: (query, remove_from_query) =>

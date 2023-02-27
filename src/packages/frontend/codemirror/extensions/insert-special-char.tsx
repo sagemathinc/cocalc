@@ -83,7 +83,7 @@ CodeMirror.defineExtension(
     }
 
     if (opts == null) {
-      return; // user cancelled
+      return; // user canceled
     }
 
     const selections = cm.listSelections();
