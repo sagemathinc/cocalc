@@ -7,7 +7,18 @@
 Voucher -- create vouchers from the contents of your shopping cart.
 */
 
-import { Alert, Button, Col, DatePicker, InputNumber, Row, Table } from "antd";
+import {
+  Alert,
+  Button,
+  Col,
+  DatePicker,
+  Input,
+  InputNumber,
+  Radio,
+  Row,
+  Table,
+  Space,
+} from "antd";
 import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -31,6 +42,7 @@ import {
   RequireEmailAddress,
 } from "./checkout";
 import { COLORS } from "@cocalc/util/theme";
+import vouchers, { CharSet } from "@cocalc/util/vouchers";
 
 const MAX_AMOUNT = 10000;
 
@@ -45,10 +57,18 @@ export default function CreateVouchers() {
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [numVouchers, setNumVouchers] = useState<number>(1);
+  const [numVouchers, setNumVouchers] = useState<number>(0);
+  const [length, setLength] = useState<number>(8);
+  const [title, setTitle] = useState<string>("");
+  const [prefix, setPrefix] = useState<string>("");
+  const [postfix, setPostfix] = useState<string>("");
+  const [charset, setCharset] = useState<CharSet>("alphanumeric");
   const [expire, setExpire] = useState<dayjs.Dayjs | null>(
     dayjs().add(30, "day")
   );
+  const exampleCodes: string = useMemo(() => {
+    return vouchers({ count: 5, length, charset, prefix, postfix }).join(", ");
+  }, [length, charset, prefix, postfix]);
 
   // most likely, user will do the purchase and then see the congratulations page
   useEffect(() => {
@@ -105,6 +125,8 @@ export default function CreateVouchers() {
     return (
       <Button
         disabled={
+          !numVouchers ||
+          !title?.trim() ||
           expire == null ||
           subTotal == 0 ||
           placingOrder ||
@@ -182,22 +204,21 @@ export default function CreateVouchers() {
               {items.length} {plural(items.length, "license")} listed in Section
               3 below.
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                1. How Many Vouchers?
+                1. How Many Vouchers? <Check done={numVouchers > 0} />
               </h4>
               <Paragraph style={{ color: "#666" }}>
                 Input the number of vouchers you would like to create.
                 <div style={{ textAlign: "center", marginTop: "15px" }}>
                   <InputNumber
                     size="large"
-                    min={1}
+                    min={0}
                     max={Math.ceil(MAX_AMOUNT / (subTotal ?? 1))}
-                    defaultValue={numVouchers}
                     onChange={(value) => setNumVouchers(value ?? 1)}
                   />
                 </div>
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                2. When do the Vouchers Expire?
+                2. When do the Vouchers Expire? <Check done={expire != null} />
               </h4>
               <Paragraph style={{ color: "#666" }}>
                 Any voucher that is not redeemed by the given date will expire.
@@ -245,7 +266,66 @@ export default function CreateVouchers() {
                 </div>
               </Paragraph>{" "}
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                3. Ensure a Payment Method is on File
+                3. Customize <Check done={!!title.trim()} />
+              </h4>
+              <Paragraph style={{ color: "#666" }}>
+                Describe this group of vouchers so you can easily find them
+                later in your voucher list.
+                <Input
+                  style={{ marginBottom: "15px", marginTop: "5px" }}
+                  onChange={(e) => setTitle(e.target.value)}
+                  value={title}
+                  addonBefore={"Description"}
+                />
+                Customize how your voucher codes are randomly generated
+                (optional):
+                <Space direction="vertical" style={{ marginTop: "5px" }}>
+                  <Space>
+                    <InputNumber
+                      addonBefore={"Length"}
+                      min={6}
+                      max={16}
+                      onChange={(length) => setLength(length ?? 8)}
+                      value={length}
+                    />
+                    <Input
+                      onChange={(e) => setPrefix(e.target.value)}
+                      value={prefix}
+                      addonBefore={"Prefix"}
+                      allowClear
+                    />
+                    <Input
+                      onChange={(e) => setPostfix(e.target.value)}
+                      value={postfix}
+                      addonBefore={"Postfix"}
+                      allowClear
+                    />{" "}
+                  </Space>
+                  <Space>
+                    <Radio.Group
+                      onChange={(e) => {
+                        setCharset(e.target.value);
+                      }}
+                      defaultValue={charset}
+                    >
+                      <Radio.Button value="alphanumeric">
+                        alphanumeric
+                      </Radio.Button>
+                      <Radio.Button value="alphabetic">alphabetic</Radio.Button>
+                      <Radio.Button value="numbers">0123456789</Radio.Button>
+                      <Radio.Button value="lower">lower</Radio.Button>
+                      <Radio.Button value="upper">UPPER</Radio.Button>
+                    </Radio.Group>
+                  </Space>
+                  <Space>
+                    <div style={{ whiteSpace: "nowrap" }}>Examples:</div>{" "}
+                    {exampleCodes}
+                  </Space>
+                </Space>
+              </Paragraph>
+              <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+                4. Ensure a Payment Method is on File{" "}
+                <Check done={haveCreditCard} />
               </h4>
               <Paragraph style={{ color: "#666" }}>
                 The default payment method shown below will be used to pay for
@@ -290,7 +370,7 @@ export default function CreateVouchers() {
         </Row>
 
         <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
-          4.{" "}
+          5.{" "}
           {numVouchers == 1
             ? "Your Voucher"
             : `Each of Your ${numVouchers} Vouchers`}{" "}
@@ -314,7 +394,7 @@ export default function CreateVouchers() {
           />
         </div>
         <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
-          5. Create Your {plural(numVouchers, "Voucher")}
+          6. Create Your {plural(numVouchers, "Voucher")}
         </h4>
         <div style={{ fontSize: "12pt" }}>
           <Row>
@@ -393,4 +473,15 @@ function VoucherSummary({ items, taxRate, numVouchers }) {
       </div>
     </Paragraph>
   );
+}
+
+const CHECK_STYLE = { marginLeft: "15px", fontSize: "16pt" };
+function Check({ done }) {
+  if (done) {
+    return (
+      <Icon name="check-square" style={{ ...CHECK_STYLE, color: "green" }} />
+    );
+  } else {
+    return <Icon name="box" style={{ ...CHECK_STYLE, color: "#cf1322" }} />;
+  }
 }

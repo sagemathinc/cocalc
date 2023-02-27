@@ -835,6 +835,7 @@ importers:
       await-spawn: ^4.0.2
       awaiting: ^3.0.0
       cookies: ^0.8.0
+      dayjs: ^1.11.7
       expect: ^26.6.2
       jwt-decode: ^3.1.2
       lodash: ^4.17.21
@@ -877,6 +878,7 @@ importers:
       await-spawn: 4.0.2
       awaiting: 3.0.0
       cookies: 0.8.0
+      dayjs: 1.11.7
       jwt-decode: 3.1.2
       lodash: 4.17.21
       lru-cache: 7.14.1
@@ -1112,6 +1114,7 @@ importers:
       underscore: ^1.12.1
       utility-types: ^3.10.0
       uuid: ^8.3.2
+      voucher-code-generator: ^1.3.0
     dependencies:
       '@ant-design/colors': 6.0.0
       '@cocalc/util': 'link:'
@@ -1130,6 +1133,7 @@ importers:
       underscore: 1.13.4
       utility-types: 3.10.0
       uuid: 8.3.2
+      voucher-code-generator: 1.3.0
     devDependencies:
       '@types/json-stable-stringify': 1.0.34
       '@types/lodash': 4.14.184
@@ -15317,6 +15321,10 @@ packages:
   /video-extensions/1.2.0:
     resolution: {integrity: sha512-TriMl18BHEsh2KuuSA065tbu4SNAC9fge7k8uKoTTofTq89+Xsg4K1BGbmSVETwUZhqSjd9KwRCNwXAW/buXMg==}
     engines: {node: '>=0.10.0'}
+    dev: false
+
+  /voucher-code-generator/1.3.0:
+    resolution: {integrity: sha512-t4wnI91KC58LtjX2I0rJDhRm1JTXD+G7A+7iqp0sRSgpeJP4eKLexDRDLe2nedR7xFQcVlZudDZRBLrMP5+KTA==}
     dev: false
 
   /w3c-hr-time/1.0.2:
