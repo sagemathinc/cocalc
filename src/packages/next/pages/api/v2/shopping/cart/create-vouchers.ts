@@ -44,6 +44,7 @@ async function doIt(req) {
   if (!(await userIsInGroup(account_id, "partner"))) {
     throw Error("only partners can create vouchers");
   }
+
   return await createVouchers({
     account_id,
     count,

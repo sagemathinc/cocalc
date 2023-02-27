@@ -51,13 +51,26 @@ export default async function createVouchers({
   expire,
   title,
   generate,
-}: Options): Promise<{ group_id: string; vouchers: string[] }> {
+}: Options): Promise<{
+  id: string;
+  codes: string[];
+  cost: number; // cost to redeem one voucher
+  tax: number; // tax on redeeming one voucher
+  cart: any[];
+}> {
   // Get the list of items in the cart that haven't been purchased
   // or saved for later, and are currently checked, and are
   // NOT subscriptions (i.e, a date range).
   const cart = (
     await getCart({ account_id, purchased: false, removed: false })
   ).filter((item) => item.checked && item.description?.["period"] == "range");
+
+  // TODO! Must compute the cost here on the backend.  This might be painful
+  // because packages/next/components/store/compute-cost.ts contains a bunch of
+  // code for dedicaed VM's/disks and can't be used from here.  Oops (?).
+  const cost = 0;
+  const tax = 0;
+
   logger.debug({
     account_id,
     count,
@@ -65,6 +78,8 @@ export default async function createVouchers({
     title,
     generate,
     cart,
+    cost,
+    tax,
   });
 
   const pool = getPool();
@@ -109,31 +124,31 @@ export default async function createVouchers({
   /*
   Now actually modify the database.  We create two things:
 
-  1. A record in the "voucher_groups" table that explains what the voucher
+  1. A record in the "vouchers" table that explains what the voucher
      is for, and records the title and expire date.
 
-  2. We create [count] records in the "vouchers" table. These point to
+  2. We create [count] records in the "voucher_codes" table. These point to
      the voucher_create record and can be redeemed.
 
   */
   const { rows } = await pool.query(
-    "INSERT INTO voucher_groups(account_id, title, count, expire) VALUES(%1, %2, %3, %4) RETURNING id",
-    [account_id, title, count, expire]
+    "INSERT INTO vouchers(created, created_by, title, expire, cart, cost, tax) VALUES(NOW(), %1, %2, %3, %4, %5, %6) RETURNING id",
+    [account_id, title, expire, cart, cost]
   );
-  const { id: group_id } = rows[0];
+  const { id } = rows[0];
 
   let error;
   for (let i = 0; i < 10; i++) {
     try {
       // create the voucher codes:
-      const vouchers = generateVouchers({ ...generate, count });
+      const codes = generateVouchers({ ...generate, count });
       const { query, values } = multiInsert(
-        "INSERT INTO vouchers(id, group_id)",
-        vouchers.map((code) => [code, group_id])
+        "INSERT INTO voucher_codes(code, id)",
+        codes.map((code) => [code, id])
       );
       await pool.query(query, values);
       // Did it!
-      return { group_id, vouchers };
+      return { id, codes, cost, tax, cart };
     } catch (err) {
       error = err;
       // It is possible there is an error due to one of our new randomly generated voucher codes

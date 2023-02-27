@@ -11,10 +11,10 @@ register({
     vouchers: [
       {
         id: null,
-        code: null,
-        created: null,
         created_by: null,
-        void: null,
+        created: null,
+        expire: null,
+        title: null,
       },
     ],
   },
