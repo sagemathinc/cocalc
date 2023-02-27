@@ -12,6 +12,7 @@ import {
   Button,
   Col,
   DatePicker,
+  Form,
   Input,
   InputNumber,
   Radio,
@@ -28,7 +29,7 @@ import PaymentMethods from "components/billing/payment-methods";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
-// import apiPost from "lib/api/post";
+import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
@@ -61,8 +62,12 @@ export default function CreateVouchers() {
   const [prefix, setPrefix] = useState<string>("");
   const [postfix, setPostfix] = useState<string>("");
   const [charset, setCharset] = useState<CharSet>("alphanumeric");
+  const [active, setActive] = useState<dayjs.Dayjs | null>(dayjs());
   const [expire, setExpire] = useState<dayjs.Dayjs | null>(
     dayjs().add(30, "day")
+  );
+  const [cancelBy, setCancelBy] = useState<dayjs.Dayjs | null>(
+    dayjs().add(14, "day")
   );
   const exampleCodes: string = useMemo(() => {
     return vouchers({ count: 5, length, charset, prefix, postfix }).join(", ");
@@ -104,7 +109,20 @@ export default function CreateVouchers() {
     try {
       setOrderError("");
       setCreatingVouchers(true);
+      // This api call tells the backend, "create requested vouchers from everything in my
+      // shopping cart that is not a subscription."
+      await apiPost("/shopping/cart/create-vouchers", {
+        count: numVouchers,
+        expire,
+        cancelBy,
+        title,
+        length,
+        charset,
+        prefix,
+        postfix,
+      });
       // Success!
+
       if (!isMounted.current) return;
       router.push("/store/congrats");
     } catch (err) {
@@ -122,6 +140,7 @@ export default function CreateVouchers() {
     !numVouchers ||
     !title?.trim() ||
     expire == null ||
+    cancelBy == null ||
     subTotal == 0 ||
     placingOrder ||
     !haveCreditCard ||
@@ -219,51 +238,182 @@ export default function CreateVouchers() {
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
                 <Check done={expire != null} />
-                2. When do the Vouchers Expire?
+                2. When Vouchers become Active, be Cancelled, and Expire
               </h4>
               <Paragraph style={{ color: "#666" }}>
-                Any voucher that is not redeemed by the given date will expire.
-                You can choose a date that is up to 60 days in the future. You
-                will be invoiced only for vouchers that are redeemed before the
-                expiration date.
+                Vouchers cannot be redeemed before{" "}
+                {active?.toDate().toDateString() ?? "the date below"}. You can
+                choose a date that is up to 30 days in the future.
                 <div style={{ textAlign: "center", marginTop: "15px" }}>
-                  <DatePicker
-                    value={expire}
-                    presets={[
-                      {
-                        label: "+ 7 Days",
-                        value: dayjs().add(7, "d"),
-                      },
-                      {
-                        label: "+ 30 Days",
-                        value: dayjs().add(30, "day"),
-                      },
-                      {
-                        label: "+ 45 Days",
-                        value: dayjs().add(45, "day"),
-                      },
-                      {
-                        label: "+ 60 Days",
-                        value: dayjs().add(60, "day"),
-                      },
-                    ]}
-                    onChange={setExpire}
-                    disabledDate={(current) => {
-                      if (!current) {
-                        return true;
-                      }
-                      // Can not select days before today and today
-                      if (current < dayjs().endOf("day")) {
-                        return true;
-                      }
-                      // Cannot select days more than 60 days in the future.
-                      if (current > dayjs().endOf("day").add(60, "day")) {
-                        return true;
-                      }
-                      // ok
-                      return false;
-                    }}
-                  />
+                  <Form
+                    labelCol={{ span: 9 }}
+                    wrapperCol={{ span: 9 }}
+                    layout="horizontal"
+                  >
+                    <Form.Item label="Become Active">
+                      <DatePicker
+                        value={active}
+                        presets={[
+                          {
+                            label: "Now",
+                            value: dayjs(),
+                          },
+                          {
+                            label: "+ 7 Days",
+                            value: dayjs().add(7, "d"),
+                          },
+                          {
+                            label: "+ 30 Days",
+                            value: dayjs().add(30, "day"),
+                          },
+                        ]}
+                        onChange={setActive}
+                        disabledDate={(current) => {
+                          if (!current) {
+                            return true;
+                          }
+                          // Can not select days before today
+                          if (current < dayjs().endOf("day")) {
+                            return true;
+                          }
+                          // Cannot select days more than 30 days in the future.
+                          if (current > dayjs().endOf("day").add(30, "day")) {
+                            return true;
+                          }
+                          // Must be before expire date:
+                          if (expire != null && current >= expire) {
+                            return true;
+                          }
+                          // Must be before cancelBy date:
+                          if (cancelBy != null && current >= cancelBy) {
+                            return true;
+                          }
+                          // ok
+                          return false;
+                        }}
+                      />
+                    </Form.Item>
+                  </Form>
+                </div>
+              </Paragraph>
+              <Paragraph style={{ color: "#666" }}>
+                A redeemed voucher has up until{" "}
+                {cancelBy?.toDate().toDateString() ?? "the date below"} to be
+                cancelled at no charge. You might set this to be at the end of
+                the drop period for a university. You can choose a date that is
+                up to 30 days in the future.
+                <div style={{ textAlign: "center", marginTop: "15px" }}>
+                  <Form
+                    labelCol={{ span: 9 }}
+                    wrapperCol={{ span: 9 }}
+                    layout="horizontal"
+                  >
+                    <Form.Item label="Cancel By">
+                      <DatePicker
+                        value={cancelBy}
+                        presets={[
+                          {
+                            label: "+ 7 Days",
+                            value: dayjs().add(7, "d"),
+                          },
+                          {
+                            label: "+ 14 Days",
+                            value: dayjs().add(14, "day"),
+                          },
+                          {
+                            label: "+ 30 Days",
+                            value: dayjs().add(30, "day"),
+                          },
+                        ]}
+                        onChange={setCancelBy}
+                        disabledDate={(current) => {
+                          if (!current) {
+                            return true;
+                          }
+                          // Can not select days before today and today
+                          if (current < dayjs().endOf("day")) {
+                            return true;
+                          }
+                          // Cannot select days more than 30 days in the future.
+                          if (current > dayjs().endOf("day").add(30, "day")) {
+                            return true;
+                          }
+                          // Must be before expire date:
+                          if (expire != null && current >= expire) {
+                            return true;
+                          }
+                          // Must be after active date:
+                          if (active != null && current <= active) {
+                            return true;
+                          }
+                          // ok
+                          return false;
+                        }}
+                      />
+                    </Form.Item>
+                  </Form>
+                </div>
+              </Paragraph>{" "}
+              <Paragraph style={{ color: "#666" }}>
+                Any voucher that is not redeemed by{" "}
+                {expire?.toDate().toDateString() ?? "the date below"} will
+                expire. You can choose a date that is up to 60 days in the
+                future. You will be invoiced only for vouchers that are redeemed
+                before the expiration date.
+                <div style={{ textAlign: "center", marginTop: "15px" }}>
+                  <Form
+                    labelCol={{ span: 9 }}
+                    wrapperCol={{ span: 9 }}
+                    layout="horizontal"
+                  >
+                    <Form.Item label="Expire">
+                      <DatePicker
+                        value={expire}
+                        presets={[
+                          {
+                            label: "+ 7 Days",
+                            value: dayjs().add(7, "d"),
+                          },
+                          {
+                            label: "+ 30 Days",
+                            value: dayjs().add(30, "day"),
+                          },
+                          {
+                            label: "+ 45 Days",
+                            value: dayjs().add(45, "day"),
+                          },
+                          {
+                            label: "+ 60 Days",
+                            value: dayjs().add(60, "day"),
+                          },
+                        ]}
+                        onChange={setExpire}
+                        disabledDate={(current) => {
+                          if (!current) {
+                            return true;
+                          }
+                          // Can not select days before today and today
+                          if (current < dayjs().endOf("day")) {
+                            return true;
+                          }
+                          // Cannot select days more than 60 days in the future.
+                          if (current > dayjs().endOf("day").add(60, "day")) {
+                            return true;
+                          }
+                          // Must be after active date:
+                          if (active != null && current <= active) {
+                            return true;
+                          }
+                          // Must be after cancel by date:
+                          if (cancelBy != null && current <= cancelBy) {
+                            return true;
+                          }
+                          // ok
+                          return false;
+                        }}
+                      />
+                    </Form.Item>
+                  </Form>
                 </div>
               </Paragraph>{" "}
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>

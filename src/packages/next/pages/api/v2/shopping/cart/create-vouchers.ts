@@ -14,13 +14,28 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req) {
-  const { count, expire, title, length, charset, prefix, postfix } =
-    getParams(req);
+  const {
+    count,
+    active,
+    expire,
+    cancelBy,
+    title,
+    length,
+    charset,
+    prefix,
+    postfix,
+  } = getParams(req);
   if (count == null) {
     throw Error("must provide number of vouchers");
   }
+  if (active == null) {
+    throw Error("must provide activation date");
+  }
   if (expire == null) {
     throw Error("must provide expiration date");
+  }
+  if (cancelBy == null) {
+    throw Error("must provide cancelBy date");
   }
   if (title == null) {
     throw Error("must provide title");
@@ -48,7 +63,9 @@ async function doIt(req) {
   return await createVouchers({
     account_id,
     count,
+    active: new Date(active),
     expire: new Date(expire),
+    cancelBy: new Date(cancelBy),
     title,
     generate: { length, prefix, postfix, charset },
   });

@@ -34,7 +34,9 @@ const logger = getLogger("createVouchers");
 interface Options {
   account_id: string;
   count: number;
+  active: Date;
   expire: Date;
+  cancelBy: Date;
   title: string;
   generate?: {
     // See https://www.npmjs.com/package/voucher-code-generator
@@ -48,7 +50,9 @@ interface Options {
 export default async function createVouchers({
   account_id,
   count,
+  active,
   expire,
+  cancelBy,
   title,
   generate,
 }: Options): Promise<{
@@ -74,7 +78,9 @@ export default async function createVouchers({
   logger.debug({
     account_id,
     count,
+    active,
     expire,
+    cancelBy,
     title,
     generate,
     cart,
@@ -104,6 +110,12 @@ export default async function createVouchers({
   if (dayjs(expire) > dayjs().add(61, "day")) {
     throw Error("expire must at most 60 days in the future");
   }
+  if (dayjs(cancelBy) >= dayjs(expire).add(-1, "day")) {
+    throw Error("cancel by date must be before expire date");
+  }
+  if (dayjs(expire) > dayjs().add(31, "day")) {
+    throw Error("expire must at most 30 days in the future");
+  }
   if (generate != null) {
     if (generate.length != null && generate.length < 8) {
       throw Error(
@@ -132,8 +144,8 @@ export default async function createVouchers({
 
   */
   const { rows } = await pool.query(
-    "INSERT INTO vouchers(created, created_by, title, expire, cart, cost, tax) VALUES(NOW(), %1, %2, %3, %4, %5, %6) RETURNING id",
-    [account_id, title, expire, cart, cost]
+    "INSERT INTO vouchers(created, created_by, title, active, expire, cancel_by, cart, cost, tax) VALUES(NOW(), $1, $2, $3, $4, $5, $6, $7) RETURNING id",
+    [account_id, title, active, expire, cancelBy, cart, cost, tax]
   );
   const { id } = rows[0];
 

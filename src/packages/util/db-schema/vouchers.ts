@@ -18,6 +18,15 @@ Table({
         editable: true,
       },
     },
+    active: {
+      title: "Active",
+      type: "timestamp",
+      desc: "When this voucher becomes active.",
+      render: {
+        type: "timestamp",
+        editable: true,
+      },
+    },
     expire: {
       title: "Due",
       type: "timestamp",
