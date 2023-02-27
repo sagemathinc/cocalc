@@ -329,7 +329,7 @@ function Terms() {
   );
 }
 
-export function DescriptionColumn({ cost, description }) {
+export function DescriptionColumn({ cost, description, voucherPeriod }) {
   const { input } = cost;
   return (
     <>
@@ -340,7 +340,7 @@ export function DescriptionColumn({ cost, description }) {
           </div>
         )}
         {description.description && <div>{description.description}</div>}
-        {describeItem({ info: input })}
+        {describeItem({ info: input, voucherPeriod })}
       </div>
     </>
   );
@@ -541,14 +541,21 @@ export function OrderError({ orderError }) {
   );
 }
 
-export function getColumns({ noDiscount }: { noDiscount?: boolean } = {}) {
+export function getColumns({
+  noDiscount,
+  voucherPeriod,
+}: { noDiscount?: boolean; voucherPeriod?: boolean } = {}) {
   return [
     {
       responsive: ["xs" as "xs"],
       render: ({ cost, description, project_id }) => {
         return (
           <div>
-            <DescriptionColumn cost={cost} description={description} />
+            <DescriptionColumn
+              cost={cost}
+              description={description}
+              voucherPeriod={voucherPeriod}
+            />
             <ProjectID project_id={project_id} />
             <div>
               <b style={{ fontSize: "11pt" }}>
@@ -580,7 +587,11 @@ export function getColumns({ noDiscount }: { noDiscount?: boolean } = {}) {
       width: "60%",
       render: (_, { cost, description, project_id }) => (
         <>
-          <DescriptionColumn cost={cost} description={description} />{" "}
+          <DescriptionColumn
+            cost={cost}
+            description={description}
+            voucherPeriod={voucherPeriod}
+          />{" "}
           <ProjectID project_id={project_id} />
         </>
       ),

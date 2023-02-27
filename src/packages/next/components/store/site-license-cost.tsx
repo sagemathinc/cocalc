@@ -106,19 +106,22 @@ export function DisplayCost({
 interface DescribeItemProps {
   info: Partial<PurchaseInfo>;
   variant?: "short" | "long";
+  voucherPeriod?: boolean;
 }
 
 // TODO: this should be a component. Rename it to DescribeItem and use it
 // properly, e.g., <DescribeItem info={cost.input}/> above.
 
-export function describeItem(props: DescribeItemProps): ReactNode {
-  const { info, variant = "long" } = props;
-
+export function describeItem({
+  info,
+  variant = "long",
+  voucherPeriod,
+}: DescribeItemProps): ReactNode {
   if (info.type === "disk") {
     return (
       <>
         Dedicated Disk ({dedicatedDiskDisplay(info.dedicated_disk, variant)}){" "}
-        {describePeriod({ quota: info, variant })}
+        {describePeriod({ quota: info, variant, voucherPeriod })}
       </>
     );
   }
@@ -127,7 +130,7 @@ export function describeItem(props: DescribeItemProps): ReactNode {
     return (
       <>
         Dedicated VM ({dedicatedVmDisplay(info.dedicated_vm)}){" "}
-        {describePeriod({ quota: info, variant })}
+        {describePeriod({ quota: info, variant, voucherPeriod })}
       </>
     );
   }
@@ -158,7 +161,8 @@ export function describeItem(props: DescribeItemProps): ReactNode {
     return (
       <>
         <Text strong={true}>{describeQuantity({ quota: info, variant })}</Text>{" "}
-        {describeQuotaOnLine(quota)}, {describePeriod({ quota: info, variant })}
+        {describeQuotaOnLine(quota)},{" "}
+        {describePeriod({ quota: info, variant, voucherPeriod })}
       </>
     );
   } else {
@@ -166,7 +170,7 @@ export function describeItem(props: DescribeItemProps): ReactNode {
       <>
         {describe_quota(quota, false)}{" "}
         {describeQuantity({ quota: info, variant })} (
-        {describePeriod({ quota: info, variant })})
+        {describePeriod({ quota: info, variant, voucherPeriod })})
       </>
     );
   }
@@ -195,13 +199,18 @@ interface PeriodProps {
     end?: Date | string;
   };
   variant?: "short" | "long";
+  // voucherPeriod: description used for a voucher -- just give number of days, since the exact dates themselves are discarded.
+  voucherPeriod?: boolean;
 }
 
 /**
  * ATTN: this is not a general purpose period description generator. It's very specific to the purchases in the store!
  */
-export function describePeriod(props: PeriodProps): ReactNode {
-  const { quota, variant = "long" } = props;
+export function describePeriod({
+  quota,
+  variant = "long",
+  voucherPeriod,
+}: PeriodProps): ReactNode {
   const { subscription, start: startRaw, end: endRaw } = quota;
 
   const { fromServerTime, serverTimeDate } = useTimeFixer();
@@ -221,6 +230,14 @@ export function describePeriod(props: PeriodProps): ReactNode {
 
     // days are calculated based on the actual selection
     const days = getDays({ start, end });
+
+    if (voucherPeriod) {
+      return (
+        <>
+          license lasts {days} {plural(days, "day")}
+        </>
+      );
+    }
 
     // but the displayed end mimics what will happen later on the backend
     // i.e. if the day alreaday started, we append the already elapsed period to the end

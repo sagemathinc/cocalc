@@ -7,7 +7,8 @@
 Voucher -- create vouchers from the contents of your shopping cart.
 */
 
-import { Alert, Button, Col, InputNumber, Row, Table } from "antd";
+import { Alert, Button, Col, DatePicker, InputNumber, Row, Table } from "antd";
+import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
@@ -45,6 +46,9 @@ export default function CreateVouchers() {
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
   const [numVouchers, setNumVouchers] = useState<number>(1);
+  const [expire, setExpire] = useState<dayjs.Dayjs | null>(
+    dayjs().add(30, "day")
+  );
 
   // most likely, user will do the purchase and then see the congratulations page
   useEffect(() => {
@@ -94,13 +98,14 @@ export default function CreateVouchers() {
     }
   }
 
-  const columns = getColumns({ noDiscount: true });
+  const columns = getColumns({ noDiscount: true, voucherPeriod: true });
 
   function CreateVouchersButton() {
     const v = plural(numVouchers, "Voucher");
     return (
       <Button
         disabled={
+          expire == null ||
           subTotal == 0 ||
           placingOrder ||
           !haveCreditCard ||
@@ -112,9 +117,13 @@ export default function CreateVouchers() {
         onClick={createVouchers}
       >
         {placingOrder ? (
-          <Loading delay={0}>Create {v}...</Loading>
+          <Loading delay={0}>
+            Creating {numVouchers} {v}...
+          </Loading>
         ) : (
-          <>Create {v}</>
+          <>
+            Create {numVouchers} {v}
+          </>
         )}
       </Button>
     );
@@ -175,7 +184,7 @@ export default function CreateVouchers() {
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
                 1. How Many Vouchers?
               </h4>
-              <Paragraph>
+              <Paragraph style={{ color: "#666" }}>
                 Input the number of vouchers you would like to create.
                 <div style={{ textAlign: "center", marginTop: "15px" }}>
                   <InputNumber
@@ -188,9 +197,57 @@ export default function CreateVouchers() {
                 </div>
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                2. Ensure a Payment Method is on File
+                2. When do the Vouchers Expire?
               </h4>
-              <Paragraph>
+              <Paragraph style={{ color: "#666" }}>
+                Any voucher that is not redeemed by the given date will expire.
+                You can choose a date that is up to 60 days in the future. You
+                will be invoiced only for vouchers that are redeemed before the
+                expiration date.
+                <div style={{ textAlign: "center", marginTop: "15px" }}>
+                  <DatePicker
+                    value={expire}
+                    presets={[
+                      {
+                        label: "+ 7 Days",
+                        value: dayjs().add(7, "d"),
+                      },
+                      {
+                        label: "+ 30 Days",
+                        value: dayjs().add(30, "day"),
+                      },
+                      {
+                        label: "+ 45 Days",
+                        value: dayjs().add(45, "day"),
+                      },
+                      {
+                        label: "+ 60 Days",
+                        value: dayjs().add(60, "day"),
+                      },
+                    ]}
+                    onChange={setExpire}
+                    disabledDate={(current) => {
+                      if (!current) {
+                        return true;
+                      }
+                      // Can not select days before today and today
+                      if (current < dayjs().endOf("day")) {
+                        return true;
+                      }
+                      // Cannot select days more than 60 days in the future.
+                      if (current > dayjs().endOf("day").add(60, "day")) {
+                        return true;
+                      }
+                      // ok
+                      return false;
+                    }}
+                  />
+                </div>
+              </Paragraph>{" "}
+              <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+                3. Ensure a Payment Method is on File
+              </h4>
+              <Paragraph style={{ color: "#666" }}>
                 The default payment method shown below will be used to pay for
                 the redeemed vouchers, unless you change the payment method
                 before you are invoiced.
@@ -233,7 +290,7 @@ export default function CreateVouchers() {
         </Row>
 
         <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
-          3.{" "}
+          4.{" "}
           {numVouchers == 1
             ? "Your Voucher"
             : `Each of Your ${numVouchers} Vouchers`}{" "}
@@ -257,7 +314,7 @@ export default function CreateVouchers() {
           />
         </div>
         <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
-          4. Create Your {plural(numVouchers, "Voucher")}
+          5. Create Your {plural(numVouchers, "Voucher")}
         </h4>
         <div style={{ fontSize: "12pt" }}>
           <Row>
