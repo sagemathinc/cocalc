@@ -284,18 +284,20 @@ export default function CreateVouchers() {
                   <Space>
                     <InputNumber
                       addonBefore={"Length"}
-                      min={6}
+                      min={8}
                       max={16}
                       onChange={(length) => setLength(length ?? 8)}
                       value={length}
                     />
                     <Input
+                      maxLength={10 /* also enforced via api */}
                       onChange={(e) => setPrefix(e.target.value)}
                       value={prefix}
                       addonBefore={"Prefix"}
                       allowClear
                     />
                     <Input
+                      maxLength={10 /* also enforced via api */}
                       onChange={(e) => setPostfix(e.target.value)}
                       value={postfix}
                       addonBefore={"Postfix"}

@@ -5,8 +5,8 @@ import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
   try {
-    await doIt(req);
-    res.json({ success: true });
+    const result = await doIt(req);
+    res.json({ ...result, success: true });
   } catch (err) {
     res.json({ error: `${err.message}` });
     return;
@@ -44,7 +44,7 @@ async function doIt(req) {
   if (!(await userIsInGroup(account_id, "partner"))) {
     throw Error("only partners can create vouchers");
   }
-  await createVouchers({
+  return await createVouchers({
     account_id,
     count,
     expire: new Date(expire),

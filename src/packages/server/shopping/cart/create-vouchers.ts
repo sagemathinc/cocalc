@@ -17,12 +17,16 @@ If this successfully runs, then the checked items in the shopping
 cart are changed in the database so that the purchased field is set.
 */
 
-//import { db } from "@cocalc/database";
-//import getPool from "@cocalc/database/pool";
+import getPool from "@cocalc/database/pool";
+import multiInsert from "@cocalc/database/pool/multi-insert";
 import getCart from "./get";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import dayjs from "dayjs";
-import { /*vouchers, */ CharSet, MAX_VOUCHERS } from "@cocalc/util/vouchers";
+import generateVouchers, {
+  CharSet,
+  MAX_VOUCHERS,
+  CHARSETS,
+} from "@cocalc/util/vouchers";
 import { getLogger } from "@cocalc/backend/logger";
 
 const logger = getLogger("createVouchers");
@@ -47,7 +51,7 @@ export default async function createVouchers({
   expire,
   title,
   generate,
-}: Options): Promise<void> {
+}: Options): Promise<{ group_id: string; vouchers: string[] }> {
   // Get the list of items in the cart that haven't been purchased
   // or saved for later, and are currently checked, and are
   // NOT subscriptions (i.e, a date range).
@@ -63,7 +67,7 @@ export default async function createVouchers({
     cart,
   });
 
-  //const pool = getPool();
+  const pool = getPool();
 
   // Make some checks.
 
@@ -86,21 +90,57 @@ export default async function createVouchers({
     throw Error("expire must at most 60 days in the future");
   }
   if (generate != null) {
-    if (generate.length != null && generate.length < 6) {
+    if (generate.length != null && generate.length < 8) {
       throw Error(
         "there must be at least 6 random characters in generated code"
       );
+    }
+    if (generate.charset && !CHARSETS.includes(generate.charset)) {
+      throw Error(`charset must be one of ${CHARSETS.join(", ")}`);
+    }
+    if (generate.prefix != null && generate.prefix.length > 10) {
+      throw Error("prefix must have length at most 10");
+    }
+    if (generate.postfix != null && generate.postfix.length > 10) {
+      throw Error("postfix must have length at most 10");
     }
   }
 
   /*
   Now actually modify the database.  We create two things:
 
-  1. A record in the "voucher_create" table that explains what the voucher is for, and
-     records the title and expire date.
+  1. A record in the "voucher_groups" table that explains what the voucher
+     is for, and records the title and expire date.
 
-  2. We create [count] records in the "vouchers" table. These point to the voucher_create
-     record and can be redeemed.
+  2. We create [count] records in the "vouchers" table. These point to
+     the voucher_create record and can be redeemed.
 
   */
+  const { rows } = await pool.query(
+    "INSERT INTO voucher_groups(account_id, title, count, expire) VALUES(%1, %2, %3, %4) RETURNING id",
+    [account_id, title, count, expire]
+  );
+  const { id: group_id } = rows[0];
+
+  let error;
+  for (let i = 0; i < 10; i++) {
+    try {
+      // create the voucher codes:
+      const vouchers = generateVouchers({ ...generate, count });
+      const { query, values } = multiInsert(
+        "INSERT INTO vouchers(id, group_id)",
+        vouchers.map((code) => [code, group_id])
+      );
+      await pool.query(query, values);
+      // Did it!
+      return { group_id, vouchers };
+    } catch (err) {
+      error = err;
+      // It is possible there is an error due to one of our new randomly generated voucher codes
+      // just randomly matching something already in the database.  This is very, very highly
+      // unlikely, so if this happens, we just try again... up to 10 times.
+    }
+  }
+  // Failed 10 times. Weird. Report error. Maybe database is down or something else.
+  throw error;
 }

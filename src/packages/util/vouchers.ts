@@ -1,11 +1,14 @@
 import voucherCodes from "voucher-code-generator";
 
-export type CharSet =
-  | "numbers"
-  | "alphabetic"
-  | "alphanumeric"
-  | "lower"
-  | "upper";
+export const CHARSETS = [
+  "numbers",
+  "alphabetic",
+  "alphanumeric",
+  "lower",
+  "upper",
+];
+
+export type CharSet = typeof CHARSETS[number];
 
 export const MAX_VOUCHERS = 1000;
 
