@@ -44,8 +44,8 @@ export default function ConfigMenu({ main }) {
 
   if (profile?.is_partner) {
     items.push({
-      label: "Create Vouchers",
-      key: "create-vouchers",
+      label: "Vouchers",
+      key: "vouchers",
       icon: <Icon name="credit-card" />,
     });
   }

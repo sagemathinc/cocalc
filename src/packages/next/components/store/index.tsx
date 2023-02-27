@@ -15,7 +15,7 @@ import useCustomize from "lib/use-customize";
 import Boost from "./boost";
 import Cart from "./cart";
 import Checkout from "./checkout";
-import CreateVouchers from "./create-vouchers";
+import Vouchers from "./vouchers";
 import Congrats from "./congrats";
 import DedicatedResource from "./dedicated";
 import Menu from "./menu";
@@ -33,7 +33,7 @@ interface Props {
     | "cart"
     | "checkout"
     | "congrats"
-    | "create-vouchers"
+    | "vouchers"
     | undefined
   )[];
 }
@@ -124,8 +124,8 @@ export default function StoreLayout({ page }: Props) {
         return requireAccount(Cart);
       case "checkout":
         return requireAccount(Checkout);
-      case "create-vouchers":
-        return requireAccount(CreateVouchers, { partner: true });
+      case "vouchers":
+        return requireAccount(Vouchers, { partner: true });
       case "congrats":
         return requireAccount(Congrats);
       default:
@@ -145,7 +145,7 @@ export default function StoreLayout({ page }: Props) {
       >
         <Content
           style={{
-            margin: '0 30px',
+            margin: "0 30px",
             minHeight: "60vh",
           }}
         >

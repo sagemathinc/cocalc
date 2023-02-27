@@ -213,7 +213,7 @@ export default function ShoppingCart() {
           disabled={subTotal == 0 || updating}
           size="large"
           onClick={() => {
-            router.push("/store/create-vouchers");
+            router.push("/store/vouchers");
           }}
         >
           Create Vouchers

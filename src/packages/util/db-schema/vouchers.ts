@@ -27,6 +27,15 @@ Table({
         editable: true,
       },
     },
+    cancel_by: {
+      title: "Cancel by this date.",
+      type: "timestamp",
+      desc: "This voucher must be cancelled by this date.",
+      render: {
+        type: "timestamp",
+        editable: true,
+      },
+    },
     cart: {
       // items in the shopping cart that were used to create this voucher.  This defines
       // what the voucher provides.
@@ -118,6 +127,7 @@ Table({
       render: { type: "account" },
       title: "Account",
     },
+    note: { type: "string", desc: "The random code the determines this." }, // TODO
   },
   rules: {
     desc: "Voucher codes",
