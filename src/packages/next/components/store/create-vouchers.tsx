@@ -51,13 +51,17 @@ export default function CreateVouchers() {
     router.prefetch("/store/congrats");
   }, []);
 
-  const cart = useAPI("/shopping/cart/get");
+  const cart0 = useAPI("/shopping/cart/get");
+
+  const cart = useMemo(() => {
+    return cart0.result?.filter((item) => item.description?.period == "range");
+  }, [cart0.result]);
 
   const items = useMemo(() => {
-    if (!cart.result) return undefined;
+    if (!cart) return undefined;
     const x: any[] = [];
     let subTotal = 0;
-    for (const item of cart.result) {
+    for (const item of cart) {
       if (!item.checked) continue;
       item.cost = computeCost(item.description);
       subTotal += item.cost.cost;
@@ -65,9 +69,9 @@ export default function CreateVouchers() {
     }
     setSubTotal(subTotal);
     return x;
-  }, [cart.result]);
+  }, [cart]);
 
-  if (cart.error) {
+  if (cart0.error) {
     return <Alert type="error" message={cart.error} />;
   }
   if (!items) {
@@ -116,36 +120,42 @@ export default function CreateVouchers() {
     );
   }
 
-  function emptyCart() {
+  function EmptyCart() {
     return (
-      <>
+      <div style={{ maxWidth: "800px", margin: "auto" }}>
         <h3>
           <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
-          {cart.result?.length > 0 && (
+          {cart?.length > 0 && (
             <>
               Nothing in Your <SiteName />{" "}
               <A href="/store/cart">Shopping Cart</A> is Selected
             </>
           )}
-          {(cart.result?.length ?? 0) == 0 && (
+          {(cart0.result?.length ?? 0) == 0 ? (
             <>
               Your <SiteName /> <A href="/store/cart">Shopping Cart</A> is Empty
+            </>
+          ) : (
+            <>
+              Your <SiteName /> <A href="/store/cart">Shopping Cart</A> must
+              contain at least one non-subscription item
             </>
           )}
         </h3>
         <br />
         <br />
-        You must have at least one item in <A href="/store/cart">
-          your cart
-        </A>{" "}
-        to create vouchers. Shop for <A href="/store/site-license">upgrades</A>,
-        a <A href="/store/boost">license boost</A>, or a{" "}
-        <A href="/dedicated">dedicated VM or disk</A>.
-      </>
+        You must have at least one non-subscription item in{" "}
+        <A href="/store/cart">your cart</A> to create vouchers. Shop for{" "}
+        <A href="/store/site-license">upgrades</A>, a{" "}
+        <A href="/store/boost">license boost</A>, or a{" "}
+        <A href="/dedicated">dedicated VM or disk</A>, and select a specific
+        range of dates. When the voucher is redeemed it starts at the redemption
+        date, and lasts for the same number of days as your shopping cart item.
+      </div>
     );
   }
 
-  function nonemptyCart(items) {
+  function NonemptyCart({ items }) {
     return (
       <>
         <OrderError orderError={orderError} />
@@ -163,18 +173,17 @@ export default function CreateVouchers() {
               3 below.
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
                 1. How Many Vouchers?
+                <InputNumber
+                  style={{ marginLeft: "15px", top: "-10px" }}
+                  size="large"
+                  min={1}
+                  max={Math.ceil(MAX_AMOUNT / (subTotal ?? 1))}
+                  defaultValue={numVouchers}
+                  onChange={(value) => setNumVouchers(value ?? 1)}
+                />
               </h4>
               <Paragraph>
                 Input the number of vouchers you would like to create.
-                <div style={{ textAlign: "center", marginTop: "15px" }}>
-                  <InputNumber
-                    size="large"
-                    min={1}
-                    max={Math.ceil(MAX_AMOUNT / (subTotal ?? 1))}
-                    value={numVouchers}
-                    onChange={(value) => setNumVouchers(value ?? 1)}
-                  />
-                </div>
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
                 2. Ensure a Payment Method is on File
@@ -229,6 +238,13 @@ export default function CreateVouchers() {
           Provides the Following {items.length}{" "}
           {plural(items.length, "License")}
         </h4>
+        <Paragraph style={{ color: "#666" }}>
+          These are the licenses with a fixed range of time from your shopping
+          cart (vouchers cannot be used to create subscriptions). When used, the
+          voucher is redeemed for one or more license starting at the time of
+          redemption and running for the same length of time as each license
+          listed below.
+        </Paragraph>
         <div style={{ border: "1px solid #eee" }}>
           <Table
             showHeader={false}
@@ -249,7 +265,7 @@ export default function CreateVouchers() {
             <Col sm={12}>
               <div style={{ fontSize: "15pt" }}>
                 <TotalCost
-                  items={cart.result}
+                  items={cart}
                   taxRate={taxRate}
                   numVouchers={numVouchers}
                 />
@@ -266,8 +282,8 @@ export default function CreateVouchers() {
   return (
     <>
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
-      {items.length == 0 && emptyCart()}
-      {items.length > 0 && nonemptyCart(items)}
+      {items.length == 0 && <EmptyCart />}
+      {items.length > 0 && <NonemptyCart items={items} />}
       <OrderError orderError={orderError} />
     </>
   );

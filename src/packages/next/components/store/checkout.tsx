@@ -143,9 +143,9 @@ function Checkout() {
     );
   }
 
-  function emptyCart() {
+  function EmptyCart() {
     return (
-      <>
+      <div style={{ maxWidth: "800px", margin: "auto" }}>
         <h3>
           <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
           {cart.result?.length > 0 && (
@@ -168,11 +168,11 @@ function Checkout() {
         to checkout. Shop for <A href="/store/site-license">upgrades</A>, a{" "}
         <A href="/store/boost">license boost</A>, or a{" "}
         <A href="/dedicated">dedicated VM or disk</A>.
-      </>
+      </div>
     );
   }
 
-  function nonemptyCart(items) {
+  function NonemptyCart({ items }) {
     return (
       <>
         <OrderError orderError={orderError} />
@@ -256,8 +256,8 @@ function Checkout() {
   return (
     <>
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
-      {items.length == 0 && emptyCart()}
-      {items.length > 0 && nonemptyCart(items)}
+      {items.length == 0 && <EmptyCart />}
+      {items.length > 0 && <NonemptyCart items={items} />}
       <OrderError orderError={orderError} />
     </>
   );

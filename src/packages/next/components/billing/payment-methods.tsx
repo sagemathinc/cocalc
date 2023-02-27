@@ -12,7 +12,7 @@ In the *near* future we will support more payment methods!
 */
 
 import { Alert, Button, Popconfirm, Table } from "antd";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -206,20 +206,21 @@ interface Props {
   setHaveCreditCard?: (have: boolean) => void;
 }
 
-export default function PaymentMethods(props: Props) {
-  const { startMinimized, setTaxRate, setHaveCreditCard } = props;
+export default function PaymentMethods({
+  startMinimized,
+  setTaxRate,
+  setHaveCreditCard,
+}: Props) {
   const [minimized, setMinimized] = useState<boolean>(!!startMinimized);
   const { result, error, call } = useAPI("billing/get-customer");
-  if (error) {
-    return <Alert type="error" message={error} />;
-  }
-  if (!result) {
-    return <Loading center />;
-  }
-  // set default so can use in table
-  const { default_source } = result;
-  const cards: (CardProps & { id: string; default_source: boolean })[] = [];
-  if (result.sources != null) {
+  const cols: any = useMemo(() => {
+    return columns(call);
+  }, [call]);
+  const cards = useMemo(() => {
+    if (result?.sources == null) return [];
+    // set default so can use in table
+    const { default_source } = result;
+    const cards: (CardProps & { id: string; default_source: boolean })[] = [];
     for (const row of result.sources.data) {
       if (row.id == default_source) {
         row.default_source = true;
@@ -233,13 +234,22 @@ export default function PaymentMethods(props: Props) {
         cards.push(row);
       }
     }
-  }
-  // sort by data rather than what comes back, so changing
-  // default stays stable (since moving is confusing).
-  cards.sort((x, y) => cmp(x.id, y.id));
+    // sort by data rather than what comes back, so changing
+    // default stays stable (since moving is confusing).
+    cards.sort((x, y) => cmp(x.id, y.id));
 
-  // Tell the parent if we have a credit card or not.
-  setHaveCreditCard?.(cards.length > 0);
+    // Tell the parent if we have a credit card or not.
+    setTimeout(() => setHaveCreditCard?.(cards.length > 0), 0);
+
+    return cards;
+  }, [result?.sources]);
+
+  if (error) {
+    return <Alert type="error" message={error} />;
+  }
+  if (!result) {
+    return <Loading center />;
+  }
 
   if (minimized) {
     let defaultCard: undefined | CardProps = undefined;
@@ -287,7 +297,7 @@ export default function PaymentMethods(props: Props) {
       />
       {cards.length > 0 && (
         <Table
-          columns={columns(call) as any}
+          columns={cols}
           dataSource={cards}
           rowKey={"id"}
           style={{ marginTop: "15px", overflowX: "auto" }}
@@ -446,8 +456,8 @@ function AddPaymentMethod(props: AddPaymentMethodProps) {
             <A href="https://stripe.com/" external>
               Stripe
             </A>
-            . Wire transfers for non-recurring purchases above $100
-            are also possible. <HelpEmail />.
+            . Wire transfers for non-recurring purchases above $100 are also
+            possible. <HelpEmail />.
           </Paragraph>
         </div>
       )}
