@@ -150,7 +150,9 @@ export async function stopProjectProcesses(project_id: string): Promise<void> {
     const home_path = homePath(project_id);
     const pid = await getProjectPID(home_path);
     const scmd = `kill -9 ${pid} | true `; // | true since kill can return nonzero status. 
-    await exec(scmd); // May be here we should implement some king of GC for processes?
+    await exec(scmd); // May be here we should implement some kind of GC for processes?
+      // Just killing all processes for the user is not the solution — user can run long running tasks or services, 
+      // using tmux/rdp/etc.
 }
  
 
