@@ -52,6 +52,11 @@ Table({
       pg_type: "JSONB[]",
       desc: "Cart of items provided by this voucher.",
     },
+    count: {
+      type: "number",
+      title: "Count",
+      desc: "How many voucher codes were created.",
+    },
     cost: {
       type: "number",
       desc: "How much one voucher costs in dollars.",
@@ -78,6 +83,7 @@ Table({
           expire: null,
           cancel_by: null,
           title: null,
+          count: null,
           cost: null,
           tax: null,
         },
@@ -109,6 +115,7 @@ Table({
           expire: null,
           cancel_by: null,
           title: null,
+          count: null,
           cost: null,
           tax: null,
           notes: null,
@@ -138,8 +145,10 @@ Table({
     code: { type: "string", desc: "The random code the determines this." },
     id: {
       type: "integer",
+      title: "Voucher id",
       desc: "The unique id of the voucher that this is a code for.",
     },
+    created: CREATED, // technically redundant since the vouchers id determines this; however it is convenient to have.
     when_redeemed: {
       type: "timestamp",
       title: "When Redeemed",
@@ -174,6 +183,7 @@ Table({
         fields: {
           code: null,
           id: null,
+          created: null,
           when_redeemed: null,
           redeemed_by: null,
           notes: null,

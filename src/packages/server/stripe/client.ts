@@ -20,7 +20,7 @@ export { Stripe };
 import getPrivateProfile from "@cocalc/server/accounts/profile/private";
 
 import getConn from "./connection";
-import { stripe_sales_tax } from "./sales-tax";
+import salesTax from "./sales-tax";
 
 import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("stripe-client");
@@ -309,7 +309,7 @@ export class StripeClient {
   }
 
   public async sales_tax(customer_id: string): Promise<number> {
-    return await stripe_sales_tax(customer_id, this.dbg("sales_tax"));
+    return await salesTax(customer_id);
   }
 
   public async mesg_create_subscription(mesg: Message): Promise<void> {

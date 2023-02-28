@@ -17,6 +17,7 @@ register({
         expire: null,
         cancel_by: null,
         title: null,
+        count: null,
         cost: null,
         tax: null,
         notes: null,
@@ -39,6 +40,7 @@ register({
       {
         code: null,
         id: null,
+        created: null,
         when_redeemed: null,
         redeemed_by: null,
         notes: null,

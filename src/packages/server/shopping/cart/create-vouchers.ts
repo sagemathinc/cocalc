@@ -29,6 +29,8 @@ import generateVouchers, {
 } from "@cocalc/util/vouchers";
 import { getLogger } from "@cocalc/backend/logger";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import salesTax from "@cocalc/server/stripe/sales-tax";
+import { getStripeCustomerId } from "@cocalc/database/postgres/stripe";
 
 const logger = getLogger("createVouchers");
 
@@ -77,7 +79,9 @@ export default async function createVouchers({
   for (const item of cart) {
     cost += computeCost(item.description as any)?.cost ?? 0;
   }
-  const tax = 0;
+  const customerId = await getStripeCustomerId(account_id);
+  const taxRate = customerId ? await salesTax(customerId) : 0;
+  const tax = cost * taxRate;
 
   logger.debug({
     account_id,
@@ -148,8 +152,8 @@ export default async function createVouchers({
 
   */
   const { rows } = await pool.query(
-    "INSERT INTO vouchers(created, created_by, title, active, expire, cancel_by, cart, cost, tax) VALUES(NOW(), $1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
-    [account_id, title, active, expire, cancelBy, cart, cost, tax]
+    "INSERT INTO vouchers(created, created_by, title, active, expire, cancel_by, cart, cost, tax, count) VALUES(NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+    [account_id, title, active, expire, cancelBy, cart, cost, tax, count]
   );
   const { id } = rows[0];
 
@@ -157,10 +161,11 @@ export default async function createVouchers({
   for (let i = 0; i < 10; i++) {
     try {
       // create the voucher codes:
+      const now = new Date();
       const codes = generateVouchers({ ...generate, count });
       const { query, values } = multiInsert(
-        "INSERT INTO voucher_codes(code, id)",
-        codes.map((code) => [code, id])
+        "INSERT INTO voucher_codes(code, id, created)",
+        codes.map((code) => [code, id, now])
       );
       await pool.query(query, values);
       // Did it!

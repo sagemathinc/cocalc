@@ -507,7 +507,7 @@ export default function CreateVouchers() {
                 style={{
                   textAlign: "center",
                   border: "1px solid #ddd",
-                  padding: "15px",
+                  padding: "30px 15px" /* 30px so amount can wrap and still in */,
                   borderRadius: "5px",
                   minWidth: "300px",
                 }}
@@ -532,7 +532,7 @@ export default function CreateVouchers() {
         </Row>
 
         <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
-          <Check done={!disabled} /> 5.{" "}
+          <Check done /> 5.{" "}
           {numVouchers == 1
             ? "Your Voucher"
             : `Each of Your ${numVouchers} Vouchers`}{" "}
@@ -626,8 +626,7 @@ function VoucherSummary({ items, taxRate, numVouchers }) {
         not pay anything.
       </Paragraph>
       <div>
-        {numVouchers} Vouchers (each for {items.length}{" "}
-        {plural(items.length, "license")}):{" "}
+        {numVouchers} Vouchers:{" "}
         <span style={{ float: "right" }}>{money(full, true)}</span>
       </div>
       <div>
