@@ -15,13 +15,36 @@ import A from "components/misc/A";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import useProfile from "lib/hooks/profile";
 import { useRouter } from "next/router";
+import apiPost from "lib/api/post";
+import useIsMounted from "lib/hooks/mounted";
+import Loading from "components/share/loading";
 
 export default function Redeem({ customize }) {
+  const isMounted = useIsMounted();
   const [code, setCode] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [redeemingVoucher, setRedeemingVoucher] = useState<boolean>(false);
   const { account_id, email_address } = useProfile({ noCache: true }) ?? {};
   const [signedIn, setSignedIn] = useState<boolean>(!!account_id);
   const router = useRouter();
+
+  async function redeemCode() {
+    try {
+      setError("");
+      setRedeemingVoucher(true);
+      // This api call tells the backend, "create requested vouchers from everything in my
+      // shopping cart that is not a subscription."
+      await apiPost("/vouchers/redeem", { code: code.trim() });
+      if (!isMounted.current) return;
+    } catch (err) {
+      // The redeem failed.
+      setError(err.message);
+    } finally {
+      if (!isMounted.current) return;
+      setRedeemingVoucher(false);
+    }
+  }
+
   return (
     <Customize value={customize}>
       <Head title="Redeem Voucher" />
@@ -76,12 +99,16 @@ export default function Redeem({ customize }) {
                     style={{ width: "300px", marginBottom: "15px" }}
                   />
                   <Button
+                    disabled={code.length < 8 || redeemingVoucher}
                     size="large"
                     type="primary"
-                    disabled={code.length < 8}
-                    onClick={() => {}}
+                    onClick={redeemCode}
                   >
-                    Redeem
+                    {redeemingVoucher ? (
+                      <Loading delay={0}>Redeeming...</Loading>
+                    ) : (
+                      <>Redeem</>
+                    )}
                   </Button>
                   <Divider orientation="left" style={{ width: "400px" }}>
                     Vouchers

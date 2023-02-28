@@ -54,7 +54,7 @@ async function doIt(req) {
   }
   const account_id = await getAccountId(req);
   if (account_id == null) {
-    throw Error("must be signed in to check out");
+    throw Error("must be signed in to create vouchers");
   }
   if (!(await userIsInGroup(account_id, "partner"))) {
     throw Error("only partners can create vouchers");

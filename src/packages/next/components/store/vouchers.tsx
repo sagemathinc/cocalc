@@ -115,7 +115,7 @@ export default function CreateVouchers() {
       setCreatingVouchers(true);
       // This api call tells the backend, "create requested vouchers from everything in my
       // shopping cart that is not a subscription."
-      await apiPost("/shopping/cart/create-vouchers", {
+      await apiPost("/vouchers/create-vouchers", {
         count: numVouchers,
         expire,
         cancelBy,
@@ -507,7 +507,8 @@ export default function CreateVouchers() {
                 style={{
                   textAlign: "center",
                   border: "1px solid #ddd",
-                  padding: "30px 15px" /* 30px so amount can wrap and still in */,
+                  padding:
+                    "30px 15px" /* 30px so amount can wrap and still in */,
                   borderRadius: "5px",
                   minWidth: "300px",
                 }}

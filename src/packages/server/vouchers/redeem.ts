@@ -2,6 +2,9 @@
 
 import { getVoucherCode, redeemVoucherCode } from "./codes";
 import { getVoucher } from "./vouchers";
+import { getLogger } from "@cocalc/backend/logger";
+
+const log = getLogger("server:vouchers:redeem");
 
 interface Options {
   account_id: string;
@@ -13,17 +16,25 @@ export default async function redeemVoucher({
   code,
 }: Options): Promise<string[]> {
   // get info from db about given voucher code
+  log.debug("code=", code);
   const voucherCode = await getVoucherCode(code);
   if (voucherCode.when_redeemed != null) {
-    throw Error(`voucher ${code} was already redeemed`);
+    log.debug(code, "already redeemed");
+    if (voucherCode.redeemed_by == account_id) {
+      throw Error(`You already reemed voucher '${code}'.`);
+    } else {
+      throw Error(`Voucher '${code}' was already redeemed by somebody else.`);
+    }
   }
   const voucher = await getVoucher(voucherCode.id);
   const now = new Date();
-  if (voucher.active != null || now < voucher.active) {
-    throw Error(`voucher ${code} is not yet active.`);
+  if (voucher.active != null && now < voucher.active) {
+    log.debug(code, "not yet active", now, voucher.active);
+    throw Error(`Voucher '${code}' is not yet active.`);
   }
   if (voucher.expire != null && now >= voucher.expire) {
-    throw Error(`voucher ${code} has already expired`);
+    log.debug(code, "already expired", now, voucher.expire);
+    throw Error(`Voucher '${code}' has already expired.`);
   }
 
   // Create license resources for user.
