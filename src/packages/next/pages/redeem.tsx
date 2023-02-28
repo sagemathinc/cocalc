@@ -78,38 +78,45 @@ export default function Redeem({ customize }) {
             )}
             {(account_id || signedIn) && (
               <Card style={{ background: "#fafafa" }}>
-                {error && (
-                  <Alert
-                    type="error"
-                    message={error}
-                    showIcon
-                    style={{ width: "100%", marginBottom: "30px" }}
-                    closable
-                    onClose={() => setError("")}
-                  />
-                )}
                 <Space direction="vertical" align="center">
                   <Icon name="gift2" style={{ fontSize: "75px" }} />
                   <h1>Enter Voucher Code</h1>
                   <Input
+                    allowClear
                     autoFocus
                     size="large"
                     value={code}
-                    onChange={(e) => setCode(e.target.value)}
+                    onChange={(e) => {
+                      setCode(e.target.value);
+                      setError("");
+                    }}
+                    onPressEnter={redeemCode}
                     style={{ width: "300px", marginBottom: "15px" }}
                   />
-                  <Button
-                    disabled={code.length < 8 || redeemingVoucher}
-                    size="large"
-                    type="primary"
-                    onClick={redeemCode}
-                  >
-                    {redeemingVoucher ? (
-                      <Loading delay={0}>Redeeming...</Loading>
-                    ) : (
-                      <>Redeem</>
-                    )}
-                  </Button>
+                  {error && (
+                    <Alert
+                      type="error"
+                      message={error}
+                      showIcon
+                      style={{ width: "100%", marginBottom: "30px" }}
+                      closable
+                      onClose={() => setError("")}
+                    />
+                  )}
+                  {!error && (
+                    <Button
+                      disabled={code.length < 8 || redeemingVoucher}
+                      size="large"
+                      type="primary"
+                      onClick={redeemCode}
+                    >
+                      {redeemingVoucher ? (
+                        <Loading delay={0}>Redeeming...</Loading>
+                      ) : (
+                        <>Redeem</>
+                      )}
+                    </Button>
+                  )}
                   <Divider orientation="left" style={{ width: "400px" }}>
                     Vouchers
                   </Divider>

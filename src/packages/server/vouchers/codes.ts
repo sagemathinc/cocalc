@@ -9,7 +9,7 @@ export async function getVoucherCode(code: string): Promise<VoucherCode> {
     [code]
   );
   if (rows.length == 0) {
-    throw Error(`no voucher code ${code}`);
+    throw Error(`There is no voucher '${code}'.`);
   }
   return rows[0] as VoucherCode;
 }
