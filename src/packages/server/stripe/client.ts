@@ -9,6 +9,10 @@ import { callback2 } from "@cocalc/util/async-utils";
 import * as message from "@cocalc/util/message";
 import { available_upgrades, get_total_upgrades } from "@cocalc/util/upgrades";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import {
+  setStripeCustomerId,
+  getStripeCustomerId,
+} from "@cocalc/database/postgres/stripe";
 import stripeName from "@cocalc/util/stripe/name";
 import { db } from "@cocalc/database";
 import Stripe from "stripe";
@@ -108,10 +112,7 @@ export class StripeClient {
       throw Error("You must be signed in to use billing related functions.");
     }
     dbg("getting stripe_customer_id from database...");
-    const stripe_customer_id = await callback2(
-      this.client.database.get_stripe_customer_id,
-      { account_id }
-    );
+    const stripe_customer_id = await getStripeCustomerId(account_id);
     if (stripe_customer_id != null) {
       // cache it, since it won't change.
       this.stripe_customer_id = stripe_customer_id;
@@ -240,11 +241,7 @@ export class StripeClient {
       .id;
 
     dbg("success; now save customer_id to database");
-    await callback2(this.client.database.set_stripe_customer_id, {
-      account_id: this.client.account_id,
-      customer_id,
-    });
-
+    await setStripeCustomerId(this.client.account_id, customer_id);
     await this.update_database();
   }
 
@@ -545,10 +542,7 @@ export class StripeClient {
       const customer = await conn.customers.create(x);
       customer_id = customer.id;
       dbg("store customer id in our database");
-      await callback2(this.client.database.set_stripe_customer_id, {
-        account_id: mesg.account_id,
-        customer_id,
-      });
+      await setStripeCustomerId(mesg.account_id, customer_id);
     }
     if (!(mesg.amount != null && mesg.description != null)) {
       dbg("no amount or no description, so not creating an invoice");

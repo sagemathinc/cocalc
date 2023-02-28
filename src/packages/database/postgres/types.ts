@@ -276,14 +276,6 @@ export interface PostgreSQL extends EventEmitter {
 
   sync_site_license_subscriptions(account_id?: string): Promise<number>;
 
-  get_stripe_customer_id(opts: { account_id: string; cb: CB }): void;
-
-  set_stripe_customer_id(opts: {
-    account_id: string;
-    customer_id: string;
-    cb: CB;
-  }): void;
-
   update_coupon_history(opts: {
     account_id: string;
     coupon_history;

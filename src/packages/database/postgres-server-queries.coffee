@@ -46,6 +46,7 @@ read = require('read')
 collab = require('./postgres/collab')
 # TODO is set_account_info_if_possible used here?!
 {is_paying_customer, set_account_info_if_possible} = require('./postgres/account-queries')
+{getStripeCustomerId} = require('./postgres/stripe')
 
 {site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
@@ -812,31 +813,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     verified = !!x.email_address_verified?[opts.email_address]
                     opts.cb(undefined, verified)
 
-    ###
-    Stripe support for accounts
-    ###
-    # Set the stripe id in our database of this user.  If there is no user with this
-    # account_id, then this is a NO-OP.
-    set_stripe_customer_id: (opts) =>
-        opts = defaults opts,
-            account_id  : required
-            customer_id : required
-            cb          : required
-        @_query
-            query : 'UPDATE accounts'
-            set   : 'stripe_customer_id::TEXT' : opts.customer_id
-            where : 'account_id = $::UUID'     : opts.account_id
-            cb    : opts.cb
-
-    # Get the stripe id in our database of this user (or undefined if not stripe_id or no such user).
-    get_stripe_customer_id: (opts) =>
-        opts = defaults opts,
-            account_id  : required
-            cb          : required
-        @_query
-            query : 'SELECT stripe_customer_id FROM accounts'
-            where : 'account_id = $::UUID' : opts.account_id
-            cb    : one_result('stripe_customer_id', opts.cb)
 
     ###
     Stripe Synchronization
@@ -866,12 +842,13 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 if opts.customer_id?
                     cb(); return
-                dbg("get_stripe_customer_id")
-                @get_stripe_customer_id
-                    account_id : opts.account_id
-                    cb         : (err, x) =>
-                        dbg("their stripe id is #{x}")
-                        opts.customer_id = x; cb(err)
+                dbg("get stripe customer_id")
+                try
+                    opts.customer_id = await getStripeCustomerId(opts.account_id)
+                    dbg("their stripe id is #{opts.customer_id}")
+                    cb()
+                catch err
+                    cb(err)
             (cb) =>
                 if opts.customer_id? and not opts.stripe?
                     @get_server_setting

@@ -1,10 +1,10 @@
-import getLogger from "@cocalc/backend/logger";
 import { getClient, Client } from "@cocalc/database/pool";
 import type { DBSchema, TableSchema } from "./types";
 import { quoteField } from "./util";
 import { pgType } from "./pg-type";
 import { createIndexesQueries } from "./indexes";
 import { createTable } from "./table";
+import getLogger from "@cocalc/backend/logger";
 const log = getLogger("db:schema:sync");
 
 async function syncTableSchema(db: Client, schema: TableSchema): Promise<void> {
