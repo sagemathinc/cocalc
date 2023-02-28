@@ -147,19 +147,15 @@ export async function createUser(project_id: string): Promise<void> {
 
 
 export async function stopProjectProcesses(project_id: string): Promise<void> {
-    const home_path = homePath(project_id);
-    const pid = await getProjectPID(home_path);
-    const scmd = `kill -9 ${pid} | true `; // | true since kill can return nonzero status. 
-    await exec(scmd); // May be here we should implement some kind of GC for processes?
-      // Just killing all processes for the user is not the solution — user can run long running tasks or services, 
-      // using tmux/rdp/etc.
+    const uid = `${getUid(project_id)}`;
+    const scmd = `pkill -9 -u ${uid} | true `; // | true since pkill exit 1 if nothing killed.
+    await exec(scmd); 
 }
  
 
 export async function deleteUser(project_id: string): Promise<void> {
+  await stopProjectProcesses(project_id);  
   const username = getUsername(project_id);
-  const uid = `${getUid(project_id)}`;
-  await exec(`pkill -9 -u ${uid} | true`); // | true since pkill exit 1 if nothing killed.
   try {
     await exec(`/usr/sbin/userdel ${username}`); // this also deletes the group
   } catch (_) {
