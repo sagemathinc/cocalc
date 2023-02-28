@@ -1,4 +1,4 @@
-import createVouchers from "@cocalc/server/shopping/cart/create-vouchers";
+import createVouchers from "@cocalc/server/vouchers/create-vouchers";
 import getAccountId from "lib/account/get-account";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import getParams from "lib/api/get-params";

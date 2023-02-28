@@ -2,6 +2,21 @@ import { Table } from "./types";
 import { CREATED, CREATED_BY, ID, NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
 
+export interface Voucher {
+  id: number;
+  created: Date;
+  created_by: string;
+  title: string;
+  active: Date;
+  expire: Date;
+  cancel_by: Date;
+  cart: object[];
+  count: number;
+  cost: number;
+  tax: number;
+  notes?: string;
+}
+
 Table({
   name: "vouchers",
   fields: {
@@ -138,6 +153,16 @@ Table({
   },
   fields: schema.vouchers.fields,
 });
+
+export interface VoucherCode {
+  code: string;
+  id: number;
+  created: Date;
+  when_redeemed?: Date;
+  redeemed_by?: string;
+  canceled?: Date;
+  notes?: string;
+}
 
 Table({
   name: "voucher_codes",

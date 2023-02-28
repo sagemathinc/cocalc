@@ -19,7 +19,7 @@ cart are changed in the database so that the purchased field is set.
 
 import getPool from "@cocalc/database/pool";
 import multiInsert from "@cocalc/database/pool/multi-insert";
-import getCart from "./get";
+import getCart from "@cocalc/server/shopping/cart/get";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import dayjs from "dayjs";
 import generateVouchers, {
