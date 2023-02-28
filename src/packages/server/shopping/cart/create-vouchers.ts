@@ -28,6 +28,7 @@ import generateVouchers, {
   CHARSETS,
 } from "@cocalc/util/vouchers";
 import { getLogger } from "@cocalc/backend/logger";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 
 const logger = getLogger("createVouchers");
 
@@ -72,7 +73,10 @@ export default async function createVouchers({
   // TODO! Must compute the cost here on the backend.  This might be painful
   // because packages/next/components/store/compute-cost.ts contains a bunch of
   // code for dedicaed VM's/disks and can't be used from here.  Oops (?).
-  const cost = 0;
+  let cost = 0;
+  for (const item of cart) {
+    cost += computeCost(item.description as any)?.cost ?? 0;
+  }
   const tax = 0;
 
   logger.debug({

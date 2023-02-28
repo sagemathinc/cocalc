@@ -25,7 +25,7 @@ import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import useCustomize from "lib/use-customize";
 import { useRouter } from "next/router";
-import { computeCost } from "./compute-cost";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { describeItem, DisplayCost } from "./site-license-cost";
 import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph, Title, Text } from "components/misc";
