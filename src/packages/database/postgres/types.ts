@@ -7,7 +7,6 @@ import { EventEmitter } from "events";
 import { Client } from "pg";
 
 import { PassportStrategyDB } from "@cocalc/server/auth/sso/types";
-import type { Stripe } from "@cocalc/server/stripe/client";
 import {
   CB,
   CBDB,
@@ -266,13 +265,6 @@ export interface PostgreSQL extends EventEmitter {
   }): void;
   verify_email_check_token(opts: { email_address: string; token: string });
   reset_server_settings_cache(): void;
-
-  stripe_update_customer(opts: {
-    account_id: string;
-    customer_id: string;
-    stripe: Stripe;
-    cb: CB;
-  }): void;
 
   sync_site_license_subscriptions(account_id?: string): Promise<number>;
 

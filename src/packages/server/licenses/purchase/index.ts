@@ -16,11 +16,11 @@ What this does:
 
 import { db } from "@cocalc/database";
 import getPool from "@cocalc/database/pool";
+import { syncCustomer } from "@cocalc/database/postgres/stripe";
 import { sanity_checks } from "@cocalc/util/licenses/purchase/sanity-checks";
 import { chargeUserForLicense, setPurchaseMetadata } from "./charge";
 import createLicense from "./create-license";
 import { StripeClient } from "@cocalc/server/stripe/client";
-import { callback2 } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { getLogger } from "@cocalc/backend/logger";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
@@ -76,9 +76,7 @@ export default async function purchaseLicense(
     let done = false;
     let delay_s = 1;
     for (let i = 0; i < 20; i++) {
-      const customer = await callback2(database.stripe_update_customer, {
-        account_id,
-      });
+      const customer = await syncCustomer({ account_id });
       const data = customer?.subscriptions?.data;
       if (data != null) {
         for (const sub of data) {

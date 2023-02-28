@@ -1,6 +1,7 @@
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-const log = getLogger("db:stripe:customer-id");
+
+const log = getLogger("database:stripe:customer-id");
 
 // Set the stripe id in our database of this user.  If there is no user with this
 // account_id, then this is a NO-OP (not an error).

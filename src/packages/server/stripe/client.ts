@@ -18,6 +18,7 @@ import { db } from "@cocalc/database";
 import Stripe from "stripe";
 export { Stripe };
 import getPrivateProfile from "@cocalc/server/accounts/profile/private";
+import { syncCustomer } from "@cocalc/database/postgres/stripe";
 
 import getConn from "./connection";
 import salesTax from "./sales-tax";
@@ -292,9 +293,8 @@ export class StripeClient {
     this.dbg("update_database")();
     const customer_id = await this.get_customer_id();
     if (customer_id == null) return;
-    return await callback2(this.client.database.stripe_update_customer, {
+    return await syncCustomer({
       account_id: this.client.account_id,
-      stripe: await getConn(),
       customer_id,
     });
   }
@@ -519,7 +519,7 @@ export class StripeClient {
       dbg(
         "already signed up for stripe -- sync local user account with stripe"
       );
-      await callback2(this.client.database.stripe_update_customer, {
+      await syncCustomer({
         account_id: mesg.account_id,
         stripe: conn,
         customer_id,

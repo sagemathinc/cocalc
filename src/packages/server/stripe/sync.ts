@@ -11,8 +11,8 @@ Should get done eventually mostly via webhooks, etc., -- but for now this is OK.
 
 import { delay } from "awaiting";
 import getConn from "./connection";
-import { callback2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import { syncCustomer } from "@cocalc/database/postgres/stripe";
 
 export async function stripe_sync({
   logger,
@@ -41,7 +41,7 @@ export async function stripe_sync({
   const stripe = await getConn();
   for (const user of users) {
     dbg(`updating customer ${user.account_id} data to our local database`);
-    await callback2(database.stripe_update_customer, {
+    await syncCustomer({
       account_id: user.account_id,
       customer_id: user.stripe_customer_id,
       stripe,
