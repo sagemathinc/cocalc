@@ -86,7 +86,9 @@ export default function SelectLicense(props: Props) {
                 <span style={{ color: COLORS.GRAY_M }}>
                   {title ? " - " + title : ""}
                   <br />
-                  {quota && describeQuota(quota, true)}
+                  <span style={{ whiteSpace: "normal" }}>
+                    {quota && describeQuota(quota, true)}
+                  </span>
                   {expires && <span>, Expires {expires.toLocaleString()}</span>}
                 </span>
               </>
@@ -144,7 +146,21 @@ export default function SelectLicense(props: Props) {
       size={"large"}
       style={{ width: "100%", ...style }}
     >
-      <div style={{ display: "flex" }}>
+      <div>
+        {(showAll || licenseIds.length < len(managedLicenses)) && (
+          <Checkbox
+            style={{
+              flex: "1 0 0",
+              margin: "5px 0",
+              color: COLORS.GRAY_M,
+              whiteSpace: "nowrap",
+            }}
+            checked={showAll}
+            onChange={() => setShowAll(!showAll)}
+          >
+            Show expired
+          </Checkbox>
+        )}{" "}
         <Select
           style={{ width: "100%", flex: "1 1 0", marginRight: "10px" }}
           placeholder={
@@ -176,21 +192,6 @@ export default function SelectLicense(props: Props) {
         >
           {options}
         </Select>
-
-        {(showAll || licenseIds.length < len(managedLicenses)) && (
-          <Checkbox
-            style={{
-              flex: "1 0 0",
-              marginTop: "10px",
-              color: COLORS.GRAY_M,
-              whiteSpace: "nowrap",
-            }}
-            checked={showAll}
-            onChange={() => setShowAll(!showAll)}
-          >
-            Show expired
-          </Checkbox>
-        )}
       </div>
       {!valid && licenseId && (
         <Alert
