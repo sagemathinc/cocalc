@@ -165,6 +165,7 @@ export interface VoucherCode {
   redeemed_by?: string;
   canceled?: Date;
   notes?: string;
+  license_ids?: string[];
 }
 
 Table({
@@ -199,6 +200,12 @@ Table({
         type: "timestamp",
       },
     },
+    license_ids: {
+      title: "License IDs",
+      type: "array",
+      pg_type: "UUID[]",
+      desc: "The ids of the licenses created when this voucher code was redeemed.",
+    },
     notes: NOTES,
   },
   rules: {
@@ -216,6 +223,7 @@ Table({
           redeemed_by: null,
           notes: null,
           canceled: null,
+          license_ids: null,
         },
       },
       set: {

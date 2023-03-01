@@ -52,7 +52,7 @@ export default async function redeemVoucher({
     ": creating licenses associated to voucher=",
     voucher
   );
-  const licenses: string[] = [];
+  const license_ids: string[] = [];
   for (const { product, description } of voucher.cart) {
     if (product != "site-license") {
       // this is assumed by createLicenseWithoutPurchase
@@ -66,19 +66,27 @@ export default async function redeemVoucher({
     }
     let [start, end] = description["range"];
     if (!start || !end) {
-      throw Error("nvalid voucher: licenses must have an explicit range");
+      throw Error("nvalid voucher: each license must have an explicit range");
     }
     // start and end are ISO string rep, since they are from JSONB in the database,
     // and JSON doesn't have a date type.
     const interval = new Date(end).valueOf() - new Date(start).valueOf();
     description["range"] = [now, new Date(now.valueOf() + interval)];
-    licenses.push(
-      await createLicenseWithoutPurchase({ account_id, description })
+    const license_id = await createLicenseWithoutPurchase({
+      account_id,
+      description,
+    });
+    log.debug(
+      "created license ",
+      license_id,
+      " associated to voucher code ",
+      code
     );
+    license_ids.push(license_id);
   }
+  // set voucher as redeemed for the license_ids in the voucher_code,
+  // (so we know what licenses were created).
+  await redeemVoucherCode({ code, account_id, license_ids });
 
-  // set voucher as redeemed
-  await redeemVoucherCode({ code, account_id });
-
-  return licenses;
+  return license_ids;
 }
