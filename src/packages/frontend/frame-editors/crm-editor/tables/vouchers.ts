@@ -34,7 +34,7 @@ register({
 
   title: "Voucher Codes",
 
-  icon: "code",
+  icon: "gift",
 
   query: {
     voucher_codes: [

@@ -219,7 +219,7 @@ export default function CreateVouchers() {
           <Col md={14} sm={24}>
             <div>
               <h3 style={{ fontSize: "16pt" }}>
-                <Icon name={"credit-card"} style={{ marginRight: "10px" }} />
+                <Icon name={"gift2"} style={{ marginRight: "10px" }} />
                 Create Vouchers
               </h3>
               As a member of the CoCalc partner program, you are allowed to

@@ -46,7 +46,7 @@ export default function ConfigMenu({ main }) {
     items.push({
       label: "Vouchers",
       key: "vouchers",
-      icon: <Icon name="credit-card" />,
+      icon: <Icon name="gift" />,
     });
   }
   items.push({
