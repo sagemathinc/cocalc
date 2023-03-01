@@ -13,7 +13,7 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req) {
-  const { code } = getParams(req);
+  const { code, project_id } = getParams(req);
   if (!code || code.length < 8) {
     throw Error("code must be at least 8 characters long");
   }
@@ -22,5 +22,5 @@ async function doIt(req) {
     throw Error("must be signed in to redeem a voucher code");
   }
 
-  return await redeemVoucher({ account_id, code });
+  return await redeemVoucher({ account_id, code, project_id });
 }

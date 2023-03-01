@@ -18,6 +18,7 @@ import { useRouter } from "next/router";
 import apiPost from "lib/api/post";
 import useIsMounted from "lib/hooks/mounted";
 import Loading from "components/share/loading";
+import Project from "components/project/link";
 
 export default function Redeem({ customize }) {
   const isMounted = useIsMounted();
@@ -28,13 +29,16 @@ export default function Redeem({ customize }) {
   const [signedIn, setSignedIn] = useState<boolean>(!!account_id);
   const router = useRouter();
 
+  // optional project_id to automatically apply all the licenses we get on redeeming the voucher
+  const { project_id } = router.query;
+
   async function redeemCode() {
     try {
       setError("");
       setRedeemingVoucher(true);
       // This api call tells the backend, "create requested vouchers from everything in my
       // shopping cart that is not a subscription."
-      await apiPost("/vouchers/redeem", { code: code.trim() });
+      await apiPost("/vouchers/redeem", { code: code.trim(), project_id });
       if (!isMounted.current) return;
     } catch (err) {
       // The redeem failed.
@@ -76,6 +80,7 @@ export default function Redeem({ customize }) {
                 />
               </Card>
             )}
+
             {(account_id || signedIn) && (
               <Card style={{ background: "#fafafa" }}>
                 <Space direction="vertical" align="center">
@@ -117,6 +122,19 @@ export default function Redeem({ customize }) {
                       )}
                     </Button>
                   )}
+                  {project_id && (
+                    <Alert
+                      showIcon
+                      style={{ marginTop: "30px" }}
+                      type="info"
+                      message={
+                        <div style={{ maxWidth: "450px" }}>
+                          The voucher will be applied to the project{" "}
+                          <Project project_id={project_id} /> automatically.
+                        </div>
+                      }
+                    />
+                  )}{" "}
                   <Divider orientation="left" style={{ width: "400px" }}>
                     Vouchers
                   </Divider>

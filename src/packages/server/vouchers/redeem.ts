@@ -4,16 +4,22 @@ import { getVoucherCode, redeemVoucherCode } from "./codes";
 import { getVoucher } from "./vouchers";
 import { getLogger } from "@cocalc/backend/logger";
 import { createLicenseWithoutPurchase } from "@cocalc/server/shopping/cart/checkout";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { db } from "@cocalc/database";
+import { isValidUUID } from "@cocalc/util/misc";
+import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 
 const log = getLogger("server:vouchers:redeem");
 
 interface Options {
   account_id: string;
+  project_id?: string; // optional project to apply the licenses to, assuming account_id is a collab on it.
   code: string;
 }
 
 export default async function redeemVoucher({
   account_id,
+  project_id,
   code,
 }: Options): Promise<string[]> {
   // get info from db about given voucher code
@@ -87,6 +93,18 @@ export default async function redeemVoucher({
   // set voucher as redeemed for the license_ids in the voucher_code,
   // (so we know what licenses were created).
   await redeemVoucherCode({ code, account_id, license_ids });
+
+  if (
+    project_id != null &&
+    (await isCollaborator({ account_id, project_id })) &&
+    isValidUUID(project_id)
+  ) {
+    // apply licenses to project
+    for (const license_id of license_ids) {
+      await db().add_license_to_project(project_id, license_id);
+    }
+    restartProjectIfRunning(project_id); // don't wait, obviously.
+  }
 
   return license_ids;
 }
