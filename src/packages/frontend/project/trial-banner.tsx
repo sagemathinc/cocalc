@@ -54,6 +54,7 @@ interface BannerProps {
   host: boolean;
   internet: boolean;
   proj_created: number; // timestamp when project started
+  projectIsRunning: boolean;
 }
 
 // string and URLs
@@ -69,8 +70,14 @@ export const BUY_A_LICENSE_URL = join(appBasePath, "/store/site-license");
 
 export const TrialBanner: React.FC<BannerProps> = React.memo(
   (props: BannerProps) => {
-    const { host, internet, project_id, proj_created, projectSiteLicenses } =
-      props;
+    const {
+      host,
+      internet,
+      project_id,
+      proj_created,
+      projectSiteLicenses,
+      projectIsRunning,
+    } = props;
 
     const [showAddLicense, setShowAddLicense] = useState<boolean>(false);
     const managedLicenses = useManagedLicenses();
@@ -118,7 +125,9 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         return (
           <span>
             {trial_project} - There are too many free trial projects running
-            right now. Try again later or {buy_and_upgrade}.
+            right now.
+            <br />
+            Try again later or {buy_and_upgrade}.
           </span>
         );
       }
@@ -135,7 +144,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       } else if (host) {
         return (
           <span>
-            <strong>Low-grade hosting</strong> – upgrade to{" "}
+            <strong>Low-grade hosting</strong> - upgrade to{" "}
             <A href={MEMBER_QUOTA} style={a_style}>
               <u>Member Hosting</u>
             </A>{" "}
@@ -178,20 +187,24 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     // allow users to close the banner, if there is either internet or host upgrade – or if user has licenses (past customer, upgrades by someone else, etc.)
     const closable = !host || !internet || !no_licenses;
 
+    // don't show the banner if project is not running.
+    // https://github.com/sagemathinc/cocalc/issues/6496
+    // UNLESS it is a free project and not allowed to run
+    // (banner must be visible when stopped, obviously)
+    if (!projectIsRunning && allow_run !== false) {
+      return null;
+    }
+
     return (
       <Alert
         type="warning"
         closable={closable}
         style={style}
-        icon={
-          <Icon
-            name="exclamation-triangle"
-            style={{ float: "right", marginTop: "3px" }}
-          />
-        }
+        banner={true}
+        showIcon={!closable || (internet && host)}
+        icon={<Icon name="exclamation-triangle" style={{ marginTop: "7px" }} />}
         description={
           <>
-            <Icon name="exclamation-triangle" />{" "}
             <span style={{ fontSize: style.fontSize }}>{renderMessage()}</span>{" "}
             {renderLearnMore(style.color)}
             {showAddLicense && (
