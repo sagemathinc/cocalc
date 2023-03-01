@@ -66,7 +66,6 @@ export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
       return (
         <div style={{ display: "flex", flexDirection: "row" }}>
           <div style={{ flex: "1 1 auto" }}>
-            <Icon name="exclamation-triangle" />{" "}
             <span style={{ fontSize: ALERT_STYLE.fontSize }}>
               {renderMessage()}
             </span>
@@ -93,13 +92,9 @@ export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
       <VisibleMDLG>
         <Alert
           type="warning"
+          banner={true}
           style={STYLE}
-          icon={
-            <Icon
-              name="exclamation-triangle"
-              style={{ float: "right", marginTop: "3px" }}
-            />
-          }
+          icon={<Icon name="exclamation-triangle" />}
           description={
             <>
               {renderDescription()}
