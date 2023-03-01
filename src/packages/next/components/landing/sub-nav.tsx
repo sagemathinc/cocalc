@@ -179,15 +179,20 @@ export default function SubNav(props: Props) {
   if (p == null || isEmpty(p)) return null;
 
   function renderSoftwareEnvs() {
+    if (page != "software") return;
+
     const links = SOFTWARE_ENV_NAMES.map((name) => {
       const selected = name === softwareEnv;
       const style =
         SOFTWARE_ENV_DEFAULT === name ? { fontWeight: "bold" } : undefined;
+      // clicking on the software env link should not switch between subpages
+      const sub =
+        subPage != null && software[subPage] != null ? subPage : "executables";
       return (
         <A
           key={name}
           style={{ ...tabStyle(selected), ...style }}
-          href={`/software/executables/${name}`}
+          href={`/software/${sub}/${name}`}
         >
           {name}
         </A>
@@ -239,7 +244,7 @@ export default function SubNav(props: Props) {
   const links = (
     <>
       {r_join(tabs, SEP)}
-      {page == "software" && renderSoftwareEnvs()}
+      {renderSoftwareEnvs()}
     </>
   );
 

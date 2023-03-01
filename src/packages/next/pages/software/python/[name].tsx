@@ -10,10 +10,10 @@ import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
 import SoftwareLibraries from "components/landing/software-libraries";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
-import { SoftwareEnvNames } from "lib/landing/consts";
-import { Paragraph } from "components/misc";
 import { Customize, CustomizeType } from "lib/customize";
+import { SoftwareEnvNames } from "lib/landing/consts";
 import { ExecutableDescription } from "lib/landing/render-envs";
 import { withCustomizedAndSoftwareSpec } from "lib/landing/software-specs";
 import {
@@ -36,7 +36,8 @@ interface Props {
 }
 
 export default function Software(props: Props) {
-  const { name, customize, spec, inventory, components, execInfo, timestamp } = props;
+  const { name, customize, spec, inventory, components, execInfo, timestamp } =
+    props;
 
   function renderBox() {
     return (
@@ -65,9 +66,9 @@ export default function Software(props: Props) {
   function renderIntro() {
     return (
       <>
-        <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
+        <Title level={1} style={{ textAlign: "center" }}>
           Installed Python Libraries (Ubuntu {name})
-        </h1>
+        </Title>
         <div style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
           <Image
             src={pythonScreenshot}
