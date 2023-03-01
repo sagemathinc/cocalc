@@ -1,6 +1,7 @@
 import { Table } from "./types";
 import { CREATED, CREATED_BY, ID, NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
+import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 
 export interface Voucher {
   id: number;
@@ -10,7 +11,7 @@ export interface Voucher {
   active: Date;
   expire: Date;
   cancel_by: Date;
-  cart: object[];
+  cart: { description: SiteLicenseDescriptionDB; product: "site-license" }[];
   count: number;
   cost: number;
   tax: number;
@@ -101,6 +102,7 @@ Table({
           count: null,
           cost: null,
           tax: null,
+          cart: null,
         },
       },
       set: {
@@ -134,6 +136,7 @@ Table({
           cost: null,
           tax: null,
           notes: null,
+          cart: null,
         },
       },
       set: {

@@ -21,6 +21,7 @@ register({
         cost: null,
         tax: null,
         notes: null,
+        cart: null,
       },
     ],
   },

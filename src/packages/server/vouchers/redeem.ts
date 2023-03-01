@@ -3,6 +3,7 @@
 import { getVoucherCode, redeemVoucherCode } from "./codes";
 import { getVoucher } from "./vouchers";
 import { getLogger } from "@cocalc/backend/logger";
+import { createLicenseWithoutPurchase } from "@cocalc/server/shopping/cart/checkout";
 
 const log = getLogger("server:vouchers:redeem");
 
@@ -43,7 +44,38 @@ export default async function redeemVoucher({
   // also 2-phase commit at this point is maybe overkill.
 
   // TODO -- make licenses!
+  log.debug(
+    "code=",
+    code,
+    " account_id = ",
+    account_id,
+    ": creating licenses associated to voucher=",
+    voucher
+  );
   const licenses: string[] = [];
+  for (const { product, description } of voucher.cart) {
+    if (product != "site-license") {
+      // this is assumed by createLicenseWithoutPurchase
+      throw Error("the only product that is implemented is 'site-license'");
+    }
+    // shift range in the description so license starts now.
+    if (description["range"] == null) {
+      throw Error(
+        "invalid voucher: only items with explicit range are allowed"
+      );
+    }
+    let [start, end] = description["range"];
+    if (!start || !end) {
+      throw Error("nvalid voucher: licenses must have an explicit range");
+    }
+    // start and end are ISO string rep, since they are from JSONB in the database,
+    // and JSON doesn't have a date type.
+    const interval = new Date(end).valueOf() - new Date(start).valueOf();
+    description["range"] = [now, new Date(now.valueOf() + interval)];
+    licenses.push(
+      await createLicenseWithoutPurchase({ account_id, description })
+    );
+  }
 
   // set voucher as redeemed
   await redeemVoucherCode({ code, account_id });
