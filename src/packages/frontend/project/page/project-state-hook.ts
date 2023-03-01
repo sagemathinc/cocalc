@@ -2,8 +2,8 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { useRedux, useEffect, useState } from "../../app-framework";
-import { ProjectStatus } from "../../todo-types";
+import { useEffect, useRedux, useState } from "@cocalc/frontend/app-framework";
+import { ProjectStatus } from "@cocalc/frontend/todo-types";
 
 // this is a reasonable default in case we have no information yet or project_id is undefined.
 const init = new ProjectStatus({ state: "opened" });

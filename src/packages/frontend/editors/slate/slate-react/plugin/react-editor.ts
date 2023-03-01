@@ -23,6 +23,9 @@ import {
   normalizeDOMPoint,
 } from "../utils/dom";
 
+import { markdownAutoformat } from "../../format/auto-format";
+import { SlateEditor } from "../../editable-markdown";
+
 /**
  * A React and DOM-specific version of the `Editor` interface.
  */
@@ -216,10 +219,17 @@ export const ReactEditor = {
 
   /**
    * Insert data from a `DataTransfer` into the editor.
+   * This is what gets called whenever user pastes something
    */
 
   insertData(editor: ReactEditor, data: DataTransfer): void {
     editor.insertData(data);
+    // We also autoformat the last part of what was pasted in.
+    // This works around some confusing issues, e.g., pasting
+    // in a URL immediately formats it.
+    // This requires SlateEditor, but that's all
+    // we are supporting, so this is fine.
+    markdownAutoformat(editor as SlateEditor);
   },
 
   /**

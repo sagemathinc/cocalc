@@ -688,6 +688,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
       applyOperations,
       markdown_to_slate,
       robot: async (s: string, iterations = 1) => {
+        /*
+        This little "robot" function is so you can run rtc on several browsers at once,
+        with each typing random stuff at random, and checking that their input worked
+        without loss of data.
+        */
         let inserted = "";
         let focus = editor.selection?.focus;
         if (focus == null) throw Error("must have selection");
