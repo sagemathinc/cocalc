@@ -4,15 +4,16 @@
  */
 
 import { Alert, Layout } from "antd";
+
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
 import SoftwareLibraries from "components/landing/software-libraries";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
-import { SoftwareEnvNames } from "lib/landing/consts";
 import { Customize, CustomizeType } from "lib/customize";
-import { Paragraph } from "components/misc";
+import { SoftwareEnvNames } from "lib/landing/consts";
 import { ExecutableDescription } from "lib/landing/render-envs";
 import { withCustomizedAndSoftwareSpec } from "lib/landing/software-specs";
 import {
@@ -86,11 +87,9 @@ export default function Octave(props: Props) {
           }}
         >
           <div style={STYLE_PAGE}>
-            <h1
-              style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}
-            >
+            <Title level={1} style={{ textAlign: "center" }}>
               GNU Octave Scientific Programming Packages (Ubuntu {name})
-            </h1>
+            </Title>
             {renderInfo()}
             {renderBox()}
             <ExecutableDescription spec={spec} execInfo={execInfo} />
