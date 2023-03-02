@@ -73,7 +73,7 @@ export default function Logo(props: Props) {
           marginRight: "auto",
         }}
       >
-        <img
+        <Image
           alt={alt}
           src={logoSquareURL}
           style={{
@@ -81,7 +81,7 @@ export default function Logo(props: Props) {
           }}
         />
         <div>
-          <img
+          <Image
             src={logoRectangularURL}
             alt={alt}
             style={{ width: "100%", marginTop: "1rem" }}
@@ -94,7 +94,7 @@ export default function Logo(props: Props) {
   if (type === "full" && logoSquareURL && logoRectangularURL) {
     return customFull();
   } else if (custom) {
-    return <img alt={alt} src={src} style={style} />;
+    return <Image alt={alt} src={src} style={style} />;
   } else {
     return <Image alt={alt} src={src} style={style} priority={priority} />;
   }
