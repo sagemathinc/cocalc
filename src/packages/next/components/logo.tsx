@@ -62,8 +62,8 @@ export default function Logo(props: Props) {
     style.maxWidth = `${props.width}px`;
   }
 
-  // we "fake" a full logo it by stacking the suare logo on top of the rectangular one in a div
-  function customFull(): JSX.Element {
+  if (type === "full" && logoSquareURL && logoRectangularURL) {
+    // we "fake" a full logo it by stacking the square logo on top of the rectangular one in a div
     return (
       <div
         style={{
@@ -80,6 +80,7 @@ export default function Logo(props: Props) {
             width: "50%",
           }}
         />
+        )
         <div>
           <Image
             src={logoRectangularURL}
@@ -89,10 +90,6 @@ export default function Logo(props: Props) {
         </div>
       </div>
     );
-  }
-
-  if (type === "full" && logoSquareURL && logoRectangularURL) {
-    return customFull();
   } else if (custom) {
     return <Image alt={alt} src={src} style={style} />;
   } else {

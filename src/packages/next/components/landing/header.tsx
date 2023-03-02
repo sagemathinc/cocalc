@@ -27,10 +27,12 @@ export const LinkStyle: React.CSSProperties = {
   display: "inline-block",
 } as const;
 
+// The style shouldn't change the size of the label, e.g., don't
+// use bold.  Otherwise, everything moves a little when you select
+// an option, which looks weird.
 const SelectedStyle: React.CSSProperties = {
   ...LinkStyle,
   color: COLORS.LANDING.TOP_BG,
-  fontWeight: "bold",
   borderBottom: "5px solid #c7d9f5",
 } as const;
 
