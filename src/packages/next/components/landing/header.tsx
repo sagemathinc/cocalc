@@ -70,6 +70,7 @@ export default function Header(props: Props) {
             outline: `1px solid ${COLORS.BLUE_DD}`,
             padding: "2px 8px",
             borderRadius: "5px",
+            width: "70px",  // CRITICAL -- this is to prevent flicker -- see https://github.com/sagemathinc/cocalc/issues/6504
           }}
         >
           <A
