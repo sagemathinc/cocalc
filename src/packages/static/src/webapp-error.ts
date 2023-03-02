@@ -91,6 +91,11 @@ export function startedUp() {
 
 function isWhitelisted({ error }): boolean {
   try {
+    if (error?.stack?.includes("Bokeh")) {
+      // see https://github.com/sagemathinc/cocalc/issues/6507
+      return true;
+    }
+
     if (error?.stack?.includes("modifySheet")) {
       // darkreader causes errors sometimes when editing PDF files previewed using PDFjs, and often when
       // trying to mess with MathJax. The error on both Firefox and Chrome includes "modifySheet" in the
