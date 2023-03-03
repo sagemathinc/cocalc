@@ -32,7 +32,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import salesTax from "@cocalc/server/stripe/sales-tax";
 import { getStripeCustomerId } from "@cocalc/database/postgres/stripe";
-import { chargeUser } from "./charge";
+import { chargeUser } from "@cocalc/server/licenses/purchase/charge";
 import { StripeClient } from "@cocalc/server/stripe/client";
 
 const log = getLogger("createVouchers");
@@ -245,9 +245,15 @@ export default async function createVouchers({
         paid = true;
       } else {
         // Actually charge the user for the vouchers.
-        const total_cost = (cost + tax) * count;
         const stripe = new StripeClient({ account_id });
-        const info = { type: "vouchers", count, cost, tax, title };
+        const info = {
+          type: "vouchers",
+          quantity: count,
+          cost,
+          tax,
+          title,
+          id,
+        } as const;
         log.debug("charging user; info =", info);
         const purchase = await chargeUser(stripe, info);
         log.debug("purchase = ", purchase);

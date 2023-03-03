@@ -43,6 +43,9 @@ export default async function purchaseLicense(
   noThrottle?: boolean
 ): Promise<string> {
   logger.debug("info=", info, ", account_id=", account_id);
+  if (info.type == "vouchers") {
+    throw Error("purchaseLicense can't be used to purchase vouchers");
+  }
 
   if (!noThrottle) {
     const now = Date.now();

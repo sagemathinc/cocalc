@@ -22,7 +22,7 @@ export async function chargeUser(
 ): Promise<Purchase> {
   logger.debug("getting product_id");
   const product_id = await stripeGetProduct(info);
-  if (info.subscription == "no") {
+  if (info.type == "vouchers" || info.subscription == "no") {
     return await stripePurchaseProduct(stripe, product_id, info);
   } else {
     return await stripeCreateSubscription(stripe, product_id, info);
@@ -30,6 +30,9 @@ export async function chargeUser(
 }
 
 export function unitAmount(info: PurchaseInfo): number {
+  if (info.type == "vouchers") {
+    return Math.round(info.cost * 100);
+  }
   if (info.cost == null) throw Error("cost must be defined");
   return Math.round(info.cost.cost_per_unit * 100);
 }
@@ -43,7 +46,7 @@ async function stripeCreatePrice(info: PurchaseInfo): Promise<void> {
   //  - if number of days, we set price for that many days.
   if (info.cost == null) throw Error("cost must be defined");
   const conn = await getConn();
-  if (info.subscription == "no") {
+  if (info.type == "vouchers" || info.subscription == "no") {
     // create the one-time cost
     await conn.prices.create({
       currency: "usd",
@@ -117,13 +120,16 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
     // now we have to create the product.
     const metadata = getProductMetadata(info);
     const name = getProductName(info);
-    let statement_descriptor = "COCALC LIC ";
-    if (info.subscription != "no") {
-      statement_descriptor += "SUB";
+    let statement_descriptor = "COCALC ";
+    if (info.type == "vouchers") {
+      statement_descriptor +=
+        "${info.quantity} VOUCHER${info.count > 1 ? 'S' : ''}";
+    } else if (info.subscription != "no") {
+      statement_descriptor += "LIC SUB";
     } else {
       if (info.type === "disk") throw new Error("disk do not have a period");
       const n = getDays(info);
-      statement_descriptor += `${n}${n < 100 ? " " : ""}DAYS`;
+      statement_descriptor += `LIC ${n}${n < 100 ? " " : ""}DAYS`;
     }
     // Hard limit of 22 characters.  Deleting part of "DAYS" is ok, as
     // this is for credit card, and just having "COCALC" is mainly what is needed.
@@ -202,22 +208,30 @@ async function stripePurchaseProduct(
     }
   }
   logger.debug("stripePurchaseProduct: got price", JSON.stringify(price));
+  let tax_percent;
+  if (info.type == "vouchers") {
+    // (1) there is no period for a voucher, (2) we charge them the tax
+    // amount we quoted the when creating the vouchers.
+    await conn.invoiceItems.create({ customer, price, quantity });
+    tax_percent = info.tax / info.cost;
+  } else {
+    if (info.start == null || info.end == null) {
+      throw Error("start and end must be defined");
+    }
+    const period = {
+      start: Math.round(new Date(info.start).valueOf() / 1000),
+      end: Math.round(new Date(info.end).valueOf() / 1000),
+    };
 
-  if (info.start == null || info.end == null) {
-    throw Error("start and end must be defined");
+    // Item gets automatically put on the invoice created below.
+    await conn.invoiceItems.create({ customer, price, quantity, period });
+    tax_percent = await stripe.sales_tax(customer);
   }
-  const period = {
-    start: Math.round(new Date(info.start).valueOf() / 1000),
-    end: Math.round(new Date(info.end).valueOf() / 1000),
-  };
-
-  // Item gets automatically put on the invoice created below.
-  await conn.invoiceItems.create({ customer, price, quantity, period });
 
   // TODO: improve later to handle case of *multiple* items on one invoice
 
   // TODO: tax_percent is DEPRECATED but not gone (see stripeCreateSubscription below).
-  const tax_percent = await stripe.sales_tax(customer);
+
   const options = {
     customer,
     auto_advance: true,
@@ -243,9 +257,14 @@ async function stripePurchaseProduct(
   });
   logger.debug("stripePurchaseProduct -- pay invoice");
   try {
-    const invoice = await conn.invoices.pay(invoice_id, {
-      payment_method: info.payment_method,
-    });
+    const invoice = await conn.invoices.pay(
+      invoice_id,
+      info.type == "vouchers"
+        ? {}
+        : {
+            payment_method: info.payment_method,
+          }
+    );
     logger.debug("stripePurchaseProduct -- paid = ", invoice.paid);
     if (info.type === "quota") {
       logger.debug("stripePurchaseProduct -- remove discount from customer");
@@ -292,6 +311,9 @@ async function stripeCreateSubscription(
   product_id: string,
   info: PurchaseInfo
 ): Promise<Purchase> {
+  if (info.type == "vouchers") {
+    throw Error("stripeCreateSubscription can't be used to purchase vouchers");
+  }
   const { quantity, subscription } = info;
   const customer: string = await stripe.need_customer_id();
   const conn = await getConn();

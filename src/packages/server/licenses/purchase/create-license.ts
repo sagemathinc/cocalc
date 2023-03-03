@@ -20,6 +20,9 @@ export default async function createLicense(
 ): Promise<string> {
   const license_id = await getUUID(database, info);
   logger.debug("creating a license...", license_id, info);
+  if (info.type == "vouchers") {
+    throw Error("purchaseLicense can't be used to purchase vouchers");
+  }
 
   const [start, end] =
     info.type !== "disk"

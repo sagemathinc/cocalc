@@ -74,7 +74,7 @@ export type PurchaseInfo =
   | {
       type: "vouchers";
       id: number;
-      count: number;
+      quantity: number;
       cost: number;
       tax: number;
       title: string;

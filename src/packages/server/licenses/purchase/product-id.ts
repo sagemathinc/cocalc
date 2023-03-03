@@ -45,6 +45,7 @@ export function getProductId(info: PurchaseInfo): string {
   }
 
   function period(): string {
+    if (info.type == "vouchers") throw Error("bug"); // can't happen
     if (info.type === "disk") throw new Error("disk do not have a period");
 
     if (info.subscription == "no") {
