@@ -11,7 +11,16 @@ import { Actions as CodeEditorActions } from "../code-editor/actions";
 
 export class Actions extends CodeEditorActions {
   _raw_default_frame_tree() {
-    return { type: "grid" };
+    return {
+      direction: "col",
+      type: "node",
+      first: {
+        type: "grid",
+      },
+      second: {
+        type: "cm",
+      },
+    } as const;
   }
 
   _init2(): void {
