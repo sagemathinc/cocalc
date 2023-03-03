@@ -187,7 +187,7 @@ export default function CreateVouchers() {
             Create {numVouchers ?? 0} {v}
             {whenPay == "now" && " (pay now)"}
             {whenPay == "invoice" && " (pay later)"}
-            {whenPay == "admin" && " (free trial)"}
+            {whenPay == "admin" && " (no charge)"}
           </>
         )}
       </Button>
@@ -268,7 +268,7 @@ export default function CreateVouchers() {
                     </Radio>
                     {profile?.is_admin && (
                       <Radio value={"admin"}>
-                        Free Trials: never be charged (admins only)
+                        Admin Vouchers: you will not be charged (admins only)
                       </Radio>
                     )}
                   </Space>
@@ -289,7 +289,11 @@ export default function CreateVouchers() {
                     </>
                   )}
                   {profile?.is_admin && (
-                    <>As an admin, you may select the "Free Trials" option. </>
+                    <>
+                      As an admin, you may select the "Admin" option; this is
+                      useful for creating free trials or fulfilling complicated
+                      customer requirements.{" "}
+                    </>
                   )}
                 </Paragraph>
               </div>
@@ -309,6 +313,63 @@ export default function CreateVouchers() {
                   />
                 </div>
               </Paragraph>
+              {whenPay == "admin" && (
+                <>
+                  <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+                    <Check done={expire != null} />
+                    When Vouchers Expire
+                  </h4>
+                  <Paragraph style={{ color: "#666" }}>
+                    As an admin you can set any expiration date you want for the
+                    vouchers.
+                  </Paragraph>
+                  <Form
+                    labelCol={{ span: 9 }}
+                    wrapperCol={{ span: 9 }}
+                    layout="horizontal"
+                  >
+                    <Form.Item label="Expire">
+                      <DatePicker
+                        value={expire}
+                        presets={[
+                          {
+                            label: "+ 7 Days",
+                            value: dayjs().add(7, "d"),
+                          },
+                          {
+                            label: "+ 30 Days",
+                            value: dayjs().add(30, "day"),
+                          },
+                          {
+                            label: "+ 2 months",
+                            value: dayjs().add(2, "months"),
+                          },
+                          {
+                            label: "+ 6 months",
+                            value: dayjs().add(6, "months"),
+                          },
+                          {
+                            label: "+ 1 Year",
+                            value: dayjs().add(1, "year"),
+                          },
+                        ]}
+                        onChange={setExpire}
+                        disabledDate={(current) => {
+                          if (!current) {
+                            return true;
+                          }
+                          // Can not select days before today and today
+                          if (current < dayjs().endOf("day")) {
+                            return true;
+                          }
+                          // ok
+                          return false;
+                        }}
+                      />
+                    </Form.Item>
+                  </Form>
+                </>
+              )}
               {whenPay == "invoice" && (
                 <>
                   <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
@@ -565,34 +626,35 @@ export default function CreateVouchers() {
                   </Space>
                 </Space>
               </Paragraph>
-              <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                <Check done={haveCreditCard || whenPay == "admin"} /> Ensure a
-                Payment Method is on File{" "}
-              </h4>
-              <Paragraph style={{ color: "#666" }}>
-                {whenPay == "now" && (
-                  <>
-                    The default payment method shown below will be used to pay
-                    for the vouchers. You will be charged when you click the
-                    button below to create your vouchers.
-                  </>
-                )}
-                {whenPay == "invoice" && (
-                  <>
-                    The default payment method shown below will be used to pay
-                    for the redeemed vouchers, unless you change the payment
-                    method before you are invoiced.
-                  </>
-                )}
-                {whenPay == "admin" && (
-                  <>As an admin, you will not be charged.</>
-                )}
-              </Paragraph>
-              <PaymentMethods
-                startMinimized
-                setTaxRate={setTaxRate}
-                setHaveCreditCard={setHaveCreditCard}
-              />
+              {(whenPay == "now" || whenPay == "invoice") && (
+                <>
+                  <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+                    <Check done={haveCreditCard} /> Ensure a Payment Method is
+                    on File{" "}
+                  </h4>
+                  <Paragraph style={{ color: "#666" }}>
+                    {whenPay == "now" && (
+                      <>
+                        The default payment method shown below will be used to
+                        pay for the vouchers. You will be charged when you click
+                        the button below to create your vouchers.
+                      </>
+                    )}
+                    {whenPay == "invoice" && (
+                      <>
+                        The default payment method shown below will be used to
+                        pay for the redeemed vouchers, unless you change the
+                        payment method before you are invoiced.
+                      </>
+                    )}
+                  </Paragraph>
+                  <PaymentMethods
+                    startMinimized
+                    setTaxRate={setTaxRate}
+                    setHaveCreditCard={setHaveCreditCard}
+                  />
+                </>
+              )}
             </div>
           </Col>
           <Col md={{ offset: 1, span: 9 }} sm={{ span: 24, offset: 0 }}>

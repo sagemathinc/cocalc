@@ -15,6 +15,7 @@ export default async function handle(req, res) {
 
 async function doIt(req) {
   const {
+    whenPay,
     count,
     active,
     expire,
@@ -62,6 +63,7 @@ async function doIt(req) {
 
   return await createVouchers({
     account_id,
+    whenPay,
     count,
     active: new Date(active),
     expire: new Date(expire),

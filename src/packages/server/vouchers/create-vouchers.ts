@@ -174,7 +174,15 @@ export default async function createVouchers({
     // make sure that this get set to null in the database when initially creating the vouchers, since
     // we don't want the vouchers to *work* unless payment goes through.  This is just a safety measure
     // for us to not get scammed.
-    active = expire = cancelBy = null;
+    active = cancelBy = null;
+    if (whenPay == "admin") {
+      // We leave expire as is, since admin can set shorter expiration date
+    } else {
+      // if they pay now, then their vouchers last a long time.
+      // If after 10 years, things are still around and their is a complaint,
+      // a support person can easily extend this.
+      expire = dayjs().add(10, "year").toDate();
+    }
   }
 
   /*
@@ -269,7 +277,7 @@ export default async function createVouchers({
         // broken that they paid for.  At least there is clear evidence of it they can point at, and we
         // can easily edit the database (via our crm) to fix the problem manually.
         await pool.query(
-          "UPDATE vouchers SET active=NOW(), expire=NOW()+interval '10 years', cancel_by=NOW() WHERE id=$1",
+          "UPDATE vouchers SET active=NOW(), cancel_by=NOW() WHERE id=$1",
           [id]
         );
       } else {
