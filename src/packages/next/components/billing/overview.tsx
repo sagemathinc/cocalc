@@ -19,12 +19,12 @@ export default function Overview() {
     <div style={OVERVIEW_STYLE}>
       <Icon style={OVERVIEW_LARGE_ICON_MARGIN} name="credit-card" />
 
-      <h2 style={{ marginBottom: "30px" }}>Billing management</h2>
+      <h2 style={{ marginBottom: "30px" }}>Billing Management</h2>
 
       <OverviewRow>
         <Product
           icon="credit-card"
-          title="Payment methods"
+          title="Payment Methods"
           href="/billing/cards"
         >
           Add, remove, or change your <Text strong>credit cards</Text>.
@@ -40,14 +40,14 @@ export default function Overview() {
 
         <Product
           icon="list"
-          title="Invoices and receipts"
+          title="Invoices and Receipts"
           href="/billing/receipts"
         >
           View your <Text strong>invoices</Text> and{" "}
           <Text strong>receipts</Text>
         </Product>
 
-        <Product icon="key" title="Manage licenses" href="/licenses/managed">
+        <Product icon="key" title="Manage Licenses" href="/licenses/managed">
           View and manage your licenses
           <br />
           <Text type="secondary">

@@ -146,7 +146,7 @@ export default function AccountNavTab({ style }: Props) {
 
       if (isCommercial) {
         yours.push(
-          menuItem("billing", <A href="/billing">Billing</A>, "credit-card")
+          menuItem("billing", <A href="/billing">Billing Management</A>, "credit-card")
         );
       }
       if (sshGateway) {

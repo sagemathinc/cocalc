@@ -122,8 +122,9 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
     const name = getProductName(info);
     let statement_descriptor = "COCALC ";
     if (info.type == "vouchers") {
-      statement_descriptor +=
-        "${info.quantity} VOUCHER${info.count > 1 ? 'S' : ''}";
+      statement_descriptor += `${info.quantity} VOUCHER${
+        info.quantity != 1 ? "S" : ""
+      }`;
     } else if (info.subscription != "no") {
       statement_descriptor += "LIC SUB";
     } else {
@@ -212,8 +213,13 @@ async function stripePurchaseProduct(
   if (info.type == "vouchers") {
     // (1) there is no period for a voucher, (2) we charge them the tax
     // amount we quoted the when creating the vouchers.
-    await conn.invoiceItems.create({ customer, price, quantity });
-    tax_percent = info.tax / info.cost;
+    await conn.invoiceItems.create({
+      customer,
+      price,
+      quantity,
+      metadata: info,
+    });
+    tax_percent = info.tax / Math.max(0.001, info.cost);
   } else {
     if (info.start == null || info.end == null) {
       throw Error("start and end must be defined");
@@ -224,7 +230,12 @@ async function stripePurchaseProduct(
     };
 
     // Item gets automatically put on the invoice created below.
-    await conn.invoiceItems.create({ customer, price, quantity, period });
+    await conn.invoiceItems.create({
+      customer,
+      price,
+      quantity,
+      period,
+    });
     tax_percent = await stripe.sales_tax(customer);
   }
 

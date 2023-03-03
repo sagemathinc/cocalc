@@ -21,7 +21,13 @@ function duration(meta, info) {
 export function getProductMetadata(info: PurchaseInfo): ProductMetadata {
   const { type } = info;
 
-  if (type === "quota") {
+  if (type == "vouchers") {
+    return {
+      type: "vouchers",
+      id: info.id,
+      title: info.title,
+    } as ProductMetadata;
+  } else if (type === "quota") {
     const meta: ProductMetadataQuota = {
       user: info.user,
       ram: info.custom_ram,
@@ -54,6 +60,6 @@ export function getProductMetadata(info: PurchaseInfo): ProductMetadata {
     };
     return meta;
   } else {
-    throw new Error(`unknown type: ${type}`);
+    throw new Error(`ProductMetadata: unknown type: ${type}`);
   }
 }

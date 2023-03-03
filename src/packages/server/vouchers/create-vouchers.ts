@@ -283,7 +283,7 @@ export default async function createVouchers({
       } else {
         // payment failed -- delete all the vouchers from the database.  Even if this fails
         // this is just clutter, since the vouchers are not valid until the step below.
-        await pool.query("DELETE FROM vouches WHERE id=$1", [id]);
+        await pool.query("DELETE FROM vouchers WHERE id=$1", [id]);
         await pool.query("DELETE FROM voucher_codes WHERE id=$1", [id]);
       }
     }

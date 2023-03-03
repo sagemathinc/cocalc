@@ -16,7 +16,7 @@ export function getProductName(info: PurchaseInfo): string {
     // of licenses, this is the only option.  We can't encode all
     // of that in this string; instead, we'll make sure this is easy
     // for admins to look up.
-    return `${info.quantity} Vouchers - ${info.title}`;
+    return `${info.quantity} Vouchers (id=${info.id}) - ${info.title}`;
   }
 
   // Similar to getProductId, but meant to be human readable.

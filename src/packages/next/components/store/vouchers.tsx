@@ -790,7 +790,7 @@ function Terms({ whenPay }) {
 function VoucherSummary({ items, taxRate, numVouchers, whenPay }) {
   const full = numVouchers * fullCost(items);
   const discounted = numVouchers * discountedCost(items);
-  const tax = full * taxRate;
+  const tax = (whenPay == "now" ? discounted : full) * taxRate;
   return (
     <Paragraph style={{ textAlign: "left" }}>
       <b style={{ fontSize: "14pt" }}>Summary</b>
