@@ -20,11 +20,13 @@ import useIsMounted from "lib/hooks/mounted";
 import Loading from "components/share/loading";
 import Project from "components/project/link";
 
+type State = "input" | "redeeming" | "redeemed";
+
 export default function Redeem({ customize }) {
   const isMounted = useIsMounted();
   const [code, setCode] = useState<string>("");
   const [error, setError] = useState<string>("");
-  const [redeemingVoucher, setRedeemingVoucher] = useState<boolean>(false);
+  const [state, setState] = useState<State>("input");
   const { account_id, email_address } = useProfile({ noCache: true }) ?? {};
   const [signedIn, setSignedIn] = useState<boolean>(!!account_id);
   const router = useRouter();
@@ -35,17 +37,19 @@ export default function Redeem({ customize }) {
   async function redeemCode() {
     try {
       setError("");
-      setRedeemingVoucher(true);
+      setState("redeeming");
       // This api call tells the backend, "create requested vouchers from everything in my
       // shopping cart that is not a subscription."
       await apiPost("/vouchers/redeem", { code: code.trim(), project_id });
       if (!isMounted.current) return;
+      // success!
+      setState("redeemed");
     } catch (err) {
       // The redeem failed.
       setError(err.message);
+      setState("input"); // back to input mode
     } finally {
       if (!isMounted.current) return;
-      setRedeemingVoucher(false);
     }
   }
 
@@ -62,7 +66,7 @@ export default function Redeem({ customize }) {
           <div
             style={{
               width: "100%",
-              margin: "15vh 0",
+              margin: "10vh 0",
               display: "flex",
               justifyContent: "center",
             }}
@@ -87,6 +91,7 @@ export default function Redeem({ customize }) {
                   <Icon name="gift2" style={{ fontSize: "75px" }} />
                   <h1>Enter Voucher Code</h1>
                   <Input
+                    disabled={state != "input"}
                     allowClear
                     autoFocus
                     size="large"
@@ -108,33 +113,67 @@ export default function Redeem({ customize }) {
                       onClose={() => setError("")}
                     />
                   )}
-                  {!error && (
-                    <Button
-                      disabled={code.length < 8 || redeemingVoucher}
-                      size="large"
-                      type="primary"
-                      onClick={redeemCode}
-                    >
-                      {redeemingVoucher ? (
-                        <Loading delay={0}>Redeeming...</Loading>
-                      ) : (
-                        <>Redeem</>
-                      )}
-                    </Button>
-                  )}
+                  <Button
+                    disabled={code.length < 8 || state != "input" || !!error}
+                    size="large"
+                    type="primary"
+                    onClick={redeemCode}
+                  >
+                    {state == "input" && <>Redeem</>}
+                    {state == "redeeming" && (
+                      <Loading delay={0}>Redeeming...</Loading>
+                    )}
+                    {state == "redeemed" && <>Success!</>}
+                  </Button>
                   {project_id && (
                     <Alert
                       showIcon
                       style={{ marginTop: "30px" }}
-                      type="info"
+                      type={
+                        {
+                          input: "info",
+                          redeeming: "warning",
+                          redeemed: "success",
+                        }[state] as "info" | "warning" | "success"
+                      }
                       message={
-                        <div style={{ maxWidth: "450px" }}>
-                          The voucher will be applied to the project{" "}
-                          <Project project_id={project_id} /> automatically.
+                        <div style={{ maxWidth: "340px" }}>
+                          {state == "input" && (
+                            <>
+                              The voucher will be applied to your project{" "}
+                              <Project project_id={project_id} /> automatically.
+                            </>
+                          )}
+                          {state == "redeeming" && (
+                            <>
+                              Redeeming the voucher and applying it to your
+                              project <Project project_id={project_id} />
+                              ...
+                            </>
+                          )}
+                          {state == "redeemed" && (
+                            <>
+                              The voucher was applied to your project{" "}
+                              <Project project_id={project_id} />.
+                            </>
+                          )}
                         </div>
                       }
                     />
                   )}{" "}
+                  {state == "redeemed" && (
+                    <div style={{ textAlign: "center", marginTop: "15px" }}>
+                      <Button
+                        onClick={() => {
+                          setState("input");
+                          setCode("");
+                          setError("");
+                        }}
+                      >
+                        Redeem Another Voucher
+                      </Button>
+                    </div>
+                  )}
                   <Divider orientation="left" style={{ width: "400px" }}>
                     Vouchers
                   </Divider>
