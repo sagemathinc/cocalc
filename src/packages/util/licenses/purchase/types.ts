@@ -71,6 +71,14 @@ export type PurchaseInfoQuota = {
 
 export type PurchaseInfo =
   | PurchaseInfoQuota
+  | {
+      type: "vouchers";
+      id: number;
+      count: number;
+      cost: number;
+      tax: number;
+      title: string;
+    }
   | ({
       type: "vm";
       quantity: 1;

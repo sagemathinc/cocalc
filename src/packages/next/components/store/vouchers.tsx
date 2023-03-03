@@ -44,13 +44,15 @@ import {
   RequireEmailAddress,
 } from "./checkout";
 import { COLORS } from "@cocalc/util/theme";
-import vouchers, { CharSet, MAX_VOUCHERS } from "@cocalc/util/vouchers";
+import vouchers, {
+  CharSet,
+  MAX_VOUCHERS,
+  WhenPay,
+} from "@cocalc/util/vouchers";
 
 function dateStr(d) {
   return d?.toDate().toLocaleDateString();
 }
-
-type WhenPay = "now" | "invoice" | "admin";
 
 export default function CreateVouchers() {
   const router = useRouter();
@@ -135,6 +137,7 @@ export default function CreateVouchers() {
         charset,
         prefix,
         postfix,
+        whenPay,
       });
       // Success!
 

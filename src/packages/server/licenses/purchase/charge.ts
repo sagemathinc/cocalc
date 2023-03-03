@@ -16,7 +16,7 @@ const logger = getLogger("licenses-charge");
 
 export type Purchase = { type: "invoice" | "subscription"; id: string };
 
-export async function chargeUserForLicense(
+export async function chargeUser(
   stripe: StripeClient,
   info: PurchaseInfo
 ): Promise<Purchase> {
@@ -157,7 +157,7 @@ async function stripeProductExists(product_id: string): Promise<boolean> {
  *   there is also a subscription function, see below.
  * - A "price" is created, which is also parametrized by the number of days,
  *   but not the number of projects.
- * - This product price is without an online discount (no idea why), but instead
+ * - This product price is without an online discount, but instead
  *   briefly a coupon is created and added to the user's account at stripe.
  * - the above is only for type==quota licenses, not VMs!
  * - The invoice is created, with the desired price, quantity, etc.
@@ -211,7 +211,7 @@ async function stripePurchaseProduct(
     end: Math.round(new Date(info.end).valueOf() / 1000),
   };
 
-  // gets automatically put on the invoice created below.
+  // Item gets automatically put on the invoice created below.
   await conn.invoiceItems.create({ customer, price, quantity, period });
 
   // TODO: improve later to handle case of *multiple* items on one invoice

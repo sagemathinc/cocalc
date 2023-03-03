@@ -3,18 +3,21 @@ import { CREATED, CREATED_BY, ID, NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 
+export type WhenPay = "now" | "invoice" | "admin";
+
 export interface Voucher {
   id: number;
+  when_pay: WhenPay;
   created: Date;
   created_by: string;
   title: string;
-  active: Date;
-  expire: Date;
-  cancel_by: Date;
   cart: { description: SiteLicenseDescriptionDB; product: "site-license" }[];
   count: number;
   cost: number;
   tax: number;
+  active: Date;
+  expire: Date;
+  cancel_by: Date;
   notes?: string;
 }
 
@@ -22,6 +25,10 @@ Table({
   name: "vouchers",
   fields: {
     id: ID,
+    when_pay: {
+      type: "string",
+      desc: "When these vouchers are automatically paid for: now (=when they are created), invoice (=only redeemed vouchers when they expire), admin (=never).",
+    },
     created_by: CREATED_BY,
     created: CREATED,
     title: {
@@ -103,6 +110,7 @@ Table({
           cost: null,
           tax: null,
           cart: null,
+          when_pay: null,
         },
       },
       set: {
@@ -137,6 +145,7 @@ Table({
           tax: null,
           notes: null,
           cart: null,
+          when_pay: null,
         },
       },
       set: {
@@ -150,6 +159,7 @@ Table({
           cost: true,
           tax: true,
           notes: true,
+          when_pay: true,
         },
       },
     },

@@ -1,4 +1,6 @@
 import voucherCodes from "voucher-code-generator";
+import type { WhenPay } from "./db-schema/vouchers";
+export type { WhenPay };
 
 export const CHARSETS = [
   "numbers",

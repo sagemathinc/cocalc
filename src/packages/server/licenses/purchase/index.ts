@@ -18,7 +18,7 @@ import { db } from "@cocalc/database";
 import getPool from "@cocalc/database/pool";
 import { syncCustomer } from "@cocalc/database/postgres/stripe";
 import { sanity_checks } from "@cocalc/util/licenses/purchase/sanity-checks";
-import { chargeUserForLicense, setPurchaseMetadata } from "./charge";
+import { chargeUser, setPurchaseMetadata } from "./charge";
 import createLicense from "./create-license";
 import { StripeClient } from "@cocalc/server/stripe/client";
 import { delay } from "awaiting";
@@ -63,7 +63,7 @@ export default async function purchaseLicense(
   if (info.cost != null) {
     logger.debug("charging user for license...");
     const stripe = new StripeClient({ account_id });
-    purchase = await chargeUserForLicense(stripe, info);
+    purchase = await chargeUser(stripe, info);
   } else {
     logger.debug(
       "no cost set for license, so not charging (e.g., redeeming a voucher?)"
