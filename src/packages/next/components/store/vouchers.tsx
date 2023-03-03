@@ -62,7 +62,7 @@ export default function CreateVouchers() {
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [numVouchers, setNumVouchers] = useState<number>(0);
+  const [numVouchers, setNumVouchers] = useState<number | null>(null);
   const [length, setLength] = useState<number>(8);
   const [title, setTitle] = useState<string>("");
   const [prefix, setPrefix] = useState<string>("");
@@ -83,6 +83,12 @@ export default function CreateVouchers() {
   useEffect(() => {
     router.prefetch("/store/congrats");
   }, []);
+
+  useEffect(() => {
+    if (!payNow && (numVouchers ?? 0) > MAX_VOUCHERS) {
+      setNumVouchers(MAX_VOUCHERS);
+    }
+  }, [payNow]);
 
   const cart0 = useAPI("/shopping/cart/get");
 
@@ -118,7 +124,7 @@ export default function CreateVouchers() {
       // This api call tells the backend, "create requested vouchers from everything in my
       // shopping cart that is not a subscription."
       await apiPost("/vouchers/create-vouchers", {
-        count: numVouchers,
+        count: numVouchers ?? 1,
         expire,
         cancelBy,
         active,
@@ -155,7 +161,7 @@ export default function CreateVouchers() {
     !profile?.email_address;
 
   function CreateVouchersButton() {
-    const v = plural(numVouchers, "Voucher");
+    const v = plural(numVouchers ?? 0, "Voucher");
     return (
       <Button
         disabled={disabled}
@@ -166,11 +172,12 @@ export default function CreateVouchers() {
       >
         {placingOrder ? (
           <Loading delay={0}>
-            Creating {numVouchers} {v}...
+            Creating {numVouchers ?? 0} {v}...
           </Loading>
         ) : (
           <>
-            Create {numVouchers} {v}
+            Create {numVouchers ?? 0} {v}
+            {payNow ? " (pay now)" : " (pay later)"}
           </>
         )}
       </Button>
@@ -267,18 +274,18 @@ export default function CreateVouchers() {
                 </Paragraph>
               </div>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                <Check done={numVouchers > 0} /> How Many Vouchers?
+                <Check done={(numVouchers ?? 0) > 0} /> How Many Vouchers?
               </h4>
               <Paragraph style={{ color: "#666" }}>
-                Input the number of vouchers you would like to create. (Limit:{" "}
-                {MAX_VOUCHERS})
+                Input the number of vouchers you would like to create.
+                {!payNow ? ` (Limit: ${MAX_VOUCHERS})` : ""}
                 <div style={{ textAlign: "center", marginTop: "15px" }}>
                   <InputNumber
                     size="large"
                     min={0}
-                    max={MAX_VOUCHERS}
-                    defaultValue={numVouchers}
-                    onChange={(value) => setNumVouchers(value ?? 1)}
+                    max={payNow ? 99999999999 : MAX_VOUCHERS}
+                    value={numVouchers}
+                    onChange={(value) => setNumVouchers(value)}
                   />
                 </div>
               </Paragraph>
@@ -581,14 +588,14 @@ export default function CreateVouchers() {
                 <VoucherSummary
                   items={items}
                   taxRate={taxRate}
-                  numVouchers={numVouchers}
+                  numVouchers={numVouchers ?? 0}
                   payNow={payNow}
                 />
                 <span style={{ fontSize: "13pt" }}>
                   <TotalCost
                     items={items}
                     taxRate={taxRate}
-                    numVouchers={numVouchers}
+                    numVouchers={numVouchers ?? 0}
                     payNow={payNow}
                   />
                 </span>
@@ -599,9 +606,9 @@ export default function CreateVouchers() {
 
         <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
           <Check done />
-          {numVouchers == 1
+          {(numVouchers ?? 0) == 1
             ? "Your Voucher"
-            : `Each of Your ${numVouchers} Vouchers`}{" "}
+            : `Each of Your ${numVouchers ?? 0} Vouchers`}{" "}
           Provides the Following {items.length}{" "}
           {plural(items.length, "License")}
         </h4>
@@ -623,7 +630,7 @@ export default function CreateVouchers() {
         </div>
         <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
           <Check done={!disabled} /> Create Your{" "}
-          {plural(numVouchers, "Voucher")}
+          {plural(numVouchers ?? 0, "Voucher")}
         </h4>
         <div style={{ fontSize: "12pt" }}>
           <Row>
@@ -635,7 +642,7 @@ export default function CreateVouchers() {
                 <TotalCost
                   items={cart}
                   taxRate={taxRate}
-                  numVouchers={numVouchers}
+                  numVouchers={numVouchers ?? 0}
                   payNow={payNow}
                 />
                 <br />
@@ -679,7 +686,7 @@ function Terms({ payNow }) {
         our terms of service,
       </A>{" "}
       {payNow ? (
-        <>and agree to pay for the vouchers you have requested</>
+        <>and agree to pay for the vouchers you have requested.</>
       ) : (
         <>
           and agree to pay for any vouchers that are redeemed, up to the maxium
@@ -698,9 +705,18 @@ function VoucherSummary({ items, taxRate, numVouchers, payNow }) {
     <Paragraph style={{ textAlign: "left" }}>
       <b style={{ fontSize: "14pt" }}>Summary</b>
       <Paragraph style={{ color: "#666" }}>
-        You will be invoiced for up to {money(full + tax, true)}, depending on
-        how many vouchers are redeeemed. If no vouchers are redeemed you will
-        not pay anything.
+        {payNow ? (
+          <>
+            You will be immediately charged {money(discounted + tax, true)} and
+            provided with your vouchers.
+          </>
+        ) : (
+          <>
+            You will be invoiced for up to {money(full + tax, true)}, depending
+            on how many vouchers are redeeemed. If no vouchers are redeemed you
+            will not pay anything.
+          </>
+        )}
       </Paragraph>
       <div>
         {numVouchers} Vouchers:{" "}

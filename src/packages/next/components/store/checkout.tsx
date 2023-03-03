@@ -14,7 +14,7 @@ import {
 } from "react-google-recaptcha-v3";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { money } from "@cocalc/util/licenses/purchase/utils";
+import { money,  } from "@cocalc/util/licenses/purchase/utils";
 import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
 import PaymentMethods from "components/billing/payment-methods";
 import A from "components/misc/A";
