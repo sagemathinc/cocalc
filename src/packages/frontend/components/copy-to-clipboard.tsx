@@ -7,7 +7,6 @@ import { Button, Input, Tooltip } from "antd";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 
 import { CSS } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 interface Props {
   value: string;
@@ -17,6 +16,7 @@ interface Props {
   inputStyle?: CSS;
   size?: "large" | "middle" | "small";
 }
+import { CopyOutlined } from "@ant-design/icons";
 
 const INPUT_STYLE: CSS = { display: "inline-block", flex: 1 } as const;
 
@@ -41,15 +41,7 @@ export default function CopyToClipBoard(props: Props) {
   let copy = useMemo(() => {
     const btn = (
       <CopyToClipboard text={value} onCopy={() => setCopied(true)}>
-        <Button
-          size={size}
-          style={{
-            margin:
-              "-2px -12px" /* hack so doesn't conflict w/ style of Input below*/,
-          }}
-        >
-          <Icon name={copied ? "clipboard-check" : "clipboard"} />
-        </Button>
+        <Button size={size} icon={<CopyOutlined />} />
       </CopyToClipboard>
     );
     if (!copied) return btn;
@@ -60,14 +52,19 @@ export default function CopyToClipBoard(props: Props) {
     );
   }, [value, copied, size]);
 
+  // See https://ant.design/components/input for why using Input.Group is the
+  // right way to do this.
   const input = (
-    <Input
-      size={size}
-      readOnly
-      onFocus={(e) => e.target.select()}
-      value={value}
-      addonAfter={copy}
-    />
+    <Input.Group compact>
+      <Input
+        style={{ width: `${value.length + 8}ex`, fontFamily: "monospace" }}
+        readOnly
+        size={size}
+        value={value}
+        onFocus={(e) => e.target.select()}
+      />
+      {copy}
+    </Input.Group>
   );
   if (!label) return <div style={style}>{input}</div>;
   return (
