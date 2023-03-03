@@ -50,19 +50,21 @@ function dateStr(d) {
   return d?.toDate().toLocaleDateString();
 }
 
+type WhenPay = "now" | "invoice" | "admin";
+
 export default function CreateVouchers() {
   const router = useRouter();
   const isMounted = useIsMounted();
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
-  const [payNow, setPayNow] = useState<boolean>(true);
+  const [whenPay, setWhenPay] = useState<WhenPay>("now");
   const [placingOrder, setCreatingVouchers] = useState<boolean>(false);
   const [haveCreditCard, setHaveCreditCard] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [numVouchers, setNumVouchers] = useState<number | null>(null);
+  const [numVouchers, setNumVouchers] = useState<number | null>(1);
   const [length, setLength] = useState<number>(8);
   const [title, setTitle] = useState<string>("");
   const [prefix, setPrefix] = useState<string>("");
@@ -85,10 +87,10 @@ export default function CreateVouchers() {
   }, []);
 
   useEffect(() => {
-    if (!payNow && (numVouchers ?? 0) > MAX_VOUCHERS) {
+    if (whenPay == "invoice" && (numVouchers ?? 0) > MAX_VOUCHERS) {
       setNumVouchers(MAX_VOUCHERS);
     }
-  }, [payNow]);
+  }, [whenPay]);
 
   const cart0 = useAPI("/shopping/cart/get");
 
@@ -147,7 +149,10 @@ export default function CreateVouchers() {
     }
   }
 
-  const columns = getColumns({ noDiscount: !payNow, voucherPeriod: true });
+  const columns = getColumns({
+    noDiscount: whenPay != "now",
+    voucherPeriod: true,
+  });
 
   const disabled =
     active == null ||
@@ -157,7 +162,7 @@ export default function CreateVouchers() {
     cancelBy == null ||
     subTotal == 0 ||
     placingOrder ||
-    !haveCreditCard ||
+    (!haveCreditCard && whenPay != "admin") ||
     !profile?.email_address;
 
   function CreateVouchersButton() {
@@ -177,7 +182,9 @@ export default function CreateVouchers() {
         ) : (
           <>
             Create {numVouchers ?? 0} {v}
-            {payNow ? " (pay now)" : " (pay later)"}
+            {whenPay == "now" && " (pay now)"}
+            {whenPay == "invoice" && " (pay later)"}
+            {whenPay == "admin" && " (free trial)"}
           </>
         )}
       </Button>
@@ -241,35 +248,45 @@ export default function CreateVouchers() {
               </h4>
               <div>
                 <Radio.Group
-                  value={payNow ? "payNow" : "payLater"}
+                  value={whenPay}
                   onChange={(e) => {
-                    setPayNow(e.target.value == "payNow");
+                    setWhenPay(e.target.value as WhenPay);
                   }}
                 >
                   <Space
                     direction="vertical"
                     style={{ margin: "5px 0 15px 15px" }}
                   >
-                    <Radio value={"payNow"}>Pay Now</Radio>
-                    <Radio value={"payLater"} disabled={!profile?.is_partner}>
-                      Pay Later: Invoice me later only for vouchers that were
-                      redeemed
+                    <Radio value={"now"}>
+                      Pay Now: get a 25% discount and no usage restrictions
                     </Radio>
+                    <Radio value={"invoice"} disabled={!profile?.is_partner}>
+                      Pay Later: invoice me for vouchers that were redeemed
+                    </Radio>
+                    {profile?.is_admin && (
+                      <Radio value={"admin"}>
+                        Free Trials: never be charged (admins only)
+                      </Radio>
+                    )}
                   </Space>
                 </Radio.Group>
                 <br />
                 <Paragraph style={{ color: "#666" }}>
-                  {!profile?.is_partner ? (
+                  {!profile?.is_partner && (
                     <>
                       The pay later option is currently only available to
                       members of our partner program. If you're interested,
-                      <A href="/support">contact support</A>.
+                      <A href="/support">contact support</A>.{" "}
                     </>
-                  ) : (
+                  )}
+                  {profile?.is_partner && (
                     <>
                       As a member of the partner program, you may select the
-                      "Pay Later" option.
+                      "Pay Later" option.{" "}
                     </>
+                  )}
+                  {profile?.is_admin && (
+                    <>As an admin, you may select the "Free Trials" option. </>
                   )}
                 </Paragraph>
               </div>
@@ -278,18 +295,18 @@ export default function CreateVouchers() {
               </h4>
               <Paragraph style={{ color: "#666" }}>
                 Input the number of vouchers you would like to create.
-                {!payNow ? ` (Limit: ${MAX_VOUCHERS})` : ""}
+                {whenPay == "invoice" ? ` (Limit: ${MAX_VOUCHERS})` : ""}
                 <div style={{ textAlign: "center", marginTop: "15px" }}>
                   <InputNumber
                     size="large"
                     min={0}
-                    max={payNow ? 99999999999 : MAX_VOUCHERS}
+                    max={whenPay == "invoice" ? MAX_VOUCHERS : 10000}
                     value={numVouchers}
                     onChange={(value) => setNumVouchers(value)}
                   />
                 </div>
               </Paragraph>
-              {!payNow && (
+              {whenPay == "invoice" && (
                 <>
                   <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
                     <Check
@@ -546,22 +563,26 @@ export default function CreateVouchers() {
                 </Space>
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                <Check done={haveCreditCard} /> Ensure a Payment Method is on
-                File{" "}
+                <Check done={haveCreditCard || whenPay == "admin"} /> Ensure a
+                Payment Method is on File{" "}
               </h4>
               <Paragraph style={{ color: "#666" }}>
-                {payNow ? (
+                {whenPay == "now" && (
                   <>
                     The default payment method shown below will be used to pay
                     for the vouchers. You will be charged when you click the
                     button below to create your vouchers.
                   </>
-                ) : (
+                )}
+                {whenPay == "invoice" && (
                   <>
                     The default payment method shown below will be used to pay
                     for the redeemed vouchers, unless you change the payment
                     method before you are invoiced.
                   </>
+                )}
+                {whenPay == "admin" && (
+                  <>As an admin, you will not be charged.</>
                 )}
               </Paragraph>
               <PaymentMethods
@@ -584,19 +605,19 @@ export default function CreateVouchers() {
                 }}
               >
                 <CreateVouchersButton />
-                <Terms payNow={payNow} />
+                <Terms whenPay={whenPay} />
                 <VoucherSummary
                   items={items}
                   taxRate={taxRate}
                   numVouchers={numVouchers ?? 0}
-                  payNow={payNow}
+                  whenPay={whenPay}
                 />
                 <span style={{ fontSize: "13pt" }}>
                   <TotalCost
                     items={items}
                     taxRate={taxRate}
                     numVouchers={numVouchers ?? 0}
-                    payNow={payNow}
+                    whenPay={whenPay}
                   />
                 </span>
               </div>
@@ -643,10 +664,10 @@ export default function CreateVouchers() {
                   items={cart}
                   taxRate={taxRate}
                   numVouchers={numVouchers ?? 0}
-                  payNow={payNow}
+                  whenPay={whenPay}
                 />
                 <br />
-                <Terms payNow={payNow} />
+                <Terms whenPay={whenPay} />
               </div>
             </Col>
           </Row>
@@ -665,39 +686,43 @@ export default function CreateVouchers() {
   );
 }
 
-function TotalCost({ items, taxRate, numVouchers, payNow }) {
+function TotalCost({ items, taxRate, numVouchers, whenPay }) {
   const cost =
     numVouchers *
-    (payNow ? discountedCost(items) : fullCost(items)) *
+    (whenPay == "now" ? discountedCost(items) : fullCost(items)) *
     (1 + taxRate);
   return (
     <>
-      {payNow ? "Total Amount" : "Maximum Amount"}:{" "}
+      {whenPay == "now" ? "Total Amount" : "Maximum Amount"}:{" "}
       <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
     </>
   );
 }
 
-function Terms({ payNow }) {
+function Terms({ whenPay }) {
   return (
     <Paragraph style={{ color: COLORS.GRAY, fontSize: "10pt" }}>
       By creating vouchers, you agree to{" "}
       <A href="/policies/terms" external>
         our terms of service,
       </A>{" "}
-      {payNow ? (
+      {whenPay == "now" && (
         <>and agree to pay for the vouchers you have requested.</>
-      ) : (
+      )}
+      {whenPay == "invoice" && (
         <>
           and agree to pay for any vouchers that are redeemed, up to the maxium
           amount listed here.
         </>
       )}
+      {whenPay == "admin" && (
+        <>and as an admin agree to use the vouchers for company purposes.</>
+      )}
     </Paragraph>
   );
 }
 
-function VoucherSummary({ items, taxRate, numVouchers, payNow }) {
+function VoucherSummary({ items, taxRate, numVouchers, whenPay }) {
   const full = numVouchers * fullCost(items);
   const discounted = numVouchers * discountedCost(items);
   const tax = full * taxRate;
@@ -705,16 +730,26 @@ function VoucherSummary({ items, taxRate, numVouchers, payNow }) {
     <Paragraph style={{ textAlign: "left" }}>
       <b style={{ fontSize: "14pt" }}>Summary</b>
       <Paragraph style={{ color: "#666" }}>
-        {payNow ? (
+        {whenPay == "now" && (
           <>
             You will be immediately charged {money(discounted + tax, true)} and
             provided with your vouchers.
           </>
-        ) : (
+        )}
+        {whenPay == "invoice" && (
           <>
             You will be invoiced for up to {money(full + tax, true)}, depending
             on how many vouchers are redeeemed. If no vouchers are redeemed you
             will not pay anything.
+          </>
+        )}
+        {whenPay == "admin" && (
+          <>
+            <b>
+              You will <u>not</u> be charged the amount listed below.
+            </b>{" "}
+            Note that this is the equivalent cache value of the vouchers you are
+            creating.
           </>
         )}
       </Paragraph>
@@ -723,9 +758,11 @@ function VoucherSummary({ items, taxRate, numVouchers, payNow }) {
         <span style={{ float: "right" }}>{money(full, true)}</span>
       </div>
       <div>
-        Self-service Discount{!payNow ? " (only if pay now)" : ""}:
+        Self-service Discount{whenPay == "invoice" ? " (only if pay now)" : ""}:
         <span style={{ float: "right" }}>
-          {payNow ? money(-(full - discounted), true) : money(0, true)}
+          {whenPay == "now"
+            ? money(-(full - discounted), true)
+            : money(0, true)}
         </span>
       </div>
       <div>
