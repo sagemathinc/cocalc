@@ -249,8 +249,8 @@ export default function AccountNavTab({ style }: Props) {
           &nbsp;&nbsp;
         </>
       )}
-      <Dropdown menu={{ items }}>
-        <span style={style}>Account</span>
+      <Dropdown menu={{ items }} trigger={["click"]}>
+        <span style={style}>Account ▼</span>
       </Dropdown>
     </div>
   );
