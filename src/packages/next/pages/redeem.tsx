@@ -191,10 +191,13 @@ export default function Redeem({ customize }) {
                     ) : (
                       ""
                     )}
-                    . You can then use{" "}
-                    <A href="/licenses/managed">your licenses</A> to{" "}
+                    . You can use <A href="/licenses/managed">licenses</A> to{" "}
                     <A href="https://doc.cocalc.com/add-lic-project.html">
                       upgrade your projects
+                    </A>
+                    , and browse{" "}
+                    <A href="/vouchers/redeemed">
+                      all vouchers you have redeemed
                     </A>
                     . If you have any questions,{" "}
                     <A href="/support">contact support</A> and include your

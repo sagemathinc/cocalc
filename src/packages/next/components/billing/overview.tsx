@@ -58,8 +58,9 @@ export default function Overview() {
 
       <p>
         You can also <A href="/store/site-license">buy a license</A> at{" "}
-        <A href="/store">the store</A> and{" "}
-        <A href="/licenses/managed">browse your existing licenses</A>.
+        <A href="/store">the store</A> and browse{" "}
+        <A href="/licenses/managed">your existing licenses</A> and{" "}
+        <A href="/vouchers/redeemed">vouchers you have redeemed</A>.
       </p>
       <p>
         More general, you can also read{" "}

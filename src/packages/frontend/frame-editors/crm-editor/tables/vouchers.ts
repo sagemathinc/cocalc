@@ -37,7 +37,7 @@ register({
   icon: "gift",
 
   query: {
-    voucher_codes: [
+    crm_voucher_codes: [
       {
         code: null,
         id: null,
@@ -50,5 +50,5 @@ register({
       },
     ],
   },
-  changes: false,
+  changes: true,
 });

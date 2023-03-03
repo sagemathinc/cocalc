@@ -223,6 +223,29 @@ Table({
     primary_key: "code",
     user_query: {
       get: {
+        pg_where: [{ "redeemed_by = $::UUID": "account_id" }],
+        fields: {
+          code: null,
+          id: null,
+          created: null,
+          when_redeemed: null,
+          redeemed_by: null,
+          notes: null,
+          canceled: null,
+          license_ids: null,
+        },
+      },
+    },
+  },
+});
+
+Table({
+  name: "crm_voucher_codes",
+  rules: {
+    virtual: "voucher_codes",
+    primary_key: "code",
+    user_query: {
+      get: {
         pg_where: [],
         admin: true,
         fields: {
@@ -249,4 +272,5 @@ Table({
       },
     },
   },
+  fields: schema.voucher_codes.fields,
 });

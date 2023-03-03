@@ -221,8 +221,10 @@ export default function CreateVouchers() {
         <A href="/store/site-license">upgrades</A>, a{" "}
         <A href="/store/boost">license boost</A>, or a{" "}
         <A href="/dedicated">dedicated VM or disk</A>, and select a specific
-        range of dates. When the voucher is redeemed it starts at the redemption
-        date, and lasts for the same number of days as your shopping cart item.
+        range of dates. When you <A href="/redeem">redeem a voucher</A>, the
+        corresponding licenses start at the redemption date, and last for the
+        same number of days as your shopping cart item. You can also browse all{" "}
+        <A href="/vouchers/redeemed">vouchers you have redeeemed</A>.
       </div>
     );
   }
