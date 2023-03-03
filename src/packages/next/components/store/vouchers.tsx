@@ -38,6 +38,7 @@ import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph } from "components/misc";
 import {
   fullCost,
+  discountedCost,
   getColumns,
   OrderError,
   RequireEmailAddress,
@@ -55,6 +56,7 @@ export default function CreateVouchers() {
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
+  const [payNow, setPayNow] = useState<boolean>(true);
   const [placingOrder, setCreatingVouchers] = useState<boolean>(false);
   const [haveCreditCard, setHaveCreditCard] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string>("");
@@ -139,7 +141,7 @@ export default function CreateVouchers() {
     }
   }
 
-  const columns = getColumns({ noDiscount: true, voucherPeriod: true });
+  const columns = getColumns({ noDiscount: !payNow, voucherPeriod: true });
 
   const disabled =
     active == null ||
@@ -197,8 +199,6 @@ export default function CreateVouchers() {
             </>
           )}
         </h3>
-        <br />
-        <br />
         You must have at least one non-subscription item in{" "}
         <A href="/store/cart">your cart</A> to create vouchers. Shop for{" "}
         <A href="/store/site-license">upgrades</A>, a{" "}
@@ -222,12 +222,52 @@ export default function CreateVouchers() {
                 <Icon name={"gift2"} style={{ marginRight: "10px" }} />
                 Create Vouchers
               </h3>
-              As a member of the CoCalc partner program, you are allowed to
-              create vouchers. These are codes that you can provide to other
-              people, who can then redeem them exactly once for the{" "}
-              {items.length} {plural(items.length, "license")} listed below.
+              <Paragraph style={{ color: "#666" }}>
+                Vouchers are codes that you or anybody else can redeem{" "}
+                <A href="/redeem">here</A> for the {items.length}{" "}
+                {plural(items.length, "license")} listed below. The license
+                start and end dates are shifted to match when the license is
+                redeemed.
+              </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                <Check done={numVouchers > 0} /> 1. How Many Vouchers?
+                <Check done /> Pay Now or Invoice Later?
+              </h4>
+              <div>
+                <Radio.Group
+                  value={payNow ? "payNow" : "payLater"}
+                  onChange={(e) => {
+                    setPayNow(e.target.value == "payNow");
+                  }}
+                >
+                  <Space
+                    direction="vertical"
+                    style={{ margin: "5px 0 15px 15px" }}
+                  >
+                    <Radio value={"payNow"}>Pay Now</Radio>
+                    <Radio value={"payLater"} disabled={!profile?.is_partner}>
+                      Pay Later: Invoice me later only for vouchers that were
+                      redeemed
+                    </Radio>
+                  </Space>
+                </Radio.Group>
+                <br />
+                <Paragraph style={{ color: "#666" }}>
+                  {!profile?.is_partner ? (
+                    <>
+                      The pay later option is currently only available to
+                      members of our partner program. If you're interested,
+                      <A href="/support">contact support</A>.
+                    </>
+                  ) : (
+                    <>
+                      As a member of the partner program, you may select the
+                      "Pay Later" option.
+                    </>
+                  )}
+                </Paragraph>
+              </div>
+              <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+                <Check done={numVouchers > 0} /> How Many Vouchers?
               </h4>
               <Paragraph style={{ color: "#666" }}>
                 Input the number of vouchers you would like to create. (Limit:{" "}
@@ -242,191 +282,204 @@ export default function CreateVouchers() {
                   />
                 </div>
               </Paragraph>
+              {!payNow && (
+                <>
+                  <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+                    <Check
+                      done={
+                        active != null && cancelBy != null && expire != null
+                      }
+                    />
+                    When Vouchers become Active, can be Canceled, and Expire
+                  </h4>
+                  <Paragraph style={{ color: "#666" }}>
+                    Vouchers cannot be redeemed before{" "}
+                    {dateStr(active) ?? "the date below"}. You can choose a date
+                    that is up to 30 days in the future, but it must be before
+                    the cancel by date below.
+                    <div style={{ textAlign: "center", marginTop: "15px" }}>
+                      <Form
+                        labelCol={{ span: 9 }}
+                        wrapperCol={{ span: 9 }}
+                        layout="horizontal"
+                      >
+                        <Form.Item label="Become Active">
+                          <DatePicker
+                            value={active}
+                            presets={[
+                              {
+                                label: "Now",
+                                value: dayjs(),
+                              },
+                              {
+                                label: "+ 7 Days",
+                                value: dayjs().add(7, "d"),
+                              },
+                              {
+                                label: "+ 30 Days",
+                                value: dayjs().add(30, "day"),
+                              },
+                            ]}
+                            onChange={setActive}
+                            disabledDate={(current) => {
+                              if (!current) {
+                                return true;
+                              }
+                              // Can not select days before today
+                              if (current < dayjs().endOf("day")) {
+                                return true;
+                              }
+                              // Cannot select days more than 30 days in the future.
+                              if (
+                                current > dayjs().endOf("day").add(30, "day")
+                              ) {
+                                return true;
+                              }
+                              // Must be before expire date:
+                              if (expire != null && current >= expire) {
+                                return true;
+                              }
+                              // Must be before cancelBy date:
+                              if (cancelBy != null && current >= cancelBy) {
+                                return true;
+                              }
+                              // ok
+                              return false;
+                            }}
+                          />
+                        </Form.Item>
+                      </Form>
+                    </div>
+                  </Paragraph>
+                  <Paragraph style={{ color: "#666" }}>
+                    A redeemed voucher has up until{" "}
+                    {dateStr(cancelBy) ?? "the date below"} to be canceled at no
+                    charge. You might set this to be at the end of the drop
+                    period for a university. You can choose a date that is up to
+                    30 days in the future, but it must be before the expire by
+                    date below.
+                    <div style={{ textAlign: "center", marginTop: "15px" }}>
+                      <Form
+                        labelCol={{ span: 9 }}
+                        wrapperCol={{ span: 9 }}
+                        layout="horizontal"
+                      >
+                        <Form.Item label="Cancel By">
+                          <DatePicker
+                            value={cancelBy}
+                            presets={[
+                              {
+                                label: "+ 7 Days",
+                                value: dayjs().add(7, "d"),
+                              },
+                              {
+                                label: "+ 14 Days",
+                                value: dayjs().add(14, "day"),
+                              },
+                              {
+                                label: "+ 30 Days",
+                                value: dayjs().add(30, "day"),
+                              },
+                            ]}
+                            onChange={setCancelBy}
+                            disabledDate={(current) => {
+                              if (!current) {
+                                return true;
+                              }
+                              // Can not select days before today and today
+                              if (current < dayjs().endOf("day")) {
+                                return true;
+                              }
+                              // Cannot select days more than 30 days in the future.
+                              if (
+                                current > dayjs().endOf("day").add(30, "day")
+                              ) {
+                                return true;
+                              }
+                              // Must be before expire date:
+                              if (expire != null && current >= expire) {
+                                return true;
+                              }
+                              // Must be after active date:
+                              if (active != null && current <= active) {
+                                return true;
+                              }
+                              // ok
+                              return false;
+                            }}
+                          />
+                        </Form.Item>
+                      </Form>
+                    </div>
+                  </Paragraph>{" "}
+                  <Paragraph style={{ color: "#666" }}>
+                    Any voucher that is not redeemed by{" "}
+                    {dateStr(expire) ?? "the date below"} will expire. You can
+                    choose a date that is up to 60 days in the future. You will
+                    be invoiced only for vouchers that are redeemed before the
+                    expiration date.
+                    <div style={{ textAlign: "center", marginTop: "15px" }}>
+                      <Form
+                        labelCol={{ span: 9 }}
+                        wrapperCol={{ span: 9 }}
+                        layout="horizontal"
+                      >
+                        <Form.Item label="Expire">
+                          <DatePicker
+                            value={expire}
+                            presets={[
+                              {
+                                label: "+ 7 Days",
+                                value: dayjs().add(7, "d"),
+                              },
+                              {
+                                label: "+ 30 Days",
+                                value: dayjs().add(30, "day"),
+                              },
+                              {
+                                label: "+ 45 Days",
+                                value: dayjs().add(45, "day"),
+                              },
+                              {
+                                label: "+ 60 Days",
+                                value: dayjs().add(60, "day"),
+                              },
+                            ]}
+                            onChange={setExpire}
+                            disabledDate={(current) => {
+                              if (!current) {
+                                return true;
+                              }
+                              // Can not select days before today and today
+                              if (current < dayjs().endOf("day")) {
+                                return true;
+                              }
+                              // Cannot select days more than 60 days in the future.
+                              if (
+                                current > dayjs().endOf("day").add(60, "day")
+                              ) {
+                                return true;
+                              }
+                              // Must be after active date:
+                              if (active != null && current <= active) {
+                                return true;
+                              }
+                              // Must be after cancel by date:
+                              if (cancelBy != null && current <= cancelBy) {
+                                return true;
+                              }
+                              // ok
+                              return false;
+                            }}
+                          />
+                        </Form.Item>
+                      </Form>
+                    </div>
+                  </Paragraph>
+                </>
+              )}
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                <Check
-                  done={active != null && cancelBy != null && expire != null}
-                />
-                2. When Vouchers become Active, be Canceled, and Expire
-              </h4>
-              <Paragraph style={{ color: "#666" }}>
-                Vouchers cannot be redeemed before{" "}
-                {dateStr(active) ?? "the date below"}. You can choose a date
-                that is up to 30 days in the future, but it must be before the
-                cancel by date below.
-                <div style={{ textAlign: "center", marginTop: "15px" }}>
-                  <Form
-                    labelCol={{ span: 9 }}
-                    wrapperCol={{ span: 9 }}
-                    layout="horizontal"
-                  >
-                    <Form.Item label="Become Active">
-                      <DatePicker
-                        value={active}
-                        presets={[
-                          {
-                            label: "Now",
-                            value: dayjs(),
-                          },
-                          {
-                            label: "+ 7 Days",
-                            value: dayjs().add(7, "d"),
-                          },
-                          {
-                            label: "+ 30 Days",
-                            value: dayjs().add(30, "day"),
-                          },
-                        ]}
-                        onChange={setActive}
-                        disabledDate={(current) => {
-                          if (!current) {
-                            return true;
-                          }
-                          // Can not select days before today
-                          if (current < dayjs().endOf("day")) {
-                            return true;
-                          }
-                          // Cannot select days more than 30 days in the future.
-                          if (current > dayjs().endOf("day").add(30, "day")) {
-                            return true;
-                          }
-                          // Must be before expire date:
-                          if (expire != null && current >= expire) {
-                            return true;
-                          }
-                          // Must be before cancelBy date:
-                          if (cancelBy != null && current >= cancelBy) {
-                            return true;
-                          }
-                          // ok
-                          return false;
-                        }}
-                      />
-                    </Form.Item>
-                  </Form>
-                </div>
-              </Paragraph>
-              <Paragraph style={{ color: "#666" }}>
-                A redeemed voucher has up until{" "}
-                {dateStr(cancelBy) ?? "the date below"} to be canceled at no
-                charge. You might set this to be at the end of the drop period
-                for a university. You can choose a date that is up to 30 days in
-                the future, but it must be before the expire by date below.
-                <div style={{ textAlign: "center", marginTop: "15px" }}>
-                  <Form
-                    labelCol={{ span: 9 }}
-                    wrapperCol={{ span: 9 }}
-                    layout="horizontal"
-                  >
-                    <Form.Item label="Cancel By">
-                      <DatePicker
-                        value={cancelBy}
-                        presets={[
-                          {
-                            label: "+ 7 Days",
-                            value: dayjs().add(7, "d"),
-                          },
-                          {
-                            label: "+ 14 Days",
-                            value: dayjs().add(14, "day"),
-                          },
-                          {
-                            label: "+ 30 Days",
-                            value: dayjs().add(30, "day"),
-                          },
-                        ]}
-                        onChange={setCancelBy}
-                        disabledDate={(current) => {
-                          if (!current) {
-                            return true;
-                          }
-                          // Can not select days before today and today
-                          if (current < dayjs().endOf("day")) {
-                            return true;
-                          }
-                          // Cannot select days more than 30 days in the future.
-                          if (current > dayjs().endOf("day").add(30, "day")) {
-                            return true;
-                          }
-                          // Must be before expire date:
-                          if (expire != null && current >= expire) {
-                            return true;
-                          }
-                          // Must be after active date:
-                          if (active != null && current <= active) {
-                            return true;
-                          }
-                          // ok
-                          return false;
-                        }}
-                      />
-                    </Form.Item>
-                  </Form>
-                </div>
-              </Paragraph>{" "}
-              <Paragraph style={{ color: "#666" }}>
-                Any voucher that is not redeemed by{" "}
-                {dateStr(expire) ?? "the date below"} will expire. You can
-                choose a date that is up to 60 days in the future. You will be
-                invoiced only for vouchers that are redeemed before the
-                expiration date.
-                <div style={{ textAlign: "center", marginTop: "15px" }}>
-                  <Form
-                    labelCol={{ span: 9 }}
-                    wrapperCol={{ span: 9 }}
-                    layout="horizontal"
-                  >
-                    <Form.Item label="Expire">
-                      <DatePicker
-                        value={expire}
-                        presets={[
-                          {
-                            label: "+ 7 Days",
-                            value: dayjs().add(7, "d"),
-                          },
-                          {
-                            label: "+ 30 Days",
-                            value: dayjs().add(30, "day"),
-                          },
-                          {
-                            label: "+ 45 Days",
-                            value: dayjs().add(45, "day"),
-                          },
-                          {
-                            label: "+ 60 Days",
-                            value: dayjs().add(60, "day"),
-                          },
-                        ]}
-                        onChange={setExpire}
-                        disabledDate={(current) => {
-                          if (!current) {
-                            return true;
-                          }
-                          // Can not select days before today and today
-                          if (current < dayjs().endOf("day")) {
-                            return true;
-                          }
-                          // Cannot select days more than 60 days in the future.
-                          if (current > dayjs().endOf("day").add(60, "day")) {
-                            return true;
-                          }
-                          // Must be after active date:
-                          if (active != null && current <= active) {
-                            return true;
-                          }
-                          // Must be after cancel by date:
-                          if (cancelBy != null && current <= cancelBy) {
-                            return true;
-                          }
-                          // ok
-                          return false;
-                        }}
-                      />
-                    </Form.Item>
-                  </Form>
-                </div>
-              </Paragraph>{" "}
-              <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                <Check done={!!title.trim()} /> 3. Customize
+                <Check done={!!title.trim()} /> Customize
               </h4>
               <Paragraph style={{ color: "#666" }}>
                 Describe this group of vouchers so you can easily find them
@@ -486,13 +539,23 @@ export default function CreateVouchers() {
                 </Space>
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                <Check done={haveCreditCard} /> 4. Ensure a Payment Method is on
+                <Check done={haveCreditCard} /> Ensure a Payment Method is on
                 File{" "}
               </h4>
               <Paragraph style={{ color: "#666" }}>
-                The default payment method shown below will be used to pay for
-                the redeemed vouchers, unless you change the payment method
-                before you are invoiced.
+                {payNow ? (
+                  <>
+                    The default payment method shown below will be used to pay
+                    for the vouchers. You will be charged when you click the
+                    button below to create your vouchers.
+                  </>
+                ) : (
+                  <>
+                    The default payment method shown below will be used to pay
+                    for the redeemed vouchers, unless you change the payment
+                    method before you are invoiced.
+                  </>
+                )}
               </Paragraph>
               <PaymentMethods
                 startMinimized
@@ -514,17 +577,19 @@ export default function CreateVouchers() {
                 }}
               >
                 <CreateVouchersButton />
-                <Terms />
+                <Terms payNow={payNow} />
                 <VoucherSummary
                   items={items}
                   taxRate={taxRate}
                   numVouchers={numVouchers}
+                  payNow={payNow}
                 />
                 <span style={{ fontSize: "13pt" }}>
                   <TotalCost
                     items={items}
                     taxRate={taxRate}
                     numVouchers={numVouchers}
+                    payNow={payNow}
                   />
                 </span>
               </div>
@@ -533,7 +598,7 @@ export default function CreateVouchers() {
         </Row>
 
         <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
-          <Check done /> 5.{" "}
+          <Check done />
           {numVouchers == 1
             ? "Your Voucher"
             : `Each of Your ${numVouchers} Vouchers`}{" "}
@@ -557,7 +622,7 @@ export default function CreateVouchers() {
           />
         </div>
         <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
-          <Check done={!disabled} /> 6. Create Your{" "}
+          <Check done={!disabled} /> Create Your{" "}
           {plural(numVouchers, "Voucher")}
         </h4>
         <div style={{ fontSize: "12pt" }}>
@@ -571,9 +636,10 @@ export default function CreateVouchers() {
                   items={cart}
                   taxRate={taxRate}
                   numVouchers={numVouchers}
+                  payNow={payNow}
                 />
                 <br />
-                <Terms />
+                <Terms payNow={payNow} />
               </div>
             </Col>
           </Row>
@@ -592,31 +658,41 @@ export default function CreateVouchers() {
   );
 }
 
-function TotalCost({ items, taxRate, numVouchers }) {
-  const cost = numVouchers * fullCost(items) * (1 + taxRate);
+function TotalCost({ items, taxRate, numVouchers, payNow }) {
+  const cost =
+    numVouchers *
+    (payNow ? discountedCost(items) : fullCost(items)) *
+    (1 + taxRate);
   return (
     <>
-      Maximum Amount:{" "}
+      {payNow ? "Total Amount" : "Maximum Amount"}:{" "}
       <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
     </>
   );
 }
 
-function Terms() {
+function Terms({ payNow }) {
   return (
     <Paragraph style={{ color: COLORS.GRAY, fontSize: "10pt" }}>
       By creating vouchers, you agree to{" "}
       <A href="/policies/terms" external>
         our terms of service,
       </A>{" "}
-      and agree to pay for any vouchers that are redeemed, up to the maxium
-      amount listed here.
+      {payNow ? (
+        <>and agree to pay for the vouchers you have requested</>
+      ) : (
+        <>
+          and agree to pay for any vouchers that are redeemed, up to the maxium
+          amount listed here.
+        </>
+      )}
     </Paragraph>
   );
 }
 
-function VoucherSummary({ items, taxRate, numVouchers }) {
+function VoucherSummary({ items, taxRate, numVouchers, payNow }) {
   const full = numVouchers * fullCost(items);
+  const discounted = numVouchers * discountedCost(items);
   const tax = full * taxRate;
   return (
     <Paragraph style={{ textAlign: "left" }}>
@@ -629,6 +705,12 @@ function VoucherSummary({ items, taxRate, numVouchers }) {
       <div>
         {numVouchers} Vouchers:{" "}
         <span style={{ float: "right" }}>{money(full, true)}</span>
+      </div>
+      <div>
+        Self-service Discount{!payNow ? " (only if pay now)" : ""}:
+        <span style={{ float: "right" }}>
+          {payNow ? money(-(full - discounted), true) : money(0, true)}
+        </span>
       </div>
       <div>
         Estimated tax:{" "}

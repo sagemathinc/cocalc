@@ -273,7 +273,7 @@ export function fullCost(items) {
   return full_cost;
 }
 
-function discountedCost(items) {
+export function discountedCost(items) {
   let discounted_cost = 0;
   for (const { cost, checked } of items) {
     if (checked) {

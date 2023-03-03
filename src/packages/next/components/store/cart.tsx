@@ -29,14 +29,12 @@ import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import OtherItems from "./other-items";
 import { EditRunLimit } from "./run-limit";
 import { describeItem, describePeriod, DisplayCost } from "./site-license-cost";
-import useProfile from "lib/hooks/profile";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
   const [updating, setUpdating] = useState<boolean>(false);
   const [subTotal, setSubTotal] = useState<number>(0);
   const router = useRouter();
-  const profile = useProfile();
 
   // most likely, user will checkout next
   useEffect(() => {
@@ -203,9 +201,6 @@ export default function ShoppingCart() {
         Proceed to Checkout
       </Button>
     );
-    if (!profile?.is_partner) {
-      return checkout;
-    }
     return (
       <Button.Group>
         {checkout}

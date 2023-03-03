@@ -7,13 +7,11 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { Menu, MenuProps, Typography } from "antd";
 import { useRouter } from "next/router";
 const { Text } = Typography;
-import useProfile from "lib/hooks/profile";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
 export default function ConfigMenu({ main }) {
   const router = useRouter();
-  const profile = useProfile();
 
   function select(e) {
     router.push(`/store/${e.keyPath[0]}`, undefined, {
@@ -40,15 +38,13 @@ export default function ConfigMenu({ main }) {
     },
     { label: "Cart", key: "cart", icon: <Icon name="shopping-cart" /> },
     { label: "Checkout", key: "checkout", icon: <Icon name="list" /> },
-  ];
-
-  if (profile?.is_partner) {
-    items.push({
+    {
       label: "Vouchers",
       key: "vouchers",
       icon: <Icon name="gift" />,
-    });
-  }
+    },
+  ];
+
   items.push({
     label: "Congrats",
     key: "congrats",

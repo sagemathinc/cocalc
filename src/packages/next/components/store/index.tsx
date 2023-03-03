@@ -74,23 +74,11 @@ export default function StoreLayout({ page }: Props) {
   if (!profile) {
     return <Loading large center />;
   }
-  const { account_id, is_anonymous, is_partner } = profile;
+  const { account_id, is_anonymous } = profile;
   const noAccount = account_id == null;
 
-  // wrapper, only the pages showing the prices will be shown to the general public or anonymous users
-  // If partner true, also require user to be a partner
-  function requireAccount(StorePage, opts?: { partner: boolean }): JSX.Element {
-    if (opts?.partner && !is_partner) {
-      return (
-        <Alert
-          style={{ margin: "15px auto" }}
-          type="warning"
-          message={
-            "You must be signed in as a CoCalc Partner to use this page."
-          }
-        />
-      );
-    }
+  // wrapper: only the pages showing the prices will be shown to the general public or anonymous users
+  function requireAccount(StorePage): JSX.Element {
     if (noAccount) {
       return (
         <Alert
@@ -125,7 +113,7 @@ export default function StoreLayout({ page }: Props) {
       case "checkout":
         return requireAccount(Checkout);
       case "vouchers":
-        return requireAccount(Vouchers, { partner: true });
+        return requireAccount(Vouchers);
       case "congrats":
         return requireAccount(Congrats);
       default:

@@ -31,8 +31,9 @@ export default function Overview() {
         Welcome to the <SiteName /> Store!
       </h2>
       <div style={{ fontSize: "13pt" }}>
-        Shop below or explore an{" "}
-        <A href="/pricing">overview of products and pricing</A>.
+        Shop below, explore an{" "}
+        <A href="/pricing">overview of products and pricing</A>, or{" "}
+        <A href="/redeem">redeem a voucher</A>.
       </div>
       <OverviewRow>
         <Product icon="key" title="Upgrade" href="/store/site-license">
