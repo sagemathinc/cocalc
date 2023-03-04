@@ -3,11 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
-import { Alert, Button, Card, Divider, Layout, Space, Table } from "antd";
+import {
+  Alert,
+  Button,
+  Card,
+  Divider,
+  Layout,
+  Modal,
+  Space,
+  Table,
+} from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -18,6 +27,10 @@ import apiPost from "lib/api/post";
 import Avatar from "components/account/avatar";
 import type { VoucherCode } from "@cocalc/util/db-schema/vouchers";
 import Copyable from "components/misc/copyable";
+import { stringify as csvStringify } from "csv-stringify/sync";
+import { human_readable_size } from "@cocalc/util/misc";
+import CodeMirror from "components/share/codemirror";
+import { trunc } from "lib/share/util";
 
 const COLUMNS = [
   {
@@ -61,10 +74,13 @@ const COLUMNS = [
   },
 ] as any;
 
+type DownloadType = "csv" | "json";
+
 export default function VoucherCodes({ customize, id }) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<VoucherCode[] | null>(null);
+  const [showModal, setShowModal] = useState<DownloadType | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -95,13 +111,15 @@ export default function VoucherCodes({ customize, id }) {
     return data.filter((x) => !!x.when_redeemed).map((x) => x.code);
   }, [data]);
 
-  const exportToCSV = useCallback(() => {
-    console.log("export to csv", data);
-  }, [data]);
-
   return (
     <Customize value={customize}>
       <Head title={`Voucher With id=${id}`} />
+      <DownloadModal
+        data={data}
+        id={id}
+        type={showModal}
+        onClose={() => setShowModal(null)}
+      />
       <Layout>
         <Header />
         <Layout.Content>
@@ -169,10 +187,18 @@ export default function VoucherCodes({ customize, id }) {
                         </Space>
                         <Space>
                           <div style={{ width: "200px" }}>
-                            Export full table to CSV
+                            Export all data to CSV
                           </div>
-                          <Button onClick={exportToCSV}>
-                            <Icon name="csv" /> Export
+                          <Button onClick={() => setShowModal("csv")}>
+                            <Icon name="csv" /> Export to CSV...
+                          </Button>
+                        </Space>
+                        <Space>
+                          <div style={{ width: "200px" }}>
+                            Export all data to JSON
+                          </div>
+                          <Button onClick={() => setShowModal("json")}>
+                            <Icon name="js-square" /> Export to JSON...
                           </Button>
                         </Space>
                       </Space>
@@ -226,4 +252,56 @@ export default function VoucherCodes({ customize, id }) {
 export async function getServerSideProps(context) {
   const { id } = context.params;
   return await withCustomize({ context, props: { id } });
+}
+
+function DownloadModal({ type, data, id, onClose }) {
+  const path = `vouchers-${id}.${type}`;
+  const content = useMemo(() => {
+    if (!type) return "";
+    if (type == "csv") {
+      const x = [COLUMNS.map((x) => x.title)].concat(
+        data.map((x) => COLUMNS.map((c) => x[c.dataIndex]))
+      );
+      return csvStringify(x);
+    } else if (type == "json") {
+      return JSON.stringify(data, undefined, 2);
+    }
+    return "";
+  }, [type, data]);
+
+  const body = useMemo(() => {
+    if (!type || !data) {
+      return null;
+    }
+    return (
+      <div>
+        <div style={{ margin: "30px", fontSize: "13pt", textAlign: "center" }}>
+          <a
+            href={URL.createObjectURL(
+              new Blob([content], { type: "text/plain" })
+            )}
+            download={path}
+          >
+            Download {path} (size: {human_readable_size(content.length)})
+          </a>
+        </div>
+        <CodeMirror
+          lineNumbers={false}
+          content={trunc(content, 500)}
+          filename={path}
+        />
+      </div>
+    );
+  }, [type, data, id]);
+
+  return (
+    <Modal
+      open={type != null}
+      onCancel={onClose}
+      onOk={onClose}
+      title={<>Export all data to {type ? type.toUpperCase() : ""}</>}
+    >
+      {body}
+    </Modal>
+  );
 }
