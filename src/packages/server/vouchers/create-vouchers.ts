@@ -196,8 +196,19 @@ export default async function createVouchers({
 
   */
   const { rows } = await pool.query(
-    "INSERT INTO vouchers(created, created_by, title, active, expire, cancel_by, cart, cost, tax, count) VALUES(NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
-    [account_id, title, active, expire, cancelBy, cart, cost, tax, count]
+    "INSERT INTO vouchers(created, created_by, title, active, expire, cancel_by, cart, cost, tax, count, when_pay) VALUES(NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
+    [
+      account_id,
+      title,
+      active,
+      expire,
+      cancelBy,
+      cart,
+      cost,
+      tax,
+      count,
+      whenPay,
+    ]
   );
   const { id } = rows[0];
 

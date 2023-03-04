@@ -110,7 +110,9 @@ export default function Redeemed({ customize }) {
             {account_id && (
               <Card style={{ background: "#fafafa" }}>
                 <Space direction="vertical" align="center">
-                  <Icon name="gift2" style={{ fontSize: "75px" }} />
+                  <A href="/vouchers">
+                    <Icon name="gift2" style={{ fontSize: "75px" }} />
+                  </A>
                   <h1>Vouchers You Redeemed</h1>
                   {error && (
                     <Alert

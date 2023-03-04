@@ -63,7 +63,7 @@ export default function Overview({ customize }) {
                 status, and exports your vouchers to CSV.
               </Product>
               <Product
-                href={"/store/dedicated?type=vm"}
+                href={"/store/site-license"}
                 icon="shopping-cart"
                 title="Create New Vouchers"
               >

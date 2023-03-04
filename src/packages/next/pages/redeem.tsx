@@ -88,7 +88,9 @@ export default function Redeem({ customize }) {
             {(account_id || signedIn) && (
               <Card style={{ background: "#fafafa" }}>
                 <Space direction="vertical" align="center">
-                  <Icon name="gift2" style={{ fontSize: "75px" }} />
+                  <A href="/vouchers">
+                    <Icon name="gift2" style={{ fontSize: "75px" }} />
+                  </A>
                   <h1>Enter Voucher Code</h1>
                   <Input
                     disabled={state != "input"}

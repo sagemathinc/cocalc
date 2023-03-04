@@ -19,71 +19,116 @@ import Loading from "components/share/loading";
 import useDatabase from "lib/hooks/database";
 import TimeAgo from "timeago-react";
 import { field_cmp } from "@cocalc/util/misc";
-import { r_join } from "@cocalc/frontend/components/r_join";
-import License from "components/licenses/license";
+//import { r_join } from "@cocalc/frontend/components/r_join";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 
-const VOUCHER_CODES_QUERY = {
-  voucher_codes: [
+const QUERY = {
+  vouchers: [
     {
-      code: null,
       id: null,
-      when_redeemed: null,
-      canceled: null,
-      license_ids: null,
+      created: null,
+      active: null,
+      expire: null,
+      cancel_by: null,
+      title: null,
+      count: null,
+      cost: null,
+      tax: null,
+      cart: null,
+      when_pay: null,
     },
   ],
 } as const;
 
 const COLUMNS = [
   {
-    title: "Code",
-    dataIndex: "code",
-    key: "code",
+    title: "ID",
+    dataIndex: "id",
+    key: "id",
   },
   {
-    title: "When Redeemed",
-    dataIndex: "when_redeemed",
-    key: "when_redeemed",
-    render: (_, { when_redeemed }) => (
+    title: "Created",
+    dataIndex: "created",
+    key: "created",
+    render: (_, { created }) => <TimeAgo datetime={created} />,
+  },
+  {
+    title: "Count",
+    dataIndex: "count",
+    key: "count",
+    align: "center",
+    render: (_, { count }) => count,
+  },
+
+  {
+    title: "Cost",
+    dataIndex: "cost",
+    key: "cost",
+    align: "center",
+    render: (_, { cost, tax }) => (
       <>
-        <TimeAgo datetime={when_redeemed} />
+        {money(cost, true)}
+        {tax ? ` (+ ${money(tax, true)} tax)` : ""} per voucher
       </>
     ),
   },
   {
-    title: "Canceled",
-    dataIndex: "canceled",
-    key: "canceled",
-    align: "center",
-    render: (_, { canceled }) => (canceled ? "Yes" : "-"),
+    title: "Status",
+    render: (_, { when_pay }) => {
+      if (when_pay == "now") {
+        return "Paid";
+      }
+      if (when_pay == "invoice") {
+        return "Invoice at Expiration";
+      }
+      if (when_pay == "admin") {
+        return "Admin (free)";
+      }
+    },
   },
   {
-    title: "Licenses",
-    dataIndex: "license_ids",
-    key: "license_ids",
-    render: (_, { license_ids }) => {
-      if (!license_ids) return null;
-      return r_join(
-        license_ids.map((license_id) => (
-          <License key={license_id} license_id={license_id} />
-        ))
-      );
+    title: "Description",
+    dataIndex: "title",
+    key: "title",
+    render: (_, { title }) => {
+      return title;
     },
+  },
+  {
+    title: "Active",
+    dataIndex: "active",
+    key: "active",
+    align: "center",
+    render: (_, { active }) => <TimeAgo datetime={active} />,
+  },
+  {
+    title: "Expire",
+    dataIndex: "expire",
+    key: "expire",
+    align: "center",
+    render: (_, { expire }) => <TimeAgo datetime={expire} />,
+  },
+  {
+    title: "Cancel By",
+    dataIndex: "cancel_by",
+    key: "cancel_by",
+    align: "center",
+    render: (_, { cancel_by }) => <TimeAgo datetime={cancel_by} />,
   },
 ] as any;
 
-export default function Redeemed({ customize }) {
-  const { loading, value, error, setError } = useDatabase(VOUCHER_CODES_QUERY);
+export default function Created({ customize }) {
+  const { loading, value, error, setError } = useDatabase(QUERY);
   const { account_id } = useProfile({ noCache: true }) ?? {};
   const router = useRouter();
   const data = useMemo(() => {
-    const cmp = field_cmp("when_redeemed");
-    return (value?.voucher_codes ?? []).sort((a, b) => -cmp(a, b));
+    const cmp = field_cmp("created");
+    return (value?.vouchers ?? []).sort((a, b) => -cmp(a, b));
   }, [value]);
 
   return (
     <Customize value={customize}>
-      <Head title="Vouchers You Created" />
+      <Head title="Your Vouchers" />
       <Layout>
         <Header />
         <Layout.Content>
@@ -99,7 +144,7 @@ export default function Redeemed({ customize }) {
               <Card style={{ textAlign: "center" }}>
                 <Icon name="gift2" style={{ fontSize: "75px" }} />
                 <InPlaceSignInOrUp
-                  why="to see Vouchers you have Redeemed"
+                  why="to see your vouchers"
                   style={{ fontSize: "14pt", width: "450px" }}
                   onSuccess={() => {
                     router.reload();
@@ -110,8 +155,10 @@ export default function Redeemed({ customize }) {
             {account_id && (
               <Card style={{ background: "#fafafa" }}>
                 <Space direction="vertical" align="center">
-                  <Icon name="gift2" style={{ fontSize: "75px" }} />
-                  <h1>Vouchers you have redeemed</h1>
+                  <A href="/vouchers">
+                    <Icon name="gift2" style={{ fontSize: "75px" }} />
+                  </A>
+                  <h1>Your Vouchers</h1>
                   {error && (
                     <Alert
                       type="error"
@@ -127,7 +174,7 @@ export default function Redeemed({ customize }) {
                     <Table
                       columns={COLUMNS}
                       dataSource={data}
-                      rowKey="code"
+                      rowKey="id"
                       pagination={{ defaultPageSize: 50 }}
                     />
                   )}
@@ -155,8 +202,8 @@ export default function Redeemed({ customize }) {
                       upgrade your projects
                     </A>
                     . If you have any questions,{" "}
-                    <A href="/support">contact support</A> and include your
-                    voucher code.
+                    <A href="/support">contact support</A> or visit{" "}
+                    <A href="/vouchers">the Voucher Center</A>.
                   </div>
                 </Space>
               </Card>

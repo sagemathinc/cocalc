@@ -246,7 +246,8 @@ export default function CreateVouchers() {
                 <A href="/redeem">here</A> for the {items.length}{" "}
                 {plural(items.length, "license")} listed below. The license
                 start and end dates are shifted to match when the license is
-                redeemed.
+                redeemed. Visit the <A href="/vouchers">Voucher Center</A> for
+                more about vouchers.
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
                 <Check done /> Pay Now or Invoice Later?
@@ -262,11 +263,10 @@ export default function CreateVouchers() {
                     direction="vertical"
                     style={{ margin: "5px 0 15px 15px" }}
                   >
-                    <Radio value={"now"}>
-                      Pay Now: get a 25% discount and no usage restrictions
-                    </Radio>
+                    <Radio value={"now"}>Pay Now: get a 25% discount</Radio>
                     <Radio value={"invoice"} disabled={!profile?.is_partner}>
-                      Pay Later: invoice me for vouchers that were redeemed
+                      Pay Later: invoice me only for the vouchers that were
+                      redeemed
                     </Radio>
                     {profile?.is_admin && (
                       <Radio value={"admin"}>
