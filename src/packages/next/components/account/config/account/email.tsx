@@ -184,7 +184,7 @@ const EmailVerification: React.FC<VeryProps> = (props: VeryProps) => {
       });
       setEmailSentSuccess(true);
     } catch (err) {
-      setEmaiSentError(err.messaage);
+      setEmailSentError(`${err}`);
     }
   }
 
