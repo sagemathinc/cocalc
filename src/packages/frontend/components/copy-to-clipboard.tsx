@@ -14,6 +14,7 @@ interface Props {
   label?: ReactNode;
   labelStyle?: CSS;
   inputStyle?: CSS;
+  inputWidth?: string;
   size?: "large" | "middle" | "small";
 }
 import { CopyOutlined } from "@ant-design/icons";
@@ -29,9 +30,15 @@ const LABEL_STYLE: CSS = {
   flexDirection: "column",
 } as const;
 
-export default function CopyToClipBoard(props: Props) {
-  const { value, style, size, label, labelStyle, inputStyle } = props;
-
+export default function CopyToClipBoard({
+  value,
+  style,
+  size,
+  label,
+  labelStyle,
+  inputStyle,
+  inputWidth,
+}: Props) {
   const [copied, setCopied] = useState<boolean>(false);
 
   useEffect(() => {
@@ -57,7 +64,10 @@ export default function CopyToClipBoard(props: Props) {
   const input = (
     <Input.Group compact>
       <Input
-        style={{ width: `${value.length + 8}ex`, fontFamily: "monospace" }}
+        style={{
+          width: inputWidth ?? `${value.length + 8}ex`,
+          fontFamily: "monospace",
+        }}
         readOnly
         size={size}
         value={value}

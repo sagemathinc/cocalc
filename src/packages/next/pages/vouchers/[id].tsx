@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
@@ -14,10 +14,11 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import TimeAgo from "timeago-react";
-//import { r_join } from "@cocalc/frontend/components/r_join";
 import apiPost from "lib/api/post";
 import Avatar from "components/account/avatar";
 import type { VoucherCode } from "@cocalc/util/db-schema/vouchers";
+import Copyable from "components/misc/copyable";
+
 const COLUMNS = [
   {
     title: "Voucher Code",
@@ -80,6 +81,21 @@ export default function VoucherCodes({ customize, id }) {
     })();
   }, []);
 
+  const allCodes = useMemo(() => {
+    if (!data) return [];
+    return data.map((x) => x.code);
+  }, [data]);
+
+  const unusedCodes = useMemo(() => {
+    if (!data) return [];
+    return data.filter((x) => !x.when_redeemed).map((x) => x.code);
+  }, [data]);
+
+  const usedCodes = useMemo(() => {
+    if (!data) return [];
+    return data.filter((x) => !!x.when_redeemed).map((x) => x.code);
+  }, [data]);
+
   return (
     <Customize value={customize}>
       <Head title={`Voucher With id=${id}`} />
@@ -120,10 +136,45 @@ export default function VoucherCodes({ customize, id }) {
                         marginBottom: "15px",
                       }}
                     >
-                      <Button size="large" type="primary">
-                        <Icon name="csv" /> Export table to CSV...
-                      </Button>
+                      <Space direction="vertical">
+                        <Space>
+                          <div style={{ width: "200px" }}>
+                            Copy All Codes {`(${allCodes.length})`}
+                          </div>
+                          <Copyable
+                            value={allCodes.join(", ")}
+                            inputWidth={"200px"}
+                          />
+                        </Space>
+                        <Space>
+                          <div style={{ width: "200px" }}>
+                            Copy Unused Codes {`(${unusedCodes.length})`}
+                          </div>
+                          <Copyable
+                            value={unusedCodes.join(", ")}
+                            inputWidth={"200px"}
+                          />
+                        </Space>
+                        <Space>
+                          <div style={{ width: "200px" }}>
+                            Copy Redeemed Codes {`(${usedCodes.length})`}
+                          </div>
+                          <Copyable
+                            value={usedCodes.join(", ")}
+                            inputWidth={"200px"}
+                          />
+                        </Space>
+                        <Space>
+                          <div style={{ width: "200px" }}>
+                            Export full table to CSV
+                          </div>
+                          <Button>
+                            <Icon name="csv" /> Export
+                          </Button>
+                        </Space>
+                      </Space>
                     </div>
+
                     <Table
                       columns={COLUMNS}
                       dataSource={data}
