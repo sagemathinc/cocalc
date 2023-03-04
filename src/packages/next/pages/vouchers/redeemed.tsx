@@ -74,7 +74,7 @@ const COLUMNS = [
 
 export default function Redeemed({ customize }) {
   const { loading, value, error, setError } = useDatabase(VOUCHER_CODES_QUERY);
-  const { account_id } = useProfile({ noCache: true }) ?? {};
+  const profile = useProfile({ noCache: true });
   const router = useRouter();
   const data = useMemo(() => {
     const cmp = field_cmp("when_redeemed");
@@ -86,7 +86,7 @@ export default function Redeemed({ customize }) {
       <Head title="Vouchers You Redeemed" />
       <Layout>
         <Header />
-        <Layout.Content>
+        <Layout.Content style={{ background: "white" }}>
           <div
             style={{
               width: "100%",
@@ -95,7 +95,8 @@ export default function Redeemed({ customize }) {
               justifyContent: "center",
             }}
           >
-            {!account_id && (
+            {profile == null && <Loading />}
+            {profile != null && !profile.account_id && (
               <Card style={{ textAlign: "center" }}>
                 <Icon name="gift2" style={{ fontSize: "75px" }} />
                 <InPlaceSignInOrUp
@@ -107,7 +108,7 @@ export default function Redeemed({ customize }) {
                 />
               </Card>
             )}
-            {account_id && (
+            {profile?.account_id && (
               <Card style={{ background: "#fafafa" }}>
                 <Space direction="vertical" align="center">
                   <A href="/vouchers">

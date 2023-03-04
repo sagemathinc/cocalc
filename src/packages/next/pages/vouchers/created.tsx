@@ -53,11 +53,17 @@ const COLUMNS = [
     render: (_, { created }) => <TimeAgo datetime={created} />,
   },
   {
-    title: "Count",
+    title: (
+      <>
+        Codes
+        <br />
+        (click to view)
+      </>
+    ),
     dataIndex: "count",
     key: "count",
     align: "center",
-    render: (_, { count }) => count,
+    render: (_, { id, count }) => <A href={`/vouchers/${id}`}>{count}</A>,
   },
 
   {
@@ -68,7 +74,7 @@ const COLUMNS = [
     render: (_, { cost, tax }) => (
       <>
         {money(cost, true)}
-        {tax ? ` (+ ${money(tax, true)} tax)` : ""} per voucher
+        {tax ? ` (+ ${money(tax, true)} tax)` : ""} each
       </>
     ),
   },
@@ -119,7 +125,7 @@ const COLUMNS = [
 
 export default function Created({ customize }) {
   const { loading, value, error, setError } = useDatabase(QUERY);
-  const { account_id } = useProfile({ noCache: true }) ?? {};
+  const profile = useProfile({ noCache: true });
   const router = useRouter();
   const data = useMemo(() => {
     const cmp = field_cmp("created");
@@ -131,7 +137,7 @@ export default function Created({ customize }) {
       <Head title="Your Vouchers" />
       <Layout>
         <Header />
-        <Layout.Content>
+        <Layout.Content style={{ background: "white" }}>
           <div
             style={{
               width: "100%",
@@ -140,7 +146,8 @@ export default function Created({ customize }) {
               justifyContent: "center",
             }}
           >
-            {!account_id && (
+            {profile == null && <Loading />}
+            {profile != null && !profile.account_id && (
               <Card style={{ textAlign: "center" }}>
                 <Icon name="gift2" style={{ fontSize: "75px" }} />
                 <InPlaceSignInOrUp
@@ -152,7 +159,7 @@ export default function Created({ customize }) {
                 />
               </Card>
             )}
-            {account_id && (
+            {profile?.account_id && (
               <Card style={{ background: "#fafafa" }}>
                 <Space direction="vertical" align="center">
                   <A href="/vouchers">

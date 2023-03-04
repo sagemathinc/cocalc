@@ -131,8 +131,10 @@ export default async function createVouchers({
   if (!count || count < 1 || !isFinite(count)) {
     throw Error("must create at least 1 voucher");
   }
-  if (count > MAX_VOUCHERS) {
-    throw Error(`there is a hard limit of at most ${MAX_VOUCHERS} vouchers`);
+  if (count > MAX_VOUCHERS[whenPay]) {
+    throw Error(
+      `there is a hard limit of at most ${MAX_VOUCHERS[whenPay]} vouchers`
+    );
   }
   if (whenPay == "invoice") {
     if (!active || active < new Date()) {

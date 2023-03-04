@@ -27,8 +27,8 @@ export default function Redeem({ customize }) {
   const [code, setCode] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [state, setState] = useState<State>("input");
-  const { account_id, email_address } = useProfile({ noCache: true }) ?? {};
-  const [signedIn, setSignedIn] = useState<boolean>(!!account_id);
+  const profile = useProfile({ noCache: true });
+  const [signedIn, setSignedIn] = useState<boolean>(!!profile?.account_id);
   const router = useRouter();
 
   // optional project_id to automatically apply all the licenses we get on redeeming the voucher
@@ -71,7 +71,8 @@ export default function Redeem({ customize }) {
               justifyContent: "center",
             }}
           >
-            {!account_id && !signedIn && (
+            {profile == null && <Loading />}
+            {profile != null && !profile.account_id && !signedIn && (
               <Card style={{ textAlign: "center" }}>
                 <Icon name="gift2" style={{ fontSize: "75px" }} />
                 <InPlaceSignInOrUp
@@ -85,7 +86,7 @@ export default function Redeem({ customize }) {
               </Card>
             )}
 
-            {(account_id || signedIn) && (
+            {(profile?.account_id || signedIn) && (
               <Card style={{ background: "#fafafa" }}>
                 <Space direction="vertical" align="center">
                   <A href="/vouchers">
@@ -188,8 +189,8 @@ export default function Redeem({ customize }) {
                     When you redeem a voucher, one or more{" "}
                     <A href="https://doc.cocalc.com/licenses.html">licenses</A>{" "}
                     will be added to your account
-                    {email_address != null ? (
-                      <A href="/config/account/email">{` ${email_address}`}</A>
+                    {profile?.email_address != null ? (
+                      <A href="/config/account/email">{` ${profile?.email_address}`}</A>
                     ) : (
                       ""
                     )}

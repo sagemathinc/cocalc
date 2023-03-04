@@ -12,7 +12,11 @@ export const CHARSETS = [
 
 export type CharSet = typeof CHARSETS[number];
 
-export const MAX_VOUCHERS = 1000;
+export const MAX_VOUCHERS: { [when: string]: number } = {
+  now: 5000,
+  invoice: 1000,
+  admin: 10000,
+};
 
 interface Options {
   count: number;

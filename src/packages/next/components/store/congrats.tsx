@@ -83,10 +83,16 @@ export default function Congrats() {
               check on the status of subscriptions.
             </A>
           </li>
+          <li style={{ marginBottom: "15px" }}>
+            If you're interested in <A href="/store/vouchers">purchasing</A>,{" "}
+            <A href="/redeem">redeeming</A>, or checking on the{" "}
+            <A href="/vouchers/created">status of your vouchers</A>, visit the{" "}
+            <A href="/vouchers">Voucher Center</A>.
+          </li>
           <li>
             If you have questions,{" "}
-            <A href="/support/new">create a support ticket</A>. Now that you're
-            supporting <SiteName /> we can prioritize your request.
+            <A href="/support/new">create a support ticket</A>. Your request
+            will be more highly prioritized.
           </li>
         </ul>
         {billingInfo}

@@ -89,8 +89,8 @@ export default function CreateVouchers() {
   }, []);
 
   useEffect(() => {
-    if (whenPay == "invoice" && (numVouchers ?? 0) > MAX_VOUCHERS) {
-      setNumVouchers(MAX_VOUCHERS);
+    if ((numVouchers ?? 0) > MAX_VOUCHERS[whenPay]) {
+      setNumVouchers(MAX_VOUCHERS[whenPay]);
     }
   }, [whenPay]);
 
@@ -303,13 +303,14 @@ export default function CreateVouchers() {
                 <Check done={(numVouchers ?? 0) > 0} /> How Many Vouchers?
               </h4>
               <Paragraph style={{ color: "#666" }}>
-                Input the number of vouchers you would like to create.
-                {whenPay == "invoice" ? ` (Limit: ${MAX_VOUCHERS})` : ""}
+                Input the number of vouchers you would like to{" "}
+                {whenPay == "now" ? "buy" : "create"} (limit:{" "}
+                {MAX_VOUCHERS[whenPay]}).
                 <div style={{ textAlign: "center", marginTop: "15px" }}>
                   <InputNumber
                     size="large"
                     min={0}
-                    max={whenPay == "invoice" ? MAX_VOUCHERS : 10000}
+                    max={MAX_VOUCHERS[whenPay]}
                     value={numVouchers}
                     onChange={(value) => setNumVouchers(value)}
                   />
@@ -783,7 +784,10 @@ function Terms({ whenPay }) {
         </>
       )}
       {whenPay == "admin" && (
-        <>and as an admin agree to use the vouchers for company purposes.</>
+        <>
+          and as an admin agree to use the vouchers for company purposes. The
+          cash value is listed above.
+        </>
       )}
     </Paragraph>
   );

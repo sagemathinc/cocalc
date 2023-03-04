@@ -25,7 +25,7 @@ export default function Overview({ customize }) {
       <Head title="Voucher Center" />
       <Layout>
         <Header />
-        <Layout.Content>
+        <Layout.Content style={{ background: "white" }}>
           <div style={OVERVIEW_STYLE}>
             <Icon style={OVERVIEW_LARGE_ICON} name="gift" />
             <h2 style={{ marginBottom: "30px" }}>
