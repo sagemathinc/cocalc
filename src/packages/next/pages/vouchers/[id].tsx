@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
-import { Alert, Card, Divider, Layout, Space, Table } from "antd";
+import { Alert, Button, Card, Divider, Layout, Space, Table } from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -18,7 +18,6 @@ import TimeAgo from "timeago-react";
 import apiPost from "lib/api/post";
 import Avatar from "components/account/avatar";
 import type { VoucherCode } from "@cocalc/util/db-schema/vouchers";
-;
 const COLUMNS = [
   {
     title: "Voucher Code",
@@ -113,12 +112,25 @@ export default function VoucherCodes({ customize, id }) {
                 )}
                 {loading && <Loading />}
                 {!loading && data && (
-                  <Table
-                    columns={COLUMNS}
-                    dataSource={data}
-                    rowKey="code"
-                    pagination={{ defaultPageSize: 50 }}
-                  />
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        marginBottom: "15px",
+                      }}
+                    >
+                      <Button size="large" type="primary">
+                        <Icon name="csv" /> Export table to CSV...
+                      </Button>
+                    </div>
+                    <Table
+                      columns={COLUMNS}
+                      dataSource={data}
+                      rowKey="code"
+                      pagination={{ defaultPageSize: 50 }}
+                    />
+                  </div>
                 )}
                 {!loading && data?.length == 0 && (
                   <div>
