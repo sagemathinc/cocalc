@@ -156,7 +156,7 @@ const EmailVerification: React.FC<VeryProps> = (props: VeryProps) => {
   const { loading, account, emailChanged = false } = props;
   const [emailSent, setEmailSent] = useState<boolean>(false);
   const [emailSentSuccess, setEmailSentSuccess] = useState<boolean>(false);
-  const [emailSentError, setEmaiSentError] = useState<string | undefined>();
+  const [emailSentError, setEmailSentError] = useState<string | undefined>();
 
   const isVerified = useMemo((): Date | boolean => {
     if (account == null) return false;

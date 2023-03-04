@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
@@ -12,14 +12,12 @@ import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import { Icon } from "@cocalc/frontend/components/icon";
 import A from "components/misc/A";
-import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import Loading from "components/share/loading";
 import TimeAgo from "timeago-react";
-import { field_cmp } from "@cocalc/util/misc";
 //import { r_join } from "@cocalc/frontend/components/r_join";
-import License from "components/licenses/license";
 import apiPost from "lib/api/post";
 import Avatar from "components/account/avatar";
+import type { VoucherCode } from "@cocalc/util/db-schema/vouchers";
 ;
 const COLUMNS = [
   {
