@@ -137,8 +137,8 @@ export default async function createVouchers({
     );
   }
   if (whenPay == "invoice") {
-    if (!active || active < new Date()) {
-      throw Error("active must be in the future");
+    if (!active) {
+      throw Error("active must be defined");
     }
     if (!expire || expire <= new Date()) {
       throw Error("expire must be in the future");

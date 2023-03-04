@@ -18,7 +18,8 @@ export type ProductType = "site-license";
 export type ProductDescription = Quota; // just for now.
 
 interface PurchaseInfo {
-  // maybe a stripe invoice id or a new database record?
+  time: string; // iso timestamp
+  // TODO: maybe a stripe invoice id or a new database record?
 }
 
 export interface Item {

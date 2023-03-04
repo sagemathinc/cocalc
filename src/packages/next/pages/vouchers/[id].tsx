@@ -48,22 +48,6 @@ const COLUMNS = [
     ),
   },
   {
-    title: "When Active",
-    dataIndex: "active",
-    key: "active",
-    align: "center",
-    render: (_, { active }) => (
-      <>{active == null ? "-" : <TimeAgo datetime={active} />}</>
-    ),
-  },
-  {
-    title: "Canceled",
-    dataIndex: "canceled",
-    key: "canceled",
-    align: "center",
-    render: (_, { canceled }) => (canceled ? "Yes" : "-"),
-  },
-  {
     title: "Redeemed By",
     dataIndex: "redeemed_by",
     key: "redeemed_by",
@@ -71,6 +55,14 @@ const COLUMNS = [
     render: (_, { redeemed_by }) => (
       <>{redeemed_by ? <Avatar account_id={redeemed_by} /> : undefined}</>
     ),
+  },
+
+  {
+    title: "Canceled",
+    dataIndex: "canceled",
+    key: "canceled",
+    align: "center",
+    render: (_, { canceled }) => (canceled ? "Yes" : "-"),
   },
 ] as any;
 

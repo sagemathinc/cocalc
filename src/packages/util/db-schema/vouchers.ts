@@ -5,6 +5,11 @@ import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 
 export type WhenPay = "now" | "invoice" | "admin";
 
+interface PurchaseInfo {
+  // TODO: maybe a stripe invoice id...?
+  time: string; // iso timestamp
+}
+
 export interface Voucher {
   id: number;
   when_pay: WhenPay;
@@ -19,6 +24,7 @@ export interface Voucher {
   expire: Date;
   cancel_by: Date;
   notes?: string;
+  purchased?: PurchaseInfo;
 }
 
 Table({
@@ -91,6 +97,11 @@ Table({
       render: { type: "number", editable: true, format: "money", min: 0 },
     },
     notes: NOTES,
+    purchased: {
+      type: "map",
+      desc: "Object that describes the purchase once it is made.",
+      render: { type: "purchased" },
+    },
   },
   rules: {
     desc: "Vouchers",
@@ -111,6 +122,7 @@ Table({
           tax: null,
           cart: null,
           when_pay: null,
+          purchased: null,
         },
       },
       set: {
@@ -146,6 +158,7 @@ Table({
           notes: null,
           cart: null,
           when_pay: null,
+          purchased: null,
         },
       },
       set: {
@@ -274,5 +287,3 @@ Table({
   },
   fields: schema.voucher_codes.fields,
 });
-
-
