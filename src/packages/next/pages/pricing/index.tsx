@@ -85,6 +85,14 @@ const dataSource: DataSource = [
       </>
     ),
   },
+  {
+    link: "/vouchers",
+    title: "Vouchers",
+    logo: "gift",
+    description: (
+      <>Vouchers are a convenient way to <A href="/vouchers">share and resell licenses</A>.</>
+    ),
+  },
 ];
 
 export default function Pricing({ customize }) {

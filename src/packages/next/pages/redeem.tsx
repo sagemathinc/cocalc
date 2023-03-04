@@ -200,8 +200,8 @@ export default function Redeem({ customize }) {
                       all vouchers you have redeemed
                     </A>
                     . If you have any questions,{" "}
-                    <A href="/support">contact support</A> and include your
-                    voucher code.
+                    <A href="/support">contact support</A> or visit{" "}
+                    <A href="/vouchers">the Voucher Center</A>.
                   </div>
                 </Space>
               </Card>

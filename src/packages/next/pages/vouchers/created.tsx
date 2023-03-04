@@ -83,7 +83,7 @@ export default function Redeemed({ customize }) {
 
   return (
     <Customize value={customize}>
-      <Head title="Vouchers You Redeemed" />
+      <Head title="Vouchers You Created" />
       <Layout>
         <Header />
         <Layout.Content>
@@ -99,7 +99,7 @@ export default function Redeemed({ customize }) {
               <Card style={{ textAlign: "center" }}>
                 <Icon name="gift2" style={{ fontSize: "75px" }} />
                 <InPlaceSignInOrUp
-                  why="to see Vouchers you Redeemed"
+                  why="to see Vouchers you have Redeemed"
                   style={{ fontSize: "14pt", width: "450px" }}
                   onSuccess={() => {
                     router.reload();
@@ -111,7 +111,7 @@ export default function Redeemed({ customize }) {
               <Card style={{ background: "#fafafa" }}>
                 <Space direction="vertical" align="center">
                   <Icon name="gift2" style={{ fontSize: "75px" }} />
-                  <h1>Vouchers You Redeemed</h1>
+                  <h1>Vouchers you have redeemed</h1>
                   {error && (
                     <Alert
                       type="error"
@@ -155,8 +155,8 @@ export default function Redeemed({ customize }) {
                       upgrade your projects
                     </A>
                     . If you have any questions,{" "}
-                    <A href="/support">contact support</A> or visit{" "}
-                    <A href="/vouchers">the Voucher Center</A>.
+                    <A href="/support">contact support</A> and include your
+                    voucher code.
                   </div>
                 </Space>
               </Card>
