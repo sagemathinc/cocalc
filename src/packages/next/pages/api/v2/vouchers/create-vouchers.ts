@@ -29,14 +29,16 @@ async function doIt(req) {
   if (count == null) {
     throw Error("must provide number of vouchers");
   }
-  if (active == null) {
-    throw Error("must provide activation date");
-  }
-  if (expire == null) {
-    throw Error("must provide expiration date");
-  }
-  if (cancelBy == null) {
-    throw Error("must provide cancelBy date");
+  if (whenPay == "invoice") {
+    if (active == null) {
+      throw Error("must provide activation date");
+    }
+    if (expire == null) {
+      throw Error("must provide expiration date");
+    }
+    if (cancelBy == null) {
+      throw Error("must provide cancelBy date");
+    }
   }
   if (title == null) {
     throw Error("must provide title");
@@ -57,7 +59,7 @@ async function doIt(req) {
   if (account_id == null) {
     throw Error("must be signed in to create vouchers");
   }
-  if (!(await userIsInGroup(account_id, "partner"))) {
+  if (whenPay == "invoice" && !(await userIsInGroup(account_id, "partner"))) {
     throw Error("only partners can create vouchers");
   }
 

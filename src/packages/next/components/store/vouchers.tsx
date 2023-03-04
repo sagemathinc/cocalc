@@ -280,7 +280,7 @@ export default function CreateVouchers() {
                   {!profile?.is_partner && (
                     <>
                       The pay later option is currently only available to
-                      members of our partner program. If you're interested,
+                      members of our partner program. If you're interested,{" "}
                       <A href="/support">contact support</A>.{" "}
                     </>
                   )}
