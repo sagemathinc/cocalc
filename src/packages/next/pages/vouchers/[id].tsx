@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
@@ -71,7 +71,6 @@ export default function VoucherCodes({ customize, id }) {
     (async () => {
       try {
         const { codes } = await apiPost("/vouchers/get-voucher-codes", { id });
-        console.log("codes = ", codes);
         setData(codes);
       } catch (err) {
         setError(`${err}`);
@@ -94,6 +93,10 @@ export default function VoucherCodes({ customize, id }) {
   const usedCodes = useMemo(() => {
     if (!data) return [];
     return data.filter((x) => !!x.when_redeemed).map((x) => x.code);
+  }, [data]);
+
+  const exportToCSV = useCallback(() => {
+    console.log("export to csv", data);
   }, [data]);
 
   return (
@@ -168,7 +171,7 @@ export default function VoucherCodes({ customize, id }) {
                           <div style={{ width: "200px" }}>
                             Export full table to CSV
                           </div>
-                          <Button>
+                          <Button onClick={exportToCSV}>
                             <Icon name="csv" /> Export
                           </Button>
                         </Space>
