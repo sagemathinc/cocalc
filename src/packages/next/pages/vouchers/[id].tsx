@@ -31,6 +31,7 @@ import { stringify as csvStringify } from "csv-stringify/sync";
 import { human_readable_size } from "@cocalc/util/misc";
 import CodeMirror from "components/share/codemirror";
 import { trunc } from "lib/share/util";
+import useDatabase from "lib/hooks/database";
 
 const COLUMNS = [
   {
@@ -69,6 +70,7 @@ const COLUMNS = [
 type DownloadType = "csv" | "json";
 
 export default function VoucherCodes({ customize, id }) {
+  const database = useDatabase({ vouchers: { id, title: null } });
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<VoucherCode[] | null>(null);
@@ -129,6 +131,9 @@ export default function VoucherCodes({ customize, id }) {
                   <Icon name="gift2" style={{ fontSize: "75px" }} />
                 </A>
                 <h1>Voucher: id={id}</h1>
+                {database.value?.vouchers?.title && (
+                  <h3>Title: {database.value.vouchers.title}</h3>
+                )}
                 {error && (
                   <Alert
                     type="error"
