@@ -32,12 +32,22 @@ import { human_readable_size } from "@cocalc/util/misc";
 import CodeMirror from "components/share/codemirror";
 import { trunc } from "lib/share/util";
 import useDatabase from "lib/hooks/database";
+import Notes from "./notes";
 
 const COLUMNS = [
   {
     title: "Voucher Code",
     dataIndex: "code",
     key: "code",
+  },
+  {
+    title: "Created",
+    dataIndex: "created",
+    key: "created",
+    align: "center",
+    render: (_, { created }) => (
+      <>{created == null ? "-" : <TimeAgo datetime={created} />}</>
+    ),
   },
   {
     title: "When Redeemed",
@@ -64,6 +74,13 @@ const COLUMNS = [
     key: "canceled",
     align: "center",
     render: (_, { canceled }) => (canceled ? "Yes" : "-"),
+  },
+
+  {
+    title: "Private Notes",
+    dataIndex: "notes",
+    key: "notes",
+    render: (_, { notes, code }) => <Notes notes={notes} code={code} />,
   },
 ] as any;
 

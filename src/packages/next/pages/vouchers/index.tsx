@@ -61,8 +61,8 @@ export default function Overview({ customize }) {
                 icon="csv"
                 title="Your Vouchers"
               >
-                Browse all groups of vouchers you have created, see their
-                status, and exports your vouchers to CSV.
+                Browse all vouchers you have created, see their status, and
+                exports your vouchers to CSV.
               </Product>
               <Product
                 href={"/store/site-license"}
@@ -88,8 +88,8 @@ export default function Overview({ customize }) {
                   icon="users"
                   title="Admin -- Voucher Payment Status"
                 >
-                  See the status of all groups of vouchers that users have
-                  created.  <b>This page is only available to site admins.</b>
+                  See the status of all vouchers that users have created.{" "}
+                  <b>This page is only available to site admins.</b>
                 </Product>
               </div>
             )}

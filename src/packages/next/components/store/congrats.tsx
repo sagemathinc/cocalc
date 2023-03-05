@@ -202,14 +202,13 @@ export default function Congrats() {
             title={
               <>
                 <Icon name="gift2" style={{ marginRight: "15px" }} />
-                Congrats! You recently created {
-                  vouchers.result.length
-                } voucher {plural(vouchers.result.length, "group")}.
+                Congrats! You recently created {vouchers.result.length}{" "}
+                {plural(vouchers.result.length, "voucher")}.
               </>
             }
             style={{ margin: "15px auto", maxWidth: "700px" }}
           >
-            You can download voucher codes via the{" "}
+            You can download the corresponding voucher codes via the{" "}
             {plural(vouchers.result.length, "link")} below.
             <br />
             <br />
