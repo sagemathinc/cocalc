@@ -14,7 +14,10 @@ import { getProductMetadata } from "./product-metadata";
 import { getProductName } from "./product-name";
 const logger = getLogger("licenses-charge");
 
-export type Purchase = { type: "invoice" | "subscription"; id: string };
+export type Purchase = {
+  type: "invoice" | "subscription"; // what was purchased
+  id: string; // the id of the *invoice* in stripe
+};
 
 export async function chargeUser(
   stripe: StripeClient,

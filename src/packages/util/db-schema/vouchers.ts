@@ -5,9 +5,11 @@ import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 
 export type WhenPay = "now" | "invoice" | "admin";
 
-interface PurchaseInfo {
+export interface PurchaseInfo {
   // TODO: maybe a stripe invoice id...?
   time: string; // iso timestamp
+  quantity: number;
+  stripe_invoice_id?: string;
 }
 
 export interface Voucher {
@@ -99,7 +101,7 @@ Table({
     notes: NOTES,
     purchased: {
       type: "map",
-      desc: "Object that describes the purchase once it is made.",
+      desc: "Object that describes the purchase once it is made:  {time:?, quantity:?, stripe_invoice_id:?}",
       render: { type: "purchased" },
     },
   },

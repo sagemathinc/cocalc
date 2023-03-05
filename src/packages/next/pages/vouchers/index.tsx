@@ -18,8 +18,10 @@ import {
 } from "lib/styles/layouts";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
+import useProfile from "lib/hooks/profile";
 
 export default function Overview({ customize }) {
+  const profile = useProfile();
   return (
     <Customize value={customize}>
       <Head title="Voucher Center" />
@@ -73,6 +75,24 @@ export default function Overview({ customize }) {
                 shifted to when the voucher is redeemed.
               </Product>
             </OverviewRow>
+            {profile?.is_admin && (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginBottom: "30px",
+                }}
+              >
+                <Product
+                  href={"/vouchers/admin"}
+                  icon="users"
+                  title="Admin -- Voucher Payment Status"
+                >
+                  See the status of all groups of vouchers that users have
+                  created.  <b>This page is only available to site admins.</b>
+                </Product>
+              </div>
+            )}
             <Paragraph>
               You can also{" "}
               <A href="/store">visit the store to buy licenses directly</A>,

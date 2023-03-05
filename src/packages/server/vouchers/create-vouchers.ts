@@ -267,8 +267,17 @@ export default async function createVouchers({
           id,
         } as const;
         log.debug("charging user; info =", info);
-        const purchase = await chargeUser(stripe, info);
-        log.debug("purchase = ", purchase);
+        const { id: stripe_invoice_id } = await chargeUser(stripe, info);
+        const purchased = {
+          time: new Date(),
+          quantity: count,
+          stripe_invoice_id,
+        };
+        log.debug("purchased = ", purchased);
+        await pool.query("UPDATE vouchers SET purchased=$1 WHERE id=$2", [
+          purchased,
+          id,
+        ]);
         paid = true;
       }
     } finally {

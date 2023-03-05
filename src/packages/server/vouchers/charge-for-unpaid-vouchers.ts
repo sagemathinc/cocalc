@@ -19,25 +19,30 @@ import getPool from "@cocalc/database/pool";
 import { getLogger } from "@cocalc/backend/logger";
 import { chargeUser } from "@cocalc/server/licenses/purchase/charge";
 import { StripeClient } from "@cocalc/server/stripe/client";
+import type { PurchaseInfo } from "@cocalc/util/db-schema/vouchers";
 
 const log = getLogger("charge-for-unpaid-vouchers");
 
-type Result = { [id: string]: { status: string; error?: string } };
+type Result = {
+  [id: string]:
+    | { status: string; error: string }
+    | { status: string; purchased: PurchaseInfo };
+};
 
 export default async function chargeForUnpaidVouchers(): Promise<Result> {
   log.debug("chargeForUnpaidVouchers");
 
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id,cost,tax,created_by,title FROM vouchers WHERE purchased=NULL AND when_pay='invoice' AND expire < NOW()"
+    "SELECT id, cost, tax, created_by, title FROM vouchers WHERE purchased is NULL AND when_pay='invoice' AND expire < NOW()"
   );
   const result: Result = {};
   for (const row of rows) {
     log.debug("charing ", row);
     try {
-      await chargeForUnpaidVoucher(row);
+      const purchased = await chargeForUnpaidVoucher(row);
       log.debug("success");
-      result[row.id] = { status: "ok" };
+      result[row.id] = { status: "ok", purchased };
     } catch (err) {
       log.debug("error", err);
       result[row.id] = { status: "error", error: `${err}` };
@@ -58,27 +63,34 @@ async function chargeForUnpaidVoucher({
   tax: number;
   created_by: string;
   title: string;
-}): Promise<void> {
+}): Promise<any> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT COUNT(*) AS quantity FROM voucher_codes WHERE id=$1 AND when_redeemed IS NOT NULL AND canceled IS NULL",
     [id]
   );
   const quantity = rows[0].quantity;
-  const stripe = new StripeClient({ account_id: created_by });
-  const info = {
-    type: "vouchers",
-    quantity,
-    cost,
-    tax,
-    title,
-    id,
-  } as const;
-  log.debug("charging user; info =", info);
-  const purchased = await chargeUser(stripe, info);
-  log.debug("purchase = ", purchased);
+  let purchased: PurchaseInfo;
+  if (quantity == 0) {
+    purchased = { time: new Date().toISOString(), quantity: 0 };
+  } else {
+    const stripe = new StripeClient({ account_id: created_by });
+    const info = {
+      type: "vouchers",
+      quantity,
+      cost,
+      tax,
+      title,
+      id,
+    } as const;
+    log.debug("charging user; info =", info);
+    const { id: stripe_invoice_id } = await chargeUser(stripe, info);
+    purchased = { time: new Date().toISOString(), quantity, stripe_invoice_id };
+  }
+  log.debug("purchased = ", purchased);
   await pool.query("UPDATE vouchers SET purchased=$1 WHERE id=$2", [
     purchased,
     id,
   ]);
+  return purchased;
 }

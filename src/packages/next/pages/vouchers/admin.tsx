@@ -28,6 +28,7 @@ import Loading from "components/share/loading";
 import useDatabase from "lib/hooks/database";
 import { field_cmp } from "@cocalc/util/misc";
 import type { Voucher } from "@cocalc/util/db-schema/vouchers";
+import apiPost from "lib/api/post";
 
 const QUERY = {
   crm_vouchers: [
@@ -59,12 +60,16 @@ const COLUMNS = COLUMNS0.concat([
     title: "Purchased",
     dataIndex: "purchased",
     key: "purchased",
-    render: (_, { purchased }) => <pre>{JSON.stringify(purchased)}</pre>,
+    render: (_, { purchased }) => (
+      <pre style={{ maxWidth: "200px", overflow: "auto" }}>
+        {JSON.stringify(purchased, undefined, 2)}
+      </pre>
+    ),
   },
 ]);
 
 export default function Created({ customize }) {
-  const { loading, value, error, setError } = useDatabase(QUERY);
+  const { loading, value, error, setError, query } = useDatabase(QUERY);
   const profile = useProfile({ noCache: true });
   const router = useRouter();
   const [showUnpaidOnly, setShowUnpaidOnly] = useState<boolean>(false);
@@ -72,7 +77,25 @@ export default function Created({ customize }) {
   const [showAdminOnly, setShowAdminOnly] = useState<boolean>(false);
   const [showPaidOnly, setShowPaidOnly] = useState<boolean>(false);
 
+  const [charging, setCharging] = useState<boolean>(false);
+  const [result, setResult] = useState<any>(null);
+
+  const doInvoiceUnpaid = useCallback(() => {
+    setCharging(true);
+    (async () => {
+      try {
+        setResult(await apiPost("/vouchers/charge-for-unpaid-vouchers"));
+      } catch (err) {
+        setError(`${err}`);
+      } finally {
+        setCharging(false);
+        query(QUERY);
+      }
+    })();
+  }, []);
+
   const data: Voucher[] = useMemo(() => {
+    if (error) return [];
     const cmp = field_cmp("created");
     let v: Voucher[] = (value?.crm_vouchers ?? []).sort((a, b) => -cmp(a, b));
     if (showUnpaidOnly) {
@@ -90,11 +113,14 @@ export default function Created({ customize }) {
     }
 
     return v;
-  }, [value, showUnpaidOnly, showExpiredOnly, showPaidOnly, showAdminOnly]);
-
-  const doInvoiceUnpaid = useCallback(() => {
-    console.log("doInvoiceUnpaid");
-  }, []);
+  }, [
+    value,
+    showUnpaidOnly,
+    showExpiredOnly,
+    showPaidOnly,
+    showAdminOnly,
+    error,
+  ]);
 
   return (
     <Customize value={customize}>
@@ -102,6 +128,16 @@ export default function Created({ customize }) {
       <Layout>
         <Header />
         <Layout.Content style={{ background: "white" }}>
+          {profile != null && !profile.is_admin && (
+            <div>
+              <Alert
+                showIcon
+                style={{ margin: "30%" }}
+                type="error"
+                message={<b>This page is only for admins.</b>}
+              />
+            </div>
+          )}
           <div
             style={{
               width: "100%",
@@ -147,41 +183,62 @@ export default function Created({ customize }) {
                   {!loading && (
                     <div>
                       <Checkbox
+                        disabled={charging}
                         checked={showUnpaidOnly}
                         onClick={() => setShowUnpaidOnly(!showUnpaidOnly)}
                       >
                         Show unpaid only
                       </Checkbox>
                       <Checkbox
+                        disabled={charging}
                         checked={showExpiredOnly}
                         onClick={() => setShowExpiredOnly(!showExpiredOnly)}
                       >
                         Show expired only
                       </Checkbox>
                       <Checkbox
+                        disabled={charging}
                         checked={showAdminOnly}
                         onClick={() => setShowAdminOnly(!showAdminOnly)}
                       >
                         Show admin only
                       </Checkbox>
                       <Checkbox
+                        disabled={charging}
                         checked={showPaidOnly}
                         onClick={() => setShowPaidOnly(!showPaidOnly)}
                       >
                         Show paid only
                       </Checkbox>
+                      <div style={{ maxWidth: "600px", marginTop: "15px" }}>
+                        NOTE: Click the unpaid and expired checkboxes to bring
+                        up the button to manually run invoicing. This is
+                        temporary until we automate this later.
+                      </div>
                     </div>
                   )}
                   {!loading && showUnpaidOnly && showExpiredOnly && (
                     <div>
                       <Button
+                        style={{ marginTop: "30px" }}
                         type="primary"
                         onClick={doInvoiceUnpaid}
-                        disabled={data.length == 0}
+                        disabled={charging || data.length == 0}
                       >
+                        {charging && (
+                          <>
+                            <Loading />{" "}
+                          </>
+                        )}
                         Create Invoices and Charge for the {data.length} Unpaid
                         Vouchers
                       </Button>
+                      {result && (
+                        <div>
+                          Invoice Result:
+                          <pre>{JSON.stringify(result, undefined, 2)}</pre>
+                        </div>
+                      )}
                     </div>
                   )}
                   {!loading && data.length > 0 && (

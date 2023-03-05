@@ -36,6 +36,7 @@ const QUERY = {
       tax: null,
       cart: null,
       when_pay: null,
+      purchased: null,
     },
   ],
 } as const;
@@ -80,12 +81,18 @@ export const COLUMNS = [
   },
   {
     title: "Status",
-    render: (_, { when_pay }) => {
+    render: (_, { when_pay, purchased }) => {
       if (when_pay == "now") {
         return "Paid";
       }
       if (when_pay == "invoice") {
-        return "Invoice at Expiration";
+        return purchased?.time ? (
+          <>
+            Paid <TimeAgo datetime={purchased.time} />
+          </>
+        ) : (
+          "Invoice at Expiration"
+        );
       }
       if (when_pay == "admin") {
         return "Admin (free)";
