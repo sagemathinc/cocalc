@@ -1,0 +1,84 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
+Find all vouchers that are supposed to get paid for, but haven't
+yet been paid for, and attempt to charge for them.
+
+These are the vouchers where when_pay is 'invoice', the expire
+field is in the past, and the payment field is not set.
+
+We of course only charge for the number of vouchers that were
+actually redeemed. Since the expire date is in the past, no
+more vouchers could ever be redeemed.
+*/
+
+import getPool from "@cocalc/database/pool";
+import { getLogger } from "@cocalc/backend/logger";
+import { chargeUser } from "@cocalc/server/licenses/purchase/charge";
+import { StripeClient } from "@cocalc/server/stripe/client";
+
+const log = getLogger("charge-for-unpaid-vouchers");
+
+type Result = { [id: string]: { status: string; error?: string } };
+
+export default async function chargeForUnpaidVouchers(): Promise<Result> {
+  log.debug("chargeForUnpaidVouchers");
+
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT id,cost,tax,created_by,title FROM vouchers WHERE purchased=NULL AND when_pay='invoice' AND expire < NOW()"
+  );
+  const result: Result = {};
+  for (const row of rows) {
+    log.debug("charing ", row);
+    try {
+      await chargeForUnpaidVoucher(row);
+      log.debug("success");
+      result[row.id] = { status: "ok" };
+    } catch (err) {
+      log.debug("error", err);
+      result[row.id] = { status: "error", error: `${err}` };
+    }
+  }
+  return result;
+}
+
+async function chargeForUnpaidVoucher({
+  id,
+  cost,
+  tax,
+  created_by,
+  title,
+}: {
+  id: number;
+  cost: number;
+  tax: number;
+  created_by: string;
+  title: string;
+}): Promise<void> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT COUNT(*) AS quantity FROM voucher_codes WHERE id=$1 AND when_redeemed IS NOT NULL AND canceled IS NULL",
+    [id]
+  );
+  const quantity = rows[0].quantity;
+  const stripe = new StripeClient({ account_id: created_by });
+  const info = {
+    type: "vouchers",
+    quantity,
+    cost,
+    tax,
+    title,
+    id,
+  } as const;
+  log.debug("charging user; info =", info);
+  const purchased = await chargeUser(stripe, info);
+  log.debug("purchase = ", purchased);
+  await pool.query("UPDATE vouchers SET purchased=$1 WHERE id=$2", [
+    purchased,
+    id,
+  ]);
+}

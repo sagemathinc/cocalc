@@ -4,17 +4,8 @@
  */
 
 /*
-Purchase everything that is checked and in the shopping cart.
-
-This API endpoint gets called when user has confirmed their payment
-method and clicked the button to complete the purchase.
-
-Of course this doesn't take any input, since the contents of the cart
-is already in the database, and the card info (and which is the default)
-is in stripe only.
-
-If this successfully runs, then the checked items in the shopping
-cart are changed in the database so that the purchased field is set.
+Create certain number of vouchers for everything non-subscription
+that is checked and in the shopping cart.
 */
 
 import getPool from "@cocalc/database/pool";
