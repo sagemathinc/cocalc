@@ -24,5 +24,17 @@ Table({
   rules: {
     primary_key: ["public_path_id", "account_id"],
     pg_indexes: ["public_path_id", "account_id"],
+    user_query: {
+      get: {
+        admin: true,
+        pg_where: [],
+        options: [{ limit: 300, order_by: "-time" }],
+        fields: {
+          public_path_id: null,
+          account_id: null,
+          time: null,
+        },
+      },
+    },
   },
 });

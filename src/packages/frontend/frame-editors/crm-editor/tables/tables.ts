@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 import { antdColumn, ColumnsType } from "../fields";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import * as defaults from "./defaults";
@@ -29,7 +28,7 @@ import "./vouchers";
 
 interface TableDescription {
   name: string;
-  title: ReactNode;
+  title: string;
   icon?: IconName; // todo: render this..
   query: object;
   columns: ColumnsType[];

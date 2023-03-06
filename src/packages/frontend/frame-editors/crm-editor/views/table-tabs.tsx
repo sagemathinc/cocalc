@@ -125,7 +125,11 @@ function AddTable({ setAdding, tables, setTables }) {
       )
       .filter((x) => !cur.has(x))
       .map((table) => {
-        return { value: table, label: <Label table={table} /> };
+        return {
+          value: table,
+          label: <Label table={table} />,
+          search: getTableDescription(table)?.title?.toLowerCase() ?? table,
+        };
       });
   }, [tables]);
   const [value, setValue] = useState<string[]>([]);
@@ -184,7 +188,7 @@ function AddTable({ setAdding, tables, setTables }) {
           placeholder="Add Tables..."
           optionFilterProp="children"
           filterOption={(input, option) =>
-            `${option?.value ?? ""}`.toLowerCase().includes(input.toLowerCase())
+            `${option?.search ?? ""}`.includes(input.toLowerCase())
           }
           options={options}
         />

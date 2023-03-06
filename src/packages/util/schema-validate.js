@@ -61,12 +61,12 @@ exports.validate_client_query = function validate_client_query(
   }
 
   if (is_set_query) {
-    S = user_query.set;
+    S = user_query?.set;
     if (S == null) {
       return warn(`no user set queries of '${table}' allowed`);
     }
   } else {
-    S = user_query.get;
+    S = user_query?.get;
     if (S == null) {
       return warn(`no user get queries of '${table}' allowed`);
     }

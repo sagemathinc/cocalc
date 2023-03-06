@@ -30,3 +30,41 @@ register({
     ],
   },
 });
+
+register({
+  name: "public_path_stars",
+
+  title: "Public Path Stars",
+
+  icon: "star",
+
+  query: {
+    public_path_stars: [
+      {
+        public_path_id: null,
+        account_id: null,
+        time: null,
+      },
+    ],
+  },
+});
+
+register({
+  name: "public_path_usage",
+
+  title: "Public Path Usage",
+
+  icon: "star",
+
+  query: {
+    public_path_usage: [
+      {
+        id: null,
+        date: null,
+        filename: null,
+        count: null,
+        megabytes: null,
+      },
+    ],
+  },
+});
