@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Layout, List } from "antd";
+import { Alert, Layout, List } from "antd";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { LicenseIdleTimeouts, Uptime } from "@cocalc/util/consts/site-license";
@@ -83,7 +83,7 @@ const workgroup: Item = (() => {
   } as PurchaseInfo);
 
   return {
-    title: `Commerical Research Group`,
+    title: `Commercial Research Group`,
     icon: "atom",
     individuals,
     duration,
@@ -131,7 +131,7 @@ const uniMedium: Item = (() => {
   } as PurchaseInfo);
 
   return {
-    title: `${students} students, medium projects`,
+    title: `Up to ${students} students at once`,
     icon: "graduation-cap",
     students,
     disk: conf.disk,
@@ -175,7 +175,7 @@ const uniLarge: Item = (() => {
   } as PurchaseInfo);
 
   return {
-    title: `${students} students, small projects`,
+    title: `Up to ${students} students at once`,
     icon: "graduation-cap",
     students,
     disk: conf.disk,
@@ -245,24 +245,39 @@ function Body(): JSX.Element {
         trial license to test out different options.
       </Paragraph>
       <Paragraph>
-        Once you obtain a license key, you become a "license manager". This
-        means you can pass that license key on to others and track their usage.
+        Once you purchase a license key, you become a "license manager". This
+        means you can pass that license key on to others, track their usage, and
+        add other people as license managers.
       </Paragraph>
       <Paragraph>
-        On top of that, ou can also acquire several licenses keys for your
-        institution. This means you can partition all possible users into
-        smaller gropus, each with their own license key. This is useful if you
-        want to have distinct license keys for different departments, or if you
-        want to have a license key for students and another one for faculty
-        members.
+        You can also acquire several licenses keys for your institution. This
+        means you can partition all possible users into smaller gropus, each
+        with their own license key. This is useful if you want to have distinct
+        license keys for different departments, or if you want to have a license
+        key for students and another one for faculty members.
       </Paragraph>
 
       <Title level={2}>Examples</Title>
       <Paragraph>
         Here are three typical configurations. All parameters can be adjusted to
         fit your needs. Listed upgrades are for each project. Exact prices may
-        vary. Processing purchse orders with subsequent invoices need a minimum
+        vary. Processing purchase orders with subsequent invoices need a minimum
         of $100.
+        <Alert
+          showIcon
+          style={{ maxWidth: "500px", margin: "30px auto" }}
+          type="warning"
+          message={
+            <div>
+              The listed number of students below (e.g., 200) does <b>not</b> refer to the
+              total number of students in your department. It is the number of
+              students that will be using {siteName} all at the same time. You
+              could have thousands of students in your department who all use{" "}
+              {siteName} in a year, and buy what is listed as "200 students"
+              below, as long as at most 200 are simultaneously using {siteName}.
+            </div>
+          }
+        />
       </Paragraph>
 
       <List
@@ -274,7 +289,12 @@ function Body(): JSX.Element {
               {item.individuals && (
                 <Line amount={item.individuals} desc="Individuals" />
               )}
-              {item.students && <Line amount={item.students} desc="Students" />}
+              {item.students && (
+                <Line
+                  amount={item.students}
+                  desc={`Students using ${siteName} all at the same time`}
+                />
+              )}
               {item.ratio && (
                 <Line amount={item.ratio} desc="Projects per individual" />
               )}
