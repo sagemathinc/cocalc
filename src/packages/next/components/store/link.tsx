@@ -3,10 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Icon } from "@cocalc/frontend/components/icon";
-import { Uptime } from "@cocalc/util/consts/site-license";
 import { Button } from "antd";
 import { useRouter } from "next/router";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { Uptime } from "@cocalc/util/consts/site-license";
 
 export interface StoreConf {
   run_limit: number;
@@ -17,6 +18,7 @@ export interface StoreConf {
   start?: Date;
   end?: Date;
   uptime: Uptime;
+  period?: "monthly" | "yearly" | "range";
 }
 
 interface Props {
@@ -45,7 +47,7 @@ export function LinkToStore(props: Props) {
     <div style={STYLE}>
       <Button
         size={"large"}
-        type={"default"}
+        type={"primary"}
         onClick={() => router.push(url)}
         icon={<Icon name="shopping-cart" />}
       >

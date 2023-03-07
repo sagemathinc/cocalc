@@ -1,14 +1,18 @@
-import { ReactNode } from "react";
 import { Alert, Divider, Layout, Tag, Timeline, Tooltip } from "antd";
-import useAPI from "lib/hooks/api";
-import Loading from "components/share/loading";
-import A from "components/misc/A";
-import { capitalize, trunc } from "@cocalc/util/misc";
-import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { ReactNode } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
-import { NoZendesk } from "./util";
-import { useCustomize } from "lib/customize";
+import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { capitalize, trunc } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { Title } from "components/misc";
+import A from "components/misc/A";
+import Loading from "components/share/loading";
 import { MAX_WIDTH } from "lib/config";
+import { useCustomize } from "lib/customize";
+import useAPI from "lib/hooks/api";
+import { Type } from "./create";
+import { NoZendesk } from "./util";
 
 export default function Tickets() {
   let { result, error } = useAPI("support/tickets");
@@ -18,24 +22,19 @@ export default function Tickets() {
     return <NoZendesk />;
   }
   return (
-    <Layout.Content
-      style={{
-        backgroundColor: "white",
-      }}
-    >
+    <Layout.Content style={{ backgroundColor: "white" }}>
       <div
         style={{
           maxWidth: MAX_WIDTH,
           margin: "15px auto",
           padding: "15px",
           backgroundColor: "white",
-          color: "#555",
+          color: COLORS.GRAY_D,
         }}
       >
-        {" "}
-        <h1 style={{ textAlign: "center", fontSize: "24pt" }}>
+        <Title level={1} style={{ textAlign: "center" }}>
           Support Tickets
-        </h1>
+        </Title>
         <p style={{ fontSize: "12pt" }}>
           Check the status of your support tickets here or{" "}
           <A href="/support/new">create a new ticket</A>. Newly created tickets
@@ -171,32 +170,24 @@ function Status({ status }) {
   };
   return (
     <Tooltip title={title}>
-      <Tag
-        color={color}
-        style={{ fontSize: "12pt", color: "white" }}
-      >
+      <Tag color={color} style={{ fontSize: "12pt", color: "white" }}>
         {label}
       </Tag>
     </Tooltip>
   );
 }
 
-const TYPE_COLOR = {
+const TYPE_COLOR: { [name in Type]: string } = {
   problem: "red",
   question: "blue",
   task: "orange",
+  purchase: "green",
 };
 
-export function Type({
-  status,
-  type,
-}: {
-  status?: string;
-  type: "problem" | "question" | "task";
-}) {
+export function Type({ status, type }: { status?: string; type: Type }) {
   return (
     <Tag
-      color={status == "solved" ? "#666" : TYPE_COLOR[type]}
+      color={status == "solved" ? COLORS.GRAY_M : TYPE_COLOR[type]}
       style={{ fontSize: "12pt" }}
     >
       {capitalize(type)}
