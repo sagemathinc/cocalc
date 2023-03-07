@@ -262,7 +262,7 @@ Info.Heading = (props: HeadingProps) => {
       <Title
         level={level}
         style={{
-          color: "#444",
+          color: COLORS.GRAY_D,
           maxWidth: MAX_WIDTH_LANDING,
           margin: "0 auto",
           ...textStyle,

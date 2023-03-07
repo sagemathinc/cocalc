@@ -87,6 +87,7 @@ const pricing = {
   products: { label: "Products" },
   subscriptions: { label: "Subscriptions" },
   courses: { label: "Courses" },
+  institutions: { label: "Institutions" },
   dedicated: { label: "Dedicated" },
   onprem: { label: "OnPrem" },
 } as const;

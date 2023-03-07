@@ -3,24 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
-import { Button, Layout, Typography } from "antd";
-const { Text } = Typography;
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import A from "components/misc/A";
-import { List } from "antd";
+import { Button, Layout } from "antd";
+
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import PricingItem, { Line } from "components/landing/pricing-item";
-import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { AVG_MONTH_DAYS } from "@cocalc/util/consts/billing";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
-import { MAX_WIDTH } from "lib/config";
+import { PRICES } from "@cocalc/util/upgrades/dedicated";
+import { List } from "antd";
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import PricingItem, { Line } from "components/landing/pricing-item";
+import { Paragraph, Text, Title } from "components/misc";
+import A from "components/misc/A";
 import { listedPrices } from "components/share/pricing";
+import { MAX_WIDTH } from "lib/config";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 import { useRouter } from "next/router";
-import { Paragraph, Title } from "components/misc";
 
 interface Item {
   title: string;
@@ -83,14 +83,10 @@ export default function Products({ customize }) {
   const router = useRouter();
   return (
     <Customize value={customize}>
-      <Head title={"Dedicated virtual machines and disks"} />
+      <Head title={`${siteName} – Dedicated virtual machines and disks`} />
       <Layout>
         <Header page="pricing" subPage="dedicated" />
-        <Layout.Content
-          style={{
-            backgroundColor: "white",
-          }}
-        >
+        <Layout.Content style={{ backgroundColor: "white" }}>
           <div
             style={{
               maxWidth: MAX_WIDTH,

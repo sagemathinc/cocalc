@@ -1,5 +1,6 @@
-import { Icon } from "@cocalc/frontend/components/icon";
 import { Layout } from "antd";
+
+import { Icon } from "@cocalc/frontend/components/icon";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -12,10 +13,11 @@ import withCustomize from "lib/with-customize";
 import Blog from "public/info/blog.png";
 import MailingList from "public/info/cocalc-mailing-list.png";
 //import Discord from "public/info/discord.png";
+import { COLORS } from "@cocalc/util/theme";
 import Facebook from "public/info/facebook.png";
-import LinkedIn from "public/info/linkedin.png";
 import GitHubDiscussions from "public/info/github-discussions.png";
 import Github from "public/info/github.png";
+import LinkedIn from "public/info/linkedin.png";
 import Share from "public/info/share.png";
 import StackOverflow from "public/info/stackoverflow.png";
 import Twitter from "public/info/twitter.png";
@@ -277,11 +279,7 @@ export default function Connect({ customize }) {
       <Head title="Community Support" />
       <Layout>
         <Header page="support" subPage="community" />
-        <Layout.Content
-          style={{
-            backgroundColor: "white",
-          }}
-        >
+        <Layout.Content style={{ backgroundColor: "white" }}>
           <div
             style={{
               maxWidth: MAX_WIDTH,
@@ -290,7 +288,7 @@ export default function Connect({ customize }) {
               backgroundColor: "white",
             }}
           >
-            <div style={{ textAlign: "center", color: "#444" }}>
+            <div style={{ textAlign: "center", color: COLORS.GRAY_D }}>
               <h1 style={{ fontSize: "28pt" }}></h1>
             </div>
             <IndexList

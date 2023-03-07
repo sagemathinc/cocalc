@@ -18,9 +18,10 @@ import withCustomize from "lib/with-customize";
 const { Text } = Typography;
 
 export default function Products({ customize }) {
+  const { siteName } = customize;
   return (
     <Customize value={customize}>
-      <Head title="Products" />
+      <Head title={`${siteName} – Product Pricing`} />
       <Layout>
         <Header page="pricing" subPage="products" />
         <Layout.Content
