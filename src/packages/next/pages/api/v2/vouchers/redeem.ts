@@ -4,15 +4,16 @@ import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
   try {
-    const result = await doIt(req);
-    res.json({ ...result, success: true });
+    const license_ids = await doIt(req);
+    res.json({ license_ids, success: true });
   } catch (err) {
     res.json({ error: `${err.message}` });
     return;
   }
 }
 
-async function doIt(req) {
+// returns array of license ids
+async function doIt(req): Promise<string[]> {
   const { code, project_id } = getParams(req);
   if (!code || code.length < 8) {
     throw Error("code must be at least 8 characters long");
