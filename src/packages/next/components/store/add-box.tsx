@@ -14,8 +14,8 @@ import { DisplayCost } from "./site-license-cost";
 
 interface Props {
   cost?: CostInputPeriod;
-  router: any;
-  form: any;
+  router;
+  form;
   cartError: string | undefined;
   setCartError: (error) => void;
   dedicatedItem?: boolean;
@@ -106,8 +106,8 @@ export function AddBox(props: Props) {
 
 interface CartButtonProps {
   cost: CostInputPeriod | undefined;
-  router: any;
-  form: any;
+  router;
+  form;
   setCartError: (error) => void;
   disabled?: boolean;
   cartError: string | undefined;

@@ -10,6 +10,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { NoInternetBanner } from "./no-internet-banner";
+import { useProjectState } from "./page/project-state-hook";
 import { useRunQuota } from "./settings/run-quota/hooks";
 import { TrialBanner } from "./trial-banner";
 
@@ -33,13 +34,15 @@ export const ProjectWarningBanner: React.FC<Props> = React.memo(
     );
     const is_commercial = useTypedRedux("customize", "is_commercial");
     const isSandbox = project_map?.getIn([project_id, "sandbox"]);
+    const project_state = useProjectState(project_id);
+    const projectIsRunning = project_state?.get("state") === "running";
 
     const host: boolean = !runQuota?.member_host;
     const internet: boolean = !runQuota?.network;
 
     // fallback case for showBanner
     function showNoInternetBanner(): "no-internet" | null {
-      if (internet) {
+      if (projectIsRunning && internet) {
         return "no-internet";
       } else {
         return null;
@@ -96,6 +99,7 @@ export const ProjectWarningBanner: React.FC<Props> = React.memo(
             proj_created={projCreatedTS.getTime()}
             host={host}
             internet={internet}
+            projectIsRunning={projectIsRunning}
           />
         );
 

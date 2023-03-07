@@ -6,10 +6,8 @@
 // NOTE: some code here is similar to code in
 // src/@cocalc/frontend/course/configuration/upgrades.tsx
 
-import { Card, Popover } from "antd";
-
+import { Button, Card, Popover } from "antd";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { Button } from "@cocalc/frontend/antd-bootstrap";
 import {
   redux,
   Rendered,
@@ -133,8 +131,8 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
           Warning: this will cause the project to restart and interrupt any
           running computations.
         </strong>{" "}
-        If you want to purchase a license, click the "Buy a license…" button
-        below.
+        If you want to purchase a license, click the "Buy a license" button
+        below, or click "Redeem a voucher" to redeem a voucher.
         <SiteLicenseInput
           exclude={site_license?.keySeq().toJS()}
           onSave={(license_id) => {
@@ -199,6 +197,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
       <br />
       <div style={{ padding: "15px" }}>
         <Button
+          size="large"
           onClick={() => set_show_site_license(true)}
           disabled={show_site_license}
         >

@@ -180,11 +180,20 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
 
   // we need to know the target frame of the jupyter notebook
   useEffect(() => {
-    const jid = frame_actions._get_most_recent_active_frame_id_of_type(
-      "jupyter_cell_notebook"
+    const jid = frame_actions.show_recently_focused_frame_of_type(
+      "jupyter_cell_notebook",
+      "col",
+      true,
+      0.7
     );
-    if (jid == null) return;
-    if (jupyterFrameID != jid) setJupyterFrameID(jid);
+    if (jid == null) {
+      // this should never happen, since the above should always succeed
+      // and return an id.
+      return;
+    }
+    if (jupyterFrameID != jid) {
+      setJupyterFrameID(jid);
+    }
   }, [local_view_state]);
 
   // this is the core part of this: upon user request, the select part of the snippets

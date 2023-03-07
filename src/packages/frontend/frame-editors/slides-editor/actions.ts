@@ -6,6 +6,7 @@ import type { FrameTree } from "../frame-tree/types";
 import fixedElements from "./fixed-elements";
 import { Map as ImmutableMap } from "immutable";
 import type { ElementMap } from "../whiteboard-editor/types";
+import { open_new_tab } from "@cocalc/frontend/misc";
 
 export interface State extends WhiteboardState {
   speakerNotes: ImmutableMap<string, ElementMap>;
@@ -41,6 +42,10 @@ export class Actions extends WhiteboardActions<State> {
       },
       pos: 0.15,
     };
+  }
+
+  help(): void {
+    open_new_tab("https://doc.cocalc.com/slides.html");
   }
 
   private updateSpeakerNotes(keys) {

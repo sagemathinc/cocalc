@@ -71,6 +71,14 @@ export type PurchaseInfoQuota = {
 
 export type PurchaseInfo =
   | PurchaseInfoQuota
+  | {
+      type: "vouchers";
+      id: number;
+      quantity: number;
+      cost: number;
+      tax: number;
+      title: string;
+    }
   | ({
       type: "vm";
       quantity: 1;
@@ -122,7 +130,13 @@ export type ProductMetadataDisk = Record<
   type: "disk";
 };
 
+export type ProductMetadataVouchers = Record<"title", string> & {
+  type: "vouchers";
+  id: number; // id of the voucher in the vouchers table of the database
+};
+
 export type ProductMetadata =
+  | ProductMetadataVouchers
   | ProductMetadataDisk
   | ProductMetadataQuota
   | ProductMetadataVM;

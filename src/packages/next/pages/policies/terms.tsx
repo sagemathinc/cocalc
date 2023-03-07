@@ -484,7 +484,7 @@ export default function TermsOfService({ customize }) {
                 to you. You may cancel your Account at any time by clicking on
                 the Account link in the global navigation bar at the top of the
                 screen through which you are accessing the Services. Upon any
-                termination, discontinuation or cancellation of Services or your
+                termination, discontinuation or cancelation of Services or your
                 Account, the following provisions of these Terms will survive:
                 Feedback; Privacy Policy; Content and Content Rights; Content
                 Ownership and Responsibility (excluding Rights in Content

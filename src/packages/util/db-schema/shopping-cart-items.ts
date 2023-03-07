@@ -4,9 +4,9 @@ Table of shopping activity.
 with columns:
 
 how to use:
-query for everything with bought and cancelled both null for a given user is exactly their shopping cart
+query for everything with bought and canceled both null for a given user is exactly their shopping cart
 query for everything for account with bought set is everything they have bought and when.
-query for everything for account with cancelled if everything they decided not to buy.
+query for everything for account with canceled if everything they decided not to buy.
 
 */
 
@@ -18,7 +18,8 @@ export type ProductType = "site-license";
 export type ProductDescription = Quota; // just for now.
 
 interface PurchaseInfo {
-  // maybe a stripe invoice id or a new database record?
+  time: string; // iso timestamp
+  // TODO: maybe a stripe invoice id or a new database record?
 }
 
 export interface Item {

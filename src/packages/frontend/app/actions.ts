@@ -9,6 +9,11 @@ import { update_params, set_url } from "../history";
 import { disconnect_from_project } from "../project/websocket/connect";
 import { session_manager } from "../session";
 import { PageState } from "./store";
+import {
+  exitFullscreen,
+  isFullscreen,
+  requestFullscreen,
+} from "@cocalc/frontend/misc/fullscreen";
 
 export class PageActions extends Actions<PageState> {
   private session_manager?: any;
@@ -274,14 +279,15 @@ export class PageActions extends Actions<PageState> {
     }
     if (fullscreen) {
       try {
-        await document.documentElement.requestFullscreen();
+        await requestFullscreen();
       } catch (err) {
-        // gives an error if not initiated explicitly by user action...
+        // gives an error if not initiated explicitly by user action,
+        // or not available (e.g., iphone)
         console.log(err);
       }
     } else {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
+      if (isFullscreen()) {
+        exitFullscreen();
       }
     }
   }

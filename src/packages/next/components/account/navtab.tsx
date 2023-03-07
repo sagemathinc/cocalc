@@ -18,7 +18,6 @@ import {
   MenuItem,
   MenuItems,
 } from "components/antd-menu-items";
-import { LinkStyle } from "components/landing/header";
 import A from "components/misc/A";
 import apiPost from "lib/api/post";
 import basePath from "lib/base-path";
@@ -34,11 +33,29 @@ interface Props {
   style: CSSProperties;
 }
 
+// We make this menu fixed width in all cases, since otherwise the entire top navbar
+// would flicker when profile isn't initially defined. See
+// https://github.com/sagemathinc/cocalc/issues/6504
+
+const WIDTH = "125px";
+
 export default function AccountNavTab({ style }: Props) {
   const router = useRouter();
   const { isCommercial, shareServer, siteName, sshGateway } = useCustomize();
   const profile = useProfile();
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <div
+        style={{
+          cursor: "pointer",
+          ...style,
+          width: WIDTH,
+        }}
+      >
+        Account
+      </div>
+    );
+  }
 
   const { first_name, last_name, name, account_id, is_admin, is_anonymous } =
     profile;
@@ -129,7 +146,7 @@ export default function AccountNavTab({ style }: Props) {
 
       if (isCommercial) {
         yours.push(
-          menuItem("billing", <A href="/billing">Billing</A>, "credit-card")
+          menuItem("billing", <A href="/billing">Billing Management</A>, "credit-card")
         );
       }
       if (sshGateway) {
@@ -218,17 +235,23 @@ export default function AccountNavTab({ style }: Props) {
   // NOTE: we had a dark theme before for the menu, but that's deprecated from antd
   // https://github.com/ant-design/ant-design/issues/4903
   return (
-    <Dropdown menu={{ items }}>
-      <div style={{ ...LinkStyle, cursor: "pointer", ...style }}>
-        {/* The negative margin fixes some weird behavior that stretches header. */}
-        {account_id && (
-          <>
-            <Avatar account_id={account_id} style={{ margin: "-10px 0" }} />
-            &nbsp;&nbsp;
-          </>
-        )}
-        Account <Icon name="angle-down" />
-      </div>
-    </Dropdown>
+    <div
+      style={{
+        display: "inline-block",
+        cursor: "pointer",
+        width: WIDTH,
+      }}
+    >
+      {/* The negative margin fixes some weird behavior that stretches header. */}
+      {account_id && (
+        <>
+          <Avatar account_id={account_id} style={{ margin: "-10px 0" }} />
+          &nbsp;&nbsp;
+        </>
+      )}
+      <Dropdown menu={{ items }} trigger={["click"]}>
+        <span style={style}>Account ▼</span>
+      </Dropdown>
+    </div>
   );
 }

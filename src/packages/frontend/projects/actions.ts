@@ -383,6 +383,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
       change_history: true,
       restore_session: true,
     });
+    if (!is_valid_uuid_string(opts.project_id)) {
+      throw Error(`invalid project_id - ${opts.project_id}`);
+    }
 
     if (!store.getIn(["project_map", opts.project_id])) {
       if (COCALC_MINIMAL) {

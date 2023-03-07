@@ -43,7 +43,7 @@ import apiPost from "lib/api/post";
 import { useScrollY } from "lib/use-scroll-y";
 import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
-import { computeCost } from "./compute-cost";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { InfoBar } from "./cost-info-bar";
 import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
@@ -770,7 +770,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
             <Divider plain>Configuration</Divider>
             {renderConfiguration()}
 
-            <TitleDescription showExplanations={showExplanations} />
+            <TitleDescription showExplanations={showExplanations} form={form} />
             {renderCost()}
           </>
         )}

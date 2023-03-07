@@ -17,6 +17,7 @@ interface Props {
   filename: string;
   options?: Options;
   fontSize?: number;
+  lineNumbers?: boolean; // default true
 }
 
 export default function CodeMirror({
@@ -24,6 +25,7 @@ export default function CodeMirror({
   filename,
   options,
   fontSize,
+  lineNumbers = true,
 }: Props) {
   const ext = getExtension(filename);
   const mode = codemirrorMode(ext);
@@ -31,7 +33,7 @@ export default function CodeMirror({
     <CodeMirrorStatic
       value={content}
       font_size={fontSize}
-      options={{ lineNumbers: true, mode, ...options }}
+      options={{ lineNumbers, mode, ...options }}
     />
   );
 }

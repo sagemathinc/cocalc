@@ -173,7 +173,7 @@ export function useTable({
           },
         });
         return () => {
-          // clean up by cancelling the changefeed when
+          // clean up by canceling the changefeed when
           // component unmounts
           if (x.id) {
             (async () => {

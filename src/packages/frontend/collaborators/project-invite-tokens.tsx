@@ -18,7 +18,7 @@ TODO:
 
 import { PROJECT_INVITE_QUERY_PARAM } from "./handle-project-invite";
 
-import { Button, Popconfirm, Table } from "antd";
+import { Button, Card, Popconfirm, Table } from "antd";
 import { React, useState, useIsMountedRef } from "../app-framework";
 import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
 import { ProjectInviteToken } from "@cocalc/util/db-schema/project-invite-tokens";
@@ -31,10 +31,10 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 const TOKEN_LENGTH = 16;
 const MAX_TOKENS = 200;
 const COLUMNS = [
-  { title: "Token", dataIndex: "token", key: "token" },
-  { title: "Created", dataIndex: "created", key: "created" },
-  { title: "Expires", dataIndex: "expires", key: "expires" },
-  { title: "Uses", dataIndex: "counter", key: "counter" },
+  { title: "Token", dataIndex: "token", key: "token", width: 250 },
+  { title: "Created", dataIndex: "created", key: "created", width: 150 },
+  { title: "Expires", dataIndex: "expires", key: "expires", width: 150 },
+  { title: "Users", dataIndex: "counter", key: "counter" },
   /* { title: "Limit", dataIndex: "usage_limit", key: "usage_limit" },*/
 ];
 
@@ -276,25 +276,17 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
     }
 
     return (
-      <div style={{ width: "100%", overflowX: "auto" }}>
-        <div
-          style={{
-            minWidth: "800px",
-            border: "1px solid grey",
-            padding: "15px",
-          }}
-        >
-          {heading}
-          <br />
-          <br />
-          {render_create_token()}
-          <Space />
-          {render_refresh()}
-          <br />
-          <br />
-          {render_tokens()}
-        </div>
-      </div>
+      <Card style={{ width: "100%", overflowX: "auto" }}>
+        {heading}
+        <br />
+        <br />
+        {render_create_token()}
+        <Space />
+        {render_refresh()}
+        <br />
+        <br />
+        {render_tokens()}
+      </Card>
     );
   }
 );

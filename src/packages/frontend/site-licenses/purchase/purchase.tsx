@@ -544,7 +544,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             },
             {
               label: `Get a quote (${money(COSTS.min_quote)} minimum)`,
-              desc: `obtain a quote, invoice, modified terms, a purchase order, use PayPal or wire transfer, etc.`,
+              desc: `obtain a quote, invoice, modified terms, a purchase order, or wire transfer, etc.`,
               value: true,
               disabled: cost.cost < COSTS.min_quote,
             },

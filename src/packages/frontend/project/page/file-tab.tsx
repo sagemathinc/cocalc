@@ -73,7 +73,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   servers: {
     label: SERVERS_TITLE,
     icon: "server",
-    tooltip: "Servers running in this project (e.g., Jupyter, Pluto, …)",
+    tooltip: "Launch servers: e.g., Jupyter, Pluto, …",
     noAnonymous: true,
   },
   info: {

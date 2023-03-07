@@ -13,7 +13,7 @@ whiteboard).
 import { Popover } from "antd";
 import { join } from "path";
 import { CSSProperties, ReactNode } from "react";
-
+import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { redux } from "@cocalc/frontend/app-framework";
 import { A, Icon, IconName } from "@cocalc/frontend/components";
 import { file_associations } from "@cocalc/frontend/file-associations";
@@ -22,6 +22,7 @@ import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { filename_extension, path_split } from "@cocalc/util/misc";
 import { TITLE as SERVERS_TITLE } from "../project/servers";
+import { alert_message } from "@cocalc/frontend/alerts";
 
 interface Options {
   project_id: string;
@@ -103,13 +104,21 @@ function CoCalcURL({ href, title, children, project_id }) {
     const { project_id, page, target, fragmentId } = parseCoCalcURL(href);
     if (project_id && target) {
       e.preventDefault();
-      loadTarget(
-        page,
-        project_id,
-        decodeURI(target),
-        !((e as any)?.which === 2 || e?.ctrlKey || e?.metaKey),
-        fragmentId
-      );
+      try {
+        loadTarget(
+          page,
+          project_id,
+          decodeURI(target),
+          !((e as any)?.which === 2 || e?.ctrlKey || e?.metaKey),
+          fragmentId
+        );
+      } catch (err) {
+        // loadTarget could fail, e.g., if the project_id is mangled.
+        alert_message({
+          type: "error",
+          message: `${err} -- the link is invalid`,
+        });
+      }
       return;
     } else if (page) {
       // opening a different top level page, e.g., all projects or account settings or something.
@@ -374,6 +383,9 @@ function loadTarget(
   switchTo: boolean,
   fragmentId?: FragmentId
 ): void {
+  if (!is_valid_uuid_string(project_id)) {
+    throw Error(`invalid project id ${project_id}`);
+  }
   if (page == "projects") {
     // open project:
     redux

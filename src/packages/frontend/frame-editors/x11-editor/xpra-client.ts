@@ -210,7 +210,7 @@ export class XpraClient extends EventEmitter {
     if (wid && this.client.findSurface(wid) !== undefined) {
       // Tells the backend xpra server that we want window to close
       // This may or may not actually close the window, e.g., the window
-      // might pop up a modal asking about unsaved changes, and cancelling
+      // might pop up a modal asking about unsaved changes, and canceling
       // that keeps the window opened.  It's just a request.
       this.client.kill(wid);
     } else {

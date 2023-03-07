@@ -25,7 +25,7 @@ import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
-import { computeCost } from "./compute-cost";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import OtherItems from "./other-items";
 import { EditRunLimit } from "./run-limit";
 import { describeItem, describePeriod, DisplayCost } from "./site-license-cost";
@@ -188,23 +188,43 @@ export default function ShoppingCart() {
     );
   }
 
+  function Proceed() {
+    const checkout = (
+      <Button
+        disabled={subTotal == 0 || updating}
+        size="large"
+        type="primary"
+        onClick={() => {
+          router.push("/store/checkout");
+        }}
+      >
+        Proceed to Checkout
+      </Button>
+    );
+    return (
+      <Button.Group>
+        {checkout}
+        <Button
+          disabled={subTotal == 0 || updating}
+          size="large"
+          onClick={() => {
+            router.push("/store/vouchers");
+          }}
+        >
+          Create Vouchers
+        </Button>
+      </Button.Group>
+    );
+  }
+
   function renderItems() {
     return (
       <>
         <div style={{ float: "right", marginBottom: "15px" }}>
-          <span style={{ fontSize: "13pt" }}>
+          <span style={{ fontSize: "13pt", marginRight: "15px" }}>
             <TotalCost items={items} />
           </span>
-          <A href="/store/checkout">
-            <Button
-              disabled={subTotal == 0 || updating}
-              style={{ marginLeft: "15px" }}
-              size="large"
-              type="primary"
-            >
-              Proceed to Checkout
-            </Button>
-          </A>
+          <Proceed />
         </div>
         <h3>
           <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />{" "}

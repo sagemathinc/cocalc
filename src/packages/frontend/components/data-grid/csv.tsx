@@ -66,7 +66,7 @@ export default function CSV({
     <TableVirtuoso
       overscan={overscan}
       style={{ height: "100%", overflow: "auto" }}
-      totalCount={data.length - 1}
+      totalCount={Math.max(0, data.length - 1)}
       fixedHeaderContent={() => (
         <tr>
           {data[0]?.map((field) => (
@@ -83,8 +83,8 @@ export default function CSV({
         };
         return (
           <>
-            {data[index + 1]?.map((val) => (
-              <td style={style} key={val}>
+            {data[index + 1]?.map((val, k) => (
+              <td style={style} key={k}>
                 {val}
               </td>
             ))}

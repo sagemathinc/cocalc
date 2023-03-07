@@ -17,11 +17,11 @@ import {
   SortableList,
   SortableItem,
 } from "@cocalc/frontend/components/sortable-list";
-import NewPage from "./new-page";
+import NewPage, { AddPage } from "./new-page";
 import DeletePage from "./delete-page";
 
 const VMARGIN = 20;
-const HMARGIN = 15;
+const HMARGIN = 0;
 
 export default function Pages() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
@@ -68,8 +68,7 @@ export default function Pages() {
   const STYLE = {
     cursor: "pointer",
     width: `${width - 2 * HMARGIN}px`,
-    margin: "0 29px 0 5px",
-    padding: `${VMARGIN}px 0`,
+    padding: `${VMARGIN}px 10px`,
     position: "relative",
     overflow: "hidden",
   } as CSSProperties;
@@ -107,7 +106,25 @@ export default function Pages() {
         }}
         style={{ ...STYLE }}
       >
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              fontSize: `${index >= 999 ? 8 : index >= 99 ? 10 : 12}pt`,
+              position: "absolute",
+              textAlign: "right",
+              left: -7.5,
+              top: 0,
+              width: "22.5px", // enough to easily do up to 4 digit numbers with font above...
+            }}
+          >
+            {index + 1}
+          </div>
           <DragHandle
             id={`${sortedPageIds.get(index)}`}
             style={{ marginRight: "5px", color: "#999" }}
@@ -116,7 +133,10 @@ export default function Pages() {
             margin={15}
             elements={elementsOnPage ?? []}
             elementsMap={elementsMap}
-            width={width - 2 * HMARGIN}
+            width={
+              width -
+              70 /* that 70 accounts for the margin/padding/buttons; without this page gets cut off on right*/
+            }
             navMap={"page"}
             style={{
               pointerEvents: "none",
@@ -125,16 +145,12 @@ export default function Pages() {
               borderRadius: "5px",
             }}
             maxScale={2}
+            presentation={actions.mainFrameType == "slides"}
           />
-          <DeletePage pageId={`${sortedPageIds.get(index)}`} />
-        </div>
-        <div
-          style={{
-            textAlign: "center",
-            fontSize: "10pt",
-          }}
-        >
-          {index + 1}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <DeletePage pageId={`${sortedPageIds.get(index)}`} />
+            <AddPage pageId={`${sortedPageIds.get(index)}`} />
+          </div>
         </div>
       </div>
     );

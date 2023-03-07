@@ -21,7 +21,7 @@ import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 const VERSION = 2;
 
 export function getProductId(info: PurchaseInfo): string {
-  /* We generate a unique identifier that represents the parameters of the purchase.
+  /* For non-vouchers, we generate a unique identifier that represents the parameters of the purchase.
      The following parameters determine what "product" they are purchasing:
         - custom_uptime (until 2022-02: custom_always_running)
         - custom_cpu
@@ -34,7 +34,18 @@ export function getProductId(info: PurchaseInfo): string {
       We encode these in a string which serves to identify the product.
   */
 
+  if (info.type == "vouchers") {
+    // for vouchers just use the sequential id from the database.
+    // This does determine what is purchased, but since it can be
+    // a complicated arbitrary combinations of an unlimited number
+    // of licenses, this is the only option.  We can't encode all
+    // of that in this string; instead, we'll make sure this is easy
+    // for admins to look up.
+    return `vouchers-${info.id}`;
+  }
+
   function period(): string {
+    if (info.type == "vouchers") throw Error("bug"); // can't happen
     if (info.type === "disk") throw new Error("disk do not have a period");
 
     if (info.subscription == "no") {

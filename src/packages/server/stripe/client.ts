@@ -9,14 +9,19 @@ import { callback2 } from "@cocalc/util/async-utils";
 import * as message from "@cocalc/util/message";
 import { available_upgrades, get_total_upgrades } from "@cocalc/util/upgrades";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import {
+  setStripeCustomerId,
+  getStripeCustomerId,
+} from "@cocalc/database/postgres/stripe";
 import stripeName from "@cocalc/util/stripe/name";
 import { db } from "@cocalc/database";
 import Stripe from "stripe";
 export { Stripe };
 import getPrivateProfile from "@cocalc/server/accounts/profile/private";
+import { syncCustomer } from "@cocalc/database/postgres/stripe";
 
 import getConn from "./connection";
-import { stripe_sales_tax } from "./sales-tax";
+import salesTax from "./sales-tax";
 
 import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("stripe-client");
@@ -108,10 +113,7 @@ export class StripeClient {
       throw Error("You must be signed in to use billing related functions.");
     }
     dbg("getting stripe_customer_id from database...");
-    const stripe_customer_id = await callback2(
-      this.client.database.get_stripe_customer_id,
-      { account_id }
-    );
+    const stripe_customer_id = await getStripeCustomerId(account_id);
     if (stripe_customer_id != null) {
       // cache it, since it won't change.
       this.stripe_customer_id = stripe_customer_id;
@@ -240,11 +242,7 @@ export class StripeClient {
       .id;
 
     dbg("success; now save customer_id to database");
-    await callback2(this.client.database.set_stripe_customer_id, {
-      account_id: this.client.account_id,
-      customer_id,
-    });
-
+    await setStripeCustomerId(this.client.account_id, customer_id);
     await this.update_database();
   }
 
@@ -295,9 +293,8 @@ export class StripeClient {
     this.dbg("update_database")();
     const customer_id = await this.get_customer_id();
     if (customer_id == null) return;
-    return await callback2(this.client.database.stripe_update_customer, {
+    return await syncCustomer({
       account_id: this.client.account_id,
-      stripe: await getConn(),
       customer_id,
     });
   }
@@ -312,7 +309,7 @@ export class StripeClient {
   }
 
   public async sales_tax(customer_id: string): Promise<number> {
-    return await stripe_sales_tax(customer_id, this.dbg("sales_tax"));
+    return await salesTax(customer_id);
   }
 
   public async mesg_create_subscription(mesg: Message): Promise<void> {
@@ -377,7 +374,7 @@ export class StripeClient {
     const subscription_id: string = get_string_field(mesg, "subscription_id");
 
     // TODO/SECURITY: We should check that this subscription actually
-    // belongs to this user.  As it is, they could be cancelling somebody
+    // belongs to this user.  As it is, they could be canceling somebody
     // else's subscription!
 
     dbg("cancel the subscription at stripe");
@@ -522,7 +519,7 @@ export class StripeClient {
       dbg(
         "already signed up for stripe -- sync local user account with stripe"
       );
-      await callback2(this.client.database.stripe_update_customer, {
+      await syncCustomer({
         account_id: mesg.account_id,
         stripe: conn,
         customer_id,
@@ -545,10 +542,7 @@ export class StripeClient {
       const customer = await conn.customers.create(x);
       customer_id = customer.id;
       dbg("store customer id in our database");
-      await callback2(this.client.database.set_stripe_customer_id, {
-        account_id: mesg.account_id,
-        customer_id,
-      });
+      await setStripeCustomerId(mesg.account_id, customer_id);
     }
     if (!(mesg.amount != null && mesg.description != null)) {
       dbg("no amount or no description, so not creating an invoice");

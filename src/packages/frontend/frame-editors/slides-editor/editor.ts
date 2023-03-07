@@ -13,7 +13,6 @@ import { set } from "@cocalc/util/misc";
 import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
 import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
 import { Introspect } from "@cocalc/frontend/frame-editors/jupyter-editor/introspect/introspect";
-import { IconName } from "@cocalc/frontend/components/icon";
 import { TableOfContents } from "../markdown-editor/table-of-contents";
 
 import SpeakerNotes from "./speaker-notes";
@@ -21,6 +20,7 @@ import Slides from "./slides";
 import Search from "../whiteboard-editor/search";
 import Pages from "../whiteboard-editor/pages";
 import Overview from "../whiteboard-editor/overview";
+import Slideshow from "./slideshow";
 
 export const slidesButtons = set([
   "decrease_font_size",
@@ -37,8 +37,9 @@ export const slidesButtons = set([
   "show_pages",
   "show_search",
   "show_overview",
+  "show_slideshow",
   "show_speaker_notes",
-  /* "help", */ // be sure to change actions to have a proper link for this once some help is written.
+  "help",
 ]);
 
 export const EDITOR_SPEC = {
@@ -52,29 +53,46 @@ export const EDITOR_SPEC = {
   speaker_notes: {
     short: "Notes",
     name: "Speaker Notes",
-    icon: "pencil" as IconName,
+    icon: "pencil",
     component: SpeakerNotes,
-    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "set_zoom",
+      "show_slideshow",
+    ]),
   },
   search: {
     short: "Search",
     name: "Search",
-    icon: "search" as IconName,
+    icon: "search",
     component: Search,
-    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "set_zoom",
+      "show_slideshow",
+    ]),
   },
   pages: {
     short: "Pages",
     name: "Pages",
-    icon: "pic-centered" as IconName,
+    icon: "pic-centered",
     component: Pages,
+    buttons: set(["show_slideshow", "help"]),
   },
   overview: {
     short: "Overview",
     name: "Overview",
-    icon: "overview" as IconName,
+    icon: "overview",
     component: Overview,
-    buttons: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+    buttons: set([
+      "show_slideshow",
+      "decrease_font_size",
+      "increase_font_size",
+      "set_zoom",
+      "help",
+    ]),
   },
   terminal,
   time_travel,
@@ -91,9 +109,19 @@ export const EDITOR_SPEC = {
     name: "Table of Contents",
     icon: "align-right",
     component: TableOfContents,
-    buttons: set(["decrease_font_size", "increase_font_size"]),
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "show_slideshow",
+    ]),
   } as EditorDescription,
-};
+  slideshow: {
+    short: "Slideshow",
+    name: "Slideshow Presentation",
+    icon: "play-square",
+    component: Slideshow,
+  },
+} as const;
 
 export const Editor = createEditor({
   format_bar: false,

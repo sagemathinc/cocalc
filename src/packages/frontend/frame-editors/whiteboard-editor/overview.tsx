@@ -6,7 +6,7 @@ of the "font_size" parameter for the frame.
 
 */
 
-import NewPage from "./new-page";
+import NewPage, { AddPage } from "./new-page";
 import DeletePage from "./delete-page";
 import { CSSProperties, useEffect, ReactNode } from "react";
 import { VirtuosoGrid } from "react-virtuoso";
@@ -59,7 +59,7 @@ export default function Overview() {
         position: "relative",
       }}
     >
-      <div style={{ position: "absolute", margin: "10px 0" }}>{children}</div>
+      <div style={{ position: "absolute", margin: "5px 0" }}>{children}</div>
     </div>
   );
 
@@ -121,7 +121,7 @@ export default function Overview() {
         }}
         style={STYLE}
       >
-        <div style={{ display: "flex" }}>
+        <div style={{ display: "flex", position: "relative" }}>
           <OnePage
             margin={15}
             elements={elementsOnPage ?? []}
@@ -136,6 +136,7 @@ export default function Overview() {
               borderRadius: "5px",
             }}
             maxScale={2}
+            presentation={actions.mainFrameType == "slides"}
           />
           <div
             style={{
@@ -143,13 +144,16 @@ export default function Overview() {
               alignItems: "center",
             }}
           >
-            <DeletePage pageId={`${sortedPageIds.get(index)}`} />
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <DeletePage pageId={`${sortedPageIds.get(index)}`} />
+              <AddPage pageId={`${sortedPageIds.get(index)}`} />
+            </div>
           </div>
         </div>
         <div
           style={{
-            textAlign: "center",
-            fontSize: "10pt",
+            fontSize: "11pt",
+            padding: "5px",
           }}
         >
           {index + 1}

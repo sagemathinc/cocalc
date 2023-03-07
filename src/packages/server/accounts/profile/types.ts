@@ -6,6 +6,7 @@ export interface Profile {
   image?: string;
   name?: string;
   is_admin?: boolean;
+  is_partner?: boolean;
   is_anonymous?: boolean;
   email_address?: string;
 }

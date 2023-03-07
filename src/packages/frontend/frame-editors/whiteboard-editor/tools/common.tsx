@@ -4,7 +4,7 @@ export const SELECTED = "#337ab7";
 
 export function ResetButton({ onClick }) {
   return (
-    <Tooltip title="Reset to defaults">
+    <Tooltip title="Reset to defaults" mouseEnterDelay={0.9} placement="bottom">
       <Popconfirm
         title="Reset the presets to their default settings?"
         onConfirm={onClick}

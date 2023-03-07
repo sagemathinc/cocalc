@@ -61,6 +61,13 @@ export default function Crash() {
 
         <ul>
           <li>
+            If you have any <strong>browser extensions</strong> enabled, they
+            can break CoCalc and there is nothing we can do about it. You may
+            want to try CoCalc in incognito mode or otherwise try disabling
+            browser extensions to see if your ad blocker (or grammar checker,
+            etc.) is breaking CoCalc.
+          </li>
+          <li>
             <p style={{ fontWeight: "bold", fontSize: "115%" }}>
               <a onClick={() => window.location.reload()}>
                 Reload this browser tab

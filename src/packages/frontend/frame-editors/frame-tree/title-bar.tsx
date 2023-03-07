@@ -1114,6 +1114,21 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_show_slideshow(labels): Rendered {
+    if (!is_visible("show_slideshow")) return;
+    return (
+      <Button
+        key={"slideshow"}
+        bsSize={button_size()}
+        onClick={() => props.actions.show_slideshow?.(props.id)}
+        title={"Display Slideshow Presentation"}
+      >
+        <Icon name={"play-square"} />{" "}
+        <VisibleMDLG>{labels ? "Slideshow" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   function render_show_speaker_notes(labels): Rendered {
     if (!is_visible("show_speaker_notes")) return;
     return (
@@ -1518,6 +1533,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_table_of_contents(labels));
     v.push(render_show_pages(labels));
     v.push(render_show_overview(labels));
+    v.push(render_show_slideshow(labels));
     v.push(render_show_speaker_notes(labels));
     v.push(render_show_search(labels));
     v.push(render_guide(labels));
@@ -1557,23 +1573,28 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function allButtonsPopover() {
     return (
       <Popover
+        overlayStyle={{ zIndex: 990 }}
         open={
           props.tab_is_visible && props.is_visible && showMainButtonsPopover
         }
         content={() => {
           return (
             <div style={{ display: "flex" }}>
-              <div style={{ width: "3px" }}></div>
-              <div style={{ maxWidth: "390px" }}>
+              <div
+                style={{
+                  maxWidth: "390px",
+                  marginLeft: "3px",
+                  marginRight: "3px",
+                }}
+              >
                 {render_buttons(true, { maxHeight: "50vh" })}
               </div>
-              <div style={{ width: "3px" }}></div>
               <div>{render_types()}</div>
               <Icon
                 onClick={() => setShowMainButtonsPopover(false)}
                 name="times"
                 style={{
-                  color: "#666",
+                  color: COLORS.GRAY_M,
                   marginTop: "10px",
                   marginLeft: "10px",
                 }}

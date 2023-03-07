@@ -395,7 +395,7 @@ export class StudentProjectsActions {
 
     const task = async (student_project_id) => {
       if (!student_project_id) return;
-      // abort if cancelled
+      // abort if canceled
       if (store.get("action_all_projects_state") !== state) return;
       // returns true/false, could be useful some day
       await selectedAction(student_project_id);

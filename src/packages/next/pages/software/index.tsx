@@ -31,7 +31,7 @@ import JuliaJupyter from "/public/software/julia-jupyter.png";
 export const STYLE_PAGE: React.CSSProperties = {
   maxWidth: MAX_WIDTH,
   margin: "0 auto",
-  padding: "0 15px",
+  padding: "40px 15px 0 15px",
   backgroundColor: "white",
 } as const;
 

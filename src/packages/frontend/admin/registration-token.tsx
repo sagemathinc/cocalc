@@ -22,7 +22,7 @@ import {
 import dayjs from "dayjs";
 import { List } from "immutable";
 import { pick, sortBy } from "lodash";
-
+import { TimeAgo } from "@cocalc/frontend/components";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
@@ -314,24 +314,24 @@ export const RegistrationToken: React.FC<{}> = () => {
           <Switch />
         </Form.Item>
         <Form.Item {...tailLayout}>
-          <AntdButton type="primary" htmlType="submit">
-            Save
-          </AntdButton>
-          <AntdButton
-            htmlType="button"
-            onClick={() => {
-              form.resetFields();
-              edit_new_token();
-            }}
-          >
-            Reset
-          </AntdButton>
-          <AntdButton htmlType="button" onClick={() => set_editing(null)}>
-            Cancel
-          </AntdButton>
-          <AntdButton type="link" onClick={onRandom}>
-            Randomize
-          </AntdButton>
+          <AntdButton.Group>
+            <AntdButton type="primary" htmlType="submit">
+              Save
+            </AntdButton>
+            <AntdButton
+              htmlType="button"
+              onClick={() => {
+                form.resetFields();
+                edit_new_token();
+              }}
+            >
+              Reset
+            </AntdButton>
+            <AntdButton htmlType="button" onClick={() => set_editing(null)}>
+              Cancel
+            </AntdButton>
+            <AntdButton onClick={onRandom}>Randomize</AntdButton>
+          </AntdButton.Group>
         </Form.Item>
       </Form>
     );
@@ -340,12 +340,13 @@ export const RegistrationToken: React.FC<{}> = () => {
   function render_buttons() {
     const any_selected = sel_rows.length > 0;
     return (
-      <div style={{ margin: "10px 0" }}>
+      <AntdButton.Group style={{ margin: "10px 0" }}>
         <AntdButton
           type={!any_selected ? "primary" : "default"}
           disabled={any_selected}
           onClick={() => edit_new_token()}
         >
+          <Icon name="plus" />
           Add
         </AntdButton>
 
@@ -355,12 +356,19 @@ export const RegistrationToken: React.FC<{}> = () => {
           disabled={!any_selected}
           loading={deleting}
         >
+          <Icon name="trash" />
           {any_selected ? `Delete ${sel_rows.length} token(s)` : "Delete"}
         </AntdButton>
 
-        <AntdButton onClick={() => load()}>Refresh</AntdButton>
-        <AntdButton onClick={() => set_show(false)}>Close</AntdButton>
-      </div>
+        <AntdButton onClick={() => load()}>
+          <Icon name="refresh" />
+          Refresh
+        </AntdButton>
+        <AntdButton onClick={() => set_show(false)}>
+          <Icon name="times" />
+          Close
+        </AntdButton>
+      </AntdButton.Group>
     );
   }
 
@@ -444,7 +452,7 @@ export const RegistrationToken: React.FC<{}> = () => {
             title="Expires"
             dataIndex="expires"
             sortDirections={["ascend", "descend"]}
-            render={(v) => (v != null ? v.fromNow() : "never")}
+            render={(v) => (v != null ? <TimeAgo date={v} /> : "never")}
             sorter={(a, b) => cmp_dayjs(a.expires, b.expires, true)}
           />
 

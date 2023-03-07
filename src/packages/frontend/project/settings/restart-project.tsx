@@ -5,11 +5,16 @@
 
 // The "Restart Project" button, which says "Start" like the one at the top if the project isn't running
 
-import { React, useActions } from "../../app-framework";
-import { useProjectState } from "../page/project-state-hook";
-import { Button, ButtonStyle, ButtonSize } from "../../antd-bootstrap";
 import { Popconfirm } from "antd";
-import { SyncOutlined, PlayCircleOutlined } from "@ant-design/icons";
+
+import { PlayCircleOutlined, SyncOutlined } from "@ant-design/icons";
+import {
+  Button,
+  ButtonSize,
+  ButtonStyle,
+} from "@cocalc/frontend/antd-bootstrap";
+import { React, useActions } from "@cocalc/frontend/app-framework";
+import { useProjectState } from "../page/project-state-hook";
 
 interface Props {
   project_id: string;

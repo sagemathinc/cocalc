@@ -4,8 +4,10 @@
  */
 
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { useDebouncedCallback } from "use-debounce";
 
 import {
+  CSS,
   redux,
   useIsMountedRef,
   useRedux,
@@ -14,7 +16,6 @@ import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { useDebouncedCallback } from "use-debounce";
 
 interface Props {
   on_send: (value: string) => void;
@@ -30,11 +31,24 @@ interface Props {
   onFocus?: () => void;
   onBlur?: () => void;
   syncdb?;
-  editBarStyle?;
+  editBarStyle?: CSS;
 }
 
-export const ChatInput: React.FC<Props> = (props) => {
-  const { syncdb } = props;
+export const ChatInput: React.FC<Props> = (props: Props) => {
+  const {
+    on_send,
+    onChange,
+    height,
+    submitMentionsRef,
+    hideHelp,
+    style,
+    cacheId,
+    onFocus,
+    onBlur,
+    syncdb,
+    editBarStyle,
+  } = props;
+
   const { project_id, path, actions } = useFrameContext();
   const font_size =
     props.font_size ?? useRedux(["font_size"], project_id, path);
@@ -54,6 +68,8 @@ export const ChatInput: React.FC<Props> = (props) => {
         ?.get("input");
       return input;
     }
+    // IMPORTANT: this is props.input, not input !!!
+    // this caused a bug where past chats can't be edited.
     return props.input ?? "";
   });
 
@@ -62,7 +78,7 @@ export const ChatInput: React.FC<Props> = (props) => {
   const saveChat = useDebouncedCallback(
     (input) => {
       if (!isMountedRef.current || syncdb == null) return;
-      props.onChange(input);
+      onChange(input);
       lastSavedRef.current = input;
       // also save to syncdb, so we have undo, etc.
       // but definitely don't save (thus updating active) if
@@ -120,24 +136,24 @@ export const ChatInput: React.FC<Props> = (props) => {
     <MarkdownInput
       autoFocus
       saveDebounceMs={0}
-      onFocus={props.onFocus}
-      onBlur={props.onBlur}
-      cacheId={props.cacheId}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      cacheId={cacheId}
       value={input}
       enableUpload={true}
       onUploadStart={() => actions?.set_uploading(true)}
       onUploadEnd={() => actions?.set_uploading(false)}
       enableMentions={true}
-      submitMentionsRef={props.submitMentionsRef}
+      submitMentionsRef={submitMentionsRef}
       onChange={(input) => {
         setInput(input);
         saveChat(input);
       }}
       onShiftEnter={(input) => {
         saveChat.cancel();
-        props.on_send(input);
+        on_send(input);
       }}
-      height={props.height}
+      height={height}
       placeholder={"Type a message..."}
       extraHelp={
         IS_MOBILE
@@ -145,8 +161,8 @@ export const ChatInput: React.FC<Props> = (props) => {
           : "Double click to edit chats."
       }
       fontSize={font_size}
-      hideHelp={props.hideHelp}
-      style={props.style}
+      hideHelp={hideHelp}
+      style={style}
       onUndo={() => {
         saveChat.cancel();
         syncdb?.undo();
@@ -155,7 +171,8 @@ export const ChatInput: React.FC<Props> = (props) => {
         saveChat.cancel();
         syncdb?.redo();
       }}
-      editBarStyle={props.editBarStyle}
+      editBarStyle={editBarStyle}
+      overflowEllipsis={true}
     />
   );
 };

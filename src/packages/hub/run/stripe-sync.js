@@ -32,7 +32,7 @@ async function do_stripe_sync() {
 }
 
 // make sure site licenses subscriptions are not expired iff they are active in stripe
-// 2021-03: this now also checks if each license's subscription is still funding it (not cancelled)
+// 2021-03: this now also checks if each license's subscription is still funding it (not canceled)
 async function do_sync_site_licenses() {
   console.log("doing sync site licenses...");
   await db.sync_site_license_subscriptions();
