@@ -281,10 +281,12 @@ export function MarkdownInput(props: Props) {
 
     cm.current = CodeMirror.fromTextArea(node, {
       ...options,
+      // IMPORTANT: there is a useEffect involving options below
+      // where the following four properties must be explicitly excluded!
       inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
       spellcheck: true,
-      extraKeys,
       mode: { name: "gfm" },
+      extraKeys,
     });
 
     if (getValueRef != null) {
@@ -476,6 +478,13 @@ export function MarkdownInput(props: Props) {
   useEffect(() => {
     if (cm.current == null) return;
     for (const key in options) {
+      if (
+        key == "inputStyle" ||
+        key == "spellcheck" ||
+        key == "mode" ||
+        key == "extraKeys"
+      )
+        continue;
       const opt = options[key];
       if (!isEqual(cm.current.options[key], opt)) {
         if (opt != null) {
