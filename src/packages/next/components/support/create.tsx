@@ -1,18 +1,21 @@
-import { Alert, Button, Divider, Space, Input, Layout, Radio } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Alert, Button, Divider, Input, Layout, Radio, Space } from "antd";
+import { useRouter } from "next/router";
 import { ReactNode, useRef, useState } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
-import RecentFiles from "./recent-files";
-import { useRouter } from "next/router";
-import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
-import apiPost from "lib/api/post";
-import getBrowserInfo from "./browser-info";
-import { useCustomize } from "lib/customize";
-import { NoZendesk } from "./util";
-import { Type } from "./tickets";
 import SiteName from "components/share/site-name";
+import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
+import { useCustomize } from "lib/customize";
+import getBrowserInfo from "./browser-info";
+import RecentFiles from "./recent-files";
+import { Type } from "./tickets";
+import { NoZendesk } from "./util";
+import { Paragraph, Title } from "components/misc";
 
 function VSpace({ children }) {
   return (
@@ -22,10 +25,11 @@ function VSpace({ children }) {
   );
 }
 
-type Type = "problem" | "question" | "task";
+export type Type = "problem" | "question" | "task" | "purchase";
 
 function stringToType(s?: any): Type {
-  if (s == "problem" || s == "question" || s == "task") return s;
+  if (s == "problem" || s == "question" || s == "task" || s == "purchase")
+    return s;
   return "problem"; // default;
 }
 
@@ -50,6 +54,8 @@ export default function Create() {
   const [submitError, setSubmitError] = useState<ReactNode>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [success, setSuccess] = useState<ReactNode>("");
+
+  const showExtra = router.query.hideExtra != "true";
 
   const submittable = useRef<boolean>(false);
   submittable.current = !!(
@@ -99,25 +105,20 @@ export default function Create() {
   }
 
   return (
-    <Layout.Content
-      style={{
-        backgroundColor: "white",
-      }}
-    >
+    <Layout.Content style={{ backgroundColor: "white" }}>
       <div
         style={{
           maxWidth: MAX_WIDTH,
           margin: "15px auto",
           padding: "15px",
           backgroundColor: "white",
-          color: "#555",
+          color: COLORS.GRAY_D,
         }}
       >
-        {" "}
-        <h1 style={{ textAlign: "center", fontSize: "24pt" }}>
+        <Title level={1} style={{ textAlign: "center" }}>
           {router.query.title ?? "Create a New Support Ticket"}
-        </h1>
-        {router.query.hideExtra != "true" && (
+        </Title>
+        {showExtra && (
           <>
             <p style={{ fontSize: "12pt" }}>
               Create a new support ticket below or{" "}
@@ -133,7 +134,7 @@ export default function Create() {
               )}
             </p>
             <FAQ />
-            <h1>Create Your Ticket</h1>
+            <Title level={2}>Create Your Ticket</Title>
             <Instructions />
             <Divider>Support Ticket</Divider>
           </>
@@ -184,10 +185,14 @@ export default function Create() {
                   <Type type="task" /> Is it possible for you to install some
                   software that I need in order to use <SiteName />?
                 </Radio>
+                <Radio value={"purchase"}>
+                  <Type type="purchase" /> I have a question regarding
+                  purchasing a product.
+                </Radio>
               </VSpace>
             </Radio.Group>
             <br />
-            {router.query.hideExtra != "true" && (
+            {showExtra && type !== "purchase" && (
               <>
                 <Files onChange={setFiles} />
                 <br />
@@ -206,6 +211,13 @@ export default function Create() {
               {type == "problem" && <Problem onChange={setBody} />}
               {type == "question" && (
                 <Question onChange={setBody} defaultValue={body} />
+              )}
+              {type == "purchase" && (
+                <Purchase
+                  onChange={setBody}
+                  defaultValue={body}
+                  showExtra={showExtra}
+                />
               )}
               {type == "task" && <Task onChange={setBody} />}
             </div>
@@ -357,6 +369,41 @@ function Question({ defaultValue, onChange }) {
   );
 }
 
+function Purchase({ defaultValue, onChange, showExtra }) {
+  return (
+    <>
+      {showExtra && (
+        <Paragraph>
+          Please describe what you want to purchse. We need some context in
+          order to guide you. In particular:
+          <ul>
+            <li>
+              The expected number of projects: this is either the number of
+              users, or how many projects they'll collectively be using.
+            </li>
+            <li>
+              The kind of workload: this ranges from student projects with
+              minimal resource requirements to large and resource intensive
+              research projects.
+            </li>
+            <li>How long you expect to use the services.</li>
+            <li>
+              Your type of organization: i.e. if an academic discount applies to
+              you.
+            </li>
+          </ul>
+        </Paragraph>
+      )}
+      <Input.TextArea
+        rows={8}
+        defaultValue={defaultValue}
+        placeholder="Your purchase request..."
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </>
+  );
+}
+
 function Task({ onChange }) {
   const answers = useRef<[string, string, string]>(["", "", ""]);
   function update(i: 0 | 1 | 2, value: string): void {
@@ -452,8 +499,7 @@ function Instructions() {
 function FAQ() {
   return (
     <div>
-      {" "}
-      <h2>Helpful Links</h2>
+      <Title level={2}>Helpful Links</Title>
       <Alert
         message={""}
         style={{ margin: "20px 30px" }}

@@ -3,24 +3,28 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Layout, Typography } from "antd";
+import { Alert, Button, Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
-import { Title } from "components/misc";
+import { Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
-import { Customize, useCustomize } from "lib/customize";
+import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import { useRouter } from "next/router";
 
-const { Paragraph, Text } = Typography;
+const DOCKER_PRICE = "$999";
+const K8S_PRICE = "$5000";
+const K8S_PRICE_ACADEMIC = "$3000";
 
 export default function OnPrem({ customize }) {
+  const { siteName } = customize;
   return (
     <Customize value={customize}>
-      <Head title="On Premises Offerings" />
+      <Head title={`${siteName} – On Premises Offerings`} />
       <Layout>
         <Header page="pricing" subPage="onprem" />
         <Layout.Content
@@ -37,9 +41,13 @@ export default function OnPrem({ customize }) {
 }
 
 function Body() {
-  const { helpEmail } = useCustomize();
+  const router = useRouter();
 
   function docker(): JSX.Element {
+    const body = encodeURIComponent(
+      "I'm interested in puchasing CoCalc Docker on-premises."
+    );
+
     return (
       <>
         <Title level={2}>
@@ -78,13 +86,30 @@ function Body() {
           image. All services are included and ready to work out of the box.
         </Paragraph>
         <Paragraph>
-          The license is business-friendly and costs $999/year.
+          The license is business-friendly and costs {DOCKER_PRICE}/year.
+        </Paragraph>
+        <Paragraph style={{ textAlign: "center" }}>
+          <Button
+            type="primary"
+            size="large"
+            onClick={() =>
+              router.push(
+                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Docker&body=${body}&title=Purchase%20CoCalc-Docker`
+              )
+            }
+          >
+            Purchase CoCalc Docker at {DOCKER_PRICE}/year
+          </Button>
         </Paragraph>
       </>
     );
   }
 
   function cloud(): JSX.Element {
+    const body = encodeURIComponent(
+      "I'm interested in puchasing CoCalc Cloud on-premises."
+    );
+
     return (
       <>
         <Title level={2}>
@@ -93,7 +118,7 @@ function Body() {
         <Paragraph>
           This version of on-prem CoCalc runs on a full-fledged{" "}
           <A href={"https://kubernetes.io"}>Kubernetes Cluster</A>. The
-          underlying services and their architecture are the same as the ones
+          underlying services and their architecture are the same, as the ones
           that power the main service at cocalc.com. This means you get the same
           overall performance, scalability and reliability as the main SaaS
           site.
@@ -117,7 +142,7 @@ function Body() {
               <A href={"https://kubernetes.github.io/ingress-nginx/"}>
                 NGINX ingress rules
               </A>
-              . It's possible to run inside a VPN as well.
+              . It's possible to run within a VPN as well.
             </li>
             <li>
               You can <Text strong>deploy</Text> this solution on your own
@@ -143,7 +168,7 @@ function Body() {
             <li>
               Some experience working with{" "}
               <A href={"https://helm.sh/"}>
-                <Text strong>HELM</Text> charts
+                <b>HELM</b> charts
               </A>
               .
             </li>
@@ -172,18 +197,40 @@ function Body() {
             </li>
           </ul>
         </Paragraph>
-        <Alert
-          type="info"
-          banner={true}
-          showIcon={false}
-          style={{ textAlign: "center", fontSize: "125%" }}
-          message={
-            <>
-              The license is business-friendly and please{" "}
-              <A href={`mailto:${helpEmail}`}>contact us</A> for pricing.
-            </>
-          }
-        />
+        <Title level={3}>Purchasing CoCalc Cloud</Title>
+        <Paragraph>
+          In contrast to the Docker variant, CoCalc Cloud is a scalable
+          solution. Therefore, the price is proportional to the expected number
+          of users. Additionally, various levels of support can be negoatiated
+          for an additional cost. Please contact us for a quote.
+        </Paragraph>
+        <Paragraph>
+          The price starts at{" "}
+          <Button
+            type="primary"
+            size="large"
+            onClick={() =>
+              router.push(
+                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Business&body=${body}&title=Purchase%20CoCalc-Cloud`
+              )
+            }
+          >
+            {K8S_PRICE}/year
+          </Button>{" "}
+          or if an academic discount applies, starting at{" "}
+          <Button
+            type="primary"
+            size="large"
+            onClick={() =>
+              router.push(
+                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Academic&body=${body}&title=Purchase%20CoCalc-Cloud`
+              )
+            }
+          >
+            {K8S_PRICE_ACADEMIC}/year
+          </Button>
+          .
+        </Paragraph>
       </>
     );
   }
@@ -198,7 +245,7 @@ function Body() {
       }}
     >
       <Title level={1} style={{ textAlign: "center" }}>
-        <Icon name="laptop" style={{ marginRight: "30px" }} /> CoCalc - On
+        <Icon name="server" style={{ marginRight: "30px" }} /> CoCalc - On
         Premises Offerings
       </Title>
       <div>
@@ -214,8 +261,13 @@ function Body() {
           }}
           message={
             <>
-              Contact us at <A href={`mailto:${helpEmail}`}>{helpEmail}</A> for
-              questions, licensing details, and purchasing.
+              Please{" "}
+              <A
+                href={`/support/new?hideExtra=true&type=purchase&subject=CoCalc%20On-prem&body=&title=Purchase%20CoCalc%20On-prem`}
+              >
+                contact us
+              </A>{" "}
+              for questions, licensing details, and purchasing.
             </>
           }
         />

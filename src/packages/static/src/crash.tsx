@@ -1,8 +1,9 @@
-import { HELP_EMAIL } from "@cocalc/util/theme";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
-import A from "./link";
+
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import supportURL from "@cocalc/frontend/support/url";
+import { COLORS, HELP_EMAIL } from "@cocalc/util/theme";
+import A from "./link";
 
 const STYLE = {
   display: "none",
@@ -19,7 +20,7 @@ const STYLE = {
   borderRadius: "5px",
   fontSize: "12pt",
   backgroundColor: "white",
-  color: "#444",
+  color: COLORS.GRAY_D,
 } as React.CSSProperties;
 
 export default function Crash() {
