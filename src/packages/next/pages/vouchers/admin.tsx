@@ -7,16 +7,7 @@ import { useCallback, useMemo, useState } from "react";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
-import {
-  Alert,
-  Button,
-  Card,
-  Checkbox,
-  Divider,
-  Layout,
-  Space,
-  Table,
-} from "antd";
+import { Alert, Button, Card, Checkbox, Layout, Space, Table } from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -29,6 +20,7 @@ import useDatabase from "lib/hooks/database";
 import { field_cmp } from "@cocalc/util/misc";
 import type { Voucher } from "@cocalc/util/db-schema/vouchers";
 import apiPost from "lib/api/post";
+import Help from "components/vouchers/help";
 
 const QUERY = {
   crm_vouchers: [
@@ -252,27 +244,7 @@ export default function Created({ customize }) {
                   {!loading && data.length == 0 && (
                     <div>There are no matching vouchers.</div>
                   )}
-                  <Divider orientation="left" style={{ width: "600px" }}>
-                    Vouchers
-                  </Divider>
-                  <div
-                    style={{
-                      color: "#666",
-                      maxWidth: "600px",
-                    }}
-                  >
-                    When you <A href="/redeem">redeem</A> a{" "}
-                    <A href="/store/vouchers">voucher</A>, one or more{" "}
-                    <A href="https://doc.cocalc.com/licenses.html">licenses</A>{" "}
-                    will be added to your account. You can use{" "}
-                    <A href="/licenses/managed">licenses</A> to{" "}
-                    <A href="https://doc.cocalc.com/add-lic-project.html">
-                      upgrade your projects
-                    </A>
-                    . If you have any questions,{" "}
-                    <A href="/support">contact support</A> or visit{" "}
-                    <A href="/vouchers">the Voucher Center</A>.
-                  </div>
+                  <Help />
                 </Space>
               </Card>
             )}

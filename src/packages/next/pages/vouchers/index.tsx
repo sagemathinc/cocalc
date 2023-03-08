@@ -35,8 +35,9 @@ export default function Overview({ customize }) {
             </h2>
             <div style={{ fontSize: "12pt" }}>
               <div style={{ maxWidth: "700px", margin: "auto" }}>
-                Vouchers are a convenient way to share and resell <SiteName />{" "}
-                licenses. You can <A href="/redeem">redeem a voucher</A>, see{" "}
+                <A href="https://doc.cocalc.com/vouchers.html">Vouchers</A> are
+                a convenient way to share and resell <SiteName /> licenses. You
+                can <A href="/redeem">redeem a voucher</A>, see{" "}
                 <A href="/vouchers/redeemed">the vouchers you have redeemed</A>,
                 browse and download{" "}
                 <A href="/vouchers/created">vouchers you have created</A>, and
@@ -62,7 +63,7 @@ export default function Overview({ customize }) {
                 title="Your Vouchers"
               >
                 Browse all vouchers you have created, see their status, and
-                exports your vouchers to CSV.
+                exports your vouchers to CSV or JSON.
               </Product>
               <Product
                 href={"/store/site-license"}

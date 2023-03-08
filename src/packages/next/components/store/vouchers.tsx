@@ -169,7 +169,7 @@ export default function CreateVouchers() {
     !profile?.email_address;
 
   function CreateVouchersButton() {
-    const v = plural(numVouchers ?? 0, "Voucher");
+    const v = plural(numVouchers ?? 0, "Voucher Code");
     return (
       <Button
         disabled={disabled}
@@ -239,15 +239,17 @@ export default function CreateVouchers() {
             <div>
               <h3 style={{ fontSize: "16pt" }}>
                 <Icon name={"gift2"} style={{ marginRight: "10px" }} />
-                Create Vouchers
+                Create Voucher Codes
               </h3>
               <Paragraph style={{ color: "#666" }}>
-                Vouchers are codes that you or anybody else can redeem{" "}
-                <A href="/redeem">here</A> for the {items.length}{" "}
-                {plural(items.length, "license")} listed below. The license
-                start and end dates are shifted to match when the license is
-                redeemed. Visit the <A href="/vouchers">Voucher Center</A> for
-                more about vouchers.
+                Voucher codes can be <A href="/redeem">redeemed</A> for the{" "}
+                {items.length} {plural(items.length, "license")} listed below.
+                The license start and end dates are shifted to match when the
+                license is redeemed. Visit the{" "}
+                <A href="/vouchers">Voucher Center</A> for more about vouchers,
+                and{" "}
+                <A href="https://doc.cocalc.com/vouchers.html">read the docs</A>
+                .
               </Paragraph>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
                 <Check done /> Pay Now or Invoice Later?
@@ -265,7 +267,7 @@ export default function CreateVouchers() {
                   >
                     <Radio value={"now"}>Pay Now: get a 25% discount</Radio>
                     <Radio value={"invoice"} disabled={!profile?.is_partner}>
-                      Pay Later: invoice me only for the vouchers that were
+                      Pay Later: invoice me only for the voucher codes that were
                       redeemed
                     </Radio>
                     {profile?.is_admin && (
@@ -300,10 +302,10 @@ export default function CreateVouchers() {
                 </Paragraph>
               </div>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                <Check done={(numVouchers ?? 0) > 0} /> How Many Vouchers?
+                <Check done={(numVouchers ?? 0) > 0} /> How Many Voucher Codes?
               </h4>
               <Paragraph style={{ color: "#666" }}>
-                Input the number of vouchers you would like to{" "}
+                Input the number of voucher codes you would like to{" "}
                 {whenPay == "now" ? "buy" : "create"} (limit:{" "}
                 {MAX_VOUCHERS[whenPay]}).
                 <div style={{ textAlign: "center", marginTop: "15px" }}>
@@ -320,11 +322,11 @@ export default function CreateVouchers() {
                 <>
                   <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
                     <Check done={expire != null} />
-                    When Vouchers Expire
+                    When Voucher Codes Expire
                   </h4>
                   <Paragraph style={{ color: "#666" }}>
                     As an admin you can set any expiration date you want for the
-                    vouchers.
+                    voucher codes.
                   </Paragraph>
                   <Form
                     labelCol={{ span: 9 }}
@@ -381,10 +383,11 @@ export default function CreateVouchers() {
                         active != null && cancelBy != null && expire != null
                       }
                     />
-                    When Vouchers become Active, can be Canceled, and Expire
+                    When Voucher Codes become Active, can be Canceled, and
+                    Expire
                   </h4>
                   <Paragraph style={{ color: "#666" }}>
-                    Vouchers cannot be redeemed before{" "}
+                    Voucher codes cannot be redeemed before{" "}
                     {dateStr(active) ?? "the date below"}. You can choose a date
                     that is up to 30 days in the future, but it must be before
                     the cancel by date below.
@@ -443,7 +446,7 @@ export default function CreateVouchers() {
                     </div>
                   </Paragraph>
                   <Paragraph style={{ color: "#666" }}>
-                    A redeemed voucher has up until{" "}
+                    A redeemed voucher code has up until{" "}
                     {dateStr(cancelBy) ?? "the date below"} to be canceled at no
                     charge. You might set this to be at the end of the drop
                     period for a university. You can choose a date that is up to
@@ -504,11 +507,11 @@ export default function CreateVouchers() {
                     </div>
                   </Paragraph>{" "}
                   <Paragraph style={{ color: "#666" }}>
-                    Any voucher that is not redeemed by{" "}
+                    Any voucher code that is not redeemed by{" "}
                     {dateStr(expire) ?? "the date below"} will expire. You can
                     choose a date that is up to 60 days in the future. You will
-                    be invoiced only for vouchers that are redeemed before the
-                    expiration date.
+                    be invoiced only for voucher codes that were redeemed before
+                    the expiration date.
                     <div style={{ textAlign: "center", marginTop: "15px" }}>
                       <Form
                         labelCol={{ span: 9 }}
@@ -573,8 +576,7 @@ export default function CreateVouchers() {
                 <Check done={!!title.trim()} /> Customize
               </h4>
               <Paragraph style={{ color: "#666" }}>
-                Describe this group of vouchers so you can easily find them
-                later.
+                Describe this voucher so you can easily find it later.
                 <Input
                   style={{ marginBottom: "15px", marginTop: "5px" }}
                   onChange={(e) => setTitle(e.target.value)}
@@ -639,15 +641,15 @@ export default function CreateVouchers() {
                     {whenPay == "now" && (
                       <>
                         The default payment method shown below will be used to
-                        pay for the vouchers. You will be charged when you click
-                        the button below to create your vouchers.
+                        pay for the voucher. You will be charged when you click
+                        the button below to create your voucher codes.
                       </>
                     )}
                     {whenPay == "invoice" && (
                       <>
                         The default payment method shown below will be used to
-                        pay for the redeemed vouchers, unless you change the
-                        payment method before you are invoiced.
+                        pay for the redeemed voucher codes, unless you change
+                        the payment method before you are invoiced.
                       </>
                     )}
                   </Paragraph>
@@ -697,15 +699,15 @@ export default function CreateVouchers() {
           <Check done />
           {(numVouchers ?? 0) == 1
             ? "Your Voucher"
-            : `Each of Your ${numVouchers ?? 0} Vouchers`}{" "}
+            : `Each of Your ${numVouchers ?? 0} Voucher Codes`}{" "}
           Provides the Following {items.length}{" "}
           {plural(items.length, "License")}
         </h4>
         <Paragraph style={{ color: "#666" }}>
           These are the licenses with a fixed range of time from your shopping
           cart (vouchers cannot be used to create subscriptions). When used, the
-          voucher is redeemed for one or more license starting at the time of
-          redemption and running for the same length of time as each license
+          voucher code is redeemed for one or more license starting at the time
+          of redemption and running for the same length of time as each license
           listed below.
         </Paragraph>
         <div style={{ border: "1px solid #eee" }}>
@@ -719,7 +721,7 @@ export default function CreateVouchers() {
         </div>
         <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
           <Check done={!disabled} /> Create Your{" "}
-          {plural(numVouchers ?? 0, "Voucher")}
+          {plural(numVouchers ?? 0, "Voucher Code")}
         </h4>
         <div style={{ fontSize: "12pt" }}>
           <Row>
@@ -775,17 +777,17 @@ function Terms({ whenPay }) {
         our terms of service,
       </A>{" "}
       {whenPay == "now" && (
-        <>and agree to pay for the vouchers you have requested.</>
+        <>and agree to pay for the voucher you have requested.</>
       )}
       {whenPay == "invoice" && (
         <>
-          and agree to pay for any vouchers that are redeemed, up to the maxium
-          amount listed here.
+          and agree to pay for any voucher codes that are redeemed, up to the
+          maxium amount listed here.
         </>
       )}
       {whenPay == "admin" && (
         <>
-          and as an admin agree to use the vouchers for company purposes. The
+          and as an admin agree to use the voucher for company purposes. The
           cash value is listed above.
         </>
       )}
@@ -804,14 +806,14 @@ function VoucherSummary({ items, taxRate, numVouchers, whenPay }) {
         {whenPay == "now" && (
           <>
             You will be immediately charged {money(discounted + tax, true)} and
-            provided with your vouchers.
+            provided with your voucher codes.
           </>
         )}
         {whenPay == "invoice" && (
           <>
             You will be invoiced for up to {money(full + tax, true)}, depending
-            on how many vouchers are redeeemed. If no vouchers are redeemed you
-            will not pay anything.
+            on how many voucher codes are redeeemed. If no codes are redeemed
+            you will not pay anything.
           </>
         )}
         {whenPay == "admin" && (
@@ -819,13 +821,13 @@ function VoucherSummary({ items, taxRate, numVouchers, whenPay }) {
             <b>
               You will <u>not</u> be charged the amount listed below.
             </b>{" "}
-            Note that this is the equivalent cache value of the vouchers you are
+            Note that this is the equivalent cache value of the voucher you are
             creating.
           </>
         )}
       </Paragraph>
       <div>
-        {numVouchers} Vouchers:{" "}
+        {numVouchers} Voucher Codes:{" "}
         <span style={{ float: "right" }}>{money(full, true)}</span>
       </div>
       <div>
