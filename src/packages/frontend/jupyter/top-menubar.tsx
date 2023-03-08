@@ -341,7 +341,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         </span>
       );
       if (kernel_info?.get("name") == kernel.name) {
-        label = <b>{label} (current)</b>;
+        label = <b>{label}</b>;
       }
       return {
         key: kernel.name,
