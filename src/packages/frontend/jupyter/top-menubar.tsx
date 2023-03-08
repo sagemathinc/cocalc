@@ -333,9 +333,13 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         style.color = "#2196F3";
         style.fontWeight = "bold";
       }
+      let label = <span style={style}> {kernel.display_name} </span>;
+      if (kernel_info?.get("name") == kernel.name) {
+        label = <b>{label} (current)</b>;
+      }
       return {
         key: kernel.name,
-        label: <span style={style}> {kernel.display_name} </span>,
+        label,
         onClick: () => {
           handle_kernel_select(kernel.name);
         },
