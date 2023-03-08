@@ -255,18 +255,19 @@ function Body(): JSX.Element {
       <Paragraph>
         <Text strong>Number of projects</Text>: The number of individuals in
         your organization does not equal the number of projects. You can
-        allocate as many projects as you need. Insted, the license is only valid
-        for up to an upper limit of simultaneously running projects, i.e. the
-        number of individuals/students, who are actively using {siteName} at the
-        very same time. Usually, the number of actively running projects is well
-        below the number of individuals. In the overview below, that ratio is
-        denoted as "overcommitment". (Beyond that limit, projects are still
-        accessible, but will run without any upgrades.)
+        allocate as many projects as you need. Instead, the license is only
+        valid up to an upper limit of simultaneously running projects, which is
+        closely related to the number of people who are actively using{" "}
+        {siteName} at the very same time. Usually, the number of actively
+        running projects is well below the number of people in your
+        organization. In the overview below, that ratio is denoted as
+        "overcommitment". (This is a soft limit -- if you exceed it, your
+        projects are still accessible, but will run without any upgrades.)
       </Paragraph>
       <Paragraph>
         <Text strong>Amount of upgrades</Text>: minimal upgrades might be okay
-        for day-to-day calculations and editing documents, but you might run
-        into limitations if your requirements are higher. Please{" "}
+        for day-to-day calculations and editing documents, but you will run into
+        limitations if your requirements are higher. Please{" "}
         <A href={URL_SUPPORT}>contact us</A> if you have questions or need a
         trial license to test out different options.
       </Paragraph>
