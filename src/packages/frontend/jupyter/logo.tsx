@@ -11,18 +11,18 @@ import { CSSProperties, useState } from "react";
 import { get_logo_url } from "./server-urls";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
-const DEFAULT_HEIGHT = "24px"; // this matches the rest of the status bar.
+const DEFAULT_HEIGHT = 24; // this matches the rest of the status bar.
 
 interface Props {
   kernel: string | null;
   kernel_info_known?: boolean;
-  size?: string;
+  size?: number;
   style?: CSSProperties;
 }
 
 export default function Logo({
   kernel,
-  kernel_info_known,
+  kernel_info_known = true,
   size = DEFAULT_HEIGHT,
   style,
 }: Props) {
@@ -32,7 +32,21 @@ export default function Logo({
   );
 
   if (logo_failed === kernel || kernel == null) {
-    return <img style={{ width: "0px", height: size }} />;
+    return (
+      <div
+        style={{
+          fontSize: size,
+          color: "#ef6c00",
+          display: "inline-block",
+          width: size,
+          height: size,
+          lineHeight: 1,
+          ...style,
+        }}
+      >
+        {kernel?.[0]?.toUpperCase() ?? ""}
+      </div>
+    );
   } else {
     const src = get_logo_url(project_id, kernel);
     return (

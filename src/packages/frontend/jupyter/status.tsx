@@ -37,6 +37,7 @@ const KERNEL_STYLE: CSS = {
   margin: "7px 5px 0px 0px",
   position: "relative",
   zIndex: 1,
+  cursor: "pointer",
 } as const;
 
 const KERNEL_NAME_STYLE: CSS = {

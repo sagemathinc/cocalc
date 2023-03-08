@@ -120,7 +120,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           onClick={() => actions.select_kernel(name)}
           style={{ marginBottom: "5px", height: "35px" }}
         >
-          <Logo kernel={name} size="30px" /> {kernel_name(name) || name}
+          <Logo kernel={name} size={30} /> {kernel_name(name) || name}
         </Radio.Button>
       );
     }

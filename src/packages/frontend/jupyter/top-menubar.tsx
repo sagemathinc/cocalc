@@ -336,11 +336,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       }
       let label = (
         <span style={style}>
-          <Logo
-            kernel={kernel.name}
-            size="20px"
-            style={{ marginTop: "-2px" }}
-          />{" "}
+          <Logo kernel={kernel.name} size={20} style={{ marginTop: "-2px" }} />{" "}
           {kernel.display_name}{" "}
         </span>
       );
