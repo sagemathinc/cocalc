@@ -61,7 +61,9 @@ export function Line(props: Line) {
   } else if (desc?.includes("CPU")) {
     unit = amount == 1 ? "core" : "cores";
   } else if (desc == "Projects") {
-    unit = "simultaneous running";
+    unit = "simultaneously running";
+  } else if (desc?.includes("Overcommit")) {
+    unit = "x";
   }
   return (
     <div>
