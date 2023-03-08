@@ -4,8 +4,17 @@
  */
 
 // help users selecting a kernel
-import * as antd from "antd";
-import { Button, Checkbox, Descriptions, Radio, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Col,
+  Descriptions,
+  Popover,
+  Radio,
+  Row,
+  Typography,
+} from "antd";
 import { List, Map as ImmutableMap, OrderedMap } from "immutable";
 
 import {
@@ -19,7 +28,6 @@ import { Icon, Loading, Paragraph, Text } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Col, Row } from "../antd-bootstrap";
 import { JupyterActions } from "./browser-actions";
 import { Kernel as KernelType } from "./util";
 import Logo from "./logo";
@@ -28,6 +36,7 @@ const MAIN_STYLE: CSS = {
   padding: "20px 10px",
   overflowY: "auto",
   overflowX: "hidden",
+  background: "#eee",
 } as const;
 
 const SELECTION_STYLE: CSS = {
@@ -111,8 +120,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           onClick={() => actions.select_kernel(name)}
           style={{ marginBottom: "5px", height: "35px" }}
         >
-          <Logo kernel={name} size="30px" style={{ marginTop: "-1px" }} />{" "}
-          {kernel_name(name) || name}
+          <Logo kernel={name} size="30px" /> {kernel_name(name) || name}
         </Radio.Button>
       );
     }
@@ -184,7 +192,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
             <Paragraph>
               There are no kernels available. <SiteName /> searches the standard
               paths of Jupyter{" "}
-              <antd.Popover
+              <Popover
                 trigger={["click", "hover"]}
                 content={
                   <>
@@ -198,7 +206,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
                   style={{ color: COLORS.GRAY, cursor: "pointer" }}
                   name="question-circle"
                 />
-              </antd.Popover>{" "}
+              </Popover>{" "}
               for kernels. You can also define{" "}
               <a onClick={() => actions.custom_jupyter_kernel_docs()}>
                 a custom kernel
@@ -265,8 +273,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
         <Descriptions bordered column={1} style={SELECTION_STYLE}>
           <Descriptions.Item label={"Quick select"}>
             <div>
-              Your most recently selected kernel is {render_kernel_button(name)}
-              .
+              Your most recently selected kernel {render_kernel_button(name)}
             </div>
           </Descriptions.Item>
           <Descriptions.Item label={"Make default"}>
@@ -306,21 +313,19 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           msg = <>This notebook has no kernel.</>;
         }
         return (
-          <Row style={{ marginLeft: 0, marginRight: 0 }}>
-            <Paragraph>
-              <Text strong>{msg}</Text> A working kernel is required in order to
-              evaluate the code in the notebook. Please select one for the
-              programming language you want to work with. Otherwise{" "}
-              <Button
-                size="small"
-                type={no_kernel ? "primary" : "default"}
-                onClick={() => actions.select_kernel("")}
-              >
-                continue without a kernel
-              </Button>
-              .
-            </Paragraph>
-          </Row>
+          <Paragraph>
+            <Text strong>{msg}</Text> A working kernel is required in order to
+            evaluate the code in the notebook. Please select one for the
+            programming language you want to work with. Otherwise{" "}
+            <Button
+              size="small"
+              type={no_kernel ? "primary" : "default"}
+              onClick={() => actions.select_kernel("")}
+            >
+              continue without a kernel
+            </Button>
+            .
+          </Paragraph>
         );
       } else {
         const name = kernel_name(kernel);
@@ -328,11 +333,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           name != null ? `The currently selected kernel is "${name}".` : "";
 
         return (
-          <Row style={{ marginLeft: 0, marginRight: 0 }}>
-            <Paragraph>
-              <Text strong>Select a new kernel.</Text> {current}
-            </Paragraph>
-          </Row>
+          <Paragraph>
+            <Text strong>Select a new kernel.</Text> {current}
+          </Paragraph>
         );
       }
     }
@@ -357,13 +360,13 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_footer(): Rendered {
       return (
-        <Row style={{ color: COLORS.GRAY, paddingBottom: "2em" }}>
+        <div style={{ color: COLORS.GRAY, paddingBottom: "2em" }}>
           <Paragraph>
             <Text strong>Note:</Text> You can always change the selected kernel
-            later in the Kernel menu or by clicking on the kernel information at
+            later in the Kernel menu or by clicking on the kernel status logo in
             the top right.
           </Paragraph>
-        </Row>
+        </div>
       );
     }
 
@@ -371,7 +374,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       if (kernel == null || kernel_info == null) return;
       return (
         <Button
-          style={{ float: "right" }}
+          style={{ float: "right", marginTop: "10px" }}
           onClick={() => actions.hide_select_kernel()}
         >
           Close
@@ -381,11 +384,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_body(): Rendered {
       if (kernels_by_name == null || kernel_selection == null) {
-        return (
-          <Row>
-            <Loading />
-          </Row>
-        );
+        return <Loading />;
       } else {
         return (
           <>
@@ -404,12 +403,12 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_head(): Rendered {
       return (
-        <antd.Row justify="space-between">
-          <antd.Col flex={1}>
+        <Row justify="space-between">
+          <Col flex={1}>
             <h3>Select a Kernel</h3>
-          </antd.Col>
-          <antd.Col flex={"auto"}>{render_close_button()}</antd.Col>
-        </antd.Row>
+          </Col>
+          <Col flex={"auto"}>{render_close_button()}</Col>
+        </Row>
       );
     }
 
@@ -429,10 +428,12 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     }
     return (
       <div style={MAIN_STYLE} className={"smc-vfill"}>
-        <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
-          {render_head()}
+        <Card
+          title={render_head()}
+          style={{ margin: "0 auto", maxWidth: "900px" }}
+        >
           {render_body()}
-        </Col>
+        </Card>
       </div>
     );
   }
