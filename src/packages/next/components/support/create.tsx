@@ -1,7 +1,16 @@
-import { Alert, Button, Divider, Input, Layout, Radio, Space } from "antd";
+import {
+  Alert,
+  Button,
+  Divider,
+  Input,
+  Layout,
+  Modal,
+  Radio,
+  Space,
+} from "antd";
 import { useRouter } from "next/router";
 import { ReactNode, useRef, useState } from "react";
-
+import CodeMirror from "components/share/codemirror";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -411,13 +420,99 @@ function Task({ onChange }) {
     onChange?.(answers.current.join("\n\n\n").trim());
   }
 
+  const [showWestPoint, setShowWestPoint] = useState<boolean>(false);
+
   return (
     <div>
+      <Modal
+        width="700px"
+        open={showWestPoint}
+        onCancel={() => setShowWestPoint(false)}
+        onOk={() => setShowWestPoint(false)}
+        title={
+          <div>
+            A question about CoCalc ...
+            <A href="https://www.westpoint.edu/mathematical-sciences/profile/joseph_lindquist">
+              <div
+                style={{
+                  fontSize: "10px",
+                  float: "right",
+                  width: "125px",
+                  margin: "0 20px",
+                }}
+              >
+                <img
+                  style={{ width: "125px" }}
+                  src="https://s3.amazonaws.com/usma-media/styles/profile_image_display/s3/inline-images/academics/academic_departments/mathematical_sciences/images/profiles/COL%20JOE%20LINDQUIST.jpg?itok=r9vjncwh"
+                />
+                Colonel Joe Lindquist
+                <br />
+                West Point
+              </div>
+            </A>
+          </div>
+        }
+      >
+        <b>WHAT SOFTWARE DO YOU NEED?</b>
+        <br />
+        Hi Team! I'm getting ready to kick off our short course at West Point
+        that will deal with Natural Language Processing. We're still sorting out
+        the purchase request, but expect it to be complete in the next day or
+        so. It looks like you have the "big" packages installed that we will be
+        exploring... Huggingface, Transformers, NLTK, WordBlob... but another
+        package that I was hoping to use is vadersentiment (
+        <A href="https://pypi.org/project/vaderSentiment/">
+          https://pypi.org/project/vaderSentiment/
+        </A>
+        ).
+        <br />
+        <br />
+        <b>HOW DO YOU PLAN TO USE THIS SOFTWARE?</b>
+        <br />
+        The course begins on 15MAR and I'd love to be able to use it for this.
+        I'm happy to assume some guidance on how to best incorporate this into
+        CoCalc if unable to install the package.
+        <br />
+        <br />
+        <b>HOW CAN WE TEST THAT THE SOFTWARE IS PROPERLY INSTALLED?</b>
+        <CodeMirror
+          fontSize={12}
+          lineNumbers={false}
+          filename="a.py"
+          content={`from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+sid_obj = SentimentIntensityAnalyzer()
+text = "CoCalc is an amazing platform for students to learn how to understand NLP!"
+print(sid_obj.polarity_scores(text))`}
+        />
+        <br />
+        This should return:
+        <CodeMirror
+          fontSize={12}
+          lineNumbers={false}
+          filename="a.json"
+          content={
+            "{'neg': 0.0, 'neu': 0.746, 'pos': 0.254, 'compound': 0.6239}"
+          }
+        />
+        <br />
+        One Day Later
+        <br />
+        You guys are fantastic! Such a quick turn-around. Please feel free to
+        use the request in any fashion you wish 😊
+        <br />
+        By the way… in case you were wondering, “You guys are fantastic!” has a
+        compound polarity score of 0.598 😊. I used it in CoCalc to test the
+        update.
+      </Modal>
       Each <SiteName /> project is a Docker image running Ubuntu Linux on 64-bit
       x86 hardware, so it is possible for us to install most standard Linux
       software, and we have already installed{" "}
       <A href="/software">a huge amount</A>. If there is something you need that
-      is missing, let us know below.
+      is missing, let us know below. You can also{" "}
+      <a onClick={() => setShowWestPoint(true)}>
+        view a recent ticket from West Point
+      </a>{" "}
+      for an example install request.
       <br />
       <br />
       <b>What software do you need?</b> In particular, if this is a Python
