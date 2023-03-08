@@ -35,6 +35,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { get_help_links } from "./help-links";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
+import Logo from "./logo";
 
 type MenuItemName = string | { name: string; display?: string; style?: object };
 
@@ -333,7 +334,16 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         style.color = "#2196F3";
         style.fontWeight = "bold";
       }
-      let label = <span style={style}> {kernel.display_name} </span>;
+      let label = (
+        <span style={style}>
+          <Logo
+            kernel={kernel.name}
+            size="20px"
+            style={{ marginTop: "-2px" }}
+          />{" "}
+          {kernel.display_name}{" "}
+        </span>
+      );
       if (kernel_info?.get("name") == kernel.name) {
         label = <b>{label} (current)</b>;
       }

@@ -15,19 +15,14 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend//app-framework";
-import {
-  Icon,
-  isIconName,
-  Loading,
-  Paragraph,
-  Text,
-} from "@cocalc/frontend/components";
+import { Icon, Loading, Paragraph, Text } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Col, Row } from "../antd-bootstrap";
 import { JupyterActions } from "./browser-actions";
 import { Kernel as KernelType } from "./util";
+import Logo from "./logo";
 
 const MAIN_STYLE: CSS = {
   padding: "20px 10px",
@@ -108,27 +103,16 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       }
     }
 
-    function render_kernel_button(
-      name: string,
-      show_icon: boolean = true
-    ): Rendered {
+    function render_kernel_button(name: string): Rendered {
       const lang = kernel_attr(name, "language");
-      let icon: Rendered | undefined = undefined;
-      if (lang != null && show_icon) {
-        if (isIconName(lang)) {
-          icon = <Icon name={lang} />;
-        } else if (lang.startsWith("bash")) {
-          icon = <Icon name={"terminal"} />;
-        }
-        // TODO do other languages have icons?
-      }
       return (
         <Radio.Button
           key={`kernel-${lang}-${name}`}
           onClick={() => actions.select_kernel(name)}
-          style={{ marginBottom: "5px" }}
+          style={{ marginBottom: "5px", height: "35px" }}
         >
-          {icon} {kernel_name(name) || name}
+          <Logo kernel={name} size="30px" style={{ marginTop: "-1px" }} />{" "}
+          {kernel_name(name) || name}
         </Radio.Button>
       );
     }
@@ -231,7 +215,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
       const all: Rendered[] = [];
       kernels_by_language.forEach((names, lang) => {
-        const kernels = names.map((name) => render_kernel_button(name, false));
+        const kernels = names.map((name) => render_kernel_button(name));
 
         const label = (
           <span style={ALL_LANGS_LABEL_STYLE}>{misc.capitalize(lang)}</span>
