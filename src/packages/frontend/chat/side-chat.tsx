@@ -1,5 +1,5 @@
 import { debounce } from "lodash";
-import { useCallback, useEffect, useRef } from "react";
+import { CSSProperties, useCallback, useEffect, useRef } from "react";
 import { redux, useActions, useRedux, useTypedRedux } from "../app-framework";
 import { IS_MOBILE } from "../feature";
 import { user_activity } from "../tracker";
@@ -10,13 +10,16 @@ import { AddCollaborators } from "../collaborators";
 import { markChatAsReadIfUnseen, INPUT_HEIGHT } from "./utils";
 import { ChatLog } from "./chat-log";
 import { ChatInput } from "./input";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { hidden_meta_file } from "@cocalc/util/misc";
 
 interface Props {
-  project_id: string;
-  path: string;
+  style?: CSSProperties;
 }
 
-export default function SideChat({ project_id, path }: Props) {
+export default function SideChat({ style }: Props) {
+  const { project_id, path: path0 } = useFrameContext();
+  const path = hidden_meta_file(path0, "sage-chat");
   const actions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path);
   const input: string = useRedux(["input"], project_id, path);
@@ -65,6 +68,7 @@ export default function SideChat({ project_id, path }: Props) {
         display: "flex",
         flexDirection: "column",
         backgroundColor: "#efefef",
+        ...style,
       }}
       onMouseMove={markAsRead}
       onFocus={() => {
