@@ -88,7 +88,7 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
           on_change={(title) => actions.set_project_title(project_id, title)}
         />
       </LabeledRow>
-      <LabeledRow label="Description">
+      <LabeledRow label="Description (markdown)">
         <TextInput
           type="textarea"
           rows={2}
