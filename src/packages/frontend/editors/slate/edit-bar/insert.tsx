@@ -25,6 +25,7 @@ const ITEMS: [string, string, IconName | JSX.Element][] = [
   ],
   ["quote", "Quote selected text  (shortcut: >␣)", "quote-left"],
   ["horizontalRule", "Horizontal rule (shortcut: ---␣)", <span>&mdash;</span>],
+  ["linebreak", "Line break (shortcut: <br/>␣)", <span>↵</span>],
   ["table", "Table", "table"],
 ];
 
