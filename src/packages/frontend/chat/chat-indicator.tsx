@@ -30,7 +30,8 @@ const CHAT_INDICATOR_TIP = (
     Hide or show the chat for this file.
     <hr />
     Use HTML, Markdown, and LaTeX in your chats, and press shift+enter to send
-    them. Your collaborators will be notified.
+    them. Your collaborators will be notified. Use @mention to notify them via
+    email.
   </span>
 );
 
@@ -43,91 +44,9 @@ interface Props {
 export const ChatIndicator: React.FC<Props> = ({
   project_id,
   path,
-  is_chat_open,
+  is_chat_open: isChatOpen,
 }) => {
   const fullscreen = useTypedRedux("page", "fullscreen");
-  const file_use = useTypedRedux("file_use", "file_use");
-  const is_new_chat = useMemo(
-    () =>
-      !!redux.getStore("file_use")?.get_file_info(project_id, path)
-        ?.is_unseenchat,
-    [file_use, project_id, path]
-  );
-
-  const toggle_chat = debounce(
-    () => {
-      const a = redux.getProjectActions(project_id);
-      if (is_chat_open) {
-        a.close_chat({ path });
-      } else {
-        a.open_chat({ path });
-      }
-    },
-    1000,
-    { leading: true }
-  );
-
-  function render_chat_button() {
-    if (filename_extension(path) === "sage-chat") {
-      // Special case: do not show side chat for chatrooms
-      return;
-    }
-
-    const color = is_new_chat ? COLORS.FG_RED : COLORS.TAB;
-    const action = is_chat_open ? "Hide" : "Show";
-    const title = (
-      <span>
-        <Icon name="comment" />
-        <Space /> <Space /> {action} chat
-      </span>
-    );
-    return (
-      <div
-        style={{
-          color,
-        }}
-        className={is_new_chat ? "smc-chat-notification" : undefined}
-      >
-        {is_chat_open && (
-          <span
-            style={{ marginLeft: "5px", marginRight: "5px", color: "#428bca" }}
-          >
-            <VideoChatButton
-              project_id={project_id}
-              path={path}
-              button={false}
-              sendChat={(value) => {
-                const actions = redux.getEditorActions(
-                  project_id,
-                  hidden_meta_file(path, "sage-chat")
-                ) as ChatActions;
-                actions.send_chat(value);
-              }}
-            />
-          </span>
-        )}
-        <Tip
-          title={title}
-          tip={CHAT_INDICATOR_TIP}
-          placement={"leftTop"}
-          delayShow={3000}
-          stable={false}
-        >
-          <span onClick={toggle_chat}>
-            <Icon
-              name={is_chat_open ? "caret-down" : "caret-left"}
-              style={{ color: COLORS.FILE_ICON }}
-            />
-            <Space />
-            <Icon name="comment" style={{ color: COLORS.FILE_ICON }} />
-            <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
-              Chat
-            </HiddenXSSM>
-          </span>
-        </Tip>
-      </div>
-    );
-  }
 
   const style: React.CSSProperties = {
     ...CHAT_INDICATOR_STYLE,
@@ -143,7 +62,84 @@ export const ChatIndicator: React.FC<Props> = ({
         path={path}
         style={USERS_VIEWING_STYLE}
       />
-      {render_chat_button()}
+      <ChatButton project_id={project_id} path={path} isChatOpen={isChatOpen} />
     </div>
   );
 };
+
+function ChatButton({ project_id, path, isChatOpen }) {
+  const toggle_chat = debounce(
+    () => {
+      const actions = redux.getProjectActions(project_id);
+      if (isChatOpen) {
+        actions.close_chat({ path });
+      } else {
+        actions.open_chat({ path });
+      }
+    },
+    1000,
+    { leading: true }
+  );
+  const fileUse = useTypedRedux("file_use", "file_use");
+  const isNewChat = useMemo(
+    () =>
+      !!redux.getStore("file_use")?.get_file_info(project_id, path)
+        ?.is_unseenchat,
+    [fileUse, project_id, path]
+  );
+
+  if (filename_extension(path) === "sage-chat") {
+    // Special case: do not show side chat for chatrooms
+    return null;
+  }
+
+  return (
+    <div
+      style={{ color: isNewChat ? COLORS.FG_RED : COLORS.TAB }}
+      className={isNewChat ? "smc-chat-notification" : undefined}
+    >
+      {isChatOpen && (
+        <span
+          style={{ marginLeft: "5px", marginRight: "5px", color: "#428bca" }}
+        >
+          <VideoChatButton
+            project_id={project_id}
+            path={path}
+            button={false}
+            sendChat={(value) => {
+              const actions = redux.getEditorActions(
+                project_id,
+                hidden_meta_file(path, "sage-chat")
+              ) as ChatActions;
+              actions.send_chat(value);
+            }}
+          />
+        </span>
+      )}
+      <Tip
+        title={
+          <span>
+            <Icon name="comment" />
+            <Space /> <Space /> {isChatOpen ? "Hide" : "Show"} chat
+          </span>
+        }
+        tip={CHAT_INDICATOR_TIP}
+        placement={"leftTop"}
+        delayShow={3000}
+        stable={false}
+      >
+        <span onClick={toggle_chat}>
+          <Icon
+            name={isChatOpen ? "caret-down" : "caret-left"}
+            style={{ color: COLORS.FILE_ICON }}
+          />
+          <Space />
+          <Icon name="comment" style={{ color: COLORS.FILE_ICON }} />
+          <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
+            Chat
+          </HiddenXSSM>
+        </span>
+      </Tip>
+    </div>
+  );
+}
