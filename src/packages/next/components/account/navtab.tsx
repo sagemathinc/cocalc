@@ -134,9 +134,9 @@ export default function AccountNavTab({ style }: Props) {
     yours.push(
       menuItem(
         "projects",
-        <A href={join(basePath, "projects")} external>
+        <a href={join(basePath, "projects")}>
           {is_anonymous ? "Project" : "Projects"}
-        </A>,
+        </a>,
         "edit"
       )
     );
@@ -146,7 +146,11 @@ export default function AccountNavTab({ style }: Props) {
 
       if (isCommercial) {
         yours.push(
-          menuItem("billing", <A href="/billing">Billing Management</A>, "credit-card")
+          menuItem(
+            "billing",
+            <A href="/billing">Billing Management</A>,
+            "credit-card"
+          )
         );
       }
       if (sshGateway) {
@@ -186,11 +190,9 @@ export default function AccountNavTab({ style }: Props) {
     return [
       menuGroup(
         "your",
-        <A href={join(basePath, "app")} external>
-          <span style={{ color: "#a4acb3" }}>
-            <Icon name="user" /> Your...
-          </span>
-        </A>,
+        <span style={{ color: "#a4acb3" }}>
+          <Icon name="user" /> Your...
+        </span>,
         yours
       ),
     ];
@@ -202,9 +204,7 @@ export default function AccountNavTab({ style }: Props) {
       DIVIDER,
       menuItem(
         "admin",
-        <A href={join(basePath, "admin")} external>
-          Site Administration
-        </A>,
+        <a href={join(basePath, "admin")}>Site Administration</a>,
         "settings"
       ),
     ];
