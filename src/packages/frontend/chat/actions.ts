@@ -19,13 +19,13 @@ import { getSelectedHashtagsSearch } from "./utils";
 import { parse_hashtags } from "@cocalc/util/misc";
 import { open_new_tab } from "@cocalc/frontend/misc";
 
-
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
   private store?: ChatStore;
 
-  public set_syncdb(syncdb: SyncDB): void {
+  public set_syncdb(syncdb: SyncDB, store: ChatStore): void {
     this.syncdb = syncdb;
+    this.store = store;
   }
 
   public close(): void {
@@ -347,6 +347,6 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   help() {
-        open_new_tab("https://doc.cocalc.com/chat.html");
+    open_new_tab("https://doc.cocalc.com/chat.html");
   }
 }

@@ -33,7 +33,7 @@ import { log_opened_time, open_file, log_file_open } from "./project/open-file";
 import * as project_file from "./project-file";
 import { get_editor } from "./editors/react-wrapper";
 import * as misc from "@cocalc/util/misc";
-const { MARKERS } = require("@cocalc/util/sagews");
+import { MARKERS } from "@cocalc/util/sagews";
 import { alert_message } from "./alerts";
 import { webapp_client } from "./webapp-client";
 const { defaults, required } = misc;
@@ -51,6 +51,8 @@ import { IconName } from "./components";
 import { default_filename } from "./account";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { FixedTab } from "./project/page/file-tab";
+import { init as initChat } from "@cocalc/frontend/chat/register";
+import { local_storage } from "./editor-local-storage";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -960,12 +962,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   open_chat(opts) {
     opts = defaults(opts, { path: required });
     // First create the chat actions:
-    require("./chat/register").init(
-      misc.meta_file(opts.path, "chat"),
-      this.redux,
-      this.project_id
-    );
-    const { local_storage } = require("./editor");
+    initChat(this.project_id, misc.meta_file(opts.path, "chat"));
     local_storage(this.project_id, opts.path, "is_chat_open", true);
     // Only then set state to say that the chat is opened!
     // Otherwise when the opened chat is rendered actions is
@@ -976,7 +973,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // Close side chat for the given file, assuming the file itself is open
   close_chat(opts) {
     opts = defaults(opts, { path: required });
-    const { local_storage } = require("./editor");
     local_storage(this.project_id, opts.path, "is_chat_open", false);
     this.set_chat_state(opts.path, false);
   }
@@ -994,7 +990,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (open_files != null) {
       if (this.open_files == null) return;
       const width = misc.ensure_bound(opts.width, 0.05, 0.95);
-      const { local_storage } = require("./editor");
       local_storage(this.project_id, opts.path, "chat_width", width);
       this.open_files.set(opts.path, "chat_width", width);
     }

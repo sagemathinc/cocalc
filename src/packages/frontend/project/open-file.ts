@@ -21,14 +21,11 @@ import { SITE_NAME } from "@cocalc/util/theme";
 import { redux } from "../app-framework";
 import { alert_message } from "../alerts";
 import { webapp_client } from "../webapp-client";
-import { init as init_chat } from "../chat/register";
+import { init as initChat } from "../chat/register";
 import { normalize } from "./utils";
 import { ensure_project_running } from "./project-start-warning";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-
-const { local_storage } = require("../editor");
-//import { local_storage } from "../editor";
-
+import { local_storage } from "../editor-local-storage";
 import { remove } from "../project-file";
 
 export async function open_file(
@@ -261,7 +258,7 @@ export async function open_file(
     actions.open_files.set(opts.path, "component", { is_public });
     actions.open_files.set(opts.path, "chat_width", opts.chat_width);
     if (opts.chat) {
-      init_chat(meta_file(opts.path, "chat"), redux, actions.project_id);
+      initChat(actions.project_id, meta_file(opts.path, "chat"));
       // ONLY do this *after* initializing actions/store for side chat:
       actions.open_files.set(opts.path, "is_chat_open", opts.chat);
     }

@@ -58,9 +58,9 @@ export function local_storage_delete(
 
 export function local_storage(
   project_id: string,
-  filename: string,
-  key: string,
-  value: string
+  filename?: string,
+  key?: string,
+  value?: any
 ) {
   const prefix = _local_storage_prefix(project_id, filename, key);
   const n = prefix.length;

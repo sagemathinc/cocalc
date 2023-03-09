@@ -18,6 +18,7 @@ const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",
   borderRadius: "3px",
   paddingTop: "5px",
+  cursor: "pointer",
 };
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
