@@ -11,9 +11,9 @@
 import React, { CSSProperties as CSS } from "react";
 import { default as UpstreamTimeAgo } from "react-timeago";
 
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { is_date, is_different as misc_is_different } from "@cocalc/util/misc";
-import { Popover } from "antd";
+import { Popover, Radio } from "antd";
 
 function timeago_formatter(value, unit, suffix, _date) {
   if (value === 0) {
@@ -90,6 +90,14 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
     );
   }
 
+  function iso(d) {
+    try {
+      return <div style={{ color: "#666" }}>{d.toISOString()}</div>;
+    } catch (err) {
+      return `${err}`;
+    }
+  }
+
   function render_timeago(d) {
     let s;
     try {
@@ -104,6 +112,8 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
         content={() => (
           <>
             <div>{render_timeago_element(d)}</div>
+            {iso(d)}
+            <ToggleRelativeAndAbsolute />
             {tip}
           </>
         )}
@@ -125,7 +135,13 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
       <Popover
         trigger="click"
         title={s}
-        content={() => render_timeago_element(d)}
+        content={() => (
+          <>
+            {render_timeago_element(d)}
+            {iso(d)}
+            <ToggleRelativeAndAbsolute />
+          </>
+        )}
         placement={placement}
       >
         <span style={{ cursor: "pointer", ...style }}>{s}</span>
@@ -189,3 +205,27 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
     );
   }
 );
+
+function ToggleRelativeAndAbsolute({}) {
+  const other = useTypedRedux("account", "other_settings");
+  const absolute = other?.get("time_ago_absolute") ?? false;
+
+  return (
+    <div style={{ marginTop: "10px", textAlign: "center" }}>
+      <Radio.Group
+        onChange={() => {
+          redux
+            .getActions("account")
+            .set_other_settings("time_ago_absolute", !absolute);
+        }}
+        value={absolute ? "absolute" : "relative"}
+        optionType="button"
+        buttonStyle="solid"
+        size="small"
+      >
+        <Radio value="relative">Relative</Radio>
+        <Radio value="absolute">Absolute</Radio>
+      </Radio.Group>
+    </div>
+  );
+}

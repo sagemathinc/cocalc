@@ -342,7 +342,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       <Col sm={1} xs={3} onClick={handle_click}>
         {render_icon()}
       </Col>
-      <Col sm={4} smPush={5} xs={6} onClick={handle_click}>
+      <Col sm={4} smPush={5} xs={6}>
         {render_timestamp()}
         {props.isdir ? (
           <>
