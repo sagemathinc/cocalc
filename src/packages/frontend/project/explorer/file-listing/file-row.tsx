@@ -323,10 +323,9 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     <Row
       style={row_styles}
       onMouseDown={handle_mouse_down}
-      onClick={handle_click}
       className={props.no_select ? "noselect" : undefined}
     >
-      <Col sm={2} xs={3}>
+      <Col sm={1} xs={1} style={{ textAlign: "center" }}>
         {!student_project_functionality.disableActions && (
           <FileCheckbox
             name={props.name}
@@ -336,12 +335,14 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
             style={{ verticalAlign: "sub", color: "#888" }}
           />
         )}
+      </Col>
+      <Col sm={1} xs={1}>
         {render_public_file_info()}
       </Col>
-      <Col sm={1} xs={3}>
+      <Col sm={1} xs={3} onClick={handle_click}>
         {render_icon()}
       </Col>
-      <Col sm={4} smPush={5} xs={6}>
+      <Col sm={4} smPush={5} xs={6} onClick={handle_click}>
         {render_timestamp()}
         {props.isdir ? (
           <>
@@ -354,7 +355,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           </span>
         )}
       </Col>
-      <Col sm={5} smPull={4} xs={12}>
+      <Col sm={5} smPull={4} xs={12} onClick={handle_click}>
         {render_name()}
       </Col>
     </Row>
