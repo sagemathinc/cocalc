@@ -5,7 +5,8 @@
 
 import { debounce } from "lodash";
 import { filename_extension } from "@cocalc/util/misc";
-import { redux, useTypedRedux, useMemo } from "@cocalc/frontend/app-framework";
+import { useMemo } from "react";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { COLORS } from "@cocalc/util/theme";
 import { Icon, Tip, Space } from "@cocalc/frontend/components";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
@@ -13,6 +14,12 @@ import VideoChatButton from "./video/launch-button";
 import { HiddenXSSM } from "@cocalc/frontend/components";
 import { hidden_meta_file } from "@cocalc/util/misc";
 import type { ChatActions } from "./actions";
+
+export type ChatState =
+  | "" // not opened (also undefined counts as not open)
+  | "internal" // chat is open and managed internally (via frame tree)
+  | "external" // chat is open and managed externally (e.g., legacy sage worksheet)
+  | "pending"; // chat should be opened when the file itself is actually initialized.
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "14pt",
@@ -38,14 +45,10 @@ const CHAT_INDICATOR_TIP = (
 interface Props {
   project_id: string;
   path: string;
-  is_chat_open?: boolean;
+  chatState?: ChatState;
 }
 
-export const ChatIndicator: React.FC<Props> = ({
-  project_id,
-  path,
-  is_chat_open: isChatOpen,
-}) => {
+export function ChatIndicator({ project_id, path, chatState }: Props) {
   const fullscreen = useTypedRedux("page", "fullscreen");
 
   const style: React.CSSProperties = {
@@ -62,16 +65,16 @@ export const ChatIndicator: React.FC<Props> = ({
         path={path}
         style={USERS_VIEWING_STYLE}
       />
-      <ChatButton project_id={project_id} path={path} isChatOpen={isChatOpen} />
+      <ChatButton project_id={project_id} path={path} chatState={chatState} />
     </div>
   );
-};
+}
 
-function ChatButton({ project_id, path, isChatOpen }) {
-  const toggle_chat = debounce(
+function ChatButton({ project_id, path, chatState }) {
+  const toggleChat = debounce(
     () => {
       const actions = redux.getProjectActions(project_id);
-      if (isChatOpen) {
+      if (chatState) {
         actions.close_chat({ path });
       } else {
         actions.open_chat({ path });
@@ -98,7 +101,7 @@ function ChatButton({ project_id, path, isChatOpen }) {
       style={{ color: isNewChat ? COLORS.FG_RED : COLORS.TAB }}
       className={isNewChat ? "smc-chat-notification" : undefined}
     >
-      {isChatOpen && (
+      {chatState && (
         <span
           style={{ marginLeft: "5px", marginRight: "5px", color: "#428bca" }}
         >
@@ -120,7 +123,7 @@ function ChatButton({ project_id, path, isChatOpen }) {
         title={
           <span>
             <Icon name="comment" />
-            <Space /> <Space /> {isChatOpen ? "Hide" : "Show"} chat
+            <Space /> <Space /> {chatState ? "Hide" : "Show"} chat
           </span>
         }
         tip={CHAT_INDICATOR_TIP}
@@ -128,9 +131,9 @@ function ChatButton({ project_id, path, isChatOpen }) {
         delayShow={3000}
         stable={false}
       >
-        <span onClick={toggle_chat}>
+        <span onClick={toggleChat}>
           <Icon
-            name={isChatOpen ? "caret-down" : "caret-left"}
+            name={chatState ? "caret-down" : "caret-left"}
             style={{ color: COLORS.FILE_ICON }}
           />
           <Space />

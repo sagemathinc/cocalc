@@ -50,6 +50,7 @@ import { hidden_meta_file } from "@cocalc/util/misc";
 import getAnchorTagComponent from "./anchor-tag-component";
 import HomePage from "./home-page";
 import getUrlTransform from "./url-transform";
+import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -151,7 +152,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
               project_id={project_id}
               path={path}
               is_visible={is_visible}
-              is_chat_open={open_files.getIn([path, "is_chat_open"])}
+              chatState={open_files.getIn([path, "chatState"])}
               chat_width={
                 open_files.getIn([path, "chat_width"]) ?? DEFAULT_CHAT_WIDTH
               }
@@ -203,14 +204,14 @@ interface EditorContentProps {
   path: string;
   is_visible: boolean;
   chat_width: number;
-  is_chat_open?: boolean;
+  chatState?: ChatState;
   component: { Editor?; redux_name?: string };
 }
 
 const EditorContent: React.FC<EditorContentProps> = (
   props: EditorContentProps
 ) => {
-  const { project_id, path, chat_width, is_visible, is_chat_open, component } =
+  const { project_id, path, chat_width, is_visible, chatState, component } =
     props;
   const editor_container_ref = useRef(null);
   const force_update = useForceUpdate();
@@ -239,7 +240,7 @@ const EditorContent: React.FC<EditorContentProps> = (
   );
 
   let content: JSX.Element;
-  if (is_chat_open) {
+  if (chatState == "external") {
     // 2-column layout with chat
     content = (
       <div
@@ -268,10 +269,12 @@ const EditorContent: React.FC<EditorContentProps> = (
         />
         <div
           style={{
+            position: "relative",
             flexBasis: `${chat_width * 100}%`,
           }}
         >
           <SideChat
+            style={{ position: "absolute" }}
             project_id={project_id}
             path={hidden_meta_file(path, "sage-chat")}
           />
