@@ -5,21 +5,22 @@
 
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
-import { callback2 } from "@cocalc/util/async-utils";
-import * as message from "@cocalc/util/message";
-import { available_upgrades, get_total_upgrades } from "@cocalc/util/upgrades";
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import {
-  setStripeCustomerId,
-  getStripeCustomerId,
-} from "@cocalc/database/postgres/stripe";
-import stripeName from "@cocalc/util/stripe/name";
-import { db } from "@cocalc/database";
 import Stripe from "stripe";
 export { Stripe };
-import getPrivateProfile from "@cocalc/server/accounts/profile/private";
-import { syncCustomer } from "@cocalc/database/postgres/stripe";
 
+import { db } from "@cocalc/database";
+import {
+  getStripeCustomerId,
+  setStripeCustomerId,
+  syncCustomer,
+} from "@cocalc/database/postgres/stripe";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import getPrivateProfile from "@cocalc/server/accounts/profile/private";
+import { callback2 } from "@cocalc/util/async-utils";
+import * as message from "@cocalc/util/message";
+import stripeName from "@cocalc/util/stripe/name";
+import { InvoicesData } from "@cocalc/util/types/stripe";
+import { available_upgrades, get_total_upgrades } from "@cocalc/util/upgrades";
 import getConn from "./connection";
 import salesTax from "./sales-tax";
 
@@ -481,7 +482,9 @@ export class StripeClient {
     return message.stripe_charges({ charges });
   }
 
-  public async mesg_get_invoices(mesg: Message): Promise<Message> {
+  public async mesg_get_invoices(
+    mesg: Message
+  ): Promise<{ invoices: InvoicesData }> {
     const dbg = this.dbg("mesg_get_invoices");
     dbg("get a list of invoices for this customer");
     const options = await this.stripe_api_pager_options(mesg);

@@ -7,7 +7,7 @@ import { Alert, Popover, Progress } from "antd";
 import { CSSProperties } from "react";
 
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
-import { capitalize } from "@cocalc/util/misc";
+import { capitalize, stripeAmount } from "@cocalc/util/misc";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import Copyable from "components/misc/copyable";
@@ -72,10 +72,12 @@ interface DetailsProps {
   license_id: string; // the license id
   style?: CSSProperties; // style for the outer div
   condensed?: boolean; // if true, only show a brief run_limit x quota description
+  type?: "cost" | "all";
+  plan?: { amount: number; currency: string };
 }
 
 export function Details(props: DetailsProps) {
-  const { license_id, style, condensed = false } = props;
+  const { license_id, style, type = "all", condensed = false, plan } = props;
   const { result, error } = useAPI("licenses/get-license", { license_id }, 3); // 3s cache
   if (error) {
     return <Alert type="error" message={error} />;
@@ -186,6 +188,24 @@ export function Details(props: DetailsProps) {
       result.is_manager && (
         <Copyable label="ID:" value={license_id} style={{ marginTop: "5px" }} />
       )
+    );
+  }
+
+  // this is a special case (fallback), used in billing/subscriptions. It loads additional license data
+  // and combines that with the amount and currency, already known from the plan it looks at.
+  if (type === "cost") {
+    if (plan == null) {
+      return <></>;
+    }
+    return (
+      <div style={style}>
+        Cost:{" "}
+        {stripeAmount(
+          plan.amount,
+          plan.currency,
+          result.info?.purchased.quantity ?? 1
+        )}
+      </div>
     );
   }
 
