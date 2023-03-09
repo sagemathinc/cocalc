@@ -477,7 +477,10 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
           i += 1;
         }
         s = (
-          <span className="pull-right" style={{ marginLeft: "1em" }}>
+          <span
+            className="pull-right"
+            style={{ marginLeft: "1em", color: "#888" }}
+          >
             {r_join(v, ", ")}
           </span>
         );

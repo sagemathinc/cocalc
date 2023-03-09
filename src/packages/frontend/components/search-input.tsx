@@ -10,8 +10,6 @@
 */
 
 import { Input, InputRef } from "antd";
-import { Button } from "../antd-bootstrap";
-import { Icon } from "./icon";
 import { React, useEffect, useState, useRef } from "../app-framework";
 
 interface Props {
@@ -68,27 +66,6 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
     props.on_clear?.();
   }
 
-  function clear_and_focus_search_input(): void {
-    clear_value();
-    input_ref.current?.focus();
-  }
-
-  function search_button(): JSX.Element {
-    if (props.buttonAfter != null) {
-      return props.buttonAfter;
-    } else {
-      return (
-        <Button
-          onClick={clear_and_focus_search_input}
-          bsStyle={(value?.length ?? 0) > 0 ? "warning" : "default"}
-          disabled={props.disabled}
-        >
-          <Icon name="times-circle" />
-        </Button>
-      );
-    }
-  }
-
   function submit(e?): void {
     if (e != null) {
       e.preventDefault();
@@ -138,7 +115,8 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
   }
 
   return (
-    <Input
+    <Input.Search
+      allowClear
       style={{ minWidth: "150px", ...props.style }}
       cocalc-test="search-input"
       autoFocus={props.autoFocus}
@@ -151,11 +129,11 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
         const value = e.target?.value ?? "";
         set_value(value);
         props.on_change?.(value, get_opts());
+        if (!value) clear_value();
       }}
       onKeyDown={key_down}
       onKeyUp={key_up}
       disabled={props.disabled}
-      addonAfter={search_button()}
     />
   );
 });
