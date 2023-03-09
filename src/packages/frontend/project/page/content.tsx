@@ -27,7 +27,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
-import { SideChat } from "@cocalc/frontend/chat/side-chat";
+import SideChat from "@cocalc/frontend/chat/side-chat";
 import { Loading } from "@cocalc/frontend/components";
 import KaTeXAndMathJaxV2 from "@cocalc/frontend/components/math/katex-and-mathjax2";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
