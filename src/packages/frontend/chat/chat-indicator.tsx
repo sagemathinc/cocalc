@@ -3,17 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { filename_extension } from "@cocalc/util/misc";
 import { useMemo } from "react";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { COLORS } from "@cocalc/util/theme";
-import { Icon, Tip, Space } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
-import VideoChatButton from "./video/launch-button";
-import { HiddenXSSM } from "@cocalc/frontend/components";
-import { hidden_meta_file } from "@cocalc/util/misc";
-import type { ChatActions } from "./actions";
+import { HiddenXS } from "@cocalc/frontend/components";
 
 export type ChatState =
   | "" // not opened (also undefined counts as not open)
@@ -22,25 +20,14 @@ export type ChatState =
   | "pending"; // chat should be opened when the file itself is actually initialized.
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
-  fontSize: "14pt",
-  borderRadius: "3px",
-  paddingTop: "5px",
+  fontSize: "15pt",
+  paddingTop: "3px",
   cursor: "pointer",
 };
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
   maxWidth: "120px",
 };
-
-const CHAT_INDICATOR_TIP = (
-  <span>
-    Hide or show the chat for this file.
-    <hr />
-    Use HTML, Markdown, and LaTeX in your chats, and press shift+enter to send
-    them. Your collaborators will be notified. Use @mention to notify them via
-    email.
-  </span>
-);
 
 interface Props {
   project_id: string;
@@ -54,9 +41,6 @@ export function ChatIndicator({ project_id, path, chatState }: Props) {
   const style: React.CSSProperties = {
     ...CHAT_INDICATOR_STYLE,
     ...{ display: "flex" },
-    ...(fullscreen
-      ? { top: "1px", right: "23px" }
-      : { top: "-30px", right: "3px" }),
   };
   return (
     <div style={style}>
@@ -97,52 +81,26 @@ function ChatButton({ project_id, path, chatState }) {
   }
 
   return (
-    <div
-      style={{ color: isNewChat ? COLORS.FG_RED : COLORS.TAB }}
-      className={isNewChat ? "smc-chat-notification" : undefined}
+    <Tooltip
+      title={
+        <span>
+          <Icon name="comment" style={{ marginRight: "5px" }} />
+          Hide or Show Document Chat
+        </span>
+      }
+      placement={"leftTop"}
+      mouseEnterDelay={0.5}
     >
-      {chatState && (
-        <span
-          style={{ marginLeft: "5px", marginRight: "5px", color: "#428bca" }}
-        >
-          <VideoChatButton
-            project_id={project_id}
-            path={path}
-            button={false}
-            sendChat={(value) => {
-              const actions = redux.getEditorActions(
-                project_id,
-                hidden_meta_file(path, "sage-chat")
-              ) as ChatActions;
-              actions.send_chat(value);
-            }}
-          />
-        </span>
-      )}
-      <Tip
-        title={
-          <span>
-            <Icon name="comment" />
-            <Space /> <Space /> {chatState ? "Hide" : "Show"} chat
-          </span>
-        }
-        tip={CHAT_INDICATOR_TIP}
-        placement={"leftTop"}
-        delayShow={3000}
-        stable={false}
+      <Button
+        style={isNewChat ? { color: COLORS.FG_RED } : undefined}
+        className={isNewChat ? "smc-chat-notification" : undefined}
+        onClick={toggleChat}
       >
-        <span onClick={toggleChat}>
-          <Icon
-            name={chatState ? "caret-down" : "caret-left"}
-            style={{ color: COLORS.FILE_ICON }}
-          />
-          <Space />
-          <Icon name="comment" style={{ color: COLORS.FILE_ICON }} />
-          <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
-            Chat
-          </HiddenXSSM>
-        </span>
-      </Tip>
-    </div>
+        <Icon name="comment" style={{ color: COLORS.FILE_ICON }} />
+        <HiddenXS>
+          <span style={{ marginLeft: "5px" }}>Chat</span>
+        </HiddenXS>
+      </Button>
+    </Tooltip>
   );
 }

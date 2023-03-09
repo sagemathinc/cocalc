@@ -10,6 +10,8 @@ import { AddCollaborators } from "../collaborators";
 import { markChatAsReadIfUnseen, INPUT_HEIGHT } from "./utils";
 import { ChatLog } from "./chat-log";
 import { ChatInput } from "./input";
+import VideoChatButton from "./video/launch-button";
+import type { ChatActions } from "./actions";
 
 interface Props {
   project_id: string;
@@ -77,12 +79,26 @@ export default function SideChat({ project_id, path, style }: Props) {
       {!IS_MOBILE && project != null && (
         <div
           style={{
-            margin: "5px 15px",
+            margin: "0 5px",
+            paddingTop: "5px",
             maxHeight: "25%",
             overflow: "auto",
             borderBottom: "1px solid lightgrey",
           }}
         >
+          <VideoChatButton
+            style={{ float: "right", marginTop: "-5px" }}
+            project_id={project_id}
+            path={path}
+            button={false}
+            sendChat={(value) => {
+              const actions = redux.getEditorActions(
+                project_id,
+                path
+              ) as ChatActions;
+              actions.send_chat(value);
+            }}
+          />{" "}
           <CollabList
             addCollab={addCollab}
             project={project}
