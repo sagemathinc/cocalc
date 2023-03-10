@@ -9,7 +9,6 @@ Indicator about whether or not file or path is publicly shared.
 
 import { Button } from "antd";
 import { containing_public_path } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import {
   React,
   redux,
@@ -70,10 +69,7 @@ export const ShareIndicator: React.FC<Props> = React.memo(
             });
           }}
         >
-          <Icon
-            name={is_public ? "bullhorn" : "lock"}
-            style={{ color: COLORS.FILE_ICON }}
-          />
+          <Icon name={is_public ? "bullhorn" : "lock"} />
           <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
             {is_public ? "Public" : "Publish"}
           </HiddenXSSM>

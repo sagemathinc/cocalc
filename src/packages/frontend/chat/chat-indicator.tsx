@@ -14,7 +14,6 @@ import { debounce } from "lodash";
 import { filename_extension } from "@cocalc/util/misc";
 import { useMemo } from "react";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { HiddenXS } from "@cocalc/frontend/components";
@@ -33,6 +32,7 @@ const CHAT_INDICATOR_STYLE: React.CSSProperties = {
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
   maxWidth: "120px",
+  marginRight: "5px",
 };
 
 interface Props {
@@ -96,11 +96,11 @@ function ChatButton({ project_id, path, chatState }) {
       mouseEnterDelay={0.5}
     >
       <Button
-        style={isNewChat ? { color: COLORS.FG_RED } : undefined}
+        danger={isNewChat}
         className={isNewChat ? "smc-chat-notification" : undefined}
         onClick={toggleChat}
       >
-        <Icon name="comment" style={{ color: COLORS.FILE_ICON }} />
+        <Icon name="comment" />
         <HiddenXS>
           <span style={{ marginLeft: "5px" }}>Chat</span>
         </HiddenXS>
