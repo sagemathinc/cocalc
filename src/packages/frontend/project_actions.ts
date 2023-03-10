@@ -989,11 +989,22 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Close side chat for the given file, assuming the file itself is open
+  // NOTE: for frame tree if there are no chat frames, this instead opens
+  // a chat frame.
   close_chat({ path }: { path: string }): void {
     const editorActions = redux.getEditorActions(this.project_id, path);
     if (editorActions?.["close_recently_focused_frame_of_type"] != null) {
+      let n = 0;
       // @ts-ignore -- todo will go away when everything is a frame editor
-      while (editorActions.close_recently_focused_frame_of_type("chat")) {}
+      while (editorActions.close_recently_focused_frame_of_type("chat")) {
+        n += 1;
+      }
+      if (n == 0) {
+        // nothing actually closed - so we open
+        // TODO: This is just a workaround until we only use frame editors.
+        this.open_chat({ path });
+        return;
+      }
       this.set_chat_state(path, "");
     } else {
       this.set_chat_state(path, "");

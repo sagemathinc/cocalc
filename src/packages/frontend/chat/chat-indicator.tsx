@@ -3,6 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// TODO: for a frame tree it really only makes sense for this button
+// to always show the chat.  For sagews and old stuff it should hide
+// and show it.  But it's very hard to know from here which doc type
+// this is... so for now it still sort of toggles.  For now things
+// do work properly via a hack in close_chat in project_actions.
+
 import { Button, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { filename_extension } from "@cocalc/util/misc";
