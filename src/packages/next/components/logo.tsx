@@ -80,7 +80,6 @@ export default function Logo(props: Props) {
             width: "50%",
           }}
         />
-        )
         <div>
           <Image
             src={logoRectangularURL}
