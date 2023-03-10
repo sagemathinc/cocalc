@@ -144,24 +144,12 @@ export class ChatActions extends Actions<ChatState> {
     const sender_id = this.redux.getStore("account").get_account_id();
     const time_stamp = webapp_client.server_time().toISOString();
     this.syncdb.set({
-      event: "draft",
-      sender_id,
-      input,
-      date: 0,
-    });
-    this.syncdb.commit();
-    this.syncdb.set({
       sender_id,
       event: "chat",
       history: [{ author_id: sender_id, content: input, date: time_stamp }],
       date: time_stamp,
     });
-    this.syncdb.set({
-      event: "draft",
-      sender_id,
-      input: "",
-      date: 0,
-    });
+    this.delete_draft(0);
     // NOTE: we also clear search, since it's confusing to send a message and not
     // even see it (if it doesn't match search).  We do NOT clear the hashtags though,
     // since by default the message you are sending has those tags.
@@ -227,7 +215,20 @@ export class ChatActions extends Actions<ChatState> {
       editing: message.get("editing").set(author_id, null).toJS(),
       date: message.get("date").toISOString(),
     });
+    this.delete_draft(message.get("date")?.valueOf());
     this.save_to_disk();
+  }
+
+  public delete_draft(date: number, commit: boolean = true) {
+    if (!this.syncdb) return;
+    this.syncdb.delete({
+      event: "draft",
+      sender_id: this.redux.getStore("account").get_account_id(),
+      date,
+    });
+    if (commit) {
+      this.syncdb.commit();
+    }
   }
 
   // Make sure everything saved to DISK.

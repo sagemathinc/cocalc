@@ -150,8 +150,15 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
       const v: JSX.Element[] = [];
       const cutoff = new Date().valueOf() - 1000 * 30; // 30s
       for (const [sender_id] of drafts) {
-        if (account_id == sender_id) continue;
+        if (account_id == sender_id) {
+          // this is us
+          continue;
+        }
         const record = drafts.get(sender_id);
+        if (record.get("date") != 0) {
+          // editing an already sent message, rather than composing a new one.  This is indicated elsewhere (at that message).
+          continue;
+        }
         if (record.get("active") < cutoff || !record.get("input").trim()) {
           continue;
         }

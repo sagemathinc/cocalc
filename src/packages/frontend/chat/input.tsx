@@ -16,12 +16,15 @@ import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import type { SyncDB } from "@cocalc/sync/editor/db";
 
 interface Props {
   on_send: (value: string) => void;
+  onChange: (string) => void;
+  syncdb: SyncDB;
+  date: number; // ms since epoch of when this message was first sent; set to 0 for editing new message. Used for editing past messages.
   input?: string;
   on_paste?: (e) => void;
-  onChange: (string) => void;
   height?: string;
   submitMentionsRef?: any;
   font_size?: number;
@@ -30,47 +33,49 @@ interface Props {
   cacheId?: string;
   onFocus?: () => void;
   onBlur?: () => void;
-  syncdb?;
   editBarStyle?: CSS;
 }
 
-export const ChatInput: React.FC<Props> = (props: Props) => {
-  const {
-    on_send,
-    onChange,
-    height,
-    submitMentionsRef,
-    hideHelp,
-    style,
-    cacheId,
-    onFocus,
-    onBlur,
-    syncdb,
-    editBarStyle,
-  } = props;
-
+export default function ChatInput({
+  on_send,
+  input: propsInput,
+  onChange,
+  height,
+  submitMentionsRef,
+  font_size,
+  hideHelp,
+  style,
+  cacheId,
+  onFocus,
+  onBlur,
+  syncdb,
+  date,
+  editBarStyle,
+}: Props) {
   const { project_id, path, actions } = useFrameContext();
-  const font_size =
-    props.font_size ?? useRedux(["font_size"], project_id, path);
+  const fontSize = useRedux(["font_size"], project_id, path);
+  if (font_size == null) {
+    font_size = fontSize;
+  }
   const sender_id = useMemo(
     () => redux.getStore("account").get_account_id(),
     []
   );
 
   const [input, setInput] = useState<string>(() => {
-    if (syncdb != null) {
-      const input = syncdb
-        .get_one({
-          event: "draft",
-          sender_id,
-          date: 0,
-        })
-        ?.get("input");
-      return input;
-    }
-    // IMPORTANT: this is props.input, not input !!!
-    // this caused a bug where past chats can't be edited.
-    return props.input ?? "";
+    const dbInput = syncdb
+      .get_one({
+        event: "draft",
+        sender_id,
+        date,
+      })
+      ?.get("input");
+    // take version from syncdb if it is there; otherwise, version from input prop.
+    // the db version is used when you refresh your browser while editing, or scroll up and down
+    // thus unmounting and remounting the currently editing message (due to virtualization).
+    // See https://github.com/sagemathinc/cocalc/issues/6415
+    const input = dbInput ?? propsInput;
+    return input;
   });
 
   const isMountedRef = useIsMountedRef();
@@ -88,7 +93,7 @@ export const ChatInput: React.FC<Props> = (props: Props) => {
         .get_one({
           event: "draft",
           sender_id,
-          date: 0,
+          date,
         })
         ?.get("input");
       if (input0 != input) {
@@ -102,7 +107,7 @@ export const ChatInput: React.FC<Props> = (props: Props) => {
           event: "draft",
           sender_id,
           input,
-          date: 0, // it's a primary key so can't use this to represent when user last edited this; may use other date for editing past chats.
+          date, // it's a primary key so can't use this to represent when user last edited this; use other date for editing past chats.
           active: new Date().valueOf(),
         });
         syncdb.commit();
@@ -118,7 +123,7 @@ export const ChatInput: React.FC<Props> = (props: Props) => {
       const x = syncdb.get_one({
         event: "draft",
         sender_id,
-        date: 0,
+        date,
       });
       const input = x?.get("input");
       if (input != null && input !== lastSavedRef.current) {
@@ -175,4 +180,4 @@ export const ChatInput: React.FC<Props> = (props: Props) => {
       overflowEllipsis={true}
     />
   );
-};
+}

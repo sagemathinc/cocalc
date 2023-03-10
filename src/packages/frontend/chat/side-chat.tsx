@@ -9,7 +9,7 @@ import { ProjectUsers } from "../projects/project-users";
 import { AddCollaborators } from "../collaborators";
 import { markChatAsReadIfUnseen, INPUT_HEIGHT } from "./utils";
 import { ChatLog } from "./chat-log";
-import { ChatInput } from "./input";
+import ChatInput from "./input";
 import VideoChatButton from "./video/launch-button";
 import type { ChatActions } from "./actions";
 
@@ -143,6 +143,7 @@ export default function SideChat({ project_id, path, style }: Props) {
             onChange={(value) => actions.set_input(value)}
             submitMentionsRef={submitMentionsRef}
             syncdb={actions.syncdb}
+            date={0}
             editBarStyle={{ overflow: "none" }}
           />
           <div
