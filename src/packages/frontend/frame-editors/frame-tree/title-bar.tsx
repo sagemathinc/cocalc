@@ -52,6 +52,7 @@ import { is_safari } from "../generic/browser";
 import { get_default_font_size } from "../generic/client";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
+import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -810,7 +811,15 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <Button
         key={"undo"}
         title={"Undo last thing you did"}
-        onClick={() => props.editor_actions.undo(props.id)}
+        onClick={() => {
+          if (props.type == "chat") {
+            // we have to special case this until we come up with a better way of having
+            // different kinds of actions for other frames.
+            chatUndo(props.project_id, props.path);
+          } else {
+            props.editor_actions.undo(props.id);
+          }
+        }}
         disabled={read_only}
         bsSize={button_size()}
       >
@@ -827,7 +836,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <Button
         key={"redo"}
         title={"Redo last thing you undid"}
-        onClick={() => props.editor_actions.redo(props.id)}
+        onClick={() => {
+          if (props.type == "chat") {
+            // see undo comment above
+            chatRedo(props.project_id, props.path);
+          } else {
+            props.editor_actions.redo(props.id);
+          }
+        }}
         disabled={read_only}
         bsSize={button_size()}
       >

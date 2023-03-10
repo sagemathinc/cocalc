@@ -95,6 +95,7 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
 
     const virtuosoScroll = useVirtuosoScrollHook({
       cacheId: `${project_id}${path}`,
+      initialState: { index: messages.size - 1, offset: 0 }, // starts scrolled to the newest message.
     });
 
     // Given the date of the message as an ISO string, return rendered version.
