@@ -974,7 +974,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const editorActions = redux.getEditorActions(this.project_id, path);
     if (editorActions?.["show_focused_frame_of_type"] != null) {
       // @ts-ignore -- todo will go away when everything is a frame editor
-      editorActions.show_focused_frame_of_type("chat");
+      editorActions.show_focused_frame_of_type("chat", "col", false, 0.7);
       this.set_chat_state(path, "internal");
       local_storage(this.project_id, path, "chatState", "internal");
     } else {

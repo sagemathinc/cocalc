@@ -247,8 +247,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
       <VideoChatButton
         project_id={project_id}
         path={path}
-        button={true}
-        label={"Video"}
         sendChat={(value) => actions.send_chat(value)}
       />
     );

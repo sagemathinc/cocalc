@@ -7,10 +7,10 @@ import {
   useTypedRedux,
   useRef,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Tip } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components";
 import { user_activity } from "@cocalc/frontend/tracker";
 import { VideoChat } from "./video-chat";
-import { Button, Popconfirm } from "antd";
+import { Button, Popconfirm, Popover } from "antd";
 
 const VIDEO_UPDATE_INTERVAL_MS = 30 * 1000;
 // jit.si doesn't seem to have a limit...?
@@ -19,7 +19,6 @@ const VIDEO_CHAT_LIMIT = 99999;
 interface Props {
   project_id: string;
   path: string;
-  label?: string | JSX.Element;
   sendChat?: (string) => void;
   style?: CSSProperties;
 }
@@ -27,7 +26,6 @@ interface Props {
 export default function VideoChatButton({
   project_id,
   path,
-  label,
   sendChat,
   style: style0,
 }: Props) {
@@ -106,15 +104,6 @@ export default function VideoChatButton({
     }
   }
 
-  function render_tip(num_users_chatting: number): JSX.Element {
-    return (
-      <span>
-        {render_join(num_users_chatting)}
-        {render_num_chatting(num_users_chatting)}
-      </span>
-    );
-  }
-
   const num_users_chatting: number =
     video_chat.current.num_users_chatting() ?? 0;
   const style: React.CSSProperties = { cursor: "pointer" };
@@ -141,7 +130,17 @@ export default function VideoChatButton({
       okText={`${num_users_chatting ? "Join" : "Start"} video chat`}
       cancelText="Cancel"
     >
-      <Button style={{ ...style, ...style0 }}>{body}</Button>
+      <Popover
+        mouseEnterDelay={0.8}
+        title={() => (
+          <span>
+            {render_join(num_users_chatting)}
+            {render_num_chatting(num_users_chatting)}
+          </span>
+        )}
+      >
+        <Button style={{ ...style, ...style0 }}>{body}</Button>
+      </Popover>
     </Popconfirm>
   );
 }

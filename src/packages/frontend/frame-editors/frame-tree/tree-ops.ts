@@ -330,6 +330,24 @@ export function split_leaf(
   return t1;
 }
 
+// create a new frame next to or below the current frame tree.
+// This results in an entirely new root with two children.
+// One child is the current frame tree, and the other is a new leaf.
+export function new_frame(
+  tree: ImmutableFrameTree,
+  type: string,
+  direction: FrameDirection,
+  first: boolean // if true, new leaf is left or top instead of right or bottom.
+): ImmutableFrameTree {
+  const newTree = fromJS({
+    id: generate_id(),
+    direction,
+    type: "node",
+    [first ? "first" : "second"]: { type, id: generate_id() },
+  });
+  return newTree.set(first ? "second" : "first", tree);
+}
+
 export function is_leaf_id(tree: ImmutableFrameTree, id: string): boolean {
   const node = get_node(tree, id);
   if (node == null) return false;

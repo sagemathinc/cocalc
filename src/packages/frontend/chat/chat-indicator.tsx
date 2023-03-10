@@ -36,8 +36,6 @@ interface Props {
 }
 
 export function ChatIndicator({ project_id, path, chatState }: Props) {
-  const fullscreen = useTypedRedux("page", "fullscreen");
-
   const style: React.CSSProperties = {
     ...CHAT_INDICATOR_STYLE,
     ...{ display: "flex" },

@@ -90,7 +90,6 @@ export default function SideChat({ project_id, path, style }: Props) {
             style={{ float: "right", marginTop: "-5px" }}
             project_id={project_id}
             path={path}
-            button={false}
             sendChat={(value) => {
               const actions = redux.getEditorActions(
                 project_id,
@@ -199,14 +198,13 @@ function CollabList({ project, addCollab, actions }) {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              cursor: "pointer",
             }
-          : undefined
+          : { cursor: "pointer" }
       }
       onClick={() => actions.setState({ add_collab: !addCollab })}
     >
-      <div
-        style={{ width: "16px", display: "inline-block", cursor: "pointer" }}
-      >
+      <div style={{ width: "16px", display: "inline-block" }}>
         <Icon name={addCollab ? "caret-down" : "caret-right"} />
       </div>
       <span style={{ color: "#777", fontSize: "10pt" }}>

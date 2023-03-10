@@ -947,6 +947,30 @@ export class Actions<
     throw Error("BUG -- no new frame created");
   }
 
+  // Create new frame and take the entire existing frame tree
+  // and make it a sibling to the newly created frame.
+  public new_frame(
+    type: string, // type of new frame
+    direction?: FrameDirection, // default "col"
+    first?: boolean // if true, new frame is left or top instead of right or bottom.
+  ): string {
+    const before = this._get_leaf_ids();
+    this._tree_op("new_frame", type, direction ?? "col", first ?? false);
+    const after = this._get_leaf_ids();
+    for (const new_id in after) {
+      if (!before[new_id]) {
+        // Emit new-frame event so other code can handle or initialize
+        // creation of a new frame further.
+        this.store.emit("new-frame", {
+          id: new_id,
+          type,
+        });
+        return new_id;
+      }
+    }
+    throw Error("BUG -- no new frame created");
+  }
+
   // Set the frame with given id to be full (so only it is displayed).
   set_frame_full(id: string): void {
     this._assert_is_leaf_id(id, "set_frame_full");
@@ -2468,23 +2492,21 @@ export class Actions<
   public show_recently_focused_frame_of_type(
     type: string,
     dir: FrameDirection = "col",
-    first: boolean = false,
-    pos: number | undefined = undefined
+    first?: boolean,
+    pos?: number
   ): string {
     let id: string | undefined =
       this._get_most_recent_active_frame_id_of_type(type);
     if (id == null) {
       // no such frame, so make one
-      const active_id = this._get_active_id();
-      this.split_frame(dir, active_id, type, undefined, first, true);
-      id = this._get_most_recent_active_frame_id_of_type(type);
-      if (pos != null && id != null) {
+      id = this.new_frame(type, dir, first);
+      if (pos != null) {
         const parent_id = this.get_parent_id(id);
         if (parent_id != null) {
           this.set_frame_tree({ id: parent_id, pos });
         }
       }
-      this.set_active_id(active_id); // above could change it.
+      this.set_active_id(id);
     }
     if (id == null) {
       throw Error("bug creating frame");
