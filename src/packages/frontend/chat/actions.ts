@@ -128,7 +128,8 @@ export class ChatActions extends Actions<ChatState> {
     });
   }
 
-  public send_chat(input?: string): void {
+  // second parameter used for sending a message by chatgpt (managed by the frontend)
+  public send_chat(input?: string, sender_id?: string): void {
     if (this.syncdb == null || this.store == null) {
       // WARNING: give an error or try again later?
       return;
@@ -141,7 +142,9 @@ export class ChatActions extends Actions<ChatState> {
       // do not send while uploading or there is nothing to send.
       return;
     }
-    const sender_id = this.redux.getStore("account").get_account_id();
+    if (sender_id == null) {
+      sender_id = this.redux.getStore("account").get_account_id();
+    }
     const time_stamp = webapp_client.server_time().toISOString();
     this.syncdb.set({
       sender_id,

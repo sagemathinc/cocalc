@@ -274,6 +274,7 @@ export function get_sorted_dates(messages, search) {
 }
 
 export function get_user_name(user_map, account_id: string): string {
+  if (account_id == "chatgpt") return "ChatGPT";
   if (user_map == null) return "Unknown";
   const account = user_map.get(account_id);
   if (account == null) return "Unknown";

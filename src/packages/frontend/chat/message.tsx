@@ -206,7 +206,7 @@ export default function Message(props: Props) {
   }
 
   function avatar_column() {
-    let account = props.user_map?.get(props.message.get("sender_id"))?.toJS?.();
+    const sender_id = props.message.get("sender_id");
     let style: CSSProperties = {};
     if (!props.is_prev_sender) {
       style.marginTop = "22px";
@@ -220,8 +220,8 @@ export default function Message(props: Props) {
     return (
       <Col key={0} xs={4}>
         <div style={style}>
-          {account != null && props.show_avatar ? (
-            <Avatar size={40} account_id={account.account_id} />
+          {sender_id != null && props.show_avatar ? (
+            <Avatar size={40} account_id={sender_id} />
           ) : undefined}
         </div>
       </Col>

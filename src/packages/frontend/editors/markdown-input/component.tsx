@@ -421,8 +421,9 @@ export function MarkdownInput(props: Props) {
           doc.replaceRange(text, from, to);
           mentions.push({ account_id, description, fragment_id });
         }
-        submit_mentions(project_id, path, mentions);
-        return doc.getValue();
+        const value = doc.getValue();
+        submit_mentions(project_id, path, mentions, value);
+        return value;
       };
     }
 
