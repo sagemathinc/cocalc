@@ -38,6 +38,7 @@ db_schema            = require('@cocalc/util/db-schema')
 { COOKIE_NAME }=require("@cocalc/server/auth/remember-me");
 generateHash =require("@cocalc/server/auth/hash").default;
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
+#OpenAIChatGPT        = require('@cocalc/server/openai/chatgpt').default;
 
 {one_result} = require("@cocalc/database")
 
@@ -2074,3 +2075,6 @@ class exports.Client extends EventEmitter
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")
+
+    #mesg_openai_chatgpt: (mesg) =>
+    #    OpenAIChatGPT.frontendClientMessage(mesg, @push_to_client, @error_to_client)
