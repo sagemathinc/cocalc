@@ -3045,3 +3045,17 @@ message({
   id: undefined,
   resp: required, // a string - basically a message to show the user
 });
+
+API(
+  message({
+    event: "chatgpt",
+    id: undefined,
+    text: required, // text of the question
+  })
+);
+
+message({
+  event: "chatgpt_response",
+  id: undefined,
+  text: required, // text of the response
+});

@@ -22,12 +22,8 @@ async function getApiKey(): Promise<string> {
 }
 
 export async function demo(question: string) {
-  console.log("ChatGPT demo", question);
   const { ChatGPTAPI } = await importDynamic("chatgpt");
-  console.log(ChatGPTAPI);
-
   const api = new ChatGPTAPI({ apiKey: await getApiKey() });
-
   const res = await api.sendMessage(question);
-  console.log(res);
+  return res.text;
 }
