@@ -27,11 +27,23 @@ export default async function chatGPT({
   }
   // strip mentions
   value = stripMentions(value);
+  actions.syncdb.set({
+    event: "draft",
+    sender_id: "chatgpt",
+    input: "...",
+    date: 0,
+  });
   // submit question to chatgpt
   const resp = await webapp_client.openai_client.chatgpt(value);
   // insert the answer as a new chat message
   if (actions?.syncdb != null) {
     //hackish
+    actions.syncdb.set({
+      event: "draft",
+      sender_id: "chatgpt",
+      input: "", // empty input clears sending indicator.  Should be able to just delete but that's not working.
+      date: 0,
+    });
     actions.send_chat(resp, "chatgpt");
   }
 }
