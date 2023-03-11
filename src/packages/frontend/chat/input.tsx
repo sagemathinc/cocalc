@@ -11,6 +11,7 @@ import {
   redux,
   useIsMountedRef,
   useRedux,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -52,6 +53,7 @@ export default function ChatInput({
   date,
   editBarStyle,
 }: Props) {
+  const useChatGPT = useTypedRedux("customize", "openai_enabled");
   const { project_id, path, actions } = useFrameContext();
   const fontSize = useRedux(["font_size"], project_id, path);
   if (font_size == null) {
@@ -178,7 +180,7 @@ export default function ChatInput({
       }}
       editBarStyle={editBarStyle}
       overflowEllipsis={true}
-      chatGPT={true}
+      chatGPT={useChatGPT}
     />
   );
 }

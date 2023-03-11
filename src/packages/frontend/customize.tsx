@@ -86,6 +86,7 @@ export type SoftwareEnvironments = TypedMap<{
 
 export interface CustomizeState {
   is_commercial: boolean;
+  openai_enabled: boolean;
   datastore: boolean;
   ssh_gateway: boolean;
   ssh_gateway_dns: string; // e.g. "ssh.cocalc.com"
