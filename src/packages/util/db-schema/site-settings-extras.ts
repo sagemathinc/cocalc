@@ -70,6 +70,7 @@ export type SiteSettingsExtrasKeys =
   | "email_smtp_password"
   | "email_smtp_port"
   | "email_smtp_secure"
+  | "openai_api_key"
   | "password_reset_override"
   | "password_reset_smtp_server"
   | "password_reset_smtp_from"
@@ -198,6 +199,13 @@ export const EXTRAS: SettingsExtras = {
   github_token: {
     name: "GitHub Token",
     desc: "This is a Personal Access token for the above GitHub account.  You can get one at https://github.com/settings/tokens -- you do not have to enable any scopes -- it used only to increase rate limits from 60/hour to 5000/hour.",
+    default: "",
+    password: true,
+    show: () => true,
+  },
+  openai_api_key: {
+    name: "OpenAI API Key (ChatGPT, etc.)",
+    desc: "Your OpenAI API Key.  Enter this to enable additional functionality across CoCalc that uses OpenAI's API.",
     default: "",
     password: true,
     show: () => true,
