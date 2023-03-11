@@ -71,6 +71,7 @@ import {
 } from "@cocalc/util/code-formatter";
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import { SHELLS } from "./editor";
+import type { TimeTravelActions } from "../time-travel-editor/actions";
 
 interface gutterMarkerParams {
   line: number;
@@ -150,6 +151,10 @@ export class Actions<
   private _update_misspelled_words_last_hash: any;
   private _active_id_history: string[] = [];
   private _spellcheck_is_supported: boolean = false;
+
+  // We store these actions here so that we can remove the actions
+  // and store for time travel when this editor is closed.
+  public timeTravelActions?: TimeTravelActions;
 
   // multifile support. this will be set to the path of the parent file (master)
   protected parent_file: string | undefined = undefined;
