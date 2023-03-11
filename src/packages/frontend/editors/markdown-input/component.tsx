@@ -81,6 +81,7 @@ interface Props {
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
+  chatGPT?: boolean;
   submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>;
   style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
@@ -127,6 +128,7 @@ export function MarkdownInput(props: Props) {
     onUploadStart,
     onUploadEnd,
     enableMentions,
+    chatGPT,
     submitMentionsRef,
     style,
     onChange,
@@ -770,7 +772,7 @@ export function MarkdownInput(props: Props) {
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
-    const v = mentionableUsers(project_id);
+    const v = mentionableUsers(project_id, undefined, chatGPT);
     if (v.length == 0) {
       // nobody to mention (e.g., admin doesn't have this)
       return;

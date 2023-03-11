@@ -178,6 +178,7 @@ export default function ChatInput({
       }}
       editBarStyle={editBarStyle}
       overflowEllipsis={true}
+      chatGPT={true}
     />
   );
 }
