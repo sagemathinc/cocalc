@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Loading } from "@cocalc/frontend/components";
 import { CSSProperties, useMemo, useRef, useState } from "react";
-import { Input, InputRef, Popover } from "antd";
+import { Input, InputRef, Popover, Select } from "antd";
 import humanizeList from "humanize-list";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
@@ -59,6 +60,9 @@ export default function SiteSettings({}) {
   const [isReadonly, setIsReadonly] = useState<{
     [name: string]: boolean;
   } | null>(null);
+  const update = () => {
+    setData(deep_copy(editedRef.current));
+  };
 
   async function load(): Promise<void> {
     setState("load");
@@ -151,7 +155,7 @@ export default function SiteSettings({}) {
 
     return (
       <Button bsStyle="success" disabled={disabled} onClick={save}>
-        Save
+        {state == "save" ? <Loading text="Saving" /> : "Save"}
       </Button>
     );
   }
@@ -315,7 +319,6 @@ export default function SiteSettings({}) {
   }
 
   const editRows = useMemo(() => {
-    if (state != "edit") return null;
     return (
       <>
         {keys(site_settings_conf).map((name) => (
@@ -324,6 +327,7 @@ export default function SiteSettings({}) {
             name={name}
             conf={site_settings_conf[name]}
             data={data}
+            update={update}
             isReadonly={isReadonly}
             onChangeEntry={onChangeEntry}
             onJsonEntryChange={onJsonEntryChange}
@@ -335,6 +339,7 @@ export default function SiteSettings({}) {
             name={name}
             conf={EXTRAS[name]}
             data={data}
+            update={update}
             isReadonly={isReadonly}
             onChangeEntry={onChangeEntry}
             onJsonEntryChange={onJsonEntryChange}
@@ -342,7 +347,7 @@ export default function SiteSettings({}) {
         ))}
       </>
     );
-  }, [state]);
+  }, [state, data]);
 
   function Header() {
     return (
@@ -360,27 +365,39 @@ export default function SiteSettings({}) {
     );
   }
 
+  if (state == "view") return <Header />;
+
   return (
     <div>
+      {state == "save" && (
+        <Loading
+          delay={1000}
+          style={{ float: "right", fontSize: "15pt" }}
+          text="Saving site configuration..."
+        />
+      )}
+      {state == "load" && (
+        <Loading
+          delay={1000}
+          style={{ float: "right", fontSize: "15pt" }}
+          text="Loading site configuration..."
+        />
+      )}
       <Header />
       {error && <ErrorDisplay error={error} onClose={() => setError("")} />}
-      {state == "edit" && (
-        <Well
-          style={{
-            margin: "auto",
-            maxWidth: "80%",
-          }}
-        >
-          <Warning />
-          <Buttons />
-          {editRows}
-          <Space />
-          <Tests />
-          <Buttons />
-        </Well>
-      )}
-      {state == "save" && <div>Saving site configuration...</div>}
-      {state == "load" && <div>Loading site configuration...</div>}
+      <Well
+        style={{
+          margin: "auto",
+          maxWidth: "80%",
+        }}
+      >
+        <Warning />
+        <Buttons />
+        {editRows}
+        <Space />
+        <Tests />
+        <Buttons />
+      </Well>
     </div>
   );
 }
@@ -390,7 +407,7 @@ function rowEntryStyle(value, valid?: ConfigValid): CSSProperties {
     (Array.isArray(valid) && !valid.includes(value)) ||
     (typeof valid == "function" && !valid(value))
   ) {
-    return { backgroundColor: "red", color: "white" };
+    return { border: "2px solid red" };
   }
   return {};
 }
@@ -403,44 +420,26 @@ function RowEntryInner({
   multiline,
   onChangeEntry,
   isReadonly,
+  clearable,
+  update,
 }) {
   if (isReadonly == null) return null; // typescript
   const disabled = isReadonly[name] == true;
 
   if (Array.isArray(valid)) {
-    /* This antd code below is broken because something about
-         antd is broken.  Maybe it is a bug in antd.
-         Even the first official example in the antd
-         docs breaks for me!
-         See https://github.com/sagemathinc/cocalc/issues/4714
-         */
-    /*return
-        <Select
-          defaultValue={value}
-          onChange={(val) => onChangeEntry(name, val)}
-          style={{ width: "100%" }}
-        >
-          {valid.map((e) => (
-            <Option value={e} key={e}>
-              {e}
-            </Option>
-          ))}
-        </Select>
-      );
-      */
     return (
-      <select
+      <Select
         defaultValue={value}
         disabled={disabled}
-        onChange={(event) => onChangeEntry(name, event.target.value)}
+        onChange={(value) => {
+          onChangeEntry(name, value);
+          update();
+        }}
         style={{ width: "100%" }}
-      >
-        {valid.map((e) => (
-          <option value={e} key={e}>
-            {e}
-          </option>
-        ))}
-      </select>
+        options={valid.map((e) => {
+          return { value: e, label: e };
+        })}
+      />
     );
   } else {
     if (password) {
@@ -451,14 +450,16 @@ function RowEntryInner({
           visibilityToggle={true}
           disabled={disabled}
           onChange={(e) => onChangeEntry(name, e.target.value)}
+          onBlur={update}
         />
       );
     } else {
       if (multiline != null) {
-        const style = Object.assign(rowEntryStyle(value, valid), {
+        const style = {
+          ...rowEntryStyle(value, valid),
           fontFamily: "monospace",
           fontSize: "80%",
-        } as CSSProperties);
+        } as CSSProperties;
         return (
           <Input.TextArea
             rows={4}
@@ -466,6 +467,7 @@ function RowEntryInner({
             defaultValue={value}
             disabled={disabled}
             onChange={(e) => onChangeEntry(name, e.target.value)}
+            onBlur={update}
           />
         );
       } else {
@@ -475,8 +477,8 @@ function RowEntryInner({
             defaultValue={value}
             disabled={disabled}
             onChange={(e) => onChangeEntry(name, e.target.value)}
-            // allowClear always disabled; otherwise it's not possible to edit the value
-            allowClear={false}
+            allowClear={clearable}
+            onBlur={update}
           />
         );
       }
@@ -496,6 +498,8 @@ function RowEntry({
   isReadonly,
   onJsonEntryChange,
   onChangeEntry,
+  clearable,
+  update,
 }: {
   name: string;
   value: string;
@@ -508,6 +512,8 @@ function RowEntry({
   isReadonly;
   onJsonEntryChange;
   onChangeEntry;
+  clearable;
+  update;
 }) {
   if (isReadonly == null) return null; // typescript
   function ReadOnly({ readonly }) {
@@ -562,12 +568,13 @@ function RowEntry({
               multiline={multiline}
               onChangeEntry={onChangeEntry}
               isReadonly={isReadonly}
+              clearable={clearable}
+              update={update}
             />
             <div style={{ fontSize: "90%", display: "inlineBlock" }}>
               {name == "version_recommended_browser" && (
                 <VersionHint value={value} />
               )}
-
               {hint}
               <ReadOnly readonly={isReadonly[name]} />
               {displayed_val != null && (
@@ -626,7 +633,7 @@ function VersionHint({ value }: { value: string }) {
 function JsonEntry({ name, data, readonly, onJsonEntryChange }) {
   const jval = JSON.parse(data ?? "{}") ?? {};
   const dflt = FIELD_DEFAULTS[name];
-  const quotas = Object.assign({}, dflt, jval);
+  const quotas = { ...dflt, ...jval };
   const value = JSON.stringify(quotas);
   return (
     <JsonEditor
@@ -642,6 +649,7 @@ function RenderRow({
   name,
   conf,
   data,
+  update,
   isReadonly,
   onChangeEntry,
   onJsonEntryChange,
@@ -674,25 +682,25 @@ function RenderRow({
     <div style={{ paddingRight: "15px" }}>
       <strong>{conf.name}</strong> <RowHelp help={conf.help} />
       <br />
-      <StaticMarkdown style={{ fontSize: "90%" }} value={conf.desc} />
+      <StaticMarkdown style={{ color: "#666" }} value={conf.desc} />
     </div>
   );
 
   const hint = <RowHint conf={conf} rawValue={rawValue} />;
 
-  const style = { marginTop: "15px" } as CSSProperties;
+  let style = { marginTop: "15px", paddingLeft: "10px" } as CSSProperties;
   // indent optional fields
   if (typeof conf.show == "function" && rowType == "setting") {
-    Object.assign(style, {
+    style = {
+      ...style,
       borderLeft: `2px solid ${COLORS.GRAY}`,
       marginLeft: "0px",
-      paddingLeft: "5px",
       marginTop: "0px",
-    } as CSSProperties);
+    } as CSSProperties;
   }
 
   return (
-    <LabeledRow label={label} key={name} style={style}>
+    <LabeledRow label={label} key={name} style={style} label_cols={6}>
       <RowEntry
         name={name}
         value={rawValue}
@@ -705,6 +713,8 @@ function RenderRow({
         isReadonly={isReadonly}
         onJsonEntryChange={onJsonEntryChange}
         onChangeEntry={onChangeEntry}
+        clearable={conf.clearable}
+        update={update}
       />
     </LabeledRow>
   );
