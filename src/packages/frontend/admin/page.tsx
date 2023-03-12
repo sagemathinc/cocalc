@@ -7,8 +7,7 @@ import { React } from "@cocalc/frontend/app-framework";
 import { Divider } from "antd";
 
 import { RegistrationToken } from "./registration-token";
-import { SiteSettings } from "./site-settings";
-//import { SubscriptionManager } from "./subscription-manager";
+import SiteSettings from "./site-settings";
 import { Title } from "@cocalc/frontend/components";
 import { SiteLicenses } from "../site-licenses/admin/component";
 import { UsageStatistics } from "./stats/page";
