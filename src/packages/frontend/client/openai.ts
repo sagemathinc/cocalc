@@ -13,8 +13,18 @@ export class OpenAIClient {
     this.async_call = async_call;
   }
 
-  public async chatgpt(text: string): Promise<string> {
-    const resp = await this.async_call({ message: message.chatgpt({ text }) });
+  public async chatgpt({
+    input,
+    project_id,
+    path,
+  }: {
+    input: string;
+    project_id?: string;
+    path?: string;
+  }): Promise<string> {
+    const resp = await this.async_call({
+      message: message.chatgpt({ text: input, project_id, path }),
+    });
     return resp.text;
   }
 }

@@ -12,10 +12,10 @@ export default function OpenAIAvatar({ size }) {
       <div
         style={{
           position: "absolute",
-          top: size / 4,
           backgroundColor: "rgb(16, 163, 127)",
           color: "white",
           height: size,
+          top: "5px",
         }}
       >
         <svg

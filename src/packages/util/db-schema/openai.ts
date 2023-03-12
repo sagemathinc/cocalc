@@ -1,34 +1,19 @@
 import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 
-export type WhenPay = "now" | "invoice" | "admin";
-
-export interface PurchaseInfo {
-  // TODO: maybe a stripe invoice id...?
-  time: string; // iso timestamp
-  quantity: number;
-  stripe_invoice_id?: string;
-}
-
-export interface ChatGPT {
+export interface ChatGPTLogEntry {
   id: number;
-  when_pay: WhenPay;
-  created: Date;
-  created_by: string;
-  title: string;
-  cart: { description: SiteLicenseDescriptionDB; product: "site-license" }[];
-  count: number;
-  cost: number;
-  tax: number;
-  active: Date;
-  expire: Date;
-  cancel_by: Date;
-  notes?: string;
-  purchased?: PurchaseInfo;
+  time: Date;
+  input: string;
+  output: string;
+  account_id: string;
+  total_tokens: number;
+  project_id?: string;
+  path?: string;
 }
 
 Table({
-  name: "chatgpt",
+  name: "openai_chatgpt_log",
   fields: {
     id: ID,
     time: { type: "timestamp", desc: "When this particular chat happened." },
@@ -52,6 +37,32 @@ Table({
     total_tokens: {
       type: "integer",
       desc: "The total number of tokens involved in this API call.",
+    },
+    project_id: {
+      type: "uuid",
+      render: { type: "project_link" },
+    },
+    path: {
+      type: "string",
+    },
+  },
+  rules: {
+    desc: "OpenAI ChatGPT Log",
+    primary_key: "id",
+    user_query: {
+      get: {
+        pg_where: [{ "account_id = $::UUID": "account_id" }],
+        fields: {
+          id: null,
+          time: null,
+          account_id: null,
+          input: null,
+          output: null,
+          total_tokens: null,
+          project_id: null,
+          path: null,
+        },
+      },
     },
   },
 });
