@@ -3051,6 +3051,8 @@ API(
     event: "chatgpt",
     id: undefined,
     text: required, // text of the question
+    project_id: undefined,
+    path: undefined,
   })
 );
 

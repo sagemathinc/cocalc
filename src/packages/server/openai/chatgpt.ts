@@ -21,9 +21,42 @@ async function getApiKey(): Promise<string> {
   return rows[0].value;
 }
 
-export async function demo(question: string) {
+interface ChatOptions {
+  input: string;
+  account_id: string;
+  project_id?: string;
+  path?: string;
+}
+
+export async function evaluate({
+  input,
+  account_id,
+  project_id,
+  path,
+}: ChatOptions): Promise<string> {
   const { ChatGPTAPI } = await importDynamic("chatgpt");
   const api = new ChatGPTAPI({ apiKey: await getApiKey() });
-  const res = await api.sendMessage(question);
-  return res.text;
+  const res = await api.sendMessage(input);
+  const output = res.text;
+  const total_tokens = res.detail?.total_tokens;
+  saveResponse({ input, output, account_id, project_id, path, total_tokens });
+  return output;
+}
+
+// Save mainly for analytics, metering, and to generally see how (or if)
+// people use chatgpt in cocalc.
+// Also, we could dedup identical inputs (?).
+async function saveResponse({
+  input,
+  output,
+  account_id,
+  project_id,
+  path,
+  total_tokens,
+}) {
+  const pool = getPool();
+  await pool.query(
+    "INSERT INTO chatgpt(time,input,output,account_id,project_id,path,total_tokens) VALUES(NOW(),$1,$2,$3,$5,$5,$6)",
+    [input, output, account_id, project_id, path, total_tokens]
+  );
 }

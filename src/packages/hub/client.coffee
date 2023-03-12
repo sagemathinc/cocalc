@@ -2079,9 +2079,12 @@ class exports.Client extends EventEmitter
     mesg_chatgpt: (mesg) =>
         dbg = @dbg("mesg_chatgpt")
         dbg(mesg.text)
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"not signed in")
+            return
         try
-            text = await chatgpt.demo(mesg.text)
-            @push_to_client(message.chatgpt_response(id:mesg.id, text:text))
+            output = await chatgpt.evaluate(input:mesg.text, account_id:@account_id, project_id:mesg.project_id, path:mesg.path)
+            @push_to_client(message.chatgpt_response(id:mesg.id, text:output))
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")
