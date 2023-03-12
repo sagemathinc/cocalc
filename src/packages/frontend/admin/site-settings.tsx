@@ -29,12 +29,13 @@ import {
   RowType,
 } from "@cocalc/util/db-schema/site-defaults";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
-import { copy, deep_copy, keys, unreachable } from "@cocalc/util/misc";
+import { deep_copy, keys, unreachable } from "@cocalc/util/misc";
 import { site_settings_conf } from "@cocalc/util/schema";
 import { version } from "@cocalc/util/smc-version";
 import { COLORS } from "@cocalc/util/theme";
 import { ON_PREM_DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
 import { JsonEditor } from "./json-editor";
+import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -48,12 +49,13 @@ type State = "view" | "load" | "edit" | "save" | "error";
 type Data = { [name: string]: string };
 
 export default function SiteSettings({}) {
+  const { inc: change } = useCounter();
   const testEmailRef = useRef<InputRef>(null);
   const [disableTests, setDisableTests] = useState<boolean>(false);
   const [state, setState] = useState<State>("view");
   const [error, setError] = useState<string>("");
   const [data, setData] = useState<Data | null>(null);
-  const [edited, setEdited] = useState<Data | null>(null);
+  const editedRef = useRef<Data | null>(null);
   const [isReadonly, setIsReadonly] = useState<{
     [name: string]: boolean;
   } | null>(null);
@@ -82,7 +84,7 @@ export default function SiteSettings({}) {
     setError("");
     setData(data);
     setIsReadonly(isReadonly);
-    setEdited(deep_copy(data));
+    editedRef.current = deep_copy(data);
     setDisableTests(false);
   }
 
@@ -105,9 +107,9 @@ export default function SiteSettings({}) {
   }
 
   async function store(): Promise<void> {
-    if (data == null || edited == null) return;
-    for (const name in edited) {
-      const value = edited[name];
+    if (data == null || editedRef.current == null) return;
+    for (const name in editedRef.current) {
+      const value = editedRef.current[name];
       if (isHeader[name]) continue;
       if (!isEqual(value, data[name])) {
         try {
@@ -137,10 +139,10 @@ export default function SiteSettings({}) {
   }
 
   function SaveButton() {
-    if (data == null || edited == null) return null;
+    if (data == null || editedRef.current == null) return null;
     let disabled: boolean = true;
-    for (const name in edited) {
-      const value = edited[name];
+    for (const name in editedRef.current) {
+      const value = editedRef.current[name];
       if (!isEqual(value, data[name])) {
         disabled = false;
         break;
@@ -159,23 +161,22 @@ export default function SiteSettings({}) {
   }
 
   function onChangeEntry(name, val) {
-    if (edited == null) return;
-    const e = copy(edited);
-    e[name] = val;
-    setEdited(e);
+    if (editedRef.current == null) return;
+    editedRef.current[name] = val;
+    change();
   }
 
   function onJsonEntryChange(name: string, new_val?: string) {
-    if (edited == null) return; // typescript
-    const e = copy(edited);
+    if (editedRef.current == null) return;
     try {
       if (new_val == null) return;
       JSON.parse(new_val); // does it throw?
-      e[name] = new_val;
-      setEdited(e);
+      editedRef.current[name] = new_val;
     } catch (err) {
+      // TODO: obviously this should be visible to the user!  Gees.
       console.warn(`Error saving json of ${name}`, err.message);
     }
+    change();
   }
 
   function Buttons() {
@@ -322,7 +323,7 @@ export default function SiteSettings({}) {
             key={name}
             name={name}
             conf={site_settings_conf[name]}
-            edited={edited}
+            data={data}
             isReadonly={isReadonly}
             onChangeEntry={onChangeEntry}
             onJsonEntryChange={onJsonEntryChange}
@@ -333,7 +334,7 @@ export default function SiteSettings({}) {
             key={name}
             name={name}
             conf={EXTRAS[name]}
-            edited={edited}
+            data={data}
             isReadonly={isReadonly}
             onChangeEntry={onChangeEntry}
             onJsonEntryChange={onJsonEntryChange}
@@ -640,22 +641,22 @@ function JsonEntry({ name, data, readonly, onJsonEntryChange }) {
 function RenderRow({
   name,
   conf,
-  edited,
+  data,
   isReadonly,
   onChangeEntry,
   onJsonEntryChange,
 }) {
-  if (edited == null) return null;
+  if (data == null) return null;
   if (conf.cocalc_only) {
     if (!document.location.host.endsWith("cocalc.com")) {
       return null;
     }
   }
   // don't show certain fields, i.e. where show evals to false
-  if (typeof conf.show == "function" && !conf.show(edited)) {
+  if (typeof conf.show == "function" && !conf.show(data)) {
     return null;
   }
-  const rawValue = edited?.[name] ?? conf.default;
+  const rawValue = data[name] ?? conf.default;
   const rowType: RowType = conf.type ?? "setting";
 
   // fallbacks: to_display? → to_val? → undefined
@@ -663,7 +664,7 @@ function RenderRow({
     typeof conf.to_display == "function"
       ? `${conf.to_display(rawValue)}`
       : typeof conf.to_val == "function"
-      ? `${conf.to_val(rawValue, edited)}`
+      ? `${conf.to_val(rawValue, data)}`
       : undefined;
 
   // not currently supported.
