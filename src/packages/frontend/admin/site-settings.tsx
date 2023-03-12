@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties, useRef, useState } from "react";
+import { CSSProperties, useMemo, useRef, useState } from "react";
 import { Input, InputRef, Popover } from "antd";
 import humanizeList from "humanize-list";
 import { isEqual } from "lodash";
@@ -57,11 +57,6 @@ export default function SiteSettings({}) {
   const [isReadonly, setIsReadonly] = useState<{
     [name: string]: boolean;
   } | null>(null);
-
-  function Error() {
-    if (!error) return null;
-    return <ErrorDisplay error={error} onClose={() => setError("")} />;
-  }
 
   async function load(): Promise<void> {
     setState("load");
@@ -134,6 +129,7 @@ export default function SiteSettings({}) {
     setState("save");
     await store();
     setState("view");
+    await load();
   }
 
   function cancel(): void {
@@ -162,38 +158,11 @@ export default function SiteSettings({}) {
     return <Button onClick={cancel}>Cancel</Button>;
   }
 
-  function VersionHint({ value }: { value: string }) {
-    let error;
-    if (new Date(parseInt(value) * 1000) > new Date()) {
-      error = (
-        <div
-          style={{
-            background: "red",
-            color: "white",
-            margin: "15px",
-            padding: "15px",
-          }}
-        >
-          INVALID version - it is in the future!!
-        </div>
-      );
-    } else {
-      error = undefined;
-    }
-    return (
-      <div style={{ marginTop: "15px", color: "#666" }}>
-        Your browser version:{" "}
-        <CopyToClipBoard
-          style={{
-            display: "inline-block",
-            width: "50ex",
-            margin: 0,
-          }}
-          value={`${version}`}
-        />{" "}
-        {error}
-      </div>
-    );
+  function onChangeEntry(name, val) {
+    if (edited == null) return;
+    const e = copy(edited);
+    e[name] = val;
+    setEdited(e);
   }
 
   function onJsonEntryChange(name: string, new_val?: string) {
@@ -207,331 +176,6 @@ export default function SiteSettings({}) {
     } catch (err) {
       console.warn(`Error saving json of ${name}`, err.message);
     }
-  }
-
-  // This is specific to on-premises kubernetes setups.
-  // The production site works differently.
-  // TODO: make this a more sophisticated data editor.
-  function JsonEntry({ name, data, readonly }) {
-    const jval = JSON.parse(data ?? "{}") ?? {};
-    const dflt = FIELD_DEFAULTS[name];
-    const quotas = Object.assign({}, dflt, jval);
-    const value = JSON.stringify(quotas);
-    return (
-      <JsonEditor
-        value={value}
-        readonly={readonly}
-        rows={10}
-        onSave={(value) => onJsonEntryChange(name, value)}
-      />
-    );
-  }
-
-  function RowHint({ conf, rawValue }: { conf: Config; rawValue: string }) {
-    if (typeof conf.hint == "function") {
-      return <Markdown value={conf.hint(rawValue)} />;
-    } else {
-      return null;
-    }
-  }
-
-  function rowEntryStyle(value, valid?: ConfigValid): CSSProperties {
-    if (
-      (Array.isArray(valid) && !valid.includes(value)) ||
-      (typeof valid == "function" && !valid(value))
-    ) {
-      return { backgroundColor: "red", color: "white" };
-    }
-    return {};
-  }
-
-  function onChangeEntry(name, val) {
-    if (edited == null) return;
-    const e = copy(edited);
-    e[name] = val;
-    setEdited(e);
-  }
-
-  function RowEntryInner({ name, value, valid, password, multiline }) {
-    if (isReadonly == null) return null; // typescript
-    const disabled = isReadonly[name] == true;
-
-    if (Array.isArray(valid)) {
-      /* This antd code below is broken because something about
-         antd is broken.  Maybe it is a bug in antd.
-         Even the first official example in the antd
-         docs breaks for me!
-         See https://github.com/sagemathinc/cocalc/issues/4714
-         */
-      /*return
-        <Select
-          defaultValue={value}
-          onChange={(val) => onChangeEntry(name, val)}
-          style={{ width: "100%" }}
-        >
-          {valid.map((e) => (
-            <Option value={e} key={e}>
-              {e}
-            </Option>
-          ))}
-        </Select>
-      );
-      */
-      return (
-        <select
-          defaultValue={value}
-          disabled={disabled}
-          onChange={(event) => onChangeEntry(name, event.target.value)}
-          style={{ width: "100%" }}
-        >
-          {valid.map((e) => (
-            <option value={e} key={e}>
-              {e}
-            </option>
-          ))}
-        </select>
-      );
-    } else {
-      if (password) {
-        return (
-          <Input.Password
-            style={rowEntryStyle(value, valid)}
-            value={value}
-            visibilityToggle={true}
-            disabled={disabled}
-            onChange={(e) => onChangeEntry(name, e.target.value)}
-          />
-        );
-      } else {
-        if (multiline != null) {
-          const style = Object.assign(rowEntryStyle(value, valid), {
-            fontFamily: "monospace",
-            fontSize: "80%",
-          } as CSSProperties);
-          return (
-            <Input.TextArea
-              rows={4}
-              style={style}
-              value={value}
-              disabled={disabled}
-              onChange={(e) => onChangeEntry(name, e.target.value)}
-            />
-          );
-        } else {
-          return (
-            <Input
-              style={rowEntryStyle(value, valid)}
-              value={value}
-              disabled={disabled}
-              onChange={(e) => onChangeEntry(name, e.target.value)}
-              // allowClear always disabled; otherwise it's not possible to edit the value
-              allowClear={false}
-            />
-          );
-        }
-      }
-    }
-  }
-
-  function RowEntry({
-    name,
-    value,
-    password,
-    displayed_val,
-    valid,
-    hint,
-    rowType,
-    multiline,
-  }: {
-    name: string;
-    value: string;
-    password: boolean;
-    displayed_val?: string;
-    valid?: ConfigValid;
-    hint?;
-    rowType?: RowType;
-    multiline?: number;
-  }) {
-    if (isReadonly == null) return null; // typescript
-    function ReadOnly({ readonly }) {
-      if (readonly) {
-        return (
-          <>
-            Value controlled via{" "}
-            <code>
-              ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
-            </code>
-            .
-          </>
-        );
-      } else {
-        return null;
-      }
-    }
-    if (rowType == "header") {
-      return <div />;
-    } else {
-      switch (name) {
-        case "default_quotas":
-        case "max_upgrades":
-          const ro: boolean = isReadonly[name];
-          return (
-            <>
-              <JsonEntry name={name} data={value} readonly={ro} />
-              {ro && (
-                <>
-                  Value controlled via{" "}
-                  <code>
-                    ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
-                  </code>
-                  .
-                </>
-              )}
-            </>
-          );
-        default:
-          return (
-            <FormGroup>
-              <RowEntryInner
-                name={name}
-                value={value}
-                valid={valid}
-                password={password}
-                multiline={multiline}
-              />
-              <div style={{ fontSize: "90%", display: "inlineBlock" }}>
-                {name == "version_recommended_browser" && (
-                  <VersionHint value={value} />
-                )}
-
-                {hint}
-                <ReadOnly readonly={isReadonly[name]} />
-                {displayed_val != null && (
-                  <span>
-                    {" "}
-                    Interpreted as <code>{displayed_val}</code>.{" "}
-                  </span>
-                )}
-                {valid != null && Array.isArray(valid) && (
-                  <span>Valid values: {humanizeList(valid)}.</span>
-                )}
-              </div>
-            </FormGroup>
-          );
-      }
-    }
-  }
-
-  function DefaultRow({ name }) {
-    const conf: Config = site_settings_conf[name];
-    if (conf.cocalc_only) {
-      if (!document.location.host.endsWith("cocalc.com")) {
-        return null;
-      }
-    }
-    return <RenderRow name={name} conf={conf} />;
-  }
-
-  function ExtrasRow({ name }) {
-    const conf: Config = EXTRAS[name];
-    return <RenderRow name={name} conf={conf} />;
-  }
-
-  function RowHelp({ help }: { help?: string }) {
-    if (typeof help !== "string") return null;
-    return (
-      <Popover
-        content={
-          <StaticMarkdown
-            className={"admin-site-setting-popover-help"}
-            style={{ fontSize: "90%" }}
-            value={help}
-          />
-        }
-        trigger={["hover", "click"]}
-        placement="right"
-        overlayStyle={{ maxWidth: "500px" }}
-      >
-        <Icon style={{ color: COLORS.GRAY }} name="question-circle" />
-      </Popover>
-    );
-  }
-
-  function RenderRow({ name, conf }: { name: string; conf: Config }) {
-    if (edited == null) return null;
-    // don't show certain fields, i.e. where show evals to false
-    if (typeof conf.show == "function" && !conf.show(edited)) {
-      return null;
-    }
-    const rawValue = edited?.[name] ?? conf.default;
-    const rowType: RowType = conf.type ?? "setting";
-
-    // fallbacks: to_display? → to_val? → undefined
-    const parsed_value: string | undefined =
-      typeof conf.to_display == "function"
-        ? `${conf.to_display(rawValue)}`
-        : typeof conf.to_val == "function"
-        ? `${conf.to_val(rawValue, edited)}`
-        : undefined;
-
-    // not currently supported.
-    // const clearable = conf.clearable ?? false;
-
-    const label = (
-      <div style={{ paddingRight: "15px" }}>
-        <strong>{conf.name}</strong> <RowHelp help={conf.help} />
-        <br />
-        <StaticMarkdown style={{ fontSize: "90%" }} value={conf.desc} />
-      </div>
-    );
-
-    const hint = <RowHint conf={conf} rawValue={rawValue} />;
-
-    const style = { marginTop: "15px" } as CSSProperties;
-    // indent optional fields
-    if (typeof conf.show == "function" && rowType == "setting") {
-      Object.assign(style, {
-        borderLeft: `2px solid ${COLORS.GRAY}`,
-        marginLeft: "0px",
-        paddingLeft: "5px",
-        marginTop: "0px",
-      } as CSSProperties);
-    }
-
-    return (
-      <LabeledRow label={label} key={name} style={style}>
-        <RowEntry
-          name={name}
-          value={rawValue}
-          password={conf.password ?? false}
-          displayed_val={parsed_value}
-          valid={conf.valid}
-          hint={hint}
-          rowType={rowType}
-          multiline={conf.multiline}
-        />
-      </LabeledRow>
-    );
-  }
-
-  function EditorSiteSettings() {
-    return (
-      <>
-        {keys(site_settings_conf).map((name) => (
-          <DefaultRow key={name} name={name} />
-        ))}
-      </>
-    );
-  }
-
-  function EditorExtras() {
-    return (
-      <>
-        {keys(EXTRAS).map((name) => (
-          <ExtrasRow key={name} name={name} />
-        ))}
-      </>
-    );
   }
 
   function Buttons() {
@@ -669,33 +313,35 @@ export default function SiteSettings({}) {
     );
   }
 
-  function Main() {
-    switch (state) {
-      case "edit":
-        return (
-          <Well
-            style={{
-              margin: "auto",
-              maxWidth: "80%",
-            }}
-          >
-            <Warning />
-            <Buttons />
-            <EditorSiteSettings />
-            <EditorExtras />
-            <Space />
-            <Tests />
-            <Buttons />
-          </Well>
-        );
-      case "save":
-        return <div>Saving site configuration...</div>;
-      case "load":
-        return <div>Loading site configuration...</div>;
-      default:
-        return null;
-    }
-  }
+  const editRows = useMemo(() => {
+    if (state != "edit") return null;
+    return (
+      <>
+        {keys(site_settings_conf).map((name) => (
+          <RenderRow
+            key={name}
+            name={name}
+            conf={site_settings_conf[name]}
+            edited={edited}
+            isReadonly={isReadonly}
+            onChangeEntry={onChangeEntry}
+            onJsonEntryChange={onJsonEntryChange}
+          />
+        ))}
+        {keys(EXTRAS).map((name) => (
+          <RenderRow
+            key={name}
+            name={name}
+            conf={EXTRAS[name]}
+            edited={edited}
+            isReadonly={isReadonly}
+            onChangeEntry={onChangeEntry}
+            onJsonEntryChange={onJsonEntryChange}
+          />
+        ))}
+      </>
+    );
+  }, [state]);
 
   function Header() {
     return (
@@ -716,8 +362,377 @@ export default function SiteSettings({}) {
   return (
     <div>
       <Header />
-      <Error />
-      <Main />
+      {error && <ErrorDisplay error={error} onClose={() => setError("")} />}
+      {state == "edit" && (
+        <Well
+          style={{
+            margin: "auto",
+            maxWidth: "80%",
+          }}
+        >
+          <Warning />
+          <Buttons />
+          {editRows}
+          <Space />
+          <Tests />
+          <Buttons />
+        </Well>
+      )}
+      {state == "save" && <div>Saving site configuration...</div>}
+      {state == "load" && <div>Loading site configuration...</div>}
     </div>
+  );
+}
+
+function rowEntryStyle(value, valid?: ConfigValid): CSSProperties {
+  if (
+    (Array.isArray(valid) && !valid.includes(value)) ||
+    (typeof valid == "function" && !valid(value))
+  ) {
+    return { backgroundColor: "red", color: "white" };
+  }
+  return {};
+}
+
+function RowEntryInner({
+  name,
+  value,
+  valid,
+  password,
+  multiline,
+  onChangeEntry,
+  isReadonly,
+}) {
+  if (isReadonly == null) return null; // typescript
+  const disabled = isReadonly[name] == true;
+
+  if (Array.isArray(valid)) {
+    /* This antd code below is broken because something about
+         antd is broken.  Maybe it is a bug in antd.
+         Even the first official example in the antd
+         docs breaks for me!
+         See https://github.com/sagemathinc/cocalc/issues/4714
+         */
+    /*return
+        <Select
+          defaultValue={value}
+          onChange={(val) => onChangeEntry(name, val)}
+          style={{ width: "100%" }}
+        >
+          {valid.map((e) => (
+            <Option value={e} key={e}>
+              {e}
+            </Option>
+          ))}
+        </Select>
+      );
+      */
+    return (
+      <select
+        defaultValue={value}
+        disabled={disabled}
+        onChange={(event) => onChangeEntry(name, event.target.value)}
+        style={{ width: "100%" }}
+      >
+        {valid.map((e) => (
+          <option value={e} key={e}>
+            {e}
+          </option>
+        ))}
+      </select>
+    );
+  } else {
+    if (password) {
+      return (
+        <Input.Password
+          style={rowEntryStyle(value, valid)}
+          defaultValue={value}
+          visibilityToggle={true}
+          disabled={disabled}
+          onChange={(e) => onChangeEntry(name, e.target.value)}
+        />
+      );
+    } else {
+      if (multiline != null) {
+        const style = Object.assign(rowEntryStyle(value, valid), {
+          fontFamily: "monospace",
+          fontSize: "80%",
+        } as CSSProperties);
+        return (
+          <Input.TextArea
+            rows={4}
+            style={style}
+            defaultValue={value}
+            disabled={disabled}
+            onChange={(e) => onChangeEntry(name, e.target.value)}
+          />
+        );
+      } else {
+        return (
+          <Input
+            style={rowEntryStyle(value, valid)}
+            defaultValue={value}
+            disabled={disabled}
+            onChange={(e) => onChangeEntry(name, e.target.value)}
+            // allowClear always disabled; otherwise it's not possible to edit the value
+            allowClear={false}
+          />
+        );
+      }
+    }
+  }
+}
+
+function RowEntry({
+  name,
+  value,
+  password,
+  displayed_val,
+  valid,
+  hint,
+  rowType,
+  multiline,
+  isReadonly,
+  onJsonEntryChange,
+  onChangeEntry,
+}: {
+  name: string;
+  value: string;
+  password: boolean;
+  displayed_val?: string;
+  valid?: ConfigValid;
+  hint?;
+  rowType?: RowType;
+  multiline?: number;
+  isReadonly;
+  onJsonEntryChange;
+  onChangeEntry;
+}) {
+  if (isReadonly == null) return null; // typescript
+  function ReadOnly({ readonly }) {
+    if (readonly) {
+      return (
+        <>
+          Value controlled via{" "}
+          <code>
+            ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
+          </code>
+          .
+        </>
+      );
+    } else {
+      return null;
+    }
+  }
+  if (rowType == "header") {
+    return <div />;
+  } else {
+    switch (name) {
+      case "default_quotas":
+      case "max_upgrades":
+        const ro: boolean = isReadonly[name];
+        return (
+          <>
+            <JsonEntry
+              name={name}
+              data={value}
+              readonly={ro}
+              onJsonEntryChange={onJsonEntryChange}
+            />
+            {ro && (
+              <>
+                Value controlled via{" "}
+                <code>
+                  ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
+                </code>
+                .
+              </>
+            )}
+          </>
+        );
+      default:
+        return (
+          <FormGroup>
+            <RowEntryInner
+              name={name}
+              value={value}
+              valid={valid}
+              password={password}
+              multiline={multiline}
+              onChangeEntry={onChangeEntry}
+              isReadonly={isReadonly}
+            />
+            <div style={{ fontSize: "90%", display: "inlineBlock" }}>
+              {name == "version_recommended_browser" && (
+                <VersionHint value={value} />
+              )}
+
+              {hint}
+              <ReadOnly readonly={isReadonly[name]} />
+              {displayed_val != null && (
+                <span>
+                  {" "}
+                  Interpreted as <code>{displayed_val}</code>.{" "}
+                </span>
+              )}
+              {valid != null && Array.isArray(valid) && (
+                <span>Valid values: {humanizeList(valid)}.</span>
+              )}
+            </div>
+          </FormGroup>
+        );
+    }
+  }
+}
+
+function VersionHint({ value }: { value: string }) {
+  let error;
+  if (new Date(parseInt(value) * 1000) > new Date()) {
+    error = (
+      <div
+        style={{
+          background: "red",
+          color: "white",
+          margin: "15px",
+          padding: "15px",
+        }}
+      >
+        INVALID version - it is in the future!!
+      </div>
+    );
+  } else {
+    error = undefined;
+  }
+  return (
+    <div style={{ marginTop: "15px", color: "#666" }}>
+      Your browser version:{" "}
+      <CopyToClipBoard
+        style={{
+          display: "inline-block",
+          width: "50ex",
+          margin: 0,
+        }}
+        value={`${version}`}
+      />{" "}
+      {error}
+    </div>
+  );
+}
+
+// This is specific to on-premises kubernetes setups.
+// The production site works differently.
+// TODO: make this a more sophisticated data editor.
+function JsonEntry({ name, data, readonly, onJsonEntryChange }) {
+  const jval = JSON.parse(data ?? "{}") ?? {};
+  const dflt = FIELD_DEFAULTS[name];
+  const quotas = Object.assign({}, dflt, jval);
+  const value = JSON.stringify(quotas);
+  return (
+    <JsonEditor
+      value={value}
+      readonly={readonly}
+      rows={10}
+      onSave={(value) => onJsonEntryChange(name, value)}
+    />
+  );
+}
+
+function RenderRow({
+  name,
+  conf,
+  edited,
+  isReadonly,
+  onChangeEntry,
+  onJsonEntryChange,
+}) {
+  if (edited == null) return null;
+  if (conf.cocalc_only) {
+    if (!document.location.host.endsWith("cocalc.com")) {
+      return null;
+    }
+  }
+  // don't show certain fields, i.e. where show evals to false
+  if (typeof conf.show == "function" && !conf.show(edited)) {
+    return null;
+  }
+  const rawValue = edited?.[name] ?? conf.default;
+  const rowType: RowType = conf.type ?? "setting";
+
+  // fallbacks: to_display? → to_val? → undefined
+  const parsed_value: string | undefined =
+    typeof conf.to_display == "function"
+      ? `${conf.to_display(rawValue)}`
+      : typeof conf.to_val == "function"
+      ? `${conf.to_val(rawValue, edited)}`
+      : undefined;
+
+  // not currently supported.
+  // const clearable = conf.clearable ?? false;
+
+  const label = (
+    <div style={{ paddingRight: "15px" }}>
+      <strong>{conf.name}</strong> <RowHelp help={conf.help} />
+      <br />
+      <StaticMarkdown style={{ fontSize: "90%" }} value={conf.desc} />
+    </div>
+  );
+
+  const hint = <RowHint conf={conf} rawValue={rawValue} />;
+
+  const style = { marginTop: "15px" } as CSSProperties;
+  // indent optional fields
+  if (typeof conf.show == "function" && rowType == "setting") {
+    Object.assign(style, {
+      borderLeft: `2px solid ${COLORS.GRAY}`,
+      marginLeft: "0px",
+      paddingLeft: "5px",
+      marginTop: "0px",
+    } as CSSProperties);
+  }
+
+  return (
+    <LabeledRow label={label} key={name} style={style}>
+      <RowEntry
+        name={name}
+        value={rawValue}
+        password={conf.password ?? false}
+        displayed_val={parsed_value}
+        valid={conf.valid}
+        hint={hint}
+        rowType={rowType}
+        multiline={conf.multiline}
+        isReadonly={isReadonly}
+        onJsonEntryChange={onJsonEntryChange}
+        onChangeEntry={onChangeEntry}
+      />
+    </LabeledRow>
+  );
+}
+
+function RowHint({ conf, rawValue }: { conf: Config; rawValue: string }) {
+  if (typeof conf.hint == "function") {
+    return <Markdown value={conf.hint(rawValue)} />;
+  } else {
+    return null;
+  }
+}
+
+function RowHelp({ help }: { help?: string }) {
+  if (typeof help !== "string") return null;
+  return (
+    <Popover
+      content={
+        <StaticMarkdown
+          className={"admin-site-setting-popover-help"}
+          style={{ fontSize: "90%" }}
+          value={help}
+        />
+      }
+      trigger={["hover", "click"]}
+      placement="right"
+      overlayStyle={{ maxWidth: "500px" }}
+    >
+      <Icon style={{ color: COLORS.GRAY }} name="question-circle" />
+    </Popover>
   );
 }
