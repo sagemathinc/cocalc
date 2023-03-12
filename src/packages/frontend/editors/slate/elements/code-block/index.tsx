@@ -27,7 +27,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
       <CodeMirrorStatic
         value={element.value}
-        style={{ background: "#f7f7f7" }}
+        style={{ background: "white", padding:'15px' }}
         options={{ mode: infoToMode(element.info) }}
       />
     </div>
