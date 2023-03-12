@@ -5,12 +5,12 @@
 
 import { Loading } from "@cocalc/frontend/components";
 import { CSSProperties, useMemo, useRef, useState } from "react";
-import { Input, InputRef, Popover, Select } from "antd";
+import { Alert, Button, Input, InputRef, Popover, Select } from "antd";
 import humanizeList from "humanize-list";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { Button, FormGroup, Well } from "@cocalc/frontend/antd-bootstrap";
+import { FormGroup, Well } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
 import {
   CopyToClipBoard,
@@ -56,7 +56,9 @@ export default function SiteSettings({}) {
   const [state, setState] = useState<State>("view");
   const [error, setError] = useState<string>("");
   const [data, setData] = useState<Data | null>(null);
+  const [filter, setFilter] = useState<string>("");
   const editedRef = useRef<Data | null>(null);
+  const savedRef = useRef<Data | null>(null);
   const [isReadonly, setIsReadonly] = useState<{
     [name: string]: boolean;
   } | null>(null);
@@ -89,6 +91,7 @@ export default function SiteSettings({}) {
     setData(data);
     setIsReadonly(isReadonly);
     editedRef.current = deep_copy(data);
+    savedRef.current = deep_copy(data);
     setDisableTests(false);
   }
 
@@ -111,17 +114,19 @@ export default function SiteSettings({}) {
   }
 
   async function store(): Promise<void> {
-    if (data == null || editedRef.current == null) return;
+    if (data == null || editedRef.current == null || savedRef.current == null)
+      return;
     for (const name in editedRef.current) {
       const value = editedRef.current[name];
       if (isHeader[name]) continue;
-      if (!isEqual(value, data[name])) {
+      if (!isEqual(value, savedRef.current[name])) {
         try {
           await query({
             query: {
               site_settings: { name, value },
             },
           });
+          savedRef.current[name] = value;
         } catch (err) {
           setState("error");
           setError(err);
@@ -140,13 +145,14 @@ export default function SiteSettings({}) {
 
   function cancel(): void {
     setState("view");
+    setData(deep_copy(savedRef.current));
   }
 
   function SaveButton() {
-    if (data == null || editedRef.current == null) return null;
+    if (data == null || savedRef.current == null) return null;
     let disabled: boolean = true;
-    for (const name in editedRef.current) {
-      const value = editedRef.current[name];
+    for (const name in savedRef.current) {
+      const value = savedRef.current[name];
       if (!isEqual(value, data[name])) {
         disabled = false;
         break;
@@ -154,7 +160,7 @@ export default function SiteSettings({}) {
     }
 
     return (
-      <Button bsStyle="success" disabled={disabled} onClick={save}>
+      <Button type="primary" disabled={disabled} onClick={save}>
         {state == "save" ? <Loading text="Saving" /> : "Save"}
       </Button>
     );
@@ -260,7 +266,7 @@ export default function SiteSettings({}) {
         />
         <Button
           style={{ marginLeft: "10px" }}
-          bsSize={"small"}
+          size={"small"}
           disabled={disableTests}
           onClick={() => sendTestEmail("password_reset")}
         >
@@ -270,7 +276,7 @@ export default function SiteSettings({}) {
           // commented out since they aren't implemented
           // <Button
           //   disabled={disableTests}
-          //   bsSize={"small"}
+          //   size={"small"}
           //   onClick={() => sendTestEmail("verification")}
           // >
           //   Verify
@@ -279,14 +285,14 @@ export default function SiteSettings({}) {
         {
           // <Button
           //   disabled={disableTests}
-          //   bsSize={"small"}
+          //   size={"small"}
           //   onClick={() => sendTestEmail("invite_email")}
           // >
           //   Invite
           // </Button>
           // <Button
           //   disabled={disableTests}
-          //   bsSize={"small"}
+          //   size={"small"}
           //   onClick={() => sendTestEmail("mention")}
           // >
           //   @mention
@@ -298,22 +304,31 @@ export default function SiteSettings({}) {
 
   function Warning() {
     return (
-      <div
-        style={{
-          margin: " 15px 0",
-          background: "white",
-          padding: "15px",
-          border: "1px solid lightgrey",
-        }}
-      >
-        <b>Important:</b>{" "}
-        <i>
-          Most settings will take effect within 1 minute of saving them;
-          however, some might require restarting the server. If the box
-          containing a setting is red, that means the value that you entered is
-          invalid. Also, the form below are not very nice since it is not user
-          facing; we plan to implement a nicer interface someday.
-        </i>
+      <div>
+        <Alert
+          type="warning"
+          style={{
+            maxWidth: "800px",
+            margin: "0 auto 20px auto",
+            border: "1px solid lightgrey",
+          }}
+          message={
+            <div>
+              <i>
+                <ul style={{ marginBottom: 0 }}>
+                  <li>
+                    Most settings will take effect within 1 minute of save;
+                    however, some might require restarting the server.
+                  </li>
+                  <li>
+                    If the box containing a setting has a red border, that means
+                    the value that you entered is invalid.
+                  </li>
+                </ul>
+              </i>
+            </div>
+          }
+        />
       </div>
     );
   }
@@ -323,6 +338,7 @@ export default function SiteSettings({}) {
       <>
         {keys(site_settings_conf).map((name) => (
           <RenderRow
+            filter={filter}
             key={name}
             name={name}
             conf={site_settings_conf[name]}
@@ -335,6 +351,7 @@ export default function SiteSettings({}) {
         ))}
         {keys(EXTRAS).map((name) => (
           <RenderRow
+            filter={filter}
             key={name}
             name={name}
             conf={EXTRAS[name]}
@@ -347,7 +364,7 @@ export default function SiteSettings({}) {
         ))}
       </>
     );
-  }, [state, data]);
+  }, [state, data, filter]);
 
   function Header() {
     return (
@@ -392,11 +409,25 @@ export default function SiteSettings({}) {
         }}
       >
         <Warning />
+        <Input.Search
+          allowClear
+          value={filter}
+          style={{ float: "right", width: 400 }}
+          placeholder="Filter Site Settings..."
+          onChange={(e) => setFilter(e.target.value)}
+        />
         <Buttons />
         {editRows}
         <Space />
-        <Tests />
-        <Buttons />
+        {!filter.trim() && <Tests />}
+        {!filter.trim() && <Buttons />}
+        {filter.trim() && (
+          <Alert
+            showIcon
+            type="warning"
+            message={`Some items may be hidden by the filter.`}
+          />
+        )}
       </Well>
     </div>
   );
@@ -653,8 +684,15 @@ function RenderRow({
   isReadonly,
   onChangeEntry,
   onJsonEntryChange,
+  filter,
 }) {
   if (data == null) return null;
+  if (filter) {
+    // dumb
+    if (!JSON.stringify(conf).toLowerCase().includes(filter.toLowerCase())) {
+      return null;
+    }
+  }
   if (conf.cocalc_only) {
     if (!document.location.host.endsWith("cocalc.com")) {
       return null;
