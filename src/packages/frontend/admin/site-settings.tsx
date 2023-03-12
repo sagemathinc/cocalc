@@ -633,13 +633,13 @@ class SiteSettingsComponent extends Component<
       case "invite_email":
         alert_message({
           type: "error",
-          message: "Simulated invite emails are NYI",
+          message: "Simulated invite emails are not implemented yet",
         });
         break;
       case "mention":
         alert_message({
           type: "error",
-          message: "Simulated mention emails are NYI",
+          message: "Simulated mention emails are not implemented yet",
         });
         break;
       case "verification":
@@ -680,6 +680,7 @@ class SiteSettingsComponent extends Component<
           Send Test Forgot Password Email
         </Button>
         {
+          // commented out since they aren't implemented
           // <Button
           //   disabled={this.state.disable_tests}
           //   bsSize={"small"}

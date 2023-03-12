@@ -70,6 +70,7 @@ export type SiteSettingsExtrasKeys =
   | "email_smtp_password"
   | "email_smtp_port"
   | "email_smtp_secure"
+  | "openai_section"
   | "openai_api_key"
   | "password_reset_override"
   | "password_reset_smtp_server"
@@ -203,9 +204,16 @@ export const EXTRAS: SettingsExtras = {
     password: true,
     show: () => true,
   },
+  openai_section: {
+    name: "OpenAI Configuration",
+    desc: "",
+    default: "",
+    show: only_commercial,
+    type: "header",
+  },
   openai_api_key: {
-    name: "OpenAI API Key (ChatGPT, etc.)",
-    desc: "Your OpenAI API Key.  Enter this to enable additional functionality across CoCalc that uses OpenAI's API.",
+    name: "OpenAI API Key",
+    desc: "Your OpenAI API Key from https://platform.openai.com/account/api-keys.  This key is needed to support functionality that uses OpenAI's API.",
     default: "",
     password: true,
     show: () => true,

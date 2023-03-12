@@ -517,8 +517,8 @@ export const site_settings_conf: SiteSettings = {
     default: "",
   },
   openai_enabled: {
-    name: "Enable OpenAI ChatGPT integration",
-    desc: "Controls visibility of UI elements related to ChatGPT integration.  You must also set an OpenAI API key for any of this to work.",
+    name: "OpenAI ChatGPT UI",
+    desc: "Controls visibility of UI elements related to ChatGPT integration.  You must *also* set an OpenAI API key below this functionality to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
