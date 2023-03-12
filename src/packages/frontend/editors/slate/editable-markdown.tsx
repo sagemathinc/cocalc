@@ -257,6 +257,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     actions._syncstring.on("before-change", beforeChange);
     actions._syncstring.on("change", change);
     return () => {
+      if (actions._syncstring == null) {
+        // This can be null if doc closed before unmounting.  I hit a crash because of this in production.
+        return;
+      }
       actions._syncstring.removeListener("before-change", beforeChange);
       actions._syncstring.removeListener("change", change);
     };
