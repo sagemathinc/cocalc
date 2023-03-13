@@ -60,8 +60,10 @@ export function Line(props: Line) {
     unit = "G";
   } else if (desc?.includes("CPU")) {
     unit = amount == 1 ? "core" : "cores";
-  } else if (desc?.includes("Projects")) {
-    unit = "simultaneous running";
+  } else if (desc == "Projects") {
+    unit = "simultaneously running";
+  } else if (desc?.includes("Overcommit")) {
+    unit = "x";
   }
   return (
     <div>

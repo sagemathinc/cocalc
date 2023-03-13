@@ -1,7 +1,8 @@
 import { Layout } from "antd";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
+
 import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import Create from "components/support/create";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";

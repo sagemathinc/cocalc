@@ -33,7 +33,7 @@ import { log_opened_time, open_file, log_file_open } from "./project/open-file";
 import * as project_file from "./project-file";
 import { get_editor } from "./editors/react-wrapper";
 import * as misc from "@cocalc/util/misc";
-const { MARKERS } = require("@cocalc/util/sagews");
+import { MARKERS } from "@cocalc/util/sagews";
 import { alert_message } from "./alerts";
 import { webapp_client } from "./webapp-client";
 const { defaults, required } = misc;
@@ -51,6 +51,9 @@ import { IconName } from "./components";
 import { default_filename } from "./account";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { FixedTab } from "./project/page/file-tab";
+import { init as initChat } from "@cocalc/frontend/chat/register";
+import { local_storage } from "./editor-local-storage";
+import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -532,6 +535,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             if (fragmentId) {
               this.gotoFragment(path, fragmentId);
             }
+            if (this.open_files.get(path, "chatState") == "pending") {
+              this.open_chat({ path });
+            }
           })();
         } else {
           this.show_file(path);
@@ -951,34 +957,59 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Used by open/close chat below.
-  private set_chat_state(path: string, is_chat_open: boolean): void {
+  private set_chat_state(path: string, chatState: ChatState): void {
     if (this.open_files == null) return;
-    this.open_files.set(path, "is_chat_open", is_chat_open);
+    this.open_files.set(path, "chatState", chatState);
   }
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
-  open_chat(opts) {
-    opts = defaults(opts, { path: required });
-    // First create the chat actions:
-    require("./chat/register").init(
-      misc.meta_file(opts.path, "chat"),
-      this.redux,
-      this.project_id
-    );
-    const { local_storage } = require("./editor");
-    local_storage(this.project_id, opts.path, "is_chat_open", true);
-    // Only then set state to say that the chat is opened!
-    // Otherwise when the opened chat is rendered actions is
-    // randomly not defined, and things break.
-    this.set_chat_state(opts.path, true);
+  open_chat({ path }: { path: string }): void {
+    const info = this.get_store()?.get("open_files").getIn([path, "component"]);
+    if (info?.Editor == null) {
+      // not opened in the foreground yet.
+      this.set_chat_state(path, "pending");
+      return;
+    }
+    // only not null for modern editors.
+    const editorActions = redux.getEditorActions(this.project_id, path);
+    if (editorActions?.["show_focused_frame_of_type"] != null) {
+      // @ts-ignore -- todo will go away when everything is a frame editor
+      editorActions.show_focused_frame_of_type("chat", "col", false, 0.7);
+      this.set_chat_state(path, "internal");
+      local_storage(this.project_id, path, "chatState", "internal");
+    } else {
+      // First create the chat actions:
+      initChat(this.project_id, misc.meta_file(path, "chat"));
+      local_storage(this.project_id, path, "chatState", "external");
+      // Only then set state to say that the chat is opened!
+      // Otherwise when the opened chat is rendered actions is
+      // randomly not defined, and things break.
+      this.set_chat_state(path, "external");
+    }
   }
 
   // Close side chat for the given file, assuming the file itself is open
-  close_chat(opts) {
-    opts = defaults(opts, { path: required });
-    const { local_storage } = require("./editor");
-    local_storage(this.project_id, opts.path, "is_chat_open", false);
-    this.set_chat_state(opts.path, false);
+  // NOTE: for frame tree if there are no chat frames, this instead opens
+  // a chat frame.
+  close_chat({ path }: { path: string }): void {
+    const editorActions = redux.getEditorActions(this.project_id, path);
+    if (editorActions?.["close_recently_focused_frame_of_type"] != null) {
+      let n = 0;
+      // @ts-ignore -- todo will go away when everything is a frame editor
+      while (editorActions.close_recently_focused_frame_of_type("chat")) {
+        n += 1;
+      }
+      if (n == 0) {
+        // nothing actually closed - so we open
+        // TODO: This is just a workaround until we only use frame editors.
+        this.open_chat({ path });
+        return;
+      }
+      this.set_chat_state(path, "");
+    } else {
+      this.set_chat_state(path, "");
+    }
+    local_storage(this.project_id, path, "chatState", "");
   }
 
   set_chat_width(opts): void {
@@ -994,7 +1025,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (open_files != null) {
       if (this.open_files == null) return;
       const width = misc.ensure_bound(opts.width, 0.05, 0.95);
-      const { local_storage } = require("./editor");
       local_storage(this.project_id, opts.path, "chat_width", width);
       this.open_files.set(opts.path, "chat_width", width);
     }

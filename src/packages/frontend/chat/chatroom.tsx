@@ -33,8 +33,8 @@ import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-butto
 import { sanitize_html_safe } from "@cocalc/frontend/misc";
 import { history_path } from "@cocalc/util/misc";
 import { ChatLog } from "./chat-log";
-import { ChatInput } from "./input";
-import { INPUT_HEIGHT, mark_chat_as_read_if_unseen } from "./utils";
+import ChatInput from "./input";
+import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
 
 const PREVIEW_STYLE: React.CSSProperties = {
@@ -103,7 +103,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }, []);
 
   function mark_as_read() {
-    mark_chat_as_read_if_unseen(project_id, path);
+    markChatAsReadIfUnseen(project_id, path);
   }
 
   function on_send_button_click(e): void {
@@ -247,8 +247,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
       <VideoChatButton
         project_id={project_id}
         path={path}
-        button={true}
-        label={"Video"}
         sendChat={(value) => actions.send_chat(value)}
       />
     );
@@ -349,6 +347,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               }}
               submitMentionsRef={submitMentionsRef}
               syncdb={actions.syncdb}
+              date={0}
               editBarStyle={{ overflow: "auto" }}
             />
           </div>

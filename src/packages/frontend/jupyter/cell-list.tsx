@@ -60,7 +60,10 @@ const EXTRA_BOTTOM_CELLS = 1;
 // of why this.  It's the best I could come up with that was very simple
 // to understand and a mix of other options.
 const BOTTOM_PADDING_CELL = (
-  <div style={{ height: "50vh", minHeight: "400px" }}></div>
+  <div
+    key="bottom-padding"
+    style={{ height: "50vh", minHeight: "400px" }}
+  ></div>
 );
 
 const ITEM_STYLE: CSS = {
@@ -404,7 +407,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       index = cell_list.indexOf(id) ?? 0;
     }
     return (
-      <div>
+      <div key={id}>
         {actions?.store.is_cell_editable(id) && (
           <div style={{ position: "relative", zIndex: 1 }}>
             <DragHandle
@@ -419,7 +422,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           </div>
         )}
         <Cell
-          key={id}
           id={id}
           index={index}
           actions={actions}
@@ -590,13 +592,13 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           itemContent={(index) => {
             if (index == 0) {
               return (
-                <div ref={iframeDivRef} style={ITEM_STYLE}>
+                <div key="iframes" ref={iframeDivRef} style={ITEM_STYLE}>
                   iframes here
                 </div>
               );
             } else if (index == 1) {
               return (
-                <div ref={iframeDivRef} style={ITEM_STYLE}>
+                <div key="styles" ref={iframeDivRef} style={ITEM_STYLE}>
                   <style>{allStyles}</style>
                 </div>
               );
@@ -607,8 +609,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             if (id == null) return null;
             const is_last: boolean = id === cell_list.get(-1);
             const h = virtuosoHeightsRef.current[index];
+            if (actions == null) {
+              return render_cell(id, false, index - EXTRA_TOP_CELLS);
+            }
             return (
-              <SortableItem id={id}>
+              <SortableItem id={id} key={id}>
                 <DivTempHeight height={h ? `${h}px` : undefined}>
                   {render_insert_cell(id, "above")}
                   {render_cell(id, false, index - EXTRA_TOP_CELLS)}
@@ -632,7 +637,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     let index: number = 0;
     cell_list.forEach((id: string) => {
       v.push(
-        <SortableItem id={id}>
+        <SortableItem id={id} key={id}>
           {actions != null && render_insert_cell(id)}
           {render_cell(id, false, index, index)}
         </SortableItem>
@@ -669,10 +674,9 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     );
   }
 
-  return (
-    <FileContext.Provider
-      value={{ ...fileContext, noSanitize: !!trust, HeadingTagComponent }}
-    >
+  if (actions != null) {
+    // only make sortable if not read only.
+    body = (
       <SortableList
         disabled={actions == null}
         items={cell_list.toJS()}
@@ -699,6 +703,14 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       >
         {body}
       </SortableList>
+    );
+  }
+
+  return (
+    <FileContext.Provider
+      value={{ ...fileContext, noSanitize: !!trust, HeadingTagComponent }}
+    >
+      {body}
     </FileContext.Provider>
   );
 };

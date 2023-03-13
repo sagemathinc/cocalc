@@ -60,6 +60,19 @@ const dataSource: DataSource = [
     ),
   },
   {
+    link: "/pricing/institutions",
+    title: "Institutions",
+    logo: "home",
+    description: (
+      <>
+        What to purchase when{" "}
+        <A href="/pricing/institutions">
+          <b>using CoCalc in an institution.</b>
+        </A>
+      </>
+    ),
+  },
+  {
     link: "/pricing/dedicated",
     title: "Dedicated Resources",
     logo: "server",
@@ -90,7 +103,10 @@ const dataSource: DataSource = [
     title: "Vouchers",
     logo: "gift",
     description: (
-      <>Vouchers are a convenient way to <A href="/vouchers">share and resell licenses</A>.</>
+      <>
+        Vouchers are a convenient way to{" "}
+        <A href="/vouchers">share and resell licenses</A>.
+      </>
     ),
   },
 ];

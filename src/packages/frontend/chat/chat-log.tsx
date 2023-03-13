@@ -95,6 +95,7 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
 
     const virtuosoScroll = useVirtuosoScrollHook({
       cacheId: `${project_id}${path}`,
+      initialState: { index: messages.size - 1, offset: 0 }, // starts scrolled to the newest message.
     });
 
     // Given the date of the message as an ISO string, return rendered version.
@@ -150,8 +151,15 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
       const v: JSX.Element[] = [];
       const cutoff = new Date().valueOf() - 1000 * 30; // 30s
       for (const [sender_id] of drafts) {
-        if (account_id == sender_id) continue;
+        if (account_id == sender_id) {
+          // this is us
+          continue;
+        }
         const record = drafts.get(sender_id);
+        if (record.get("date") != 0) {
+          // editing an already sent message, rather than composing a new one.  This is indicated elsewhere (at that message).
+          continue;
+        }
         if (record.get("active") < cutoff || !record.get("input").trim()) {
           continue;
         }
@@ -266,6 +274,7 @@ export function get_sorted_dates(messages, search) {
 }
 
 export function get_user_name(user_map, account_id: string): string {
+  if (account_id == "chatgpt") return "ChatGPT";
   if (user_map == null) return "Unknown";
   const account = user_map.get(account_id);
   if (account == null) return "Unknown";

@@ -199,9 +199,10 @@ function dedicated(): JSX.Element {
 }
 
 export default function Subscriptions({ customize }) {
+  const { siteName } = customize;
   return (
     <Customize value={customize}>
-      <Head title="Subscriptions" />
+      <Head title={`${siteName} – Pricing – Subscriptions`} />
       <Layout>
         <Header page="pricing" subPage="subscriptions" />
         <Layout.Content
@@ -227,7 +228,7 @@ function Body(): JSX.Element {
         backgroundColor: "white",
       }}
     >
-      <Title level={1}>
+      <Title level={1} style={{ textAlign: "center" }}>
         <Icon name="calendar" style={{ marginRight: "30px" }} /> CoCalc -
         Subscriptions
       </Title>

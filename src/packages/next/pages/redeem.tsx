@@ -19,6 +19,9 @@ import apiPost from "lib/api/post";
 import useIsMounted from "lib/hooks/mounted";
 import Loading from "components/share/loading";
 import Project from "components/project/link";
+import { plural } from "@cocalc/util/misc";
+import License from "components/licenses/license";
+import { r_join } from "@cocalc/frontend/components/r_join";
 
 type State = "input" | "redeeming" | "redeemed";
 
@@ -30,6 +33,7 @@ export default function Redeem({ customize }) {
   const profile = useProfile({ noCache: true });
   const [signedIn, setSignedIn] = useState<boolean>(!!profile?.account_id);
   const router = useRouter();
+  const [licenseIds, setLicenseIds] = useState<string[] | null>(null);
 
   // optional project_id to automatically apply all the licenses we get on redeeming the voucher
   const { project_id } = router.query;
@@ -40,8 +44,12 @@ export default function Redeem({ customize }) {
       setState("redeeming");
       // This api call tells the backend, "create requested vouchers from everything in my
       // shopping cart that is not a subscription."
-      await apiPost("/vouchers/redeem", { code: code.trim(), project_id });
+      const { license_ids } = await apiPost("/vouchers/redeem", {
+        code: code.trim(),
+        project_id,
+      });
       if (!isMounted.current) return;
+      setLicenseIds(license_ids);
       // success!
       setState("redeemed");
     } catch (err) {
@@ -143,27 +151,45 @@ export default function Redeem({ customize }) {
                         <div style={{ maxWidth: "340px" }}>
                           {state == "input" && (
                             <>
-                              The voucher will be applied to your project{" "}
-                              <Project project_id={project_id} /> automatically.
+                              The license provided by this voucher will be
+                              automatically applied to your project{" "}
+                              <Project project_id={project_id} />.
                             </>
                           )}
                           {state == "redeeming" && (
                             <>
-                              Redeeming the voucher and applying it to your
-                              project <Project project_id={project_id} />
+                              Redeeming the voucher and applying the license it
+                              to your project{" "}
+                              <Project project_id={project_id} />
                               ...
                             </>
                           )}
-                          {state == "redeemed" && (
+                          {state == "redeemed" && licenseIds != null && (
                             <>
-                              The voucher was applied to your project{" "}
-                              <Project project_id={project_id} />.
+                              <p>
+                                The {licenseIds.length}{" "}
+                                {plural(licenseIds?.length ?? 0, "license")}{" "}
+                                provided by this voucher were applied to your
+                                project <Project project_id={project_id} />.
+                              </p>
+                              <p>
+                                The voucher provided the following{" "}
+                                {plural(licenseIds?.length ?? 0, "license")}:{" "}
+                                {r_join(
+                                  licenseIds.map((license_id) => (
+                                    <License
+                                      key={license_id}
+                                      license_id={license_id}
+                                    />
+                                  ))
+                                )}
+                              </p>
                             </>
                           )}
                         </div>
                       }
                     />
-                  )}{" "}
+                  )}
                   {state == "redeemed" && (
                     <div style={{ textAlign: "center", marginTop: "15px" }}>
                       <Button
@@ -171,6 +197,7 @@ export default function Redeem({ customize }) {
                           setState("input");
                           setCode("");
                           setError("");
+                          setLicenseIds(null);
                         }}
                       >
                         Redeem Another Voucher
@@ -178,33 +205,56 @@ export default function Redeem({ customize }) {
                     </div>
                   )}
                   <Divider orientation="left" style={{ width: "400px" }}>
-                    Vouchers
+                    <A href="https://doc.cocalc.com/vouchers.html">
+                      <Icon name="medkit" /> Vouchers
+                    </A>
                   </Divider>
                   <div
                     style={{
                       color: "#666",
-                      maxWidth: "400px",
+                      maxWidth: "450px",
                     }}
                   >
-                    When you redeem a voucher, one or more{" "}
-                    <A href="https://doc.cocalc.com/licenses.html">licenses</A>{" "}
-                    will be added to your account
-                    {profile?.email_address != null ? (
-                      <A href="/config/account/email">{` ${profile?.email_address}`}</A>
-                    ) : (
-                      ""
-                    )}
-                    . You can use <A href="/licenses/managed">licenses</A> to{" "}
-                    <A href="https://doc.cocalc.com/add-lic-project.html">
-                      upgrade your projects
-                    </A>
-                    , and browse{" "}
-                    <A href="/vouchers/redeemed">
-                      all vouchers you have redeemed
-                    </A>
-                    . If you have any questions,{" "}
-                    <A href="/support">contact support</A> or visit{" "}
-                    <A href="/vouchers">the Voucher Center</A>.
+                    <p>
+                      When you redeem a voucher code, one or more{" "}
+                      <A href="https://doc.cocalc.com/licenses.html">
+                        licenses
+                      </A>{" "}
+                      will be added to your account
+                      {profile?.email_address != null ? (
+                        <A href="/config/account/email">{` ${profile?.email_address}`}</A>
+                      ) : (
+                        ""
+                      )}
+                      . Once you redeem a voucher code, you can use the
+                      corresponding <A href="/licenses/managed">licenses</A> to{" "}
+                      <A href="https://doc.cocalc.com/add-lic-project.html">
+                        upgrade your projects.
+                      </A>
+                    </p>
+                    <p>
+                      You can browse{" "}
+                      <A href="/vouchers/redeemed">
+                        all vouchers you have already redeemed.
+                      </A>{" "}
+                      If in a project's settings you click "Redeem Voucher" and
+                      enter a voucher code you already redeemed, then the
+                      corresponding licenses will get added to that project.
+                    </p>
+                    <p>
+                      If you have any questions,{" "}
+                      <A href="/support">contact support</A>, or{" "}
+                      <A href="https://doc.cocalc.com/vouchers.html">
+                        read the docs
+                      </A>
+                      .
+                    </p>
+
+                    <div style={{ textAlign: "center" }}>
+                      <A href="/vouchers">
+                        <b>The Voucher Center</b>
+                      </A>
+                    </div>
                   </div>
                 </Space>
               </Card>

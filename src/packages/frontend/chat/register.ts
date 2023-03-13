@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { redux } from "@cocalc/frontend/app-framework";
 import { redux_name } from "../app-framework";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";
@@ -12,7 +13,8 @@ import { ChatStore } from "./store";
 import { ChatActions } from "./actions";
 import { ChatRoom } from "./chatroom";
 
-export function init(path: string, redux, project_id: string): string {
+// it is fine to call this more than once.
+export function init(project_id: string, path: string): string {
   const name = redux_name(project_id, path);
   if (redux.getActions(name) != null) {
     return name; // already initialized
@@ -41,8 +43,7 @@ export function init(path: string, redux, project_id: string): string {
   });
 
   syncdb.once("ready", () => {
-    actions.set_syncdb(syncdb);
-    actions.store = store;
+    actions.set_syncdb(syncdb, store);
     actions.init_from_syncdb();
     syncdb.on("change", actions.syncdb_change.bind(actions));
     syncdb.on("has-uncommitted-changes", (val) =>
@@ -76,7 +77,7 @@ export function remove(path: string, redux, project_id: string): string {
 register_file_editor({
   ext: "sage-chat",
   icon: "comment",
-  init,
+  init: (path, _redux, project_id) => init(project_id ?? "", path), // this has a weird call signature, for historical reasons.
   component: ChatRoom,
   remove,
 });

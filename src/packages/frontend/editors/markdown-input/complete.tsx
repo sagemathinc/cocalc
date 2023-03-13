@@ -133,7 +133,7 @@ export const Complete: FC<Props> = (props: Props) => {
       <Dropdown
         menu={menu}
         open
-        placement="topRight" // always on top, and paddingBottom makes the entire line visible
+        placement="top" // always on top, and paddingBottom makes the entire line visible
         overlayStyle={{ paddingBottom: "1em" }}
       >
         <span />

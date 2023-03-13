@@ -100,6 +100,9 @@ export default function Home(props: Props) {
                 <A href={"/billing"} style={topLinkStyle}>
                   Billing
                 </A>{" "}
+                <A href={"/vouchers"} style={topLinkStyle}>
+                  Vouchers
+                </A>{" "}
               </>
             )}
           <A href={join(basePath, "projects")} external style={topLinkStyle}>

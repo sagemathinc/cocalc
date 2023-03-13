@@ -114,6 +114,11 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   }
 
   function render_cell_output(cell: Map<string, any>): Rendered {
+    if (props.cell.get("cell_type") == "markdown") {
+      // markdown doesn't ever display output -- see
+      // https://github.com/sagemathinc/cocalc/issues/6506
+      return;
+    }
     return (
       <CellOutput
         key="out"

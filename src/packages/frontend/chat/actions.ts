@@ -19,13 +19,13 @@ import { getSelectedHashtagsSearch } from "./utils";
 import { parse_hashtags } from "@cocalc/util/misc";
 import { open_new_tab } from "@cocalc/frontend/misc";
 
-
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
   private store?: ChatStore;
 
-  public set_syncdb(syncdb: SyncDB): void {
+  public set_syncdb(syncdb: SyncDB, store: ChatStore): void {
     this.syncdb = syncdb;
+    this.store = store;
   }
 
   public close(): void {
@@ -128,7 +128,8 @@ export class ChatActions extends Actions<ChatState> {
     });
   }
 
-  public send_chat(input?: string): void {
+  // second parameter used for sending a message by chatgpt (managed by the frontend)
+  public send_chat(input?: string, sender_id?: string): void {
     if (this.syncdb == null || this.store == null) {
       // WARNING: give an error or try again later?
       return;
@@ -141,27 +142,17 @@ export class ChatActions extends Actions<ChatState> {
       // do not send while uploading or there is nothing to send.
       return;
     }
-    const sender_id = this.redux.getStore("account").get_account_id();
+    if (sender_id == null) {
+      sender_id = this.redux.getStore("account").get_account_id();
+    }
     const time_stamp = webapp_client.server_time().toISOString();
-    this.syncdb.set({
-      event: "draft",
-      sender_id,
-      input,
-      date: 0,
-    });
-    this.syncdb.commit();
     this.syncdb.set({
       sender_id,
       event: "chat",
       history: [{ author_id: sender_id, content: input, date: time_stamp }],
       date: time_stamp,
     });
-    this.syncdb.set({
-      event: "draft",
-      sender_id,
-      input: "",
-      date: 0,
-    });
+    this.delete_draft(0);
     // NOTE: we also clear search, since it's confusing to send a message and not
     // even see it (if it doesn't match search).  We do NOT clear the hashtags though,
     // since by default the message you are sending has those tags.
@@ -227,7 +218,20 @@ export class ChatActions extends Actions<ChatState> {
       editing: message.get("editing").set(author_id, null).toJS(),
       date: message.get("date").toISOString(),
     });
+    this.delete_draft(message.get("date")?.valueOf());
     this.save_to_disk();
+  }
+
+  public delete_draft(date: number, commit: boolean = true) {
+    if (!this.syncdb) return;
+    this.syncdb.delete({
+      event: "draft",
+      sender_id: this.redux.getStore("account").get_account_id(),
+      date,
+    });
+    if (commit) {
+      this.syncdb.commit();
+    }
   }
 
   // Make sure everything saved to DISK.
@@ -337,6 +341,7 @@ export class ChatActions extends Actions<ChatState> {
     const sender_id = this.redux.getStore("account").get_account_id();
     this.syncdb.set({
       event: "draft",
+      active: new Date().valueOf(),
       sender_id,
       input,
       date: 0,
@@ -347,6 +352,13 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   help() {
-        open_new_tab("https://doc.cocalc.com/chat.html");
+    open_new_tab("https://doc.cocalc.com/chat.html");
+  }
+
+  undo() {
+    this.syncdb?.undo();
+  }
+  redo() {
+    this.syncdb?.redo();
   }
 }

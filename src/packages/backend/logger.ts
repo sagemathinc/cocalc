@@ -51,11 +51,11 @@ function defaultTransports(): { console?: boolean; file?: string } {
 
 function initTransports() {
   if (!process.env.DEBUG) {
-    // if DEBUG isn't set then the debug logger will be silent anyways.
+    console.log("DEBUG is not set, so not setting up debug logging transport");
     return;
   }
   const transports = defaultTransports();
-  if (process.env.DEBUG_CONSOLE != null) {
+  if (process.env.DEBUG_CONSOLE) {
     transports.console =
       process.env.DEBUG_CONSOLE != "no" && process.env.DEBUG_CONSOLE != "false";
   }
@@ -77,7 +77,7 @@ function initTransports() {
     if (firstLog && transports.file) {
       console.error(
         `***\n\nLogging to "${transports.file}"${
-          transports.console ? " and console.error" : ""
+          transports.console ? " and console.log" : ""
         } via the debug module\nwith  DEBUG='${
           process.env.DEBUG
         }'.\nUse   DEBUG_FILE='path' and DEBUG_CONSOLE=[yes|no] to override.\nUsing DEBUG='cocalc:*,-cocalc:silly:*' to control log levels.\n\n***`
@@ -91,7 +91,7 @@ function initTransports() {
 
     if (transports.console) {
       // the console transport:
-      console.error(line);
+      console.log(line);
     }
     if (transports.file) {
       // the file transport

@@ -28,7 +28,21 @@ export default async function redeemVoucher({
   if (voucherCode.when_redeemed != null) {
     log.debug(code, "already redeemed");
     if (voucherCode.redeemed_by == account_id) {
-      throw Error(`You already reemed voucher '${code}'.`);
+      if (!project_id) {
+        throw Error(`You already redeem the voucher '${code}'.`);
+      }
+      // In this case, we apply the licenses coming from the voucher to the current project.
+      // This is a nice convenience for the user and doesn't do any harm.
+      const { license_ids } = voucherCode;
+      if (license_ids == null) {
+        // this should be impossible, since license_ids should always be
+        // set if the code was redeemed.
+        throw Error(
+          `There is something wrong with voucher ${code}. Please contact support.`
+        );
+      }
+      await applyLicensesToProject({ account_id, project_id, license_ids });
+      return license_ids;
     } else {
       throw Error(`Voucher '${code}' was already redeemed by somebody else.`);
     }
@@ -93,7 +107,18 @@ export default async function redeemVoucher({
   // set voucher as redeemed for the license_ids in the voucher_code,
   // (so we know what licenses were created).
   await redeemVoucherCode({ code, account_id, license_ids });
+  await applyLicensesToProject({ account_id, project_id, license_ids });
+  return license_ids;
+}
 
+// applies the licenses assuming that project_id is defined, is a valid
+// project_id and that account_id is a collab on it. Otherwise this is a no op,
+// which is fine since this is used entirely as a convenience for users.
+async function applyLicensesToProject({
+  account_id,
+  project_id,
+  license_ids,
+}): Promise<void> {
   if (
     project_id != null &&
     (await isCollaborator({ account_id, project_id })) &&
@@ -105,6 +130,4 @@ export default async function redeemVoucher({
     }
     restartProjectIfRunning(project_id); // don't wait, obviously.
   }
-
-  return license_ids;
 }

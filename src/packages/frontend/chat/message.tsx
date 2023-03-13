@@ -25,7 +25,7 @@ import { Button } from "antd";
 import { Row, Col } from "antd";
 import { get_user_name } from "./chat-log";
 import { HistoryTitle, HistoryFooter, History } from "./history";
-import { ChatInput } from "./input";
+import ChatInput from "./input";
 import { ChatActions } from "./actions";
 import { Time } from "./time";
 import { Name } from "./name";
@@ -118,9 +118,14 @@ export default function Message(props: Props) {
     if (is_editing) {
       if (other_editors.size === 1) {
         // This user and someone else is also editing
-        text = `${props.get_user_name(
-          other_editors.first()
-        )} is also editing this!`;
+        text = (
+          <>
+            {`WARNING: ${props.get_user_name(
+              other_editors.first()
+            )} is also editing this! `}
+            <b>Simultaneous editing of messages is not supported.</b>
+          </>
+        );
       } else if (other_editors.size > 1) {
         // Multiple other editors
         text = `${other_editors.size} other users are also editing this!`;
@@ -193,7 +198,7 @@ export default function Message(props: Props) {
       props.path == null ||
       props.actions == null
     ) {
-      // no editing functionality of not in a project with a path.
+      // no editing functionality or not in a project with a path.
       return;
     }
     props.actions.set_editing(props.message, true);
@@ -201,7 +206,7 @@ export default function Message(props: Props) {
   }
 
   function avatar_column() {
-    let account = props.user_map?.get(props.message.get("sender_id"))?.toJS?.();
+    const sender_id = props.message.get("sender_id");
     let style: CSSProperties = {};
     if (!props.is_prev_sender) {
       style.marginTop = "22px";
@@ -215,8 +220,8 @@ export default function Message(props: Props) {
     return (
       <Col key={0} xs={4}>
         <div style={style}>
-          {account != null && props.show_avatar ? (
-            <Avatar size={40} account_id={account.account_id} />
+          {sender_id != null && props.show_avatar ? (
+            <Avatar size={40} account_id={sender_id} />
           ) : undefined}
         </div>
       </Col>
@@ -303,7 +308,7 @@ export default function Message(props: Props) {
               }
             />
           )}
-          {isEditing && render_input()}
+          {isEditing && renderEditMessage()}
           <span>
             {props.message.get("history").size > 1 ||
             props.message.get("editing").size > 0
@@ -344,11 +349,15 @@ export default function Message(props: Props) {
     set_edited_message(newest_content(props.message));
     if (props.actions == null) return;
     props.actions.set_editing(props.message, false);
+    props.actions.delete_draft(props.message?.get("date")?.valueOf() ?? 0);
   }
 
-  // All the render methods
-  function render_input() {
-    if (props.project_id == null || props.path == null) {
+  function renderEditMessage() {
+    if (
+      props.project_id == null ||
+      props.path == null ||
+      props.actions?.syncdb == null
+    ) {
       // should never get into this position
       // when null.
       return;
@@ -358,10 +367,12 @@ export default function Message(props: Props) {
         cacheId={`${props.path}${props.project_id}${props.message
           ?.get("date")
           ?.valueOf()}`}
-        input={edited_message}
+        input={newest_content(props.message)}
         submitMentionsRef={submitMentionsRef}
         on_send={on_send}
         height={"auto"}
+        syncdb={props.actions.syncdb}
+        date={props.message?.get("date")?.valueOf() ?? 0}
         onChange={(value) => {
           edited_message_ref.current = value;
         }}

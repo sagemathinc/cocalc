@@ -196,7 +196,8 @@
     "build": "rm -rf dist && NODE_OPTIONS=--max-old-space-size=8192 tsc && coffee  -m -c -o dist/ .",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput ",
     "test": "npx jest dist/",
-    "prepublishOnly": "pnpm test"
+    "prepublishOnly": "pnpm test",
+    "update-color-scheme": "node ./update-color-scheme.js"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "repository": {

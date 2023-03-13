@@ -219,7 +219,7 @@ export default function Focused({
         </Tooltip>
       </Draggable>
     );
-  }, [element.rotate, canvasScale, selectedElements.length, multi]);
+  }, [locked, element.rotate, canvasScale, selectedElements.length, multi]);
 
   const moveHandle =
     multi || locked || readOnly ? null : (

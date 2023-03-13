@@ -23,6 +23,7 @@ export type SiteSettingsKeys =
   | "index_info_html"
   | "imprint"
   | "policies"
+  | "openai_enabled"
   | "organization_name"
   | "organization_email"
   | "organization_url"
@@ -514,5 +515,12 @@ export const site_settings_conf: SiteSettings = {
     name: "Sandbox Project ID",
     desc: "The `project_id` (a UUIDv4) of a sandbox project on your server for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
     default: "",
+  },
+  openai_enabled: {
+    name: "OpenAI ChatGPT UI",
+    desc: "Controls visibility of UI elements related to ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
   },
 } as const;

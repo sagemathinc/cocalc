@@ -1,5 +1,5 @@
 import { Alert, Modal, Select, Tabs } from "antd";
-import { getTableDescription } from "../tables";
+import { getTableDescription, getTables } from "../tables";
 import {
   useEffect,
   useMemo,
@@ -17,7 +17,6 @@ import {
 } from "@cocalc/frontend/components/sortable-tabs";
 import { arrayMove } from "@dnd-kit/sortable";
 import useTables from "../syncdb/use-tables";
-import { getTables } from "../tables";
 import { PlusOutlined } from "@ant-design/icons";
 import { Icon } from "@cocalc/frontend/components";
 import { cmp } from "@cocalc/util/misc";
@@ -31,13 +30,21 @@ interface TabItem {
 
 function Label({ table }) {
   const { width } = useItemContext();
-  const { icon, title } = getTableDescription(table);
+  let icon, title;
+  try {
+    ({ icon, title } = getTableDescription(table));
+  } catch (_) {
+    icon = "bug";
+    title = `Deprecated Table (${table})`;
+  }
   return (
     <div style={{ width, overflow: "hidden", textOverflow: "ellipsis" }}>
       {icon != null && <Icon name={icon} />} {title}
     </div>
   );
 }
+
+const TABLES = new Set(getTables());
 
 export default function TableTabs() {
   const [tables, setTables] = useTables();
@@ -46,6 +53,7 @@ export default function TableTabs() {
     const items: TabItem[] = [];
 
     for (const table of tables) {
+      if (!TABLES.has(table)) continue;
       const children = <Views table={table} style={{ margin: "0px 15px" }} />;
       items.push({
         label: <Label table={table} />,

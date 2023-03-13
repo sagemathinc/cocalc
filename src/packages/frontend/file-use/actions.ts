@@ -59,7 +59,7 @@ export class FileUseActions<T = FileUseState> extends Actions<
 
   // OPTIMIZATION: This updates and rerenders for each item.
   // TODO: Change to doing it in a batch.
-  mark_all(action): void {
+  async mark_all(action: "read" | "seen") {
     let v: any[];
     if (action === "read") {
       v = this.get_store().get_all_unread();
@@ -69,9 +69,18 @@ export class FileUseActions<T = FileUseState> extends Actions<
       this.record_error(`mark_all: unknown action '${action}'`);
       return;
     }
-    v.map((x) => {
-      if (x != null) this.mark_file(x.project_id, x.path, action, 0, false);
-    });
+    for (const x of v) {
+      if (x != null)
+        await this.mark_file(
+          x.project_id,
+          x.path,
+          action,
+          0,
+          false,
+          undefined,
+          true
+        );
+    }
   }
 
   _set = async (obj) => {
@@ -93,9 +102,11 @@ export class FileUseActions<T = FileUseState> extends Actions<
     action: string,
     ttl: number | "default" = "default", // ttl in units of ms
     fix_path: boolean = true,
-    timestamp: Date | undefined = undefined
+    timestamp: Date | undefined = undefined,
+    force: boolean = false
   ): Promise<void> {
     if (
+      !force &&
       !path.endsWith(".sage-chat") &&
       !redux.getProjectStore(project_id)?.getIn(["open_files", path])
     ) {

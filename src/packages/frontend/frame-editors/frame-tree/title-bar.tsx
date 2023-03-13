@@ -52,6 +52,7 @@ import { is_safari } from "../generic/browser";
 import { get_default_font_size } from "../generic/client";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
+import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -251,6 +252,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (props.editor_actions[action_name] == null) {
       return false;
     }
+    if (isExplicitlyHidden(action_name)) {
+      return false;
+    }
 
     if (buttons_ref.current == null) {
       if (!explicit) {
@@ -260,7 +264,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       buttons_ref.current =
         typeof buttons == "function" ? buttons(props.path) : buttons;
     }
+
     return !!buttons_ref.current?.[action_name];
+  }
+
+  function isExplicitlyHidden(actionName: string): boolean {
+    return !!props.spec.buttons?.[`-${actionName}`];
   }
 
   function click_close(): void {
@@ -802,7 +811,15 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <Button
         key={"undo"}
         title={"Undo last thing you did"}
-        onClick={() => props.editor_actions.undo(props.id)}
+        onClick={() => {
+          if (props.type == "chat") {
+            // we have to special case this until we come up with a better way of having
+            // different kinds of actions for other frames.
+            chatUndo(props.project_id, props.path);
+          } else {
+            props.editor_actions.undo(props.id);
+          }
+        }}
         disabled={read_only}
         bsSize={button_size()}
       >
@@ -819,7 +836,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <Button
         key={"redo"}
         title={"Redo last thing you undid"}
-        onClick={() => props.editor_actions.redo(props.id)}
+        onClick={() => {
+          if (props.type == "chat") {
+            // see undo comment above
+            chatRedo(props.project_id, props.path);
+          } else {
+            props.editor_actions.redo(props.id);
+          }
+        }}
         disabled={read_only}
         bsSize={button_size()}
       >
@@ -1457,6 +1481,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_actions_dropdown(labels: boolean): Rendered {
+    if (isExplicitlyHidden("actions")) return;
     // We don't show this menu in kiosk mode, where none of the options make sense,
     // because they are all file management, which should be handled a different way.
     if (fullscreen == "kiosk") return;
@@ -1730,7 +1755,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function renderPage(is_active: boolean) {
-    if (props.page == null || props.pages == null) {
+    if (
+      props.page == null ||
+      props.pages == null ||
+      isExplicitlyHidden("page")
+    ) {
       // do not render anything unless both page and pages are set
       return;
     }

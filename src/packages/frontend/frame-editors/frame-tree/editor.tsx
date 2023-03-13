@@ -25,6 +25,7 @@ import { SetMap } from "./types";
 import { AvailableFeatures } from "../../project_configuration";
 import { Map, Set } from "immutable";
 import { clone } from "lodash";
+import { chat } from "../generic/chat";
 
 interface FrameTreeEditorProps {
   name: string;
@@ -248,7 +249,7 @@ export function createEditor(opts: Options): React.FC<EditorProps> {
         project_id={project_id}
         format_bar={opts.format_bar}
         format_bar_exclude={opts.format_bar_exclude}
-        editor_spec={opts.editor_spec}
+        editor_spec={{ ...opts.editor_spec, chat }}
         tab_is_visible={is_visible}
       />
     );

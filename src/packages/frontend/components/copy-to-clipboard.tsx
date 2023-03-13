@@ -53,7 +53,7 @@ export default function CopyToClipBoard({
     );
     if (!copied) return btn;
     return (
-      <Tooltip title="Copied!" defaultVisible>
+      <Tooltip title="Copied!" defaultOpen>
         {btn}
       </Tooltip>
     );

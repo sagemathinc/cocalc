@@ -2263,8 +2263,9 @@ const initialize_sage_python_r_toolbar = function () {
   // we hide this bar on smaller screens to avoid the linebreak but still show the assistant
   // https://github.com/sagemathinc/cocalc/issues/4068
   // don't worry about xs, because then the whole bar is not visible (and replaced by one for mobile)
+  // actually not: https://github.com/sagemathinc/cocalc/issues/6416
   const sagebar = make_bar(
-    "webapp-editor-codeedit-buttonbar-sage hidden-md hidden-sm"
+    "webapp-editor-codeedit-buttonbar-sage hidden-xs"
   );
 
   const sage_calculus = [

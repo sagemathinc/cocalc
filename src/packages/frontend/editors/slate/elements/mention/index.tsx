@@ -22,10 +22,11 @@ export interface Mention extends SlateElement {
 }
 
 const STYLE = {
-  color: "#7289da",
-  background: "rgba(114,137,218,.1)",
+  color: "#0958d9",
+  background: "white",
   borderRadius: "3px",
-  padding: "0 2px",
+  padding: "3px",
+  margin: "-3px 0",
 } as React.CSSProperties;
 
 const StaticElement: React.FC<RenderElementProps> = ({

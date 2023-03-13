@@ -118,6 +118,7 @@ interface Props {
   unregisterEditor?: () => void;
   getValueRef?: MutableRefObject<() => string>; // see comment in src/packages/frontend/editors/markdown-input/multimode.tsx
   submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
+  chatGPT?: boolean;
   editBar2?: MutableRefObject<JSX.Element | undefined>;
   dirtyRef?: MutableRefObject<boolean>;
 }
@@ -157,6 +158,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     submitMentionsRef,
     editBar2,
     dirtyRef,
+    chatGPT,
   } = props;
   const { project_id, path, desc } = useFrameContext();
   const isMountedRef = useIsMountedRef();
@@ -255,6 +257,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     actions._syncstring.on("before-change", beforeChange);
     actions._syncstring.on("change", change);
     return () => {
+      if (actions._syncstring == null) {
+        // This can be null if doc closed before unmounting.  I hit a crash because of this in production.
+        return;
+      }
       actions._syncstring.removeListener("before-change", beforeChange);
       actions._syncstring.removeListener("change", change);
     };
@@ -319,10 +325,15 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
       ]);
       if (submitMentionsRef == null) {
         // submit immediately, since no ref for controlling this:
-        submit_mentions(project_id, path, [{ account_id, description: "" }]);
+        submit_mentions(
+          project_id,
+          path,
+          [{ account_id, description: "" }],
+          editor.getMarkdownValue()
+        );
       }
     },
-    matchingUsers: (search) => mentionableUsers(project_id, search),
+    matchingUsers: (search) => mentionableUsers(project_id, search, chatGPT),
   });
 
   const emojis = useEmojis({
@@ -363,8 +374,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
             fragment_id,
           });
         }
-        submit_mentions(project_id, path, mentions);
-        return editor.getMarkdownValue();
+        const value = editor.getMarkdownValue();
+        submit_mentions(project_id, path, mentions, value);
+        return value;
       };
     }
   }, [submitMentionsRef]);

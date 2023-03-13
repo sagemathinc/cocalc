@@ -1,18 +1,30 @@
-import { Alert, Button, Divider, Space, Input, Layout, Radio } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
+import {
+  Alert,
+  Button,
+  Divider,
+  Input,
+  Layout,
+  Modal,
+  Radio,
+  Space,
+} from "antd";
+import { useRouter } from "next/router";
 import { ReactNode, useRef, useState } from "react";
+import CodeMirror from "components/share/codemirror";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
-import RecentFiles from "./recent-files";
-import { useRouter } from "next/router";
-import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
-import apiPost from "lib/api/post";
-import getBrowserInfo from "./browser-info";
-import { useCustomize } from "lib/customize";
-import { NoZendesk } from "./util";
-import { Type } from "./tickets";
 import SiteName from "components/share/site-name";
+import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
+import { useCustomize } from "lib/customize";
+import getBrowserInfo from "./browser-info";
+import RecentFiles from "./recent-files";
+import { Type } from "./tickets";
+import { NoZendesk } from "./util";
+import { Paragraph, Title } from "components/misc";
 
 function VSpace({ children }) {
   return (
@@ -22,10 +34,11 @@ function VSpace({ children }) {
   );
 }
 
-type Type = "problem" | "question" | "task";
+export type Type = "problem" | "question" | "task" | "purchase";
 
 function stringToType(s?: any): Type {
-  if (s == "problem" || s == "question" || s == "task") return s;
+  if (s == "problem" || s == "question" || s == "task" || s == "purchase")
+    return s;
   return "problem"; // default;
 }
 
@@ -50,6 +63,8 @@ export default function Create() {
   const [submitError, setSubmitError] = useState<ReactNode>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [success, setSuccess] = useState<ReactNode>("");
+
+  const showExtra = router.query.hideExtra != "true";
 
   const submittable = useRef<boolean>(false);
   submittable.current = !!(
@@ -99,25 +114,20 @@ export default function Create() {
   }
 
   return (
-    <Layout.Content
-      style={{
-        backgroundColor: "white",
-      }}
-    >
+    <Layout.Content style={{ backgroundColor: "white" }}>
       <div
         style={{
           maxWidth: MAX_WIDTH,
           margin: "15px auto",
           padding: "15px",
           backgroundColor: "white",
-          color: "#555",
+          color: COLORS.GRAY_D,
         }}
       >
-        {" "}
-        <h1 style={{ textAlign: "center", fontSize: "24pt" }}>
+        <Title level={1} style={{ textAlign: "center" }}>
           {router.query.title ?? "Create a New Support Ticket"}
-        </h1>
-        {router.query.hideExtra != "true" && (
+        </Title>
+        {showExtra && (
           <>
             <p style={{ fontSize: "12pt" }}>
               Create a new support ticket below or{" "}
@@ -133,7 +143,7 @@ export default function Create() {
               )}
             </p>
             <FAQ />
-            <h1>Create Your Ticket</h1>
+            <Title level={2}>Create Your Ticket</Title>
             <Instructions />
             <Divider>Support Ticket</Divider>
           </>
@@ -184,10 +194,14 @@ export default function Create() {
                   <Type type="task" /> Is it possible for you to install some
                   software that I need in order to use <SiteName />?
                 </Radio>
+                <Radio value={"purchase"}>
+                  <Type type="purchase" /> I have a question regarding
+                  purchasing a product.
+                </Radio>
               </VSpace>
             </Radio.Group>
             <br />
-            {router.query.hideExtra != "true" && (
+            {showExtra && type !== "purchase" && (
               <>
                 <Files onChange={setFiles} />
                 <br />
@@ -206,6 +220,13 @@ export default function Create() {
               {type == "problem" && <Problem onChange={setBody} />}
               {type == "question" && (
                 <Question onChange={setBody} defaultValue={body} />
+              )}
+              {type == "purchase" && (
+                <Purchase
+                  onChange={setBody}
+                  defaultValue={body}
+                  showExtra={showExtra}
+                />
               )}
               {type == "task" && <Task onChange={setBody} />}
             </div>
@@ -357,6 +378,41 @@ function Question({ defaultValue, onChange }) {
   );
 }
 
+function Purchase({ defaultValue, onChange, showExtra }) {
+  return (
+    <>
+      {showExtra && (
+        <Paragraph>
+          Please describe what you want to purchse. We need some context in
+          order to guide you. In particular:
+          <ul>
+            <li>
+              The expected number of projects: this is either the number of
+              users, or how many projects they'll collectively be using.
+            </li>
+            <li>
+              The kind of workload: this ranges from student projects with
+              minimal resource requirements to large and resource intensive
+              research projects.
+            </li>
+            <li>How long you expect to use the services.</li>
+            <li>
+              Your type of organization: i.e. if an academic discount applies to
+              you.
+            </li>
+          </ul>
+        </Paragraph>
+      )}
+      <Input.TextArea
+        rows={8}
+        defaultValue={defaultValue}
+        placeholder="Your purchase request..."
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </>
+  );
+}
+
 function Task({ onChange }) {
   const answers = useRef<[string, string, string]>(["", "", ""]);
   function update(i: 0 | 1 | 2, value: string): void {
@@ -364,13 +420,99 @@ function Task({ onChange }) {
     onChange?.(answers.current.join("\n\n\n").trim());
   }
 
+  const [showWestPoint, setShowWestPoint] = useState<boolean>(false);
+
   return (
     <div>
+      <Modal
+        width="700px"
+        open={showWestPoint}
+        onCancel={() => setShowWestPoint(false)}
+        onOk={() => setShowWestPoint(false)}
+        title={
+          <div>
+            A question about CoCalc ...
+            <A href="https://www.westpoint.edu/mathematical-sciences/profile/joseph_lindquist">
+              <div
+                style={{
+                  fontSize: "10px",
+                  float: "right",
+                  width: "125px",
+                  margin: "0 20px",
+                }}
+              >
+                <img
+                  style={{ width: "125px" }}
+                  src="https://s3.amazonaws.com/usma-media/styles/profile_image_display/s3/inline-images/academics/academic_departments/mathematical_sciences/images/profiles/COL%20JOE%20LINDQUIST.jpg?itok=r9vjncwh"
+                />
+                Colonel Joe Lindquist
+                <br />
+                West Point
+              </div>
+            </A>
+          </div>
+        }
+      >
+        <b>WHAT SOFTWARE DO YOU NEED?</b>
+        <br />
+        Hi Team! I'm getting ready to kick off our short course at West Point
+        that will deal with Natural Language Processing. We're still sorting out
+        the purchase request, but expect it to be complete in the next day or
+        so. It looks like you have the "big" packages installed that we will be
+        exploring... Huggingface, Transformers, NLTK, WordBlob... but another
+        package that I was hoping to use is vadersentiment (
+        <A href="https://pypi.org/project/vaderSentiment/">
+          https://pypi.org/project/vaderSentiment/
+        </A>
+        ).
+        <br />
+        <br />
+        <b>HOW DO YOU PLAN TO USE THIS SOFTWARE?</b>
+        <br />
+        The course begins on 15MAR and I'd love to be able to use it for this.
+        I'm happy to assume some guidance on how to best incorporate this into
+        CoCalc if unable to install the package.
+        <br />
+        <br />
+        <b>HOW CAN WE TEST THAT THE SOFTWARE IS PROPERLY INSTALLED?</b>
+        <CodeMirror
+          fontSize={12}
+          lineNumbers={false}
+          filename="a.py"
+          content={`from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+sid_obj = SentimentIntensityAnalyzer()
+text = "CoCalc is an amazing platform for students to learn how to understand NLP!"
+print(sid_obj.polarity_scores(text))`}
+        />
+        <br />
+        This should return:
+        <CodeMirror
+          fontSize={12}
+          lineNumbers={false}
+          filename="a.json"
+          content={
+            "{'neg': 0.0, 'neu': 0.746, 'pos': 0.254, 'compound': 0.6239}"
+          }
+        />
+        <br />
+        One Day Later
+        <br />
+        You guys are fantastic! Such a quick turn-around. Please feel free to
+        use the request in any fashion you wish 😊
+        <br />
+        By the way… in case you were wondering, “You guys are fantastic!” has a
+        compound polarity score of 0.598 😊. I used it in CoCalc to test the
+        update.
+      </Modal>
       Each <SiteName /> project is a Docker image running Ubuntu Linux on 64-bit
       x86 hardware, so it is possible for us to install most standard Linux
       software, and we have already installed{" "}
       <A href="/software">a huge amount</A>. If there is something you need that
-      is missing, let us know below.
+      is missing, let us know below. You can also{" "}
+      <a onClick={() => setShowWestPoint(true)}>
+        view a recent ticket from West Point
+      </a>{" "}
+      for an example install request.
       <br />
       <br />
       <b>What software do you need?</b> In particular, if this is a Python
@@ -452,8 +594,7 @@ function Instructions() {
 function FAQ() {
   return (
     <div>
-      {" "}
-      <h2>Helpful Links</h2>
+      <Title level={2}>Helpful Links</Title>
       <Alert
         message={""}
         style={{ margin: "20px 30px" }}

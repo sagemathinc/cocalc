@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
-import { Alert, Card, Divider, Layout, Space, Table } from "antd";
+import { Alert, Card, Layout, Space, Table } from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -21,6 +21,7 @@ import TimeAgo from "timeago-react";
 import { field_cmp } from "@cocalc/util/misc";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import License from "components/licenses/license";
+import Help from "components/vouchers/help";
 
 const VOUCHER_CODES_QUERY = {
   voucher_codes: [
@@ -140,27 +141,7 @@ export default function Redeemed({ customize }) {
                       yet.
                     </div>
                   )}
-                  <Divider orientation="left" style={{ width: "600px" }}>
-                    Vouchers
-                  </Divider>
-                  <div
-                    style={{
-                      color: "#666",
-                      maxWidth: "600px",
-                    }}
-                  >
-                    When you <A href="/redeem">redeem</A> a{" "}
-                    <A href="/store/vouchers">voucher</A>, one or more{" "}
-                    <A href="https://doc.cocalc.com/licenses.html">licenses</A>{" "}
-                    will be added to your account. You can use{" "}
-                    <A href="/licenses/managed">licenses</A> to{" "}
-                    <A href="https://doc.cocalc.com/add-lic-project.html">
-                      upgrade your projects
-                    </A>
-                    . If you have any questions,{" "}
-                    <A href="/support">contact support</A> or visit{" "}
-                    <A href="/vouchers">the Voucher Center</A>.
-                  </div>
+                  <Help />
                 </Space>
               </Card>
             )}

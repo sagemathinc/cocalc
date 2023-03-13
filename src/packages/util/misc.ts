@@ -1715,12 +1715,16 @@ export function to_money(n: number): string {
   return n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
 }
 
-export function stripeAmount(units: number, currency: string): string {
+export function stripeAmount(
+  unitPrice: number,
+  currency: string,
+  units = 1
+): string {
   // input is in pennies
   if (currency !== "usd") {
     throw Error(`not-implemented currency ${currency}`);
   }
-  let s = `$${to_money(units / 100)} USD`;
+  let s = `$${to_money((units * unitPrice) / 100)} USD`;
   return s;
 }
 

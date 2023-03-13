@@ -34,6 +34,7 @@ import "./instances"; // probably deprecated
 import "./listings";
 import "./lti";
 import "./mentions";
+import "./openai";
 import "./organizations";
 import "./password-reset";
 import "./pg-system";
