@@ -1,14 +1,14 @@
 import { register } from "./tables";
 
 register({
-  name: "openai_chatgpt_log",
+  name: "crm_openai_chatgpt_log",
 
   title: "ChatGPT Log",
 
   icon: "comment",
 
   query: {
-    openai_chatgpt_log: [
+    crm_openai_chatgpt_log: [
       {
         id: null,
         time: null,

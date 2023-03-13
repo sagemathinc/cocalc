@@ -1,5 +1,6 @@
 import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
+import { SCHEMA as schema } from "./index";
 
 export interface ChatGPTLogEntry {
   id: number;
@@ -65,4 +66,29 @@ Table({
       },
     },
   },
+});
+
+Table({
+  name: "crm_openai_chatgpt_log",
+  rules: {
+    virtual: "openai_chatgpt_log",
+    primary_key: "id",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true,
+        fields: {
+          id: null,
+          time: null,
+          account_id: null,
+          input: null,
+          output: null,
+          total_tokens: null,
+          project_id: null,
+          path: null,
+        },
+      },
+    },
+  },
+  fields: schema.openai_chatgpt_log.fields,
 });
