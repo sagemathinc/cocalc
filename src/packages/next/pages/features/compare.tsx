@@ -16,7 +16,7 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
 const component = "CoCalc";
-const title = `Run ${component} Now`;
+const title = "CoCalc v Competition";
 
 export default function Octave({ customize }) {
   return (

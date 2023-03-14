@@ -384,7 +384,8 @@ export function formatAction(editor: SlateEditor, cmd: string, args): void {
       cmd == "insertunorderedlist" ||
       cmd == "insertorderedlist" ||
       cmd == "table" ||
-      cmd == "horizontalRule"
+      cmd == "horizontalRule" ||
+      cmd == "linebreak"
     ) {
       insertSnippet(editor, cmd);
       return;
@@ -431,9 +432,11 @@ function insertSnippet(editor: ReactEditor, name: string): boolean {
   let markdown = commands.md[name]?.wrap?.left;
   if (name == "insertunorderedlist") {
     // better for a wysiwyg editor...
-    markdown = "- ";
+    markdown = "-";
   } else if (name == "insertorderedlist") {
-    markdown = "1. ";
+    markdown = "1.";
+  } else if (name == "linebreak") {
+    markdown = "<br/>";
   }
   if (markdown == null) return false;
   insertMarkdown(editor, markdown.trim());

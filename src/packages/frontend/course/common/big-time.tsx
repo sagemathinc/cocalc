@@ -22,7 +22,7 @@ export const BigTime: React.FC<BigTimeProps> = React.memo(
     if (typeof date === "string") {
       date = ISO_to_Date(date);
     }
-    return <TimeAgo popover={true} date={date} />;
+    return <TimeAgo date={date} />;
   },
   isSame
 );

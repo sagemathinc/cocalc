@@ -542,11 +542,29 @@ export class PassportManager {
       // usually, we pick the "profile", but in some cases like SAML this is in "attributes".
       // finally, as a fallback, we just take the ".user"
       // technically, req.user should never be undefined, though.
-      const profile = (req.user.profile != null
-        ? req.user.profile
-        : req.user.attributes != null
-        ? req.user.attributes
-        : req.user) as any as passport.Profile;
+      const profile_raw =
+        req.user.profile != null
+          ? req.user.profile
+          : req.user.attributes != null
+          ? req.user.attributes
+          : req.user;
+
+      // there are cases, where profile is a JSON string (e.g. oauth2next)
+      let profile: passport.Profile;
+      try {
+        profile = (typeof profile_raw === "string"
+          ? JSON.parse(profile_raw)
+          : profile_raw) as any as passport.Profile;
+      } catch (err) {
+        Lret(`error parsing profile: ${err} -- ${profile_raw}`);
+        const { help_email } = await cb2(
+          this.database.get_server_settings_cached
+        );
+        const err_msg = `Error trying to login using '${name}' -- if this problem persists please contact ${help_email} -- ${err}<br/><pre>${err.stack}</pre>`;
+        Lret(`sending error "${err_msg}"`);
+        res.send(err_msg);
+        return;
+      }
 
       if (type === "saml") {
         // the nameID is set via the conf.identifierFormat parameter – even if we set it to

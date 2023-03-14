@@ -81,6 +81,7 @@ interface Props {
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
+  chatGPT?: boolean;
   submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>;
   style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
@@ -127,6 +128,7 @@ export function MarkdownInput(props: Props) {
     onUploadStart,
     onUploadEnd,
     enableMentions,
+    chatGPT,
     submitMentionsRef,
     style,
     onChange,
@@ -281,10 +283,12 @@ export function MarkdownInput(props: Props) {
 
     cm.current = CodeMirror.fromTextArea(node, {
       ...options,
+      // IMPORTANT: there is a useEffect involving options below
+      // where the following four properties must be explicitly excluded!
       inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
       spellcheck: true,
-      extraKeys,
       mode: { name: "gfm" },
+      extraKeys,
     });
 
     if (getValueRef != null) {
@@ -417,8 +421,9 @@ export function MarkdownInput(props: Props) {
           doc.replaceRange(text, from, to);
           mentions.push({ account_id, description, fragment_id });
         }
-        submit_mentions(project_id, path, mentions);
-        return doc.getValue();
+        const value = doc.getValue();
+        submit_mentions(project_id, path, mentions, value);
+        return value;
       };
     }
 
@@ -476,6 +481,13 @@ export function MarkdownInput(props: Props) {
   useEffect(() => {
     if (cm.current == null) return;
     for (const key in options) {
+      if (
+        key == "inputStyle" ||
+        key == "spellcheck" ||
+        key == "mode" ||
+        key == "extraKeys"
+      )
+        continue;
       const opt = options[key];
       if (!isEqual(cm.current.options[key], opt)) {
         if (opt != null) {
@@ -761,7 +773,7 @@ export function MarkdownInput(props: Props) {
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
-    const v = mentionableUsers(project_id);
+    const v = mentionableUsers(project_id, undefined, chatGPT);
     if (v.length == 0) {
       // nobody to mention (e.g., admin doesn't have this)
       return;

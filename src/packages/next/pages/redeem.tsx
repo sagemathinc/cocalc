@@ -205,7 +205,9 @@ export default function Redeem({ customize }) {
                     </div>
                   )}
                   <Divider orientation="left" style={{ width: "400px" }}>
-                    Vouchers
+                    <A href="https://doc.cocalc.com/vouchers.html">
+                      <Icon name="medkit" /> Vouchers
+                    </A>
                   </Divider>
                   <div
                     style={{
@@ -214,7 +216,7 @@ export default function Redeem({ customize }) {
                     }}
                   >
                     <p>
-                      When you redeem a voucher, one or more{" "}
+                      When you redeem a voucher code, one or more{" "}
                       <A href="https://doc.cocalc.com/licenses.html">
                         licenses
                       </A>{" "}
@@ -224,8 +226,8 @@ export default function Redeem({ customize }) {
                       ) : (
                         ""
                       )}
-                      . Once you redeem a voucher, you can use the corresponding{" "}
-                      <A href="/licenses/managed">licenses</A> to{" "}
+                      . Once you redeem a voucher code, you can use the
+                      corresponding <A href="/licenses/managed">licenses</A> to{" "}
                       <A href="https://doc.cocalc.com/add-lic-project.html">
                         upgrade your projects.
                       </A>
@@ -241,7 +243,11 @@ export default function Redeem({ customize }) {
                     </p>
                     <p>
                       If you have any questions,{" "}
-                      <A href="/support">contact support</A>.
+                      <A href="/support">contact support</A>, or{" "}
+                      <A href="https://doc.cocalc.com/vouchers.html">
+                        read the docs
+                      </A>
+                      .
                     </p>
 
                     <div style={{ textAlign: "center" }}>

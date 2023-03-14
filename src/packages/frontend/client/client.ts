@@ -14,6 +14,7 @@ import { TimeClient } from "./time";
 import { AccountClient } from "./account";
 import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
+import { OpenAIClient } from "./openai";
 import { SyncClient } from "./sync";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
@@ -38,6 +39,7 @@ export interface WebappClient extends EventEmitter {
   account_client: AccountClient;
   project_client: ProjectClient;
   admin_client: AdminClient;
+  openai_client: OpenAIClient;
   sync_client: SyncClient;
   users_client: UsersClient;
   file_client: FileClient;
@@ -112,6 +114,7 @@ class Client extends EventEmitter implements WebappClient {
   account_client: AccountClient;
   project_client: ProjectClient;
   admin_client: AdminClient;
+  openai_client: OpenAIClient;
   sync_client: SyncClient;
   users_client: UsersClient;
   file_client: FileClient;
@@ -187,6 +190,9 @@ class Client extends EventEmitter implements WebappClient {
 
     this.admin_client = bind_methods(
       new AdminClient(this.async_call.bind(this))
+    );
+    this.openai_client = bind_methods(
+      new OpenAIClient(this.async_call.bind(this))
     );
     this.users_client = bind_methods(
       new UsersClient(this.call.bind(this), this.async_call.bind(this))

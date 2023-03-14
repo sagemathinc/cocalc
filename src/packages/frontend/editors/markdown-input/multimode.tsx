@@ -77,6 +77,7 @@ interface Props {
   modeSwitchStyle?: CSSProperties;
   autoFocus?: boolean; // note - this is broken on safari for the slate editor, but works on chrome and firefox.
   enableMentions?: boolean;
+  chatGPT?: boolean; // if true, add @chatgpt as an option for @mentions.
   enableUpload?: boolean; // whether to enable upload of files via drag-n-drop or paste.  This is on by default! (Note: not possible to disable for slate editor mode anyways.)
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
@@ -148,6 +149,7 @@ export default function MultiMarkdownInput(props: Props) {
     style,
     autoFocus,
     enableMentions,
+    chatGPT,
     enableUpload = true,
     onUploadStart,
     onUploadEnd,
@@ -368,6 +370,7 @@ export default function MultiMarkdownInput(props: Props) {
           onUploadStart={onUploadStart}
           onUploadEnd={onUploadEnd}
           enableMentions={enableMentions}
+          chatGPT={chatGPT}
           onShiftEnter={onShiftEnter}
           placeholder={placeholder ?? "Type markdown..."}
           fontSize={fontSize}
@@ -475,6 +478,7 @@ export default function MultiMarkdownInput(props: Props) {
             unregisterEditor={unregisterEditor}
             placeholder={placeholder ?? "Type text..."}
             submitMentionsRef={submitMentionsRef}
+            chatGPT={chatGPT}
             editBar2={editBar2}
             dirtyRef={dirtyRef}
           />

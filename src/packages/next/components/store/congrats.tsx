@@ -98,17 +98,24 @@ export default function Congrats() {
               <A href="/vouchers">vouchers center</A>.
             </li>
           )}
-          <li style={{ marginBottom: "15px" }}>
-            You can <A href="/billing/receipts">download your receipt</A> and{" "}
-            <A href="/billing/subscriptions">
-              check on the status of subscriptions.
-            </A>
-          </li>
+          {purchases.result.length > 0 ? (
+            <li style={{ marginBottom: "15px" }}>
+              You can <A href="/billing/receipts">download your receipt</A> and{" "}
+              <A href="/billing/subscriptions">
+                check on the status of any subscriptions.
+              </A>
+            </li>
+          ) : (
+            <li style={{ marginBottom: "15px" }}>
+              You can <A href="/billing/receipts">download your receipt</A>.
+            </li>
+          )}
           <li style={{ marginBottom: "15px" }}>
             If you're interested in <A href="/store/vouchers">purchasing</A>,{" "}
             <A href="/redeem">redeeming</A>, or checking on the{" "}
             <A href="/vouchers/created">status of your vouchers</A>, visit the{" "}
-            <A href="/vouchers">Voucher Center</A>.
+            <A href="/vouchers">Voucher Center</A> or the{" "}
+            <A href="https://doc.cocalc.com/vouchers.html">voucher docs</A>.
           </li>
           <li>
             If you have questions,{" "}

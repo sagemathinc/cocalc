@@ -1,9 +1,9 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Layout, List } from "antd";
+import { Layout, List } from "antd";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { LicenseIdleTimeouts, Uptime } from "@cocalc/util/consts/site-license";
@@ -14,6 +14,7 @@ import {
 } from "@cocalc/util/licenses/purchase/consts";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
+import { plural, round2 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -26,14 +27,14 @@ import { LinkToStore, StoreConf } from "components/store/link";
 import { MAX_WIDTH } from "lib/config";
 import { Customize, useCustomize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { round2 } from "@cocalc/util/misc";
 
 interface Item {
   title: string;
   icon: IconName;
-  individuals?: number;
-  ratio?: number;
-  students?: number;
+  individuals: number;
+  name: string;
+  overcommit: number;
+  projects: number;
   disk: number;
   shared_ram: number;
   shared_cores: number;
@@ -51,9 +52,9 @@ const URL_SUPPORT =
   "/support/new?type=purchase&subject=CoCalc%20Institutional&body=&title=Purchase%20Institutional%20License";
 
 const workgroup: Item = (() => {
-  const individuals = 10;
-  const ratio = 3;
-  const projects = ratio * individuals;
+  const individuals = 20;
+  const overcommit = 2;
+  const projects = Math.round(individuals / overcommit);
 
   const conf = {
     run_limit: projects,
@@ -84,10 +85,12 @@ const workgroup: Item = (() => {
 
   return {
     title: `Commercial Research Group`,
+    name: "Individual",
     icon: "atom",
     individuals,
     duration,
-    ratio,
+    overcommit,
+    projects,
     disk: conf.disk,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
     shared_ram: conf.ram,
@@ -102,9 +105,12 @@ const workgroup: Item = (() => {
 })();
 
 const uniMedium: Item = (() => {
-  const students = 200;
+  const individuals = 200;
+  const overcommit = 5;
+  const projects = Math.round(individuals / overcommit);
+
   const conf = {
-    run_limit: students,
+    run_limit: projects,
     period: "yearly",
     ram: 2,
     disk: 3,
@@ -131,9 +137,12 @@ const uniMedium: Item = (() => {
   } as PurchaseInfo);
 
   return {
-    title: `Up to ${students} students at once`,
+    title: `${individuals} students`,
     icon: "graduation-cap",
-    students,
+    name: "Student",
+    individuals,
+    overcommit,
+    projects,
     disk: conf.disk,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
     shared_ram: conf.ram,
@@ -146,9 +155,12 @@ const uniMedium: Item = (() => {
 })();
 
 const uniLarge: Item = (() => {
-  const students = 2000;
+  const individuals = 2000;
+  const overcommit = 10;
+  const projects = Math.round(individuals / overcommit);
+
   const conf = {
-    run_limit: students,
+    run_limit: projects,
     period: "yearly",
     user: "academic",
     ram: 1,
@@ -175,9 +187,12 @@ const uniLarge: Item = (() => {
   } as PurchaseInfo);
 
   return {
-    title: `Up to ${students} students at once`,
+    title: `${individuals} students`,
     icon: "graduation-cap",
-    students,
+    individuals,
+    name: "Student",
+    overcommit,
+    projects,
     disk: conf.disk,
     uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
     shared_ram: conf.ram,
@@ -238,23 +253,40 @@ function Body(): JSX.Element {
         .
       </Paragraph>
       <Paragraph>
-        Regarding the amount of upgrades: minimal upgrades might be okay for
-        day-to-day calculations and editing documents, but you might run into
+        <Text strong>Number of projects</Text>: The number of individuals in
+        your organization does not equal the number of projects. You can
+        allocate as many projects as you need. Instead, the license is only
+        valid up to an upper limit of simultaneously running projects, which is
+        closely related to the number of people who are actively using{" "}
+        {siteName} at the very same time. Usually, the number of actively
+        running projects is well below the number of people in your
+        organization. In the overview below, that ratio is denoted as
+        "overcommitment". (This is a soft limit -- if you exceed it, your
+        projects are still accessible, but will run without any upgrades.)
+      </Paragraph>
+      <Paragraph>
+        <Text strong>Amount of upgrades</Text>: minimal upgrades might be okay
+        for day-to-day calculations and editing documents, but you will run into
         limitations if your requirements are higher. Please{" "}
         <A href={URL_SUPPORT}>contact us</A> if you have questions or need a
         trial license to test out different options.
       </Paragraph>
       <Paragraph>
-        Once you purchase a license key, you become a "license manager". This
-        means you can pass that license key on to others, track their usage, and
-        add other people as license managers.
+        <Text strong>Multiple license keys</Text>: You can also acquire several
+        license keys for your institution. This means you can partition all
+        possible users into smaller groups, each with their own license key.
+        This is useful if you want to have distinct license keys for different
+        departments, or if you want to have a license key for students and
+        another one for faculty members. Additionally, you can also acquire an
+        additional license for a shorter period of time, to cover periods of
+        increased activity – e.g. final exams – to avoid exhausting the limit of
+        simultaneously running projects.
       </Paragraph>
+
       <Paragraph>
-        You can also acquire several licenses keys for your institution. This
-        means you can partition all possible users into smaller gropus, each
-        with their own license key. This is useful if you want to have distinct
-        license keys for different departments, or if you want to have a license
-        key for students and another one for faculty members.
+        <Text strong>After purchase</Text>: Once you purchase a license key, you
+        become a "license manager". This means you can pass that license key on
+        to others, track their usage, and add other people as license managers.
       </Paragraph>
 
       <Title level={2}>Examples</Title>
@@ -263,21 +295,6 @@ function Body(): JSX.Element {
         fit your needs. Listed upgrades are for each project. Exact prices may
         vary. Processing purchase orders with subsequent invoices need a minimum
         of $100.
-        <Alert
-          showIcon
-          style={{ maxWidth: "500px", margin: "30px auto" }}
-          type="warning"
-          message={
-            <div>
-              The listed number of students below (e.g., 200) does <b>not</b> refer to the
-              total number of students in your department. It is the number of
-              students that will be using {siteName} all at the same time. You
-              could have thousands of students in your department who all use{" "}
-              {siteName} in a year, and buy what is listed as "200 students"
-              below, as long as at most 200 are simultaneously using {siteName}.
-            </div>
-          }
-        />
       </Paragraph>
 
       <List
@@ -286,18 +303,9 @@ function Body(): JSX.Element {
         renderItem={(item) => {
           return (
             <PricingItem title={item.title} icon={item.icon}>
-              {item.individuals && (
-                <Line amount={item.individuals} desc="Individuals" />
-              )}
-              {item.students && (
-                <Line
-                  amount={item.students}
-                  desc={`Students using ${siteName} all at the same time`}
-                />
-              )}
-              {item.ratio && (
-                <Line amount={item.ratio} desc="Projects per individual" />
-              )}
+              <Line amount={item.individuals} desc={plural(2, item.name)} />
+              <Line amount={item.overcommit} desc="Overcommitment" />
+              <Line amount={item.projects} desc="Projects" />
               <Line amount={duration} desc="Duration" />
               <Line amount={item.uptime} desc="Idle timeout" />
               <Line amount={item.shared_ram} desc="Shared RAM" />
@@ -319,7 +327,7 @@ function Body(): JSX.Element {
                 >
                   {money(item.online, true)}
                   <span style={{ color: COLORS.GRAY_L }}>/year</span>
-                </span>{" "}
+                </span>
               </div>
               {item.retail ? (
                 <div style={{ color: COLORS.GRAY }}>
@@ -341,7 +349,8 @@ function Body(): JSX.Element {
               )}
               <LinkToStore conf={item.conf} />
               <div style={{ textAlign: "center", marginTop: "10px" }}>
-                (${round2(item.online / item.conf.run_limit)} / project / year)
+                (${round2(item.online / item.conf.run_limit)} / {item.name} /
+                year)
               </div>
             </PricingItem>
           );

@@ -112,7 +112,7 @@ export function is_editing(message: Message, account_id: string): boolean {
   return message.get("editing")?.has(account_id);
 }
 
-export const mark_chat_as_read_if_unseen: (
+export const markChatAsReadIfUnseen: (
   project_id: string,
   path: string
 ) => void = throttle((project_id: string, path: string) => {

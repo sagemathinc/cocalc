@@ -4,80 +4,72 @@
  */
 
 /*
-What happens when you hit arrow keys.
+What happens when you hit arrow keys. This defines arrow key behavior for our
+Slate editor, including moving the cursor up and down, scrolling the window,
+moving to the beginning or end of the document, and handling cases where
+selections are not in the DOM.
 */
 
-import { Transforms } from "slate";
 import { register } from "./register";
 import {
   blocksCursor,
   moveCursorUp,
   moveCursorDown,
   moveCursorToBeginningOfBlock,
+  isAtBeginningOfBlock,
+  isAtEndOfBlock,
 } from "../control";
 import { SlateEditor } from "../types";
 import { ReactEditor } from "../slate-react";
 
 const down = ({ editor }: { editor: SlateEditor }) => {
   const cur = editor.selection?.focus;
-
-  try {
-    const index = cur?.path[0];
-    if (
-      editor.windowedListRef.current != null &&
-      cur != null &&
-      index != null &&
-      cur.path[1] == editor.children[cur.path[0]]["children"]?.length - 1
-    ) {
-      // moving to the next block:
-      if (editor.scrollIntoDOM(index + 1)) {
-        // we did actually have to scroll the block below current one into the dom.
-        setTimeout(() => {
-          // did cursor move? -- if not, we manually move it.
-          if (cur == editor.selection?.focus) {
-            moveCursorDown(editor, true);
-            moveCursorToBeginningOfBlock(editor);
-          }
-        }, 0);
-      }
-    }
-    if (ReactEditor.selectionIsInDOM(editor)) {
-      // just work in the usual way
-      if (!blocksCursor(editor, false)) {
-        // built in cursor movement works fine
-        return false;
-      }
-      moveCursorDown(editor, true);
-      moveCursorToBeginningOfBlock(editor);
-      return true;
-    } else {
-      // in case of windowing when actual selection is not even
-      // in the DOM, it's much better to just scroll it into view
-      // and not move the cursor at all than to have it be all
-      // wrong (which is what happens with contenteditable and
-      // selection change).  I absolutely don't know how to
-      // subsequently move the cursor down programatically in
-      // contenteditable, and it makes no sense to do so in slate
-      // since the semantics of moving down depend on the exact rendering.
-      return true;
-    }
-  } finally {
-    setTimeout(() => {
-      if (cur != null && cur == editor.selection?.focus) {
-        // it is VERY bad for the cursor to be completely stuck... so we ensure
-        // this can't happen here.
-        const n = editor.selection.focus.path[0];
-        if (n < editor.children.length - 1) {
-          Transforms.setSelection(editor, {
-            focus: { path: [n + 1, 0], offset: 0 },
-            anchor: { path: [n + 1, 0], offset: 0 },
-          });
-        } else {
-          // TODO/NOTE: this is incompatible with windowing (see similar code above, which would conflict with this).
-          editor.onCursorBottom?.();
+  if (
+    cur != null &&
+    editor.onCursorBottom != null &&
+    cur.path[0] >= editor.children.length - 1 &&
+    isAtEndOfBlock(editor, { mode: "highest" })
+  ) {
+    editor.onCursorBottom();
+  }
+  const index = cur?.path[0];
+  if (
+    editor.windowedListRef.current != null &&
+    cur != null &&
+    index != null &&
+    cur.path[1] == editor.children[cur.path[0]]["children"]?.length - 1
+  ) {
+    // moving to the next block:
+    if (editor.scrollIntoDOM(index + 1)) {
+      // we did actually have to scroll the block below current one into the dom.
+      setTimeout(() => {
+        // did cursor move? -- if not, we manually move it.
+        if (cur == editor.selection?.focus) {
+          moveCursorDown(editor, true);
+          moveCursorToBeginningOfBlock(editor);
         }
-      }
-    }, 0);
+      }, 0);
+    }
+  }
+  if (ReactEditor.selectionIsInDOM(editor)) {
+    // just work in the usual way
+    if (!blocksCursor(editor, false)) {
+      // built in cursor movement works fine
+      return false;
+    }
+    moveCursorDown(editor, true);
+    moveCursorToBeginningOfBlock(editor);
+    return true;
+  } else {
+    // in case of windowing when actual selection is not even
+    // in the DOM, it's much better to just scroll it into view
+    // and not move the cursor at all than to have it be all
+    // wrong (which is what happens with contenteditable and
+    // selection change).  I absolutely don't know how to
+    // subsequently move the cursor down programatically in
+    // contenteditable, and it makes no sense to do so in slate
+    // since the semantics of moving down depend on the exact rendering.
+    return true;
   }
 };
 
@@ -85,42 +77,35 @@ register({ key: "ArrowDown" }, down);
 
 const up = ({ editor }: { editor: SlateEditor }) => {
   const cur = editor.selection?.focus;
-  try {
-    const index = cur?.path[0];
-    if (editor.windowedListRef.current != null && index && cur.path[1] == 0) {
-      if (editor.scrollIntoDOM(index - 1)) {
-        setTimeout(() => {
-          if (cur == editor.selection?.focus) {
-            moveCursorUp(editor, true);
-            moveCursorToBeginningOfBlock(editor);
-          }
-        }, 0);
-      }
-    }
-    if (ReactEditor.selectionIsInDOM(editor)) {
-      if (!blocksCursor(editor, true)) {
-        // built in cursor movement works fine
-        return false;
-      }
-      moveCursorUp(editor, true);
-      moveCursorToBeginningOfBlock(editor);
-      return true;
-    } else {
-      return true;
-    }
-  } finally {
-    if (cur != null && editor.onCursorTop != null) {
-      // check if attempt to move cursor did nothing in the next
-      // render loop (after selection gets sync'd).  If so, that
-      // means we are at the top of the document, so we call a
-      // function to handle that.
-      // TODO/NOTE: this is incompatible with windowing (see similar code above, which would conflict with this).
+  if (
+    cur != null &&
+    editor.onCursorTop != null &&
+    cur?.path[0] == 0 &&
+    isAtBeginningOfBlock(editor, { mode: "highest" })
+  ) {
+    editor.onCursorTop();
+  }
+  const index = cur?.path[0];
+  if (editor.windowedListRef.current != null && index && cur.path[1] == 0) {
+    if (editor.scrollIntoDOM(index - 1)) {
       setTimeout(() => {
         if (cur == editor.selection?.focus) {
-          editor.onCursorTop?.();
+          moveCursorUp(editor, true);
+          moveCursorToBeginningOfBlock(editor);
         }
       }, 0);
     }
+  }
+  if (ReactEditor.selectionIsInDOM(editor)) {
+    if (!blocksCursor(editor, true)) {
+      // built in cursor movement works fine
+      return false;
+    }
+    moveCursorUp(editor, true);
+    moveCursorToBeginningOfBlock(editor);
+    return true;
+  } else {
+    return true;
   }
 };
 

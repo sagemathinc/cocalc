@@ -611,7 +611,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
           {render_desc()}
           {renderDuration()}
           <Space />
-          <TimeAgo style={style} date={props.time} popover={true} />
+          <TimeAgo style={style} date={props.time} />
         </Col>
       </Row>
     </Grid>

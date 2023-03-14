@@ -78,7 +78,7 @@ export function register_file_editor(opts: Register | AsyncRegister) {
 
 const reference_count: { [name: string]: number } = {};
 
-declare const DEBUG;  // webpack.
+declare const DEBUG; // webpack.
 if (DEBUG) {
   // uncomment for low level debugging
   // (window as any).frame_editor_reference_count = reference_count;
@@ -110,15 +110,33 @@ function register(
         delete reference_count[name];
       }
       const actions = redux.getActions(name);
+
       if (actions != null) {
         actions.close();
         redux.removeActions(name);
+        // Remove TimeTravel actions for this path, which would have been
+        // created if we opened a TimeTravel frame.  However, we *don't* do this
+        // if there is a separate TimeTravel editor on the same file also opened
+        // in another tab, which you could get via shift+click on TimeTravel.
+        // See https://github.com/sagemathinc/cocalc/issues/6540
+        if (actions.timeTravelActions != null) {
+          if (
+            // check that not open in another tab.
+            !redux
+              .getProjectStore(project_id)
+              ?.getIn(["open_files", actions.timeTravelActions.path])
+          ) {
+            redux.removeActions(actions.timeTravelActions.name);
+            redux.removeStore(actions.timeTravelActions.name);
+          }
+        }
       }
       const store = redux.getStore(name);
       if (store != null) {
         delete store.state;
         redux.removeStore(name);
       }
+
       return name;
     },
 
