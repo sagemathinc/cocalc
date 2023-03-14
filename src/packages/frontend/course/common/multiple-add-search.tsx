@@ -13,6 +13,7 @@ interface MultipleAddSearchProps {
   addSelected: (keys: string[]) => void; // Submit user selected results add_selected(['paths', 'of', 'folders'])
   itemName: string;
   err?: string;
+  isExcluded: (path: string) => boolean;
 }
 
 // Multiple result selector
@@ -21,6 +22,7 @@ interface MultipleAddSearchProps {
 export function MultipleAddSearch({
   addSelected,
   itemName = "result",
+  isExcluded,
 }: MultipleAddSearchProps) {
   const [selecting, setSelecting] = useState<boolean>(false);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set([]));
@@ -52,6 +54,13 @@ export function MultipleAddSearch({
           title={`Select one or more ${itemName} directories`}
           onMultiSelect={setSelectedItems}
           onClose={clear}
+          isExcluded={(path) => {
+            for (const cur of selectedItems) {
+              if (path.startsWith(cur + "/")) return true;
+              if (cur.startsWith(path + "/")) return true;
+            }
+            return isExcluded(path);
+          }}
         />
       )}
       {selecting && (

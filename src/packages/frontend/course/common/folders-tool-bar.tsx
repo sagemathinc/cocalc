@@ -13,55 +13,13 @@
 //    the search in all the code below are all broken.
 //
 
+import { useCallback, useMemo } from "react";
 import { SearchInput } from "@cocalc/frontend/components";
 import { Space } from "antd";
 import * as immutable from "immutable";
 import { COLORS } from "@cocalc/util/theme";
 import { SEARCH_STYLE } from "./consts";
 import { MultipleAddSearch } from "./multiple-add-search";
-
-// Filter directories based on contents of all_items
-function filter_results(
-  directories: string[],
-  search: string,
-  all_items: immutable.Map<string, any>
-): string[] {
-  if (directories.length == 0) {
-    return directories;
-  }
-
-  // Omit any -collect directory (unless explicitly searched for).
-  // Omit any currently assigned directory or subdirectories of them.
-  const paths_to_omit: string[] = [];
-
-  const active_items = all_items.filter((val) => !val.get("deleted"));
-  active_items.map((val) => {
-    const path = val.get("path");
-    if (path) {
-      // path might not be set in case something went wrong (this has been hit in production)
-      return paths_to_omit.push(path);
-    }
-  });
-
-  function should_omit(path: string): boolean {
-    if (path.indexOf("-collect") !== -1 && search.indexOf("collect") === -1) {
-      // omit assignment collection folders unless explicitly searched (could cause confusion...)
-      return true;
-    }
-    if (paths_to_omit.includes(path)) {
-      return true;
-    }
-    // finally check if path is contained in any ommited path.
-    for (const omit of paths_to_omit) {
-      if (path.startsWith(omit + "/")) return true;
-    }
-    return false;
-  }
-
-  directories = directories.filter((x) => !should_omit(x));
-  directories.sort();
-  return directories;
-}
 
 interface FoldersToolbarProps {
   search?: string;
@@ -80,6 +38,7 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
   const {
     search_change,
     num_omitted,
+    items,
     add_folders,
     search: propsSearch,
     item_name = "item",
@@ -95,6 +54,41 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
       add_folders(path_list);
     }
   }
+
+  // Omit any -collect directory (unless explicitly searched for).
+  // Omit any currently assigned directory or subdirectories.
+  const pathsToOmit = useMemo(() => {
+    const omit: Set<string> = new Set([]);
+    items
+      .filter((val) => !val.get("deleted"))
+      .map((val) => {
+        const path = val.get("path");
+        if (path != null) {
+          // path might not be set in case something went wrong
+          // (this has been hit in production)
+          omit.add(path);
+        }
+      });
+    return omit;
+  }, [items]);
+
+  const isExcluded = useCallback(
+    (path) => {
+      if (!path) return true;
+      if (path.includes("-collect")) return true;
+      if (pathsToOmit.has(path)) {
+        return true;
+      }
+      // finally check if path is contained in any ommited path.
+      for (const omit of pathsToOmit) {
+        if (path.startsWith(omit + "/")) return true;
+        if (omit.startsWith(path + "/")) return true;
+      }
+
+      return false;
+    },
+    [pathsToOmit]
+  );
 
   return (
     <Space>
@@ -116,7 +110,11 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
           {num_omitted > 1 ? plural_item_name : item_name})
         </h5>
       ) : undefined}
-      <MultipleAddSearch addSelected={submit_selected} itemName={item_name} />
+      <MultipleAddSearch
+        isExcluded={isExcluded}
+        addSelected={submit_selected}
+        itemName={item_name}
+      />
     </Space>
   );
 };

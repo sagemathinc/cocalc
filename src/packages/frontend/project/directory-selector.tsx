@@ -39,7 +39,7 @@ interface Props {
   style?: CSSProperties;
   project_id?: string;
   startingPath?: string;
-  exclusions?: Set<string>; // grey these directories out; should not be available to select.  Relative to home directory.
+  isExcluded?: (path: string) => boolean; // grey out directories that return true.  Relative to home directory.
   onSelect?: (path: string) => void; // called when user chooses a directory; only when multi is false.
   onMultiSelect?: (selection: Set<string>) => void; // called whenever selection changes: only when multi true
   onClose?: () => void;
@@ -52,7 +52,7 @@ export default function DirectorySelector({
   style,
   project_id,
   startingPath,
-  exclusions,
+  isExcluded,
   onSelect,
   onMultiSelect,
   onClose,
@@ -158,7 +158,7 @@ export default function DirectorySelector({
         ...style,
       }}
       bodyStyle={{
-        maxHeight: "250px",
+        maxHeight: "50vh",
         overflow: "scroll",
         whiteSpace: "nowrap",
       }}
@@ -169,13 +169,14 @@ export default function DirectorySelector({
         tail={""}
         isSelected={selectedPaths.has("")}
         toggleSelection={toggleSelection}
-        isExcluded={exclusions?.has("")}
+        isExcluded={isExcluded?.("")}
+        expand={() => {}}
       />
       <Subdirs
         style={{ marginLeft: "2em" }}
         selectedPaths={selectedPaths}
         toggleSelection={toggleSelection}
-        exclusions={exclusions}
+        isExcluded={isExcluded}
         expandedPaths={expandedPaths}
         setExpandedPaths={setExpandedPaths}
         directoryListings={directoryListings}
@@ -184,6 +185,7 @@ export default function DirectorySelector({
         path={""}
       />
       <Checkbox
+        style={{ fontWeight: "400", marginTop: "15px" }}
         checked={showHidden}
         onChange={() => {
           setShowHidden(!showHidden);
@@ -202,6 +204,7 @@ function SelectablePath({
   isSelected,
   toggleSelection,
   isExcluded,
+  expand,
 }) {
   const [editedTail, setEditedTail] = useState<string | null>(null);
 
@@ -266,49 +269,50 @@ function SelectablePath({
   let backgroundColor: string | undefined = undefined;
   if (isExcluded) {
     color = "gray";
-  } else if (editedTail == null && isSelected) {
-    color = "white";
-    backgroundColor = "#40a9ff";
   } else {
     color = "black";
   }
 
   return (
-    <span
-      style={{
-        cursor: "pointer",
-        display: "inline-block",
-        width: "100%",
-        minHeight: "24px",
-        overflowX: "hidden",
-        textOverflow: "ellipsis",
-        padding: "0 5px",
-        whiteSpace: "nowrap",
-        backgroundColor,
-        color,
-        borderRadius: "3px",
-      }}
-      onClick={() => {
-        if (isExcluded) return;
-        toggleSelection(path);
-      }}
-      onDoubleClick={() => {
-        if (isExcluded || !tail) return;
-        setEditedTail(tail);
-      }}
+    <Checkbox
+      checked={isSelected}
+      disabled={isExcluded}
+      style={{ width: "100%", fontWeight: 400 }}
+      onChange={() => toggleSelection(path)}
     >
-      {!isExcluded && tail && isSelected && (
-        <Button
-          type="text"
-          style={{ float: "right" }}
-          size="small"
-          onClick={() => setEditedTail(tail)}
-        >
-          <Icon name="pencil" />
-        </Button>
-      )}
-      {content}
-    </span>
+      <span
+        style={{
+          width: "100%",
+          overflowX: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          backgroundColor,
+          color,
+          borderRadius: "3px",
+        }}
+        onClick={() => {
+          if (isExcluded) {
+            expand();
+          }
+        }}
+        onDoubleClick={() => {
+          if (isExcluded || !tail) return;
+          setEditedTail(tail);
+        }}
+      >
+        {!isExcluded && tail && isSelected && (
+          <Button
+            type="text"
+            style={{ marginLeft: "30px", float: "right" }}
+            size="small"
+            onClick={() => setEditedTail(tail)}
+          >
+            <Icon name="pencil" />
+          </Button>
+        )}
+        {content}
+      </span>
+    </Checkbox>
   );
 }
 
@@ -318,12 +322,27 @@ function Directory(props) {
     path,
     selectedPaths,
     toggleSelection,
-    exclusions,
+    isExcluded,
     expandedPaths,
     setExpandedPaths,
   } = props;
   const isExpanded = expandedPaths.has(path);
   const { tail } = path_split(path);
+
+  let label = (
+    <SelectablePath
+      project_id={project_id}
+      path={path}
+      tail={tail}
+      isSelected={selectedPaths.has(path)}
+      toggleSelection={toggleSelection}
+      isExcluded={isExcluded?.(path)}
+      expand={() => {
+        setExpandedPaths(new Set(expandedPaths.add(path)));
+      }}
+    />
+  );
+
   if (!isExpanded) {
     return (
       <div key={path}>
@@ -335,14 +354,7 @@ function Directory(props) {
             }}
           />
         </Button>{" "}
-        <SelectablePath
-          project_id={project_id}
-          path={path}
-          tail={tail}
-          isSelected={selectedPaths.has(path)}
-          toggleSelection={toggleSelection}
-          isExcluded={exclusions?.has(path)}
-        />
+        {label}
       </div>
     );
   } else {
@@ -358,14 +370,7 @@ function Directory(props) {
               }}
             />
           </Button>{" "}
-          <SelectablePath
-            project_id={project_id}
-            path={path}
-            tail={tail}
-            isSelected={selectedPaths.has(path)}
-            toggleSelection={toggleSelection}
-            isExcluded={exclusions?.has(path)}
-          />
+          {label}
         </div>
         <div style={{ marginLeft: "1em" }}>
           <Subdirs {...props} />
@@ -456,7 +461,7 @@ function CreateDirectory({ project_id, path, directoryListings }) {
         mouseEnterDelay={0.9}
       >
         <Button size="small" type="text" style={{ color: "#666" }}>
-          <Icon name="plus" style={{ marginRight: "10px" }} /> Create{" "}
+          <Icon name="plus" style={{ marginRight: "5px" }} /> Create{" "}
           {NEW_DIRECTORY}
         </Button>
       </Tooltip>

@@ -485,7 +485,7 @@ export const ActionBox = rclass<ReactProps>(
                 }
                 project_id={this.props.project_id}
                 startingPath={this.props.current_path}
-                exclusions={new Set(this.props.checked_files.toArray())}
+                isExcluded={(path) => this.props.checked_files.has(path)}
                 style={{ width: "100%" }}
               />
             </Col>
