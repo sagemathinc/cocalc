@@ -3069,4 +3069,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_file_checked(path, true);
     this.set_file_action("share");
   }
+
+  public toggleActionButtons() {
+    this.setState({
+      hideActionButtons: !this.get_store()?.get("hideActionButtons"),
+    });
+  }
 }

@@ -44,6 +44,7 @@ interface Props {
 
 export const ProjectPage: React.FC<Props> = (props: Props) => {
   const { project_id, is_active } = props;
+  const hideActionButtons = useTypedRedux({ project_id }, "hideActionButtons");
   const actions = useActions({ project_id });
   const is_deleted = useRedux([
     "projects",
@@ -164,7 +165,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {(!fullscreen || fullscreen == "project") && (
+        {!hideActionButtons && (!fullscreen || fullscreen == "project") && (
           <div
             style={{
               background: "rgba(0, 0, 0, 0.02)",

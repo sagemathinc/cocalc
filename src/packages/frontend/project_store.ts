@@ -157,6 +157,9 @@ export interface ProjectStoreState {
   // Modal -- if modal is set to a string, display that string as a yes/no question.
   // if Yes, then run the on_modal_yes function (if given).
   modal?: ModalInfo;
+
+  // whether to hide the action buttons.
+  hideActionButtons?: boolean;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {

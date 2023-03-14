@@ -6,11 +6,12 @@
 /*
 Tabs in a particular project.
 */
+import { Switch, Tooltip } from "antd";
 
 import { throttle } from "lodash";
 import { ReactNode, useLayoutEffect, useRef, useState } from "react";
 
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
 import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -79,6 +80,7 @@ interface FVTProps {
 
 export function VerticalFixedTabs(props: FVTProps) {
   const { project_id, activeTab } = props;
+  const actions = useActions({ project_id });
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const parent = useRef<HTMLDivElement>(null);
   const tabs = useRef<HTMLDivElement>(null);
@@ -179,6 +181,16 @@ export function VerticalFixedTabs(props: FVTProps) {
         style={{ display: "flex", flexDirection: "column", flex: "1 1 0" }}
       >
         {items}
+        <Tooltip title="Hide the action bar" placement="right">
+          <Switch
+            style={{ margin: "10px" }}
+            size="small"
+            checked
+            onChange={() => {
+              actions?.toggleActionButtons();
+            }}
+          />
+        </Tooltip>
       </div>
     </div>
   );
