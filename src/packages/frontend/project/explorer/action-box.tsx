@@ -482,7 +482,7 @@ export const ActionBox = rclass<ReactProps>(
                 key="move_destination"
                 onSelect={(value) => this.setState({ move_destination: value })}
                 project_id={this.props.project_id}
-                starting_path={this.props.current_path}
+                startingPath={this.props.current_path}
                 exclusions={new Set(this.props.checked_files.toArray())}
                 style={{ width: "100%" }}
               />
@@ -696,7 +696,7 @@ export const ActionBox = rclass<ReactProps>(
                     this.setState({ copy_destination_directory: value })
                   }
                   key="copy_destination_directory"
-                  starting_path=""
+                  startingPath={this.props.current_path}
                   project_id={this.state.copy_destination_project_id}
                   style={{ width: "100%" }}
                 />
