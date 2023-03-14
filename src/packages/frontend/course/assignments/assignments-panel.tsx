@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Button } from "antd";
 import {
   AppRedux,
   React,

@@ -13,14 +13,8 @@
 //    the search in all the code below are all broken.
 //
 
-import {
-  useIsMountedRef,
-  useRef,
-  useState,
-} from "@cocalc/frontend/app-framework";
 import { SearchInput } from "@cocalc/frontend/components";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Col, Row } from "antd";
+import { Space } from "antd";
 import * as immutable from "immutable";
 import { COLORS } from "@cocalc/util/theme";
 import { SEARCH_STYLE } from "./consts";
@@ -80,93 +74,17 @@ interface FoldersToolbarProps {
   plural_item_name: string;
 }
 
-// interface FoldersToolbarState {
-//   add_is_searching: boolean;
-//   add_search_results?: immutable.List<string>;
-//   none_found: boolean;
-//   last_add_search: string;
-//   err?: string;
-// }
-
 export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
   props: FoldersToolbarProps
 ) => {
   const {
     search_change,
     num_omitted,
-    project_id,
     add_folders,
-    items,
     search: propsSearch,
     item_name = "item",
     plural_item_name = "item",
   } = props;
-
-  const isMounted = useIsMountedRef();
-  const last_add_search = useRef<string>("");
-
-  const [add_is_searching, set_add_is_searching] = useState(false);
-  const [add_search_results, set_add_search_results] = useState<
-    immutable.List<string> | undefined
-  >(immutable.List());
-  const [none_found, set_none_found] = useState(false);
-  const [err, set_err] = useState<string | undefined>();
-
-  function searchQuery(search: string) {
-    return `*${search}*`;
-  }
-
-  async function do_add_search(search): Promise<void> {
-    search = search.trim();
-
-    if (add_is_searching && search === last_add_search.current) {
-      return;
-    }
-
-    set_add_is_searching(true);
-    last_add_search.current = search;
-
-    let resp;
-    try {
-      resp = await webapp_client.project_client.find_directories({
-        project_id: project_id,
-        query: searchQuery(search),
-      });
-      if (!isMounted.current) {
-        return;
-      }
-    } catch (err) {
-      if (!isMounted.current) return;
-      set_add_is_searching(false);
-      set_err(err);
-      set_add_search_results(undefined);
-      return;
-    }
-
-    if (resp.directories.length === 0) {
-      set_add_is_searching(false);
-      set_add_search_results(immutable.List([]));
-      set_none_found(true);
-      return;
-    }
-
-    const filtered_results = filter_results(resp.directories, search, items);
-    // Merge to prevent possible massive list alterations
-    const merged = (function () {
-      if (
-        add_search_results &&
-        filtered_results.length === add_search_results.size
-      ) {
-        return add_search_results.merge(filtered_results);
-      } else {
-        return immutable.List(filtered_results);
-      }
-    })();
-
-    set_add_is_searching(false);
-    set_add_search_results(merged);
-    set_none_found(false);
-  }
 
   function submit_selected(path_list) {
     if (path_list != null) {
@@ -176,52 +94,29 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
       // UI guidelines, so there's two reasons that path_list is defined here.)
       add_folders(path_list);
     }
-    return clear_add_search();
-  }
-
-  function clear_add_search(): void {
-    set_add_search_results(immutable.List([]));
-    set_none_found(false);
   }
 
   return (
-    <div>
-      <Row>
-        <Col md={6}>
-          <SearchInput
-            placeholder={`Find ${plural_item_name}...`}
-            default_value={propsSearch}
-            on_change={search_change}
-            style={SEARCH_STYLE}
-          />
-        </Col>
-        <Col md={8}>
-          {num_omitted ? (
-            <h5
-              style={{
-                textAlign: "center",
-                color: COLORS.GRAY_L,
-                marginTop: "5px",
-              }}
-            >
-              (Omitting {num_omitted}{" "}
-              {num_omitted > 1 ? plural_item_name : item_name})
-            </h5>
-          ) : undefined}
-        </Col>
-        <Col md={10}>
-          <MultipleAddSearch
-            add_selected={submit_selected}
-            do_search={do_add_search}
-            clear_search={clear_add_search}
-            is_searching={add_is_searching}
-            item_name={item_name}
-            err={err}
-            search_results={add_search_results}
-            none_found={none_found}
-          />
-        </Col>
-      </Row>
-    </div>
+    <Space>
+      <SearchInput
+        placeholder={`Find ${plural_item_name}...`}
+        default_value={propsSearch}
+        on_change={search_change}
+        style={SEARCH_STYLE}
+      />
+      {num_omitted ? (
+        <h5
+          style={{
+            textAlign: "center",
+            color: COLORS.GRAY_L,
+            marginTop: "5px",
+          }}
+        >
+          (Omitting {num_omitted}{" "}
+          {num_omitted > 1 ? plural_item_name : item_name})
+        </h5>
+      ) : undefined}
+      <MultipleAddSearch addSelected={submit_selected} itemName={item_name} />
+    </Space>
   );
 };

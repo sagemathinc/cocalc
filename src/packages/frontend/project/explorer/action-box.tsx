@@ -55,10 +55,9 @@ interface ReduxProps {
 interface State {
   copy_destination_directory: string;
   copy_destination_project_id: string;
-  move_destination: "";
+  move_destination: string;
   new_name?: string;
   show_different_project?: boolean;
-
   overwrite_newer?: boolean;
   delete_extra_files?: boolean;
 }
@@ -479,8 +478,11 @@ export const ActionBox = rclass<ReactProps>(
                   : this.state.move_destination}
               </h4>
               <DirectorySelector
+                title="Select Move Destination Directory"
                 key="move_destination"
-                onSelect={(value) => this.setState({ move_destination: value })}
+                onSelect={(move_destination: string) =>
+                  this.setState({ move_destination })
+                }
                 project_id={this.props.project_id}
                 startingPath={this.props.current_path}
                 exclusions={new Set(this.props.checked_files.toArray())}
@@ -692,7 +694,8 @@ export const ActionBox = rclass<ReactProps>(
                     : this.state.copy_destination_directory}
                 </h4>
                 <DirectorySelector
-                  onSelect={(value) =>
+                  title="Select Copy Destination Directory"
+                  onSelect={(value: string) =>
                     this.setState({ copy_destination_directory: value })
                   }
                   key="copy_destination_directory"

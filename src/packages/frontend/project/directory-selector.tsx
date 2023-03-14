@@ -9,8 +9,15 @@ Component that allows a user to select a directory in a project.
 - [ ] text box to filter what is shown
 */
 
-import { Input, Tooltip } from "antd";
-import { CSSProperties, useCallback, useEffect, useState } from "react";
+import { join } from "path";
+import { Button, Card, Checkbox, Input, Tooltip } from "antd";
+import {
+  CSSProperties,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { path_split } from "@cocalc/util/misc";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
@@ -19,25 +26,26 @@ import { callback2 } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
-const DEFAULT_STYLE = {
-  maxHeight: "250px",
-  width: "20em",
-  overflow: "scroll",
-  backgroundColor: "white",
-  padding: "5px",
-  border: "1px solid lightgrey",
-  borderRadius: "3px",
-  whiteSpace: "nowrap",
+const NEW_DIRECTORY = "New Directory";
+
+const ICON_STYLE = {
+  cursor: "pointer",
+  verticalAlign: "top",
 } as const;
 
 interface Props {
   style?: CSSProperties;
-  project_id: string;
+  project_id?: string;
   startingPath?: string;
   exclusions?: Set<string>; // grey these directories out; should not be available to select.  Relative to home directory.
-  onSelect?: Function; // called when user chooses a directory
+  onSelect?: (path: string) => void; // called when user chooses a directory; only when multi is false.
+  onMultiSelect?: (selection: Set<string>) => void; // called whenever selection changes: only when multi true
+  onClose?: () => void;
   showHidden?: boolean;
+  title?: ReactNode;
+  multi?: boolean; // if true enables multiple select
 }
 
 export default function DirectorySelector({
@@ -46,12 +54,21 @@ export default function DirectorySelector({
   startingPath,
   exclusions,
   onSelect,
+  onMultiSelect,
+  onClose,
   showHidden: defaultShowHidden,
+  title,
+  multi,
 }: Props) {
+  const frameContext = useFrameContext(); // optionally used to define project_id and startingPath, when in a frame
+  if (project_id == null) project_id = frameContext.project_id;
   const directoryListings = useTypedRedux({ project_id }, "directory_listings");
   const isMountedRef = useIsMountedRef();
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
     const expandedPaths: string[] = [""];
+    if (startingPath == null) {
+      startingPath = frameContext.path;
+    }
     if (startingPath) {
       const v = startingPath.split("/");
       let path = v[0];
@@ -64,20 +81,37 @@ export default function DirectorySelector({
     return new Set(expandedPaths);
   });
   const [showHidden, setShowHidden] = useState<boolean>(!!defaultShowHidden);
-  const [selectedPath, setSelectedPath0] = useState<string | null>(null);
-  const setSelectedPath = useCallback(
-    (path: string | null) => {
-      if (path != null) {
-        onSelect?.(path);
+  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+
+  const toggleSelection = useCallback(
+    (path: string) => {
+      let x;
+      if (multi) {
+        if (selectedPaths.has(path)) {
+          selectedPaths.delete(path);
+        } else {
+          selectedPaths.add(path);
+        }
+        x = selectedPaths;
+        onMultiSelect?.(x);
+      } else {
+        if (selectedPaths.has(path)) {
+          x = new Set([]);
+          onSelect?.("");
+        } else {
+          x = new Set([path]);
+          onSelect?.(path);
+        }
       }
-      setSelectedPath0(path);
+      setSelectedPaths(new Set(x));
     },
-    [onSelect]
+    [selectedPaths, multi]
   );
 
   useEffect(() => {
     // Run the loop below every 30s until project_id or expandedPaths changes (or unmount)
     // in which case loop stops.  If not unmount, then get new loops for new values.
+    if (!project_id) return;
     const state = { loop: true };
     (async () => {
       while (state.loop && isMountedRef.current) {
@@ -105,19 +139,42 @@ export default function DirectorySelector({
     return <Loading />;
   }
   return (
-    <div style={{ ...DEFAULT_STYLE, ...style }}>
+    <Card
+      title={
+        <>
+          {onClose != null && (
+            <Icon
+              name="times"
+              style={{ float: "right", cursor: "pointer", marginTop: "5px" }}
+              onClick={onClose}
+            />
+          )}
+          {title ?? "Select Directory"}
+        </>
+      }
+      style={{
+        width: "20em",
+        backgroundColor: "white",
+        ...style,
+      }}
+      bodyStyle={{
+        maxHeight: "250px",
+        overflow: "scroll",
+        whiteSpace: "nowrap",
+      }}
+    >
       <SelectablePath
         project_id={project_id}
         path={""}
         tail={""}
-        isSelected={selectedPath == ""}
-        setSelectedPath={setSelectedPath}
+        isSelected={selectedPaths.has("")}
+        toggleSelection={toggleSelection}
         isExcluded={exclusions?.has("")}
       />
       <Subdirs
         style={{ marginLeft: "2em" }}
-        selectedPath={selectedPath}
-        setSelectedPath={setSelectedPath}
+        selectedPaths={selectedPaths}
+        toggleSelection={toggleSelection}
         exclusions={exclusions}
         expandedPaths={expandedPaths}
         setExpandedPaths={setExpandedPaths}
@@ -126,20 +183,15 @@ export default function DirectorySelector({
         project_id={project_id}
         path={""}
       />
-      <div
-        style={{
-          cursor: "pointer",
-          borderTop: "1px solid lightgrey",
-          marginTop: "5px",
-        }}
-        onClick={() => {
+      <Checkbox
+        checked={showHidden}
+        onChange={() => {
           setShowHidden(!showHidden);
         }}
       >
-        <Icon name={showHidden ? "check-square-o" : "square-o"} /> Show hidden
-        directories
-      </div>
-    </div>
+        Show hidden
+      </Checkbox>
+    </Card>
   );
 }
 
@@ -148,7 +200,7 @@ function SelectablePath({
   path,
   tail,
   isSelected,
-  setSelectedPath,
+  toggleSelection,
   isExcluded,
 }) {
   const [editedTail, setEditedTail] = useState<string | null>(null);
@@ -175,7 +227,17 @@ function SelectablePath({
 
   let content;
   if (editedTail == null) {
-    content = <>{tail ? tail : "Home directory"}</>;
+    content = (
+      <>
+        {tail ? (
+          tail
+        ) : (
+          <>
+            <Icon name="home" style={{ marginRight: "5px" }} /> Home Directory
+          </>
+        )}
+      </>
+    );
   } else {
     content = (
       <Input
@@ -185,6 +247,7 @@ function SelectablePath({
         onChange={(e) => setEditedTail(e.target.value)}
         onBlur={() => {
           renameFolder(editedTail);
+          setEditedTail(null);
         }}
         onKeyUp={(event) => {
           switch (event.keyCode) {
@@ -216,22 +279,34 @@ function SelectablePath({
         cursor: "pointer",
         display: "inline-block",
         width: "100%",
+        minHeight: "24px",
         overflowX: "hidden",
         textOverflow: "ellipsis",
         padding: "0 5px",
         whiteSpace: "nowrap",
         backgroundColor,
         color,
+        borderRadius: "3px",
       }}
       onClick={() => {
         if (isExcluded) return;
-        setSelectedPath(path);
+        toggleSelection(path);
       }}
       onDoubleClick={() => {
         if (isExcluded || !tail) return;
         setEditedTail(tail);
       }}
     >
+      {!isExcluded && tail && isSelected && (
+        <Button
+          type="text"
+          style={{ float: "right" }}
+          size="small"
+          onClick={() => setEditedTail(tail)}
+        >
+          <Icon name="pencil" />
+        </Button>
+      )}
       {content}
     </span>
   );
@@ -241,8 +316,8 @@ function Directory(props) {
   const {
     project_id,
     path,
-    selectedPath,
-    setSelectedPath,
+    selectedPaths,
+    toggleSelection,
     exclusions,
     expandedPaths,
     setExpandedPaths,
@@ -252,19 +327,20 @@ function Directory(props) {
   if (!isExpanded) {
     return (
       <div key={path}>
-        <Icon
-          style={{ cursor: "pointer", verticalAlign: "top", marginTop: "3px" }}
-          name="angle-right"
-          onClick={() => {
-            setExpandedPaths(new Set(expandedPaths.add(path)));
-          }}
-        />{" "}
+        <Button type="text" size="small" style={ICON_STYLE}>
+          <Icon
+            name="angle-right"
+            onClick={() => {
+              setExpandedPaths(new Set(expandedPaths.add(path)));
+            }}
+          />
+        </Button>{" "}
         <SelectablePath
           project_id={project_id}
           path={path}
           tail={tail}
-          isSelected={selectedPath == path}
-          setSelectedPath={setSelectedPath}
+          isSelected={selectedPaths.has(path)}
+          toggleSelection={toggleSelection}
           isExcluded={exclusions?.has(path)}
         />
       </div>
@@ -273,24 +349,21 @@ function Directory(props) {
     return (
       <div key={path}>
         <div>
-          <Icon
-            style={{
-              cursor: "pointer",
-              verticalAlign: "top",
-              marginTop: "3px",
-            }}
-            name="angle-down"
-            onClick={() => {
-              expandedPaths.delete(path);
-              setExpandedPaths(new Set(expandedPaths));
-            }}
-          />{" "}
+          <Button type="text" size="small" style={ICON_STYLE}>
+            <Icon
+              name="angle-down"
+              onClick={() => {
+                expandedPaths.delete(path);
+                setExpandedPaths(new Set(expandedPaths));
+              }}
+            />
+          </Button>{" "}
           <SelectablePath
             project_id={project_id}
             path={path}
             tail={tail}
-            isSelected={selectedPath == path}
-            setSelectedPath={setSelectedPath}
+            isSelected={selectedPaths.has(path)}
+            toggleSelection={toggleSelection}
             isExcluded={exclusions?.has(path)}
           />
         </div>
@@ -317,11 +390,22 @@ function Subdirs(props) {
   } else {
     const w: JSX.Element[] = [];
     const base = !path ? "" : path + "/";
+    const paths: string[] = [];
+    const newPaths: string[] = [];
     for (const x of v) {
       if (x?.isdir) {
         if (x.name.startsWith(".") && !showHidden) continue;
-        w.push(<Directory key={x.name} {...props} path={base + x.name} />);
+        if (x.name.startsWith(NEW_DIRECTORY)) {
+          newPaths.push(x.name);
+        } else {
+          paths.push(x.name);
+        }
       }
+    }
+    paths.sort();
+    newPaths.sort();
+    for (const name of paths.concat(newPaths)) {
+      w.push(<Directory key={name} {...props} path={join(base, name)} />);
     }
     w.push(
       <CreateDirectory
@@ -342,10 +426,10 @@ function Subdirs(props) {
 function CreateDirectory({ project_id, path, directoryListings }) {
   return (
     <div
-      style={{ cursor: "pointer", color: "#888" }}
+      style={{ cursor: "pointer", color: "#666" }}
       key={"...-create-dir"}
       onClick={async () => {
-        let target = path + (path != "" ? "/" : "") + "New directory";
+        let target = path + (path != "" ? "/" : "") + NEW_DIRECTORY;
         if (await pathExists(project_id, target, directoryListings)) {
           let i: number = 1;
           while (
@@ -371,8 +455,10 @@ function CreateDirectory({ project_id, path, directoryListings }) {
         placement="left"
         mouseEnterDelay={0.9}
       >
-        <Icon style={{ verticalAlign: "top", marginTop: "3px" }} name="plus" />{" "}
-        New directory
+        <Button size="small" type="text" style={{ color: "#666" }}>
+          <Icon name="plus" style={{ marginRight: "10px" }} /> Create{" "}
+          {NEW_DIRECTORY}
+        </Button>
       </Tooltip>
     </div>
   );
