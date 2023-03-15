@@ -154,7 +154,7 @@ class Logger {
   }
 }
 
-interface WinstonLogger {
+export interface WinstonLogger {
   error: Function;
   warn: Function;
   info: Function;
