@@ -76,7 +76,7 @@ export default function Header(props: Props) {
           <A
             type="primary"
             size="large"
-            href="/support/new?hideExtra=true&type=question&subject=&body=&title=Ask%20Us%20Anything!"
+            href="/support/new?type=question&subject=&body=&title=Ask%20Us%20Anything!"
             title="Ask a question"
             style={{
               color: "white",

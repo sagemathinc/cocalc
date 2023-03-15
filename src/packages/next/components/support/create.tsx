@@ -25,6 +25,7 @@ import RecentFiles from "./recent-files";
 import { Type } from "./tickets";
 import { NoZendesk } from "./util";
 import { Paragraph, Title } from "components/misc";
+import ChatGPTHelp from "./chatgpt-help";
 
 function VSpace({ children }) {
   return (
@@ -601,6 +602,9 @@ function FAQ() {
         type="warning"
         description={
           <ul style={{ marginBottom: 0, fontSize: "11pt" }}>
+            <li>
+              <ChatGPTHelp />
+            </li>
             <li>
               <A href="https://github.com/sagemathinc/cocalc/issues">
                 Create a bug report

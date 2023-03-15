@@ -28,7 +28,7 @@ async function getApiKey(): Promise<string> {
 
 interface ChatOptions {
   input: string;
-  account_id: string;
+  account_id?: string;
   project_id?: string;
   path?: string;
 }
