@@ -37,6 +37,7 @@ const ICON_STYLE = {
 
 interface Props {
   style?: CSSProperties;
+  bodyStyle?: CSSProperties;
   project_id?: string;
   startingPath?: string;
   isExcluded?: (path: string) => boolean; // grey out directories that return true.  Relative to home directory.
@@ -50,6 +51,7 @@ interface Props {
 
 export default function DirectorySelector({
   style,
+  bodyStyle,
   project_id,
   startingPath,
   isExcluded,
@@ -161,6 +163,7 @@ export default function DirectorySelector({
         maxHeight: "50vh",
         overflow: "scroll",
         whiteSpace: "nowrap",
+        ...bodyStyle,
       }}
     >
       <SelectablePath

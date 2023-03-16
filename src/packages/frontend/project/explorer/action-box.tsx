@@ -469,6 +469,16 @@ export const ActionBox = rclass<ReactProps>(
             <Col sm={5} style={{ color: "#666" }}>
               <h4>Move to a directory</h4>
               {this.render_selected_files_list()}
+              <ButtonToolbar>
+                <Button
+                  bsStyle="warning"
+                  onClick={this.move_click}
+                  disabled={!this.valid_move_input()}
+                >
+                  <Icon name="move" /> Move {size} {misc.plural(size, "Item")}
+                </Button>
+                <Button onClick={this.cancel_action}>Cancel</Button>
+              </ButtonToolbar>
             </Col>
             <Col sm={5} style={{ color: "#666", marginBottom: "15px" }}>
               <h4>
@@ -487,21 +497,8 @@ export const ActionBox = rclass<ReactProps>(
                 startingPath={this.props.current_path}
                 isExcluded={(path) => this.props.checked_files.has(path)}
                 style={{ width: "100%" }}
+                bodyStyle={{ maxHeight: "250px" }}
               />
-            </Col>
-          </Row>
-          <Row>
-            <Col sm={12}>
-              <ButtonToolbar>
-                <Button
-                  bsStyle="warning"
-                  onClick={this.move_click}
-                  disabled={!this.valid_move_input()}
-                >
-                  <Icon name="move" /> Move {size} {misc.plural(size, "Item")}
-                </Button>
-                <Button onClick={this.cancel_action}>Cancel</Button>
-              </ButtonToolbar>
             </Col>
           </Row>
         </div>
