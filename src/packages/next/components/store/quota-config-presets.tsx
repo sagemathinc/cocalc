@@ -187,7 +187,7 @@ export const PRESETS: PresetEntries = {
     disk: 10,
     uptime: "medium",
   },
-  budget: {
+  /*budget: {
     icon: "wallet",
     name: "Budget",
     descr: "is the cheapest option",
@@ -204,5 +204,5 @@ export const PRESETS: PresetEntries = {
     ram: 1,
     disk: 3,
     member: false,
-  },
+  },*/
 } as const;
