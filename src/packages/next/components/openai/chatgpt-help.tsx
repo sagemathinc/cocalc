@@ -15,7 +15,15 @@ const PROMPT = [
   "How can I do the following using CoCalc?", // give the context of how the question the user asks should be answered.
 ].join(" ");
 
-export default function ChatGPTHelp({ style }: { style?: CSSProperties }) {
+export default function ChatGPTHelp({
+  style,
+  prompt,
+  size,
+}: {
+  style?: CSSProperties;
+  prompt?: string;
+  size?;
+}) {
   const [state, setState] = useState<State>("input");
   const [focus, setFocus] = useState<boolean>(false);
   const [output, setOutput] = useState<string | null>(null);
@@ -29,7 +37,7 @@ export default function ChatGPTHelp({ style }: { style?: CSSProperties }) {
       value = input;
     }
     if (!value.trim()) return;
-    const message = `${PROMPT} ${value}`;
+    const message = `${PROMPT} ${prompt} ${value}`;
     const counter = counterRef.current + 1;
     try {
       counterRef.current += 1;
@@ -54,6 +62,7 @@ export default function ChatGPTHelp({ style }: { style?: CSSProperties }) {
   return (
     <div style={style}>
       <Input.Search
+        size={size}
         disabled={state == "wait"}
         onFocus={() => setFocus(true)}
         onBlur={() => setFocus(false)}
