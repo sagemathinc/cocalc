@@ -265,6 +265,28 @@ export default function TermsOfService({ customize }) {
                     </A>{" "}
                   </li>
                 </ul>
+                <li>
+                  <A href="https://openai.com/">OpenAI</A>
+                  <ul>
+                    <li>
+                      Answer questions about CoCalc functionality on the landing
+                      pages.
+                    </li>
+                    <li>
+                      Internal cocalc chat that explicitly mentions @chatgpt.
+                    </li>
+                    <li>
+                      <A href="https://openai.com/policies/terms-of-use">
+                        GDPR Information
+                      </A>
+                    </li>
+                    <li>
+                      <A href="https://openai.com/policies/privacy-policy">
+                        Data Privacy
+                      </A>
+                    </li>
+                  </ul>
+                </li>
               </ul>
               <h1>Questions?</h1>
               <p>
@@ -274,6 +296,7 @@ export default function TermsOfService({ customize }) {
               </p>
               <h1>Changes</h1>
               <ul>
+                <li>March 16, 2023: added openai.</li>
                 <li>
                   September 15, 2021: removed appear.in, which we no longer use.
                 </li>
