@@ -203,7 +203,9 @@ export default function Home(props: Props) {
           {topAccountLinks()}
           {shareServer && onCoCalcCom && <BannerWithLinks />}
           {openaiEnabled && (
-            <div style={{ maxWidth: "900px", margin: "15px auto" }}>
+            <div
+              style={{ width: "900px", maxWidth: "100%", margin: "15px auto" }}
+            >
               <ChatGPTHelp size="large" />
             </div>
           )}
