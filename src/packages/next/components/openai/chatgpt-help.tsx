@@ -37,7 +37,7 @@ export default function ChatGPTHelp({
       value = input;
     }
     if (!value.trim()) return;
-    const message = `${PROMPT} ${prompt} ${value}`;
+    const message = `${PROMPT} ${prompt ?? ""} ${value}`;
     const counter = counterRef.current + 1;
     try {
       counterRef.current += 1;
