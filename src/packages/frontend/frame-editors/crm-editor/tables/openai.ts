@@ -13,6 +13,7 @@ register({
         id: null,
         time: null,
         account_id: null,
+        analytics_cookie: null,
         input: null,
         output: null,
         total_tokens: null,

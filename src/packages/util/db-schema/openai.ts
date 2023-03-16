@@ -7,8 +7,9 @@ export interface ChatGPTLogEntry {
   time: Date;
   input: string;
   output: string;
-  account_id: string;
   total_tokens: number;
+  analytics_cookie?: string; // at least one of analytics_cookie or account_id will be set
+  account_id?: string;
   project_id?: string;
   path?: string;
 }
@@ -18,6 +19,11 @@ Table({
   fields: {
     id: ID,
     time: { type: "timestamp", desc: "When this particular chat happened." },
+    analytics_cookie: {
+      title: "Analytics Cookie",
+      type: "string",
+      desc: "The analytics cookie for the user that asked this question.",
+    },
     account_id: CREATED_BY,
     input: {
       title: "Input",
@@ -81,6 +87,7 @@ Table({
           id: null,
           time: null,
           account_id: null,
+          analytics_cookie: null,
           input: null,
           output: null,
           total_tokens: null,
