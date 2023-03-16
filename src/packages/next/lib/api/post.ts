@@ -27,7 +27,7 @@ export default async function apiPost(
   try {
     result = await response.json();
     if (result.error) {
-      // if error is set in response, then just through exception (this greatly simplifies client code).
+      // if error is set in response, then just throw exception (this greatly simplifies client code).
       throw Error(result.error);
     }
   } catch (err) {

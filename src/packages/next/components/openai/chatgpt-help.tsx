@@ -20,6 +20,7 @@ export default function ChatGPTHelp({ style }: { style?: CSSProperties }) {
   const [focus, setFocus] = useState<boolean>(false);
   const [output, setOutput] = useState<string | null>(null);
   const [input, setInput] = useState<string>("");
+  const [error, setError] = useState<string>("");
   const counterRef = useRef<number>(0);
   const { siteName } = useCustomize();
 
@@ -34,7 +35,14 @@ export default function ChatGPTHelp({ style }: { style?: CSSProperties }) {
       counterRef.current += 1;
       setInput(value);
       setState("wait");
-      const { output } = await apiPost("/openai/chatgpt", { input: message });
+      let output;
+      try {
+        ({ output } = await apiPost("/openai/chatgpt", { input: message }));
+      } catch (err) {
+        if (counterRef.current != counter) return;
+        setError(`${err}`);
+        return;
+      }
       if (counterRef.current != counter) return;
       setOutput(output);
     } finally {
@@ -59,6 +67,16 @@ export default function ChatGPTHelp({ style }: { style?: CSSProperties }) {
         }
         onSearch={chatgpt}
       />
+      {error && (
+        <Alert
+          type="error"
+          message="Error"
+          showIcon
+          closable
+          onClose={() => setError("")}
+          description={error}
+        />
+      )}
       {state == "wait" && (
         <div style={{ textAlign: "center", margin: "15px 0" }}>
           <OpenAIAvatar size={18} /> ChatGPT is figuring out how to do this
@@ -80,7 +98,6 @@ export default function ChatGPTHelp({ style }: { style?: CSSProperties }) {
           closable
           onClose={() => setOutput("")}
           style={{ margin: "15px 0" }}
-          message={input}
           description={
             <div>
               <Markdown value={output} />

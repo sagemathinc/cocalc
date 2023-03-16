@@ -45,6 +45,10 @@ export async function evaluate({
     project_id,
     path,
   });
+  if (!account_id && !analytics_cookie) {
+    // at least some amount of tracking.
+    throw Error("account_id or analytics_cookie must be set");
+  }
   const configuration = new Configuration({ apiKey: await getApiKey() });
   const openai = new OpenAIApi(configuration);
   const completion = await openai.createChatCompletion({
