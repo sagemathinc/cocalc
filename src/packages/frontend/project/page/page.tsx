@@ -180,7 +180,14 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             />
           </div>
         )}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflowX: "auto",
+          }}
+        >
           {renderEditorContent()}
           {render_project_content()}
           {render_project_modal()}
