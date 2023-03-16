@@ -16,8 +16,8 @@ export type Presets =
   | "student+"
   | "instructor"
   | "research"
-  | "development"
-  | "budget";
+  | "development";
+  //| "budget";
 
 export interface Preset {
   icon?: IconName;
