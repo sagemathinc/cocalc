@@ -672,6 +672,17 @@ export const ActionBox = rclass<ReactProps>(
                 style={{ color: "#666" }}
               >
                 {this.render_copy_description()}
+                <ButtonToolbar>
+                  <Button
+                    bsStyle="primary"
+                    onClick={this.copy_click}
+                    disabled={!this.valid_copy_input()}
+                  >
+                    <Icon name="files" /> Copy {size}{" "}
+                    {misc.plural(size, "Item")}
+                  </Button>
+                  <Button onClick={this.cancel_action}>Cancel</Button>
+                </ButtonToolbar>
               </Col>
               {this.render_different_project_dialog()}
               <Col
@@ -699,22 +710,8 @@ export const ActionBox = rclass<ReactProps>(
                   startingPath={this.props.current_path}
                   project_id={this.state.copy_destination_project_id}
                   style={{ width: "100%" }}
+                  bodyStyle={{ maxHeight: "250px" }}
                 />
-              </Col>
-            </Row>
-            <Row>
-              <Col sm={12}>
-                <ButtonToolbar>
-                  <Button
-                    bsStyle="primary"
-                    onClick={this.copy_click}
-                    disabled={!this.valid_copy_input()}
-                  >
-                    <Icon name="files" /> Copy {size}{" "}
-                    {misc.plural(size, "Item")}
-                  </Button>
-                  <Button onClick={this.cancel_action}>Cancel</Button>
-                </ButtonToolbar>
               </Col>
             </Row>
           </div>
