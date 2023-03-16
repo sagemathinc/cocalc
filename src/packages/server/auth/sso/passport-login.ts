@@ -18,8 +18,14 @@
  * 4. If you already have an email address belonging to a newly introduced exclusive domain, it will start to be controlled by it.
  */
 
+import Cookies from "cookies";
+import * as _ from "lodash";
+//import Saml2js from "saml2js";
+import { isEmpty } from "lodash";
+
 import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
+import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import apiKeyAction from "@cocalc/server/api/manage";
 import generateHash from "@cocalc/server/auth/hash";
@@ -28,6 +34,7 @@ import {
   createRememberMeCookie,
 } from "@cocalc/server/auth/remember-me";
 import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
+import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import {
   PassportLoginLocals,
   PassportLoginOpts,
@@ -35,15 +42,9 @@ import {
 } from "@cocalc/server/auth/sso/types";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { HELP_EMAIL } from "@cocalc/util/theme";
-import Cookies from "cookies";
-import * as _ from "lodash";
-//import Saml2js from "saml2js";
-import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
-import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
-import { API_KEY_COOKIE_NAME } from "./consts";
-import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
-import { isEmpty } from "lodash";
 import getEmailAddress from "../../accounts/get-email-address";
+import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
+import { API_KEY_COOKIE_NAME } from "./consts";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
