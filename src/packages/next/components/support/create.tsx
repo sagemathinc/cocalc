@@ -25,7 +25,7 @@ import RecentFiles from "./recent-files";
 import { Type } from "./tickets";
 import { NoZendesk } from "./util";
 import { Paragraph, Title } from "components/misc";
-import ChatGPTHelp from "./chatgpt-help";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 
 function VSpace({ children }) {
   return (
@@ -44,7 +44,8 @@ function stringToType(s?: any): Type {
 }
 
 export default function Create() {
-  const { contactEmail, zendesk, account } = useCustomize();
+  const { contactEmail, zendesk, account, openaiEnabled, siteName } =
+    useCustomize();
   const router = useRouter();
   // The URL the user was viewing when they requested support.
   // This could easily be blank, but if it is set it can be useful.
@@ -143,6 +144,7 @@ export default function Create() {
                 </>
               )}
             </p>
+            {openaiEnabled && <ChatGPT siteName={siteName} />}
             <FAQ />
             <Title level={2}>Create Your Ticket</Title>
             <Instructions />
@@ -592,51 +594,53 @@ function Instructions() {
   );
 }
 
+function ChatGPT({ siteName }) {
+  return (
+    <div style={{ margin: "15px 0 20px 0" }}>
+      <Title level={2}>ChatGPT</Title>
+      <div style={{ color: "#666" }}>
+        If you have a question about how to do something using {siteName},
+        ChatGPT might save you some time:
+      </div>
+      <ChatGPTHelp style={{ marginTop: "15px" }} />
+    </div>
+  );
+}
+
 function FAQ() {
   return (
     <div>
       <Title level={2}>Helpful Links</Title>
       <Alert
         message={""}
-        style={{ margin: "20px 30px" }}
+        style={{ margin: "20px 0" }}
         type="warning"
         description={
           <ul style={{ marginBottom: 0, fontSize: "11pt" }}>
             <li>
-              <ChatGPTHelp />
+              <A href="https://doc.cocalc.com/">The CoCalc Manual</A>
             </li>
             <li>
               <A href="https://github.com/sagemathinc/cocalc/issues">
-                Create a bug report
+                Bug reports
               </A>
             </li>
             <li>
               <A href="https://github.com/sagemathinc/cocalc/discussions">
-                Start a discussion about CoCalc
+                The CoCalc Discussion Forum
               </A>
             </li>
             <li>
               {" "}
               <A href="https://doc.cocalc.com/howto/missing-project.html">
-                My file or project appears to be missing
+                Help: My file or project appears to be missing!
               </A>{" "}
-            </li>
-            <li>
-              {" "}
-              My Jupyter notebook or SageMath worksheet is{" "}
-              <A href="https://doc.cocalc.com/howto/slow-worksheet.html">
-                slow
-              </A>{" "}
-              or{" "}
-              <A href="https://doc.cocalc.com/howto/jupyter-kernel-terminated.html">
-                crashing
-              </A>
             </li>
             <li>
               {" "}
               I have{" "}
               <A href="https://doc.cocalc.com/howto/sage-question.html">
-                questions about SageMath
+                general questions about SageMath...
               </A>
             </li>
           </ul>
