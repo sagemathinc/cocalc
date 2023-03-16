@@ -4,11 +4,8 @@ Backend server side part of ChatGPT integration with CoCalc.
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-// fetch polyfill -- see https://github.com/transitive-bullshit/chatgpt-api/issues/376
-import "isomorphic-fetch";
 
-// See https://github.com/transitive-bullshit/chatgpt-api/issues/367
-const importDynamic = new Function("modulePath", "return import(modulePath)");
+import { Configuration, OpenAIApi } from "openai";
 
 const log = getLogger("chatgpt");
 
@@ -40,12 +37,17 @@ export async function evaluate({
   path,
 }: ChatOptions): Promise<string> {
   log.debug("evaluate", { input, account_id, project_id, path });
-  const { ChatGPTAPI } = await importDynamic("chatgpt");
-  const api = new ChatGPTAPI({ apiKey: await getApiKey() });
-  const res = await api.sendMessage(input);
-  const output = res.text;
-  const total_tokens = res.detail?.usage?.total_tokens;
-  log.debug("got res = ", res);
+  const configuration = new Configuration({ apiKey: await getApiKey() });
+  const openai = new OpenAIApi(configuration);
+  const completion = await openai.createChatCompletion({
+    model: "gpt-3.5-turbo",
+    messages: [{ role: "user", content: input }],
+  });
+  log.debug("response = ", completion);
+  const output = (
+    completion.data.choices[0].message?.content ?? "No Output"
+  ).trim();
+  const total_tokens = completion.data.usage?.total_tokens;
   saveResponse({ input, output, account_id, project_id, path, total_tokens });
   return output;
 }
