@@ -151,7 +151,7 @@ export default function SiteSettings({}) {
   function SaveButton() {
     if (data == null || savedRef.current == null) return null;
     let disabled: boolean = true;
-    for (const name in savedRef.current) {
+    for (const name in { ...savedRef.current, ...data }) {
       const value = savedRef.current[name];
       if (!isEqual(value, data[name])) {
         disabled = false;
