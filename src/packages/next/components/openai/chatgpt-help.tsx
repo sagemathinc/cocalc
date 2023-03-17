@@ -10,7 +10,6 @@ type State = "input" | "wait";
 
 const PROMPT = [
   "ASSUME I HAVE FULL ACCESS TO COCALC.", // otherwise it says things like "as a large language model I don't have access to cocalc."
-  "NEVER SAY WHAT THE OUTPUT OF A COMPUTATION WILL BE AND DO NOT COMMENT THAT THE OUTPUT IS OMITTED.", // frequently chatgpt makes idiotic claims about what running code will do; it's usually wrong.
   "How can I do the following using CoCalc?", // give the context of how the question the user asks should be answered.
 ].join(" ");
 
