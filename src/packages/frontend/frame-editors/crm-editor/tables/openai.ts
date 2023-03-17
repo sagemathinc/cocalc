@@ -16,6 +16,7 @@ register({
         analytics_cookie: null,
         input: null,
         output: null,
+        system: null,
         total_tokens: null,
         project_id: null,
         path: null,

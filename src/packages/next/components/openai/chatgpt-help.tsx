@@ -5,7 +5,6 @@ import apiPost from "lib/api/post";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useCustomize } from "lib/customize";
 import Loading from "components/share/loading";
-import { Icon } from "@cocalc/frontend/components/icon";
 
 type State = "input" | "wait";
 
@@ -37,7 +36,7 @@ export default function ChatGPTHelp({
       value = input;
     }
     if (!value.trim()) return;
-    const message = `${PROMPT} ${prompt ?? ""} ${value}`;
+    const system = `${PROMPT} ${prompt ?? ""}`;
     const counter = counterRef.current + 1;
     try {
       counterRef.current += 1;
@@ -45,7 +44,10 @@ export default function ChatGPTHelp({
       setState("wait");
       let output;
       try {
-        ({ output } = await apiPost("/openai/chatgpt", { input: message }));
+        ({ output } = await apiPost("/openai/chatgpt", {
+          input: value,
+          system,
+        }));
       } catch (err) {
         if (counterRef.current != counter) return;
         setError(`${err}`);
@@ -110,13 +112,6 @@ export default function ChatGPTHelp({
           description={
             <div>
               <Markdown value={output} />
-              <Button
-                onClick={() => {
-                  chatgpt();
-                }}
-              >
-                <Icon name="redo" /> Regenerate
-              </Button>
             </div>
           }
         />

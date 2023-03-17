@@ -25,6 +25,14 @@ Table({
       desc: "The analytics cookie for the user that asked this question.",
     },
     account_id: CREATED_BY,
+    system: {
+      title: "System Context",
+      type: "string",
+      desc: "System context prompt.",
+      render: {
+        type: "markdown",
+      },
+    },
     input: {
       title: "Input",
       type: "string",
@@ -64,6 +72,7 @@ Table({
           time: null,
           account_id: null,
           input: null,
+          system: null,
           output: null,
           total_tokens: null,
           project_id: null,
@@ -89,6 +98,7 @@ Table({
           account_id: null,
           analytics_cookie: null,
           input: null,
+          system: null,
           output: null,
           total_tokens: null,
           project_id: null,

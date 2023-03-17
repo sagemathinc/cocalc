@@ -24,7 +24,8 @@ async function getApiKey(): Promise<string> {
 }
 
 interface ChatOptions {
-  input: string;
+  input: string; // what user types
+  system?: string; // extra setup that we add for relevance and context
   account_id?: string;
   project_id?: string;
   path?: string;
@@ -33,6 +34,7 @@ interface ChatOptions {
 
 export async function evaluate({
   input,
+  system,
   account_id,
   project_id,
   path,
@@ -40,6 +42,7 @@ export async function evaluate({
 }: ChatOptions): Promise<string> {
   log.debug("evaluate", {
     input,
+    system,
     account_id,
     analytics_cookie,
     project_id,
@@ -51,9 +54,14 @@ export async function evaluate({
   }
   const configuration = new Configuration({ apiKey: await getApiKey() });
   const openai = new OpenAIApi(configuration);
+  const messages: { role: "system" | "user"; content: string }[] = [];
+  if (system) {
+    messages.push({ role: "system", content: system });
+  }
+  messages.push({ role: "user", content: input });
   const completion = await openai.createChatCompletion({
     model: "gpt-3.5-turbo",
-    messages: [{ role: "user", content: input }],
+    messages,
   });
   log.debug("response: ", completion.data);
   const output = (
@@ -62,6 +70,7 @@ export async function evaluate({
   const total_tokens = completion.data.usage?.total_tokens;
   saveResponse({
     input,
+    system,
     output,
     account_id,
     analytics_cookie,
@@ -77,6 +86,7 @@ export async function evaluate({
 // Also, we could dedup identical inputs (?).
 async function saveResponse({
   input,
+  system,
   output,
   account_id,
   analytics_cookie,
@@ -87,9 +97,10 @@ async function saveResponse({
   const pool = getPool();
   try {
     await pool.query(
-      "INSERT INTO openai_chatgpt_log(time,input,output,account_id,analytics_cookie,project_id,path,total_tokens) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7)",
+      "INSERT INTO openai_chatgpt_log(time,input,system,output,account_id,analytics_cookie,project_id,path,total_tokens) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8)",
       [
         input,
+        system,
         output,
         account_id,
         analytics_cookie,
