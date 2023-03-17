@@ -49,6 +49,17 @@ export function mentionableUsers(
 
   const users_store = redux.getStore("users");
   const v: Item[] = [];
+  if (chatGPT) {
+    v.push({
+      value: "chatgpt",
+      label: (
+        <span>
+          <OpenAIAvatar size={24} /> ChatGPT
+        </span>
+      ),
+      search: "chatgpt",
+    });
+  }
   for (const { account_id } of project_users) {
     const fullname = users_store.get_name(account_id) ?? "";
     const s = fullname.toLowerCase();
@@ -60,17 +71,6 @@ export function mentionableUsers(
       </span>
     );
     v.push({ value: account_id, label, search: s });
-  }
-  if (chatGPT) {
-    v.push({
-      value: "chatgpt",
-      label: (
-        <span>
-          <OpenAIAvatar size={24} /> ChatGPT
-        </span>
-      ),
-      search: "chatgpt",
-    });
   }
   return v;
 }
