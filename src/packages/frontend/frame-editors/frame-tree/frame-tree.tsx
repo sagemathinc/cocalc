@@ -397,6 +397,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             desc,
             font_size: desc.get("font_size") ?? font_size,
             isFocused: active_id == desc.get("id"),
+            isVisible: tab_is_visible
           }}
         >
           <div

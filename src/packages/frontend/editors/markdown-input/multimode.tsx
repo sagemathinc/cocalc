@@ -25,6 +25,7 @@ import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc";
 import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { COLORS } from "@cocalc/util/theme";
 import { BLURED_STYLE, FOCUSED_STYLE, MarkdownInput } from "./component";
+import { Icon } from "@cocalc/frontend/components";
 
 // NOTE: on mobile there is very little suppport for "editor" = "slate", but
 // very good support for "markdown", hence the default below.
@@ -180,7 +181,12 @@ export default function MultiMarkdownInput(props: Props) {
     overflowEllipsis = false,
     dirtyRef,
   } = props;
-  const { project_id, path } = useFrameContext();
+  const {
+    isFocused: isFocusedFrame,
+    isVisible,
+    project_id,
+    path,
+  } = useFrameContext();
 
   const editBar2 = useRef<JSX.Element | undefined>(undefined);
 
@@ -260,8 +266,20 @@ export default function MultiMarkdownInput(props: Props) {
       <span style={{ fontWeight: 400 }}>
         {"\u22EF"}
         <Popover
-          open={editBarPopover}
-          content={<div>{editBar2.current}</div>}
+          open={isFocusedFrame && isVisible && editBarPopover}
+          content={
+            <div style={{ display: "flex" }}>
+              {editBar2.current}
+              <Icon
+                onClick={() => setEditBarPopover(false)}
+                name="times"
+                style={{
+                  color: COLORS.GRAY_M,
+                  marginTop: "5px",
+                }}
+              />
+            </div>
+          }
         />
       </span>
     );

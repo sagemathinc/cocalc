@@ -78,6 +78,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             path,
             actions: redux.getEditorActions(project_id, path) as any,
             isFocused: active_project_tab === tab_name,
+            isVisible: active_project_tab === tab_name,
           }}
         >
           <Content
