@@ -116,7 +116,10 @@ function Body() {
           CoCalc Cloud <Icon name="network-wired" style={{ float: "right" }} />
         </Title>
         <Paragraph>
-          This version of on-prem CoCalc runs on a full-fledged{" "}
+          <Text strong>
+            <A href="https://doc-cloud.cocalc.com/">CoCalc Cloud</A>
+          </Text>{" "}
+          is an on-prem version of CoCalc that runs on a full-fledged{" "}
           <A href={"https://kubernetes.io"}>Kubernetes Cluster</A>. The
           underlying services and their architecture are the same, as the ones
           that power the main service at cocalc.com. This means you get the same
@@ -197,11 +200,16 @@ function Body() {
             </li>
           </ul>
         </Paragraph>
+        <Paragraph>
+          For more details, see the{" "}
+          <A href="https://doc-cloud.cocalc.com/">cocalc cloud documentation</A>
+          .
+        </Paragraph>
         <Title level={3}>Purchasing CoCalc Cloud</Title>
         <Paragraph>
           In contrast to the Docker variant, CoCalc Cloud is a scalable
           solution. Therefore, the price is proportional to the expected number
-          of users. Additionally, various levels of support can be negoatiated
+          of users. Additionally, various levels of support can be negotiated
           for an additional cost. Please contact us for a quote.
         </Paragraph>
         <Paragraph>
