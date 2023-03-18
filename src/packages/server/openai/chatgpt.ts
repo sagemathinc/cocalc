@@ -4,8 +4,8 @@ Backend server side part of ChatGPT integration with CoCalc.
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-
 import { Configuration, OpenAIApi } from "openai";
+import { checkForAbuse } from "./abuse";
 
 const log = getLogger("chatgpt");
 
@@ -48,10 +48,7 @@ export async function evaluate({
     project_id,
     path,
   });
-  if (!account_id && !analytics_cookie) {
-    // at least some amount of tracking.
-    throw Error("account_id or analytics_cookie must be set");
-  }
+  await checkForAbuse({ account_id, analytics_cookie });
   const configuration = new Configuration({ apiKey: await getApiKey() });
   const openai = new OpenAIApi(configuration);
   const messages: { role: "system" | "user"; content: string }[] = [];

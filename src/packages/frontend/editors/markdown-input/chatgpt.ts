@@ -35,11 +35,16 @@ export default async function chatGPT({
     date: 0,
   });
   // submit question to chatgpt
-  const resp = await webapp_client.openai_client.chatgpt({
-    input: value,
-    project_id,
-    path,
-  });
+  let resp;
+  try {
+    resp = await webapp_client.openai_client.chatgpt({
+      input: value,
+      project_id,
+      path,
+    });
+  } catch (err) {
+    resp = `<span style='color:#b71c1c'>${err}</span>`;
+  }
   // insert the answer as a new chat message
   if (actions?.syncdb != null) {
     //hackish

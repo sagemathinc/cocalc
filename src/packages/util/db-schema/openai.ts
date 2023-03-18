@@ -64,6 +64,7 @@ Table({
   rules: {
     desc: "OpenAI ChatGPT Log",
     primary_key: "id",
+    pg_indexes: ["account_id", "analytics_cookie", "time"],
     user_query: {
       get: {
         pg_where: [{ "account_id = $::UUID": "account_id" }],

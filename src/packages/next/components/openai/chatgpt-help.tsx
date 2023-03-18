@@ -79,6 +79,7 @@ export default function ChatGPTHelp({
       />
       {error && (
         <Alert
+          style={{ margin: "15px 0" }}
           type="error"
           message="Error"
           showIcon
