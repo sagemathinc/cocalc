@@ -172,15 +172,20 @@ export default function SideChat({ project_id, path, style }: Props) {
 }
 
 function AddChatCollab({ addCollab, project_id }) {
+  const useChatGPT = useTypedRedux("customize", "openai_enabled");
   if (!addCollab) {
     return null;
   }
   return (
     <div>
+      You can{" "}
+      {useChatGPT && (
+        <>put @chatgpt in any message to get a response from ChatGPT, </>
+      )}
       <A href="https://github.com/sagemathinc/cocalc/discussions">
-        Join a discussion about CoCalc on GitHub
-      </A>{" "}
-      or add collaborators to this project:
+        join a discussion on GitHub
+      </A>
+      , and add more collaborators to this project below.
       <AddCollaborators project_id={project_id} autoFocus />
       <div style={{ color: "#666" }}>
         (Collaborators have access to all files in this project.)
@@ -190,6 +195,7 @@ function AddChatCollab({ addCollab, project_id }) {
 }
 
 function CollabList({ project, addCollab, actions }) {
+  const useChatGPT = useTypedRedux("customize", "openai_enabled");
   return (
     <div
       style={
@@ -209,9 +215,12 @@ function CollabList({ project, addCollab, actions }) {
         <Icon name={addCollab ? "caret-down" : "caret-right"} />
       </div>
       <span style={{ color: "#777", fontSize: "10pt" }}>
+        {useChatGPT && <>@ChatGPT, </>}
         <ProjectUsers
           project={project}
-          none={<span>Add people to work with...</span>}
+          none={
+            <span>{useChatGPT ? "add" : "Add"} people to work with...</span>
+          }
         />
       </span>
     </div>

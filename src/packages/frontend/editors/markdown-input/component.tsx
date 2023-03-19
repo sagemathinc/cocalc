@@ -422,6 +422,8 @@ export function MarkdownInput(props: Props) {
           mentions.push({ account_id, description, fragment_id });
         }
         const value = doc.getValue();
+        // always call submit_mentions, even if mentions.length == 0, since
+        // we also support the string "@chatgpt"
         submit_mentions(project_id, path, mentions, value);
         return value;
       };

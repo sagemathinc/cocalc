@@ -48,6 +48,7 @@ export async function evaluate({
     project_id,
     path,
   });
+  const start = new Date();
   await checkForAbuse({ account_id, analytics_cookie });
   const configuration = new Configuration({ apiKey: await getApiKey() });
   const openai = new OpenAIApi(configuration);
@@ -65,6 +66,7 @@ export async function evaluate({
     completion.data.choices[0].message?.content ?? "No Output"
   ).trim();
   const total_tokens = completion.data.usage?.total_tokens;
+  const total_time_s = (new Date().valueOf() - start.valueOf()) / 1000;
   saveResponse({
     input,
     system,
@@ -74,6 +76,7 @@ export async function evaluate({
     project_id,
     path,
     total_tokens,
+    total_time_s,
   });
   return output;
 }
@@ -90,11 +93,12 @@ async function saveResponse({
   project_id,
   path,
   total_tokens,
+  total_time_s,
 }) {
   const pool = getPool();
   try {
     await pool.query(
-      "INSERT INTO openai_chatgpt_log(time,input,system,output,account_id,analytics_cookie,project_id,path,total_tokens) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8)",
+      "INSERT INTO openai_chatgpt_log(time,input,system,output,account_id,analytics_cookie,project_id,path,total_tokens,total_time_s) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9)",
       [
         input,
         system,
@@ -104,6 +108,7 @@ async function saveResponse({
         project_id,
         path,
         total_tokens,
+        total_time_s,
       ]
     );
   } catch (err) {

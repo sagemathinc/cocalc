@@ -60,7 +60,13 @@ export default async function chatGPT({
 }
 
 function stripMentions(value: string): string {
-  // They look like this ... <span class="user-mention" account-id=chatgpt >@ChatGPT</span> ...
+  // We strip out any cased version of the string @chatgpt and also all mentions.
+  while (true) {
+    const i = value.toLowerCase().indexOf("@chatgpt");
+    if (i == -1) break;
+    value = value.slice(0, i) + value.slice(i + "@chatgpt".length);
+  }
+  // The mentions look like this: <span class="user-mention" account-id=chatgpt >@ChatGPT</span> ...
   while (true) {
     const i = value.indexOf('<span class="user-mention"');
     if (i == -1) return value;
