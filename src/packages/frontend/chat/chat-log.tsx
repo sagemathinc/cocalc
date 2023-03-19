@@ -24,6 +24,7 @@ import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-h
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import { newest_content, getSelectedHashtagsSearch } from "./utils";
+import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 
 type MessageMap = Map<string, any>;
 
@@ -157,7 +158,8 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
         }
         const record = drafts.get(sender_id);
         if (record.get("date") != 0) {
-          // editing an already sent message, rather than composing a new one.  This is indicated elsewhere (at that message).
+          // editing an already sent message, rather than composing a new one.
+          // This is indicated elsewhere (at that message).
           continue;
         }
         if (record.get("active") < cutoff || !record.get("input").trim()) {
@@ -172,6 +174,9 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
             <span style={{ marginLeft: "15px" }}>
               {get_user_name(user_map, sender_id)} is writing a message...
             </span>
+            {sender_id == "chatgpt" && (
+              <ProgressEstimate style={{ maxWidth: "600px" }} seconds={10} />
+            )}
           </div>
         );
       }

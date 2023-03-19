@@ -6,6 +6,7 @@
 import * as message from "@cocalc/util/message";
 import { AsyncCall } from "./client";
 import { redux } from "../app-framework";
+// import { delay } from "awaiting";
 
 const DEFAULT_SYSTEM_PROMPT =
   "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.";
@@ -35,6 +36,8 @@ export class OpenAIClient {
     if (!input) {
       return "Great! What can I assist you with today?";
     }
+    // await delay(5000);
+    // return "Test";
     const resp = await this.async_call({
       message: message.chatgpt({ text: input, system, project_id, path }),
     });
