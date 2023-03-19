@@ -6,6 +6,7 @@ import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useCustomize } from "lib/customize";
 import Loading from "components/share/loading";
 import A from "components/misc/A";
+import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 
 type State = "input" | "wait";
 
@@ -18,10 +19,12 @@ export default function ChatGPTHelp({
   style,
   prompt,
   size,
+  placeholder,
 }: {
   style?: CSSProperties;
   prompt?: string;
   size?;
+  placeholder?: string;
 }) {
   const [state, setState] = useState<State>("input");
   const [focus, setFocus] = useState<boolean>(false);
@@ -68,7 +71,7 @@ export default function ChatGPTHelp({
         disabled={state == "wait"}
         onFocus={() => setFocus(true)}
         onBlur={() => setFocus(false)}
-        placeholder={`What do you want to do using ${siteName}?`}
+        placeholder={placeholder ?? `What do you want to do using ${siteName}?`}
         allowClear
         enterButton={
           <>
@@ -110,6 +113,7 @@ export default function ChatGPTHelp({
           >
             <Loading delay={0}>Cancel...</Loading>
           </Button>
+          <ProgressEstimate seconds={10} />
         </div>
       )}
       {output != null && (
