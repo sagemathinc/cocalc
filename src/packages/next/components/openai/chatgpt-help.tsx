@@ -5,6 +5,7 @@ import apiPost from "lib/api/post";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useCustomize } from "lib/customize";
 import Loading from "components/share/loading";
+import A from "components/misc/A";
 
 type State = "input" | "wait";
 
@@ -85,7 +86,15 @@ export default function ChatGPTHelp({
           showIcon
           closable
           onClose={() => setError("")}
-          description={error}
+          description={
+            <>
+              {error}
+              <hr />
+              OpenAI <A href="https://status.openai.com/">status</A> and{" "}
+              <A href="https://downdetector.com/status/openai/">downdetector</A>
+              .
+            </>
+          }
         />
       )}
       {state == "wait" && (

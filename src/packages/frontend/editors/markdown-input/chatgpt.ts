@@ -43,7 +43,7 @@ export default async function chatGPT({
       path,
     });
   } catch (err) {
-    resp = `<span style='color:#b71c1c'>${err}</span>`;
+    resp = `<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
   }
   // insert the answer as a new chat message
   if (actions?.syncdb != null) {
