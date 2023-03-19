@@ -146,6 +146,7 @@ importers:
       '@lumino/widgets': ^1.31.1
       '@microlink/react-json-view': ^1.22.2
       '@react-hook/mouse-position': ^4.1.3
+      '@speed-highlight/core': ^1.1.11
       '@types/chai': ^4.2.11
       '@types/codemirror': ^5.60.5
       '@types/jquery': ^3.5.5
@@ -304,6 +305,7 @@ importers:
       '@lumino/widgets': 1.36.0
       '@microlink/react-json-view': 1.22.2_ib3m5ricvtkl2cll7qpr2f6lvq
       '@react-hook/mouse-position': 4.1.3_react@18.2.0
+      '@speed-highlight/core': 1.1.11
       '@use-gesture/react': 10.2.24_react@18.2.0
       '@zippytech/react-notify-resize': 4.0.4_sh5qlbywuemxd2y3xkrw2y2kr4
       antd: 5.1.6_biqbaboplfbrettd7655fr4n2y
@@ -4406,6 +4408,10 @@ packages:
   /@sinonjs/text-encoding/0.7.2:
     resolution: {integrity: sha512-sXXKG+uL9IrKqViTtao2Ws6dy0znu9sOaP1di/jKGW1M6VssO8vlpXCQcpZ+jisQ1tTFAC5Jo/EOzFbggBagFQ==}
     dev: true
+
+  /@speed-highlight/core/1.1.11:
+    resolution: {integrity: sha512-KtUCQahL7WjK8zKEhWwzBa/7t6wimmOF9BFS/gIbVE48BwNEK7NafOkwzfYRF7D6RjENsP2aJDZRANwHDncqnw==}
+    dev: false
 
   /@swc/core-android-arm-eabi/1.3.3:
     resolution: {integrity: sha512-R6MpKXvNx/T/8a0wUTiX1THxfRbURSCmYlSi/JnUaqLYUclQK1N8aCMWz7EYSz6FE0VZBREJYDJcdnfP88E/1Q==}

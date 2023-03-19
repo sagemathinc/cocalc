@@ -15,6 +15,7 @@ import { SlateCodeMirror } from "../codemirror";
 import { delay } from "awaiting";
 import { useSetElement } from "../set-element";
 import { Input } from "antd";
+import infoToMode from "./info-to-mode";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -39,7 +40,7 @@ const Element: React.FC<RenderElementProps> = ({
         <SlateCodeMirror
           options={{ lineWrapping: true }}
           value={element.value}
-          info={element.info}
+          info={infoToMode(element.info, element.value)}
           onChange={(value) => {
             setElement({ value });
           }}

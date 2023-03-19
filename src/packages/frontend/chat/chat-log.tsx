@@ -175,10 +175,16 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
               {get_user_name(user_map, sender_id)} is writing a message...
             </span>
             {sender_id == "chatgpt" && (
-              <ProgressEstimate style={{ maxWidth: "600px" }} seconds={10} />
+              <ProgressEstimate
+                style={{ marginLeft: "15px", maxWidth: "600px" }}
+                seconds={45}
+              />
             )}
           </div>
         );
+        // We use a longer chatgpt estimate here than in the frontend nextjs
+        // app, since the nature of questions when you're fully using cocalc
+        // is that they tend to be much deeper.
       }
       if (v.length == 0) return;
       scrollToBottomRef?.current?.();
