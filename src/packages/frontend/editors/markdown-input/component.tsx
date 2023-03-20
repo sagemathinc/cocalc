@@ -288,8 +288,9 @@ export function MarkdownInput(props: Props) {
       inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
       spellcheck: true,
       mode: { name: "gfm" },
-      extraKeys,
     });
+    // gives this highest precedence:
+    cm.addKeyMap(extraKeys);
 
     if (getValueRef != null) {
       getValueRef.current = cm.current.getValue.bind(cm.current);
