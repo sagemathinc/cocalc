@@ -258,7 +258,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_search() {
     return (
       <SearchInput
-        placeholder={"Search messages (use /re/ for regexp)..."}
+        placeholder={"Filter messages (use /re/ for regexp)..."}
         default_value={search}
         on_change={debounce(
           (value) => actions.setState({ search: value }),

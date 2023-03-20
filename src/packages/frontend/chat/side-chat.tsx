@@ -108,7 +108,7 @@ export default function SideChat({ project_id, path, style }: Props) {
         </div>
       )}
       <SearchInput
-        placeholder={"Search messages (use /re/ for regexp)..."}
+        placeholder={"Filter messages (use /re/ for regexp)..."}
         default_value={search}
         on_change={debounce((search) => actions.setState({ search }), 500)}
         style={{ margin: 0 }}

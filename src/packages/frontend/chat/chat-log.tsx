@@ -168,6 +168,9 @@ export function ChatLog({
                 scroll_into_view={() =>
                   virtuosoRef.current?.scrollIntoView({ index })
                 }
+                allowReply={
+                  messages.getIn([sorted_dates[index + 1], "reply_to"]) == null
+                }
               />
             </div>
           );

@@ -290,7 +290,7 @@ export function MarkdownInput(props: Props) {
       mode: { name: "gfm" },
     });
     // gives this highest precedence:
-    cm.addKeyMap(extraKeys);
+    cm.current.addKeyMap(extraKeys);
 
     if (getValueRef != null) {
       getValueRef.current = cm.current.getValue.bind(cm.current);

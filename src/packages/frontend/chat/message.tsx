@@ -54,6 +54,10 @@ interface Props {
 
   set_scroll?: Function;
   scroll_into_view: () => void; // call to scroll this message into view
+
+  // if true, include a reply button - this should only be for messages
+  // that don't have an existing reply to them already.
+  allowReply?: boolean;
 }
 
 export default function Message(props: Props) {
@@ -340,7 +344,7 @@ export default function Message(props: Props) {
                     <Icon name="pencil" /> Edit
                   </Button>
                 </Tooltip>*/}
-                {!replying && (
+                {props.allowReply && !replying && (
                   <Tooltip title="Write a reply to this message">
                     <Button
                       disabled={replying}
