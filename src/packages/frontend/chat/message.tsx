@@ -22,7 +22,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Space, TimeAgo, Tip } from "@cocalc/frontend/components";
 import { Button, Tooltip, Row, Col } from "antd";
-import { get_user_name } from "./chat-log";
+import { getUserName } from "./chat-log";
 import { HistoryTitle, HistoryFooter, History } from "./history";
 import ChatInput from "./input";
 import { ChatActions } from "./actions";
@@ -524,7 +524,7 @@ export default function Message(props: Props) {
 export function message_to_markdown(message): string {
   let value = newest_content(message);
   const user_map = redux.getStore("users").get("user_map");
-  const sender = get_user_name(user_map, message.get("sender_id"));
+  const sender = getUserName(user_map, message.get("sender_id"));
   const date = message.get("date").toString();
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
 }

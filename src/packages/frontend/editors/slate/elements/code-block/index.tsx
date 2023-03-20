@@ -8,6 +8,7 @@ import { Element } from "slate";
 import { register, SlateElement, RenderElementProps } from "../register";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import infoToMode from "./info-to-mode";
+import CopyButton from "./copy-button";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -21,10 +22,13 @@ const StaticElement: React.FC<RenderElementProps> = ({
   attributes,
   element,
 }) => {
-  if (element.type != "code_block") throw Error("bug");
+  if (element.type != "code_block") {
+    throw Error("bug");
+  }
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   return (
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
+      <CopyButton value={element.value} />
       <CodeMirrorStatic
         value={element.value}
         style={{ background: "white", padding: "15px" }}
