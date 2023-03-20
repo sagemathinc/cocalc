@@ -96,7 +96,7 @@ export default function Message(props: Props) {
       >
         <Tip
           title="Message History"
-          tip={`${verb} history of editing of this message.  Any collaborator can edit any message.`}
+          tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
         >
           <Icon name="history" /> {verb} History
         </Tip>
@@ -294,6 +294,7 @@ export default function Message(props: Props) {
           )}
           {!isEditing && (
             <MostlyStaticMarkdown
+              style={{ maxHeight: "300px", overflowY: "auto" }}
               value={value}
               className={message_class}
               selectedHashtags={props.selectedHashtags}
@@ -309,15 +310,24 @@ export default function Message(props: Props) {
             />
           )}
           {isEditing && renderEditMessage()}
-          <span>
-            {props.message.get("history").size > 1 ||
-            props.message.get("editing").size > 0
-              ? editing_status(isEditing)
-              : undefined}
-            {props.message.get("history").size > 1
-              ? renderToggleHistory()
-              : undefined}
-          </span>
+          {!isEditing && (
+            <span>
+              {(props.message.get("history").size > 1 ||
+                props.message.get("editing").size > 0) &&
+                editing_status(isEditing)}
+              {props.message.get("history").size > 1 && renderToggleHistory()}
+              <Button
+                style={{
+                  float: "right",
+                  color: is_viewers_message ? "white" : "#777",
+                }}
+                type="text"
+                size="small"
+              >
+                <Icon name="reply" /> Reply
+              </Button>
+            </span>
+          )}
         </div>
         {show_history && (
           <div>
