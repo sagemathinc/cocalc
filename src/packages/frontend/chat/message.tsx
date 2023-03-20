@@ -31,6 +31,11 @@ import { Name } from "./name";
 
 const BLANK_COLUMN = <Col key={"blankcolumn"} xs={2}></Col>;
 
+const REPLY_STYLE = {
+  marginLeft: "100px",
+  borderLeft: "10px solid #ddd",
+} as const;
+
 interface Props {
   actions?: ChatActions;
 
@@ -401,6 +406,7 @@ export default function Message(props: Props) {
     return (
       <div>
         <ChatInput
+          autoFocus
           cacheId={`${props.path}${props.project_id}${props.message
             ?.get("date")
             ?.valueOf()}`}
@@ -424,8 +430,8 @@ export default function Message(props: Props) {
           </Button>
           <Button
             onClick={() => {
-              props.actions.set_editing(props.message, false);
-              props.actions.delete_draft(props.message.get("date")?.valueOf());
+              props.actions?.set_editing(props.message, false);
+              props.actions?.delete_draft(props.message.get("date")?.valueOf());
             }}
           >
             Cancel
@@ -433,6 +439,13 @@ export default function Message(props: Props) {
         </div>
       </div>
     );
+  }
+
+  function sendReply() {
+    if (props.actions == null) return;
+    const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
+    props.actions.send_reply(props.message, reply);
+    setReplying(false);
   }
 
   function renderComposeReply() {
@@ -448,6 +461,7 @@ export default function Message(props: Props) {
     return (
       <div style={{ paddingLeft: "30px", borderLeft: "3px solid #ddd" }}>
         <ChatInput
+          autoFocus
           style={{
             height: "auto" /* for some reason the default 100% breaks things */,
           }}
@@ -456,22 +470,30 @@ export default function Message(props: Props) {
             ?.valueOf()}-reply`}
           input={""}
           submitMentionsRef={replyMentionsRef}
-          on_send={() => {
-            console.log("reply = ", replyMessageRef.current);
-          }}
+          on_send={sendReply}
           height={"auto"}
           syncdb={props.actions.syncdb}
-          date={new Date().valueOf() ?? 0}
+          date={-(props.message?.get("date")?.valueOf() ?? 0)}
           onChange={(value) => {
             replyMessageRef.current = value;
           }}
           placeholder={"Reply to the above message..."}
         />
         <div style={{ margin: "5px 0" }}>
-          <Button type="primary" style={{ marginRight: "5px" }}>
+          <Button
+            onClick={sendReply}
+            type="primary"
+            style={{ marginRight: "5px" }}
+          >
             <Icon name="paper-plane" /> Send Reply
           </Button>
-          <Button onClick={() => {}}>Cancel</Button>
+          <Button
+            onClick={() => {
+              setReplying(false);
+            }}
+          >
+            Cancel
+          </Button>
         </div>
       </div>
     );
@@ -491,7 +513,11 @@ export default function Message(props: Props) {
       cols = cols.reverse();
     }
   }
-  return <Row>{cols}</Row>;
+  return (
+    <Row style={props.message.get("reply_to") ? REPLY_STYLE : undefined}>
+      {cols}
+    </Row>
+  );
 }
 
 // Used for exporting chat to markdown file

@@ -17,7 +17,12 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Alert } from "antd";
 import Message from "./message";
-import { parse_hashtags, search_match, search_split } from "@cocalc/util/misc";
+import {
+  cmp,
+  parse_hashtags,
+  search_match,
+  search_split,
+} from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
@@ -58,7 +63,7 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
     const user_map = useTypedRedux("users", "user_map");
     const account_id = useTypedRedux("account", "account_id");
     const sorted_dates = useMemo<string[]>(() => {
-      return get_sorted_dates(messages, search);
+      return getSortedDates(messages, search);
     }, [messages, search, project_id, path]);
 
     const visibleHashtags = useMemo(() => {
@@ -271,17 +276,57 @@ function search_matches(message: MessageMap, search_terms): boolean {
   return search_match(first.get("content", ""), search_terms);
 }
 
-export function get_sorted_dates(messages, search) {
-  // WARNING: This code is technically wrong since the keys are the string
-  // representations of ms since epoch.  However, it won't fail until over
-  // 200 years from now, so we leave it to future generations to worry about.
+// messages is an immutablejs map from
+//   - timestamps (ms since epoch as string)
+// to
+//   - message objects {date: , event:, history, sender_id, reply_to}
+//
+// It was very easy to sort these before reply_to, which complicates things.
+export function getSortedDates(messages, search?: string): string[] {
   let m = messages;
   if (m == null) return [];
   if (search) {
     const search_terms = search_split(search);
     m = m.filter((message) => search_matches(message, search_terms));
   }
-  return m.keySeq().sort().toJS();
+  const v: [date: number, reply_to: number | undefined][] = [];
+  for (const [date, message] of m) {
+    const reply_to = message.get("reply_to");
+    v.push([
+      parseInt(date),
+      reply_to != null ? new Date(reply_to).valueOf() : undefined,
+    ]);
+  }
+  v.sort(cmpMessages);
+  const w = v.map((z) => `${z[0]}`);
+  return w;
+}
+
+/*
+Compare messages as follows:
+ - if message has a parent it is a reply, so we use the parent instead for the
+   compare
+ - except in special cases:
+    - one of them is the parent and other is a child of that parent
+    - both have same parent
+*/
+function cmpMessages([a_time, a_parent], [b_time, b_parent]): number {
+  // special case:
+  // same parent:
+  if (a_parent !== undefined && a_parent == b_parent) {
+    return cmp(a_time, b_time);
+  }
+  // one of them is the parent and other is a child of that parent
+  if (a_parent == b_time) {
+    // b is the parent of a, so b is first.
+    return 1;
+  }
+  if (b_parent == a_time) {
+    // a is the parent of b, so a is first.
+    return -1;
+  }
+  // general case.
+  return cmp(a_parent ?? a_time, b_parent ?? b_time);
 }
 
 export function get_user_name(user_map, account_id: string): string {

@@ -9,7 +9,7 @@ import { user_tracking } from "@cocalc/frontend/user-tracking";
 import { Actions } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ChatState, ChatStore } from "./store";
-import { get_sorted_dates } from "./chat-log";
+import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
 import type {
   HashtagState,
@@ -129,7 +129,7 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   // second parameter used for sending a message by chatgpt (managed by the frontend)
-  public send_chat(input?: string, sender_id?: string): void {
+  public send_chat(input?: string, sender_id?: string, reply_to?: Date): void {
     if (this.syncdb == null || this.store == null) {
       // WARNING: give an error or try again later?
       return;
@@ -151,8 +151,11 @@ export class ChatActions extends Actions<ChatState> {
       event: "chat",
       history: [{ author_id: sender_id, content: input, date: time_stamp }],
       date: time_stamp,
+      reply_to: reply_to?.toISOString(),
     });
-    this.delete_draft(0);
+    if (!reply_to) {
+      this.delete_draft(0);
+    }
     // NOTE: we also clear search, since it's confusing to send a message and not
     // even see it (if it doesn't match search).  We do NOT clear the hashtags though,
     // since by default the message you are sending has those tags.
@@ -222,6 +225,21 @@ export class ChatActions extends Actions<ChatState> {
     this.save_to_disk();
   }
 
+  send_reply(message, reply: string) {
+    const reply_to = getReplyToRoot(
+      message,
+      this.store?.get("messages") ?? fromJS({})
+    );
+    const time = reply_to?.valueOf() ?? 0;
+    this.delete_draft(-time);
+    this.send_chat(
+      reply,
+      this.redux.getStore("account").get_account_id(),
+      reply_to
+    );
+    this.save_to_disk();
+  }
+
   public delete_draft(date: number, commit: boolean = true) {
     if (!this.syncdb) return;
     this.syncdb.delete({
@@ -288,7 +306,7 @@ export class ChatActions extends Actions<ChatState> {
     const path = this.store.get("path") + ".md";
     const project_id = this.store.get("project_id");
     if (project_id == null) return;
-    const sorted_dates = get_sorted_dates(messages, this.store.get("search"));
+    const sorted_dates = getSortedDates(messages, this.store.get("search"));
     const v: string[] = [];
     for (const date of sorted_dates) {
       const message = messages.get(date);
@@ -361,4 +379,11 @@ export class ChatActions extends Actions<ChatState> {
   redo() {
     this.syncdb?.redo();
   }
+}
+
+function getReplyToRoot(message, messages): Date {
+  while (message.get("reply_to")) {
+    message = messages.get(`${new Date(message.get("reply_to")).valueOf()}`);
+  }
+  return message.get("date");
 }
