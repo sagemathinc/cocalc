@@ -5,6 +5,8 @@
 
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
+import { useState } from "react";
+import { Button as AntdButton } from "antd";
 
 import {
   Button,
@@ -92,6 +94,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
 
   const submitMentionsRef = useRef<Function>();
   const scrollToBottomRef = useRef<any>(null);
+  const [isFocused, setFocused] = useState<boolean>(false);
 
   useEffect(() => {
     scrollToBottomRef.current?.();
@@ -341,7 +344,9 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               cacheId={`${path}${project_id}-new`}
               input={input}
               on_send={on_send}
-              height={INPUT_HEIGHT}
+              onBlur={() => setFocused(false)}
+              onFocus={() => setFocused(true)}
+              height={isFocused || input.trim() ? INPUT_HEIGHT : "100px"}
               onChange={(value) => {
                 actions.set_input(value);
               }}
@@ -360,23 +365,22 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             }}
           >
             <div style={{ flex: 1 }} />
-            <Button
+            <AntdButton
               onClick={on_send_button_click}
               disabled={input.trim() === "" || is_uploading}
-              bsStyle="success"
+              type="primary"
               style={{ height: "47.5px" }}
             >
-              Send
-            </Button>
+              <Icon name="paper-plane" /> Send
+            </AntdButton>
             <div style={{ height: "5px" }} />
-            <Button
+            <AntdButton
               onClick={() => actions.set_is_preview(true)}
-              bsStyle="info"
               style={{ height: "47.5px" }}
               disabled={is_preview}
             >
               Preview
-            </Button>
+            </AntdButton>
           </div>
         </div>
       </div>

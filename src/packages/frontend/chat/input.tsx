@@ -35,6 +35,7 @@ interface Props {
   onFocus?: () => void;
   onBlur?: () => void;
   editBarStyle?: CSS;
+  placeholder?: string;
 }
 
 export default function ChatInput({
@@ -52,6 +53,7 @@ export default function ChatInput({
   syncdb,
   date,
   editBarStyle,
+  placeholder,
 }: Props) {
   const useChatGPT = useTypedRedux("customize", "openai_enabled");
   const { project_id, path, actions } = useFrameContext();
@@ -161,7 +163,7 @@ export default function ChatInput({
         on_send(input);
       }}
       height={height}
-      placeholder={"Type a message..."}
+      placeholder={placeholder ?? "Type a message..."}
       extraHelp={
         IS_MOBILE
           ? "Click the date to edit chats."

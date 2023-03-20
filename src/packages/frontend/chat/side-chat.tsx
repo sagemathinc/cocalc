@@ -1,10 +1,10 @@
 import { debounce } from "lodash";
-import { CSSProperties, useCallback, useEffect, useRef } from "react";
+import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { redux, useActions, useRedux, useTypedRedux } from "../app-framework";
 import { IS_MOBILE } from "../feature";
 import { user_activity } from "../tracker";
 import { A, Icon, Loading, SearchInput } from "../components";
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 import { ProjectUsers } from "../projects/project-users";
 import { AddCollaborators } from "../collaborators";
 import { markChatAsReadIfUnseen, INPUT_HEIGHT } from "./utils";
@@ -30,6 +30,7 @@ export default function SideChat({ project_id, path, style }: Props) {
   const project = project_map?.get(project_id);
   const scrollToBottomRef = useRef<any>(null);
   const submitMentionsRef = useRef<Function>();
+  const [isFocused, setFocused] = useState<boolean>(false);
 
   const markAsRead = useCallback(() => {
     markChatAsReadIfUnseen(project_id, path);
@@ -123,38 +124,12 @@ export default function SideChat({ project_id, path, style }: Props) {
           show_heads={false}
         />
       </div>
-      <div
-        style={{
-          marginTop: "auto",
-          padding: "5px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div style={{ display: "flex", flex: 1 }}>
-          <ChatInput
-            cacheId={`${path}${project_id}-new`}
-            input={input}
-            on_send={() => {
-              sendChat();
-              user_activity("side_chat", "send_chat", "keyboard");
-            }}
-            height={INPUT_HEIGHT}
-            onChange={(value) => actions.set_input(value)}
-            submitMentionsRef={submitMentionsRef}
-            syncdb={actions.syncdb}
-            date={0}
-            editBarStyle={{ overflow: "none" }}
-          />
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              width: INPUT_HEIGHT /* yes, to make it square */,
-            }}
-          >
+
+      <div>
+        {input.trim() && (
+          <Tooltip title="Send message (shift+enter)">
             <Button
-              style={{ flex: 1, marginLeft: "5px" }}
+              style={{ margin: "5px 0 5px 5px" }}
               onClick={() => {
                 sendChat();
                 user_activity("side_chat", "send_chat", "click");
@@ -162,10 +137,28 @@ export default function SideChat({ project_id, path, style }: Props) {
               disabled={!input?.trim() || is_uploading}
               type="primary"
             >
-              <Icon name="chevron-circle-right" />
+              <Icon name="paper-plane" />
+              Send Message
             </Button>
-          </div>
-        </div>
+          </Tooltip>
+        )}
+        <ChatInput
+          cacheId={`${path}${project_id}-new`}
+          input={input}
+          on_send={() => {
+            sendChat();
+            user_activity("side_chat", "send_chat", "keyboard");
+          }}
+          onBlur={() => setFocused(false)}
+          onFocus={() => setFocused(true)}
+          style={{ height: isFocused || input.trim() ? INPUT_HEIGHT : "100px" }}
+          height={isFocused || input.trim() ? INPUT_HEIGHT : "100px"}
+          onChange={(value) => actions.set_input(value)}
+          submitMentionsRef={submitMentionsRef}
+          syncdb={actions.syncdb}
+          date={0}
+          editBarStyle={{ overflow: "none" }}
+        />
       </div>
     </div>
   );

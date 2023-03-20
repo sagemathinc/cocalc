@@ -21,8 +21,7 @@ import {
   useState,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Space, TimeAgo, Tip } from "@cocalc/frontend/components";
-import { Button } from "antd";
-import { Row, Col } from "antd";
+import { Button, Tooltip, Row, Col } from "antd";
 import { get_user_name } from "./chat-log";
 import { HistoryTitle, HistoryFooter, History } from "./history";
 import ChatInput from "./input";
@@ -53,7 +52,7 @@ interface Props {
 }
 
 export default function Message(props: Props) {
-  const [edited_message, set_edited_message] = useState(
+  const [edited_message, set_edited_message] = useState<string>(
     newest_content(props.message)
   );
   // We have to use a ref because of trickiness involving
@@ -85,11 +84,20 @@ export default function Message(props: Props) {
 
   const submitMentionsRef = useRef<Function>();
 
+  const [replying, setReplying] = useState<boolean>(false);
+  const replyMessageRef = useRef<string>("");
+  const replyMentionsRef = useRef<Function>();
+
+  const is_viewers_message = sender_is_viewer(props.account_id, props.message);
+
   function renderToggleHistory() {
     const verb = show_history ? "Hide" : "Show";
     return (
       <Button
-        style={{ marginLeft: "5px" }}
+        style={{
+          marginLeft: "5px",
+          color: is_viewers_message ? "white" : "#555",
+        }}
         type="text"
         size="small"
         onClick={() => toggle_history_chat(!show_history)}
@@ -232,11 +240,6 @@ export default function Message(props: Props) {
     let borderRadius, marginBottom, marginTop: any;
     let value = newest_content(props.message);
 
-    const is_viewers_message = sender_is_viewer(
-      props.account_id,
-      props.message
-    );
-
     const { background, color, lighten, message_class } = message_colors(
       props.account_id,
       props.message
@@ -316,16 +319,38 @@ export default function Message(props: Props) {
                 props.message.get("editing").size > 0) &&
                 editing_status(isEditing)}
               {props.message.get("history").size > 1 && renderToggleHistory()}
-              <Button
-                style={{
-                  float: "right",
-                  color: is_viewers_message ? "white" : "#777",
-                }}
-                type="text"
-                size="small"
-              >
-                <Icon name="reply" /> Reply
-              </Button>
+              <div style={{ float: "right" }}>
+                {/* <Tooltip title="Edit this message">
+                  <Button
+                    disabled={replying}
+                    style={{
+                      color: is_viewers_message ? "white" : "#555",
+                    }}
+                    type="text"
+                    size="small"
+                    onClick={() =>
+                      props.actions.set_editing(props.message, true)
+                    }
+                  >
+                    <Icon name="pencil" /> Edit
+                  </Button>
+                </Tooltip>*/}
+                {!replying && (
+                  <Tooltip title="Write a reply to this message">
+                    <Button
+                      disabled={replying}
+                      style={{
+                        color: is_viewers_message ? "white" : "#555",
+                      }}
+                      type="text"
+                      size="small"
+                      onClick={() => setReplying(true)}
+                    >
+                      <Icon name="reply" /> Reply
+                    </Button>
+                  </Tooltip>
+                )}
+              </div>
             </span>
           )}
         </div>
@@ -339,6 +364,7 @@ export default function Message(props: Props) {
             <HistoryFooter />
           </div>
         )}
+        {replying && renderComposeReply()}
       </Col>
     );
   }
@@ -373,20 +399,81 @@ export default function Message(props: Props) {
       return;
     }
     return (
-      <ChatInput
-        cacheId={`${props.path}${props.project_id}${props.message
-          ?.get("date")
-          ?.valueOf()}`}
-        input={newest_content(props.message)}
-        submitMentionsRef={submitMentionsRef}
-        on_send={on_send}
-        height={"auto"}
-        syncdb={props.actions.syncdb}
-        date={props.message?.get("date")?.valueOf() ?? 0}
-        onChange={(value) => {
-          edited_message_ref.current = value;
-        }}
-      />
+      <div>
+        <ChatInput
+          cacheId={`${props.path}${props.project_id}${props.message
+            ?.get("date")
+            ?.valueOf()}`}
+          input={newest_content(props.message)}
+          submitMentionsRef={submitMentionsRef}
+          on_send={on_send}
+          height={"auto"}
+          syncdb={props.actions.syncdb}
+          date={props.message?.get("date")?.valueOf() ?? 0}
+          onChange={(value) => {
+            edited_message_ref.current = value;
+          }}
+        />
+        <div style={{ margin: "5px 0" }}>
+          <Button
+            type="primary"
+            style={{ marginRight: "5px" }}
+            onClick={on_send}
+          >
+            <Icon name="save" /> Save Edited Message
+          </Button>
+          <Button
+            onClick={() => {
+              props.actions.set_editing(props.message, false);
+              props.actions.delete_draft(props.message.get("date")?.valueOf());
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  function renderComposeReply() {
+    if (
+      props.project_id == null ||
+      props.path == null ||
+      props.actions?.syncdb == null
+    ) {
+      // should never get into this position
+      // when null.
+      return;
+    }
+    return (
+      <div style={{ paddingLeft: "30px", borderLeft: "3px solid #ddd" }}>
+        <ChatInput
+          style={{
+            height: "auto" /* for some reason the default 100% breaks things */,
+          }}
+          cacheId={`${props.path}${props.project_id}${props.message
+            ?.get("date")
+            ?.valueOf()}-reply`}
+          input={""}
+          submitMentionsRef={replyMentionsRef}
+          on_send={() => {
+            console.log("reply = ", replyMessageRef.current);
+          }}
+          height={"auto"}
+          syncdb={props.actions.syncdb}
+          date={new Date().valueOf() ?? 0}
+          onChange={(value) => {
+            replyMessageRef.current = value;
+          }}
+          placeholder={"Reply to the above message..."}
+        />
+        <div style={{ margin: "5px 0" }}>
+          <Button type="primary" style={{ marginRight: "5px" }}>
+            <Icon name="paper-plane" /> Send Reply
+          </Button>
+          <Button onClick={() => {}}>Cancel</Button>
+        </div>
+      </div>
     );
   }
 
