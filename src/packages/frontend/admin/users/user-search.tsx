@@ -108,13 +108,9 @@ class UserSearch extends Component<ReduxProps> {
     return <UserResult key={user.account_id} {...user} />;
   }
 
-  render_result(): Rendered[] | Rendered {
+  render_result() {
     if (!this.props.result || this.props.result.size == 0) {
-      if (this.props.query && this.props.result != null) {
-        return <div>No results</div>;
-      } else {
-        return;
-      }
+      return null;
     }
     const v: Rendered[] = [this.render_user_header()];
     this.props.result.forEach((user) => {

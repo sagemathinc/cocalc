@@ -288,8 +288,9 @@ export function MarkdownInput(props: Props) {
       inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
       spellcheck: true,
       mode: { name: "gfm" },
-      extraKeys,
     });
+    // gives this highest precedence:
+    cm.current.addKeyMap(extraKeys);
 
     if (getValueRef != null) {
       getValueRef.current = cm.current.getValue.bind(cm.current);
@@ -422,9 +423,7 @@ export function MarkdownInput(props: Props) {
           mentions.push({ account_id, description, fragment_id });
         }
         const value = doc.getValue();
-        // always call submit_mentions, even if mentions.length == 0, since
-        // we also support the string "@chatgpt"
-        submit_mentions(project_id, path, mentions, value);
+        submit_mentions(project_id, path, mentions);
         return value;
       };
     }

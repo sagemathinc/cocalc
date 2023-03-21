@@ -14,10 +14,16 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req) {
-  const { input, system } = getParams(req);
+  const { input, system, history } = getParams(req);
   const account_id = await getAccountId(req);
   const analytics_cookie = req.cookies[analytics_cookie_name];
   return {
-    output: await evaluate({ account_id, analytics_cookie, input, system }),
+    output: await evaluate({
+      account_id,
+      analytics_cookie,
+      input,
+      system,
+      history,
+    }),
   };
 }

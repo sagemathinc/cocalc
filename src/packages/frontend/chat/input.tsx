@@ -23,7 +23,7 @@ interface Props {
   on_send: (value: string) => void;
   onChange: (string) => void;
   syncdb: SyncDB;
-  date: number; // ms since epoch of when this message was first sent; set to 0 for editing new message. Used for editing past messages.
+  date: number; // ms since epoch of when this message was first sent; set to 0 for editing new message. set to -time (negative time) to respond to message at time!
   input?: string;
   on_paste?: (e) => void;
   height?: string;
@@ -35,6 +35,8 @@ interface Props {
   onFocus?: () => void;
   onBlur?: () => void;
   editBarStyle?: CSS;
+  placeholder?: string;
+  autoFocus?: boolean;
 }
 
 export default function ChatInput({
@@ -52,6 +54,8 @@ export default function ChatInput({
   syncdb,
   date,
   editBarStyle,
+  placeholder,
+  autoFocus,
 }: Props) {
   const useChatGPT = useTypedRedux("customize", "openai_enabled");
   const { project_id, path, actions } = useFrameContext();
@@ -141,7 +145,7 @@ export default function ChatInput({
 
   return (
     <MarkdownInput
-      autoFocus
+      autoFocus={autoFocus}
       saveDebounceMs={0}
       onFocus={onFocus}
       onBlur={onBlur}
@@ -161,7 +165,7 @@ export default function ChatInput({
         on_send(input);
       }}
       height={height}
-      placeholder={"Type a message..."}
+      placeholder={placeholder ?? "Type a new message..."}
       extraHelp={
         IS_MOBILE
           ? "Click the date to edit chats."

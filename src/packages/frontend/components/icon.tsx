@@ -436,6 +436,7 @@ const IconSpec = {
   remove: CloseOutlined,
   repeat: RedoOutlined,
   replace: { IconFont: "find-replace" },
+  reply: { IconFont: "reply" },
   retweet: RetweetOutlined,
   robot: RobotOutlined,
   rocket: RocketOutlined,

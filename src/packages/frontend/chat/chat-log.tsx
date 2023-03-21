@@ -8,7 +8,7 @@ Render all the messages in the chat.
 */
 
 import { VisibleMDLG } from "@cocalc/frontend/components";
-import React, { MutableRefObject, useEffect, useMemo, useRef } from "react";
+import { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { List, Map, Set as immutableSet } from "immutable";
 import {
   useActions,
@@ -17,219 +17,180 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Alert } from "antd";
 import Message from "./message";
-import { parse_hashtags, search_match, search_split } from "@cocalc/util/misc";
+import {
+  cmp,
+  parse_hashtags,
+  search_match,
+  search_split,
+} from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import { newest_content, getSelectedHashtagsSearch } from "./utils";
-import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
+import Composing from "./composing";
 
 type MessageMap = Map<string, any>;
 
-interface ChatLogProps {
+interface Props {
   project_id: string; // used to render links more effectively
   path: string;
   show_heads: boolean;
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
 }
 
-export const ChatLog: React.FC<ChatLogProps> = React.memo(
-  ({ project_id, path, scrollToBottomRef, show_heads }) => {
-    const actions: ChatActions = useActions(project_id, path);
-    const messages = useRedux(["messages"], project_id, path);
-    const drafts = useRedux(["drafts"], project_id, path);
-    const font_size = useRedux(["font_size"], project_id, path);
+export function ChatLog({
+  project_id,
+  path,
+  scrollToBottomRef,
+  show_heads,
+}: Props) {
+  const actions: ChatActions = useActions(project_id, path);
+  const messages = useRedux(["messages"], project_id, path);
+  const fontSize = useRedux(["font_size"], project_id, path);
 
-    // see similar code in task list:
-    const selectedHashtags0 = useRedux(["selectedHashtags"], project_id, path);
-    const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
-      return getSelectedHashtagsSearch(selectedHashtags0);
-    }, [selectedHashtags0]);
+  // see similar code in task list:
+  const selectedHashtags0 = useRedux(["selectedHashtags"], project_id, path);
+  const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
+    return getSelectedHashtagsSearch(selectedHashtags0);
+  }, [selectedHashtags0]);
 
-    const search =
-      useRedux(["search"], project_id, path) + selectedHashtagsSearch;
+  const search =
+    useRedux(["search"], project_id, path) + selectedHashtagsSearch;
 
-    useEffect(() => {
-      scrollToBottomRef?.current?.(true);
-    }, [search]);
+  useEffect(() => {
+    scrollToBottomRef?.current?.(true);
+  }, [search]);
 
-    const user_map = useTypedRedux("users", "user_map");
-    const account_id = useTypedRedux("account", "account_id");
-    const sorted_dates = useMemo<string[]>(() => {
-      return get_sorted_dates(messages, search);
-    }, [messages, search, project_id, path]);
+  const user_map = useTypedRedux("users", "user_map");
+  const account_id = useTypedRedux("account", "account_id");
+  const sortedDates = useMemo<string[]>(() => {
+    return getSortedDates(messages, search);
+  }, [messages, search, project_id, path]);
 
-    const visibleHashtags = useMemo(() => {
-      let X = immutableSet<string>([]);
-      for (const date of sorted_dates) {
-        const message = messages.get(date);
-        const value = newest_content(message);
-        for (const x of parse_hashtags(value)) {
-          const tag = value.slice(x[0] + 1, x[1]).toLowerCase();
-          X = X.add(tag);
-        }
+  const visibleHashtags = useMemo(() => {
+    let X = immutableSet<string>([]);
+    for (const date of sortedDates) {
+      const message = messages.get(date);
+      const value = newest_content(message);
+      for (const x of parse_hashtags(value)) {
+        const tag = value.slice(x[0] + 1, x[1]).toLowerCase();
+        X = X.add(tag);
       }
-      return X;
-    }, [messages, sorted_dates]);
-
-    const virtuosoRef = useRef<VirtuosoHandle>(null);
-    const manualScrollRef = useRef<boolean>(false);
-
-    useEffect(() => {
-      if (scrollToBottomRef == null) return;
-      scrollToBottomRef.current = (force?: boolean) => {
-        if (manualScrollRef.current && !force) return;
-        manualScrollRef.current = false;
-        virtuosoRef.current?.scrollToIndex({ index: 99999999999999999999 });
-        // sometimes scrolling to bottom is requested before last entry added,
-        // so we do it again in the next render loop.  This seems needed mainly
-        // for side chat when there is little vertical space.
-        setTimeout(
-          () =>
-            virtuosoRef.current?.scrollToIndex({ index: 99999999999999999999 }),
-          0
-        );
-      };
-    }, [scrollToBottomRef != null]);
-
-    const virtuosoScroll = useVirtuosoScrollHook({
-      cacheId: `${project_id}${path}`,
-      initialState: { index: messages.size - 1, offset: 0 }, // starts scrolled to the newest message.
-    });
-
-    // Given the date of the message as an ISO string, return rendered version.
-    function render_message(date: string, i: number): JSX.Element | undefined {
-      const message: MessageMap | undefined = messages.get(date);
-      if (message === undefined) return;
-      return (
-        <Message
-          key={date}
-          account_id={account_id}
-          user_map={user_map}
-          message={message}
-          project_id={project_id}
-          path={path}
-          font_size={font_size}
-          selectedHashtags={selectedHashtags}
-          actions={actions}
-          is_prev_sender={is_prev_message_sender(i, sorted_dates, messages)}
-          is_next_sender={is_next_message_sender(i, sorted_dates, messages)}
-          show_avatar={
-            show_heads && !is_next_message_sender(i, sorted_dates, messages)
-          }
-          include_avatar_col={show_heads}
-          get_user_name={(account_id) => get_user_name(user_map, account_id)}
-          scroll_into_view={() =>
-            virtuosoRef.current?.scrollIntoView({ index: i })
-          }
-        />
-      );
     }
+    return X;
+  }, [messages, sortedDates]);
 
-    function render_not_showing(): JSX.Element | undefined {
-      if (messages == null) return;
-      const not_showing = messages.size - sorted_dates.length;
-      if (not_showing <= 0) return;
-      return (
-        <Alert
-          style={{ margin: "0 5px" }}
-          type="warning"
-          key="not_showing"
-          message={
-            <b>
-              WARNING: Hiding {not_showing} chats that do not match search for '
-              {search.trim()}'.
-            </b>
-          }
-        />
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const manualScrollRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (scrollToBottomRef == null) return;
+    scrollToBottomRef.current = (force?: boolean) => {
+      if (manualScrollRef.current && !force) return;
+      manualScrollRef.current = false;
+      virtuosoRef.current?.scrollToIndex({ index: 99999999999999999999 });
+      // sometimes scrolling to bottom is requested before last entry added,
+      // so we do it again in the next render loop.  This seems needed mainly
+      // for side chat when there is little vertical space.
+      setTimeout(
+        () =>
+          virtuosoRef.current?.scrollToIndex({ index: 99999999999999999999 }),
+        0
       );
-    }
+    };
+  }, [scrollToBottomRef != null]);
 
-    function renderComposing() {
-      if (!drafts || drafts.size == 0) return;
-      const v: JSX.Element[] = [];
-      const cutoff = new Date().valueOf() - 1000 * 60; // 60s = 1 minute
-      for (const [sender_id] of drafts) {
-        if (account_id == sender_id) {
-          // this is us
-          continue;
-        }
-        const record = drafts.get(sender_id);
-        if (record.get("date") != 0) {
-          // editing an already sent message, rather than composing a new one.
-          // This is indicated elsewhere (at that message).
-          continue;
-        }
-        if (record.get("active") < cutoff || !record.get("input").trim()) {
-          continue;
-        }
-        v.push(
-          <div
-            key={sender_id}
-            style={{ margin: "5px", color: "#666", textAlign: "center" }}
-          >
-            <Avatar size={20} account_id={sender_id} />
-            <span style={{ marginLeft: "15px" }}>
-              {get_user_name(user_map, sender_id)} is writing a message...
-            </span>
-            {sender_id == "chatgpt" && (
-              <ProgressEstimate
-                style={{ marginLeft: "15px", maxWidth: "600px" }}
-                seconds={45}
+  const virtuosoScroll = useVirtuosoScrollHook({
+    cacheId: `${project_id}${path}`,
+    initialState: { index: messages.size - 1, offset: 0 }, // starts scrolled to the newest message.
+  });
+
+  return (
+    <>
+      {visibleHashtags.size > 0 && (
+        <VisibleMDLG>
+          <HashtagBar
+            actions={{
+              set_hashtag_state: (tag, state) => {
+                actions.setHashtagState(tag, state);
+              },
+            }}
+            selected_hashtags={selectedHashtags0}
+            hashtags={visibleHashtags}
+          />
+        </VisibleMDLG>
+      )}
+      {messages != null && (
+        <NotShowing num={messages.size - sortedDates.length} search={search} />
+      )}
+      <Virtuoso
+        ref={virtuosoRef}
+        totalCount={sortedDates.length}
+        itemContent={(index) => {
+          const date = sortedDates[index];
+          const message: MessageMap | undefined = messages.get(date);
+          if (message == null) {
+            // shouldn't happen.  But we should be robust to such a possibility.
+            return <div style={{ height: "1px" }} />;
+          }
+          return (
+            <div style={{ overflow: "hidden" }}>
+              <Message
+                key={date}
+                account_id={account_id}
+                user_map={user_map}
+                message={message}
+                project_id={project_id}
+                path={path}
+                font_size={fontSize}
+                selectedHashtags={selectedHashtags}
+                actions={actions}
+                is_prev_sender={isPrevMessageSender(
+                  index,
+                  sortedDates,
+                  messages
+                )}
+                is_next_sender={isNextMessageSender(
+                  index,
+                  sortedDates,
+                  messages
+                )}
+                show_avatar={
+                  show_heads &&
+                  !isNextMessageSender(index, sortedDates, messages)
+                }
+                include_avatar_col={show_heads}
+                get_user_name={(account_id) =>
+                  getUserName(user_map, account_id)
+                }
+                scroll_into_view={() =>
+                  virtuosoRef.current?.scrollIntoView({ index })
+                }
+                allowReply={
+                  messages.getIn([sortedDates[index + 1], "reply_to"]) == null
+                }
               />
-            )}
-          </div>
-        );
-        // We use a longer chatgpt estimate here than in the frontend nextjs
-        // app, since the nature of questions when you're fully using cocalc
-        // is that they tend to be much deeper.
-      }
-      if (v.length == 0) return;
-      scrollToBottomRef?.current?.();
-      return <div>{v}</div>;
-    }
+            </div>
+          );
+        }}
+        rangeChanged={({ endIndex }) => {
+          // manually scrolling if NOT at the bottom.
+          manualScrollRef.current = endIndex < sortedDates.length - 1;
+        }}
+        {...virtuosoScroll}
+      />
+      <Composing
+        projectId={project_id}
+        path={path}
+        accountId={account_id}
+        userMap={user_map}
+      />
+    </>
+  );
+}
 
-    return (
-      <>
-        {visibleHashtags.size > 0 && (
-          <VisibleMDLG>
-            <HashtagBar
-              actions={{
-                set_hashtag_state: (tag, state) => {
-                  actions.setHashtagState(tag, state);
-                },
-              }}
-              selected_hashtags={selectedHashtags0}
-              hashtags={visibleHashtags}
-            />
-          </VisibleMDLG>
-        )}
-        {render_not_showing()}
-        <Virtuoso
-          ref={virtuosoRef}
-          totalCount={sorted_dates.length}
-          itemContent={(index) => {
-            return (
-              <div style={{ overflow: "hidden" }}>
-                {render_message(sorted_dates[index], index)}
-              </div>
-            );
-          }}
-          rangeChanged={({ endIndex }) => {
-            // manually scrolling if NOT at the bottom.
-            manualScrollRef.current = endIndex < sorted_dates.length - 1;
-          }}
-          {...virtuosoScroll}
-        />
-        {renderComposing()}
-      </>
-    );
-  }
-);
-
-function is_next_message_sender(
+function isNextMessageSender(
   index: number,
   dates: string[],
   messages: Map<string, MessageMap>
@@ -237,16 +198,16 @@ function is_next_message_sender(
   if (index + 1 === dates.length) {
     return false;
   }
-  const current_message = messages.get(dates[index]);
-  const next_message = messages.get(dates[index + 1]);
+  const currentMessage = messages.get(dates[index]);
+  const nextMessage = messages.get(dates[index + 1]);
   return (
-    current_message != null &&
-    next_message != null &&
-    current_message.get("sender_id") === next_message.get("sender_id")
+    currentMessage != null &&
+    nextMessage != null &&
+    currentMessage.get("sender_id") === nextMessage.get("sender_id")
   );
 }
 
-function is_prev_message_sender(
+function isPrevMessageSender(
   index: number,
   dates: string[],
   messages: Map<string, MessageMap>
@@ -254,40 +215,97 @@ function is_prev_message_sender(
   if (index === 0) {
     return false;
   }
-  const current_message = messages.get(dates[index]);
-  const prev_message = messages.get(dates[index - 1]);
+  const currentMessage = messages.get(dates[index]);
+  const prevMessage = messages.get(dates[index - 1]);
   return (
-    current_message != null &&
-    prev_message != null &&
-    current_message.get("sender_id") === prev_message.get("sender_id")
+    currentMessage != null &&
+    prevMessage != null &&
+    currentMessage.get("sender_id") === prevMessage.get("sender_id")
   );
 }
 
 // NOTE: I removed search including send name, since that would
 // be slower and of questionable value.
-function search_matches(message: MessageMap, search_terms): boolean {
+function searchMatches(message: MessageMap, searchTerms): boolean {
   const first = message.get("history", List()).first();
   if (first == null) return false;
-  return search_match(first.get("content", ""), search_terms);
+  return search_match(first.get("content", ""), searchTerms);
 }
 
-export function get_sorted_dates(messages, search) {
-  // WARNING: This code is technically wrong since the keys are the string
-  // representations of ms since epoch.  However, it won't fail until over
-  // 200 years from now, so we leave it to future generations to worry about.
+// messages is an immutablejs map from
+//   - timestamps (ms since epoch as string)
+// to
+//   - message objects {date: , event:, history, sender_id, reply_to}
+//
+// It was very easy to sort these before reply_to, which complicates things.
+export function getSortedDates(messages, search?: string): string[] {
   let m = messages;
   if (m == null) return [];
   if (search) {
-    const search_terms = search_split(search);
-    m = m.filter((message) => search_matches(message, search_terms));
+    const searchTerms = search_split(search);
+    m = m.filter((message) => searchMatches(message, searchTerms));
   }
-  return m.keySeq().sort().toJS();
+  const v: [date: number, reply_to: number | undefined][] = [];
+  for (const [date, message] of m) {
+    const reply_to = message.get("reply_to");
+    v.push([
+      parseInt(date),
+      reply_to != null ? new Date(reply_to).valueOf() : undefined,
+    ]);
+  }
+  v.sort(cmpMessages);
+  const w = v.map((z) => `${z[0]}`);
+  return w;
 }
 
-export function get_user_name(user_map, account_id: string): string {
-  if (account_id == "chatgpt") return "ChatGPT";
-  if (user_map == null) return "Unknown";
-  const account = user_map.get(account_id);
+/*
+Compare messages as follows:
+ - if message has a parent it is a reply, so we use the parent instead for the
+   compare
+ - except in special cases:
+    - one of them is the parent and other is a child of that parent
+    - both have same parent
+*/
+function cmpMessages([a_time, a_parent], [b_time, b_parent]): number {
+  // special case:
+  // same parent:
+  if (a_parent !== undefined && a_parent == b_parent) {
+    return cmp(a_time, b_time);
+  }
+  // one of them is the parent and other is a child of that parent
+  if (a_parent == b_time) {
+    // b is the parent of a, so b is first.
+    return 1;
+  }
+  if (b_parent == a_time) {
+    // a is the parent of b, so a is first.
+    return -1;
+  }
+  // general case.
+  return cmp(a_parent ?? a_time, b_parent ?? b_time);
+}
+
+export function getUserName(userMap, accountId: string): string {
+  if (accountId == "chatgpt") return "ChatGPT";
+  if (userMap == null) return "Unknown";
+  const account = userMap.get(accountId);
   if (account == null) return "Unknown";
-  return account.get("first_name", "") + " " + account.get("last_name", "");
+  return account.get("firstName", "") + " " + account.get("lastName", "");
+}
+
+function NotShowing({ num, search }) {
+  if (num <= 0) return null;
+  return (
+    <Alert
+      style={{ margin: "0 5px" }}
+      type="warning"
+      key="not_showing"
+      message={
+        <b>
+          WARNING: Hiding {num} chats that do not match search for '
+          {search.trim()}'.
+        </b>
+      }
+    />
+  );
 }

@@ -39,7 +39,10 @@ const LANGUAGES = [
   ],
   [
     "py",
-    [/\b(def\ |print|class\ |and\ |or\ |lambda\ |"""|try|except|>>>\ )\b/g, 15],
+    [
+      /\b(def\ |print|class\ |and\ |or\ |lambda\ |import\ |"""|try|except|>>>\ )\b/g,
+      15,
+    ],
   ],
   [
     "sage",
@@ -76,7 +79,7 @@ const LANGUAGES = [
   [
     "tex",
     [
-      /\b(\\documentclass|\\usepackage|\\begin|\\end|\\section|\\subsection|\\subsubsection|\\label|\\ref)\b/g,
+      /\\(documentclass|usepackage|item|begin|end|section|subsection|subsubsection|label|ref|item)(\{|\[)/g,
       20,
     ],
   ],
@@ -103,5 +106,6 @@ export default function detectLanguage(code: string): string {
     }
   }
   v.sort((a, b) => b[1] - a[1]);
+  //console.log(v);
   return v[0]?.[0] ?? "txt";
 }

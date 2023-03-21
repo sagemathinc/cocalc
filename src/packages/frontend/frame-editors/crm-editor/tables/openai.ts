@@ -21,6 +21,7 @@ register({
         total_time_s: null,
         project_id: null,
         path: null,
+        history: null,
       },
     ],
   },

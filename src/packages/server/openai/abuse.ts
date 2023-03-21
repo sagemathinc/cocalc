@@ -11,6 +11,18 @@ blatant abuse.
   would hit this in practice unless they are really trying to abuse cocalc.
 - at most $10^6$ tokens per hour across all users \-\- that's \$2/hour. That would
   come out to a bit more if sustained than my budget, but allows for bursts.
+
+See https://help.openai.com/en/articles/7039783-chatgpt-api-faq for the upstream rate limits,
+where they limit per minute, not per hour (like below):
+
+    What's the rate limits for the ChatGPT API?
+
+    Free trial users: 20 RPM 40000 TPM
+    Pay-as-you-go users (first 48 hours): 60 RPM 60000 TPM
+    Pay-as-you-go users (after 48 hours): 3500 RPM 90000 TPM
+
+    RPM = requests per minute
+    TPM = tokens per minute
 */
 
 const QUOTAS = {
