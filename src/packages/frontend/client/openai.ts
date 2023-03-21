@@ -21,11 +21,13 @@ export class OpenAIClient {
   public async chatgpt({
     input,
     system = DEFAULT_SYSTEM_PROMPT,
+    history,
     project_id,
     path,
   }: {
     input: string;
     system?: string;
+    history?: { role: "assistant" | "user" | "system"; content: string }[];
     project_id?: string;
     path?: string;
   }): Promise<string> {
@@ -43,7 +45,13 @@ export class OpenAIClient {
     // await delay(5000);
     // return "Test";
     const resp = await this.async_call({
-      message: message.chatgpt({ text: input, system, project_id, path }),
+      message: message.chatgpt({
+        text: input,
+        system,
+        project_id,
+        path,
+        history,
+      }),
     });
     return resp.text;
   }

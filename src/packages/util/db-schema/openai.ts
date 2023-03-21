@@ -50,6 +50,15 @@ Table({
         type: "markdown",
       },
     },
+    history: {
+      title: "History",
+      type: "array",
+      pg_type: "JSONB[]",
+      desc: "Historical context for this thread of discussion",
+      render: {
+        type: "json",
+      },
+    },
     total_tokens: {
       type: "integer",
       desc: "The total number of tokens involved in this API call.",
@@ -84,6 +93,7 @@ Table({
           total_time_s: null,
           project_id: null,
           path: null,
+          history: null,
         },
       },
     },
@@ -111,6 +121,7 @@ Table({
           total_time_s: null,
           project_id: null,
           path: null,
+          history: null,
         },
       },
     },

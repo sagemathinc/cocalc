@@ -20,6 +20,7 @@ register({
         total_tokens: null,
         project_id: null,
         path: null,
+        history: null,
       },
     ],
   },

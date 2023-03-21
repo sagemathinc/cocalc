@@ -16,6 +16,20 @@ Table({
     primary_key: ["token"],
     pg_indexes: ["token", "data_time"],
     durability: "soft",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true,
+        fields: {
+          token: null,
+          data: null,
+          data_time: null,
+          account_id: null,
+          account_id_time: null,
+          expire: null,
+        },
+      },
+    },
   },
   fields: {
     token: {
@@ -70,6 +84,18 @@ Table({
     primary_key: ["account_id", "time"],
     pg_indexes: ["event", "time"],
     durability: "soft",
+    user_query: {
+      get: {
+        pg_where: [],
+        admin: true,
+        fields: {
+          account_id: null,
+          time: null,
+          event: null,
+          value: null,
+        },
+      },
+    },
   },
   fields: {
     account_id: {
