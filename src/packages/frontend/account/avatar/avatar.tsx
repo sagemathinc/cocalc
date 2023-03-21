@@ -4,13 +4,11 @@
  */
 
 import { Tooltip } from "antd";
-
+import { CSSProperties, useState } from "react";
 import {
-  CSS,
   React,
   redux,
   useAsyncEffect,
-  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Space } from "@cocalc/frontend/components";
@@ -21,12 +19,12 @@ import { ensure_bound, startswith, trunc_middle } from "@cocalc/util/misc";
 import { avatar_fontcolor } from "./font-color";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 
-const CIRCLE_OUTER_STYLE: CSS = {
+const CIRCLE_OUTER_STYLE: CSSProperties = {
   textAlign: "center",
   cursor: "pointer",
 } as const;
 
-const CIRCLE_INNER_STYLE: CSS = {
+const CIRCLE_INNER_STYLE: CSSProperties = {
   display: "block",
   borderRadius: "50%",
   fontFamily: "sans-serif",
@@ -47,11 +45,12 @@ interface Props {
 
   first_name?: string; // optional name to use
   last_name?: string;
+  style?: CSSProperties;
 }
 
 export function Avatar(props) {
   if (props.account_id == "chatgpt") {
-    return <OpenAIAvatar size={props.size} />;
+    return <OpenAIAvatar size={props.size} style={props.style} />;
   } else {
     return <Avatar0 {...props} />;
   }
@@ -266,7 +265,7 @@ const Avatar0: React.FC<Props> = (props) => {
   };
 
   const elt = (
-    <div style={{ display: "inline-block", cursor: "pointer" }}>
+    <div style={{ display: "inline-block", cursor: "pointer", ...props.style }}>
       <div
         style={{ ...outer_style, ...CIRCLE_OUTER_STYLE }}
         onClick={click_avatar}

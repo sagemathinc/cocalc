@@ -1,12 +1,16 @@
+import { CSSProperties } from "react";
+
 // I copied this straight from the openai website html, and modified it for react.
 interface Props {
   size?;
   backgroundColor?;
+  style?: CSSProperties;
 }
 
 export default function ChatGPTAvatar({
   size,
   backgroundColor = "rgb(16, 163, 127)",
+  style,
 }: Props) {
   return (
     <div
@@ -15,6 +19,7 @@ export default function ChatGPTAvatar({
         height: size,
         display: "inline-block",
         position: "relative",
+        ...style,
       }}
     >
       <div

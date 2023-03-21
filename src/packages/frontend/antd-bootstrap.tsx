@@ -417,7 +417,6 @@ Modal.Body = function (props: any) {
 };
 
 interface AlertProps {
-  key?: string;
   bsStyle?: ButtonStyle;
   style?: React.CSSProperties;
   banner?: boolean;
@@ -425,7 +424,7 @@ interface AlertProps {
 }
 
 export function Alert(props: AlertProps) {
-  const { key, bsStyle, style, banner, children } = props;
+  const { bsStyle, style, banner, children } = props;
 
   let type: "success" | "info" | "warning" | "error" | undefined = undefined;
   // success, info, warning, error
@@ -439,13 +438,7 @@ export function Alert(props: AlertProps) {
     type = "success";
   }
   return (
-    <AntdAlert
-      key={key}
-      message={children}
-      type={type}
-      style={style}
-      banner={banner}
-    />
+    <AntdAlert message={children} type={type} style={style} banner={banner} />
   );
 }
 

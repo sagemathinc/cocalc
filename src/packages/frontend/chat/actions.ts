@@ -16,8 +16,9 @@ import type {
   SelectedHashtags,
 } from "@cocalc/frontend/editors/task-editor/types";
 import { getSelectedHashtagsSearch } from "./utils";
-import { parse_hashtags } from "@cocalc/util/misc";
+import { cmp, parse_hashtags } from "@cocalc/util/misc";
 import { open_new_tab } from "@cocalc/frontend/misc";
+import { History as ChatGPTHistory } from "@cocalc/frontend/misc/openai";
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
@@ -231,6 +232,10 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   send_reply(message, reply: string, from?: string) {
+    // the reply_to field of the message is *always* the root.
+    // the order of the replies is by timestamp.  This is meant
+    // to make sure chat is just 1 layer deep, rather than a
+    // full tree structure, which is powerful but too confusing.
     const reply_to = getReplyToRoot(
       message,
       this.store?.get("messages") ?? fromJS({})
@@ -459,6 +464,7 @@ export class ChatActions extends Actions<ChatState> {
     try {
       resp = await webapp_client.openai_client.chatgpt({
         input,
+        history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
         project_id,
         path,
       });
@@ -471,6 +477,37 @@ export class ChatActions extends Actions<ChatState> {
     }
     // insert the answer as a chat message from chatgpt
     this.send_reply(message, resp, "chatgpt");
+  }
+
+  // the input and output for the thread ending in the
+  // given message, formatted for chatgpt, and heuristically
+  // truncated to not exceed a limit in size.
+  private getChatGPTHistory(reply_to: Date): ChatGPTHistory {
+    const messages = this.store?.get("messages");
+    const history: ChatGPTHistory = [];
+    if (!messages) return history;
+    // Next get all of the messages with this reply_to or that are the root of this reply chain:
+    const d = reply_to.toISOString();
+    for (const message of messages // @ts-ignore -- immutablejs typings are wrong (?)
+      .filter(
+        (message) =>
+          message.get("reply_to") == d || message.get("date").toISOString() == d
+      )
+      .valueSeq()
+      .sort((a, b) => cmp(a.get("date"), b.get("date")))) {
+      const content = stripMentions(
+        message.get("history").last().get("content")
+      );
+      history.push({
+        content,
+        role:
+          message.getIn(["history", 0, "author_id"]) == "chatgpt"
+            ? "assistant"
+            : "user",
+      });
+    }
+
+    return history;
   }
 }
 
@@ -492,9 +529,10 @@ function stripMentions(value: string): string {
   // The mentions look like this: <span class="user-mention" account-id=chatgpt >@ChatGPT</span> ...
   while (true) {
     const i = value.indexOf('<span class="user-mention"');
-    if (i == -1) return value;
+    if (i == -1) break;
     const j = value.indexOf("</span>", i);
-    if (j == -1) return value;
+    if (j == -1) break;
     value = value.slice(0, i) + value.slice(j + "</span>".length);
   }
+  return value.trim();
 }
