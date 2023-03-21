@@ -44,10 +44,12 @@ function create_log(name) {
   return getLogger(`analytics.${name}`).debug;
 }
 
+/*
 // base64 encoded PNG (white), 1x1 pixels
 const _PNG_DATA =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 const PNG_1x1 = Buffer.from(_PNG_DATA, "base64");
+*/
 
 function sanitize(obj: object, recursive = 0): any {
   if (recursive >= 2) return { error: "recursion limit" };
@@ -229,11 +231,21 @@ export async function initAnalytics(
 
   router.get("/analytics.js", cors(analytics_cors), function (req, res) {
     res.header("Content-Type", "text/javascript");
+
     // in case user was already here, do not send it again.
     // only the first hit is interesting.
     dbg(
       `/analytics.js GET analytics_cookie='${req.cookies[analytics_cookie_name]}'`
     );
+
+    if (!req.cookies[analytics_cookie_name]) {
+      // No analytics cookie is set, so we set one.
+      // We always set this despite any issues with parsing or
+      // or whether or not we are actually using the analytics.js
+      // script, since it's *also* useful to have this cookie set
+      // for other purposes, e.g., logging.
+      setAnalyticsCookie(res /* DNS */);
+    }
 
     // also, don't write a script if the DNS is not valid
     if (
@@ -241,7 +253,10 @@ export async function initAnalytics(
       dns_parsed.type !== ParseResultType.Listed
     ) {
       // cache for 6 hours -- max-age has unit seconds
-      res.header("Cache-Control", `private, max-age=${6 * 60 * 60}, must-revalidate`);
+      res.header(
+        "Cache-Control",
+        `private, max-age=${6 * 60 * 60}, must-revalidate`
+      );
       res.write("// NOOP");
       res.end();
       return;
@@ -250,7 +265,6 @@ export async function initAnalytics(
     // write response script
     // this only runs once, hence no caching
     res.header("Cache-Control", "no-cache, no-store");
-    //analytics_cookie(DNS, res)
 
     const DOMAIN = `${dns_parsed.domain}.${dns_parsed.topLevelDomains.join(
       "."
@@ -269,6 +283,7 @@ export async function initAnalytics(
     return res.end();
   });
 
+  /*
   // tracking image: this is a 100% experimental idea and not used
   router.get(
     "/analytics.js/track.png",
@@ -276,13 +291,14 @@ export async function initAnalytics(
     function (req, res) {
       // in case user was already here, do not set a cookie
       if (!req.cookies[analytics_cookie_name]) {
-        analytics_cookie(DNS, res);
+        setAnalyticsCookie(res); // ,DNS);
       }
       res.header("Content-Type", "image/png");
       res.header("Content-Length", `${PNG_1x1.length}`);
       return res.end(PNG_1x1);
     }
   );
+  */
 
   router.post("/analytics.js", cors(analytics_cors), function (req, res): void {
     // check if token is in the cookie (see above)
@@ -303,13 +319,15 @@ export async function initAnalytics(
   router.options("/analytics.js", cors(analytics_cors));
 }
 
-function analytics_cookie(DNS: string, res): void {
-  // set the cookie (TODO sign it?)
+// I'm not setting the domain, since it's making testing difficult.
+function setAnalyticsCookie(res /* DNS: string */): void {
+  // set the cookie (TODO sign it?  that would be good so that
+  // users can fake a cookie.)
   const analytics_token = uuid();
   res.cookie(analytics_cookie_name, analytics_token, {
     path: "/",
     maxAge: ms("7 days"),
     // httpOnly: true,
-    domain: DNS,
+    // domain: DNS,
   });
 }

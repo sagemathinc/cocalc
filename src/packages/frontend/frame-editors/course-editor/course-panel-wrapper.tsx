@@ -203,7 +203,11 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
 
     return (
       <div
-        style={{ fontSize: `${font_size}px`, margin: "0 0 0 15px" }}
+        style={{
+          fontSize: `${font_size}px`,
+          padding: "0 15px",
+          background: "#fafafa",
+        }}
         className="smc-vfill"
       >
         {render_panel()}

@@ -5,6 +5,11 @@
 
 import * as message from "@cocalc/util/message";
 import { AsyncCall } from "./client";
+import { redux } from "../app-framework";
+// import { delay } from "awaiting";
+
+const DEFAULT_SYSTEM_PROMPT =
+  "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.";
 
 export class OpenAIClient {
   private async_call: AsyncCall;
@@ -15,15 +20,26 @@ export class OpenAIClient {
 
   public async chatgpt({
     input,
+    system = DEFAULT_SYSTEM_PROMPT,
     project_id,
     path,
   }: {
     input: string;
+    system?: string;
     project_id?: string;
     path?: string;
   }): Promise<string> {
+    if (!redux.getStore("customize").get("openai_enabled")) {
+      return "OpenAI support is not currently enabled on this server.";
+    }
+    input = input.trim();
+    if (!input) {
+      return "Great! What can I assist you with today?";
+    }
+    // await delay(5000);
+    // return "Test";
     const resp = await this.async_call({
-      message: message.chatgpt({ text: input, project_id, path }),
+      message: message.chatgpt({ text: input, system, project_id, path }),
     });
     return resp.text;
   }

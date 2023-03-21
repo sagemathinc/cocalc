@@ -336,7 +336,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       <>
         <Form.Item label="Presets" shouldUpdate={true} extra={presetExtra()}>
           <Radio.Group onChange={onPresetChange} value={preset}>
-            <Space size={[10, 10]} wrap>
+            <Space size={[5, 5]} wrap>
               {Object.keys(PRESETS).map((p) => {
                 const presetData = PRESETS[p];
                 return (

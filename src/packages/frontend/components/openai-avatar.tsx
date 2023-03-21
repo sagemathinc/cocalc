@@ -1,5 +1,13 @@
 // I copied this straight from the openai website html, and modified it for react.
-export default function OpenAIAvatar({ size }) {
+interface Props {
+  size?;
+  backgroundColor?;
+}
+
+export default function ChatGPTAvatar({
+  size,
+  backgroundColor = "rgb(16, 163, 127)",
+}: Props) {
   return (
     <div
       style={{
@@ -12,7 +20,7 @@ export default function OpenAIAvatar({ size }) {
       <div
         style={{
           position: "absolute",
-          backgroundColor: "rgb(16, 163, 127)",
+          backgroundColor,
           color: "white",
           height: size,
           top: "5px",

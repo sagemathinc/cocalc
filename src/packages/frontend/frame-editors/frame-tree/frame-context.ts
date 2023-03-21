@@ -24,6 +24,7 @@ export interface IFrameContext<T = Actions> {
   actions: T;
   desc: Map<string, any>; // frame tree description for this particular frame, e.g., things like scroll, font size, etc.
   isFocused: boolean; // true if this is the focused frame, i.e., active_id == id.
+  isVisible: boolean; // true if the entire editor tab that contains this frame is visible.
   font_size: number;
 }
 
@@ -34,6 +35,7 @@ export const defaultFrameContext = {
   actions: {} as unknown as Actions, // why is there a default context... we always set it?
   desc: Map<string, any>(),
   isFocused: false,
+  isVisible: false,
   font_size: DEFAULT_FONT_SIZE,
 } as const;
 

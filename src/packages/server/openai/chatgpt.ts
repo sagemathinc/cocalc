@@ -4,11 +4,8 @@ Backend server side part of ChatGPT integration with CoCalc.
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-// fetch polyfill -- see https://github.com/transitive-bullshit/chatgpt-api/issues/376
-import "isomorphic-fetch";
-
-// See https://github.com/transitive-bullshit/chatgpt-api/issues/367
-const importDynamic = new Function("modulePath", "return import(modulePath)");
+import { Configuration, OpenAIApi } from "openai";
+import { checkForAbuse } from "./abuse";
 
 const log = getLogger("chatgpt");
 
@@ -27,26 +24,60 @@ async function getApiKey(): Promise<string> {
 }
 
 interface ChatOptions {
-  input: string;
-  account_id: string;
+  input: string; // what user types
+  system?: string; // extra setup that we add for relevance and context
+  account_id?: string;
   project_id?: string;
   path?: string;
+  analytics_cookie?: string;
 }
 
 export async function evaluate({
   input,
+  system,
   account_id,
   project_id,
   path,
+  analytics_cookie,
 }: ChatOptions): Promise<string> {
-  log.debug("evaluate", { input, account_id, project_id, path });
-  const { ChatGPTAPI } = await importDynamic("chatgpt");
-  const api = new ChatGPTAPI({ apiKey: await getApiKey() });
-  const res = await api.sendMessage(input);
-  const output = res.text;
-  const total_tokens = res.detail?.usage?.total_tokens;
-  log.debug("got res = ", res);
-  saveResponse({ input, output, account_id, project_id, path, total_tokens });
+  log.debug("evaluate", {
+    input,
+    system,
+    account_id,
+    analytics_cookie,
+    project_id,
+    path,
+  });
+  const start = new Date();
+  await checkForAbuse({ account_id, analytics_cookie });
+  const configuration = new Configuration({ apiKey: await getApiKey() });
+  const openai = new OpenAIApi(configuration);
+  const messages: { role: "system" | "user"; content: string }[] = [];
+  if (system) {
+    messages.push({ role: "system", content: system });
+  }
+  messages.push({ role: "user", content: input });
+  const completion = await openai.createChatCompletion({
+    model: "gpt-3.5-turbo",
+    messages,
+  });
+  log.debug("response: ", completion.data);
+  const output = (
+    completion.data.choices[0].message?.content ?? "No Output"
+  ).trim();
+  const total_tokens = completion.data.usage?.total_tokens;
+  const total_time_s = (new Date().valueOf() - start.valueOf()) / 1000;
+  saveResponse({
+    input,
+    system,
+    output,
+    account_id,
+    analytics_cookie,
+    project_id,
+    path,
+    total_tokens,
+    total_time_s,
+  });
   return output;
 }
 
@@ -55,17 +86,30 @@ export async function evaluate({
 // Also, we could dedup identical inputs (?).
 async function saveResponse({
   input,
+  system,
   output,
   account_id,
+  analytics_cookie,
   project_id,
   path,
   total_tokens,
+  total_time_s,
 }) {
   const pool = getPool();
   try {
     await pool.query(
-      "INSERT INTO openai_chatgpt_log(time,input,output,account_id,project_id,path,total_tokens) VALUES(NOW(),$1,$2,$3,$4,$5,$6)",
-      [input, output, account_id, project_id, path, total_tokens]
+      "INSERT INTO openai_chatgpt_log(time,input,system,output,account_id,analytics_cookie,project_id,path,total_tokens,total_time_s) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9)",
+      [
+        input,
+        system,
+        output,
+        account_id,
+        analytics_cookie,
+        project_id,
+        path,
+        total_tokens,
+        total_time_s,
+      ]
     );
   } catch (err) {
     log.warn("Failed to save ChatGPT log entry to database:", err);

@@ -12,12 +12,12 @@ const { Text } = Typography;
 
 export type Presets =
   | "standard"
-  | "student"
+  //  | "student"
   | "student+"
   | "instructor"
   | "research"
-  | "development"
-  | "budget";
+  | "development";
+//| "budget";
 
 export interface Preset {
   icon?: IconName;
@@ -66,7 +66,7 @@ export const PRESETS: PresetEntries = {
   standard: {
     icon: "line-chart",
     name: "Standard",
-    descr: "is a good choice for most users to get started",
+    descr: "is a good choice for most users and students to get started",
     details: (
       <>
         You can run two or three Jupyter Notebooks in the same project at the
@@ -80,24 +80,24 @@ export const PRESETS: PresetEntries = {
     ram: STANDARD_RAM,
     disk: STANDARD_DISK,
   },
-  student: {
-    icon: "meh",
-    name: "Student",
-    descr: "covers student projects in a course",
-    details: (
-      <>
-        If you're teaching a course, this upgrade is suitable for{" "}
-        <Text italic>student projects</Text>. The upgrade schema is the same as
-        for "Standard" projects, which should be a good choice for doing their
-        assignments. {WARN_SELECT_NUMBER_PROJECTS} Each student project will get
-        the configured upgrades, internet access, and improved hosting quality.{" "}
-        {APPLY_LICENSE_COURSE_CONFIG}
-      </>
-    ),
-    cpu: STANDARD_CPU,
-    ram: STANDARD_RAM,
-    disk: STANDARD_DISK,
-  },
+  //   student: {
+  //     icon: "meh",
+  //     name: "Student",
+  //     descr: "covers student projects in a course",
+  //     details: (
+  //       <>
+  //         If you're teaching a course, this upgrade is suitable for{" "}
+  //         <Text italic>student projects</Text>. The upgrade schema is the same as
+  //         for "Standard" projects, which should be a good choice for doing their
+  //         assignments. {WARN_SELECT_NUMBER_PROJECTS} Each student project will get
+  //         the configured upgrades, internet access, and improved hosting quality.{" "}
+  //         {APPLY_LICENSE_COURSE_CONFIG}
+  //       </>
+  //     ),
+  //     cpu: STANDARD_CPU,
+  //     ram: STANDARD_RAM,
+  //     disk: STANDARD_DISK,
+  //   },
   "student+": {
     icon: "smile",
     name: "Student+",
@@ -154,7 +154,7 @@ export const PRESETS: PresetEntries = {
   },
   research: {
     icon: "rocket",
-    name: "Research",
+    name: "Researcher",
     descr: "is a good choice for a research group",
     details: (
       <>
@@ -187,7 +187,7 @@ export const PRESETS: PresetEntries = {
     disk: 10,
     uptime: "medium",
   },
-  budget: {
+  /*budget: {
     icon: "wallet",
     name: "Budget",
     descr: "is the cheapest option",
@@ -204,5 +204,5 @@ export const PRESETS: PresetEntries = {
     ram: 1,
     disk: 3,
     member: false,
-  },
+  },*/
 } as const;

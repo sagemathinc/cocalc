@@ -35,11 +35,16 @@ export default async function chatGPT({
     date: 0,
   });
   // submit question to chatgpt
-  const resp = await webapp_client.openai_client.chatgpt({
-    input: value,
-    project_id,
-    path,
-  });
+  let resp;
+  try {
+    resp = await webapp_client.openai_client.chatgpt({
+      input: value,
+      project_id,
+      path,
+    });
+  } catch (err) {
+    resp = `<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
+  }
   // insert the answer as a new chat message
   if (actions?.syncdb != null) {
     //hackish
@@ -55,7 +60,13 @@ export default async function chatGPT({
 }
 
 function stripMentions(value: string): string {
-  // They look like this ... <span class="user-mention" account-id=chatgpt >@ChatGPT</span> ...
+  // We strip out any cased version of the string @chatgpt and also all mentions.
+  while (true) {
+    const i = value.toLowerCase().indexOf("@chatgpt");
+    if (i == -1) break;
+    value = value.slice(0, i) + value.slice(i + "@chatgpt".length);
+  }
+  // The mentions look like this: <span class="user-mention" account-id=chatgpt >@ChatGPT</span> ...
   while (true) {
     const i = value.indexOf('<span class="user-mention"');
     if (i == -1) return value;

@@ -24,6 +24,7 @@ import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-h
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import { newest_content, getSelectedHashtagsSearch } from "./utils";
+import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 
 type MessageMap = Map<string, any>;
 
@@ -157,7 +158,8 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
         }
         const record = drafts.get(sender_id);
         if (record.get("date") != 0) {
-          // editing an already sent message, rather than composing a new one.  This is indicated elsewhere (at that message).
+          // editing an already sent message, rather than composing a new one.
+          // This is indicated elsewhere (at that message).
           continue;
         }
         if (record.get("active") < cutoff || !record.get("input").trim()) {
@@ -172,8 +174,17 @@ export const ChatLog: React.FC<ChatLogProps> = React.memo(
             <span style={{ marginLeft: "15px" }}>
               {get_user_name(user_map, sender_id)} is writing a message...
             </span>
+            {sender_id == "chatgpt" && (
+              <ProgressEstimate
+                style={{ marginLeft: "15px", maxWidth: "600px" }}
+                seconds={45}
+              />
+            )}
           </div>
         );
+        // We use a longer chatgpt estimate here than in the frontend nextjs
+        // app, since the nature of questions when you're fully using cocalc
+        // is that they tend to be much deeper.
       }
       if (v.length == 0) return;
       scrollToBottomRef?.current?.();

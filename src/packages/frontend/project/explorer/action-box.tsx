@@ -9,7 +9,7 @@ import * as immutable from "immutable";
 
 import { rtypes, rclass } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
-import { DirectorySelector } from "../directory-selector";
+import DirectorySelector from "../directory-selector";
 import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { in_snapshot_path } from "../utils";
@@ -55,10 +55,9 @@ interface ReduxProps {
 interface State {
   copy_destination_directory: string;
   copy_destination_project_id: string;
-  move_destination: "";
+  move_destination: string;
   new_name?: string;
   show_different_project?: boolean;
-
   overwrite_newer?: boolean;
   delete_extra_files?: boolean;
 }
@@ -470,26 +469,6 @@ export const ActionBox = rclass<ReactProps>(
             <Col sm={5} style={{ color: "#666" }}>
               <h4>Move to a directory</h4>
               {this.render_selected_files_list()}
-            </Col>
-            <Col sm={5} style={{ color: "#666", marginBottom: "15px" }}>
-              <h4>
-                Destination:{" "}
-                {this.state.move_destination == ""
-                  ? "Home directory"
-                  : this.state.move_destination}
-              </h4>
-              <DirectorySelector
-                key="move_destination"
-                onSelect={(value) => this.setState({ move_destination: value })}
-                project_id={this.props.project_id}
-                starting_path={this.props.current_path}
-                exclusions={new Set(this.props.checked_files.toArray())}
-                style={{ width: "100%" }}
-              />
-            </Col>
-          </Row>
-          <Row>
-            <Col sm={12}>
               <ButtonToolbar>
                 <Button
                   bsStyle="warning"
@@ -500,6 +479,26 @@ export const ActionBox = rclass<ReactProps>(
                 </Button>
                 <Button onClick={this.cancel_action}>Cancel</Button>
               </ButtonToolbar>
+            </Col>
+            <Col sm={5} style={{ color: "#666", marginBottom: "15px" }}>
+              <h4>
+                Destination:{" "}
+                {this.state.move_destination == ""
+                  ? "Home directory"
+                  : this.state.move_destination}
+              </h4>
+              <DirectorySelector
+                title="Select Move Destination Directory"
+                key="move_destination"
+                onSelect={(move_destination: string) =>
+                  this.setState({ move_destination })
+                }
+                project_id={this.props.project_id}
+                startingPath={this.props.current_path}
+                isExcluded={(path) => this.props.checked_files.has(path)}
+                style={{ width: "100%" }}
+                bodyStyle={{ maxHeight: "250px" }}
+              />
             </Col>
           </Row>
         </div>
@@ -673,6 +672,17 @@ export const ActionBox = rclass<ReactProps>(
                 style={{ color: "#666" }}
               >
                 {this.render_copy_description()}
+                <ButtonToolbar>
+                  <Button
+                    bsStyle="primary"
+                    onClick={this.copy_click}
+                    disabled={!this.valid_copy_input()}
+                  >
+                    <Icon name="files" /> Copy {size}{" "}
+                    {misc.plural(size, "Item")}
+                  </Button>
+                  <Button onClick={this.cancel_action}>Cancel</Button>
+                </ButtonToolbar>
               </Col>
               {this.render_different_project_dialog()}
               <Col
@@ -692,29 +702,16 @@ export const ActionBox = rclass<ReactProps>(
                     : this.state.copy_destination_directory}
                 </h4>
                 <DirectorySelector
-                  onSelect={(value) =>
+                  title="Select Copy Destination Directory"
+                  onSelect={(value: string) =>
                     this.setState({ copy_destination_directory: value })
                   }
                   key="copy_destination_directory"
-                  starting_path=""
+                  startingPath={this.props.current_path}
                   project_id={this.state.copy_destination_project_id}
                   style={{ width: "100%" }}
+                  bodyStyle={{ maxHeight: "250px" }}
                 />
-              </Col>
-            </Row>
-            <Row>
-              <Col sm={12}>
-                <ButtonToolbar>
-                  <Button
-                    bsStyle="primary"
-                    onClick={this.copy_click}
-                    disabled={!this.valid_copy_input()}
-                  >
-                    <Icon name="files" /> Copy {size}{" "}
-                    {misc.plural(size, "Item")}
-                  </Button>
-                  <Button onClick={this.cancel_action}>Cancel</Button>
-                </ButtonToolbar>
               </Col>
             </Row>
           </div>

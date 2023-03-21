@@ -3051,6 +3051,7 @@ API(
     event: "chatgpt",
     id: undefined,
     text: required, // text of the question
+    system: undefined, // extra system context, e.g,. "using cocalc".
     project_id: undefined,
     path: undefined,
   })

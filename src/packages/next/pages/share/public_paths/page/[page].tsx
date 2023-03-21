@@ -61,12 +61,11 @@ export default function All({ page, publicPaths, customize }) {
     <Customize value={customize}>
       <Layout title={`Page ${page} of public files`}>
         <div>
-          <div style={{ float: "right", width: "250px" }}>
+          <div style={{ float: "right", width: "250px", marginTop: "7.5px" }}>
             <GoogleSearch />
           </div>
           <h2>
-            Browse Jupyter Notebooks, Computational Whiteboards and much more on{" "}
-            <SiteName />
+            Browse publicly shared documents on <SiteName />
           </h2>
           <ProxyInput />
           Star items to easily <A href="/stars">find them in your list</A>

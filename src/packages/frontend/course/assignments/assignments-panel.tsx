@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Button } from "antd";
 import {
   AppRedux,
   React,
@@ -217,11 +217,11 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
           later, you collect it, grade it, and return the graded version to
           them.
         </p>
-
         <p>
-          Add an assignment to your course by creating a directory using the
-          Files tab, then type the name of the directory in the box in the upper
-          right and click to search.
+          Add assignments to your course by clicking "Add Assignment..." above.
+          You can create and select one or more directories and they will become
+          assignments that you can then customize and distribute to your
+          students.
         </p>
       </div>
     );
