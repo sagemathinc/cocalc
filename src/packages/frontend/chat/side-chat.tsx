@@ -1,5 +1,5 @@
 import { debounce } from "lodash";
-import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useRef } from "react";
 import { redux, useActions, useRedux, useTypedRedux } from "../app-framework";
 import { IS_MOBILE } from "../feature";
 import { user_activity } from "../tracker";
@@ -30,7 +30,6 @@ export default function SideChat({ project_id, path, style }: Props) {
   const project = project_map?.get(project_id);
   const scrollToBottomRef = useRef<any>(null);
   const submitMentionsRef = useRef<Function>();
-  const [isFocused, setFocused] = useState<boolean>(false);
 
   const markAsRead = useCallback(() => {
     markChatAsReadIfUnseen(project_id, path);
@@ -149,10 +148,8 @@ export default function SideChat({ project_id, path, style }: Props) {
             sendChat();
             user_activity("side_chat", "send_chat", "keyboard");
           }}
-          onBlur={() => setFocused(false)}
-          onFocus={() => setFocused(true)}
-          style={{ height: isFocused || input.trim() ? INPUT_HEIGHT : "100px" }}
-          height={isFocused || input.trim() ? INPUT_HEIGHT : "100px"}
+          style={{ height: INPUT_HEIGHT }}
+          height={INPUT_HEIGHT}
           onChange={(value) => actions.set_input(value)}
           submitMentionsRef={submitMentionsRef}
           syncdb={actions.syncdb}

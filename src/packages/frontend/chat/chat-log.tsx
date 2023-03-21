@@ -319,7 +319,7 @@ function Composing({ project_id, path, account_id, user_map }) {
   }
 
   const v: JSX.Element[] = [];
-  const cutoff = new Date().valueOf() - 1000 * 60; // 60s
+  const cutoff = new Date().valueOf() - 1000 * 30; // 30s
   for (const [sender_id] of drafts) {
     if (account_id == sender_id) {
       // this is us

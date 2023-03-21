@@ -325,12 +325,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
       ]);
       if (submitMentionsRef == null) {
         // submit immediately, since no ref for controlling this:
-        submit_mentions(
-          project_id,
-          path,
-          [{ account_id, description: "" }],
-          editor.getMarkdownValue()
-        );
+        submit_mentions(project_id, path, [{ account_id, description: "" }]);
       }
     },
     matchingUsers: (search) => mentionableUsers(project_id, search, chatGPT),
@@ -374,8 +369,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
             fragment_id,
           });
         }
+        submit_mentions(project_id, path, mentions);
         const value = editor.getMarkdownValue();
-        submit_mentions(project_id, path, mentions, value);
         return value;
       };
     }

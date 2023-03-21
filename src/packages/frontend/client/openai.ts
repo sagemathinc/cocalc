@@ -6,7 +6,7 @@
 import * as message from "@cocalc/util/message";
 import { AsyncCall } from "./client";
 import { redux } from "../app-framework";
-// import { delay } from "awaiting";
+import { delay } from "awaiting";
 
 const DEFAULT_SYSTEM_PROMPT =
   "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.";
@@ -33,8 +33,12 @@ export class OpenAIClient {
       return "OpenAI support is not currently enabled on this server.";
     }
     input = input.trim();
-    if (!input) {
+    if (!input || input == "test") {
       return "Great! What can I assist you with today?";
+    }
+    if (input == "ping") {
+      await delay(1000);
+      return "Pong";
     }
     // await delay(5000);
     // return "Test";

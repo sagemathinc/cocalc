@@ -184,28 +184,28 @@ export default function Message(props: Props) {
       const edit = "Last edit ";
       const name = ` by ${editor_name}`;
       return (
-        <span className="small">
+        <div style={{ marginTop: "2px" }}>
           {edit}
           <TimeAgo
             date={new Date(props.message.get("history").first()?.get("date"))}
           />
           {name}
-        </span>
+        </div>
       );
     }
     return (
-      <span className="small">
+      <div style={{ marginTop: "2px" }}>
         {text}
         {is_editing ? (
           <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
             <Button onClick={on_cancel}>Cancel</Button>
             <Space />
-            <Button onClick={on_send} type="primary">
+            <Button onClick={saveEditedMessage} type="primary">
               Save (shift+enter)
             </Button>
           </span>
         ) : undefined}
-      </span>
+      </div>
     );
   }
 
@@ -323,12 +323,8 @@ export default function Message(props: Props) {
           )}
           {isEditing && renderEditMessage()}
           {!isEditing && (
-            <span>
-              {(props.message.get("history").size > 1 ||
-                props.message.get("editing").size > 0) &&
-                editing_status(isEditing)}
-              {props.message.get("history").size > 1 && renderToggleHistory()}
-              <div style={{ float: "right" }}>
+            <div style={{ display: "flex" }}>
+              <div>
                 {/* <Tooltip title="Edit this message">
                   <Button
                     disabled={replying}
@@ -360,7 +356,11 @@ export default function Message(props: Props) {
                   </Tooltip>
                 )}
               </div>
-            </span>
+              {(props.message.get("history").size > 1 ||
+                props.message.get("editing").size > 0) &&
+                editing_status(isEditing)}
+              {props.message.get("history").size > 1 && renderToggleHistory()}
+            </div>
           )}
         </div>
         {show_history && (
@@ -378,7 +378,7 @@ export default function Message(props: Props) {
     );
   }
 
-  function on_send(): void {
+  function saveEditedMessage(): void {
     if (props.actions == null) return;
     const mesg = submitMentionsRef.current?.() ?? edited_message_ref.current;
     const value = newest_content(props.message);
@@ -416,7 +416,7 @@ export default function Message(props: Props) {
             ?.valueOf()}`}
           input={newest_content(props.message)}
           submitMentionsRef={submitMentionsRef}
-          on_send={on_send}
+          on_send={saveEditedMessage}
           height={"auto"}
           syncdb={props.actions.syncdb}
           date={props.message?.get("date")?.valueOf() ?? 0}
@@ -428,7 +428,7 @@ export default function Message(props: Props) {
           <Button
             type="primary"
             style={{ marginRight: "5px" }}
-            onClick={on_send}
+            onClick={saveEditedMessage}
           >
             <Icon name="save" /> Save Edited Message
           </Button>

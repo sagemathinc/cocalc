@@ -98,9 +98,12 @@ export class ChatActions extends Actions<ChatState> {
         let drafts = this.store?.get("drafts") ?? fromJS({});
         // used to show that another user is editing a message.
         const record = this.syncdb.get_one(obj);
-        if (record == null) return;
-        const sender_id = record.get("sender_id");
-        drafts = drafts.set(sender_id, record);
+        if (record == null) {
+          drafts = drafts.delete(obj.sender_id);
+        } else {
+          const sender_id = record.get("sender_id");
+          drafts = drafts.set(sender_id, record);
+        }
         this.setState({ drafts });
         return;
       }
@@ -146,13 +149,14 @@ export class ChatActions extends Actions<ChatState> {
       sender_id = this.redux.getStore("account").get_account_id();
     }
     const time_stamp = webapp_client.server_time().toISOString();
-    this.syncdb.set({
+    const message = {
       sender_id,
       event: "chat",
       history: [{ author_id: sender_id, content: input, date: time_stamp }],
       date: time_stamp,
       reply_to: reply_to?.toISOString(),
-    });
+    };
+    this.syncdb.set(message);
     if (!reply_to) {
       this.delete_draft(0);
     }
@@ -178,6 +182,7 @@ export class ChatActions extends Actions<ChatState> {
       user_tracking("send_chat", { project_id, path });
     }
     this.save_to_disk();
+    this.processChatGPT(fromJS(message), reply_to);
   }
 
   public set_editing(message, is_editing) {
@@ -225,7 +230,7 @@ export class ChatActions extends Actions<ChatState> {
     this.save_to_disk();
   }
 
-  send_reply(message, reply: string) {
+  send_reply(message, reply: string, from?: string) {
     const reply_to = getReplyToRoot(
       message,
       this.store?.get("messages") ?? fromJS({})
@@ -234,17 +239,21 @@ export class ChatActions extends Actions<ChatState> {
     this.delete_draft(-time);
     this.send_chat(
       reply,
-      this.redux.getStore("account").get_account_id(),
+      from ?? this.redux.getStore("account").get_account_id(),
       reply_to
     );
-    this.save_to_disk();
   }
 
-  public delete_draft(date: number, commit: boolean = true) {
+  // negative date is used for replies.
+  public delete_draft(
+    date: number,
+    commit: boolean = true,
+    sender_id: string | undefined = undefined
+  ) {
     if (!this.syncdb) return;
     this.syncdb.delete({
       event: "draft",
-      sender_id: this.redux.getStore("account").get_account_id(),
+      sender_id: sender_id ?? this.redux.getStore("account").get_account_id(),
       date,
     });
     if (commit) {
@@ -379,11 +388,113 @@ export class ChatActions extends Actions<ChatState> {
   redo() {
     this.syncdb?.redo();
   }
+
+  private isChatGPTThread(date: Date): boolean {
+    const messages = this.store?.get("messages");
+    if (!messages) return false;
+    let message = messages.get(`${date.valueOf()}`);
+    let i = 0;
+    while (message != null && i < 1000) {
+      i += 1; // just in case some weird corrupted file has a time loop in it.
+      if (
+        message
+          .getIn(["history", 0, "content"])
+          ?.toLowerCase()
+          .includes("@chatgpt")
+      ) {
+        return true;
+      }
+      const reply_to = message.get("reply_to");
+      if (reply_to == null) return false;
+      message = messages.get(`${new Date(reply_to).valueOf()}`);
+    }
+    return false; // never reached
+  }
+
+  private async processChatGPT(message, reply_to?: Date) {
+    if (!this.redux.getStore("customize").get("openai_enabled")) {
+      // no need to check for chatgpt at all
+      return;
+    }
+    if (message.getIn(["history", 0, "author_id"]) == "chatgpt") {
+      // do NOT respond to a message from chatgpt!!!!
+      return;
+    }
+    let input = message.getIn(["history", 0, "content"]);
+    if (!input) return;
+    const store = this.store;
+    if (!store) return;
+
+    if (!input.toLowerCase().includes("@chatgpt")) {
+      // doesn't mention chatgpt explicitly, but is it a reply to something that does?
+      if (reply_to == null || !this.isChatGPTThread(reply_to)) {
+        // nope
+        return;
+      }
+    }
+    // message should get sent to chatgpt.
+    input = stripMentions(input); // without any mentions, of course.
+    const start = new Date().valueOf();
+    const draft = () => {
+      if (new Date().valueOf() - start > 3 * 60 * 1000) {
+        // no matter what, stop updating after 3 minutes.
+        clearInterval(interval);
+      }
+      this.syncdb?.set({
+        event: "draft",
+        active: webapp_client.server_time(),
+        sender_id: "chatgpt",
+        input: "...",
+        date: 0,
+      });
+    };
+    draft();
+    // keep updating that chatgpt is doing something:
+    const interval = setInterval(draft, 25000);
+    const project_id = store.get("project_id");
+    const path = store.get("path");
+
+    // submit question to chatgpt
+    let resp;
+    try {
+      resp = await webapp_client.openai_client.chatgpt({
+        input,
+        project_id,
+        path,
+      });
+    } catch (err) {
+      resp = `<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
+    } finally {
+      // until it isn't.
+      clearInterval(interval);
+      this.delete_draft(0, true, "chatgpt");
+    }
+    // insert the answer as a chat message from chatgpt
+    this.send_reply(message, resp, "chatgpt");
+  }
 }
 
-function getReplyToRoot(message, messages): Date {
+function getReplyToRoot(message, messages): Date | undefined {
   while (message.get("reply_to")) {
     message = messages.get(`${new Date(message.get("reply_to")).valueOf()}`);
   }
-  return message.get("date");
+  const date = message.get("date");
+  return date ? new Date(date) : undefined;
+}
+
+function stripMentions(value: string): string {
+  // We strip out any cased version of the string @chatgpt and also all mentions.
+  while (true) {
+    const i = value.toLowerCase().indexOf("@chatgpt");
+    if (i == -1) break;
+    value = value.slice(0, i) + value.slice(i + "@chatgpt".length);
+  }
+  // The mentions look like this: <span class="user-mention" account-id=chatgpt >@ChatGPT</span> ...
+  while (true) {
+    const i = value.indexOf('<span class="user-mention"');
+    if (i == -1) return value;
+    const j = value.indexOf("</span>", i);
+    if (j == -1) return value;
+    value = value.slice(0, i) + value.slice(j + "</span>".length);
+  }
 }

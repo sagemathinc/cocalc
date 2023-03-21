@@ -165,7 +165,7 @@ export default function ChatInput({
         on_send(input);
       }}
       height={height}
-      placeholder={placeholder ?? "Type a message..."}
+      placeholder={placeholder ?? "Type a new message..."}
       extraHelp={
         IS_MOBILE
           ? "Click the date to edit chats."

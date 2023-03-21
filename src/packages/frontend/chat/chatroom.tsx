@@ -5,7 +5,6 @@
 
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
-import { useState } from "react";
 import { Button as AntdButton } from "antd";
 
 import {
@@ -94,7 +93,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
 
   const submitMentionsRef = useRef<Function>();
   const scrollToBottomRef = useRef<any>(null);
-  const [isFocused, setFocused] = useState<boolean>(false);
 
   useEffect(() => {
     scrollToBottomRef.current?.();
@@ -315,7 +313,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function on_send(): void {
-    const value = submitMentionsRef.current?.();
+    const value = submitMentionsRef.current?.({ chatgpt: true });
     scrollToBottomRef.current?.(true);
     actions.send_chat(value);
   }
@@ -344,9 +342,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               cacheId={`${path}${project_id}-new`}
               input={input}
               on_send={on_send}
-              onBlur={() => setFocused(false)}
-              onFocus={() => setFocused(true)}
-              height={isFocused || input.trim() ? INPUT_HEIGHT : "100px"}
+              height={INPUT_HEIGHT}
               onChange={(value) => {
                 actions.set_input(value);
               }}
