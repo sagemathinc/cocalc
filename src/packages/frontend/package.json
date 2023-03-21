@@ -87,7 +87,7 @@
     "events": "3.3.0",
     "expect": "^26.6.2",
     "fflate": "0.7.3",
-    "gpt-3-encoder": "^1.1.4",
+    "gpt3-tokenizer": "^1.1.5",
     "history": "^1.17.0",
     "html-react-parser": "^1.4.14",
     "htmlparser": "^1.7.7",

@@ -113,7 +113,7 @@ export default function ChatGPTHelp({
           >
             <Loading delay={0}>Cancel...</Loading>
           </Button>
-          <ProgressEstimate seconds={10} />
+          <ProgressEstimate seconds={30} />
         </div>
       )}
       {output != null && (

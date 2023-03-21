@@ -7,10 +7,13 @@ import * as message from "@cocalc/util/message";
 import { AsyncCall } from "./client";
 import { redux } from "../app-framework";
 import { delay } from "awaiting";
-import type { History } from "@cocalc/frontend/misc/openai";
+import type { History } from "@cocalc/frontend/misc/openai"; // do not import until needed -- it is HUGE!
 
 const DEFAULT_SYSTEM_PROMPT =
   "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.";
+
+// We leave some room for output, hence about 3000 instead of 4000 here:
+const MAX_CHATGPT_TOKENS = 3000;
 
 export class OpenAIClient {
   private async_call: AsyncCall;
@@ -32,7 +35,6 @@ export class OpenAIClient {
     project_id?: string;
     path?: string;
   }): Promise<string> {
-    console.log("chatgpt", { input, system, history, project_id, path });
     if (!redux.getStore("customize").get("openai_enabled")) {
       return "OpenAI support is not currently enabled on this server.";
     }
@@ -46,6 +48,22 @@ export class OpenAIClient {
     }
     // await delay(5000);
     // return "Test";
+    const { numTokens, truncateHistory, truncateMessage } = await import(
+      "@cocalc/frontend/misc/openai"
+    );
+    const n = numTokens(input);
+    if (n >= MAX_CHATGPT_TOKENS) {
+      if (n > MAX_CHATGPT_TOKENS) {
+        input = truncateMessage(input, MAX_CHATGPT_TOKENS);
+      }
+      history = undefined;
+    } else {
+      history =
+        history != null
+          ? truncateHistory(history, MAX_CHATGPT_TOKENS - numTokens(input))
+          : undefined;
+    }
+    // console.log("chatgpt", { input, system, history, project_id, path });
     const resp = await this.async_call({
       message: message.chatgpt({
         text: input,

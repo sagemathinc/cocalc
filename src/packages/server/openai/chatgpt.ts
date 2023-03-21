@@ -44,6 +44,7 @@ export async function evaluate({
 }: ChatOptions): Promise<string> {
   log.debug("evaluate", {
     input,
+    history,
     system,
     account_id,
     analytics_cookie,
@@ -54,7 +55,8 @@ export async function evaluate({
   await checkForAbuse({ account_id, analytics_cookie });
   const configuration = new Configuration({ apiKey: await getApiKey() });
   const openai = new OpenAIApi(configuration);
-  const messages: { role: "system" | "user"; content: string }[] = [];
+  const messages: { role: "system" | "user" | "assistant"; content: string }[] =
+    [];
   if (system) {
     messages.push({ role: "system", content: system });
   }
