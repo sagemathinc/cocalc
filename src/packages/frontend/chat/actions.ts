@@ -389,7 +389,7 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb?.redo();
   }
 
-  private isChatGPTThread(date: Date): boolean {
+  isChatGPTThread(date: Date): boolean {
     const messages = this.store?.get("messages");
     if (!messages) return false;
     let message = messages.get(`${date.valueOf()}`);

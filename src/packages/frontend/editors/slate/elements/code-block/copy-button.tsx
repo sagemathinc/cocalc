@@ -22,6 +22,7 @@ export default function CopyButton({ value }) {
             }}
           >
             <Icon name={copied ? "check" : "copy"} />
+            {copied ? "Copied" : "Copy"}
           </Button>
         </Tooltip>
       </CopyToClipboard>

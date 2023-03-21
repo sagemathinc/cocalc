@@ -28,8 +28,8 @@ const StaticElement: React.FC<RenderElementProps> = ({
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   return (
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
-      <CopyButton value={element.value} />
       <CodeMirrorStatic
+        addonAfter={<CopyButton value={element.value} />}
         value={element.value}
         style={{ background: "white", padding: "15px" }}
         options={{ mode: infoToMode(element.info, element.value) }}

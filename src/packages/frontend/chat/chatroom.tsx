@@ -57,7 +57,7 @@ const GRID_STYLE: React.CSSProperties = {
 } as const;
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
-  margin: "0",
+  margin: "5px 0",
   padding: "0",
   background: "white",
   flex: "1 0 auto",

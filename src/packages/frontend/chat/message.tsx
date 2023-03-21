@@ -29,11 +29,19 @@ import { ChatActions } from "./actions";
 import { Time } from "./time";
 import { Name } from "./name";
 
-const BLANK_COLUMN = <Col key={"blankcolumn"} xs={2}></Col>;
+const BLANK_COLUMN = <Col key={"blankcolumn"} xs={1}></Col>;
+
+const MARKDOWN_STYLE = undefined;
+// const MARKDOWN_STYLE = { maxHeight: "300px", overflowY: "auto" };
+
+const BORDER = "2px solid #ccc";
 
 const REPLY_STYLE = {
-  marginLeft: "100px",
-  borderLeft: "10px solid #ddd",
+  marginLeft: "75px",
+  marginRight: "15px",
+  borderLeft: BORDER,
+  borderRight: BORDER,
+  paddingLeft: "15px",
 } as const;
 
 interface Props {
@@ -98,33 +106,12 @@ export default function Message(props: Props) {
   const replyMentionsRef = useRef<Function>();
 
   const is_viewers_message = sender_is_viewer(props.account_id, props.message);
+  const verb = show_history ? "Hide" : "Show";
 
-  function renderToggleHistory() {
-    const verb = show_history ? "Hide" : "Show";
-    return (
-      <Button
-        style={{
-          marginLeft: "5px",
-          color: is_viewers_message ? "white" : "#555",
-        }}
-        type="text"
-        size="small"
-        onClick={() => toggle_history_chat(!show_history)}
-      >
-        <Tip
-          title="Message History"
-          tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
-        >
-          <Icon name="history" /> {verb} History
-        </Tip>
-      </Button>
-    );
-  }
-
-  function toggle_history_chat(show: boolean) {
-    set_show_history(show);
-    props.set_scroll?.();
-  }
+  const isChatGPTThread = useMemo(
+    () => props.actions?.isChatGPTThread(props.message.get("date")),
+    [props.message]
+  );
 
   function editing_status(is_editing: boolean) {
     let text;
@@ -228,14 +215,16 @@ export default function Message(props: Props) {
     if (!props.is_prev_sender) {
       style.marginTop = "22px";
     }
-    if (sender_is_viewer(props.account_id, props.message)) {
-      style.marginLeft = "15px";
-    } else {
-      style.marginRight = "15px";
+    if (!props.message.get("reply_to")) {
+      if (sender_is_viewer(props.account_id, props.message)) {
+        style.marginLeft = "15px";
+      } else {
+        style.marginRight = "15px";
+      }
     }
 
     return (
-      <Col key={0} xs={4}>
+      <Col key={0} xs={2}>
         <div style={style}>
           {sender_id != null && props.show_avatar ? (
             <Avatar size={40} account_id={sender_id} />
@@ -286,7 +275,7 @@ export default function Message(props: Props) {
     };
 
     return (
-      <Col key={1} xs={18}>
+      <Col key={1} xs={21}>
         {!props.is_prev_sender &&
         !is_viewers_message &&
         props.message.get("sender_id") ? (
@@ -306,7 +295,7 @@ export default function Message(props: Props) {
           )}
           {!isEditing && (
             <MostlyStaticMarkdown
-              style={{ maxHeight: "300px", overflowY: "auto" }}
+              style={MARKDOWN_STYLE}
               value={value}
               className={message_class}
               selectedHashtags={props.selectedHashtags}
@@ -340,26 +329,48 @@ export default function Message(props: Props) {
                     <Icon name="pencil" /> Edit
                   </Button>
                 </Tooltip>*/}
-                {props.allowReply && !replying && (
-                  <Tooltip title="Write a reply to this message">
-                    <Button
-                      disabled={replying}
-                      style={{
-                        color: is_viewers_message ? "white" : "#555",
-                      }}
-                      type="text"
-                      size="small"
-                      onClick={() => setReplying(true)}
-                    >
-                      <Icon name="reply" /> Reply
-                    </Button>
-                  </Tooltip>
-                )}
+                {!props.message.get("reply_to") &&
+                  props.allowReply &&
+                  !replying && (
+                    <Tooltip title="Write a reply to this message">
+                      <Button
+                        disabled={replying}
+                        style={{
+                          color: is_viewers_message ? "white" : "#555",
+                        }}
+                        type="text"
+                        size="small"
+                        onClick={() => setReplying(true)}
+                      >
+                        <Icon name="reply" /> Reply
+                      </Button>
+                    </Tooltip>
+                  )}
               </div>
               {(props.message.get("history").size > 1 ||
                 props.message.get("editing").size > 0) &&
                 editing_status(isEditing)}
-              {props.message.get("history").size > 1 && renderToggleHistory()}
+              {props.message.get("history").size > 1 && (
+                <Button
+                  style={{
+                    marginLeft: "5px",
+                    color: is_viewers_message ? "white" : "#555",
+                  }}
+                  type="text"
+                  size="small"
+                  onClick={() => {
+                    set_show_history(!show_history);
+                    props.set_scroll?.();
+                  }}
+                >
+                  <Tip
+                    title="Message History"
+                    tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
+                  >
+                    <Icon name="history" /> {verb} History
+                  </Tip>
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -463,7 +474,7 @@ export default function Message(props: Props) {
       return;
     }
     return (
-      <div style={{ paddingLeft: "30px", borderLeft: "3px solid #ddd" }}>
+      <div>
         <ChatInput
           autoFocus
           style={{
@@ -503,23 +514,56 @@ export default function Message(props: Props) {
     );
   }
 
+  function getStyle() {
+    if (!props.message.get("reply_to")) return undefined;
+    if (props.allowReply) {
+      return {
+        ...REPLY_STYLE,
+        borderBottom: BORDER,
+        borderBottomLeftRadius: "10px",
+        borderBottomRightRadius: "10px",
+        marginBottom: "10px",
+      };
+    }
+    return REPLY_STYLE;
+  }
+
   let cols;
   if (props.include_avatar_col) {
     cols = [avatar_column(), content_column(), BLANK_COLUMN];
     // mirror right-left for sender's view
-    if (sender_is_viewer(props.account_id, props.message)) {
+    if (
+      !props.message.get("reply_to") &&
+      sender_is_viewer(props.account_id, props.message)
+    ) {
       cols = cols.reverse();
     }
   } else {
     cols = [content_column(), BLANK_COLUMN];
     // mirror right-left for sender's view
-    if (sender_is_viewer(props.account_id, props.message)) {
+    if (
+      !props.message.get("reply_to") &&
+      sender_is_viewer(props.account_id, props.message)
+    ) {
       cols = cols.reverse();
     }
   }
+
   return (
-    <Row style={props.message.get("reply_to") ? REPLY_STYLE : undefined}>
+    <Row style={getStyle()}>
       {cols}
+      {!replying && props.message.get("reply_to") && props.allowReply && (
+        <div
+          style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}
+        >
+          <Tooltip title="Reply to ChatGPT, sending this entire thread as context.">
+            <Button type="text" onClick={() => setReplying(true)}>
+              <Icon name="reply" /> Reply
+              {isChatGPTThread ? " to ChatGPT" : ""}
+            </Button>
+          </Tooltip>
+        </div>
+      )}
     </Row>
   );
 }

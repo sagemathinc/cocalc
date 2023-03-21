@@ -26,10 +26,9 @@ import {
 import { ChatActions } from "./actions";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import { newest_content, getSelectedHashtagsSearch } from "./utils";
-import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
+import Composing from "./composing";
 
 type MessageMap = Map<string, any>;
 
@@ -48,7 +47,7 @@ export function ChatLog({
 }: Props) {
   const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path);
-  const font_size = useRedux(["font_size"], project_id, path);
+  const fontSize = useRedux(["font_size"], project_id, path);
 
   // see similar code in task list:
   const selectedHashtags0 = useRedux(["selectedHashtags"], project_id, path);
@@ -65,13 +64,13 @@ export function ChatLog({
 
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
-  const sorted_dates = useMemo<string[]>(() => {
+  const sortedDates = useMemo<string[]>(() => {
     return getSortedDates(messages, search);
   }, [messages, search, project_id, path]);
 
   const visibleHashtags = useMemo(() => {
     let X = immutableSet<string>([]);
-    for (const date of sorted_dates) {
+    for (const date of sortedDates) {
       const message = messages.get(date);
       const value = newest_content(message);
       for (const x of parse_hashtags(value)) {
@@ -80,7 +79,7 @@ export function ChatLog({
       }
     }
     return X;
-  }, [messages, sorted_dates]);
+  }, [messages, sortedDates]);
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const manualScrollRef = useRef<boolean>(false);
@@ -123,13 +122,13 @@ export function ChatLog({
         </VisibleMDLG>
       )}
       {messages != null && (
-        <NotShowing num={messages.size - sorted_dates.length} search={search} />
+        <NotShowing num={messages.size - sortedDates.length} search={search} />
       )}
       <Virtuoso
         ref={virtuosoRef}
-        totalCount={sorted_dates.length}
+        totalCount={sortedDates.length}
         itemContent={(index) => {
-          const date = sorted_dates[index];
+          const date = sortedDates[index];
           const message: MessageMap | undefined = messages.get(date);
           if (message == null) {
             // shouldn't happen.  But we should be robust to such a possibility.
@@ -144,22 +143,22 @@ export function ChatLog({
                 message={message}
                 project_id={project_id}
                 path={path}
-                font_size={font_size}
+                font_size={fontSize}
                 selectedHashtags={selectedHashtags}
                 actions={actions}
-                is_prev_sender={is_prev_message_sender(
+                is_prev_sender={isPrevMessageSender(
                   index,
-                  sorted_dates,
+                  sortedDates,
                   messages
                 )}
-                is_next_sender={is_next_message_sender(
+                is_next_sender={isNextMessageSender(
                   index,
-                  sorted_dates,
+                  sortedDates,
                   messages
                 )}
                 show_avatar={
                   show_heads &&
-                  !is_next_message_sender(index, sorted_dates, messages)
+                  !isNextMessageSender(index, sortedDates, messages)
                 }
                 include_avatar_col={show_heads}
                 get_user_name={(account_id) =>
@@ -169,7 +168,7 @@ export function ChatLog({
                   virtuosoRef.current?.scrollIntoView({ index })
                 }
                 allowReply={
-                  messages.getIn([sorted_dates[index + 1], "reply_to"]) == null
+                  messages.getIn([sortedDates[index + 1], "reply_to"]) == null
                 }
               />
             </div>
@@ -177,21 +176,21 @@ export function ChatLog({
         }}
         rangeChanged={({ endIndex }) => {
           // manually scrolling if NOT at the bottom.
-          manualScrollRef.current = endIndex < sorted_dates.length - 1;
+          manualScrollRef.current = endIndex < sortedDates.length - 1;
         }}
         {...virtuosoScroll}
       />
       <Composing
-        project_id={project_id}
+        projectId={project_id}
         path={path}
-        account_id={account_id}
-        user_map={user_map}
+        accountId={account_id}
+        userMap={user_map}
       />
     </>
   );
 }
 
-function is_next_message_sender(
+function isNextMessageSender(
   index: number,
   dates: string[],
   messages: Map<string, MessageMap>
@@ -199,16 +198,16 @@ function is_next_message_sender(
   if (index + 1 === dates.length) {
     return false;
   }
-  const current_message = messages.get(dates[index]);
-  const next_message = messages.get(dates[index + 1]);
+  const currentMessage = messages.get(dates[index]);
+  const nextMessage = messages.get(dates[index + 1]);
   return (
-    current_message != null &&
-    next_message != null &&
-    current_message.get("sender_id") === next_message.get("sender_id")
+    currentMessage != null &&
+    nextMessage != null &&
+    currentMessage.get("sender_id") === nextMessage.get("sender_id")
   );
 }
 
-function is_prev_message_sender(
+function isPrevMessageSender(
   index: number,
   dates: string[],
   messages: Map<string, MessageMap>
@@ -216,21 +215,21 @@ function is_prev_message_sender(
   if (index === 0) {
     return false;
   }
-  const current_message = messages.get(dates[index]);
-  const prev_message = messages.get(dates[index - 1]);
+  const currentMessage = messages.get(dates[index]);
+  const prevMessage = messages.get(dates[index - 1]);
   return (
-    current_message != null &&
-    prev_message != null &&
-    current_message.get("sender_id") === prev_message.get("sender_id")
+    currentMessage != null &&
+    prevMessage != null &&
+    currentMessage.get("sender_id") === prevMessage.get("sender_id")
   );
 }
 
 // NOTE: I removed search including send name, since that would
 // be slower and of questionable value.
-function search_matches(message: MessageMap, search_terms): boolean {
+function searchMatches(message: MessageMap, searchTerms): boolean {
   const first = message.get("history", List()).first();
   if (first == null) return false;
-  return search_match(first.get("content", ""), search_terms);
+  return search_match(first.get("content", ""), searchTerms);
 }
 
 // messages is an immutablejs map from
@@ -243,8 +242,8 @@ export function getSortedDates(messages, search?: string): string[] {
   let m = messages;
   if (m == null) return [];
   if (search) {
-    const search_terms = search_split(search);
-    m = m.filter((message) => search_matches(message, search_terms));
+    const searchTerms = search_split(search);
+    m = m.filter((message) => searchMatches(message, searchTerms));
   }
   const v: [date: number, reply_to: number | undefined][] = [];
   for (const [date, message] of m) {
@@ -286,12 +285,12 @@ function cmpMessages([a_time, a_parent], [b_time, b_parent]): number {
   return cmp(a_parent ?? a_time, b_parent ?? b_time);
 }
 
-export function getUserName(user_map, account_id: string): string {
-  if (account_id == "chatgpt") return "ChatGPT";
-  if (user_map == null) return "Unknown";
-  const account = user_map.get(account_id);
+export function getUserName(userMap, accountId: string): string {
+  if (accountId == "chatgpt") return "ChatGPT";
+  if (userMap == null) return "Unknown";
+  const account = userMap.get(accountId);
   if (account == null) return "Unknown";
-  return account.get("first_name", "") + " " + account.get("last_name", "");
+  return account.get("firstName", "") + " " + account.get("lastName", "");
 }
 
 function NotShowing({ num, search }) {
@@ -309,52 +308,4 @@ function NotShowing({ num, search }) {
       }
     />
   );
-}
-
-function Composing({ project_id, path, account_id, user_map }) {
-  const drafts = useRedux(["drafts"], project_id, path);
-
-  if (!drafts || drafts.size == 0) {
-    return null;
-  }
-
-  const v: JSX.Element[] = [];
-  const cutoff = new Date().valueOf() - 1000 * 30; // 30s
-  for (const [sender_id] of drafts) {
-    if (account_id == sender_id) {
-      // this is us
-      continue;
-    }
-    const record = drafts.get(sender_id);
-    if (record.get("date") != 0) {
-      // editing an already sent message, rather than composing a new one.
-      // This is indicated elsewhere (at that message).
-      continue;
-    }
-    if (record.get("active") < cutoff || !record.get("input").trim()) {
-      continue;
-    }
-    v.push(
-      <div
-        key={sender_id}
-        style={{ margin: "5px", color: "#666", textAlign: "center" }}
-      >
-        <Avatar size={20} account_id={sender_id} />
-        <span style={{ marginLeft: "15px" }}>
-          {getUserName(user_map, sender_id)} is writing a message...
-        </span>
-        {sender_id == "chatgpt" && (
-          <ProgressEstimate
-            style={{ marginLeft: "15px", maxWidth: "600px" }}
-            seconds={45}
-          />
-        )}
-      </div>
-    );
-    // NOTE: We use a longer chatgpt estimate here than in the frontend nextjs
-    // app, since the nature of questions when you're fully using cocalc
-    // is that they tend to be much deeper.
-  }
-  if (v.length == 0) return null;
-  return <div>{v}</div>;
 }

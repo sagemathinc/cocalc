@@ -114,7 +114,12 @@ export default function SideChat({ project_id, path, style }: Props) {
       />
       <div
         className="smc-vfill"
-        style={{ backgroundColor: "#fff", paddingLeft: "15px", flex: 1 }}
+        style={{
+          backgroundColor: "#fff",
+          paddingLeft: "15px",
+          flex: 1,
+          margin: "5px 0",
+        }}
       >
         <ChatLog
           project_id={project_id}
@@ -126,20 +131,34 @@ export default function SideChat({ project_id, path, style }: Props) {
 
       <div>
         {input.trim() && (
-          <Tooltip title="Send message (shift+enter)">
+          <div>
+            <Tooltip title="Send message (shift+enter)">
+              <Button
+                style={{ margin: "5px 0 5px 5px" }}
+                onClick={() => {
+                  sendChat();
+                  user_activity("side_chat", "send_chat", "click");
+                }}
+                disabled={!input?.trim() || is_uploading}
+                type="primary"
+              >
+                <Icon name="paper-plane" />
+                Send Message (shift+enter)
+              </Button>
+            </Tooltip>
+            {/*
+            This seems hard to implement with our current  model and
+            below doesn't work
             <Button
-              style={{ margin: "5px 0 5px 5px" }}
+              style={{ marginLeft: "5px" }}
               onClick={() => {
-                sendChat();
-                user_activity("side_chat", "send_chat", "click");
+                actions.delete_draft(0);
+                actions.set_input('');
               }}
-              disabled={!input?.trim() || is_uploading}
-              type="primary"
             >
-              <Icon name="paper-plane" />
-              Send Message
-            </Button>
-          </Tooltip>
+              Cancel
+            </Button> */}
+          </div>
         )}
         <ChatInput
           cacheId={`${path}${project_id}-new`}
