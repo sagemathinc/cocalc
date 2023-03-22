@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { firstLetterUppercase } from "@cocalc/util/misc";
 import { Profile } from "passport";
 import { PassportTypes } from "./types";
 
@@ -30,17 +31,28 @@ export function parseOpenIdProfile(
     // realname usually have form  «FirstName MiddleName… LastName»
     const [first, ...last] = json.realname.split(" ");
     profile.name = {
-        givenName: first,
-        familyName: last.join(" "), // Or we should get last[-1]?
-    };
-  } else if (json.email) { // no name? we use the email address
-    // don't include dots, because our "spam protection" rejects domain-like patterns
-    const emailacc = json.email.split("@")[0].split(".");
-    const [first, ...last] = emailacc; // last is always at least []
-    profile.name = {
       givenName: first,
-      familyName: last.join(" "),
+      familyName: last.join(" "), // Or we should get last[-1]?
     };
+  } else if (json.email) {
+    // no name? we use the email address
+    // don't include dots, because our "spam protection" rejects domain-like patterns
+    const emailacc = json.email
+      .split("@")[0]
+      .split(".")
+      .map(firstLetterUppercase);
+    if (emailacc.length > 1) {
+      const [first, ...last] = emailacc;
+      profile.name = {
+        givenName: first,
+        familyName: last.join(" "),
+      };
+    } else {
+      profile.name = {
+        givenName: "",
+        familyName: emailacc.join(" "),
+      };
+    }
   }
 
   if (json.email) {
