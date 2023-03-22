@@ -333,7 +333,7 @@ export default function Message(props: Props) {
                       type="text"
                       size="small"
                       onClick={() =>
-                        props.actions.set_editing(props.message, true)
+                        props.actions?.set_editing(props.message, true)
                       }
                     >
                       <Icon name="pencil" /> Edit
