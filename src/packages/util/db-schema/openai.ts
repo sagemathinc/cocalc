@@ -101,6 +101,15 @@ Table({
           expire: null,
         },
       },
+      set: {
+        // this is so that a user can expire any chats they wanted to have expunged from
+        // the system completely.
+        fields: {
+          account_id: "account_id",
+          id: true,
+          expire: true,
+        },
+      },
     },
   },
 });

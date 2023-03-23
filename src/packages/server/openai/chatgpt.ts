@@ -6,8 +6,7 @@ import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { Configuration, OpenAIApi } from "openai";
 import { checkForAbuse } from "./abuse";
-import { get_server_settings } from "@cocalc/database/postgres/server-settings";
-import { db } from "@cocalc/database";
+import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 
 const log = getLogger("chatgpt");
@@ -17,7 +16,7 @@ async function getConfig(): Promise<{
   expire: Date | undefined;
 }> {
   log.debug("get API key");
-  const server_settings = await get_server_settings(db());
+  const server_settings = await getServerSettings();
   const { openai_api_key, pii_retention } = server_settings;
 
   if (!openai_api_key) {
@@ -97,8 +96,23 @@ export async function evaluate({
     path,
     total_tokens,
     total_time_s,
-    expire,
+    expire: account_id == null ? expire : undefined,
   });
+
+  // NOTE about expire: If the admin setting for "PII Retention" is set *and*
+  // the usage is only identified by their analytics_cookie, then
+  // we automatically delete the log of chatgpt usage at the expiration time.
+  // If the account_id *is* set, users can do the following:
+  // 1. Ability to delete any of their past chatgpt usage
+  // 2. If a user deletes their account, also delete their past chatgpt usage log.
+  // 3. Make it easy to search and see their past usage.
+  // See https://github.com/sagemathinc/cocalc/issues/6577
+  // There's no reason to automatically delete "PII" attached
+  // to an actual user that has access to that data (and can delete it); otherwise,
+  // we would have to delete every single thing anybody types anywhere in cocalc,
+  // e.g., when editing a Jupyter notebook or really anything else at all, and
+  // that makes no sense at all.
+
   return output;
 }
 
