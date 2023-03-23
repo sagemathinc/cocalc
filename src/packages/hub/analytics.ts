@@ -4,7 +4,7 @@
  */
 
 import cors from "cors"; // express-js cors plugin:
-import { json, Router } from "express";
+import { CookieOptions, json, Request, Response, Router } from "express";
 import { isEqual } from "lodash";
 import ms from "ms";
 import * as fs from "node:fs";
@@ -17,13 +17,15 @@ import {
 import { join } from "path";
 const UglifyJS = require("uglify-js");
 
+import base_path from "@cocalc/backend/base-path";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import { get_server_settings } from "@cocalc/database/postgres/server-settings";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import {
-  analytics_cookie_name,
+  ANALYTICS_COOKIE_NAME,
   is_valid_uuid_string,
   sanitizeObject,
+  STATISTICS_COOKIE_NAME,
   uuid,
 } from "@cocalc/util/misc";
 import { getLogger } from "./logger";
@@ -156,8 +158,6 @@ The query param "fqd" (fully qualified domain) can be set to true or false (defa
 It controls if the bounce back URL mentions the domain.
 */
 
-import base_path from "@cocalc/backend/base-path";
-
 export async function initAnalytics(
   router: Router,
   database: PostgreSQL
@@ -169,6 +169,7 @@ export async function initAnalytics(
   const DNS = settings.dns;
   const dns_parsed = parseDomain(DNS);
   const pii_retention = settings.pii_retention;
+  const analytics_enabled = settings.analytics ?? true;
 
   if (
     dns_parsed.type !== ParseResultType.Listed &&
@@ -205,64 +206,65 @@ export async function initAnalytics(
   // https://expressjs.com/en/api.html#express.json
   router.use("/analytics.js", json());
 
-  router.get("/analytics.js", cors(analytics_cors), function (req, res) {
-    res.header("Content-Type", "text/javascript");
+  router.get(
+    "/analytics.js",
+    cors(analytics_cors),
+    function (req: Request, res: Response) {
+      res.header("Content-Type", "text/javascript");
 
-    // in case user was already here, do not send it again.
-    // only the first hit is interesting.
-    dbg(
-      `/analytics.js GET analytics_cookie='${req.cookies[analytics_cookie_name]}'`
-    );
+      if (!req.cookies[STATISTICS_COOKIE_NAME]) {
+        // No statistics cookie is set, so we set one.
+        // We always set this despite any issues with parsing or
+        // or whether or not we are actually using the analytics.js
+        // script, since it's *also* useful to have this cookie set
+        // for other purposes, e.g., logging.
+        setStatisticsCookie(res);
+      }
 
-    if (!req.cookies[analytics_cookie_name]) {
-      // No analytics cookie is set, so we set one.
-      // We always set this despite any issues with parsing or
-      // or whether or not we are actually using the analytics.js
-      // script, since it's *also* useful to have this cookie set
-      // for other purposes, e.g., logging.
-      setAnalyticsCookie(res /* DNS */);
+      // The analytics cookie tracks referrals and related information. This is across domains.
+      // It is set in the analytics script, see below.
+      // If we already have an analytics cookie, we don't need to do anything.
+      // We're only interested in the first visit.
+      if (
+        !analytics_enabled ||
+        req.cookies[ANALYTICS_COOKIE_NAME] ||
+        dns_parsed.type !== ParseResultType.Listed
+      ) {
+        // cache for 6 hours -- max-age has unit seconds
+        res.header(
+          "Cache-Control",
+          `private, max-age=${6 * 60 * 60}, must-revalidate`
+        );
+        res.write("// NOOP");
+        res.end();
+        return;
+      }
+
+      // write response script
+      // this only runs once, hence no caching
+      res.header("Cache-Control", "no-cache, no-store");
+
+      const { domain, topLevelDomains } = dns_parsed;
+      const DOMAIN = `${domain}.${topLevelDomains.join(".")}`;
+      res.write(`var NAME = '${ANALYTICS_COOKIE_NAME}';\n`);
+      res.write(`var ID = '${uuid()}';\n`);
+      res.write(`var DOMAIN = '${DOMAIN}';\n`);
+      //  BASE_PATH
+      if (req.query.fqd === "false") {
+        res.write(`var PREFIX = '${base_path}';\n`);
+      } else {
+        const prefix = `//${DOMAIN}${base_path}`;
+        res.write(`var PREFIX = '${prefix}';\n\n`);
+      }
+      res.write(analytics_js);
+      return res.end();
     }
-
-    // also, don't write a script if the DNS is not valid
-    if (
-      req.cookies[analytics_cookie_name] ||
-      dns_parsed.type !== ParseResultType.Listed
-    ) {
-      // cache for 6 hours -- max-age has unit seconds
-      res.header(
-        "Cache-Control",
-        `private, max-age=${6 * 60 * 60}, must-revalidate`
-      );
-      res.write("// NOOP");
-      res.end();
-      return;
-    }
-
-    // write response script
-    // this only runs once, hence no caching
-    res.header("Cache-Control", "no-cache, no-store");
-
-    const DOMAIN = `${dns_parsed.domain}.${dns_parsed.topLevelDomains.join(
-      "."
-    )}`;
-    res.write(`var NAME = '${analytics_cookie_name}';\n`);
-    res.write(`var ID = '${uuid()}';\n`);
-    res.write(`var DOMAIN = '${DOMAIN}';\n`);
-    //  BASE_PATH
-    if (req.query.fqd === "false") {
-      res.write(`var PREFIX = '${base_path}';\n`);
-    } else {
-      const prefix = `//${DOMAIN}${base_path}`;
-      res.write(`var PREFIX = '${prefix}';\n\n`);
-    }
-    res.write(analytics_js);
-    return res.end();
-  });
+  );
 
   router.post("/analytics.js", cors(analytics_cors), function (req, res): void {
     // check if token is in the cookie (see above)
     // if not, ignore it
-    const token = req.cookies[analytics_cookie_name];
+    const token = req.cookies[ANALYTICS_COOKIE_NAME];
     dbg(`/analytics.js POST token='${token}'`);
     if (token) {
       // req.body is an object (json middlewhere somewhere?)
@@ -279,14 +281,18 @@ export async function initAnalytics(
 }
 
 // I'm not setting the domain, since it's making testing difficult.
-function setAnalyticsCookie(res /* DNS: string */): void {
+// But not setting the domain breaks the cookie for subdomains.
+function setStatisticsCookie(res: Response, DNS?: string): void {
   // set the cookie (TODO sign it?  that would be good so that
-  // users can fake a cookie.)
+  // users cannot fake a cookie.)
   const analytics_token = uuid();
-  res.cookie(analytics_cookie_name, analytics_token, {
+  const opts: CookieOptions = {
     path: "/",
     maxAge: ms("7 days"),
-    // httpOnly: true,
-    // domain: DNS,
-  });
+    httpOnly: true,
+  };
+  if (typeof DNS === "string") {
+    opts.domain = DNS;
+  }
+  res.cookie(STATISTICS_COOKIE_NAME, analytics_token, opts);
 }

@@ -87,7 +87,8 @@ export type SiteSettingsExtrasKeys =
   | "github_project_id"
   | "github_username"
   | "github_token"
-  | "prometheus_metrics";
+  | "prometheus_metrics"
+  | "analytics";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -334,6 +335,13 @@ export const EXTRAS: SettingsExtras = {
     name: "Prometheus Metrics",
     desc: "Make [Prometheus metrics](https://prometheus.io/) available at `/metrics`. (Wait one minute after changing this setting for it to take effect.)",
     default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  analytics: {
+    name: "Analytics",
+    desc: "Record anonymous statistics about page hits and referrals. Stored data is subject to the PII retention period.",
+    default: "yes",
     valid: only_booleans,
     to_val: to_bool,
   },

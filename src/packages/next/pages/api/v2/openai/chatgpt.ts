@@ -1,7 +1,7 @@
 import { evaluate } from "@cocalc/server/openai/chatgpt";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
-import { analytics_cookie_name } from "@cocalc/util/misc";
+import { STATISTICS_COOKIE_NAME } from "@cocalc/util/misc";
 
 export default async function handle(req, res) {
   try {
@@ -16,7 +16,7 @@ export default async function handle(req, res) {
 async function doIt(req) {
   const { input, system, history } = getParams(req);
   const account_id = await getAccountId(req);
-  const analytics_cookie = req.cookies[analytics_cookie_name];
+  const analytics_cookie = req.cookies[STATISTICS_COOKIE_NAME];
   return {
     output: await evaluate({
       account_id,

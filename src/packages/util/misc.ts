@@ -2176,8 +2176,8 @@ export function sanitize_html_attributes($, node): void {
   });
 }
 
-// cocalc analytics cookie name
-export const analytics_cookie_name = "CC_ANA";
+export const ANALYTICS_COOKIE_NAME = "CC_ANA"; // used for tracking referrals, across domains
+export const STATISTICS_COOKIE_NAME = "CC_STAT"; // used for usage statistics, not across domains
 
 // convert a jupyter kernel language (i.e. "python" or "r", usually short and lowercase)
 // to a canonical name.
