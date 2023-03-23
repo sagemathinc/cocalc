@@ -127,3 +127,13 @@ describe("json patch test", () => {
     expect(j([{ op: "replacce", path: "/biscuits/0/name" }])).toBe(false);
   });
 });
+
+test("firstLetterUppercase", () => {
+  const s = misc.firstLetterUppercase;
+  expect(s(undefined)).toBe("");
+  expect(s("")).toBe("");
+  expect(s("a")).toBe("A");
+  expect(s("abc")).toBe("Abc");
+  expect(s("ABC")).toBe("ABC");
+  expect(s("aBC")).toBe("ABC");
+});
