@@ -290,7 +290,7 @@ export function getUserName(userMap, accountId: string): string {
   if (userMap == null) return "Unknown";
   const account = userMap.get(accountId);
   if (account == null) return "Unknown";
-  return account.get("firstName", "") + " " + account.get("lastName", "");
+  return account.get("first_name", "") + " " + account.get("last_name", "");
 }
 
 function NotShowing({ num, search }) {

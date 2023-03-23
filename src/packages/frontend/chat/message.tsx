@@ -36,6 +36,8 @@ const MARKDOWN_STYLE = undefined;
 
 const BORDER = "2px solid #ccc";
 
+const SHOW_EDIT_BUTTON_MS = 45000;
+
 const REPLY_STYLE = {
   marginLeft: "75px",
   marginRight: "15px",
@@ -171,7 +173,12 @@ export default function Message(props: Props) {
       const edit = "Last edit ";
       const name = ` by ${editor_name}`;
       return (
-        <div style={{ marginTop: "2px" }}>
+        <div
+          style={{
+            marginBottom: "2px",
+            fontSize: "14px" /* matches Reply button */,
+          }}
+        >
           {edit}
           <TimeAgo
             date={new Date(props.message.get("history").first()?.get("date"))}
@@ -181,7 +188,7 @@ export default function Message(props: Props) {
       );
     }
     return (
-      <div style={{ marginTop: "2px" }}>
+      <div style={{ marginTop: "5px" }}>
         {text}
         {is_editing ? (
           <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
@@ -312,23 +319,27 @@ export default function Message(props: Props) {
           )}
           {isEditing && renderEditMessage()}
           {!isEditing && (
-            <div style={{ display: "flex" }}>
+            <div style={{ display: "flex", alignItems: "flex-end" }}>
               <div>
-                {/* <Tooltip title="Edit this message">
-                  <Button
-                    disabled={replying}
-                    style={{
-                      color: is_viewers_message ? "white" : "#555",
-                    }}
-                    type="text"
-                    size="small"
-                    onClick={() =>
-                      props.actions.set_editing(props.message, true)
-                    }
-                  >
-                    <Icon name="pencil" /> Edit
-                  </Button>
-                </Tooltip>*/}
+                {new Date().valueOf() -
+                  new Date(props.message.get("date")).valueOf() <
+                  SHOW_EDIT_BUTTON_MS && (
+                  <Tooltip title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.">
+                    <Button
+                      disabled={replying}
+                      style={{
+                        color: is_viewers_message ? "white" : "#555",
+                      }}
+                      type="text"
+                      size="small"
+                      onClick={() =>
+                        props.actions?.set_editing(props.message, true)
+                      }
+                    >
+                      <Icon name="pencil" /> Edit
+                    </Button>
+                  </Tooltip>
+                )}
                 {!props.message.get("reply_to") &&
                   props.allowReply &&
                   !replying && (
@@ -435,7 +446,7 @@ export default function Message(props: Props) {
             edited_message_ref.current = value;
           }}
         />
-        <div style={{ margin: "5px 0" }}>
+        <div style={{ marginTop: "10px" }}>
           <Button
             type="primary"
             style={{ marginRight: "5px" }}
