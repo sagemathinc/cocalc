@@ -137,3 +137,22 @@ test("firstLetterUppercase", () => {
   expect(s("ABC")).toBe("ABC");
   expect(s("aBC")).toBe("ABC");
 });
+
+test("sanitizeObject", () => {
+  const o1 = {
+    a: { foo: { bar: { baz: 123 } } },
+    b: 2,
+    c: {
+      foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo:
+        "val",
+    },
+  };
+  const o2 = {
+    a: { foo: { error: "recursion limit" } },
+    b: 2,
+    c: {
+      foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofo: "val",
+    },
+  };
+  expect(misc.sanitizeObject(o1)).toEqual(o2);
+});

@@ -3,28 +3,29 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { join } from "path";
-import ms from "ms";
+import cors from "cors"; // express-js cors plugin:
+import { json, Router } from "express";
 import { isEqual } from "lodash";
-import { Router, json } from "express";
+import ms from "ms";
+import * as fs from "node:fs";
+import {
+  fromUrl,
+  parseDomain,
+  ParseResult,
+  ParseResultType,
+} from "parse-domain";
+import { join } from "path";
+const UglifyJS = require("uglify-js");
+
+import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
+import { get_server_settings } from "@cocalc/database/postgres/server-settings";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import {
   analytics_cookie_name,
   is_valid_uuid_string,
+  sanitizeObject,
   uuid,
 } from "@cocalc/util/misc";
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { get_server_settings } from "@cocalc/database/postgres/server-settings";
-import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
-import * as fs from "fs";
-const UglifyJS = require("uglify-js");
-// express-js cors plugin:
-import cors from "cors";
-import {
-  parseDomain,
-  fromUrl,
-  ParseResultType,
-  ParseResult,
-} from "parse-domain";
 import { getLogger } from "./logger";
 
 // Minifying analytics-script.js.  Note
@@ -34,43 +35,18 @@ import { getLogger } from "./logger";
 const result = UglifyJS.minify(
   fs.readFileSync(join(__dirname, "analytics-script.js")).toString()
 );
+
 if (result.error) {
   throw Error(`Error minifying analytics-script.js -- ${result.error}`);
 }
+
 export const analytics_js =
   "if (window.exports === undefined) { var exports={}; } \n" + result.code;
 
-function create_log(name) {
-  return getLogger(`analytics.${name}`).debug;
-}
+const L = getLogger("analytics");
 
-/*
-// base64 encoded PNG (white), 1x1 pixels
-const _PNG_DATA =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
-const PNG_1x1 = Buffer.from(_PNG_DATA, "base64");
-*/
-
-function sanitize(obj: object, recursive = 0): any {
-  if (recursive >= 2) return { error: "recursion limit" };
-  const ret: any = {};
-  let cnt = 0;
-  for (const key of Object.keys(obj)) {
-    cnt += 1;
-    if (cnt > 20) break;
-    const key_san = key.slice(0, 50);
-    let val_san = obj[key];
-    if (val_san == null) continue;
-    if (typeof val_san === "object") {
-      val_san = sanitize(val_san, recursive + 1);
-    } else if (typeof val_san === "string") {
-      val_san = val_san.slice(0, 2000);
-    } else {
-      // do nothing
-    }
-    ret[key_san] = val_san;
-  }
-  return ret;
+function createLog(name) {
+  return L.extend(name).debug;
 }
 
 // record analytics data
@@ -84,10 +60,10 @@ function recordAnalyticsData(
 ): void {
   if (payload == null) return;
   if (!is_valid_uuid_string(token)) return;
-  const dbg = create_log("record");
+  const dbg = createLog("record");
   dbg({ token, payload });
   // sanitize data (limits size and number of characters)
-  const rec_data = sanitize(payload);
+  const rec_data = sanitizeObject(payload);
   dbg("sanitized data", rec_data);
   const expire = pii_retention_to_future(pii_retention);
 
@@ -186,7 +162,7 @@ export async function initAnalytics(
   router: Router,
   database: PostgreSQL
 ): Promise<void> {
-  const dbg = create_log("analytics_js/cors");
+  const dbg = createLog("analytics_js/cors");
 
   // we only get the DNS once at startup – i.e. hub restart required upon changing DNS!
   const settings = await get_server_settings(database);
@@ -282,23 +258,6 @@ export async function initAnalytics(
     res.write(analytics_js);
     return res.end();
   });
-
-  /*
-  // tracking image: this is a 100% experimental idea and not used
-  router.get(
-    "/analytics.js/track.png",
-    cors(analytics_cors),
-    function (req, res) {
-      // in case user was already here, do not set a cookie
-      if (!req.cookies[analytics_cookie_name]) {
-        setAnalyticsCookie(res); // ,DNS);
-      }
-      res.header("Content-Type", "image/png");
-      res.header("Content-Length", `${PNG_1x1.length}`);
-      return res.end(PNG_1x1);
-    }
-  );
-  */
 
   router.post("/analytics.js", cors(analytics_cors), function (req, res): void {
     // check if token is in the cookie (see above)

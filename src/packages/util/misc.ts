@@ -2383,3 +2383,30 @@ export function firstLetterUppercase(str: string | undefined) {
   if (str == null) return "";
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
+/**
+ * This is a special function to sanitize objects.
+ * It prevents deep nesting and limits the size of strings.
+ * It's used for recording analytics data, which should not cause any problems when storing it.
+ */
+export function sanitizeObject(obj: object, recursive = 2): any {
+  if (recursive <= 0) return { error: "recursion limit" };
+  const ret: any = {};
+  let cnt = 0;
+  for (const key of Object.keys(obj)) {
+    cnt += 1;
+    if (cnt > 10) break;
+    const key_san = key.slice(0, 50);
+    let val_san = obj[key];
+    if (val_san == null) continue;
+    if (typeof val_san === "object") {
+      val_san = sanitizeObject(val_san, recursive - 1);
+    } else if (typeof val_san === "string") {
+      val_san = val_san.slice(0, 1000);
+    } else {
+      // do nothing
+    }
+    ret[key_san] = val_san;
+  }
+  return ret;
+}
