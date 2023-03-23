@@ -14,7 +14,7 @@
 //
 // In benchmarks, this seems to easily be 10x faster than creating an actual CodeMirror editor.
 
-import React from "react";
+import React, { ReactNode } from "react";
 import CodeMirror from "@cocalc/frontend/codemirror/static";
 
 const BLURRED_STYLE: React.CSSProperties = {
@@ -46,6 +46,7 @@ interface Props {
   set_click_coords?: (pos: { left: number; top: number }) => void;
   style?: React.CSSProperties; // optional style that is merged into BLURRED_STYLE
   no_border?: boolean; // if given, do not draw border around whole thing
+  addonAfter?: ReactNode;
 }
 
 // This is used heavily by the share server.
@@ -178,5 +179,16 @@ export function CodeMirrorStatic(props: Props) {
   if (!props.no_border) {
     divStyle.border = "1px solid rgb(207, 207, 207)";
   }
-  return <div style={divStyle}>{render_code()}</div>;
+  return (
+    <div style={divStyle}>
+      {props.addonAfter && (
+        <div style={{ float: "right", position: "relative" }}>
+          <div style={{ position: "absolute", right: 0, top: 0 }}>
+            {props.addonAfter}
+          </div>
+        </div>
+      )}
+      {render_code()}
+    </div>
+  );
 }

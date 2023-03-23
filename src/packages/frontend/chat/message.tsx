@@ -21,16 +21,30 @@ import {
   useState,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Space, TimeAgo, Tip } from "@cocalc/frontend/components";
-import { Button } from "antd";
-import { Row, Col } from "antd";
-import { get_user_name } from "./chat-log";
+import { Button, Tooltip, Row, Col } from "antd";
+import { getUserName } from "./chat-log";
 import { HistoryTitle, HistoryFooter, History } from "./history";
 import ChatInput from "./input";
 import { ChatActions } from "./actions";
 import { Time } from "./time";
 import { Name } from "./name";
 
-const BLANK_COLUMN = <Col key={"blankcolumn"} xs={2}></Col>;
+const BLANK_COLUMN = <Col key={"blankcolumn"} xs={1}></Col>;
+
+const MARKDOWN_STYLE = undefined;
+// const MARKDOWN_STYLE = { maxHeight: "300px", overflowY: "auto" };
+
+const BORDER = "2px solid #ccc";
+
+const SHOW_EDIT_BUTTON_MS = 45000;
+
+const REPLY_STYLE = {
+  marginLeft: "75px",
+  marginRight: "15px",
+  borderLeft: BORDER,
+  borderRight: BORDER,
+  paddingLeft: "15px",
+} as const;
 
 interface Props {
   actions?: ChatActions;
@@ -50,10 +64,14 @@ interface Props {
 
   set_scroll?: Function;
   scroll_into_view: () => void; // call to scroll this message into view
+
+  // if true, include a reply button - this should only be for messages
+  // that don't have an existing reply to them already.
+  allowReply?: boolean;
 }
 
 export default function Message(props: Props) {
-  const [edited_message, set_edited_message] = useState(
+  const [edited_message, set_edited_message] = useState<string>(
     newest_content(props.message)
   );
   // We have to use a ref because of trickiness involving
@@ -85,29 +103,17 @@ export default function Message(props: Props) {
 
   const submitMentionsRef = useRef<Function>();
 
-  function renderToggleHistory() {
-    const verb = show_history ? "Hide" : "Show";
-    return (
-      <Button
-        style={{ marginLeft: "5px" }}
-        type="text"
-        size="small"
-        onClick={() => toggle_history_chat(!show_history)}
-      >
-        <Tip
-          title="Message History"
-          tip={`${verb} history of editing of this message.  Any collaborator can edit any message.`}
-        >
-          <Icon name="history" /> {verb} History
-        </Tip>
-      </Button>
-    );
-  }
+  const [replying, setReplying] = useState<boolean>(false);
+  const replyMessageRef = useRef<string>("");
+  const replyMentionsRef = useRef<Function>();
 
-  function toggle_history_chat(show: boolean) {
-    set_show_history(show);
-    props.set_scroll?.();
-  }
+  const is_viewers_message = sender_is_viewer(props.account_id, props.message);
+  const verb = show_history ? "Hide" : "Show";
+
+  const isChatGPTThread = useMemo(
+    () => props.actions?.isChatGPTThread(props.message.get("date")),
+    [props.message]
+  );
 
   function editing_status(is_editing: boolean) {
     let text;
@@ -167,28 +173,33 @@ export default function Message(props: Props) {
       const edit = "Last edit ";
       const name = ` by ${editor_name}`;
       return (
-        <span className="small">
+        <div
+          style={{
+            marginBottom: "2px",
+            fontSize: "14px" /* matches Reply button */,
+          }}
+        >
           {edit}
           <TimeAgo
             date={new Date(props.message.get("history").first()?.get("date"))}
           />
           {name}
-        </span>
+        </div>
       );
     }
     return (
-      <span className="small">
+      <div style={{ marginTop: "5px" }}>
         {text}
         {is_editing ? (
           <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
             <Button onClick={on_cancel}>Cancel</Button>
             <Space />
-            <Button onClick={on_send} type="primary">
+            <Button onClick={saveEditedMessage} type="primary">
               Save (shift+enter)
             </Button>
           </span>
         ) : undefined}
-      </span>
+      </div>
     );
   }
 
@@ -211,14 +222,16 @@ export default function Message(props: Props) {
     if (!props.is_prev_sender) {
       style.marginTop = "22px";
     }
-    if (sender_is_viewer(props.account_id, props.message)) {
-      style.marginLeft = "15px";
-    } else {
-      style.marginRight = "15px";
+    if (!props.message.get("reply_to")) {
+      if (sender_is_viewer(props.account_id, props.message)) {
+        style.marginLeft = "15px";
+      } else {
+        style.marginRight = "15px";
+      }
     }
 
     return (
-      <Col key={0} xs={4}>
+      <Col key={0} xs={2}>
         <div style={style}>
           {sender_id != null && props.show_avatar ? (
             <Avatar size={40} account_id={sender_id} />
@@ -231,11 +244,6 @@ export default function Message(props: Props) {
   function content_column() {
     let borderRadius, marginBottom, marginTop: any;
     let value = newest_content(props.message);
-
-    const is_viewers_message = sender_is_viewer(
-      props.account_id,
-      props.message
-    );
 
     const { background, color, lighten, message_class } = message_colors(
       props.account_id,
@@ -274,7 +282,7 @@ export default function Message(props: Props) {
     };
 
     return (
-      <Col key={1} xs={18}>
+      <Col key={1} xs={21}>
         {!props.is_prev_sender &&
         !is_viewers_message &&
         props.message.get("sender_id") ? (
@@ -294,6 +302,7 @@ export default function Message(props: Props) {
           )}
           {!isEditing && (
             <MostlyStaticMarkdown
+              style={MARKDOWN_STYLE}
               value={value}
               className={message_class}
               selectedHashtags={props.selectedHashtags}
@@ -309,15 +318,72 @@ export default function Message(props: Props) {
             />
           )}
           {isEditing && renderEditMessage()}
-          <span>
-            {props.message.get("history").size > 1 ||
-            props.message.get("editing").size > 0
-              ? editing_status(isEditing)
-              : undefined}
-            {props.message.get("history").size > 1
-              ? renderToggleHistory()
-              : undefined}
-          </span>
+          {!isEditing && (
+            <div style={{ display: "flex", alignItems: "flex-end" }}>
+              <div>
+                {new Date().valueOf() -
+                  new Date(props.message.get("date")).valueOf() <
+                  SHOW_EDIT_BUTTON_MS && (
+                  <Tooltip title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.">
+                    <Button
+                      disabled={replying}
+                      style={{
+                        color: is_viewers_message ? "white" : "#555",
+                      }}
+                      type="text"
+                      size="small"
+                      onClick={() =>
+                        props.actions?.set_editing(props.message, true)
+                      }
+                    >
+                      <Icon name="pencil" /> Edit
+                    </Button>
+                  </Tooltip>
+                )}
+                {!props.message.get("reply_to") &&
+                  props.allowReply &&
+                  !replying && (
+                    <Tooltip title="Write a reply to this message">
+                      <Button
+                        disabled={replying}
+                        style={{
+                          color: is_viewers_message ? "white" : "#555",
+                        }}
+                        type="text"
+                        size="small"
+                        onClick={() => setReplying(true)}
+                      >
+                        <Icon name="reply" /> Reply
+                      </Button>
+                    </Tooltip>
+                  )}
+              </div>
+              {(props.message.get("history").size > 1 ||
+                props.message.get("editing").size > 0) &&
+                editing_status(isEditing)}
+              {props.message.get("history").size > 1 && (
+                <Button
+                  style={{
+                    marginLeft: "5px",
+                    color: is_viewers_message ? "white" : "#555",
+                  }}
+                  type="text"
+                  size="small"
+                  onClick={() => {
+                    set_show_history(!show_history);
+                    props.set_scroll?.();
+                  }}
+                >
+                  <Tip
+                    title="Message History"
+                    tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
+                  >
+                    <Icon name="history" /> {verb} History
+                  </Tip>
+                </Button>
+              )}
+            </div>
+          )}
         </div>
         {show_history && (
           <div>
@@ -329,11 +395,12 @@ export default function Message(props: Props) {
             <HistoryFooter />
           </div>
         )}
+        {replying && renderComposeReply()}
       </Col>
     );
   }
 
-  function on_send(): void {
+  function saveEditedMessage(): void {
     if (props.actions == null) return;
     const mesg = submitMentionsRef.current?.() ?? edited_message_ref.current;
     const value = newest_content(props.message);
@@ -363,45 +430,171 @@ export default function Message(props: Props) {
       return;
     }
     return (
-      <ChatInput
-        cacheId={`${props.path}${props.project_id}${props.message
-          ?.get("date")
-          ?.valueOf()}`}
-        input={newest_content(props.message)}
-        submitMentionsRef={submitMentionsRef}
-        on_send={on_send}
-        height={"auto"}
-        syncdb={props.actions.syncdb}
-        date={props.message?.get("date")?.valueOf() ?? 0}
-        onChange={(value) => {
-          edited_message_ref.current = value;
-        }}
-      />
+      <div>
+        <ChatInput
+          autoFocus
+          cacheId={`${props.path}${props.project_id}${props.message
+            ?.get("date")
+            ?.valueOf()}`}
+          input={newest_content(props.message)}
+          submitMentionsRef={submitMentionsRef}
+          on_send={saveEditedMessage}
+          height={"auto"}
+          syncdb={props.actions.syncdb}
+          date={props.message?.get("date")?.valueOf() ?? 0}
+          onChange={(value) => {
+            edited_message_ref.current = value;
+          }}
+        />
+        <div style={{ marginTop: "10px" }}>
+          <Button
+            type="primary"
+            style={{ marginRight: "5px" }}
+            onClick={saveEditedMessage}
+          >
+            <Icon name="save" /> Save Edited Message
+          </Button>
+          <Button
+            onClick={() => {
+              props.actions?.set_editing(props.message, false);
+              props.actions?.delete_draft(props.message.get("date")?.valueOf());
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
     );
+  }
+
+  function sendReply() {
+    if (props.actions == null) return;
+    const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
+    props.actions.send_reply(props.message, reply);
+    setReplying(false);
+  }
+
+  function renderComposeReply() {
+    if (
+      props.project_id == null ||
+      props.path == null ||
+      props.actions?.syncdb == null
+    ) {
+      // should never get into this position
+      // when null.
+      return;
+    }
+    return (
+      <div>
+        <ChatInput
+          autoFocus
+          style={{
+            height: "auto" /* for some reason the default 100% breaks things */,
+          }}
+          cacheId={`${props.path}${props.project_id}${props.message
+            ?.get("date")
+            ?.valueOf()}-reply`}
+          input={""}
+          submitMentionsRef={replyMentionsRef}
+          on_send={sendReply}
+          height={"auto"}
+          syncdb={props.actions.syncdb}
+          date={-(props.message?.get("date")?.valueOf() ?? 0)}
+          onChange={(value) => {
+            replyMessageRef.current = value;
+          }}
+          placeholder={"Reply to the above message..."}
+        />
+        <div style={{ margin: "5px 0" }}>
+          <Button
+            onClick={sendReply}
+            type="primary"
+            style={{ marginRight: "5px" }}
+          >
+            <Icon name="paper-plane" /> Send Reply
+          </Button>
+          <Button
+            onClick={() => {
+              setReplying(false);
+            }}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  function getStyle() {
+    if (!props.message.get("reply_to")) return undefined;
+    if (props.allowReply) {
+      return {
+        ...REPLY_STYLE,
+        borderBottom: BORDER,
+        borderBottomLeftRadius: "10px",
+        borderBottomRightRadius: "10px",
+        marginBottom: "10px",
+      };
+    }
+    return REPLY_STYLE;
   }
 
   let cols;
   if (props.include_avatar_col) {
     cols = [avatar_column(), content_column(), BLANK_COLUMN];
     // mirror right-left for sender's view
-    if (sender_is_viewer(props.account_id, props.message)) {
+    if (
+      !props.message.get("reply_to") &&
+      sender_is_viewer(props.account_id, props.message)
+    ) {
       cols = cols.reverse();
     }
   } else {
     cols = [content_column(), BLANK_COLUMN];
     // mirror right-left for sender's view
-    if (sender_is_viewer(props.account_id, props.message)) {
+    if (
+      !props.message.get("reply_to") &&
+      sender_is_viewer(props.account_id, props.message)
+    ) {
       cols = cols.reverse();
     }
   }
-  return <Row>{cols}</Row>;
+
+  return (
+    <Row style={getStyle()}>
+      {cols}
+      {!replying && props.message.get("reply_to") && props.allowReply && (
+        <div
+          style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}
+        >
+          <Tooltip title="Reply to ChatGPT, sending the entire thread as context.">
+            <Button
+              type="text"
+              onClick={() => setReplying(true)}
+              style={{ color: "#666" }}
+            >
+              <Icon name="reply" /> Reply
+              {isChatGPTThread ? " to ChatGPT" : ""}
+              {isChatGPTThread && (
+                <Avatar
+                  account_id="chatgpt"
+                  size={16}
+                  style={{ marginLeft: "10px", marginBottom: "2.5px" }}
+                />
+              )}
+            </Button>
+          </Tooltip>
+        </div>
+      )}
+    </Row>
+  );
 }
 
 // Used for exporting chat to markdown file
 export function message_to_markdown(message): string {
   let value = newest_content(message);
   const user_map = redux.getStore("users").get("user_map");
-  const sender = get_user_name(user_map, message.get("sender_id"));
+  const sender = getUserName(user_map, message.get("sender_id"));
   const date = message.get("date").toString();
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
 }

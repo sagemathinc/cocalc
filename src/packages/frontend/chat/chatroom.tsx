@@ -5,6 +5,7 @@
 
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
+import { Button as AntdButton } from "antd";
 
 import {
   Button,
@@ -56,7 +57,7 @@ const GRID_STYLE: React.CSSProperties = {
 } as const;
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
-  margin: "0",
+  margin: "5px 0",
   padding: "0",
   background: "white",
   flex: "1 0 auto",
@@ -255,7 +256,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_search() {
     return (
       <SearchInput
-        placeholder={"Search messages (use /re/ for regexp)..."}
+        placeholder={"Filter messages (use /re/ for regexp)..."}
         default_value={search}
         on_change={debounce(
           (value) => actions.setState({ search: value }),
@@ -312,7 +313,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function on_send(): void {
-    const value = submitMentionsRef.current?.();
+    const value = submitMentionsRef.current?.({ chatgpt: true });
     scrollToBottomRef.current?.(true);
     actions.send_chat(value);
   }
@@ -360,23 +361,22 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             }}
           >
             <div style={{ flex: 1 }} />
-            <Button
+            <AntdButton
               onClick={on_send_button_click}
               disabled={input.trim() === "" || is_uploading}
-              bsStyle="success"
+              type="primary"
               style={{ height: "47.5px" }}
             >
-              Send
-            </Button>
+              <Icon name="paper-plane" /> Send
+            </AntdButton>
             <div style={{ height: "5px" }} />
-            <Button
+            <AntdButton
               onClick={() => actions.set_is_preview(true)}
-              bsStyle="info"
               style={{ height: "47.5px" }}
               disabled={is_preview}
             >
               Preview
-            </Button>
+            </AntdButton>
           </div>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { redux, useActions, useRedux, useTypedRedux } from "../app-framework";
 import { IS_MOBILE } from "../feature";
 import { user_activity } from "../tracker";
 import { A, Icon, Loading, SearchInput } from "../components";
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 import { ProjectUsers } from "../projects/project-users";
 import { AddCollaborators } from "../collaborators";
 import { markChatAsReadIfUnseen, INPUT_HEIGHT } from "./utils";
@@ -107,14 +107,19 @@ export default function SideChat({ project_id, path, style }: Props) {
         </div>
       )}
       <SearchInput
-        placeholder={"Search messages (use /re/ for regexp)..."}
+        placeholder={"Filter messages (use /re/ for regexp)..."}
         default_value={search}
         on_change={debounce((search) => actions.setState({ search }), 500)}
         style={{ margin: 0 }}
       />
       <div
         className="smc-vfill"
-        style={{ backgroundColor: "#fff", paddingLeft: "15px", flex: 1 }}
+        style={{
+          backgroundColor: "#fff",
+          paddingLeft: "15px",
+          flex: 1,
+          margin: "5px 0",
+        }}
       >
         <ChatLog
           project_id={project_id}
@@ -123,49 +128,53 @@ export default function SideChat({ project_id, path, style }: Props) {
           show_heads={false}
         />
       </div>
-      <div
-        style={{
-          marginTop: "auto",
-          padding: "5px",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div style={{ display: "flex", flex: 1 }}>
-          <ChatInput
-            cacheId={`${path}${project_id}-new`}
-            input={input}
-            on_send={() => {
-              sendChat();
-              user_activity("side_chat", "send_chat", "keyboard");
-            }}
-            height={INPUT_HEIGHT}
-            onChange={(value) => actions.set_input(value)}
-            submitMentionsRef={submitMentionsRef}
-            syncdb={actions.syncdb}
-            date={0}
-            editBarStyle={{ overflow: "none" }}
-          />
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              width: INPUT_HEIGHT /* yes, to make it square */,
-            }}
-          >
+
+      <div>
+        {input.trim() && (
+          <div>
+            <Tooltip title="Send message (shift+enter)">
+              <Button
+                style={{ margin: "5px 0 5px 5px" }}
+                onClick={() => {
+                  sendChat();
+                  user_activity("side_chat", "send_chat", "click");
+                }}
+                disabled={!input?.trim() || is_uploading}
+                type="primary"
+              >
+                <Icon name="paper-plane" />
+                Send Message (shift+enter)
+              </Button>
+            </Tooltip>
+            {/*
+            This seems hard to implement with our current  model and
+            below doesn't work
             <Button
-              style={{ flex: 1, marginLeft: "5px" }}
+              style={{ marginLeft: "5px" }}
               onClick={() => {
-                sendChat();
-                user_activity("side_chat", "send_chat", "click");
+                actions.delete_draft(0);
+                actions.set_input('');
               }}
-              disabled={!input?.trim() || is_uploading}
-              type="primary"
             >
-              <Icon name="chevron-circle-right" />
-            </Button>
+              Cancel
+            </Button> */}
           </div>
-        </div>
+        )}
+        <ChatInput
+          cacheId={`${path}${project_id}-new`}
+          input={input}
+          on_send={() => {
+            sendChat();
+            user_activity("side_chat", "send_chat", "keyboard");
+          }}
+          style={{ height: INPUT_HEIGHT }}
+          height={INPUT_HEIGHT}
+          onChange={(value) => actions.set_input(value)}
+          submitMentionsRef={submitMentionsRef}
+          syncdb={actions.syncdb}
+          date={0}
+          editBarStyle={{ overflow: "none" }}
+        />
       </div>
     </div>
   );

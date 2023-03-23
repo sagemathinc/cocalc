@@ -2,16 +2,16 @@ import { Button, Tooltip } from "antd";
 import { formatAction } from "../format";
 import { Icon } from "@cocalc/frontend/components/icon";
 
-export default function LinkButton({ editor }) {
+export default function CodeButton({ editor }) {
   return (
-    <Tooltip title="Create a link from the selected text, or insert a new link.">
+    <Tooltip title="Convert selection to code block">
       <Button
         size="small"
         onClick={() => {
-          formatAction(editor, "link", []);
+          formatAction(editor, "format_code", []);
         }}
       >
-        <Icon name="link" />
+        <Icon name="terminal" />
       </Button>
     </Tooltip>
   );

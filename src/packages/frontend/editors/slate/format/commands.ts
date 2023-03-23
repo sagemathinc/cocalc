@@ -26,6 +26,7 @@ import { insertSpecialChar } from "./insert-special-char";
 import { emptyParagraph } from "../padding";
 import { SlateEditor } from "../editable-markdown";
 import { getMarks } from "../edit-bar/marks";
+import { delay } from "awaiting";
 
 // currentWord:
 //
@@ -317,8 +318,13 @@ export function restoreSelectionAndFocus(editor: SlateEditor): void {
   setSelectionAndFocus(editor, lastSelection);
 }
 
-export function formatAction(editor: SlateEditor, cmd: string, args): void {
-  restoreSelectionAndFocus(editor);
+export async function formatAction(editor: SlateEditor, cmd: string, args) {
+  const isFocused = ReactEditor.isFocused(editor);
+  if (!isFocused) {
+    ReactEditor.focus(editor);
+    restoreSelectionAndFocus(editor);
+    await delay(1);
+  }
   try {
     if (
       cmd == "bold" ||
@@ -407,7 +413,10 @@ export function formatAction(editor: SlateEditor, cmd: string, args): void {
     }
 
     if (cmd == "format_code") {
-      insertMarkdown(editor, "\n```\n```\n");
+      insertMarkdown(
+        editor,
+        "\n```\n" + selectionToText(editor).trim() + "\n```\n"
+      );
       return;
     }
 

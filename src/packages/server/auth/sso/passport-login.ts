@@ -126,7 +126,7 @@ export class PassportLogin {
       locals.cookies.set(API_KEY_COOKIE_NAME);
     }
 
-    sanitizeProfile(this.opts);
+    sanitizeProfile(this.opts, logger.extend("sanitizeProfile").debug);
 
     // L({ locals, opts }); // DANGER -- do not uncomment except for debugging due to SECURITY
 

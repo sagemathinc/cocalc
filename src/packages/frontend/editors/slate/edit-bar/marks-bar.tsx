@@ -15,6 +15,7 @@ import FontFamily from "./font-family";
 import FontSize from "./font-size";
 import Heading from "./heading";
 import Insert from "./insert";
+import CodeButton from "./code";
 import LinkButton from "./link";
 import { Marks } from "./marks";
 
@@ -90,6 +91,7 @@ export const MarksBar: React.FC<MarksBarProps> = (props: MarksBarProps) => {
       />
     );
   }
+  v.push(<CodeButton key={"code2"} editor={editor} />);
   v.push(<LinkButton key={"link"} editor={editor} />);
   v.push(<FontSize key={"size"} editor={editor} size={getSizeMark(marks)} />);
   v.push(<Heading key="heading" editor={editor} />);

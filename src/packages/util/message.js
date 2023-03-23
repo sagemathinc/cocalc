@@ -3051,7 +3051,8 @@ API(
     event: "chatgpt",
     id: undefined,
     text: required, // text of the question
-    system: undefined, // extra system context, e.g,. "using cocalc".
+    system: undefined, // optional (highly recommended!) extra system context, e.g,. "using cocalc".
+    history: undefined, // optional history of this conversation in chatgpt format, so { role: "assistant" | "user" | "system"; content: string }[];
     project_id: undefined,
     path: undefined,
   })
