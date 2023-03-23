@@ -522,10 +522,11 @@ export class PassportManager {
 
   private getStrategyInstance(args: StrategyInstanceOpts) {
     const { type, opts, userinfoURL, PassportStrategyConstructor } = args;
-    const L1 = logger.extend("get_strategy_instance");
+    const L1 = logger.extend("getStrategyInstance");
     const L2 = L1.extend("userProfile").debug;
 
     const verify = this.getVerify(type);
+    L1.silly({ type, opts, userinfoURL });
     const strategy_instance = new PassportStrategyConstructor(opts, verify);
 
     // for OAuth2, set the userinfoURL to get the profile
