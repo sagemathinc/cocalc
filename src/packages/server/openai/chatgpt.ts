@@ -6,21 +6,29 @@ import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { Configuration, OpenAIApi } from "openai";
 import { checkForAbuse } from "./abuse";
+import { get_server_settings } from "@cocalc/database/postgres/server-settings";
+import { db } from "@cocalc/database";
+import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 
 const log = getLogger("chatgpt");
 
-async function getApiKey(): Promise<string> {
+async function getConfig(): Promise<{
+  apiKey: string;
+  expire: Date | undefined;
+}> {
   log.debug("get API key");
-  const pool = getPool("medium");
-  const { rows } = await pool.query(
-    "SELECT value FROM server_settings WHERE name='openai_api_key'"
-  );
-  if (rows.length == 0 || !rows[0].value) {
+  const server_settings = await get_server_settings(db());
+  const { openai_api_key, pii_retention } = server_settings;
+
+  if (!openai_api_key) {
     log.debug("NO API key");
     throw Error("You must provide an OpenAI API Key.");
   }
   log.debug("got API key");
-  return rows[0].value;
+  return {
+    apiKey: openai_api_key,
+    expire: pii_retention_to_future(pii_retention),
+  };
 }
 
 interface ChatOptions {
@@ -51,9 +59,11 @@ export async function evaluate({
     project_id,
     path,
   });
-  const start = new Date();
+  const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie });
-  const configuration = new Configuration({ apiKey: await getApiKey() });
+  const { apiKey, expire } = await getConfig();
+
+  const configuration = new Configuration({ apiKey });
   const openai = new OpenAIApi(configuration);
   const messages: { role: "system" | "user" | "assistant"; content: string }[] =
     [];
@@ -75,7 +85,7 @@ export async function evaluate({
     completion.data.choices[0].message?.content ?? "No Output"
   ).trim();
   const total_tokens = completion.data.usage?.total_tokens;
-  const total_time_s = (new Date().valueOf() - start.valueOf()) / 1000;
+  const total_time_s = (Date.now() - start) / 1000;
   saveResponse({
     input,
     system,
@@ -87,6 +97,7 @@ export async function evaluate({
     path,
     total_tokens,
     total_time_s,
+    expire,
   });
   return output;
 }
@@ -105,11 +116,12 @@ async function saveResponse({
   path,
   total_tokens,
   total_time_s,
+  expire,
 }) {
   const pool = getPool();
   try {
     await pool.query(
-      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,total_time_s) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,total_time_s,expire) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
       [
         input,
         system,
@@ -121,6 +133,7 @@ async function saveResponse({
         path,
         total_tokens,
         total_time_s,
+        expire,
       ]
     );
   } catch (err) {
