@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "CoCalc: Collaborative Calculation",
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
     "make": "pnpm run build",
     "make-dev": "pnpm run build-dev",
     "build": "./workspaces.py install && ./workspaces.py build",
