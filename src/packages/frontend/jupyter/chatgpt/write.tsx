@@ -1,5 +1,5 @@
 /*
-Use ChatGPT to explain an error message and help the user fix it.
+Use ChatGPT to explain what the code in a cell does.
 */
 
 import { CSSProperties, useState } from "react";
@@ -7,7 +7,6 @@ import { Alert, Button, Tooltip } from "antd";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import type { JupyterActions } from "../browser-actions";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
-import Anser from "anser";
 
 interface Props {
   actions?;
@@ -15,8 +14,8 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function ChatGPTError({ actions, id, style }: Props) {
-  const [gettingHelp, setGettingHelp] = useState<boolean>(false);
+export default function ChatGPTWrite({ actions, id, style }: Props) {
+  const [gettingExplanation, setGettingExplanation] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   if (
     actions == null ||
@@ -25,28 +24,30 @@ export default function ChatGPTError({ actions, id, style }: Props) {
     return null;
   }
   return (
-    <div>
-      <Tooltip title="Ask ChatGPT to help me fix this error.">
+    <div style={style}>
+      <Tooltip title="Ask ChatGPT to write a first draft of this cell.">
         <Button
-          style={style}
-          disabled={gettingHelp}
+          style={{ color: "#666", fontSize: "10px" }}
+          size="small"
+          type="text"
+          disabled={gettingExplanation}
           onClick={async () => {
-            setGettingHelp(true);
+            setGettingExplanation(true);
             try {
-              await getHelp({ id, actions });
+              await getExplanation({ id, actions });
             } catch (err) {
               setError(`${err}`);
             } finally {
-              setGettingHelp(false);
+              setGettingExplanation(false);
             }
           }}
         >
           <OpenAIAvatar
-            size={16}
+            size={12}
             style={{ marginRight: "5px" }}
             innerStyle={{ top: "2.5px" }}
           />
-          Help me fix this...
+          Write...
         </Button>
       </Tooltip>
       {error && (
@@ -63,7 +64,9 @@ export default function ChatGPTError({ actions, id, style }: Props) {
   );
 }
 
-async function getHelp({
+//import { delay } from "awaiting";
+
+async function getExplanation({
   id,
   actions,
 }: {
@@ -75,18 +78,6 @@ async function getHelp({
     console.warn("getHelp -- no cell with id", id);
     return;
   }
-  let traceback = "";
-  for (const [_n, mesg] of cell.get("output") ?? []) {
-    if (mesg.has("traceback")) {
-      traceback += mesg.get("traceback").join("\n") + "\n";
-    }
-  }
-  traceback = traceback.trim();
-  if (!traceback) {
-    console.warn("getHelp -- no traceback");
-    return;
-  }
-  traceback = Anser.ansiToText(traceback);
   const kernel_info = actions.store.get("kernel_info");
   const chatActions = await getChatActions(
     actions.redux,
@@ -94,17 +85,12 @@ async function getHelp({
     actions.path
   );
   const language = kernel_info.get("language");
-  const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> I ran the following ${kernel_info.get(
+  const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> Explain the following ${kernel_info.get(
     "display_name"
-  )} code:
+  )} code in a Jupyter notebook:
 \`\`\`${language}
 ${cell.get("input")}
 \`\`\`
-and it produced the following error message:
-\`\`\`${language}
-${traceback}
-\`\`\`
-Help me fix my code.
 `;
   // scroll to bottom *after* the message gets sent.
   setTimeout(() => chatActions.scrollToBottom(), 100);

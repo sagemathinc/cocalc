@@ -37,7 +37,7 @@ const FOCUSED_STYLE: React.CSSProperties = {
   overflow: "hidden",
   border: "1px solid #cfcfcf",
   borderRadius: "2px",
-  background: "#f7f7f7",
+  padding: "15px",
   lineHeight: "1.21429em",
 } as const;
 
