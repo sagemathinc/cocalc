@@ -3,15 +3,13 @@ Use ChatGPT to explain an error message and help the user fix it.
 */
 
 import { CSSProperties, useState } from "react";
-import { Button } from "antd";
-//import { Icon } from "@cocalc/frontend/components/icon";
-//      <Icon name="robot" style={{ color: "rgb(16, 163, 127)" }} />
-
+import { Alert, Button } from "antd";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import type { JupyterActions } from "../browser-actions";
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
 import { meta_file } from "@cocalc/util/misc";
 import Anser from "anser";
+import { delay } from "awaiting";
 
 interface Props {
   actions?;
@@ -21,6 +19,7 @@ interface Props {
 
 export default function ChatGPTError({ actions, id, style }: Props) {
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
   if (
     actions == null ||
     !actions.redux?.getStore("customize").get("openai_enabled")
@@ -28,25 +27,39 @@ export default function ChatGPTError({ actions, id, style }: Props) {
     return null;
   }
   return (
-    <Button
-      style={style}
-      disabled={gettingHelp}
-      onClick={async () => {
-        setGettingHelp(true);
-        try {
-          await getHelp({ id, actions });
-        } finally {
-          setGettingHelp(false);
-        }
-      }}
-    >
-      <OpenAIAvatar
-        size={16}
-        style={{ marginRight: "5px" }}
-        innerStyle={{ top: "2.5px" }}
-      />
-      Help fix this...
-    </Button>
+    <div>
+      <Button
+        style={style}
+        disabled={gettingHelp}
+        onClick={async () => {
+          setGettingHelp(true);
+          try {
+            await getHelp({ id, actions });
+          } catch (err) {
+            setError(`${err}`);
+          } finally {
+            setGettingHelp(false);
+          }
+        }}
+      >
+        <OpenAIAvatar
+          size={16}
+          style={{ marginRight: "5px" }}
+          innerStyle={{ top: "2.5px" }}
+        />
+        Help me fix this...
+      </Button>
+      {error && (
+        <Alert
+          style={{ maxWidth: "600px", margin: "15px 0" }}
+          type="error"
+          showIcon
+          closable
+          message={error}
+          onClick={() => setError("")}
+        />
+      )}
+    </div>
   );
 }
 
@@ -75,13 +88,12 @@ async function getHelp({
   }
   traceback = Anser.ansiToText(traceback);
   const kernel_info = actions.store.get("kernel_info");
-  const projectActions = actions.redux.getProjectActions(actions.project_id);
-  projectActions.open_chat({ path: actions.path, width: 0.6 });
-  const language = kernel_info.get("language");
-  const chatActions = actions.redux.getEditorActions(
+  const chatActions = await getChatActions(
+    actions.redux,
     actions.project_id,
-    meta_file(actions.path, "chat")
-  ) as ChatActions;
+    actions.path
+  );
+  const language = kernel_info.get("language");
   const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> I ran the following ${kernel_info.get(
     "display_name"
   )} code:
@@ -94,5 +106,32 @@ ${traceback}
 \`\`\`
 Help me fix my code.
 `;
+  // scroll to bottom *after* the message gets sent.
+  setTimeout(() => chatActions.scrollToBottom(), 100);
   await chatActions.send_chat(message);
+}
+
+async function getChatActions(
+  redux,
+  project_id: string,
+  path: string,
+  maxWaitSeconds: number = 10,
+  width: number = 0.6
+): Promise<ChatActions> {
+  throw Error("test");
+  const projectActions = redux.getProjectActions(project_id);
+  projectActions.open_chat({ path: path, width });
+  const start = Date.now();
+
+  while (Date.now() - start <= 1000 * maxWaitSeconds) {
+    const chatActions = redux.getEditorActions(
+      project_id,
+      meta_file(path, "chat")
+    ) as ChatActions;
+    if (chatActions?.syncdb?.get_state() == "ready") {
+      return chatActions;
+    }
+    await delay(200);
+  }
+  throw Error("unable to open chatroom");
 }
