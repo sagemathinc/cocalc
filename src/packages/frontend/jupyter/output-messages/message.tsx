@@ -19,6 +19,7 @@ import { InputDone } from "./input-done";
 import { Data } from "./mime-types/data";
 import { Traceback } from "./traceback";
 import { NotImplemented } from "./not-implemented";
+import ChatGPTError from "../chatgpt/error";
 
 function messageComponent(message: Map<string, any>): any {
   if (message.get("more_output") != null) {
@@ -116,9 +117,13 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     // It's likely that if there are iframes, the output is just one big iframe and scrolled mode is
     // very unlikely to be what you want.
     let hasIframes: boolean = false;
+    let hasError: boolean = false;
     for (const n of numericallyOrderedKeys(obj)) {
       const mesg = obj[n];
       if (mesg != null) {
+        if (mesg.get("traceback")) {
+          hasError = true;
+        }
         if (scrolled && !hasIframes && mesg.getIn(["data", "iframe"])) {
           hasIframes = true;
         }
@@ -142,6 +147,9 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
         className="cocalc-jupyter-rendered"
       >
         {v}
+        {hasError && id && actions && (
+          <ChatGPTError style={{ margin: "5px 0" }} actions={actions} id={id} />
+        )}
       </div>
     );
   },
