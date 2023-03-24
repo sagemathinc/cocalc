@@ -118,7 +118,6 @@ async function getChatActions(
   maxWaitSeconds: number = 10,
   width: number = 0.6
 ): Promise<ChatActions> {
-  throw Error("test");
   const projectActions = redux.getProjectActions(project_id);
   projectActions.open_chat({ path: path, width });
   const start = Date.now();
