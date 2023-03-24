@@ -132,7 +132,9 @@ export class ChatActions extends Actions<ChatState> {
     });
   }
 
-  // second parameter used for sending a message by chatgpt (managed by the frontend)
+  // The second parameter is used for sending a message by
+  // chatgpt, which is currently managed by the frontend
+  // (not the project).
   public send_chat(input?: string, sender_id?: string, reply_to?: Date): void {
     if (this.syncdb == null || this.store == null) {
       // WARNING: give an error or try again later?
