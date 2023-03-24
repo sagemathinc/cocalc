@@ -53,6 +53,8 @@ const pii_retention_display = (retention: string) => {
   }
 };
 
+const openai_enabled = (conf) => to_bool(conf.openai_enabled);
+
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
   | "stripe_heading"
@@ -94,6 +96,20 @@ export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
+  openai_section: {
+    name: "OpenAI Configuration",
+    desc: "",
+    default: "",
+    show: openai_enabled,
+    type: "header",
+  },
+  openai_api_key: {
+    name: "OpenAI API Key",
+    desc: "Your OpenAI API Key from https://platform.openai.com/account/api-keys.  This key is needed to support functionality that uses OpenAI's API.",
+    default: "",
+    password: true,
+    show: openai_enabled,
+  },
   pii_retention: {
     name: "PII Retention",
     desc: "How long to keep personally identifiable information, after which the server automatically deletes certain database entries that contain PII.",
@@ -201,20 +217,6 @@ export const EXTRAS: SettingsExtras = {
   github_token: {
     name: "GitHub Token",
     desc: "This is a Personal Access token for the above GitHub account.  You can get one at https://github.com/settings/tokens -- you do not have to enable any scopes -- it used only to increase rate limits from 60/hour to 5000/hour.",
-    default: "",
-    password: true,
-    show: () => true,
-  },
-  openai_section: {
-    name: "OpenAI Configuration",
-    desc: "",
-    default: "",
-    show: only_commercial,
-    type: "header",
-  },
-  openai_api_key: {
-    name: "OpenAI API Key",
-    desc: "Your OpenAI API Key from https://platform.openai.com/account/api-keys.  This key is needed to support functionality that uses OpenAI's API.",
     default: "",
     password: true,
     show: () => true,
