@@ -74,6 +74,10 @@ Table({
     path: {
       type: "string",
     },
+    expire: {
+      type: "timestamp",
+      desc: "optional future date, when the entry will be deleted",
+    },
   },
   rules: {
     desc: "OpenAI ChatGPT Log",
@@ -94,6 +98,16 @@ Table({
           project_id: null,
           path: null,
           history: null,
+          expire: null,
+        },
+      },
+      set: {
+        // this is so that a user can expire any chats they wanted to have expunged from
+        // the system completely.
+        fields: {
+          account_id: "account_id",
+          id: true,
+          expire: true,
         },
       },
     },

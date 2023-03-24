@@ -26,7 +26,7 @@ where they limit per minute, not per hour (like below):
 */
 
 const QUOTAS = {
-  noAccount: 10 * 4,
+  noAccount: 10 ** 4,
   account: 10 ** 5,
   global: 10 ** 6,
 };
