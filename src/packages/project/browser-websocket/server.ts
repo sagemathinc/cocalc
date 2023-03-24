@@ -17,6 +17,7 @@ const Primus = require("primus");
 // We are NOT using UglifyJS because it can easily take 3 blocking seconds of cpu
 // during project startup to save 100kb -- it just isn't worth it.  Obviously, it
 // would be optimal to build this one and for all into the project image.  TODO.
+// ATTN: it isn't used elsewhere, hence if you enable this, you have to install it as well.
 //const UglifyJS = require("uglify-js");
 import { init_websocket_api } from "./api";
 

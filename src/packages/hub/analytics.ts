@@ -15,7 +15,7 @@ import {
   ParseResultType,
 } from "parse-domain";
 import { join } from "path";
-const UglifyJS = require("uglify-js");
+import * as UglifyJS from "uglify-js";
 
 import base_path from "@cocalc/backend/base-path";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";

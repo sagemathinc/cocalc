@@ -71,7 +71,7 @@
     "serve-index": "^1.9.1",
     "sql-string-escape": "^1.1.6",
     "temp": "^0.9.4",
-    "uglify-js": "^3.14.1",
+    "uglify-js": "^3.17.4",
     "underscore": "^1.12.1",
     "uuid": "^8.3.2",
     "validator": "^13.6.0",

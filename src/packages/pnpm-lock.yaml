@@ -16,14 +16,12 @@ importers:
     specifiers:
       '@cocalc/backend': workspace:*
       jquery: ^3.6.0
-      uglify-js: ^3.14.1
       url-loader: ^4.1.1
     dependencies:
       jquery: 3.6.3
       url-loader: 4.1.1
     devDependencies:
       '@cocalc/backend': link:../backend
-      uglify-js: 3.17.4
 
   backend:
     specifiers:
@@ -521,7 +519,7 @@ importers:
       sinon: ^4.5.0
       sql-string-escape: ^1.1.6
       temp: ^0.9.4
-      uglify-js: ^3.14.1
+      uglify-js: ^3.17.4
       underscore: ^1.12.1
       uuid: ^8.3.2
       validator: ^13.6.0
@@ -751,7 +749,6 @@ importers:
       serve-index: ^1.9.1
       temp: ^0.9.4
       tmp: 0.0.33
-      uglify-js: ^3.14.1
       underscore: ^1.12.1
       uuid: ^8.3.2
       which: ^2.0.2
@@ -807,7 +804,6 @@ importers:
       serve-index: 1.9.1
       temp: 0.9.4
       tmp: 0.0.33
-      uglify-js: 3.17.4
       underscore: 1.13.4
       uuid: 8.3.2
       which: 2.0.2

@@ -1,6 +1,6 @@
 /* add endpoint that serves the primus client js code. */
 
-const UglifyJS = require("uglify-js");
+import * as UglifyJS from "uglify-js";
 
 export default function setupPrimusClient(router, primus): void {
   const primus_js = primus.library();
