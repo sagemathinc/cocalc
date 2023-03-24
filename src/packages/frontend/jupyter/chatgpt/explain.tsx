@@ -27,7 +27,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
     <div style={style}>
       <Tooltip title="Ask ChatGPT to attempt to explain what this code does.">
         <Button
-          style={{ color: "#666", fontSize: "10px" }}
+          style={{ color: "#666", fontSize: "11px" }}
           size="small"
           type="text"
           disabled={gettingExplanation}
@@ -47,7 +47,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
             style={{ marginRight: "5px" }}
             innerStyle={{ top: "2.5px" }}
           />
-          Explain...
+          Explain
         </Button>
       </Tooltip>
       {error && (

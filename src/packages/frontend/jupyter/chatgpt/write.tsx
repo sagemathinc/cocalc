@@ -25,7 +25,7 @@ export default function ChatGPTWrite({ actions, id, style }: Props) {
   }
   return (
     <div style={style}>
-      <Tooltip title="Ask ChatGPT to write a first draft of this cell.">
+      <Tooltip title="Ask ChatGPT to write a first draft of this cell based on previous cells and a prompt.">
         <Button
           style={{ color: "#666", fontSize: "10px" }}
           size="small"
@@ -47,7 +47,7 @@ export default function ChatGPTWrite({ actions, id, style }: Props) {
             style={{ marginRight: "5px" }}
             innerStyle={{ top: "2.5px" }}
           />
-          Write...
+          Write this...
         </Button>
       </Tooltip>
       {error && (

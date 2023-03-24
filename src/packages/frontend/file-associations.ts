@@ -479,6 +479,7 @@ for (const ext of "zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip"
   file_associations[ext] = archive_association;
 }
 
+file_associations["sagemath"] = file_associations["sage"];
 file_associations["sage"].name = "sage code";
 file_associations["sage"].icon = "sagemath-bold";
 

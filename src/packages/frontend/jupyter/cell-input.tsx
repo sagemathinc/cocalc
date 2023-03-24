@@ -27,7 +27,6 @@ import { Complete } from "./complete";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
 import ChatGPTExplain from "./chatgpt/explain";
-import ChatGPTWrite from "./chatgpt/write";
 import CopyButton from "@cocalc/frontend/components/copy-button";
 
 function attachmentTransform(
@@ -389,7 +388,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         <div
           style={{
             position: "absolute",
-            right: "5px",
+            right: "2px",
             top: "2px",
           }}
           className="hidden-xs"
@@ -398,7 +397,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             style={{
               display: "flex",
               color: "#666",
-              fontSize: "10px",
+              fontSize: "11px",
             }}
           >
             {props.cell.get("start") != null && (
@@ -409,27 +408,27 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 />
               </div>
             )}
-            {props.actions != null && input ?
+            {props.actions != null && input && (
               <ChatGPTExplain id={props.id} actions={props.actions} />
-            :
-              <ChatGPTWrite id={props.id} actions={props.actions} />
-            }
+            )}
             {input && (
               <CopyButton
                 value={props.cell.get("input") ?? ""}
-                style={{ fontSize: "10px" }}
+                style={{ fontSize: "11px", color: "#666" }}
               />
             )}
-            <div
-              style={{
-                marginLeft: "3px",
-                padding: "4px",
-                borderLeft: "1px solid #ccc",
-                borderBottom: "1px solid #ccc",
-              }}
-            >
-              {props.index + 1}
-            </div>
+            {input && (
+              <div
+                style={{
+                  marginLeft: "3px",
+                  padding: "4px",
+                  borderLeft: "1px solid #ccc",
+                  borderBottom: "1px solid #ccc",
+                }}
+              >
+                {props.index + 1}
+              </div>
+            )}
           </div>
         </div>
       );
