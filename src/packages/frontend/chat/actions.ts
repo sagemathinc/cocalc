@@ -132,9 +132,17 @@ export class ChatActions extends Actions<ChatState> {
     });
   }
 
-  // second parameter used for sending a message by chatgpt (managed by the frontend)
-  public send_chat(input?: string, sender_id?: string, reply_to?: Date): void {
+  // The second parameter is used for sending a message by
+  // chatgpt, which is currently managed by the frontend
+  // (not the project).  Also the async doesn't finish until
+  // chatgpt is totally done.
+  async send_chat(
+    input?: string,
+    sender_id?: string,
+    reply_to?: Date
+  ): Promise<void> {
     if (this.syncdb == null || this.store == null) {
+      console.warn("attempt to send_chat before chat actions initialized");
       // WARNING: give an error or try again later?
       return;
     }
@@ -183,7 +191,7 @@ export class ChatActions extends Actions<ChatState> {
       user_tracking("send_chat", { project_id, path });
     }
     this.save_to_disk();
-    this.processChatGPT(fromJS(message), reply_to);
+    await this.processChatGPT(fromJS(message), reply_to);
   }
 
   public set_editing(message, is_editing) {
@@ -295,6 +303,14 @@ export class ChatActions extends Actions<ChatState> {
       return;
     }
     this.setState({ saved_position: position, height, offset });
+  }
+
+  public scrollToBottom() {
+    // whenever this counter gets incremented, the UI should scroll chat
+    // to the bottom:
+    this.setState({
+      scrollToBottom: (this.store?.get("scrollToBottom") ?? 0) + 1,
+    });
   }
 
   public set_uploading(is_uploading: boolean): void {

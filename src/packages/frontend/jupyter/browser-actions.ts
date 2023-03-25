@@ -809,4 +809,5 @@ export class JupyterActions extends JupyterActions0 {
       this.setState({ cm_options: x });
     }
   }
+
 }

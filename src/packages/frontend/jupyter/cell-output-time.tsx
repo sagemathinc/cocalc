@@ -3,25 +3,31 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React } from "../app-framework";
 import { TimeAgo } from "../components";
+import { Tooltip } from "antd";
 
 interface CellTimingProps {
   start?: number;
   end?: number;
-  state?: string;
 }
 
-export const CellTiming: React.FC<CellTimingProps> = (props) => {
-  if (props.start === undefined) {
-    return <span />; // TODO: should this return undefined?
+export default function CellTiming({ start, end }: CellTimingProps) {
+  if (start == null) {
+    return null;
   }
-  if (props.end != null) {
-    return <span>{(props.end - props.start) / 1000} seconds</span>;
+  if (end != null) {
+    const seconds = (end - start) / 1000;
+    return (
+      <Tooltip
+        title={`This cell took ${seconds} seconds total wall time to run.`}
+      >
+        <span>{seconds} seconds</span>
+      </Tooltip>
+    );
   }
   return (
-    <div style={{ float: "right" }}>
-      <TimeAgo date={new Date(props.start)} />
-    </div>
+    <Tooltip title={"When code started running"}>
+      <TimeAgo date={new Date(start)} />
+    </Tooltip>
   );
-};
+}

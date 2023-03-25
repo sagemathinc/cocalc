@@ -65,8 +65,8 @@ const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
 export abstract class JupyterActions extends Actions<JupyterStoreState> {
   private is_project: boolean;
-  protected path: string;
-  public project_id: string;
+  readonly path: string;
+  readonly project_id: string;
   private _last_start?: number;
   public jupyter_kernel?: JupyterKernelInterface;
   private last_cursor_move_time: Date = new Date(0);
@@ -108,7 +108,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     };
     this._state = "init"; // 'init', 'load', 'ready', 'closed'
     this.store = store;
+    // @ts-ignore
     this.project_id = project_id;
+    // @ts-ignore
     this.path = path;
     store.syncdb = syncdb;
     this.syncdb = syncdb;

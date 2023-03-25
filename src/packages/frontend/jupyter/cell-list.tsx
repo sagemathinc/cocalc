@@ -270,7 +270,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }
 
   function scrollCellListVirtuoso(scroll: Scroll) {
-    // NOTE: below we add one to the index to compensate
+    // NOTE: below we add EXTRA_TOP_CELLS to the index to compensate
     // for the first fixed hidden cell that contains all
     // of the output iframes!
     if (typeof scroll == "number") {
@@ -297,8 +297,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         // and I will have to implement something better.
         const n = index + EXTRA_TOP_CELLS;
         if (
-          n < virtuosoRangeRef.current.startIndex ||
-          n > virtuosoRangeRef.current.endIndex
+          n <= virtuosoRangeRef.current.startIndex ||
+          n >= virtuosoRangeRef.current.endIndex
         ) {
           virtuosoRef.current?.scrollIntoView({
             index: n,
@@ -415,7 +415,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               style={{
                 position: "absolute",
                 left: 15,
-                top: 2.5,
+                top: 12.5,
                 color: "#aaa",
               }}
             />

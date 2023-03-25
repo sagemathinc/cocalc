@@ -131,7 +131,14 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   );
 
   return (
-    <div style={{ ...INPUT_STYLE, cursor: "pointer", ...props.style }}>
+    <div
+      style={{
+        ...INPUT_STYLE,
+        cursor: "pointer",
+        marginTop: "12.5px",
+        ...props.style,
+      }}
+    >
       <Tip title={title} tip={tip} placement="top">
         In [{n}]:
       </Tip>
