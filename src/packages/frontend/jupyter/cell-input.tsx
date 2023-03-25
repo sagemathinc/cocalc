@@ -26,7 +26,6 @@ import { CodeMirror } from "./codemirror-component";
 import { Complete } from "./complete";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
-import ChatGPTExplain from "./chatgpt/explain";
 import CopyButton from "@cocalc/frontend/components/copy-button";
 
 function attachmentTransform(
@@ -74,6 +73,7 @@ export interface CellInputProps {
   is_scrolling?: boolean;
   id: string;
   index: number;
+  chatgpt?;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
@@ -408,8 +408,11 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 />
               </div>
             )}
-            {props.actions != null && input && (
-              <ChatGPTExplain id={props.id} actions={props.actions} />
+            {props.chatgpt != null && (
+              <props.chatgpt.ChatGPTExplain
+                id={props.id}
+                actions={props.actions}
+              />
             )}
             {input && (
               <CopyButton

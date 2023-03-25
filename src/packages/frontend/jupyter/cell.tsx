@@ -44,6 +44,7 @@ interface Props {
   is_scrolling?: boolean;
   height?: number; // optional fixed height
   delayRendering?: number;
+  chatgpt?;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -109,6 +110,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         trust={props.trust}
         is_readonly={!is_editable()}
         is_scrolling={props.is_scrolling}
+        chatgpt={props.chatgpt}
       />
     );
   }
@@ -131,6 +133,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         more_output={props.more_output}
         trust={props.trust}
         complete={props.is_current && props.complete != null}
+        chatgpt={props.chatgpt}
       />
     );
   }

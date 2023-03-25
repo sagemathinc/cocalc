@@ -19,7 +19,6 @@ import { InputDone } from "./input-done";
 import { Data } from "./mime-types/data";
 import { Traceback } from "./traceback";
 import { NotImplemented } from "./not-implemented";
-import ChatGPTError from "../chatgpt/error";
 
 function messageComponent(message: Map<string, any>): any {
   if (message.get("more_output") != null) {
@@ -83,6 +82,7 @@ interface CellOutputMessagesProps {
   scrolled?: boolean;
   trust?: boolean;
   id?: string;
+  chatgpt?;
 }
 
 function shouldMemoize(prev, next) {
@@ -94,18 +94,17 @@ function shouldMemoize(prev, next) {
 }
 
 export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
-  (props: CellOutputMessagesProps) => {
-    const {
-      output,
-      actions,
-      name,
-      project_id,
-      directory,
-      scrolled,
-      trust,
-      id,
-    } = props;
-
+  ({
+    output,
+    actions,
+    name,
+    project_id,
+    directory,
+    scrolled,
+    trust,
+    id,
+    chatgpt,
+  }: CellOutputMessagesProps) => {
     const obj: Map<string, any>[] = React.useMemo(
       () => messageList(output),
       [output]
@@ -147,8 +146,12 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
         className="cocalc-jupyter-rendered"
       >
         {v}
-        {hasError && id && actions && (
-          <ChatGPTError style={{ margin: "5px 0" }} actions={actions} id={id} />
+        {hasError && id && actions && chatgpt && (
+          <chatgpt.ChatGPTError
+            style={{ margin: "5px 0" }}
+            actions={actions}
+            id={id}
+          />
         )}
       </div>
     );

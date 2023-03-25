@@ -28,6 +28,7 @@ interface CellOutputProps {
   hidePrompt?: boolean;
   style?: React.CSSProperties;
   divRef?;
+  chatgpt?;
 }
 
 export function CellOutput({
@@ -43,6 +44,7 @@ export function CellOutput({
   hidePrompt,
   divRef,
   style,
+  chatgpt,
 }: CellOutputProps) {
   const minHeight = complete ? "60vh" : undefined;
 
@@ -85,6 +87,7 @@ export function CellOutput({
         directory={directory}
         name={name}
         trust={trust}
+        chatgpt={chatgpt}
       />
     </div>
   );
@@ -99,6 +102,7 @@ function OutputColumn({
   directory,
   name,
   trust,
+  chatgpt,
 }) {
   if (cell.get("collapsed")) {
     return <CollapsedOutput actions={actions} id={id} />;
@@ -133,6 +137,7 @@ function OutputColumn({
       name={name}
       trust={trust}
       id={id}
+      chatgpt={chatgpt}
     />
   );
 }
