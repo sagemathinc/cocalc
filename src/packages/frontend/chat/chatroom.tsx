@@ -339,6 +339,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             }}
           >
             <ChatInput
+              autoFocus
               cacheId={`${path}${project_id}-new`}
               input={input}
               on_send={on_send}

@@ -161,6 +161,7 @@ export default function SideChat({ project_id, path, style }: Props) {
           </div>
         )}
         <ChatInput
+          autoFocus
           cacheId={`${path}${project_id}-new`}
           input={input}
           on_send={() => {
