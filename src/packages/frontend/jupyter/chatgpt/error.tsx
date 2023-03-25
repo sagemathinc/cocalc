@@ -8,6 +8,7 @@ import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import type { JupyterActions } from "../browser-actions";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import Anser from "anser";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface Props {
   actions?;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function ChatGPTError({ actions, id, style }: Props) {
+  const { project_id, path } = useFrameContext();
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   if (
@@ -33,7 +35,7 @@ export default function ChatGPTError({ actions, id, style }: Props) {
           onClick={async () => {
             setGettingHelp(true);
             try {
-              await getHelp({ id, actions });
+              await getHelp({ id, actions, project_id, path });
             } catch (err) {
               setError(`${err}`);
             } finally {
@@ -66,9 +68,13 @@ export default function ChatGPTError({ actions, id, style }: Props) {
 async function getHelp({
   id,
   actions,
+  project_id,
+  path,
 }: {
   id: string;
   actions: JupyterActions;
+  project_id: string;
+  path: string; // can't use from actions, since e.g., for whiteboard that's for jupyter not the actual path.
 }) {
   const cell = actions.store.get("cells").get(id);
   if (!cell) {
@@ -88,11 +94,7 @@ async function getHelp({
   }
   traceback = Anser.ansiToText(traceback);
   const kernel_info = actions.store.get("kernel_info");
-  const chatActions = await getChatActions(
-    actions.redux,
-    actions.project_id,
-    actions.path
-  );
+  const chatActions = await getChatActions(actions.redux, project_id, path);
   const language = kernel_info.get("language");
   const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> I ran the following ${kernel_info.get(
     "display_name"

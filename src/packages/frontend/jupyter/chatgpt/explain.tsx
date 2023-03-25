@@ -7,6 +7,7 @@ import { Alert, Button, Tooltip } from "antd";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import type { JupyterActions } from "../browser-actions";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface Props {
   actions?;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function ChatGPTExplain({ actions, id, style }: Props) {
+  const { project_id, path } = useFrameContext();
   const [gettingExplanation, setGettingExplanation] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   if (
@@ -34,7 +36,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
           onClick={async () => {
             setGettingExplanation(true);
             try {
-              await getExplanation({ id, actions });
+              await getExplanation({ id, actions, project_id, path });
             } catch (err) {
               setError(`${err}`);
             } finally {
@@ -69,9 +71,13 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
 async function getExplanation({
   id,
   actions,
+  project_id,
+  path,
 }: {
   id: string;
   actions: JupyterActions;
+  project_id: string;
+  path: string;
 }) {
   const cell = actions.store.get("cells").get(id);
   if (!cell) {
@@ -79,11 +85,7 @@ async function getExplanation({
     return;
   }
   const kernel_info = actions.store.get("kernel_info");
-  const chatActions = await getChatActions(
-    actions.redux,
-    actions.project_id,
-    actions.path
-  );
+  const chatActions = await getChatActions(actions.redux, project_id, path);
   const language = kernel_info.get("language");
   const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> Explain the following ${kernel_info.get(
     "display_name"
