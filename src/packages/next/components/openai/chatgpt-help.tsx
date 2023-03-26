@@ -12,6 +12,7 @@ type State = "input" | "wait";
 
 const PROMPT = [
   "ASSUME I HAVE FULL ACCESS TO COCALC.", // otherwise it says things like "as a large language model I don't have access to cocalc."
+  "ENCLOSE MATH IN $.", // so math gets typeset nicely
   "How can I do the following using CoCalc?", // give the context of how the question the user asks should be answered.
 ].join(" ");
 
