@@ -23,14 +23,12 @@ between them.
 const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
 import { useState } from "react";
-import { FormGroup, Radio } from "react-bootstrap";
-import { Alert, Button, Row, Col, Input } from "antd";
+import { Alert, Button, Row, Col, Input, Radio, Space } from "antd";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   CopyToClipBoard,
   Icon,
   VisibleMDLG,
-  Space,
   A,
 } from "@cocalc/frontend/components";
 import { publicShareUrl, shareServerUrl } from "./util";
@@ -210,67 +208,62 @@ export default function Configure(props: Props) {
       <Row gutter={GUTTER}>
         <Col span={12}>
           {!parent_is_public && (
-            <div style={{ fontSize: "12pt" }}>
-              <FormGroup>
-                <Radio
-                  name="sharing_options"
-                  value="public_listed"
-                  checked={sharingOptionsState === "public_listed"}
-                  onChange={handleSharingOptionsChange}
-                  inline
-                >
-                  <Icon name="eye" />
-                  <Space />
-                  <i>Published (listed)</i> - on the{" "}
-                  <A href={shareServerUrl()}>
-                    public search engine indexed server
-                  </A>
-                  .
-                </Radio>
-                <br />
-                <Radio
-                  name="sharing_options"
-                  value="public_unlisted"
-                  checked={sharingOptionsState === "public_unlisted"}
-                  onChange={handleSharingOptionsChange}
-                  inline
-                >
-                  <Icon name="eye-slash" />
-                  <Space />
-                  <i>Published (unlisted)</i> - only people with the link can
-                  view this.
-                </Radio>
-                {kucalc != KUCALC_COCALC_COM && (
-                  <>
-                    <br />
-                    <Radio
-                      name="sharing_options"
-                      value="authenticated"
-                      checked={sharingOptionsState === "authenticated"}
-                      onChange={handleSharingOptionsChange}
-                      inline
-                    >
-                      <Icon name={SHARE_AUTHENTICATED_ICON} />
-                      <Space />
-                      <i>Authenticated</i> - {SHARE_AUTHENTICATED_EXPLANATION}.
-                    </Radio>
-                  </>
-                )}
+            <div style={{ fontSize: "12pt", marginTop: "15px" }}>
+              <Radio.Group>
+                <Space direction="vertical">
+                  <Radio
+                    name="sharing_options"
+                    value="public_listed"
+                    checked={sharingOptionsState === "public_listed"}
+                    onChange={handleSharingOptionsChange}
+                  >
+                    <Icon name="eye" style={{ marginRight: "5px" }} />
+                    <i>Published (listed)</i> - on the{" "}
+                    <A href={shareServerUrl()}>
+                      public search engine indexed server
+                    </A>
+                    .
+                  </Radio>
+                  <Radio
+                    name="sharing_options"
+                    value="public_unlisted"
+                    checked={sharingOptionsState === "public_unlisted"}
+                    onChange={handleSharingOptionsChange}
+                  >
+                    <Icon name="eye-slash" style={{ marginRight: "5px" }} />
+                    <i>Published (unlisted)</i> - only people with the link can
+                    view this.
+                  </Radio>
+                  {kucalc != KUCALC_COCALC_COM && (
+                    <>
+                      <Radio
+                        name="sharing_options"
+                        value="authenticated"
+                        checked={sharingOptionsState === "authenticated"}
+                        onChange={handleSharingOptionsChange}
+                      >
+                        <Icon
+                          name={SHARE_AUTHENTICATED_ICON}
+                          style={{ marginRight: "5px" }}
+                        />
+                        <i>Authenticated</i> - {SHARE_AUTHENTICATED_EXPLANATION}
+                        .
+                      </Radio>
+                    </>
+                  )}
 
-                <br />
-                <Radio
-                  name="sharing_options"
-                  value="private"
-                  checked={sharingOptionsState === "private"}
-                  onChange={handleSharingOptionsChange}
-                  inline
-                >
-                  <Icon name="lock" />
-                  <Space />
-                  <i>Private</i> - only collaborators on this project can view
-                  this.
-                </Radio>
-              </FormGroup>
+                  <Radio
+                    name="sharing_options"
+                    value="private"
+                    checked={sharingOptionsState === "private"}
+                    onChange={handleSharingOptionsChange}
+                  >
+                    <Icon name="lock" style={{ marginRight: "5px" }} />
+                    <i>Private</i> - only collaborators on this project can view
+                    this.
+                  </Radio>
+                </Space>
+              </Radio.Group>
             </div>
           )}
           {parent_is_public && props.public != null && (
