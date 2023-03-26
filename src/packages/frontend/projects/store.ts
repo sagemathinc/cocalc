@@ -28,6 +28,8 @@ import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 
+const openAICache = new LRU<string, boolean>({ max: 50, ttl: 1000 * 60 });
+
 const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0])
 );
@@ -725,9 +727,28 @@ export class ProjectsStore extends Store<ProjectsState> {
     return img;
   }
 
+  clearOpenAICache() {
+    openAICache.clear();
+  }
+
   hasOpenAI(project_id?: string): boolean {
-    // we only check at most once
+    // cache answer for a few seconds, in case this gets called a lot:
+    const key = project_id ?? "global";
+    if (openAICache.has(key)) {
+      return !!openAICache.get(key);
+    }
+    const value = this._hasOpenAI(project_id);
+    openAICache.set(key, value);
+    return value;
+  }
+
+  private _hasOpenAI(project_id?: string): boolean {
     if (!redux.getStore("customize").get("openai_enabled")) {
+      return false;
+    }
+    if (
+      redux.getStore("account").getIn(["other_settings", "openai_disabled"])
+    ) {
       return false;
     }
     if (project_id != null) {
