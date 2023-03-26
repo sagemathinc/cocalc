@@ -45,6 +45,7 @@ export const cm = {
       "increase_font_size",
       "save",
       "time_travel",
+      "chatgpt",
       "replace",
       "find",
       "goto_line",
