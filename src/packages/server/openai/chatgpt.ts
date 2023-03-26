@@ -80,7 +80,7 @@ export async function evaluate({
   }
   messages.push({ role: "user", content: input });
   const completion = await openai.createChatCompletion({
-    model: "gpt-3.5-turbo",
+    model,
     messages,
   });
   log.debug("response: ", completion.data);
