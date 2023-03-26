@@ -268,14 +268,26 @@ export class OtherSettings extends Component<Props> {
           </>
         }
       >
+        {this.render_dark_mode()}
         {this.render_confirm()}
         {this.render_katex()}
         {this.render_time_ago_absolute()}
         {this.render_global_banner()}
         {this.render_mask_files()}
         {this.render_no_free_warnings()}
+        {redux.getStore("customize").get("openai_enabled") && (
+          <Checkbox
+            checked={!!this.props.other_settings.get("openai_disabled")}
+            onChange={(e) => {
+              this.on_change("openai_disabled", e.target.checked);
+              redux.getStore("projects").clearOpenAICache();
+            }}
+          >
+            Disable all OpenAI/ChatGPT integrations, e.g., extra buttons in
+            Jupyter, @chatgpt mentions, etc.
+          </Checkbox>
+        )}
         {this.render_first_steps()}
-        {this.render_dark_mode()}
         {this.render_new_filenames()}
         {this.render_default_file_sort()}
         {this.render_page_size()}

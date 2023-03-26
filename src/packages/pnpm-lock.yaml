@@ -123,7 +123,7 @@ importers:
     specifiers:
       '@ant-design/compatible': ^5.1.1
       '@ant-design/icons': ^4.8.0
-      '@cocalc/ansi-to-react': ^6.0.13
+      '@cocalc/ansi-to-react': ^7.0.0
       '@cocalc/antd-img-crop': ^4.5.5
       '@cocalc/assets': workspace:*
       '@cocalc/cdn': workspace:*
@@ -162,6 +162,7 @@ importers:
       '@types/react-redux': ^7.1.25
       '@use-gesture/react': ^10.2.24
       '@zippytech/react-notify-resize': ^4.0.4
+      anser: ^2.1.1
       antd: ^5.1.6
       async: ^2.6.3
       async-await-utils: ^3.0.1
@@ -283,7 +284,7 @@ importers:
     dependencies:
       '@ant-design/compatible': 5.1.1_lcxbtxw4o7vexw32hqjnpbuya4
       '@ant-design/icons': 4.8.0_biqbaboplfbrettd7655fr4n2y
-      '@cocalc/ansi-to-react': 6.0.13_biqbaboplfbrettd7655fr4n2y
+      '@cocalc/ansi-to-react': 7.0.0_biqbaboplfbrettd7655fr4n2y
       '@cocalc/antd-img-crop': 4.5.5_6pxft4cxqls2twurebs67c4zfy
       '@cocalc/assets': link:../assets
       '@cocalc/cdn': link:../cdn
@@ -307,6 +308,7 @@ importers:
       '@speed-highlight/core': 1.1.11
       '@use-gesture/react': 10.2.24_react@18.2.0
       '@zippytech/react-notify-resize': 4.0.4_sh5qlbywuemxd2y3xkrw2y2kr4
+      anser: 2.1.1
       antd: 5.1.6_biqbaboplfbrettd7655fr4n2y
       async: 2.6.4
       async-await-utils: 3.0.1
@@ -3250,13 +3252,14 @@ packages:
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
     dev: true
 
-  /@cocalc/ansi-to-react/6.0.13_biqbaboplfbrettd7655fr4n2y:
-    resolution: {integrity: sha512-UoNnuUlxWP9L8gWvHPRT3ufmoeZ9jVUcXWvoi86dB0BWFNaAKM/NtGclKMss8CzCtKZDdyu27U8ckoNYf2+nSw==}
+  /@cocalc/ansi-to-react/7.0.0_biqbaboplfbrettd7655fr4n2y:
+    resolution: {integrity: sha512-FOuHtOnuBtqTZSPR78Zg5w86/n+WJ/AOd0Y0PTh7Sx2TttyN3KjXRD8gSD8zEp1Ewf3Qv30tP3m8kNoPQa3lTw==}
+    requiresBuild: true
     peerDependencies:
       react: ^16.3.2 || ^17.0.0 || ^18.0.0
       react-dom: ^16.3.2 || ^17.0.0 || ^18.0.0
     dependencies:
-      anser: 1.4.10
+      anser: 2.1.1
       escape-carriage: 1.3.0
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
@@ -5425,8 +5428,8 @@ packages:
       require-from-string: 2.0.2
       uri-js: 4.4.1
 
-  /anser/1.4.10:
-    resolution: {integrity: sha512-hCv9AqTQ8ycjpSd3upOJd7vFwW1JaoYQ7tpham03GJ1ca8/65rqn0RpaWpItOAd6ylW9wAw6luXYPJIyPFVOww==}
+  /anser/2.1.1:
+    resolution: {integrity: sha512-nqLm4HxOTpeLOxcmB3QWmV5TcDFhW9y/fyQ+hivtDFcK4OQ+pQ5fzPnXHM1Mfcm0VkLtvVi1TCPr++Qy0Q/3EQ==}
     dev: false
 
   /ansi-colors/4.1.1:

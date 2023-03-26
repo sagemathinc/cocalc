@@ -12,6 +12,7 @@ export const INPUT_STYLE: CSSProperties = {
   fontFamily: "monospace",
   textAlign: "right",
   paddingRight: "5px",
+  marginTop: "2.5px",
 };
 
 export interface InputPromptProps {

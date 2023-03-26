@@ -14,7 +14,6 @@ interface Props {
 export default function ProgressEstimate({ seconds, style }: Props) {
   const isMountedRef = useIsMountedRef();
   const [progress, setProgress] = useState(0);
-  const [done, setDone] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -23,9 +22,6 @@ export default function ProgressEstimate({ seconds, style }: Props) {
       }
       const newProgress = Math.min(progress + 0.1, seconds);
       setProgress(newProgress);
-      if (newProgress === seconds) {
-        setDone(true);
-      }
     }, 100);
     return () => clearInterval(interval);
   }, [progress, seconds]);
@@ -34,7 +30,7 @@ export default function ProgressEstimate({ seconds, style }: Props) {
     <Progress
       style={style}
       percent={Math.round((progress / seconds) * 100)}
-      status={done ? "success" : "active"}
+      status={"active"}
       showInfo={false}
     />
   );

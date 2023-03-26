@@ -10,7 +10,7 @@ import { bind_methods } from "@cocalc/util/misc";
 // from stores.  The table will set stores (via creating actions) as
 // needed when it changes.
 export class Actions<T> {
-  constructor(public name: string, protected redux: AppRedux) {
+  constructor(readonly name: string, readonly redux: AppRedux) {
     bind_methods(this); // see comment in Store.ts.
     if (this.name == null) {
       throw Error("name must be defined");

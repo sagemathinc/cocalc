@@ -11,7 +11,7 @@ import { useCallback, useRef, useState } from "react";
 import { Icon, Loading, Markdown } from "@cocalc/frontend/components";
 import { Alert } from "antd";
 import { delay } from "awaiting";
-import { Set } from "immutable";
+import type { Set as iSet} from "immutable";
 import { seconds_ago, list_alternatives } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { dblclick } from "./mouse-click";
@@ -69,7 +69,7 @@ export function PDFJS({
   const sync = useRedux(name, "sync");
   const scroll_pdf_into_view = useRedux(name, "scroll_pdf_into_view")?.toJS();
   const mode: undefined | "rmd" = useRedux(name, "mode");
-  const derived_file_types: Set<string> = useRedux(name, "derived_file_types");
+  const derived_file_types: iSet<string> = useRedux(name, "derived_file_types");
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
 
   const [loaded, setLoaded] = useState<boolean>(false);
@@ -252,6 +252,17 @@ export function PDFJS({
       // good to show (e.g., in a book the content at the beginning might
       // be in roman numerals).
       const pages0 = await doc.getPageLabels();
+      if (pages0 != null) {
+        // These must be unique, but there are some weird pdf files where they are
+        // not and there is nothing we can do about that.  So we just make them unique.
+        const X = new Set<string>([]);
+        for (let i = 0; i < pages0.length; i++) {
+          while (X.has(pages0[i])) {
+            pages0[i] = `${pages0[i]}.${i}`;
+          }
+          X.add(pages0[i]);
+        }
+      }
       actions.setPages(id, pages0 ?? doc.numPages);
       actions.setPage(id, desc.get("page") ?? (pages0 == null ? 1 : "1"));
     } catch (err) {

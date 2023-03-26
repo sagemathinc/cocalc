@@ -252,7 +252,7 @@ function columns(invoices, onChange) {
 }
 
 export default function Subscriptions() {
-  const subscriptions = useAPI("billing/get-subscriptions");
+  const subscriptions = useAPI("billing/get-subscriptions", { limit: 100 });
   const invoices = useAPI("billing/get-invoices-and-receipts");
   if (subscriptions.error) {
     return <Alert type="error" message={subscriptions.error} />;

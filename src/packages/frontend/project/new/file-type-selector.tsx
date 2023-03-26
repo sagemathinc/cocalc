@@ -7,7 +7,7 @@ import { Col, Row } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import React from "react";
 
-import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useActions } from "@cocalc/frontend/app-framework";
 import { Tip } from "@cocalc/frontend/components";
 import { useAvailableFeatures } from "../use-available-features";
 import { NewFileButton } from "./new-file-button";
@@ -23,7 +23,6 @@ interface Props {
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
 export const FileTypeSelector: React.FC<Props> = (props: Props) => {
-  const openaiEnabled = useTypedRedux("customize", "openai_enabled");
   const { create_file, create_folder, project_id, children } = props;
 
   const project_actions = useActions({ project_id });
@@ -198,8 +197,7 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
             icon="comment"
             tip={
               <>
-                Create a chatroom for chatting with{" "}
-                {openaiEnabled ? "ChatGPT and " : ""}other collaborators on this
+                Create a chatroom for chatting with collaborators on this
                 project.
               </>
             }

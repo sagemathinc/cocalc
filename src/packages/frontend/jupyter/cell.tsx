@@ -44,6 +44,7 @@ interface Props {
   is_scrolling?: boolean;
   height?: number; // optional fixed height
   delayRendering?: number;
+  chatgpt?;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -109,6 +110,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         trust={props.trust}
         is_readonly={!is_editable()}
         is_scrolling={props.is_scrolling}
+        chatgpt={props.chatgpt}
       />
     );
   }
@@ -131,6 +133,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         more_output={props.more_output}
         trust={props.trust}
         complete={props.is_current && props.complete != null}
+        chatgpt={props.chatgpt}
       />
     );
   }
@@ -253,33 +256,34 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     );
   }
 
-  let color1: string, color2: string;
+  let color;
   if (props.is_current) {
     // is the current cell
     if (props.mode === "edit") {
       // edit mode
-      color1 = color2 = "#66bb6a";
+      color = "#66bb6a";
     } else {
       // escape mode
       if (props.is_focused) {
-        color1 = "#ababab";
-        color2 = "#42a5f5";
+        color = "#42a5f5";
       } else {
-        color1 = "#eee";
-        color2 = "#42a5ff";
+        color = "#42a5ff";
       }
     }
   } else {
     if (props.is_selected) {
-      color1 = color2 = "#e3f2fd";
+      color = "#e3f2fd";
     } else {
-      color1 = color2 = "transparent";
+      color = "transparent";
     }
   }
   const style: React.CSSProperties = {
-    border: `1px solid ${color1}`,
-    borderLeft: `10px solid ${color2}`,
-    padding: "2px 5px",
+    border: `1px solid ${color}`,
+    borderLeft: `10px solid ${color}`,
+    borderRight: `10px solid ${color}`,
+    borderRadius: "10px",
+    padding: "2px",
+    margin: "2px 15px 2px 5px",
     position: "relative",
   };
 

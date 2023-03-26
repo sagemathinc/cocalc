@@ -20,12 +20,13 @@ import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 import { filename_extension, startswith } from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import { CellHiddenPart } from "./cell-hidden-part";
-import { CellTiming } from "./cell-output-time";
+import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
 import { Complete } from "./complete";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
+import CopyButton from "@cocalc/frontend/components/copy-button";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -72,6 +73,7 @@ export interface CellInputProps {
   is_scrolling?: boolean;
   id: string;
   index: number;
+  chatgpt?;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
@@ -380,59 +382,58 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
     }
 
-    function render_time(): Rendered {
+    function renderCodeBar(): Rendered {
+      const input = props.cell.get("input")?.trim();
       return (
         <div
           style={{
             position: "absolute",
-            zIndex: 1,
             right: "2px",
-            width: "100%",
-            paddingLeft: "5px",
+            top: "2px",
           }}
-          className="pull-right hidden-xs"
+          className="hidden-xs"
         >
           <div
             style={{
+              display: "flex",
               color: "#666",
-              fontSize: "8pt",
-              position: "absolute",
-              right: "5px",
-              lineHeight: 1.25,
-              top: "1px",
-              textAlign: "right",
+              fontSize: "11px",
             }}
           >
-            <span style={{ float: "right" }}>{render_cell_number()}</span>
-            {render_cell_timing()}
+            {props.cell.get("start") != null && (
+              <div style={{ marginTop: "5px" }}>
+                <CellTiming
+                  start={props.cell.get("start")}
+                  end={props.cell.get("end")}
+                />
+              </div>
+            )}
+            {props.chatgpt != null && (
+              <props.chatgpt.ChatGPTExplain
+                id={props.id}
+                actions={props.actions}
+              />
+            )}
+            {input && (
+              <CopyButton
+                value={props.cell.get("input") ?? ""}
+                style={{ fontSize: "11px", color: "#666" }}
+              />
+            )}
+            {input && (
+              <div
+                style={{
+                  marginLeft: "3px",
+                  padding: "4px",
+                  borderLeft: "1px solid #ccc",
+                  borderBottom: "1px solid #ccc",
+                }}
+              >
+                {props.index + 1}
+              </div>
+            )}
           </div>
         </div>
-      );
-    }
-
-    function render_cell_timing(): Rendered {
-      if (props.cell.get("start") == null) return;
-      return (
-        <CellTiming
-          start={props.cell.get("start")}
-          end={props.cell.get("end")}
-          state={props.cell.get("state")}
-        />
-      );
-    }
-
-    function render_cell_number(): Rendered {
-      return (
-        <span
-          style={{
-            marginLeft: "3px",
-            padding: "0 3px",
-            borderLeft: "1px solid #ccc",
-            borderBottom: "1px solid #ccc",
-          }}
-        >
-          {props.index + 1}
-        </span>
       );
     }
 
@@ -471,7 +472,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             {render_input_prompt(type)}
             {render_complete()}
             {render_input_value(type)}
-            {render_time()}
+            {type == "code" && renderCodeBar()}
           </div>
         </div>
       </FileContext.Provider>

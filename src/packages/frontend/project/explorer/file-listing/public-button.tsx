@@ -11,7 +11,7 @@ export function PublicButton({ on_click }) {
     <span>
       <Space />
       <Button bsStyle="info" bsSize="xsmall" onClick={on_click}>
-        <Icon name="bullhorn" /> <span className="hidden-xs">Public</span>
+        <Icon name="bullhorn" /> <span className="hidden-xs">Published</span>
       </Button>
     </span>
   );

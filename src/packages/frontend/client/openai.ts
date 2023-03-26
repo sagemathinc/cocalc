@@ -10,7 +10,7 @@ import { delay } from "awaiting";
 import type { History } from "@cocalc/frontend/misc/openai"; // do not import until needed -- it is HUGE!
 
 const DEFAULT_SYSTEM_PROMPT =
-  "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.";
+  "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW. ENCLOSE MATH IN $.";
 
 // We leave some room for output, hence about 3000 instead of 4000 here:
 const MAX_CHATGPT_TOKENS = 3000;
@@ -35,8 +35,10 @@ export class OpenAIClient {
     project_id?: string;
     path?: string;
   }): Promise<string> {
-    if (!redux.getStore("customize").get("openai_enabled")) {
-      return "OpenAI support is not currently enabled on this server.";
+    if (!redux.getStore("projects").hasOpenAI(project_id)) {
+      return `OpenAI support is not currently enabled ${
+        project_id ? "in this project" : "on this server"
+      }.`;
     }
     input = input.trim();
     if (!input || input == "test") {

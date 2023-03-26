@@ -93,32 +93,33 @@ interface CellListProps {
   sel_ids?: immutable.Set<string>; // set of selected cells
   trust?: boolean;
   use_windowed_list?: boolean;
+  chatgpt?;
 }
 
-export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
-  const {
-    actions,
-    cell_list,
-    cell_toolbar,
-    cells,
-    cm_options,
-    complete,
-    cur_id,
-    directory,
-    font_size,
-    hook_offset,
-    is_focused,
-    md_edit_ids,
-    mode,
-    more_output,
-    name,
-    project_id,
-    scroll,
-    scrollTop,
-    sel_ids,
-    trust,
-    use_windowed_list,
-  } = props;
+export const CellList: React.FC<CellListProps> = ({
+  actions,
+  cell_list,
+  cell_toolbar,
+  cells,
+  cm_options,
+  complete,
+  cur_id,
+  directory,
+  font_size,
+  hook_offset,
+  is_focused,
+  md_edit_ids,
+  mode,
+  more_output,
+  name,
+  project_id,
+  scroll,
+  scrollTop,
+  sel_ids,
+  trust,
+  use_windowed_list,
+  chatgpt,
+}: CellListProps) => {
   const cell_list_node = useRef<HTMLElement | null>(null);
   const is_mounted = useIsMountedRef();
   const frameActions = useNotebookFrameActions();
@@ -270,7 +271,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }
 
   function scrollCellListVirtuoso(scroll: Scroll) {
-    // NOTE: below we add one to the index to compensate
+    // NOTE: below we add EXTRA_TOP_CELLS to the index to compensate
     // for the first fixed hidden cell that contains all
     // of the output iframes!
     if (typeof scroll == "number") {
@@ -297,8 +298,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         // and I will have to implement something better.
         const n = index + EXTRA_TOP_CELLS;
         if (
-          n < virtuosoRangeRef.current.startIndex ||
-          n > virtuosoRangeRef.current.endIndex
+          n <= virtuosoRangeRef.current.startIndex ||
+          n >= virtuosoRangeRef.current.endIndex
         ) {
           virtuosoRef.current?.scrollIntoView({
             index: n,
@@ -415,7 +416,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               style={{
                 position: "absolute",
                 left: 15,
-                top: 2.5,
+                top: 12.5,
                 color: "#aaa",
               }}
             />
@@ -443,6 +444,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           trust={trust}
           is_scrolling={isScrolling}
           delayRendering={delayRendering}
+          chatgpt={chatgpt}
         />
       </div>
     );

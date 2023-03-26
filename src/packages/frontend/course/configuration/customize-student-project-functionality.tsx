@@ -4,8 +4,7 @@
  */
 
 import { isEqual } from "lodash";
-import { Card, Checkbox } from "antd";
-import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Button, Card, Checkbox } from "antd";
 import {
   redux,
   React,
@@ -27,6 +26,8 @@ export interface StudentProjectFunctionality {
   disableNetwork?: boolean;
   disableSSH?: boolean;
   disableCollaborators?: boolean;
+  disableChatGPT?: boolean;
+  disableSharing?: boolean;
 }
 
 interface Option {
@@ -42,7 +43,7 @@ const OPTIONS: Option[] = [
     name: "disableActions",
     title: "file actions",
     description:
-      "Make it so students can't delete, download, copy, publish, etc., files in their project.",
+      "Make it so students can't delete, download, copy, publish, etc., files in their project.  See the Disable Publish sharing option below if you just want to disable publishing.",
   },
   {
     name: "disableJupyterToggleReadonly",
@@ -54,7 +55,7 @@ const OPTIONS: Option[] = [
     name: "disableJupyterClassicServer",
     title: "Jupyter Classic notebook server",
     description:
-      "Disable the user interface for running a Jupyter classic server in the student project.  This is important, since Jupyter classic provides its own extensive download and edit functionality; moreover, you may want to disable Jupyter classic to reduce confusion if you don't plan to use it.",
+      "Disable the user interface for running a Jupyter classic server in student projects.  This is important, since Jupyter classic provides its own extensive download and edit functionality; moreover, you may want to disable Jupyter classic to reduce confusion if you don't plan to use it.",
   },
   {
     name: "disableJupyterClassicMode",
@@ -66,13 +67,13 @@ const OPTIONS: Option[] = [
     name: "disableJupyterLabServer",
     title: "JupyterLab notebook server",
     description:
-      "Disable the user interface for running a JupyterLab server in the student project.  This is important, since JupyterLab it provides its own extensive download and edit functionality; moreover, you may want to disable JupyterLab to reduce confusion if you don't plan to use it.",
+      "Disable the user interface for running a JupyterLab server in student projects.  This is important, since JupyterLab it provides its own extensive download and edit functionality; moreover, you may want to disable JupyterLab to reduce confusion if you don't plan to use it.",
   },
   {
     name: "disableTerminals",
     title: "command line terminal",
     description:
-      "Disables opening or running command line terminals in the student project.",
+      "Disables opening or running command line terminals in student projects.",
   },
   {
     name: "disableUploads",
@@ -84,27 +85,39 @@ const OPTIONS: Option[] = [
     name: "disableCollaborators",
     title: "adding or removing collaborators",
     description:
-      "Removes the user interface for adding or removing collaborators from the student project.",
+      "Removes the user interface for adding or removing collaborators from student projects.",
   },
-  {
-    notImplemented: true,
-    name: "disableAPI",
-    title: "API keys",
-    description:
-      "Makes it so the HTTP API is blocked from accessing the student project.  A student might use the API to get around various other restrictions.",
-  },
+  //   {
+  //     notImplemented: true,
+  //     name: "disableAPI",
+  //     title: "API keys",
+  //     description:
+  //       "Makes it so the HTTP API is blocked from accessing the student project.  A student might use the API to get around various other restrictions.",
+  //   },
   {
     isCoCalcCom: true,
     name: "disableNetwork",
     title: "outgoing network access",
     description:
-      "Blocks all outgoing network connections from the student project.",
+      "Blocks all outgoing network connections from the student projects.",
   },
   {
     isCoCalcCom: true,
     name: "disableSSH",
     title: "SSH access to project",
-    description: "Makes any attempt to ssh to the student project fail.",
+    description: "Makes any attempt to ssh to a student project fail.",
+  },
+  {
+    name: "disableChatGPT",
+    title: "ChatGPT integration",
+    description:
+      "Remove all ChatGPT integrations from the student projects.  This is a hint for honest students, since of course students can still use copy/paste to accomplish the same thing.",
+  },
+  {
+    name: "disableSharing",
+    title: "Public sharing",
+    description:
+      "Disable public sharing of files from the student projects.  This is a hint for honest students, since of course students can still download files or even copy them to another project and share them.  This does not change the share status of any files that are currently shared.",
   },
 ];
 
@@ -117,9 +130,8 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
   ({ functionality, onChange }) => {
     const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
     const [changed, setChanged] = useState<boolean>(false);
-    const [state, setState] = useState<StudentProjectFunctionality>(
-      functionality
-    );
+    const [state, setState] =
+      useState<StudentProjectFunctionality>(functionality);
     const [saving, setSaving] = useState<boolean>(false);
     function onChangeState(obj: StudentProjectFunctionality) {
       const newState = { ...state };
@@ -173,6 +185,17 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
           </>
         }
       >
+        <span style={{ color: "#666" }}>
+          Check any of the boxes below to remove the corresponding functionality
+          from student projects. Hover over an option for more information about
+          what it disables. This is useful to reduce student confusion and keep
+          the students more focused, e.g., during an exam.{" "}
+          <i>
+            Do not gain a false sense of security and expect these to prevent
+            all forms of cheating.
+          </i>
+        </span>
+        <hr />
         <div
           style={{
             border: "1px solid lightgrey",
@@ -185,6 +208,7 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
             <div>
               <br />
               <Button
+                type="primary"
                 disabled={saving || isEqual(functionality, state)}
                 onClick={async () => {
                   setSaving(true);
@@ -193,24 +217,12 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
                     setSaving(false);
                   }
                 }}
-                bsStyle={"success"}
               >
                 Save changes
               </Button>
             </div>
           )}
         </div>
-        <hr />
-        <span style={{ color: "#666" }}>
-          Check any of the boxes above to remove the corresponding functionality
-          from student projects. Hover over an option for more information about
-          what it disables. This is useful to reduce student confusion and keep
-          the students more focused, e.g., during an exam.{" "}
-          <i>
-            Do not gain a false sense of security and expect these to prevent
-            all forms of cheating.
-          </i>
-        </span>
       </Card>
     );
   }
