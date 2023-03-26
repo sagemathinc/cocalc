@@ -433,7 +433,9 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   private async processChatGPT(message, reply_to?: Date) {
-    if (!this.redux.getStore("customize").get("openai_enabled")) {
+    if (
+      !this.redux.getStore("projects").hasOpenAI(this.store?.get("project_id"))
+    ) {
       // no need to check for chatgpt at all
       return;
     }

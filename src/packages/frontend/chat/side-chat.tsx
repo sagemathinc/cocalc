@@ -182,14 +182,13 @@ export default function SideChat({ project_id, path, style }: Props) {
 }
 
 function AddChatCollab({ addCollab, project_id }) {
-  const useChatGPT = useTypedRedux("customize", "openai_enabled");
   if (!addCollab) {
     return null;
   }
   return (
     <div>
       You can{" "}
-      {useChatGPT && (
+      {redux.getStore("projects").hasOpenAI(project_id) && (
         <>put @chatgpt in any message to get a response from ChatGPT, </>
       )}
       <A href="https://github.com/sagemathinc/cocalc/discussions">
@@ -205,7 +204,9 @@ function AddChatCollab({ addCollab, project_id }) {
 }
 
 function CollabList({ project, addCollab, actions }) {
-  const useChatGPT = useTypedRedux("customize", "openai_enabled");
+  const hasOpenAI = redux
+    .getStore("projects")
+    .hasOpenAI(project.get("project_id"));
   return (
     <div
       style={
@@ -225,12 +226,10 @@ function CollabList({ project, addCollab, actions }) {
         <Icon name={addCollab ? "caret-down" : "caret-right"} />
       </div>
       <span style={{ color: "#777", fontSize: "10pt" }}>
-        {useChatGPT && <>@ChatGPT, </>}
+        {hasOpenAI && <>@ChatGPT, </>}
         <ProjectUsers
           project={project}
-          none={
-            <span>{useChatGPT ? "add" : "Add"} people to work with...</span>
-          }
+          none={<span>{hasOpenAI ? "add" : "Add"} people to work with...</span>}
         />
       </span>
     </div>

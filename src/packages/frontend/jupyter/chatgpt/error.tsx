@@ -22,7 +22,7 @@ export default function ChatGPTError({ actions, id, style }: Props) {
   const [error, setError] = useState<string>("");
   if (
     actions == null ||
-    !actions.redux?.getStore("customize").get("openai_enabled")
+    !actions.redux.getStore("projects").hasOpenAI(project_id)
   ) {
     return null;
   }

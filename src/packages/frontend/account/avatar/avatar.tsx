@@ -49,6 +49,7 @@ interface Props {
 }
 
 export function Avatar(props) {
+  console.log("Avatar ", props);
   if (props.account_id == "chatgpt") {
     return <OpenAIAvatar size={props.size} style={props.style} />;
   } else {

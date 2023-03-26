@@ -35,8 +35,10 @@ export class OpenAIClient {
     project_id?: string;
     path?: string;
   }): Promise<string> {
-    if (!redux.getStore("customize").get("openai_enabled")) {
-      return "OpenAI support is not currently enabled on this server.";
+    if (!redux.getStore("projects").hasOpenAI(project_id)) {
+      return `OpenAI support is not currently enabled ${
+        project_id ? "in this project" : "on this server"
+      }.`;
     }
     input = input.trim();
     if (!input || input == "test") {

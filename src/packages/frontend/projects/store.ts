@@ -724,6 +724,27 @@ export class ProjectsStore extends Store<ProjectsState> {
     this.projectAvatarImageCache.set(project_id, img);
     return img;
   }
+
+  hasOpenAI(project_id?: string): boolean {
+    // we only check at most once
+    if (!redux.getStore("customize").get("openai_enabled")) {
+      return false;
+    }
+    if (project_id != null) {
+      if (
+        this.getIn([
+          "project_map",
+          project_id,
+          "course",
+          "student_project_functionality",
+          "disableChatGPT",
+        ])
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
 
 // WARNING: A lot of code relies on the assumption project_map is
