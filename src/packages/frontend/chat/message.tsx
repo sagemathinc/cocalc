@@ -574,7 +574,9 @@ export default function Message(props: Props) {
               style={{ color: "#666" }}
             >
               <Icon name="reply" /> Reply
-              {isChatGPTThread ? " to ChatGPT" : ""}
+              {isChatGPTThread
+                ? ` to ChatGPT${isChatGPTThread == "gpt-4" ? "4" : ""}`
+                : ""}
               {isChatGPTThread && (
                 <Avatar
                   account_id="chatgpt"

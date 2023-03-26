@@ -35,7 +35,7 @@ export default function Composing({ projectId, path, accountId, userMap }) {
         <span style={{ marginLeft: "15px" }}>
           {getUserName(userMap, senderId)} is writing a message...
         </span>
-        {senderId == "chatgpt" && (
+        {senderId?.startsWith("chatgpt") && (
           <ProgressEstimate
             style={{ marginLeft: "15px", maxWidth: "600px" }}
             seconds={45}
