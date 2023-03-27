@@ -4,12 +4,12 @@
  */
 
 import cors from "cors"; // express-js cors plugin:
-import { CookieOptions, json, Request, Response, Router } from "express";
+import { json, Request, Response, Router } from "express";
 import { isEqual } from "lodash";
-import ms from "ms";
 import * as fs from "node:fs";
 import {
   fromUrl,
+  NO_HOSTNAME,
   parseDomain,
   ParseResult,
   ParseResultType,
@@ -25,7 +25,6 @@ import {
   ANALYTICS_COOKIE_NAME,
   is_valid_uuid_string,
   sanitizeObject,
-  STATISTICS_COOKIE_NAME,
   uuid,
 } from "@cocalc/util/misc";
 import { getLogger } from "./logger";
@@ -171,10 +170,8 @@ export async function initAnalytics(
   const pii_retention = settings.pii_retention;
   const analytics_enabled = settings.analytics ?? true;
 
-  if (
-    dns_parsed.type !== ParseResultType.Listed &&
-    dns_parsed.type !== ParseResultType.Reserved
-  ) {
+  // this allows localhost:5000 as well
+  if (dns_parsed.hostname === NO_HOSTNAME) {
     dbg(
       `WARNING: the configured domain name ${DNS} cannot be parsed properly. ` +
         `Please fix it in Admin → Site Settings!\n` +
@@ -212,14 +209,7 @@ export async function initAnalytics(
     function (req: Request, res: Response) {
       res.header("Content-Type", "text/javascript");
 
-      if (!req.cookies[STATISTICS_COOKIE_NAME]) {
-        // No statistics cookie is set, so we set one.
-        // We always set this despite any issues with parsing or
-        // or whether or not we are actually using the analytics.js
-        // script, since it's *also* useful to have this cookie set
-        // for other purposes, e.g., logging.
-        setStatisticsCookie(res);
-      }
+      const DOMAIN = dns_parsed.hostname; // e.g. cocalc.com or cocalc.domain.tld
 
       // The analytics cookie tracks referrals and related information. This is across domains.
       // It is set in the analytics script, see below.
@@ -228,7 +218,7 @@ export async function initAnalytics(
       if (
         !analytics_enabled ||
         req.cookies[ANALYTICS_COOKIE_NAME] ||
-        dns_parsed.type !== ParseResultType.Listed
+        DOMAIN === NO_HOSTNAME
       ) {
         // cache for 6 hours -- max-age has unit seconds
         res.header(
@@ -244,8 +234,6 @@ export async function initAnalytics(
       // this only runs once, hence no caching
       res.header("Cache-Control", "no-cache, no-store");
 
-      const { domain, topLevelDomains } = dns_parsed;
-      const DOMAIN = `${domain}.${topLevelDomains.join(".")}`;
       res.write(`var NAME = '${ANALYTICS_COOKIE_NAME}';\n`);
       res.write(`var ID = '${uuid()}';\n`);
       res.write(`var DOMAIN = '${DOMAIN}';\n`);
@@ -278,21 +266,4 @@ export async function initAnalytics(
 
   // additionally, custom content types require a preflight cors check
   router.options("/analytics.js", cors(analytics_cors));
-}
-
-// I'm not setting the domain, since it's making testing difficult.
-// But not setting the domain breaks the cookie for subdomains.
-function setStatisticsCookie(res: Response, DNS?: string): void {
-  // set the cookie (TODO sign it?  that would be good so that
-  // users cannot fake a cookie.)
-  const analytics_token = uuid();
-  const opts: CookieOptions = {
-    path: "/",
-    maxAge: ms("7 days"),
-    httpOnly: true,
-  };
-  if (typeof DNS === "string") {
-    opts.domain = DNS;
-  }
-  res.cookie(STATISTICS_COOKIE_NAME, analytics_token, opts);
 }

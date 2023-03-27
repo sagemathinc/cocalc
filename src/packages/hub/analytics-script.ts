@@ -19,9 +19,17 @@
 declare var NAME, ID, DOMAIN, PREFIX, window, document;
 
 // write cookie. it would be cool to set this via the http request itself,
-// but for reasons I don't know it doesn't work across subdomains.
+// but for reasons I don't know (most likely security) it doesn't work across subdomains.
 const maxage = 7 * 24 * 60 * 60; // 7 days
-document.cookie = `${NAME}=${ID}; path=/; domain=${DOMAIN}; max-age=${maxage}`;
+
+console.log("DOMAIN = ", DOMAIN)
+
+if (DOMAIN.indexOf("localhost") !== -1) {
+  // this is for local development & local docker instances
+  document.cookie = `${NAME}=${ID}; path=/; max-age=${maxage}`;
+} else {
+  document.cookie = `${NAME}=${ID}; path=/; domain=${DOMAIN}; max-age=${maxage}`;
+}
 
 const { href, protocol, host, pathname } = window.location;
 
