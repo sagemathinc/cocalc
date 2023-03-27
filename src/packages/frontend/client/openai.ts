@@ -8,6 +8,7 @@ import { AsyncCall } from "./client";
 import { redux } from "../app-framework";
 import { delay } from "awaiting";
 import type { History } from "@cocalc/frontend/misc/openai"; // do not import until needed -- it is HUGE!
+import type { Model } from "@cocalc/util/db-schema/openai";
 
 const DEFAULT_SYSTEM_PROMPT =
   "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW. ENCLOSE MATH IN $.";
@@ -28,12 +29,14 @@ export class OpenAIClient {
     history,
     project_id,
     path,
+    model,
   }: {
     input: string;
     system?: string;
     history?: History;
     project_id?: string;
     path?: string;
+    model?: Model;
   }): Promise<string> {
     if (!redux.getStore("projects").hasOpenAI(project_id)) {
       return `OpenAI support is not currently enabled ${
@@ -73,6 +76,7 @@ export class OpenAIClient {
         project_id,
         path,
         history,
+        model,
       }),
     });
     return resp.text;

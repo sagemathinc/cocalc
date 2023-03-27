@@ -19,6 +19,7 @@ import { getSelectedHashtagsSearch } from "./utils";
 import { cmp, parse_hashtags } from "@cocalc/util/misc";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { History as ChatGPTHistory } from "@cocalc/frontend/misc/openai";
+import type { Model } from "@cocalc/util/db-schema/openai";
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
@@ -410,20 +411,19 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb?.redo();
   }
 
-  isChatGPTThread(date: Date): boolean {
+  isChatGPTThread(date: Date): false | Model {
     const messages = this.store?.get("messages");
     if (!messages) return false;
     let message = messages.get(`${date.valueOf()}`);
     let i = 0;
     while (message != null && i < 1000) {
       i += 1; // just in case some weird corrupted file has a time loop in it.
-      if (
-        message
-          .getIn(["history", 0, "content"])
-          ?.toLowerCase()
-          .includes("@chatgpt")
-      ) {
-        return true;
+      const input = message.getIn(["history", 0, "content"])?.toLowerCase();
+      if (input?.includes("@chatgpt4")) {
+        return "gpt-4";
+      }
+      if (input?.includes("@chatgpt")) {
+        return "gpt-3.5-turbo";
       }
       const reply_to = message.get("reply_to");
       if (reply_to == null) return false;
@@ -439,7 +439,7 @@ export class ChatActions extends Actions<ChatState> {
       // no need to check for chatgpt at all
       return;
     }
-    if (message.getIn(["history", 0, "author_id"]) == "chatgpt") {
+    if (message.getIn(["history", 0, "author_id"])?.startsWith("chatgpt")) {
       // do NOT respond to a message from chatgpt!!!!
       return;
     }
@@ -448,15 +448,21 @@ export class ChatActions extends Actions<ChatState> {
     const store = this.store;
     if (!store) return;
 
+    let thread;
     if (!input.toLowerCase().includes("@chatgpt")) {
       // doesn't mention chatgpt explicitly, but is it a reply to something that does?
-      if (reply_to == null || !this.isChatGPTThread(reply_to)) {
-        // nope
+      if (reply_to == null) {
         return;
       }
+      thread = this.isChatGPTThread(reply_to);
+      if (!thread) return;
     }
     // message should get sent to chatgpt.
+    const model: Model =
+      (input.toLowerCase().includes("@chatgpt4") ? "gpt-4" : thread) ??
+      "gpt-3.5-turbo";
     input = stripMentions(input); // without any mentions, of course.
+    const sender_id = model == "gpt-4" ? "chatgpt4" : "chatgpt";
     const start = new Date().valueOf();
     const draft = () => {
       if (new Date().valueOf() - start > 3 * 60 * 1000) {
@@ -466,7 +472,7 @@ export class ChatActions extends Actions<ChatState> {
       this.syncdb?.set({
         event: "draft",
         active: webapp_client.server_time(),
-        sender_id: "chatgpt",
+        sender_id,
         input: "...",
         date: 0,
       });
@@ -485,16 +491,17 @@ export class ChatActions extends Actions<ChatState> {
         history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
         project_id,
         path,
+        model,
       });
     } catch (err) {
       resp = `<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
     } finally {
       // until it isn't.
       clearInterval(interval);
-      this.delete_draft(0, true, "chatgpt");
+      this.delete_draft(0, true, sender_id);
     }
     // insert the answer as a chat message from chatgpt
-    this.send_reply(message, resp, "chatgpt");
+    this.send_reply(message, resp, sender_id);
   }
 
   // the input and output for the thread ending in the
@@ -518,10 +525,9 @@ export class ChatActions extends Actions<ChatState> {
       );
       history.push({
         content,
-        role:
-          message.getIn(["history", 0, "author_id"]) == "chatgpt"
-            ? "assistant"
-            : "user",
+        role: message.getIn(["history", 0, "author_id"])?.startsWith("chatgpt")
+          ? "assistant"
+          : "user",
       });
     }
 
@@ -539,10 +545,12 @@ function getReplyToRoot(message, messages): Date | undefined {
 
 function stripMentions(value: string): string {
   // We strip out any cased version of the string @chatgpt and also all mentions.
-  while (true) {
-    const i = value.toLowerCase().indexOf("@chatgpt");
-    if (i == -1) break;
-    value = value.slice(0, i) + value.slice(i + "@chatgpt".length);
+  for (const name of ["@chatgpt4", "@chatgpt"]) {
+    while (true) {
+      const i = value.toLowerCase().indexOf(name);
+      if (i == -1) break;
+      value = value.slice(0, i) + value.slice(i + name.length);
+    }
   }
   // The mentions look like this: <span class="user-mention" account-id=chatgpt >@ChatGPT</span> ...
   while (true) {

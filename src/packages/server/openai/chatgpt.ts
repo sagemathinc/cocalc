@@ -8,6 +8,7 @@ import { Configuration, OpenAIApi } from "openai";
 import { checkForAbuse } from "./abuse";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
+import type { Model } from "@cocalc/util/db-schema/openai";
 
 const log = getLogger("chatgpt");
 
@@ -38,6 +39,7 @@ interface ChatOptions {
   path?: string;
   analytics_cookie?: string;
   history?: { role: "assistant" | "user" | "system"; content: string }[];
+  model?: Model; // default is gpt-3.5-turbo
 }
 
 export async function evaluate({
@@ -48,6 +50,7 @@ export async function evaluate({
   path,
   analytics_cookie,
   history,
+  model = "gpt-3.5-turbo",
 }: ChatOptions): Promise<string> {
   log.debug("evaluate", {
     input,
@@ -57,9 +60,10 @@ export async function evaluate({
     analytics_cookie,
     project_id,
     path,
+    model,
   });
   const start = Date.now();
-  await checkForAbuse({ account_id, analytics_cookie });
+  await checkForAbuse({ account_id, analytics_cookie, model });
   const { apiKey, expire } = await getConfig();
 
   const configuration = new Configuration({ apiKey });
@@ -76,7 +80,7 @@ export async function evaluate({
   }
   messages.push({ role: "user", content: input });
   const completion = await openai.createChatCompletion({
-    model: "gpt-3.5-turbo",
+    model,
     messages,
   });
   log.debug("response: ", completion.data);
@@ -97,6 +101,7 @@ export async function evaluate({
     total_tokens,
     total_time_s,
     expire: account_id == null ? expire : undefined,
+    model,
   });
 
   // NOTE about expire: If the admin setting for "PII Retention" is set *and*
@@ -131,11 +136,12 @@ async function saveResponse({
   total_tokens,
   total_time_s,
   expire,
+  model,
 }) {
   const pool = getPool();
   try {
     await pool.query(
-      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,total_time_s,expire) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,total_time_s,expire,model) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
       [
         input,
         system,
@@ -148,6 +154,7 @@ async function saveResponse({
         total_tokens,
         total_time_s,
         expire,
+        model,
       ]
     );
   } catch (err) {

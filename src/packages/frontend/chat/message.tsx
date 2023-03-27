@@ -567,14 +567,22 @@ export default function Message(props: Props) {
         <div
           style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}
         >
-          <Tooltip title="Reply to ChatGPT, sending the entire thread as context.">
+          <Tooltip
+            title={
+              isChatGPTThread
+                ? "Reply to ChatGPT, sending the entire thread as context."
+                : "Reply in this thread."
+            }
+          >
             <Button
               type="text"
               onClick={() => setReplying(true)}
               style={{ color: "#666" }}
             >
               <Icon name="reply" /> Reply
-              {isChatGPTThread ? " to ChatGPT" : ""}
+              {isChatGPTThread
+                ? ` to ChatGPT${isChatGPTThread == "gpt-4" ? "4" : ""}`
+                : ""}
               {isChatGPTThread && (
                 <Avatar
                   account_id="chatgpt"

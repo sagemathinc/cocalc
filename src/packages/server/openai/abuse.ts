@@ -1,5 +1,7 @@
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
+import type { Model } from "@cocalc/util/db-schema/openai";
+import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
 /*
 We initially just implement some very simple rate limitations to prevent very
@@ -43,9 +45,11 @@ const QUOTAS = {
 export async function checkForAbuse({
   account_id,
   analytics_cookie,
+  model,
 }: {
   account_id?: string;
   analytics_cookie?: string;
+  model?: Model;
 }): Promise<void> {
   if (!isValidUUID(account_id) && !isValidUUID(analytics_cookie)) {
     // at least some amount of tracking.
@@ -79,6 +83,18 @@ export async function checkForAbuse({
     throw Error(
       `There is too much usage of ChatGPT right now.  Please try again later.`
     );
+  }
+
+  if (model == "gpt-4") {
+    // For now, only admins can use gpt-4.
+    // It's too expensive to just make free right now, unfortunately.
+    if (
+      !account_id ||
+      !isValidUUID(account_id) ||
+      !(await userIsInGroup(account_id, "admin"))
+    ) {
+      throw Error("only admins can currently use GPT-4");
+    }
   }
 }
 

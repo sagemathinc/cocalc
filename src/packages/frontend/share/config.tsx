@@ -209,14 +209,12 @@ export default function Configure(props: Props) {
         <Col span={12}>
           {!parent_is_public && (
             <div style={{ fontSize: "12pt", marginTop: "15px" }}>
-              <Radio.Group>
+              <Radio.Group
+                value={sharingOptionsState}
+                onChange={handleSharingOptionsChange}
+              >
                 <Space direction="vertical">
-                  <Radio
-                    name="sharing_options"
-                    value="public_listed"
-                    checked={sharingOptionsState === "public_listed"}
-                    onChange={handleSharingOptionsChange}
-                  >
+                  <Radio name="sharing_options" value="public_listed">
                     <Icon name="eye" style={{ marginRight: "5px" }} />
                     <i>Published (listed)</i> - on the{" "}
                     <A href={shareServerUrl()}>
@@ -224,24 +222,14 @@ export default function Configure(props: Props) {
                     </A>
                     .
                   </Radio>
-                  <Radio
-                    name="sharing_options"
-                    value="public_unlisted"
-                    checked={sharingOptionsState === "public_unlisted"}
-                    onChange={handleSharingOptionsChange}
-                  >
+                  <Radio name="sharing_options" value="public_unlisted">
                     <Icon name="eye-slash" style={{ marginRight: "5px" }} />
                     <i>Published (unlisted)</i> - only people with the link can
                     view this.
                   </Radio>
                   {kucalc != KUCALC_COCALC_COM && (
                     <>
-                      <Radio
-                        name="sharing_options"
-                        value="authenticated"
-                        checked={sharingOptionsState === "authenticated"}
-                        onChange={handleSharingOptionsChange}
-                      >
+                      <Radio name="sharing_options" value="authenticated">
                         <Icon
                           name={SHARE_AUTHENTICATED_ICON}
                           style={{ marginRight: "5px" }}
@@ -252,12 +240,7 @@ export default function Configure(props: Props) {
                     </>
                   )}
 
-                  <Radio
-                    name="sharing_options"
-                    value="private"
-                    checked={sharingOptionsState === "private"}
-                    onChange={handleSharingOptionsChange}
-                  >
+                  <Radio name="sharing_options" value="private">
                     <Icon name="lock" style={{ marginRight: "5px" }} />
                     <i>Private</i> - only collaborators on this project can view
                     this.
@@ -284,7 +267,7 @@ export default function Configure(props: Props) {
         <Col span={12}>
           {" "}
           <div style={{ color: "#555", fontSize: "12pt" }}>
-            <A href={SHARE_HELP_URL}>You make</A> files or directories{" "}
+            You make files or directories{" "}
             <A href={server}>
               <b>
                 <i>public to the world</i>,
@@ -292,7 +275,8 @@ export default function Configure(props: Props) {
             </A>{" "}
             either indexed by search engines (listed), or only visible with the
             link (unlisted). Files are automatically copied to the public server
-            within about 30 seconds after you explicitly edit them.
+            within <b>about 30 seconds</b> after you explicitly edit them. See{" "}
+            <A href={SHARE_HELP_URL}>the docs</A> for more details.
           </div>
         </Col>
       </Row>

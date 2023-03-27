@@ -72,6 +72,7 @@ import {
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import { SHELLS } from "./editor";
 import type { TimeTravelActions } from "../time-travel-editor/actions";
+import getChatActions from "@cocalc/frontend/chat/get-actions";
 
 interface gutterMarkerParams {
   line: number;
@@ -2808,5 +2809,35 @@ export class Actions<
       await delay(200);
     }
     return frameId;
+  }
+
+  async chatgpt(
+    frameId: string,
+    { codegen, command }: { codegen?: boolean; command: string }
+  ) {
+    const cm = this._get_cm(frameId);
+    if (!cm) {
+      throw Error("Only cm editor summary currently implemented");
+    }
+    const selected = cm.getSelection()?.trim();
+    console.log(selected);
+    if (!selected) {
+      throw Error("You must select something");
+    }
+    const chatActions = await getChatActions(
+      this.redux,
+      this.project_id,
+      this.path
+    );
+    const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${command} the following code from the file ${
+      this.path
+    }:
+\`\`\`
+${selected}
+\`\`\`
+${codegen ? "Show the new version." : ""}`;
+    // scroll to bottom *after* the message gets sent.
+    setTimeout(() => chatActions.scrollToBottom(), 100);
+    await chatActions.send_chat(message);
   }
 }
