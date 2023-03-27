@@ -396,6 +396,10 @@ export class PassportManager {
     });
   }
 
+  /**
+   * Default configuration options for certain authentication types.
+   * Any one of these can be overridden by what's in "conf" in the database.
+   */
   private get_extra_default_opts({
     name,
     type,
@@ -408,17 +412,18 @@ export class PassportManager {
         // see https://github.com/node-saml/passport-saml#config-parameter-details
         const cachedMS = ms("8 hours");
         return {
-          issuer: this.auth_url,
-          signatureAlgorithm: "sha256", // better than default sha1
-          digestAlgorithm: "sha256", // better than default sha1
-          wantAssertionsSigned: true,
           acceptedClockSkewMs: ms("5 minutes"),
+          audience: false, // Starting with version 4, this must be set (a string) or false.
+          cacheProvider: getPassportCache(name, cachedMS),
+          digestAlgorithm: "sha256", // better than default sha1
           // if "*:persistent" doesn't work, use *:emailAddress
           identifierFormat:
             "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+          issuer: this.auth_url,
           requestIdExpirationPeriodMs: cachedMS,
+          signatureAlgorithm: "sha256", // better than default sha1
           validateInResponseTo: true,
-          cacheProvider: getPassportCache(name, cachedMS),
+          wantAssertionsSigned: true,
         };
     }
   }
@@ -431,7 +436,7 @@ export class PassportManager {
       "display", // deprecated
       "type",
       "icon", // deprecated
-      "login_info", // already extracted, see login_info field above
+      "login_info", // already extracted, see init_extra_strategies
       "clientID",
       "clientSecret",
       "userinfoURL",
