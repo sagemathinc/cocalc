@@ -3,8 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { to_human_list } from "@cocalc/util/misc";
 import { Card, Col, Layout, Row, Typography } from "antd";
+import Link from "next/link";
+
+import { to_human_list } from "@cocalc/util/misc";
 import { StrategyAvatar } from "components/auth/sso";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -15,7 +17,6 @@ import { Customize, CustomizeType } from "lib/customize";
 import { getSSO } from "lib/sso/sso";
 import { SSO } from "lib/sso/types";
 import withCustomize from "lib/with-customize";
-import Link from "next/link";
 
 const { Paragraph, Text } = Typography;
 

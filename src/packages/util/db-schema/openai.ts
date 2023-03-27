@@ -2,6 +2,8 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 
+export type Model = "gpt-3.5-turbo" | "gpt-4";
+
 export interface ChatGPTLogEntry {
   id: number;
   time: Date;
@@ -13,6 +15,7 @@ export interface ChatGPTLogEntry {
   account_id?: string;
   project_id?: string;
   path?: string;
+  model?: Model;
 }
 
 Table({
@@ -74,6 +77,13 @@ Table({
     path: {
       type: "string",
     },
+    expire: {
+      type: "timestamp",
+      desc: "optional future date, when the entry will be deleted",
+    },
+    model: {
+      type: "string",
+    },
   },
   rules: {
     desc: "OpenAI ChatGPT Log",
@@ -94,6 +104,17 @@ Table({
           project_id: null,
           path: null,
           history: null,
+          expire: null,
+          model: null,
+        },
+      },
+      set: {
+        // this is so that a user can expire any chats they wanted to have expunged from
+        // the system completely.
+        fields: {
+          account_id: "account_id",
+          id: true,
+          expire: true,
         },
       },
     },
@@ -122,6 +143,7 @@ Table({
           project_id: null,
           path: null,
           history: null,
+          model: null,
         },
       },
     },

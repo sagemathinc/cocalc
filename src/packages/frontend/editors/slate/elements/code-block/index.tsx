@@ -41,6 +41,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
 function toSlate({ token }) {
   // fence =block of code with ``` around it, but not indented.
   let value = token.content;
+
   // We remove the last carriage return (right before ```), since it
   // is much easier to do that here...
   if (value[value.length - 1] == "\n") {

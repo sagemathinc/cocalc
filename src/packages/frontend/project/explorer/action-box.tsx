@@ -16,6 +16,8 @@ import { in_snapshot_path } from "../utils";
 
 import * as misc from "@cocalc/util/misc";
 
+import { Button as AntdButton } from "antd";
+
 import {
   Button,
   ButtonToolbar,
@@ -29,7 +31,7 @@ import {
 } from "react-bootstrap";
 import * as account from "@cocalc/frontend/account";
 
-import { Configure as ConfigureShare } from "@cocalc/frontend/share/config";
+import ConfigureShare from "@cocalc/frontend/share/config";
 
 type FileAction = undefined | keyof typeof file_actions;
 
@@ -904,20 +906,29 @@ export const ActionBox = rclass<ReactProps>(
         return <Loading />;
       } else {
         return (
-          <Well>
+          <Well
+            style={{
+              margin: "15px 30px",
+              overflowY: "auto",
+              maxHeight: "50vh",
+              backgroundColor: "#fafafa",
+            }}
+          >
             <Row>
               <Col
                 sm={12}
                 style={{ color: "#666", fontWeight: "bold", fontSize: "15pt" }}
               >
-                <Icon
-                  name={
-                    action_button.icon != undefined
-                      ? action_button.icon
-                      : "exclamation-circle"
-                  }
-                />{" "}
+                <Icon name={action_button.icon ?? "exclamation-circle"} />{" "}
                 {action_button.name}
+                <div style={{ float: "right" }}>
+                  <AntdButton
+                    onClick={this.cancel_action.bind(this)}
+                    type="text"
+                  >
+                    <Icon name="times" />
+                  </AntdButton>
+                </div>
               </Col>
               <Col sm={12}>{this.render_action_box(action)}</Col>
             </Row>

@@ -17,7 +17,6 @@ import {
 import { List } from "immutable";
 import { debounce } from "lodash";
 import { ReactNode } from "react";
-
 import {
   Button as AntdBootstrapButton,
   ButtonGroup,
@@ -26,6 +25,7 @@ import {
 import {
   CSS,
   React,
+  redux,
   Rendered,
   useEffect,
   useForceUpdate,
@@ -53,6 +53,7 @@ import { get_default_font_size } from "../generic/client";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
+import ChatGPT from "./chatgpt";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -945,6 +946,27 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_chatgpt(labels): Rendered {
+    if (
+      !is_visible("chatgpt") ||
+      !redux.getStore("projects").hasOpenAI(props.project_id)
+    ) {
+      return;
+    }
+    return (
+      <ChatGPT
+        key={"chatgpt"}
+        id={props.id}
+        actions={props.actions}
+        ButtonComponent={Button}
+        buttonSize={button_size()}
+        buttonStyle={button_style()}
+        labels={labels}
+        visible={props.tab_is_visible && props.is_visible}
+      />
+    );
+  }
+
   function render_reload(labels): Rendered {
     if (!is_visible("reload", true)) {
       return;
@@ -1064,7 +1086,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (!is_public) {
       if ((x = render_timetravel(labels))) v.push(x);
     }
+    if ((x = render_chatgpt(labels))) v.push(x);
     if ((x = render_reload(labels))) v.push(x);
+    if (v.length == 1) return v[0];
     if (v.length > 0) {
       return <ButtonGroup key={"save-group"}>{v}</ButtonGroup>;
     }

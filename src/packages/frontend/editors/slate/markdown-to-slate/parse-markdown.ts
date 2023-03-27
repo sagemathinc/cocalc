@@ -83,6 +83,8 @@ export function parse_markdown(
   // const t0 = new Date().valueOf();
   let meta: undefined | string = undefined;
 
+  markdown = trailingCodeblockWhitespaceHack(markdown);
+
   if (!no_meta) {
     const x = parseHeader(markdown);
     markdown = x.body;
@@ -99,4 +101,21 @@ export function parse_markdown(
   // console.log("time: parse_markdown", new Date().valueOf() - t0, " ms");
   // console.log("tokens", tokens);
   return { tokens, meta, lines, references: state.references };
+}
+
+function trailingCodeblockWhitespaceHack(markdown: string): string {
+  // Markdown-it leaves in the ending ``` when there happens to be
+  // whitespace after it, but otherwise doesn't.  This throws off the
+  // code below, so we have to strip it. See
+  //   https://github.com/sagemathinc/cocalc/issues/6564
+  // I don't understand *why* this is needed, but it should be harmless
+  // and I can't find any way around doing this.  I tried disabling all
+  // extensions, updating markdown-it, etc., and it just parses
+  // code blocks wrong if there is trailing whitespace, despite the
+  // online demo seeming fine.
+  // This reg exp just deletes the trailing whitespace from the backticks
+  // that define code blocks.  it's tricky since it involves capture groups
+  // since one can use more than 3 backticks as a delimiter.
+
+  return markdown.replace(/^(```+)\s+$/gm, "$1");
 }

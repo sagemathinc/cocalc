@@ -71,7 +71,7 @@ export const ShareIndicator: React.FC<Props> = React.memo(
         >
           <Icon name={is_public ? "bullhorn" : "lock"} />
           <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
-            {is_public ? "Public" : "Publish"}
+            {is_public ? "Published" : "Publish"}
           </HiddenXSSM>
         </Button>
       </div>

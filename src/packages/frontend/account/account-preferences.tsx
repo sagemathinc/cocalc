@@ -3,11 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useTypedRedux } from "../app-framework";
+import { redux, useTypedRedux } from "../app-framework";
 import { ProfileSettings } from "./profile-settings";
 import { TerminalSettings } from "./terminal-settings";
 import { KeyboardSettings } from "./keyboard-settings";
 import { AccountSettings } from "./settings/account-settings";
+import { Checkbox, Tooltip } from "antd";
 import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "@cocalc/frontend/customize";
 import { OtherSettings } from "./other-settings";
@@ -78,6 +79,20 @@ export const AccountPreferences: React.FC = () => {
   function render_all_settings(): JSX.Element {
     return (
       <>
+        <div style={{ float: "right" }}>
+          <Tooltip title="Enable dark mode across the entire user interface. See further dark mode configuration below.">
+            <Checkbox
+              checked={other_settings.get("dark_mode")}
+              onChange={(e) => {
+                redux
+                  .getActions("account")
+                  .set_other_settings("dark_mode", e.target.checked);
+              }}
+            >
+              Dark Mode
+            </Checkbox>
+          </Tooltip>
+        </div>
         <h2>Quick Preferences</h2>
         <div style={{ fontSize: "14pt" }}>
           Quickly adjust key preferences below.{" "}

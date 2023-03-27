@@ -159,7 +159,7 @@ export const FILE_ACTIONS = {
     allows_multiple_files: true,
   },
   share: {
-    name: "Public",
+    name: "Publish",
     icon: "share-square" as IconName,
     allows_multiple_files: false,
   },
@@ -963,7 +963,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
-  open_chat({ path }: { path: string }): void {
+  open_chat({ path, width = 0.7 }: { path: string; width?: number }): void {
     const info = this.get_store()?.get("open_files").getIn([path, "component"]);
     if (info?.Editor == null) {
       // not opened in the foreground yet.
@@ -974,7 +974,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const editorActions = redux.getEditorActions(this.project_id, path);
     if (editorActions?.["show_focused_frame_of_type"] != null) {
       // @ts-ignore -- todo will go away when everything is a frame editor
-      editorActions.show_focused_frame_of_type("chat", "col", false, 0.7);
+      editorActions.show_focused_frame_of_type("chat", "col", false, width);
       this.set_chat_state(path, "internal");
       local_storage(this.project_id, path, "chatState", "internal");
     } else {

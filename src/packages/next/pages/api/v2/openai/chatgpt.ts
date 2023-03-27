@@ -14,7 +14,7 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req) {
-  const { input, system, history } = getParams(req);
+  const { input, system, history, model } = getParams(req);
   const account_id = await getAccountId(req);
   const analytics_cookie = req.cookies[analytics_cookie_name];
   return {
@@ -24,6 +24,7 @@ async function doIt(req) {
       input,
       system,
       history,
+      model,
     }),
   };
 }
