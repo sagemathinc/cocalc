@@ -175,6 +175,8 @@ file_associations["tex"] = {
   name: "LaTeX",
 };
 
+file_associations["latex"] = file_associations["tex"];
+
 // actual editor is defined in frame-editors.
 // I'm just putting this here so it appears in the +New menu.
 file_associations["csv"] = {

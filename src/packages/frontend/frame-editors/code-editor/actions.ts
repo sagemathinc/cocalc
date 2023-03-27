@@ -26,7 +26,7 @@ import {
 } from "../generic/client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { SyncString } from "@cocalc/sync/editor/string";
-import { aux_file } from "@cocalc/util/misc";
+import { aux_file, capitalize } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
 import { print_code } from "../frame-tree/print-code";
@@ -2819,21 +2819,25 @@ export class Actions<
     if (!cm) {
       throw Error("Only cm editor summary currently implemented");
     }
-    const selected = cm.getSelection()?.trim();
-    console.log(selected);
-    if (!selected) {
-      throw Error("You must select something");
+    let code = cm.getSelection()?.trim();
+    if (!code) {
+      code = cm.getValue()?.trim();
+    }
+    // arbitrarily truncating at 5000 characters -- we could lazy import
+    // and use the tokenizer, but this should be fine for now.
+    if (code.length > 5000) {
+      code = code.slice(0, 5000) + "\n...";
     }
     const chatActions = await getChatActions(
       this.redux,
       this.project_id,
       this.path
     );
-    const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${command} the following code from the file ${
-      this.path
-    }:
-\`\`\`
-${selected}
+    const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
+      command
+    )} the following code from the file ${this.path}:
+\`\`\`${filename_extension(this.path)}
+${code}
 \`\`\`
 ${codegen ? "Show the new version." : ""}`;
     // scroll to bottom *after* the message gets sent.

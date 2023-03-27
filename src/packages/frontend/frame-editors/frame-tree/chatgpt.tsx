@@ -1,4 +1,10 @@
-import { Alert, Popover, Space, Button, Input } from "antd";
+/*
+A ChatGPT component that allows users to interact with OpenAI's language model
+for several text and code related function.  This calls the chatgpt actions
+to do the work.
+*/
+
+import { Alert, Popover, Space, Button, Tooltip, Input } from "antd";
 
 import { useState } from "react";
 import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
@@ -13,6 +19,8 @@ interface Props {
   labels?: boolean;
   visible?: boolean;
 }
+
+const actionStyle = { width: "100%" };
 
 export default function ChatGPT({
   id,
@@ -57,61 +65,116 @@ export default function ChatGPT({
       open={visible && showChatGPT}
       content={() => {
         return (
-          <Space direction="vertical" style={{ width: "400px" }}>
-            What would you like ChatGPT to do with the selection?
+          <Space direction="vertical" style={{ width: "300px" }}>
+            What would you like ChatGPT to do?
+            <div style={{ display: "flex" }}>
+              <Button
+                onClick={() => chatgpt({ command: "summarize" })}
+                style={actionStyle}
+              >
+                <Icon name="bolt" />
+                Summarize
+              </Button>
+              <div style={{ width: "15px" }} />
+              <Button
+                onClick={() =>
+                  chatgpt({ command: "summarize in one sentence" })
+                }
+                style={actionStyle}
+              >
+                <Icon name="dot-circle" />
+                One Sentence
+              </Button>
+            </div>
             <Button
-              size="large"
-              type="text"
-              onClick={() => chatgpt({ command: "very short summarize" })}
-            >
-              Short Summary
-            </Button>
-            <Button
-              size="large"
-              type="text"
-              onClick={() => chatgpt({ command: "summarize" })}
-            >
-              Summarize
-            </Button>
-            <Button
-              size="large"
-              type="text"
+              style={actionStyle}
               onClick={() =>
-                chatgpt({ command: "fix all syntax errors in ", codegen: true })
+                chatgpt({ command: "fix all errors in ", codegen: true })
               }
             >
-              Fix Syntax Errors
+              <Icon name="bug" />
+              Fix Errors
             </Button>
             <Button
-              size="large"
-              type="text"
+              style={actionStyle}
               onClick={() =>
                 chatgpt({ command: "add comments to", codegen: true })
               }
             >
+              <Icon name="comment" />
               Add Comments
             </Button>
+            <div style={{ display: "flex" }}>
+              <Button
+                style={actionStyle}
+                onClick={() => chatgpt({ command: "explain", codegen: false })}
+              >
+                <Icon name="bullhorn" />
+                Explain
+              </Button>
+              <div style={{ width: "15px" }} />
+              <Button
+                onClick={() =>
+                  chatgpt({
+                    command: "explain like I am 5 years old",
+                    codegen: false,
+                  })
+                }
+                style={actionStyle}
+              >
+                <Icon name="user" />
+                Like I am 5
+              </Button>
+            </div>
             <Button
-              size="large"
-              type="text"
+              style={actionStyle}
               onClick={() => chatgpt({ command: "Complete ", codegen: true })}
             >
-              Guess what comes next
+              <Icon name="pen" />
+              Write More
             </Button>
-            <Input.TextArea
-              placeholder="Describe anything else you can possibly imagine..."
-              value={generic}
-              onChange={(e) => setGeneric(e.target.value)}
-            />
-            {generic.trim() && (
-              <Button
-                size="large"
-                onClick={() => chatgpt({ command: generic, codegen: true })}
-              >
-                Do It
-              </Button>
-            )}
+            <Button
+              style={actionStyle}
+              onClick={() =>
+                chatgpt({
+                  command: "review for quality and correctness",
+                  codegen: false,
+                })
+              }
+            >
+              <Icon name="graduation-cap" />
+              Quality Review
+            </Button>
+            <div style={{ marginLeft: "15px" }}>
+              Describe anything at all:
+              <Input.TextArea
+                rows={3}
+                placeholder="Anything!  Translate to another language, convert to camelCase, make poetic, etc., ..."
+                value={generic}
+                onChange={(e) => setGeneric(e.target.value)}
+              />
+              {generic.trim() && (
+                <Button
+                  type="primary"
+                  style={{ marginTop: "5px" }}
+                  onClick={() => chatgpt({ command: generic, codegen: true })}
+                >
+                  Do It
+                </Button>
+              )}
+            </div>
             {error && <Alert type="error" message={error} />}
+            <div
+              style={{
+                marginTop: "5px",
+                borderTop: "1px solid #eee",
+                color: "#666",
+                fontSize: "11px",
+              }}
+            >
+              If you select text, ChatGPT will look only at the selection.
+              Otherwise, it looks at the first 5000 characters of your document.
+            </div>
           </Space>
         );
       }}
@@ -124,7 +187,9 @@ export default function ChatGPT({
           setShowChatGPT(!showChatGPT);
         }}
       >
-        <OpenAIAvatar size={20} style={{ marginTop: "-5px" }} />{" "}
+        <Tooltip title="Get assistance from ChatGPT">
+          <OpenAIAvatar size={20} style={{ marginTop: "-5px" }} />{" "}
+        </Tooltip>
         <VisibleMDLG>{labels ? "ChatGPT..." : undefined}</VisibleMDLG>
       </ButtonComponent>
     </Popover>

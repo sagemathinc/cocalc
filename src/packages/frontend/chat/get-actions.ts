@@ -10,7 +10,7 @@ export default async function getChatActions(
   project_id: string,
   path: string,
   maxWaitSeconds: number = 10,
-  width: number = 0.6
+  width: number = 0.7
 ): Promise<ChatActions> {
   const projectActions = redux.getProjectActions(project_id);
   projectActions.open_chat({ path: path, width });
