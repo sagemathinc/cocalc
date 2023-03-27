@@ -1812,7 +1812,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
               }}
               step={-1}
               value={props.page}
-              onChange={(page) => {
+              onChange={(page: number) => {
                 if (!page) return;
                 if (page <= 1) {
                   page = 1;
