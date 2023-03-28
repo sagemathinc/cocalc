@@ -17,7 +17,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { ProjectLog } from "@cocalc/frontend/project/history";
 import ProjectImage from "@cocalc/frontend/project/settings/image";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { GPTGenerateFile } from "./gpt-generate-file";
+import ChatGPTGenerateJupyterNotebook from "./chatgpt-generate-jupyter";
 import { Block } from "./block";
 
 /*
@@ -94,7 +94,7 @@ export default function HomePage({ project_id }) {
           <StaticMarkdown value={desc} />
         </Col>
         <Col span={12}>
-          <GPTGenerateFile project_id={project_id} />
+          <ChatGPTGenerateJupyterNotebook project_id={project_id} />
         </Col>
         <Col span={12}>
           <Block style={{ margin: "auto" }}>

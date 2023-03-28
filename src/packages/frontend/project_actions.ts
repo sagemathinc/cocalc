@@ -2856,7 +2856,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const full_path = segments.slice(1).join("/");
     const parent_path = segments.slice(1, segments.length - 1).join("/");
     const last = segments.slice(-1).join();
-    const main_segment = segments[0] as FixedTab;
+    const main_segment = segments[0] as FixedTab | "home";
     switch (main_segment) {
       case "files":
         if (target.endsWith("/") || full_path === "") {
