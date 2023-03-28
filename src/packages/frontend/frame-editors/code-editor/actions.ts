@@ -2821,7 +2821,7 @@ export class Actions<
 
   // Overload this in a derived class to support editors other than cm.
   // This is used by the chatgpt function.
-  getText(
+  chatgptGetText(
     frameId: string,
     scope: "selection" | "cell" | "all" = "all"
   ): string {
@@ -2833,16 +2833,32 @@ export class Actions<
     }
   }
 
+  // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
+  chatgptExtraFileInfo(): string {
+    return "";
+  }
+
+  chatgptGetLanguage(): string {
+    return filename_extension(this.path);
+  }
+
   async chatgpt(
     frameId: string,
-    { codegen, command }: { codegen?: boolean; command: string }
+    {
+      codegen,
+      command,
+      allowEmpty,
+    }: { codegen?: boolean; command: string; allowEmpty?: boolean }
   ) {
-    let input = this.getText(frameId, "selection");
+    let input = this.chatgptGetText(frameId, "selection");
     if (!input) {
-      input = this.getText(frameId, "cell");
+      input = this.chatgptGetText(frameId, "cell");
     }
     if (!input) {
-      input = this.getText(frameId, "all");
+      input = this.chatgptGetText(frameId, "all");
+    }
+    if (!input && !allowEmpty) {
+      throw Error("Please write or select something.");
     }
     // Truncate input (also this MUST lazy import):
     const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(
@@ -2860,13 +2876,18 @@ export class Actions<
       this.path
     );
     const delim = backtickSequence(input);
-    const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
+    let message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
       command
-    )} the following ${codegen ? "code" : ""} from the file ${this.path}:
-${delim}${filename_extension(this.path)}
+    )} the following ${codegen ? "code" : ""} from the file ${
+      this.path
+    } ${this.chatgptExtraFileInfo()}:`;
+    if (input) {
+      message += `
+${delim}${this.chatgptGetLanguage()}
 ${input}
 ${delim}
 ${codegen ? "Show the new version." : ""}`;
+    }
     // scroll to bottom *after* the message gets sent.
     setTimeout(() => chatActions.scrollToBottom(), 100);
     await chatActions.send_chat(message);

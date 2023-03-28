@@ -147,7 +147,13 @@ export default function ChatGPT({
                 <Button
                   type="primary"
                   style={{ marginTop: "5px" }}
-                  onClick={() => chatgpt({ command: generic, codegen: false })}
+                  onClick={() =>
+                    chatgpt({
+                      command: generic,
+                      codegen: false,
+                      allowEmpty: true,
+                    })
+                  }
                 >
                   Do It
                 </Button>
@@ -164,7 +170,8 @@ export default function ChatGPT({
               }}
             >
               Select text and ChatGPT will only look at the selection.
-              Otherwise, it looks at the first few thousand words of your file.
+              Otherwise, it looks at the current cell or first few thousand
+              words of your file.
             </div>
           </Space>
         );

@@ -428,6 +428,73 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       return;
     }
   }
+
+  chatgptGetText(
+    frameId: string,
+    scope: "selection" | "cell" | "all" = "all"
+  ): string {
+    const actions = this.frame_actions[frameId];
+    if (!actions) return ""; // no frames (?)
+    if (scope == "selection") {
+      const selected_cells = actions.store.get_selected_cell_ids_list();
+      if (selected_cells != null && selected_cells.length > 1) {
+        // get all content of all selected cells.
+        let s = "";
+        for (const id of selected_cells) {
+          if (this.jupyter_actions.store.get_cell_type(id) == "code") {
+            s += "\n" + actions.get_cell_input(id);
+          }
+        }
+        return s;
+      }
+    }
+    if (scope == "all") {
+      let s = "";
+      for (const id of this.jupyter_actions.store.get("cell_list") ?? []) {
+        if (this.jupyter_actions.store.get_cell_type(id) == "code") {
+          s += "\n" + actions.get_cell_input(id);
+        }
+      }
+      return s;
+    }
+
+    // current cell or selection in it:
+    const cur_id = actions.store.get("cur_id");
+    if (scope == "selection") {
+      return actions.getCellSelection(cur_id);
+    }
+    if (scope == "cell") {
+      const cur = actions.get_cell_input(cur_id)?.trim();
+      if (!cur) {
+        // previous code -- TODO: one problem is that this will get truncated at the
+        // bottom instead of top, which is bad if it is really big.
+        let s = "";
+        for (const id of this.jupyter_actions.store.get("cell_list") ?? []) {
+          if (id == cur_id) { // done!
+            return s;
+          }
+          if (this.jupyter_actions.store.get_cell_type(id) == "code") {
+            s += "\n" + actions.get_cell_input(id);
+          }
+        }
+        return s;
+      }
+    }
+    return "";
+  }
+
+  chatgptGetLanguage(): string {
+    return (
+      this.jupyter_actions.store.getIn(["kernel_info", "language"]) ?? "py"
+    );
+  }
+
+  // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
+  chatgptExtraFileInfo(): string {
+    const kernel =
+      this.jupyter_actions.store.getIn(["kernel_info", "display_name"]) ?? "";
+    return `, which is a Jupyter notebook using the ${kernel} kernel`;
+  }
 }
 
 export { JupyterEditorActions as Actions };
