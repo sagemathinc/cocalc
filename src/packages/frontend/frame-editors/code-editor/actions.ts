@@ -4,7 +4,15 @@
  */
 
 /*
-Code Editor Actions
+Code Editor Actions -- This the base class for all frame editor actions.
+
+It defines saving files, managing cursor positions, managing gutter markers, and
+managing terminals. It also contains functions for handling formatting and
+spell checking, as well as utility functions for working with the editor state.
+
+WARNING: Some editors (e.g., for X11 and Jupyter) have actions tha derive from this, even
+though they aren't used for code editing. That's basically a shortcoming of the
+design.
 */
 
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/";
@@ -2811,37 +2819,84 @@ export class Actions<
     return frameId;
   }
 
+  // Overload this in a derived class to support editors other than cm.
+  // This is used by the chatgpt function.
+  getText(
+    frameId: string,
+    scope: "selection" | "cell" | "all" = "all"
+  ): string {
+    switch (scope) {
+      case "selection":
+        return this._get_cm(frameId)?.getSelection()?.trim() ?? "";
+      default:
+        return this._get_cm(frameId)?.getValue()?.trim() ?? "";
+    }
+  }
+
   async chatgpt(
     frameId: string,
     { codegen, command }: { codegen?: boolean; command: string }
   ) {
-    const cm = this._get_cm(frameId);
-    if (!cm) {
-      throw Error("Only cm editor summary currently implemented");
+    let input = this.getText(frameId, "selection");
+    if (!input) {
+      input = this.getText(frameId, "cell");
     }
-    let code = cm.getSelection()?.trim();
-    if (!code) {
-      code = cm.getValue()?.trim();
+    if (!input) {
+      input = this.getText(frameId, "all");
     }
-    // arbitrarily truncating at 5000 characters -- we could lazy import
-    // and use the tokenizer, but this should be fine for now.
-    if (code.length > 5000) {
-      code = code.slice(0, 5000) + "\n...";
+    // Truncate input (also this MUST lazy import):
+    const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(
+      "@cocalc/frontend/misc/openai"
+    );
+    const n = numTokens(input);
+    const maxTokens = Math.floor(MAX_CHATGPT_TOKENS / 2); // output might easily be as big as input...
+    if (n >= maxTokens) {
+      input = truncateMessage(input, maxTokens) + "\n...";
     }
+
     const chatActions = await getChatActions(
       this.redux,
       this.project_id,
       this.path
     );
+    const delim = backtickSequence(input);
     const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
       command
-    )} the following code from the file ${this.path}:
-\`\`\`${filename_extension(this.path)}
-${code}
-\`\`\`
+    )} the following ${codegen ? "code" : ""} from the file ${this.path}:
+${delim}${filename_extension(this.path)}
+${input}
+${delim}
 ${codegen ? "Show the new version." : ""}`;
     // scroll to bottom *after* the message gets sent.
     setTimeout(() => chatActions.scrollToBottom(), 100);
     await chatActions.send_chat(message);
   }
+}
+
+// written by chatgpt
+function backtickSequence(str) {
+  let longestSequence = "";
+  let currentSequence = "";
+  let lastChar = null;
+
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+
+    if (char === "`" && lastChar === "`") {
+      currentSequence += char;
+    } else {
+      if (currentSequence.length > longestSequence.length) {
+        longestSequence = currentSequence;
+      }
+      currentSequence = char;
+    }
+
+    lastChar = char;
+  }
+
+  if (currentSequence.length > longestSequence.length) {
+    longestSequence = currentSequence;
+  }
+
+  return longestSequence.length < 3 ? "```" : longestSequence + "`";
 }

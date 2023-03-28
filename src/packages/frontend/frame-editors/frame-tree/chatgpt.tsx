@@ -67,6 +67,41 @@ export default function ChatGPT({
         return (
           <Space direction="vertical" style={{ width: "300px" }}>
             What would you like ChatGPT to do?
+            <Button
+              style={actionStyle}
+              onClick={() => chatgpt({ command: "Complete ", codegen: true })}
+            >
+              <Icon name="pen" />
+              Autocomplete
+            </Button>
+            <Button
+              style={actionStyle}
+              onClick={() =>
+                chatgpt({ command: "fix all errors in ", codegen: true })
+              }
+            >
+              <Icon name="bug" />
+              Help me fix errors
+            </Button>
+            <div style={{ display: "flex" }}>
+              <Button
+                style={actionStyle}
+                onClick={() => chatgpt({ command: "explain", codegen: false })}
+              >
+                <Icon name="bullhorn" />
+                Explain
+              </Button>
+              <div style={{ width: "15px" }} />
+              <Button
+                style={actionStyle}
+                onClick={() =>
+                  chatgpt({ command: "add comments to", codegen: true })
+                }
+              >
+                <Icon name="comment" />
+                Add Comments
+              </Button>
+            </div>
             <div style={{ display: "flex" }}>
               <Button
                 onClick={() => chatgpt({ command: "summarize" })}
@@ -83,61 +118,15 @@ export default function ChatGPT({
                 style={actionStyle}
               >
                 <Icon name="dot-circle" />
-                One Sentence
+                Short Summary
               </Button>
             </div>
-            <Button
-              style={actionStyle}
-              onClick={() =>
-                chatgpt({ command: "fix all errors in ", codegen: true })
-              }
-            >
-              <Icon name="bug" />
-              Fix Errors
-            </Button>
-            <Button
-              style={actionStyle}
-              onClick={() =>
-                chatgpt({ command: "add comments to", codegen: true })
-              }
-            >
-              <Icon name="comment" />
-              Add Comments
-            </Button>
-            <div style={{ display: "flex" }}>
-              <Button
-                style={actionStyle}
-                onClick={() => chatgpt({ command: "explain", codegen: false })}
-              >
-                <Icon name="bullhorn" />
-                Explain
-              </Button>
-              <div style={{ width: "15px" }} />
-              <Button
-                onClick={() =>
-                  chatgpt({
-                    command: "explain like I am 5 years old",
-                    codegen: false,
-                  })
-                }
-                style={actionStyle}
-              >
-                <Icon name="user" />
-                Like I am 5
-              </Button>
-            </div>
-            <Button
-              style={actionStyle}
-              onClick={() => chatgpt({ command: "Complete ", codegen: true })}
-            >
-              <Icon name="pen" />
-              Write More
-            </Button>
             <Button
               style={actionStyle}
               onClick={() =>
                 chatgpt({
-                  command: "review for quality and correctness",
+                  command:
+                    "review for quality and correctness and suggest improvements",
                   codegen: false,
                 })
               }
@@ -146,10 +135,11 @@ export default function ChatGPT({
               Quality Review
             </Button>
             <div style={{ marginLeft: "15px" }}>
-              Describe anything at all:
+              Ask ChatGPT to do anything:
               <Input.TextArea
+                style={{ marginTop: "5px" }}
                 rows={3}
-                placeholder="Anything!  Translate to another language, convert to camelCase, make poetic, etc., ..."
+                placeholder="Translate to Python, draw a plot, write a song..."
                 value={generic}
                 onChange={(e) => setGeneric(e.target.value)}
               />
@@ -157,7 +147,7 @@ export default function ChatGPT({
                 <Button
                   type="primary"
                   style={{ marginTop: "5px" }}
-                  onClick={() => chatgpt({ command: generic, codegen: true })}
+                  onClick={() => chatgpt({ command: generic, codegen: false })}
                 >
                   Do It
                 </Button>
@@ -167,13 +157,14 @@ export default function ChatGPT({
             <div
               style={{
                 marginTop: "5px",
+                paddingTop: "5px",
                 borderTop: "1px solid #eee",
                 color: "#666",
-                fontSize: "11px",
+                fontSize: "10pt",
               }}
             >
-              If you select text, ChatGPT will look only at the selection.
-              Otherwise, it looks at the first 5000 characters of your document.
+              Select text and ChatGPT will only look at the selection.
+              Otherwise, it looks at the first few thousand words of your file.
             </div>
           </Space>
         );
