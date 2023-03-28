@@ -39,7 +39,7 @@ import { ProjectInfo } from "@cocalc/frontend/project/info";
 export default function HomePage({ project_id }) {
   const desc = useRedux(["projects", "project_map", project_id, "description"]);
   const actions = useActions({ project_id });
-  const [error, setError] = useState<string>("I am the errro");
+  const [error, setError] = useState<string>("");
   const [avatarImage, setAvatarImage] = useState<string | undefined>(undefined);
   useEffect(() => {
     (async () => {
