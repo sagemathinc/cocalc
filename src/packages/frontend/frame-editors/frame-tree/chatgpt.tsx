@@ -1,12 +1,17 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 A ChatGPT component that allows users to interact with OpenAI's language model
 for several text and code related function.  This calls the chatgpt actions
 to do the work.
 */
 
-import { Alert, Popover, Space, Button, Tooltip, Input } from "antd";
-
+import { Alert, Button, Input, Popover, Space, Tooltip } from "antd";
 import { useState } from "react";
+
 import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 

@@ -1,15 +1,24 @@
-import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Alert, Col, Row } from "antd";
+import { useState } from "react";
+
 import {
+  redux,
   useActions,
   useEffect,
   useRedux,
-  redux,
 } from "@cocalc/frontend/app-framework";
+import { Title } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { ProjectLog } from "@cocalc/frontend/project/history";
-import { useState } from "react";
 import ProjectImage from "@cocalc/frontend/project/settings/image";
-import { Alert } from "antd";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { GPTGenerateFile } from "./gpt-generate-file";
+import { Block } from "./block";
 
 /*
 import { Explorer } from "@cocalc/frontend/project/explorer";
@@ -26,23 +35,6 @@ import { ProjectInfo } from "@cocalc/frontend/project/info";
       </Block>
       */
 
-function Block({ children, onClick, style }: { children; onClick?; style? }) {
-  return (
-    <div
-      onClick={onClick}
-      className="smc-vfill"
-      style={{
-        maxWidth: "800px",
-        height: "500px",
-        border: "1px solid #ddd",
-        overflowY: "auto",
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
 
 export default function HomePage({ project_id }) {
   const desc = useRedux(["projects", "project_map", project_id, "description"]);
@@ -59,19 +51,15 @@ export default function HomePage({ project_id }) {
 
   return (
     <div style={{ margin: "15px" }}>
-      <div
-        style={{
-          overflow: "auto",
-          display: "flex",
-        }}
-      >
-        <div style={{ flex: 1, textAlign: "center", padding: "0 30px" }}>
-          <h1
+      <Row gutter={[30, 30]}>
+        <Col span={12} style={{ textAlign: "center" }}>
+          <Title
+            level={2}
             onClick={() => actions?.set_active_tab("settings")}
             style={{ cursor: "pointer" }}
           >
             <ProjectTitle project_id={project_id} noClick />
-          </h1>
+          </Title>
           {error && (
             <Alert
               style={{ marginTop: "15px" }}
@@ -93,24 +81,28 @@ export default function HomePage({ project_id }) {
               }
             }}
           />
-        </div>
-        <div
+        </Col>
+        <Col
+          span={12}
           style={{
             flex: 1,
             cursor: "pointer",
             maxHeight: "300px",
             overflow: "auto",
-            margin: "0 30px",
           }}
           onClick={() => actions?.set_active_tab("settings")}
         >
           <StaticMarkdown value={desc} />
-        </div>
-      </div>
-      <br />
-      <Block style={{ margin: "auto" }}>
-        <ProjectLog project_id={project_id} />
-      </Block>
+        </Col>
+        <Col span={12}>
+          <Block style={{ margin: "auto" }}>
+            <ProjectLog project_id={project_id} />
+          </Block>
+        </Col>
+        <Col span={12}>
+          <GPTGenerateFile project_id={project_id} />
+        </Col>
+      </Row>
     </div>
   );
 }
