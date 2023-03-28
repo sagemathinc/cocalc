@@ -35,7 +35,6 @@ import { ProjectInfo } from "@cocalc/frontend/project/info";
       </Block>
       */
 
-
 export default function HomePage({ project_id }) {
   const desc = useRedux(["projects", "project_map", project_id, "description"]);
   const actions = useActions({ project_id });
@@ -95,12 +94,12 @@ export default function HomePage({ project_id }) {
           <StaticMarkdown value={desc} />
         </Col>
         <Col span={12}>
+          <GPTGenerateFile project_id={project_id} />
+        </Col>
+        <Col span={12}>
           <Block style={{ margin: "auto" }}>
             <ProjectLog project_id={project_id} />
           </Block>
-        </Col>
-        <Col span={12}>
-          <GPTGenerateFile project_id={project_id} />
         </Col>
       </Row>
     </div>

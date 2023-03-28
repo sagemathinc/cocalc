@@ -14,10 +14,11 @@ Specs: https://jupyter-client.readthedocs.io/en/stable/kernels.html#kernel-specs
 import { findAll } from "kernelspecs";
 import { field_cmp } from "@cocalc/util/misc";
 import LRU from "lru-cache";
+import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 
 const cache = new LRU({ ttl: 5000, max: 1000 });
 
-export async function get_kernel_data(): Promise<any> {
+export async function get_kernel_data(): Promise<KernelSpec> {
   let kernel_data = cache.get("kernel_data") as any;
   if (kernel_data != null) {
     return kernel_data;

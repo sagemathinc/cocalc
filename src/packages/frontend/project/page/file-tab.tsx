@@ -28,6 +28,7 @@ import { PROJECT_INFO_TITLE } from "../info";
 const { file_options } = require("@cocalc/frontend/editor");
 
 export type FixedTab =
+  | "home"
   | "files"
   | "new"
   | "log"

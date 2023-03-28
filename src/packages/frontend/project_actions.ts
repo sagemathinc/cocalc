@@ -2918,6 +2918,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_active_tab("log", { change_history: change_history });
         break;
 
+      case "home":
+        this.set_active_tab("home", { change_history: change_history });
+        break;
+
       case "settings":
         this.set_active_tab("settings", { change_history: change_history });
         break;

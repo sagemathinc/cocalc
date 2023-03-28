@@ -75,7 +75,7 @@ export default function ProjectImage({ avatarImage, onChange }: Props) {
               <InboxOutlined />
             </p>
           )}
-          <p className="ant-upload-text">Click or drag image to change</p>
+          <p className="ant-upload-text">Click or drag project image</p>
         </Upload.Dragger>
       </ImgCrop>
       {error && (

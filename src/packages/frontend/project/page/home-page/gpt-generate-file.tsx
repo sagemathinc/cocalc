@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Input, Radio, RadioChangeEvent } from "antd";
+import { Alert, Button, Input, Radio, RadioChangeEvent } from "antd";
 import { useState, useEffect } from "react";
-
+import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
+import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import {
   redux,
   useActions,
@@ -14,6 +15,7 @@ import {
 import {
   A,
   Icon,
+  Loading,
   Markdown,
   Paragraph,
   Text,
@@ -62,6 +64,21 @@ const LANG_EXTRA: { [key in Languages]: string } = {
 
 export function GPTGenerateFile(props: { project_id: string }) {
   const { project_id } = props;
+  const [kernelSpec, setKernelSpec] = useState<KernelSpec[] | null | string>(
+    null
+  );
+  useEffect(() => {
+    (async () => {
+      try {
+        setKernelSpec(null);
+        setKernelSpec(await getKernelSpec(project_id));
+      } catch (err) {
+        setKernelSpec(
+          "Unable to load Jupyter kernels.  Make sure the project is running and Jupyter is installed."
+        );
+      }
+    })();
+  }, [project_id]);
 
   const projectActions = useActions({ project_id });
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -77,6 +94,16 @@ export function GPTGenerateFile(props: { project_id: string }) {
     if (!prompt || Object.values(PLACEHOLDERS).includes(prompt))
       setPrompt(PLACEHOLDERS[lang]);
   }, [lang]);
+
+  if (kernelSpec == null) {
+    return <Loading />;
+  }
+
+  if (typeof kernelSpec == "string") {
+    return (
+      <Alert message="Error" description={kernelSpec} type="error" showIcon />
+    );
+  }
 
   async function generate() {
     setQuerying(true);
@@ -233,7 +260,8 @@ export function GPTGenerateFile(props: { project_id: string }) {
         />
       </Paragraph>
       <Paragraph>
-        Explain its content with as many details you can think of:
+        Provide a detailed description of the content. Include as many relevant
+        details as possible.
       </Paragraph>
       <Paragraph>
         <Input.TextArea
