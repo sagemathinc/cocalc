@@ -465,20 +465,22 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     }
     if (scope == "cell") {
       const cur = actions.get_cell_input(cur_id)?.trim();
-      if (!cur) {
-        // previous code -- TODO: one problem is that this will get truncated at the
-        // bottom instead of top, which is bad if it is really big.
-        let s = "";
-        for (const id of this.jupyter_actions.store.get("cell_list") ?? []) {
-          if (id == cur_id) { // done!
-            return s;
-          }
-          if (this.jupyter_actions.store.get_cell_type(id) == "code") {
-            s += "\n" + actions.get_cell_input(id);
-          }
-        }
-        return s;
+      if (cur) {
+        return cur;
       }
+      // previous code -- TODO: one problem is that this will get truncated at the
+      // bottom instead of top, which is bad if it is really big.
+      let s = "";
+      for (const id of this.jupyter_actions.store.get("cell_list") ?? []) {
+        if (id == cur_id) {
+          // done!
+          return s;
+        }
+        if (this.jupyter_actions.store.get_cell_type(id) == "code") {
+          s += "\n" + actions.get_cell_input(id);
+        }
+      }
+      return s;
     }
     return "";
   }
