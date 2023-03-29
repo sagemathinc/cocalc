@@ -2856,15 +2856,23 @@ export class Actions<
       tag?: string;
     }
   ) {
-    let input = this.chatgptGetText(frameId, "selection");
-    if (!input) {
-      input = this.chatgptGetText(frameId, "cell");
-    }
-    if (!input) {
-      input = this.chatgptGetText(frameId, "all");
-    }
-    if (!input && !allowEmpty) {
-      throw Error("Please write or select something.");
+    const frameType = this._get_frame_type(frameId);
+    let input;
+    if (frameType == "terminal") {
+      input = "";
+      allowEmpty = true;
+      codegen = false;
+    } else {
+      let input = this.chatgptGetText(frameId, "selection");
+      if (!input) {
+        input = this.chatgptGetText(frameId, "cell");
+      }
+      if (!input) {
+        input = this.chatgptGetText(frameId, "all");
+      }
+      if (!input && !allowEmpty) {
+        throw Error("Please write or select something.");
+      }
     }
     // Truncate input (also this MUST lazy import):
     const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(
@@ -2884,15 +2892,21 @@ export class Actions<
     const delim = backtickSequence(input);
     let message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
       command
-    )} the following ${codegen ? "code" : ""} from the file ${
-      this.path
-    } ${this.chatgptExtraFileInfo()}:`;
-    if (input.trim()) {
-      message += `
+    )} `;
+    if (frameType != "terminal") {
+      message += ` the following ${codegen ? "code" : ""} from the file ${
+        this.path
+      } ${this.chatgptExtraFileInfo()}:`;
+      if (input.trim()) {
+        message += `
 ${delim}${this.chatgptGetLanguage()}
 ${input.trim()}
 ${delim}
 ${codegen && input.trim() ? "Show the new version." : ""}`;
+      }
+    } else {
+      message +=
+        ". I am using the bash command line Ubuntu Linux terminal in CoCalc.";
     }
     // scroll to bottom *after* the message gets sent.
     setTimeout(() => chatActions.scrollToBottom(), 100);
