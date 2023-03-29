@@ -176,7 +176,7 @@ export default function ChatGPT({
 
   return (
     <Popover
-      placement="right"
+      placement="rightBottom"
       title={
         <div style={{ fontSize: "18px" }}>
           <OpenAIAvatar size={24} style={{ marginRight: "5px" }} /> ChatGPT:
