@@ -23,6 +23,7 @@ register({
         path: null,
         history: null,
         model: null,
+        tag: null,
       },
     ],
   },

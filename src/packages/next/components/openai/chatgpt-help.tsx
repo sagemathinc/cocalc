@@ -21,11 +21,13 @@ export default function ChatGPTHelp({
   prompt,
   size,
   placeholder,
+  tag = "",
 }: {
   style?: CSSProperties;
   prompt?: string;
   size?;
   placeholder?: string;
+  tag?: string;
 }) {
   const [state, setState] = useState<State>("input");
   const [focus, setFocus] = useState<boolean>(false);
@@ -51,6 +53,7 @@ export default function ChatGPTHelp({
         ({ output } = await apiPost("/openai/chatgpt", {
           input: value,
           system,
+          tag: `next:${tag}`,
         }));
       } catch (err) {
         if (counterRef.current != counter) return;

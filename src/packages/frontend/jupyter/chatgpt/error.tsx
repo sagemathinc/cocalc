@@ -110,5 +110,10 @@ Help me fix my code.
 `;
   // scroll to bottom *after* the message gets sent.
   setTimeout(() => chatActions.scrollToBottom(), 100);
-  await chatActions.send_chat(message);
+  await chatActions.send_chat(
+    message,
+    undefined,
+    undefined,
+    "jupyter-help-me-fix"
+  );
 }

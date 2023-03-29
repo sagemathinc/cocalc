@@ -136,6 +136,7 @@ export default function ChatGPTGenerateJupyterNotebook({
         input,
         project_id,
         model: "gpt-3.5-turbo",
+        tag: "generate-jupyter",
       });
       await writeNotebook(raw);
     } catch (err) {

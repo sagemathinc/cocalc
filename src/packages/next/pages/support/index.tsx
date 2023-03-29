@@ -51,7 +51,11 @@ const dataSource = [
         Our <A href="/support/chatgpt">integrated ChatGPT support</A> is free
         and often very helpful since it knows so much about the open source
         software in CoCalc.
-        <ChatGPTHelp style={{ marginTop: "15px" }} size="large" />
+        <ChatGPTHelp
+          style={{ marginTop: "15px" }}
+          size="large"
+          tag="support-index"
+        />
       </>
     ),
   },

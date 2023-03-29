@@ -96,5 +96,5 @@ ${cell.get("input")}
 `;
   // scroll to bottom *after* the message gets sent.
   setTimeout(() => chatActions.scrollToBottom(), 100);
-  await chatActions.send_chat(message);
+  await chatActions.send_chat(message, undefined, undefined, "jupyter-explain");
 }

@@ -2848,7 +2848,13 @@ export class Actions<
       codegen,
       command,
       allowEmpty,
-    }: { codegen?: boolean; command: string; allowEmpty?: boolean }
+      tag,
+    }: {
+      codegen?: boolean;
+      command: string;
+      allowEmpty?: boolean;
+      tag?: string;
+    }
   ) {
     let input = this.chatgptGetText(frameId, "selection");
     if (!input) {
@@ -2890,7 +2896,12 @@ ${codegen ? "Show the new version." : ""}`;
     }
     // scroll to bottom *after* the message gets sent.
     setTimeout(() => chatActions.scrollToBottom(), 100);
-    await chatActions.send_chat(message);
+    await chatActions.send_chat(
+      message,
+      undefined,
+      undefined,
+      `code-editor-${tag ?? command}`
+    );
   }
 }
 

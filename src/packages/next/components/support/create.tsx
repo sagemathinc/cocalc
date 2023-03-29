@@ -602,7 +602,7 @@ function ChatGPT({ siteName }) {
         If you have a question about how to do something using {siteName},
         ChatGPT might save you some time:
       </div>
-      <ChatGPTHelp style={{ marginTop: "15px" }} />
+      <ChatGPTHelp style={{ marginTop: "15px" }} tag={"support"} />
     </div>
   );
 }
