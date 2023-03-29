@@ -236,6 +236,7 @@ export default function Header(props: Props) {
           <ChatGPTHelp
             size="large"
             prompt={subPage ? `I am using ${subPage}.` : ""}
+            tag={`features-${subPage}`}
           />
         </div>
       )}

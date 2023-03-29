@@ -1,16 +1,17 @@
 /* Get the actions for a side chat.  This will try to open the
 chat as well and waits until the state is ready. */
 
+import { delay } from "awaiting";
+
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
 import { meta_file } from "@cocalc/util/misc";
-import { delay } from "awaiting";
 
 export default async function getChatActions(
   redux,
   project_id: string,
   path: string,
   maxWaitSeconds: number = 10,
-  width: number = 0.6
+  width: number = 0.7
 ): Promise<ChatActions> {
   const projectActions = redux.getProjectActions(project_id);
   projectActions.open_chat({ path: path, width });

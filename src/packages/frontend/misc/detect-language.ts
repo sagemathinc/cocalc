@@ -72,7 +72,11 @@ const LANGUAGES = [
     ],
   ],
   ["rs", [/^\s+(use|fn|mut|match)\b/gm, 100]],
-  ["r", [/\b(c\(|sum|mean|sd|apply|NA)\b/g]],
+  [
+    "r",
+    [/\b(c\(|sum|mean|sd|apply|NA)\b/g, 20],
+    [/(c\(|sum|mean|sd|apply|NA|<\-)/g, 25],
+  ],
   ["go", [/\b(func|fmt|package)\b/g, 100]],
   ["java", [/^import\s+java/gm, 500]],
   ["asm", [/^(section|global main|extern|\t(call|mov|ret))/gm, 100]],
@@ -106,6 +110,6 @@ export default function detectLanguage(code: string): string {
     }
   }
   v.sort((a, b) => b[1] - a[1]);
-  //console.log(v);
+  // console.log(code, v);
   return v[0]?.[0] ?? "txt";
 }

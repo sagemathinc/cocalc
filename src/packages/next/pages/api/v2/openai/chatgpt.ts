@@ -21,7 +21,7 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req: Request, res: Response) {
-  const { input, system, history, model } = getParams(req);
+  const { input, system, history, model, tag } = getParams(req);
   const account_id = await getAccountId(req);
   const analytics_cookie = ensureAnalyticsCookie(req, res);
 
@@ -33,6 +33,7 @@ async function doIt(req: Request, res: Response) {
       system,
       history,
       model,
+      tag,
     }),
   };
 }

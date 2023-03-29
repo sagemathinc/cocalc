@@ -202,9 +202,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         value = "";
       }
       value = value.trim();
-      if (value === "" && props.actions) {
-        value = "Type *Markdown* and LaTeX: $\\alpha^2$";
-      }
       return (
         <div
           onDoubleClick={handle_md_double_click}

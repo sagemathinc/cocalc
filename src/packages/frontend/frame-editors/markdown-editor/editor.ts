@@ -52,6 +52,7 @@ const EDITOR_SPEC = {
     icon: "markdown",
     component: CodemirrorEditor,
     buttons: set([
+      "chatgpt",
       "print",
       "decrease_font_size",
       "increase_font_size",

@@ -3056,6 +3056,7 @@ API(
     project_id: undefined,
     path: undefined,
     model: undefined,
+    tag: undefined,
   })
 );
 

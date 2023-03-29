@@ -18,6 +18,7 @@ interface Props {
   kernel_info_known?: boolean;
   size?: number;
   style?: CSSProperties;
+  project_id?: string; // useful if no frame context...
 }
 
 export default function Logo({
@@ -25,8 +26,12 @@ export default function Logo({
   kernel_info_known = true,
   size = DEFAULT_HEIGHT,
   style,
+  project_id,
 }: Props) {
-  const { project_id } = useFrameContext();
+  const frame = useFrameContext();
+  if (project_id == null) {
+    project_id = frame.project_id;
+  }
   const [logo_failed, set_logo_failed] = useState<string | undefined>(
     undefined
   );

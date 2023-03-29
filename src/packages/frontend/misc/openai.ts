@@ -2,6 +2,8 @@
 // sure to async load it by clients of this code.
 import GPT3Tokenizer from "gpt3-tokenizer";
 
+export const MAX_CHATGPT_TOKENS = 4096;
+
 const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
 
 export function numTokens(content: string): number {

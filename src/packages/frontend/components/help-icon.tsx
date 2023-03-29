@@ -9,6 +9,7 @@ Display a ? "help" icon, which -- when clicked -- shows a help tip
 
 import { Button, Popover } from "antd";
 
+import { CSSProperties } from "react";
 import { React, useState } from "@cocalc/frontend/app-framework";
 import { Icon } from "./icon";
 import { COLORS } from "@cocalc/util/theme";
@@ -17,11 +18,15 @@ interface Props {
   title: string;
   children: React.ReactNode;
   maxWidth?: string; // default is 50vw
+  style?: CSSProperties;
 }
 
-export const HelpIcon: React.FC<Props> = (props: Props) => {
-  const { title, children, maxWidth = "50vw" } = props;
-
+export const HelpIcon: React.FC<Props> = ({
+  style,
+  title,
+  children,
+  maxWidth = "50vw",
+}: Props) => {
   const [open, setOpen] = useState<boolean>(false);
 
   return (
@@ -35,7 +40,7 @@ export const HelpIcon: React.FC<Props> = (props: Props) => {
             style={{ float: "right", fontWeight: "bold" }}
             onClick={() => setOpen(false)}
           >
-            Close
+            <Icon name="times" />
           </Button>
         </>
       }
@@ -44,7 +49,7 @@ export const HelpIcon: React.FC<Props> = (props: Props) => {
       onOpenChange={setOpen}
     >
       <Icon
-        style={{ color: COLORS.BS_BLUE_TEXT, cursor: "pointer" }}
+        style={{ color: COLORS.BS_BLUE_TEXT, cursor: "pointer", ...style }}
         name="question-circle"
       />
     </Popover>
