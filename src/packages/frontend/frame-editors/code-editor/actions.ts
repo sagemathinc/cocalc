@@ -2871,7 +2871,7 @@ export class Actions<
       "@cocalc/frontend/misc/openai"
     );
     const n = numTokens(input);
-    const maxTokens = Math.floor(MAX_CHATGPT_TOKENS / 2); // output might easily be as big as input...
+    const maxTokens = MAX_CHATGPT_TOKENS - 1000; // 1000 tokens reserved for output and the prompt below.
     if (n >= maxTokens) {
       input = truncateMessage(input, maxTokens) + "\n...";
     }
@@ -2887,12 +2887,12 @@ export class Actions<
     )} the following ${codegen ? "code" : ""} from the file ${
       this.path
     } ${this.chatgptExtraFileInfo()}:`;
-    if (input) {
+    if (input.trim()) {
       message += `
 ${delim}${this.chatgptGetLanguage()}
-${input}
+${input.trim()}
 ${delim}
-${codegen ? "Show the new version." : ""}`;
+${codegen && input.trim() ? "Show the new version." : ""}`;
     }
     // scroll to bottom *after* the message gets sent.
     setTimeout(() => chatActions.scrollToBottom(), 100);
