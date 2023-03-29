@@ -49,8 +49,8 @@ const DEFAULT_LANG_EXTRA = "Prefer using the standard library.";
 
 const LANG_EXTRA: { [language: string]: string } = {
   python:
-    "Prefer using the standard library or the following packages: numpy, matplotlib, pandas, scikit-learn, sympy, scipy, sklearn, seaborn, statsmodels, nltk, tensorflow, pytorch, pymc3, dask, numba, bokeh",
-  r: "Prefer using the standard library or the following: tidyverse, tidyr, stringr, dplyr, data.table, ggplot2, car, mgcv, lme4, nlme, randomForest, survival, glmnet",
+    "Prefer using the standard library or the following packages: numpy, matplotlib, pandas, scikit-learn, sympy, scipy, sklearn, seaborn, statsmodels, nltk, tensorflow, pytorch, pymc3, dask, numba, bokeh.",
+  r: "Prefer using the standard library or the following: tidyverse, tidyr, stringr, dplyr, data.table, ggplot2, car, mgcv, lme4, nlme, randomForest, survival, glmnet.",
   sagemath: "Use all functions in SageMath.",
 } as const;
 
@@ -135,6 +135,7 @@ export default function ChatGPTGenerateJupyterNotebook({
       const raw = await webapp_client.openai_client.chatgpt({
         input,
         project_id,
+        path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
         model: "gpt-3.5-turbo",
         tag: "generate-jupyter",
       });
