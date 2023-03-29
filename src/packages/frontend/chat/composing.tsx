@@ -31,11 +31,11 @@ export default function Composing({ projectId, path, accountId, userMap }) {
         key={senderId}
         style={{ margin: "5px", color: "#666", textAlign: "center" }}
       >
-        <Avatar size={20} accountId={senderId} />
+        <Avatar size={20} account_id={senderId} />
         <span style={{ marginLeft: "15px" }}>
           {getUserName(userMap, senderId)} is writing a message...
         </span>
-        {senderId == "chatgpt" && (
+        {senderId?.startsWith("chatgpt") && (
           <ProgressEstimate
             style={{ marginLeft: "15px", maxWidth: "600px" }}
             seconds={45}

@@ -32,12 +32,12 @@ interface CachedInfo {
 
 const cache = new LRU<string, CachedInfo>({ max: 1000 });
 
-const FOCUSED_STYLE: React.CSSProperties = {
+const STYLE: React.CSSProperties = {
   width: "100%",
   overflow: "hidden",
   border: "1px solid #cfcfcf",
   borderRadius: "2px",
-  background: "#f7f7f7",
+  padding: "10px 5px 10px 5px",
   lineHeight: "1.21429em",
 } as const;
 
@@ -666,6 +666,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           const pos = cm.current.getCursor();
           return { x: pos.ch, y: pos.line };
         },
+        getSelection: () => cm.current.getSelection(),
       });
     }
     if (frameActions.current) {
@@ -680,6 +681,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           const pos = cm.current.getCursor();
           return { x: pos.ch, y: pos.line };
         },
+        getSelection: () => cm.current.getSelection(),
       };
       frameActions.current?.register_input_editor(id, editor);
     }
@@ -725,7 +727,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       {render_cursors()}
       <div
         ref={innerDivRef}
-        style={{ ...FOCUSED_STYLE, height: containerHeight, ...style }}
+        style={{ ...STYLE, height: containerHeight, ...style }}
       >
         <textarea ref={cm_ref} />
       </div>

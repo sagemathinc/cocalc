@@ -28,13 +28,15 @@ import { NotebookFrameStore } from "./store";
 require("@cocalc/frontend/jupyter/types");
 
 export interface EditorFunctions {
+  set_cursor: (pos: { x?: number; y?: number }) => void;
+  // most are not defined for markdown input.
   save?: () => string | undefined;
-  set_cursor?: (pos: { x?: number; y?: number }) => void;
   tab_key?: () => void;
   shift_tab_key?: () => void;
   refresh?: () => void;
   get_cursor?: () => { line: number; ch: number };
   get_cursor_xy?: () => { x: number; y: number };
+  getSelection?: () => string;
 }
 
 declare let DEBUG: boolean;
@@ -652,12 +654,17 @@ export class NotebookFrameActions {
     this.call_input_editor_method(id, "save");
   }
 
-  // Used for implementing actions -- keep private
-  private get_cell_input(id: string): string {
+  // Used for implementing actions and chatgpt
+  get_cell_input(id: string): string {
     if (this.input_editors[id] != null) {
       this.call_input_editor_method(id, "save");
     }
     return this.jupyter_actions.store.getIn(["cells", id, "input"], "");
+  }
+
+  // used for chatgpt
+  getCellSelection(id: string): string {
+    return this.input_editors[id]?.["getSelection"]?.() ?? "";
   }
 
   private call_input_editor_method(id: string, name: string, ...args): void {

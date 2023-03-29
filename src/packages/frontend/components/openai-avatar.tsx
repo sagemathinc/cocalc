@@ -5,10 +5,12 @@ interface Props {
   size?;
   backgroundColor?;
   style?: CSSProperties;
+  innerStyle?: CSSProperties;
 }
 
 export default function ChatGPTAvatar({
   size,
+  innerStyle,
   backgroundColor = "rgb(16, 163, 127)",
   style,
 }: Props) {
@@ -29,6 +31,7 @@ export default function ChatGPTAvatar({
           color: "white",
           height: size,
           top: "5px",
+          ...innerStyle,
         }}
       >
         <svg

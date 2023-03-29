@@ -17,7 +17,6 @@ import {
 import { List } from "immutable";
 import { debounce } from "lodash";
 import { ReactNode } from "react";
-
 import {
   Button as AntdBootstrapButton,
   ButtonGroup,
@@ -26,6 +25,7 @@ import {
 import {
   CSS,
   React,
+  redux,
   Rendered,
   useEffect,
   useForceUpdate,
@@ -53,6 +53,7 @@ import { get_default_font_size } from "../generic/client";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
+import ChatGPT from "./chatgpt";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -919,7 +920,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return (
       <Button
         key={"timetravel"}
-        title={"Show complete edit history"}
+        title={"Show edit history"}
         bsStyle={"info"}
         style={button_style()}
         bsSize={button_size()}
@@ -942,6 +943,31 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         <Icon name="history" />{" "}
         <VisibleMDLG>{labels ? "TimeTravel" : undefined}</VisibleMDLG>
       </Button>
+    );
+  }
+
+  function render_chatgpt(labels): Rendered {
+    if (
+      !is_visible("chatgpt") ||
+      !redux.getStore("projects").hasOpenAI(props.project_id)
+    ) {
+      return;
+    }
+    return (
+      <ChatGPT
+        key={"chatgpt"}
+        id={props.id}
+        actions={props.actions}
+        ButtonComponent={Button}
+        buttonSize={button_size()}
+        buttonStyle={{
+          ...button_style(),
+          backgroundColor: "rgb(16, 163, 127)",
+          color: "white",
+        }}
+        labels={labels}
+        visible={props.tab_is_visible && props.is_visible}
+      />
     );
   }
 
@@ -1064,7 +1090,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (!is_public) {
       if ((x = render_timetravel(labels))) v.push(x);
     }
+    if ((x = render_chatgpt(labels))) v.push(x);
     if ((x = render_reload(labels))) v.push(x);
+    if (v.length == 1) return v[0];
     if (v.length > 0) {
       return <ButtonGroup key={"save-group"}>{v}</ButtonGroup>;
     }
@@ -1788,7 +1816,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
               }}
               step={-1}
               value={props.page}
-              onChange={(page) => {
+              onChange={(page: number) => {
                 if (!page) return;
                 if (page <= 1) {
                   page = 1;

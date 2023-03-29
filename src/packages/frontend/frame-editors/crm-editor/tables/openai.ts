@@ -22,6 +22,8 @@ register({
         project_id: null,
         path: null,
         history: null,
+        model: null,
+        tag: null,
       },
     ],
   },

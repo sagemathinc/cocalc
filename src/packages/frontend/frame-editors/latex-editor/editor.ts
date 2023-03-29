@@ -50,6 +50,7 @@ const EDITOR_SPEC = {
       "replace",
       "find",
       "goto_line",
+      "chatgpt",
       "cut",
       "paste",
       "copy",

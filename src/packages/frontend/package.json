@@ -33,7 +33,7 @@
   "dependencies": {
     "@ant-design/compatible": "^5.1.1",
     "@ant-design/icons": "^4.8.0",
-    "@cocalc/ansi-to-react": "^6.0.13",
+    "@cocalc/ansi-to-react": "^7.0.0",
     "@cocalc/antd-img-crop": "^4.5.5",
     "@cocalc/assets": "workspace:*",
     "@cocalc/cdn": "workspace:*",
@@ -57,6 +57,7 @@
     "@speed-highlight/core": "^1.1.11",
     "@use-gesture/react": "^10.2.24",
     "@zippytech/react-notify-resize": "^4.0.4",
+    "anser": "^2.1.1",
     "antd": "^5.1.6",
     "async": "^2.6.3",
     "async-await-utils": "^3.0.1",

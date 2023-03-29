@@ -261,10 +261,19 @@ async function startServer(): Promise<void> {
       interval_s: REGISTER_INTERVAL_S,
     });
 
-    const msg = `Started HUB!\n*****\n\n ${
-      program.httpsKey ? "https" : "http"
-    }://${program.hostname}:${port}${basePath}\n\n*****`;
+    const protocol = program.httpsKey ? "https" : "http";
+
+    const msg = `Started HUB!\n\n-----------\n\n The following URL *might* work: ${protocol}://${
+      program.hostname
+    }:${port}${basePath}\n\n\nPORT=${port}\nBASE_PATH=${basePath}\nPROTOCOL=${protocol}\n\n${
+      basePath.length <= 1
+        ? ""
+        : "If you are developing cocalc inside of cocalc, take the URL of the host cocalc\nand append " +
+          basePath +
+          " to it."
+    }\n\n-----------\n\n`;
     winston.info(msg);
+    console.log(msg);
   }
 
   addErrorListeners(uncaught_exception_total);

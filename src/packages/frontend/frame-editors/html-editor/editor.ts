@@ -25,6 +25,7 @@ const EDITOR_SPEC = {
     component: CodemirrorEditor,
     buttons: set([
       "print",
+      "chatgpt",
       "decrease_font_size",
       "increase_font_size",
       "save",

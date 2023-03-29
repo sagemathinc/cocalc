@@ -132,12 +132,12 @@ export class StripeClient {
     return customer_id;
   }
 
-  private async stripe_api_pager_options(mesg: Message): Promise<any> {
+  private async stripe_api_pager_options(mesg?: Message): Promise<any> {
     return {
       customer: await this.need_customer_id(),
-      limit: mesg.limit,
-      ending_before: mesg.ending_before,
-      starting_after: mesg.starting_after,
+      limit: mesg?.limit,
+      ending_before: mesg?.ending_before,
+      starting_after: mesg?.starting_after,
     };
   }
 
@@ -413,7 +413,8 @@ export class StripeClient {
     }
   }
 
-  public async mesg_get_subscriptions(mesg: Message): Promise<Message> {
+  // Here mesg is the pager options -- see https://stripe.com/docs/api/pagination
+  public async mesg_get_subscriptions(mesg?: Message): Promise<Message> {
     const dbg = this.dbg("mesg_get_subscriptions");
     dbg("get a list of all the subscriptions that this customer has");
 

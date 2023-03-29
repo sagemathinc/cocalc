@@ -5,7 +5,8 @@
 
 import { toPairs } from "lodash";
 
-import { SOFTWARE_ENV_NAMES, SOFTWARE_FALLBACK, SOFTWARE_URLS } from "./consts";
+import { SOFTWARE_ENV_NAMES } from "./consts";
+import { SOFTWARE_FALLBACK, SOFTWARE_URLS } from "./software-data";
 import { EnvData } from "./types";
 
 test("3 known software environments", () => {

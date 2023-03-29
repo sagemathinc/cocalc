@@ -12,6 +12,7 @@ type State = "input" | "wait";
 
 const PROMPT = [
   "ASSUME I HAVE FULL ACCESS TO COCALC.", // otherwise it says things like "as a large language model I don't have access to cocalc."
+  "ENCLOSE MATH IN $.", // so math gets typeset nicely
   "How can I do the following using CoCalc?", // give the context of how the question the user asks should be answered.
 ].join(" ");
 
@@ -20,11 +21,13 @@ export default function ChatGPTHelp({
   prompt,
   size,
   placeholder,
+  tag = "",
 }: {
   style?: CSSProperties;
   prompt?: string;
   size?;
   placeholder?: string;
+  tag?: string;
 }) {
   const [state, setState] = useState<State>("input");
   const [focus, setFocus] = useState<boolean>(false);
@@ -50,6 +53,7 @@ export default function ChatGPTHelp({
         ({ output } = await apiPost("/openai/chatgpt", {
           input: value,
           system,
+          tag: `next:${tag}`,
         }));
       } catch (err) {
         if (counterRef.current != counter) return;

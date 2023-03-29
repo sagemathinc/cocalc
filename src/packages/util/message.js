@@ -3055,6 +3055,8 @@ API(
     history: undefined, // optional history of this conversation in chatgpt format, so { role: "assistant" | "user" | "system"; content: string }[];
     project_id: undefined,
     path: undefined,
+    model: undefined,
+    tag: undefined,
   })
 );
 

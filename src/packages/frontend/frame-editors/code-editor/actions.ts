@@ -4,7 +4,15 @@
  */
 
 /*
-Code Editor Actions
+Code Editor Actions -- This the base class for all frame editor actions.
+
+It defines saving files, managing cursor positions, managing gutter markers, and
+managing terminals. It also contains functions for handling formatting and
+spell checking, as well as utility functions for working with the editor state.
+
+WARNING: Some editors (e.g., for X11 and Jupyter) have actions tha derive from this, even
+though they aren't used for code editing. That's basically a shortcoming of the
+design.
 */
 
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/";
@@ -26,7 +34,7 @@ import {
 } from "../generic/client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { SyncString } from "@cocalc/sync/editor/string";
-import { aux_file } from "@cocalc/util/misc";
+import { aux_file, capitalize } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
 import { print_code } from "../frame-tree/print-code";
@@ -72,6 +80,7 @@ import {
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import { SHELLS } from "./editor";
 import type { TimeTravelActions } from "../time-travel-editor/actions";
+import getChatActions from "@cocalc/frontend/chat/get-actions";
 
 interface gutterMarkerParams {
   line: number;
@@ -2809,4 +2818,117 @@ export class Actions<
     }
     return frameId;
   }
+
+  // Overload this in a derived class to support editors other than cm.
+  // This is used by the chatgpt function.
+  chatgptGetText(
+    frameId: string,
+    scope: "selection" | "cell" | "all" = "all"
+  ): string {
+    switch (scope) {
+      case "selection":
+        return this._get_cm(frameId)?.getSelection()?.trim() ?? "";
+      default:
+        return this._get_cm(frameId)?.getValue()?.trim() ?? "";
+    }
+  }
+
+  // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
+  chatgptExtraFileInfo(): string {
+    return "";
+  }
+
+  chatgptGetLanguage(): string {
+    return filename_extension(this.path);
+  }
+
+  async chatgpt(
+    frameId: string,
+    {
+      codegen,
+      command,
+      allowEmpty,
+      tag,
+    }: {
+      codegen?: boolean;
+      command: string;
+      allowEmpty?: boolean;
+      tag?: string;
+    }
+  ) {
+    let input = this.chatgptGetText(frameId, "selection");
+    if (!input) {
+      input = this.chatgptGetText(frameId, "cell");
+    }
+    if (!input) {
+      input = this.chatgptGetText(frameId, "all");
+    }
+    if (!input && !allowEmpty) {
+      throw Error("Please write or select something.");
+    }
+    // Truncate input (also this MUST lazy import):
+    const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(
+      "@cocalc/frontend/misc/openai"
+    );
+    const n = numTokens(input);
+    const maxTokens = Math.floor(MAX_CHATGPT_TOKENS / 2); // output might easily be as big as input...
+    if (n >= maxTokens) {
+      input = truncateMessage(input, maxTokens) + "\n...";
+    }
+
+    const chatActions = await getChatActions(
+      this.redux,
+      this.project_id,
+      this.path
+    );
+    const delim = backtickSequence(input);
+    let message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
+      command
+    )} the following ${codegen ? "code" : ""} from the file ${
+      this.path
+    } ${this.chatgptExtraFileInfo()}:`;
+    if (input) {
+      message += `
+${delim}${this.chatgptGetLanguage()}
+${input}
+${delim}
+${codegen ? "Show the new version." : ""}`;
+    }
+    // scroll to bottom *after* the message gets sent.
+    setTimeout(() => chatActions.scrollToBottom(), 100);
+    await chatActions.send_chat(
+      message,
+      undefined,
+      undefined,
+      `code-editor-${tag ?? command}`
+    );
+  }
+}
+
+// written by chatgpt
+function backtickSequence(str) {
+  let longestSequence = "";
+  let currentSequence = "";
+  let lastChar = null;
+
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+
+    if (char === "`" && lastChar === "`") {
+      currentSequence += char;
+    } else {
+      if (currentSequence.length > longestSequence.length) {
+        longestSequence = currentSequence;
+      }
+      currentSequence = char;
+    }
+
+    lastChar = char;
+  }
+
+  if (currentSequence.length > longestSequence.length) {
+    longestSequence = currentSequence;
+  }
+
+  return longestSequence.length < 3 ? "```" : longestSequence + "`";
 }

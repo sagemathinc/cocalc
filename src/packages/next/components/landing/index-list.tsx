@@ -4,7 +4,7 @@
  */
 
 import { Avatar, Layout, List } from "antd";
-import { ReactNode, useMemo } from "react";
+import { ReactNode, useMemo, isValidElement } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
@@ -83,7 +83,9 @@ function DataList({ dataSource }: { dataSource: Item[] }) {
   function renderItem(item): ReactNode {
     const icon = (
       <div style={{ marginTop: "2.5px" }}>
-        {typeof item.logo === "string" ? (
+        {isValidElement(item.logo) ? (
+          item.logo
+        ) : typeof item.logo === "string" ? (
           <Icon name={item.logo} style={{ fontSize: "75px" }} />
         ) : (
           <Image src={item.logo} width={75} height={75} alt="Logo" />

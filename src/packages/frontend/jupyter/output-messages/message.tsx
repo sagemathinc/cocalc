@@ -82,6 +82,7 @@ interface CellOutputMessagesProps {
   scrolled?: boolean;
   trust?: boolean;
   id?: string;
+  chatgpt?;
 }
 
 function shouldMemoize(prev, next) {
@@ -93,18 +94,17 @@ function shouldMemoize(prev, next) {
 }
 
 export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
-  (props: CellOutputMessagesProps) => {
-    const {
-      output,
-      actions,
-      name,
-      project_id,
-      directory,
-      scrolled,
-      trust,
-      id,
-    } = props;
-
+  ({
+    output,
+    actions,
+    name,
+    project_id,
+    directory,
+    scrolled,
+    trust,
+    id,
+    chatgpt,
+  }: CellOutputMessagesProps) => {
     const obj: Map<string, any>[] = React.useMemo(
       () => messageList(output),
       [output]
@@ -116,9 +116,13 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     // It's likely that if there are iframes, the output is just one big iframe and scrolled mode is
     // very unlikely to be what you want.
     let hasIframes: boolean = false;
+    let hasError: boolean = false;
     for (const n of numericallyOrderedKeys(obj)) {
       const mesg = obj[n];
       if (mesg != null) {
+        if (mesg.get("traceback")) {
+          hasError = true;
+        }
         if (scrolled && !hasIframes && mesg.getIn(["data", "iframe"])) {
           hasIframes = true;
         }
@@ -142,6 +146,13 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
         className="cocalc-jupyter-rendered"
       >
         {v}
+        {hasError && id && actions && chatgpt && (
+          <chatgpt.ChatGPTError
+            style={{ margin: "5px 0" }}
+            actions={actions}
+            id={id}
+          />
+        )}
       </div>
     );
   },

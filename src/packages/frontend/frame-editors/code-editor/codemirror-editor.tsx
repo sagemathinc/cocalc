@@ -4,9 +4,12 @@
  */
 
 /*
-Single codemirror-based file editor
 
-This is a wrapper around a single codemirror editor view.
+The code defines a React component called CodemirrorEditor that wraps a single
+instance of the codemirror text editor. It also defines several functions for
+initializing and updating the codemirror editor, using useEffect hooks to
+trigger actions when certain props change. This manages the state of a single
+codemirror editor instance mainly for use in a frame tree.
 */
 
 import { SAVE_DEBOUNCE_MS } from "./const";

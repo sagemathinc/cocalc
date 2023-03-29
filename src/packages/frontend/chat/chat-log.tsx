@@ -48,6 +48,7 @@ export function ChatLog({
   const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path);
   const fontSize = useRedux(["font_size"], project_id, path);
+  const scrollToBottom = useRedux(["scrollToBottom"], project_id, path);
 
   // see similar code in task list:
   const selectedHashtags0 = useRedux(["selectedHashtags"], project_id, path);
@@ -61,6 +62,11 @@ export function ChatLog({
   useEffect(() => {
     scrollToBottomRef?.current?.(true);
   }, [search]);
+
+  useEffect(() => {
+    if (scrollToBottom == null) return;
+    scrollToBottomRef?.current?.(true);
+  }, [scrollToBottom]);
 
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
@@ -287,6 +293,7 @@ function cmpMessages([a_time, a_parent], [b_time, b_parent]): number {
 
 export function getUserName(userMap, accountId: string): string {
   if (accountId == "chatgpt") return "ChatGPT";
+  if (accountId == "chatgpt4") return "ChatGPT4";
   if (userMap == null) return "Unknown";
   const account = userMap.get(accountId);
   if (account == null) return "Unknown";

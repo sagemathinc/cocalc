@@ -8,6 +8,7 @@
 import React from "react";
 import { Icon } from "../components/icon";
 import type { JupyterActions } from "./browser-actions";
+import { Button, Tooltip } from "antd";
 
 const SCROLLED_STYLE: React.CSSProperties = {
   fontSize: "inherit",
@@ -15,6 +16,7 @@ const SCROLLED_STYLE: React.CSSProperties = {
   display: "flex", // flex used to move output prompt to bottom.
   flexDirection: "column",
   height: "auto",
+  cursor: "pointer",
 } as const;
 
 const NORMAL_STYLE: React.CSSProperties = {
@@ -41,18 +43,18 @@ export const OutputToggle: React.FC<OutputToggleProps> = React.memo(
       actions?.toggle_output(id, "collapsed");
     }
 
-    // We use an antd button for the output toggle area, but disable the padding
-    // and border. This looks pretty good and consistent and clean.
     return (
-      <div
-        className="ant-btn ant-btn-default"
-        style={scrolled ? SCROLLED_STYLE : NORMAL_STYLE}
-        onClick={toggle_scrolled}
-        onDoubleClick={collapse_output}
-      >
-        {children}
-        <div style={{ flex: 1 }} /> {/* use up all space */}
-      </div>
+      <Tooltip title="Toggle whether large output is scrolled. Double click to hide.">
+        <Button
+          type="text"
+          style={scrolled ? SCROLLED_STYLE : NORMAL_STYLE}
+          onClick={toggle_scrolled}
+          onDoubleClick={collapse_output}
+        >
+          {children}
+          <div style={{ flex: 1 }} /> {/* use up all space */}
+        </Button>
+      </Tooltip>
     );
   }
 );
@@ -70,21 +72,17 @@ export const CollapsedOutput: React.FC<CollapsedOutputProps> = React.memo(
       actions?.toggle_output(id, "collapsed");
     }
 
-    // We use an antd button for the output toggle area, but disable the padding
-    // and border. This looks pretty good and consistent and clean.
     return (
-      <div
-        className="ant-btn ant-btn-default"
-        onClick={show_output}
-        style={{
-          textAlign: "center",
-          width: "100%",
-          color: "#777",
-          padding: 0,
-          height: "auto", // ant-btn makes height short.
-        }}
-      >
-        <Icon name="ellipsis" />
+      <div style={{ textAlign: "center", width: "100%" }}>
+        <Button
+          onClick={show_output}
+          type="text"
+          size="small"
+          style={{ color: "#666" }}
+        >
+          <Icon name="ColumnHeightOutlined" />
+          Expand
+        </Button>
       </div>
     );
   }
