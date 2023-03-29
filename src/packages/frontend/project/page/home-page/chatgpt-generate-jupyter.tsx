@@ -7,7 +7,7 @@ TODO:
 - input description box could be Markdown wysiwyg editor
 */
 
-import { Alert, Button, Input, Radio, RadioChangeEvent } from "antd";
+import { Alert, Button, Input, Select } from "antd";
 import { useState, useEffect } from "react";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
@@ -31,7 +31,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Block } from "./block";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import Logo from "@cocalc/frontend/jupyter/logo";
-import { to_iso_path } from "@cocalc/util/misc";
+import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 
 const PLACEHOLDER = "Describe your notebook in detail...";
 
@@ -73,7 +73,9 @@ export default function ChatGPTGenerateJupyterNotebook({
     (async () => {
       try {
         setKernelSpecs(null);
-        setKernelSpecs(await getKernelSpec(project_id));
+        const X = await getKernelSpec(project_id);
+        X.sort(field_cmp("display_name"));
+        setKernelSpecs(X);
       } catch (err) {
         setKernelSpecs(
           "Unable to load Jupyter kernels.  Make sure the project is running and Jupyter is installed."
@@ -241,7 +243,7 @@ export default function ChatGPTGenerateJupyterNotebook({
   function info() {
     return (
       <HelpIcon title="OpenAI GPT" style={{ float: "right" }}>
-        <Paragraph style={{ maxWidth: "300px" }}>
+        <Paragraph style={{ minWidth: "300px" }}>
           This tool sends your message to{" "}
           <A href={"https://chat.openai.com/"}>ChatGPT</A> in order to get a
           well structured answer back. This reply will be post-processed and
@@ -279,12 +281,24 @@ export default function ChatGPTGenerateJupyterNotebook({
             Generate a Jupyter Notebook using the following Jupyter kernel:
           </Paragraph>
           <Paragraph>
-            <Radio.Group
+            <Select
+              showSearch
+              allowClear
+              placeholder="Select a kernel..."
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                (option?.display_name ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              size="large"
+              style={{ width: "100%", maxWidth: "350px" }}
               disabled={querying}
               options={
                 typeof kernelSpecs == "object"
                   ? kernelSpecs?.map((spec) => {
                       return {
+                        display_name: spec.display_name,
                         label: (
                           <>
                             <Logo kernel={spec.name} project_id={project_id} />{" "}
@@ -296,7 +310,7 @@ export default function ChatGPTGenerateJupyterNotebook({
                     })
                   : []
               }
-              onChange={({ target: { value } }: RadioChangeEvent) => {
+              onChange={(value) => {
                 if (kernelSpecs == null || typeof kernelSpecs != "object")
                   return;
                 for (const spec of kernelSpecs) {
@@ -307,9 +321,6 @@ export default function ChatGPTGenerateJupyterNotebook({
                 }
               }}
               value={spec?.name}
-              size="large"
-              optionType="button"
-              buttonStyle="solid"
             />
           </Paragraph>
           {spec != null && (
