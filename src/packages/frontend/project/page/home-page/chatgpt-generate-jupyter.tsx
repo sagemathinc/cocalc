@@ -7,6 +7,7 @@ TODO:
 - input description box could be Markdown wysiwyg editor
 */
 
+import { delay } from "awaiting";
 import { Alert, Button, Input, Select } from "antd";
 import { useState, useEffect } from "react";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
@@ -32,6 +33,7 @@ import { Block } from "./block";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import Logo from "@cocalc/frontend/jupyter/logo";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
+import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 
 const PLACEHOLDER = "Describe your notebook in detail...";
 
@@ -243,10 +245,24 @@ export default function ChatGPTGenerateJupyterNotebook({
       path,
       content: JSON.stringify(nb, null, 2),
     });
-    projectActions?.open_file({
+    await projectActions?.open_file({
       path,
       foreground: true,
     });
+    // Start it running, so user doesn't have to wait... but actions
+    // might not be immediately available...
+    for (let i = 0; i < 20; i++) {
+      const jupyterFrameActions = redux.getEditorActions(
+        project_id,
+        path
+      ) as JupyterEditorActions;
+      if (jupyterFrameActions != null) {
+        jupyterFrameActions.jupyter_actions.run_all_cells();
+        break;
+      } else {
+        await delay(500);
+      }
+    }
   }
 
   if (!redux.getStore("projects").hasOpenAI(project_id)) {
