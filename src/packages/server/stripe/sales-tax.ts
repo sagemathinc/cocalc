@@ -9,20 +9,19 @@ Compute sales tax for a given customer in WA state.
 
 import sales_tax from "@cocalc/util/stripe/sales-tax";
 import getConn from "./connection";
+import getLogger from "@cocalc/backend/logger";
+const log = getLogger("stripe:sales-tax");
 
-export async function stripe_sales_tax(
-  customer_id: string,
-  dbg: Function
-): Promise<number> {
+export default async function salesTax(customer_id: string): Promise<number> {
   const conn = await getConn();
   const customer = await conn.customers.retrieve(customer_id);
   if (customer.deleted) {
     // mainly have this check so Typescript is happy
-    dbg("customer was deleted");
+    log.debug("customer was deleted");
     return 0;
   }
   if (customer.default_source == null) {
-    dbg("no default source");
+    log.debug("no default source");
     return 0;
   }
   let zip = undefined;
@@ -38,6 +37,6 @@ export async function stripe_sales_tax(
     return 0;
   }
   const tax = sales_tax(zip);
-  dbg("tax: ", tax);
+  log.debug("tax: ", tax);
   return tax;
 }

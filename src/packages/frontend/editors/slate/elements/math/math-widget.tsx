@@ -79,7 +79,8 @@ export const SlateMath: React.FC<Props> = React.memo(
             e.stopPropagation();
             // switch to edit mode when you click on it.
             setEditMode?.(true);
-            frameContext.actions.set_active_id(frameContext.id);
+            // also make the frame containing this active... if we're in a frame editor (hence the ?. !)
+            frameContext.actions?.set_active_id?.(frameContext.id);
           }}
         >
           {/* below since we are abusing the StaticElement component a bit */}

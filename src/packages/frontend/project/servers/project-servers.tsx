@@ -157,7 +157,7 @@ export function ProjectServers(props: Props) {
       <Paragraph>
         You can run various servers inside this project. They run in the same
         environment, have access to the same files, and stop when the project
-        stops. If you're advanteous, you can also{" "}
+        stops. If you're adventurous, you can also{" "}
         <A href={"https://doc.cocalc.com/howto/webserver.html"}>
           run your own servers
         </A>

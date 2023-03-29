@@ -8,7 +8,6 @@ export default function Grid({ value }) {
       style={{
         fontSize: desc.get("font_size"),
         height: "100%",
-        margin: "0 15px",
       }}
     >
       <CSV

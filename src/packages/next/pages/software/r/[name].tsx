@@ -5,12 +5,12 @@
 
 import { Alert, Layout } from "antd";
 
-import { Paragraph } from "components/misc";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
 import SoftwareLibraries from "components/landing/software-libraries";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize, CustomizeType } from "lib/customize";
 import { SoftwareEnvNames } from "lib/landing/consts";
@@ -91,18 +91,14 @@ export default function R(props: Props) {
           }}
         >
           <div style={STYLE_PAGE}>
-            <h1
-              style={{
-                textAlign: "center",
-                fontSize: "32pt",
-                color: "#444",
-              }}
-            >
+            <Title level={1} style={{ textAlign: "center" }}>
               Installed R Statistical Software Packages (Ubuntu {name})
-            </h1>
+            </Title>
             {renderIntro()}
             {renderBox()}
-            <h2 style={{ clear: "both" }}>Available Environments</h2>
+            <Title level={2} style={{ clear: "both" }}>
+              Available Environments
+            </Title>
             <ExecutableDescription spec={spec} execInfo={execInfo} />
             <SoftwareLibraries
               timestamp={timestamp}

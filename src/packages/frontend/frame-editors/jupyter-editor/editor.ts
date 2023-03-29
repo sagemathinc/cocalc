@@ -29,6 +29,7 @@ export const EDITOR_SPEC = {
     icon: "ipynb",
     component: CellNotebook,
     buttons: set([
+      "chatgpt",
       "print",
       "set_zoom",
       "decrease_font_size",

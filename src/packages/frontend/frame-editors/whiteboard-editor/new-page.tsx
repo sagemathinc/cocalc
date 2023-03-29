@@ -1,8 +1,19 @@
-import { Button, Popover } from "antd";
+import { Button, Popover, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "./hooks";
 import { COLORS } from "@cocalc/util/theme";
 import { CSSProperties, ReactNode } from "react";
+
+function addPage(actions, afterPageId?) {
+  const frameId = actions.show_focused_frame_of_type(actions.mainFrameType);
+  const pageId = actions.newPage(frameId, afterPageId);
+  actions.setPageId(frameId, pageId);
+  setTimeout(() => {
+    // after the click
+    actions.show_focused_frame_of_type(actions.mainFrameType);
+    actions.setPageId(frameId, pageId);
+  }, 0);
+}
 
 export default function NewPage({
   style,
@@ -27,18 +38,7 @@ export default function NewPage({
         <Button
           size="large"
           style={{ height: "auto", padding: "20px" }}
-          onClick={() => {
-            const frameId = actions.show_focused_frame_of_type(
-              actions.mainFrameType
-            );
-            const pageId = actions.newPage(frameId);
-            actions.setPageId(frameId, pageId);
-            setTimeout(() => {
-              // after the click
-              actions.show_focused_frame_of_type(actions.mainFrameType);
-              actions.setPageId(frameId, pageId);
-            }, 0);
-          }}
+          onClick={() => addPage(actions)}
         >
           <Icon
             name="plus-circle"
@@ -49,5 +49,18 @@ export default function NewPage({
         </Button>
       </Popover>
     </div>
+  );
+}
+
+// adding a page right after an existing page
+export function AddPage({ pageId }: { pageId: string }) {
+  const { actions } = useFrameContext();
+  return (
+    <Tooltip title="Insert new page" placement="right" mouseEnterDelay={1}>
+      <Button type="text" size="small" onClick={() => addPage(actions, pageId)}>
+        <Icon name="plus-circle" style={{ color: COLORS.FILE_ICON }} />
+        <br />
+      </Button>
+    </Tooltip>
   );
 }

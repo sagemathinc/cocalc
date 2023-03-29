@@ -9,23 +9,25 @@ import { user_tracking } from "@cocalc/frontend/user-tracking";
 import { Actions } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ChatState, ChatStore } from "./store";
-import { get_sorted_dates } from "./chat-log";
+import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
 import type {
   HashtagState,
   SelectedHashtags,
 } from "@cocalc/frontend/editors/task-editor/types";
 import { getSelectedHashtagsSearch } from "./utils";
-import { parse_hashtags } from "@cocalc/util/misc";
+import { cmp, parse_hashtags } from "@cocalc/util/misc";
 import { open_new_tab } from "@cocalc/frontend/misc";
-
+import { History as ChatGPTHistory } from "@cocalc/frontend/misc/openai";
+import type { Model } from "@cocalc/util/db-schema/openai";
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
   private store?: ChatStore;
 
-  public set_syncdb(syncdb: SyncDB): void {
+  public set_syncdb(syncdb: SyncDB, store: ChatStore): void {
     this.syncdb = syncdb;
+    this.store = store;
   }
 
   public close(): void {
@@ -98,9 +100,12 @@ export class ChatActions extends Actions<ChatState> {
         let drafts = this.store?.get("drafts") ?? fromJS({});
         // used to show that another user is editing a message.
         const record = this.syncdb.get_one(obj);
-        if (record == null) return;
-        const sender_id = record.get("sender_id");
-        drafts = drafts.set(sender_id, record);
+        if (record == null) {
+          drafts = drafts.delete(obj.sender_id);
+        } else {
+          const sender_id = record.get("sender_id");
+          drafts = drafts.set(sender_id, record);
+        }
         this.setState({ drafts });
         return;
       }
@@ -128,8 +133,18 @@ export class ChatActions extends Actions<ChatState> {
     });
   }
 
-  public send_chat(input?: string): void {
+  // The second parameter is used for sending a message by
+  // chatgpt, which is currently managed by the frontend
+  // (not the project).  Also the async doesn't finish until
+  // chatgpt is totally done.
+  async send_chat(
+    input?: string,
+    sender_id?: string,
+    reply_to?: Date,
+    tag?: string
+  ): Promise<void> {
     if (this.syncdb == null || this.store == null) {
+      console.warn("attempt to send_chat before chat actions initialized");
       // WARNING: give an error or try again later?
       return;
     }
@@ -141,27 +156,21 @@ export class ChatActions extends Actions<ChatState> {
       // do not send while uploading or there is nothing to send.
       return;
     }
-    const sender_id = this.redux.getStore("account").get_account_id();
+    if (sender_id == null) {
+      sender_id = this.redux.getStore("account").get_account_id();
+    }
     const time_stamp = webapp_client.server_time().toISOString();
-    this.syncdb.set({
-      event: "draft",
-      sender_id,
-      input,
-      date: 0,
-    });
-    this.syncdb.commit();
-    this.syncdb.set({
+    const message = {
       sender_id,
       event: "chat",
       history: [{ author_id: sender_id, content: input, date: time_stamp }],
       date: time_stamp,
-    });
-    this.syncdb.set({
-      event: "draft",
-      sender_id,
-      input: "",
-      date: 0,
-    });
+      reply_to: reply_to?.toISOString(),
+    };
+    this.syncdb.set(message);
+    if (!reply_to) {
+      this.delete_draft(0);
+    }
     // NOTE: we also clear search, since it's confusing to send a message and not
     // even see it (if it doesn't match search).  We do NOT clear the hashtags though,
     // since by default the message you are sending has those tags.
@@ -184,6 +193,7 @@ export class ChatActions extends Actions<ChatState> {
       user_tracking("send_chat", { project_id, path });
     }
     this.save_to_disk();
+    await this.processChatGPT(fromJS(message), reply_to, tag);
   }
 
   public set_editing(message, is_editing) {
@@ -227,7 +237,43 @@ export class ChatActions extends Actions<ChatState> {
       editing: message.get("editing").set(author_id, null).toJS(),
       date: message.get("date").toISOString(),
     });
+    this.delete_draft(message.get("date")?.valueOf());
     this.save_to_disk();
+  }
+
+  send_reply(message, reply: string, from?: string) {
+    // the reply_to field of the message is *always* the root.
+    // the order of the replies is by timestamp.  This is meant
+    // to make sure chat is just 1 layer deep, rather than a
+    // full tree structure, which is powerful but too confusing.
+    const reply_to = getReplyToRoot(
+      message,
+      this.store?.get("messages") ?? fromJS({})
+    );
+    const time = reply_to?.valueOf() ?? 0;
+    this.delete_draft(-time);
+    this.send_chat(
+      reply,
+      from ?? this.redux.getStore("account").get_account_id(),
+      reply_to
+    );
+  }
+
+  // negative date is used for replies.
+  public delete_draft(
+    date: number,
+    commit: boolean = true,
+    sender_id: string | undefined = undefined
+  ) {
+    if (!this.syncdb) return;
+    this.syncdb.delete({
+      event: "draft",
+      sender_id: sender_id ?? this.redux.getStore("account").get_account_id(),
+      date,
+    });
+    if (commit) {
+      this.syncdb.commit();
+    }
   }
 
   // Make sure everything saved to DISK.
@@ -261,6 +307,14 @@ export class ChatActions extends Actions<ChatState> {
     this.setState({ saved_position: position, height, offset });
   }
 
+  public scrollToBottom() {
+    // whenever this counter gets incremented, the UI should scroll chat
+    // to the bottom:
+    this.setState({
+      scrollToBottom: (this.store?.get("scrollToBottom") ?? 0) + 1,
+    });
+  }
+
   public set_uploading(is_uploading: boolean): void {
     this.setState({ is_uploading });
   }
@@ -284,7 +338,7 @@ export class ChatActions extends Actions<ChatState> {
     const path = this.store.get("path") + ".md";
     const project_id = this.store.get("project_id");
     if (project_id == null) return;
-    const sorted_dates = get_sorted_dates(messages, this.store.get("search"));
+    const sorted_dates = getSortedDates(messages, this.store.get("search"));
     const v: string[] = [];
     for (const date of sorted_dates) {
       const message = messages.get(date);
@@ -337,6 +391,7 @@ export class ChatActions extends Actions<ChatState> {
     const sender_id = this.redux.getStore("account").get_account_id();
     this.syncdb.set({
       event: "draft",
+      active: new Date().valueOf(),
       sender_id,
       input,
       date: 0,
@@ -347,6 +402,165 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   help() {
-        open_new_tab("https://doc.cocalc.com/chat.html");
+    open_new_tab("https://doc.cocalc.com/chat.html");
   }
+
+  undo() {
+    this.syncdb?.undo();
+  }
+  redo() {
+    this.syncdb?.redo();
+  }
+
+  isChatGPTThread(date: Date): false | Model {
+    const messages = this.store?.get("messages");
+    if (!messages) return false;
+    let message = messages.get(`${date.valueOf()}`);
+    let i = 0;
+    while (message != null && i < 1000) {
+      i += 1; // just in case some weird corrupted file has a time loop in it.
+      const input = message.getIn(["history", 0, "content"])?.toLowerCase();
+      if (input?.includes("@chatgpt4")) {
+        return "gpt-4";
+      }
+      if (input?.includes("@chatgpt")) {
+        return "gpt-3.5-turbo";
+      }
+      const reply_to = message.get("reply_to");
+      if (reply_to == null) return false;
+      message = messages.get(`${new Date(reply_to).valueOf()}`);
+    }
+    return false; // never reached
+  }
+
+  private async processChatGPT(message, reply_to?: Date, tag?: string) {
+    if (
+      !this.redux.getStore("projects").hasOpenAI(this.store?.get("project_id"))
+    ) {
+      // no need to check for chatgpt at all
+      return;
+    }
+    if (message.getIn(["history", 0, "author_id"])?.startsWith("chatgpt")) {
+      // do NOT respond to a message from chatgpt!!!!
+      return;
+    }
+    let input = message.getIn(["history", 0, "content"]);
+    if (!input) return;
+    const store = this.store;
+    if (!store) return;
+
+    let thread;
+    if (!input.toLowerCase().includes("@chatgpt")) {
+      // doesn't mention chatgpt explicitly, but is it a reply to something that does?
+      if (reply_to == null) {
+        return;
+      }
+      thread = this.isChatGPTThread(reply_to);
+      if (!thread) return;
+    }
+    // message should get sent to chatgpt.
+    const model: Model =
+      (input.toLowerCase().includes("@chatgpt4") ? "gpt-4" : thread) ??
+      "gpt-3.5-turbo";
+    input = stripMentions(input); // without any mentions, of course.
+    const sender_id = model == "gpt-4" ? "chatgpt4" : "chatgpt";
+    const start = new Date().valueOf();
+    const draft = () => {
+      if (new Date().valueOf() - start > 3 * 60 * 1000) {
+        // no matter what, stop updating after 3 minutes.
+        clearInterval(interval);
+      }
+      this.syncdb?.set({
+        event: "draft",
+        active: webapp_client.server_time(),
+        sender_id,
+        input: "...",
+        date: 0,
+      });
+    };
+    draft();
+    // keep updating that chatgpt is doing something:
+    const interval = setInterval(draft, 25000);
+    const project_id = store.get("project_id");
+    const path = store.get("path");
+
+    // submit question to chatgpt
+    let resp;
+    try {
+      resp = await webapp_client.openai_client.chatgpt({
+        input,
+        history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
+        project_id,
+        path,
+        model,
+        tag,
+      });
+    } catch (err) {
+      resp = `<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
+    } finally {
+      // until it isn't.
+      clearInterval(interval);
+      this.delete_draft(0, true, sender_id);
+    }
+    // insert the answer as a chat message from chatgpt
+    this.send_reply(message, resp, sender_id);
+  }
+
+  // the input and output for the thread ending in the
+  // given message, formatted for chatgpt, and heuristically
+  // truncated to not exceed a limit in size.
+  private getChatGPTHistory(reply_to: Date): ChatGPTHistory {
+    const messages = this.store?.get("messages");
+    const history: ChatGPTHistory = [];
+    if (!messages) return history;
+    // Next get all of the messages with this reply_to or that are the root of this reply chain:
+    const d = reply_to.toISOString();
+    for (const message of messages // @ts-ignore -- immutablejs typings are wrong (?)
+      .filter(
+        (message) =>
+          message.get("reply_to") == d || message.get("date").toISOString() == d
+      )
+      .valueSeq()
+      .sort((a, b) => cmp(a.get("date"), b.get("date")))) {
+      const content = stripMentions(
+        message.get("history").last().get("content")
+      );
+      history.push({
+        content,
+        role: message.getIn(["history", 0, "author_id"])?.startsWith("chatgpt")
+          ? "assistant"
+          : "user",
+      });
+    }
+
+    return history;
+  }
+}
+
+function getReplyToRoot(message, messages): Date | undefined {
+  while (message.get("reply_to")) {
+    message = messages.get(`${new Date(message.get("reply_to")).valueOf()}`);
+  }
+  const date = message.get("date");
+  return date ? new Date(date) : undefined;
+}
+
+function stripMentions(value: string): string {
+  // We strip out any cased version of the string @chatgpt and also all mentions.
+  for (const name of ["@chatgpt4", "@chatgpt"]) {
+    while (true) {
+      const i = value.toLowerCase().indexOf(name);
+      if (i == -1) break;
+      value = value.slice(0, i) + value.slice(i + name.length);
+    }
+  }
+  // The mentions look like this: <span class="user-mention" account-id=chatgpt >@ChatGPT</span> ...
+  while (true) {
+    const i = value.indexOf('<span class="user-mention"');
+    if (i == -1) break;
+    const j = value.indexOf("</span>", i);
+    if (j == -1) break;
+    value = value.slice(0, i) + value.slice(j + "</span>".length);
+  }
+  return value.trim();
 }

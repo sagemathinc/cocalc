@@ -62,7 +62,7 @@ export default function Pen({ element, renderStatic }: Props) {
   const h = (element.h ?? 100) + 2 * pad;
   scaleRef.current = getMaxCanvasSizeScale(w * DPIFactor, h * DPIFactor);
   return (
-    <div>
+    <div style={{ position: "relative" }}>
       <canvas
         ref={canvasRef}
         width={scaleRef.current * w * DPIFactor}

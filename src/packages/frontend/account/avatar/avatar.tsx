@@ -4,13 +4,11 @@
  */
 
 import { Tooltip } from "antd";
-
+import { CSSProperties, useState } from "react";
 import {
-  CSS,
   React,
   redux,
   useAsyncEffect,
-  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Space } from "@cocalc/frontend/components";
@@ -19,20 +17,21 @@ import { DEFAULT_COLOR } from "@cocalc/frontend/users/store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ensure_bound, startswith, trunc_middle } from "@cocalc/util/misc";
 import { avatar_fontcolor } from "./font-color";
+import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 
-const CIRCLE_OUTER_STYLE: CSS = {
+const CIRCLE_OUTER_STYLE: CSSProperties = {
   textAlign: "center",
   cursor: "pointer",
 } as const;
 
-const CIRCLE_INNER_STYLE: CSS = {
+const CIRCLE_INNER_STYLE: CSSProperties = {
   display: "block",
   borderRadius: "50%",
   fontFamily: "sans-serif",
 } as const;
 
 interface Props {
-  account_id?: string; // if not given useful as a placeholder in the UI (e.g., if we don't know account_id yet)
+  account_id?: string; // if not given useful as a placeholder in the UI (e.g., if we don't know account_id yet); uuid or "chatgpt"
   size?: number; // in pixels
   max_age_s?: number; // if given fade the avatar out over time.
   project_id?: string; // if given, showing avatar info for a project (or specific file)
@@ -46,9 +45,18 @@ interface Props {
 
   first_name?: string; // optional name to use
   last_name?: string;
+  style?: CSSProperties;
 }
 
-export const Avatar: React.FC<Props> = (props) => {
+export function Avatar(props) {
+  if (props.account_id == "chatgpt" || props.account_id == "chatgpt4") {
+    return <OpenAIAvatar size={props.size} style={props.style} />;
+  } else {
+    return <Avatar0 {...props} />;
+  }
+}
+
+const Avatar0: React.FC<Props> = (props) => {
   // we use the user_map to display the username and face:
   const user_map = useTypedRedux("users", "user_map");
   const [image, set_image] = useState<string | undefined>(undefined);
@@ -257,7 +265,7 @@ export const Avatar: React.FC<Props> = (props) => {
   };
 
   const elt = (
-    <div style={{ display: "inline-block", cursor: "pointer" }}>
+    <div style={{ display: "inline-block", cursor: "pointer", ...props.style }}>
       <div
         style={{ ...outer_style, ...CIRCLE_OUTER_STYLE }}
         onClick={click_avatar}

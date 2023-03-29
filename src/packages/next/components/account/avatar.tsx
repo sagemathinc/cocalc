@@ -161,6 +161,12 @@ export function DisplayAvatar({
     }
   }
 
+  if (!color) {
+    // color needs to be something, or below the avatar
+    // will be completely invisible on a black background, e.g.,
+    // in the title bar.
+    color = "#888";
+  }
   return (
     <AntdAvatar
       style={{

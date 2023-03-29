@@ -16,6 +16,7 @@ import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import PricingItem, { Line } from "components/landing/pricing-item";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { listedPrices } from "components/share/pricing";
 import { LinkToStore, StoreConf } from "components/store/link";
@@ -23,7 +24,6 @@ import { encodeRange } from "components/store/quota-query-params";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { Paragraph, Title } from "components/misc";
 
 interface Item {
   title: string;
@@ -193,16 +193,13 @@ const courseLarge: Item = (() => {
 const data: Item[] = [training, courseSmall, courseLarge];
 
 export default function Courses({ customize }) {
+  const { siteName } = customize;
   return (
     <Customize value={customize}>
-      <Head title="Course licenses" />
+      <Head title={`${siteName} – Pricing – Course Licenses`} />
       <Layout>
         <Header page="pricing" subPage="courses" />
-        <Layout.Content
-          style={{
-            backgroundColor: "white",
-          }}
-        >
+        <Layout.Content style={{ backgroundColor: "white" }}>
           <Body />
           <Footer />
         </Layout.Content>
@@ -221,10 +218,10 @@ function Body(): JSX.Element {
         backgroundColor: "white",
       }}
     >
-      <div style={{ textAlign: "center", color: "#444" }}>
+      <div style={{ textAlign: "center" }}>
         <Title level={1}>
           <Icon name="graduation-cap" style={{ marginRight: "30px" }} />
-          CoCalc - Course licenses
+          CoCalc – Course Licenses
         </Title>
       </div>
       <Paragraph>
@@ -317,7 +314,7 @@ function Body(): JSX.Element {
         renderItem={(item) => {
           const conf = {
             ...item.conf,
-            period: "range",
+            period: "range" as "range",
             range: encodeRange([item.conf.start, item.conf.end]),
           };
           return (

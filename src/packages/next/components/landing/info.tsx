@@ -34,6 +34,7 @@ interface Props {
   title: ReactNode;
   video?: string | string[];
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
+  narrow?: boolean; // emphasis on the text part, not the image.
   level?: TitleProps["level"];
   textStyle?: CSSProperties;
 }
@@ -54,6 +55,7 @@ export default function Info(props: Props) {
     title,
     video,
     wide,
+    narrow,
     level = 1,
   } = props;
 
@@ -166,15 +168,17 @@ export default function Info(props: Props) {
     Object.assign(textColStyle, textStyleExtra);
   }
 
+  const widths = wide ? [7, 17] : narrow ? [12, 12] : [9, 15];
+
   const textCol = (
-    <Col key="text" lg={wide ? 7 : 9} style={textColStyle}>
+    <Col key="text" lg={widths[0]} style={textColStyle}>
       {children}
     </Col>
   );
   const graphicCol = (
     <Col
       key="graphics"
-      lg={wide ? 17 : 15}
+      lg={widths[1]}
       style={{ padding: "0 30px 15px 30px", width: "100%" }}
     >
       {graphic}
@@ -262,7 +266,7 @@ Info.Heading = (props: HeadingProps) => {
       <Title
         level={level}
         style={{
-          color: "#444",
+          color: COLORS.GRAY_D,
           maxWidth: MAX_WIDTH_LANDING,
           margin: "0 auto",
           ...textStyle,

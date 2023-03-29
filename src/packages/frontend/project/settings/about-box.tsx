@@ -3,18 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert, Col, Row, Typography } from "antd";
+import React, { useEffect, useState } from "react";
+
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   LabeledRow,
   SettingBox,
   TextInput,
   TimeAgo,
 } from "@cocalc/frontend/components";
-import { ProjectsActions } from "@cocalc/frontend/todo-types";
-import { Alert, Col, Row, Typography } from "antd";
-import React, { useEffect, useState } from "react";
-import { useTypedRedux, redux } from "../../app-framework";
-import ProjectImage from "./image";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { ProjectsActions } from "@cocalc/frontend/todo-types";
+import ProjectImage from "./image";
 
 interface Props {
   project_title: string;
@@ -87,7 +88,7 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
           on_change={(title) => actions.set_project_title(project_id, title)}
         />
       </LabeledRow>
-      <LabeledRow label="Description">
+      <LabeledRow label="Description (markdown)">
         <TextInput
           type="textarea"
           rows={2}

@@ -26,6 +26,7 @@ import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
 import BannerWithLinks from "components/landing/banner-with-links";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 
 const topLinkStyle: CSS = { marginRight: "20px" };
 
@@ -46,6 +47,7 @@ export default function Home(props: Props) {
     indexInfo,
     sandboxProjectId,
     onCoCalcCom,
+    openaiEnabled,
   } = customize;
 
   function contentDescription() {
@@ -99,6 +101,9 @@ export default function Home(props: Props) {
                 </A>{" "}
                 <A href={"/billing"} style={topLinkStyle}>
                   Billing
+                </A>{" "}
+                <A href={"/vouchers"} style={topLinkStyle}>
+                  Vouchers
                 </A>{" "}
               </>
             )}
@@ -197,6 +202,13 @@ export default function Home(props: Props) {
         <Layout.Content style={{ backgroundColor: "white" }}>
           {topAccountLinks()}
           {shareServer && onCoCalcCom && <BannerWithLinks />}
+          {openaiEnabled && (
+            <div
+              style={{ width: "900px", maxWidth: "100%", margin: "15px auto" }}
+            >
+              <ChatGPTHelp size="large" tag={"index"} />
+            </div>
+          )}
           <Content
             style={{ minHeight: "30vh" }}
             logo={logo()}

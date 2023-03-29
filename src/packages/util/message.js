@@ -3045,3 +3045,23 @@ message({
   id: undefined,
   resp: required, // a string - basically a message to show the user
 });
+
+API(
+  message({
+    event: "chatgpt",
+    id: undefined,
+    text: required, // text of the question
+    system: undefined, // optional (highly recommended!) extra system context, e.g,. "using cocalc".
+    history: undefined, // optional history of this conversation in chatgpt format, so { role: "assistant" | "user" | "system"; content: string }[];
+    project_id: undefined,
+    path: undefined,
+    model: undefined,
+    tag: undefined,
+  })
+);
+
+message({
+  event: "chatgpt_response",
+  id: undefined,
+  text: required, // text of the response
+});

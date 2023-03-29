@@ -195,7 +195,12 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
             title="Create a Chatroom"
             placement="bottom"
             icon="comment"
-            tip="Create a chatroom for chatting with other collaborators on this project."
+            tip={
+              <>
+                Create a chatroom for chatting with collaborators on this
+                project.
+              </>
+            }
           >
             <NewFileButton
               icon="comment"

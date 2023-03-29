@@ -28,6 +28,7 @@ import teachingLogo from "/public/features/fa-graduation-cap.svg";
 import FrameEditorPython from "/public/features/frame-editor-python.png";
 import JupyterLogo from "/public/features/jupyter-logo.svg";
 import LatexLogo from "/public/features/latex-logo.svg";
+import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import {
   default as linuxLogo,
   default as terminalLogo,
@@ -40,6 +41,7 @@ import terminalScreenshot from "/public/features/terminal.png";
 import WhiteboardImage from "/public/features/whiteboard-sage.png";
 import x11Screenshot from "/public/features/x11-01.png";
 import x11Logo from "/public/features/x11-logo.svg";
+import ChatGptInChatroom from "/public/features/chatgpt-fix-code.png";
 
 const dataSource = [
   {
@@ -58,47 +60,6 @@ const dataSource = [
     ),
   },
   {
-    link: "/features/python",
-    title: "Huge installed Python stack",
-    logo: PythonLogo,
-    image: FrameEditorPython,
-    logoBackground: "white",
-    description: (
-      <>
-        Use Python in CoCalc for data science, statistics, mathematics, physics,
-        machine learning. Many{" "}
-        <A href="/software/python">Python packages are included in CoCalc</A>!
-      </>
-    ),
-  },
-  {
-    link: "/features/whiteboard",
-    title: <>Collaborative Whiteboard</>,
-    logo: "layout",
-    image: WhiteboardImage,
-    description: (
-      <>
-        CoCalc's collaborative whiteboard fully supports writing mathematics
-        using LaTeX and doing computation using Jupyter code cells on an
-        infinite canvas.
-      </>
-    ),
-  },
-  {
-    link: "/features/r-statistical-software",
-    title: "R Statistical Software",
-    logo: Rlogo,
-    image: RJupyter,
-    logoBackground: "white",
-    description: (
-      <>
-        Use Jupyter notebooks with the R kernel, the R command line, X11
-        graphics, <LaTeX /> with Knitr and RMarkdown, and more. Many{" "}
-        <A href="/software/r">R packages are included in CoCalc</A>!
-      </>
-    ),
-  },
-  {
     link: "/features/latex-editor",
     title: (
       <>
@@ -113,6 +74,53 @@ const dataSource = [
         CoCalc's <LaTeX /> editor can help you be a more productive author
         online. Check out{" "}
         <A href="https://doc.cocalc.com/latex.html">its documentation</A>.
+      </>
+    ),
+  },
+  {
+    link: "/features/openai-chatgpt",
+    title: <>OpenAI's ChatGPT</>,
+    logoBackground: "white",
+    logo: <OpenAIAvatar size={64} />,
+    image: ChatGptInChatroom,
+    description: (
+      <>
+        CoCalc integrates with{" "}
+        <A href="https://openai.com/">OpenAI's ChatGPT</A> in various ways. It
+        participates in a{" "}
+        <A href={"https://doc.cocalc.com/chat.html"}>Chatroom</A> as a bot,
+        helps you understand your code, deciphers error messages in{" "}
+        <A href={"/features/jupyter-notebook"}>Jupyter notebooks</A> or
+        generates code or even an entire file for you.
+      </>
+    ),
+  },
+  {
+    link: "/features/slides",
+    title: <>Whiteboard & Slides</>,
+    logo: "layout",
+    image: WhiteboardImage,
+    description: (
+      <>
+        CoCalc's collaborative <A href={"/features/whiteboard"}>whiteboard</A>{" "}
+        and <A href={"/features/slides"}>slides</A> documents help you
+        visualizing your ideas on an infinite canvas or on finite slides for a
+        presentation. Jupyter code cells make it possible to embed calculations
+        and plots, write mathematics using LaTeX, and more.
+      </>
+    ),
+  },
+  {
+    link: "/features/r-statistical-software",
+    title: "R Statistical Software",
+    logo: Rlogo,
+    image: RJupyter,
+    logoBackground: "white",
+    description: (
+      <>
+        Use Jupyter notebooks with the R kernel, the R command line, X11
+        graphics, <LaTeX /> with Knitr and RMarkdown, and more. Many{" "}
+        <A href="/software/r">R packages are included in CoCalc</A>!
       </>
     ),
   },
@@ -148,6 +156,20 @@ const dataSource = [
         <sup>®</sup>. Use Jupyter notebooks, write programs, and display X11
         graphics. Many{" "}
         <A href="/software/octave">Octave packages are included in CoCalc</A>!
+      </>
+    ),
+  },
+  {
+    link: "/features/python",
+    title: "Huge installed Python stack",
+    logo: PythonLogo,
+    image: FrameEditorPython,
+    logoBackground: "white",
+    description: (
+      <>
+        Use Python in CoCalc for data science, statistics, mathematics, physics,
+        machine learning. Many{" "}
+        <A href="/software/python">Python packages are included in CoCalc</A>!
       </>
     ),
   },
@@ -272,12 +294,22 @@ export default function Features({ customize }) {
           description={
             <>
               These pages are an overview of what CoCalc is able to do. You can
-              also{" "}
-              <A href="https://about.cocalc.com">
-                learn about our mission, developers and features,
-              </A>{" "}
-              <A href="/software">browse installed software</A>, and{" "}
-              <A href="/share">see how other people are using CoCalc</A>.
+              also
+              <ul>
+                <li>
+                  browse <A href="/software">installed software</A>,
+                </li>
+                <li>
+                  see how <A href="/share">other people are using CoCalc</A>,
+                  and
+                </li>
+                <li>
+                  learn about our{" "}
+                  <A href="https://about.cocalc.com">
+                    mission, developers and features.
+                  </A>
+                </li>
+              </ul>
             </>
           }
           dataSource={dataSource}

@@ -8,16 +8,48 @@ register({
   icon: "credit-card",
 
   query: {
-    vouchers: [
+    crm_vouchers: [
       {
         id: null,
-        code: null,
-        created: null,
         created_by: null,
-        void: null,
+        created: null,
+        active: null,
+        expire: null,
+        cancel_by: null,
+        title: null,
+        count: null,
+        cost: null,
+        tax: null,
+        notes: null,
+        cart: null,
+        purchased: null,
       },
     ],
   },
-  allowCreate: true,
+  allowCreate: false,
+  changes: true,
+});
+
+register({
+  name: "voucher_codes",
+
+  title: "Voucher Codes",
+
+  icon: "gift",
+
+  query: {
+    crm_voucher_codes: [
+      {
+        code: null,
+        id: null,
+        created: null,
+        when_redeemed: null,
+        redeemed_by: null,
+        notes: null,
+        canceled: null,
+        license_ids: null,
+      },
+    ],
+  },
   changes: true,
 });

@@ -37,27 +37,31 @@ interface Props {
   oneLine?: boolean;
   simpleShowPeriod?: boolean;
   discountTooltip?: boolean;
+  noDiscount?: boolean;
 }
 
-export function DisplayCost(props: Props) {
-  const {
-    cost,
-    simple = false,
-    oneLine = false,
-    simpleShowPeriod = true,
-    discountTooltip = false,
-  } = props;
+export function DisplayCost({
+  cost,
+  simple = false,
+  oneLine = false,
+  simpleShowPeriod = true,
+  discountTooltip = false,
+  noDiscount = false,
+}: Props) {
   if (isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
     return <>&ndash;</>;
   }
   const discount_pct = percent_discount(cost);
   if (simple) {
     const discount = discount_pct > 0 && (
-      <>includes {discount_pct}% self-service discount</>
+      <>
+        Price includes {discount_pct}% self-service discount, only if you buy
+        now.
+      </>
     );
     return (
       <>
-        {money(cost.discounted_cost)}
+        {money(noDiscount ? cost.cost : cost.discounted_cost)}
         {cost.period != "range" ? (
           <>
             {oneLine ? " " : <br />}
@@ -66,7 +70,8 @@ export function DisplayCost(props: Props) {
         ) : (
           ""
         )}
-        {oneLine ? null : <br />} {discount && !discountTooltip && discount}
+        {oneLine ? null : <br />}{" "}
+        {!noDiscount && discount && !discountTooltip && discount}
       </>
     );
   }
@@ -82,7 +87,7 @@ export function DisplayCost(props: Props) {
           {money(cost.discounted_cost)}
           {cost.input.subscription != "no" ? " " + cost.input.subscription : ""}
         </b>
-        , if you purchase here ({discount_pct}% self-service discount).
+        , if you purchase right now ({discount_pct}% self-service discount).
       </>
     );
   } else {
@@ -101,19 +106,22 @@ export function DisplayCost(props: Props) {
 interface DescribeItemProps {
   info: Partial<PurchaseInfo>;
   variant?: "short" | "long";
+  voucherPeriod?: boolean;
 }
 
 // TODO: this should be a component. Rename it to DescribeItem and use it
 // properly, e.g., <DescribeItem info={cost.input}/> above.
 
-export function describeItem(props: DescribeItemProps): ReactNode {
-  const { info, variant = "long" } = props;
-
+export function describeItem({
+  info,
+  variant = "long",
+  voucherPeriod,
+}: DescribeItemProps): ReactNode {
   if (info.type === "disk") {
     return (
       <>
         Dedicated Disk ({dedicatedDiskDisplay(info.dedicated_disk, variant)}){" "}
-        {describePeriod({ quota: info, variant })}
+        {describePeriod({ quota: info, variant, voucherPeriod })}
       </>
     );
   }
@@ -122,7 +130,7 @@ export function describeItem(props: DescribeItemProps): ReactNode {
     return (
       <>
         Dedicated VM ({dedicatedVmDisplay(info.dedicated_vm)}){" "}
-        {describePeriod({ quota: info, variant })}
+        {describePeriod({ quota: info, variant, voucherPeriod })}
       </>
     );
   }
@@ -153,7 +161,8 @@ export function describeItem(props: DescribeItemProps): ReactNode {
     return (
       <>
         <Text strong={true}>{describeQuantity({ quota: info, variant })}</Text>{" "}
-        {describeQuotaOnLine(quota)}, {describePeriod({ quota: info, variant })}
+        {describeQuotaOnLine(quota)},{" "}
+        {describePeriod({ quota: info, variant, voucherPeriod })}
       </>
     );
   } else {
@@ -161,7 +170,7 @@ export function describeItem(props: DescribeItemProps): ReactNode {
       <>
         {describe_quota(quota, false)}{" "}
         {describeQuantity({ quota: info, variant })} (
-        {describePeriod({ quota: info, variant })})
+        {describePeriod({ quota: info, variant, voucherPeriod })})
       </>
     );
   }
@@ -190,13 +199,18 @@ interface PeriodProps {
     end?: Date | string;
   };
   variant?: "short" | "long";
+  // voucherPeriod: description used for a voucher -- just give number of days, since the exact dates themselves are discarded.
+  voucherPeriod?: boolean;
 }
 
 /**
  * ATTN: this is not a general purpose period description generator. It's very specific to the purchases in the store!
  */
-export function describePeriod(props: PeriodProps): ReactNode {
-  const { quota, variant = "long" } = props;
+export function describePeriod({
+  quota,
+  variant = "long",
+  voucherPeriod,
+}: PeriodProps): ReactNode {
   const { subscription, start: startRaw, end: endRaw } = quota;
 
   const { fromServerTime, serverTimeDate } = useTimeFixer();
@@ -216,6 +230,14 @@ export function describePeriod(props: PeriodProps): ReactNode {
 
     // days are calculated based on the actual selection
     const days = getDays({ start, end });
+
+    if (voucherPeriod) {
+      return (
+        <>
+          license lasts {days} {plural(days, "day")}
+        </>
+      );
+    }
 
     // but the displayed end mimics what will happen later on the backend
     // i.e. if the day alreaday started, we append the already elapsed period to the end

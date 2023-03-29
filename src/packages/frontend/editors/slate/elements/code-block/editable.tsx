@@ -15,6 +15,8 @@ import { SlateCodeMirror } from "../codemirror";
 import { delay } from "awaiting";
 import { useSetElement } from "../set-element";
 import { Input } from "antd";
+import infoToMode from "./info-to-mode";
+import CopyButton from "./copy-button";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -36,10 +38,11 @@ const Element: React.FC<RenderElementProps> = ({
   return (
     <div {...attributes}>
       <div contentEditable={false} style={{ textIndent: 0 }}>
+        <CopyButton value={element.value} />
         <SlateCodeMirror
           options={{ lineWrapping: true }}
           value={element.value}
-          info={element.info}
+          info={infoToMode(element.info, element.value)}
           onChange={(value) => {
             setElement({ value });
           }}

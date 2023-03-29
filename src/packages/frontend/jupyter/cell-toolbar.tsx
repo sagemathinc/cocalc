@@ -25,6 +25,7 @@ const STYLE: CSS = {
   display: "flex",
   background: "#eee",
   border: "1px solid rgb(247, 247, 247)",
+  marginTop: "20px",
 } as const;
 
 export interface CellToolbarProps {

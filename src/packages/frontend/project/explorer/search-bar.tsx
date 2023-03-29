@@ -72,7 +72,7 @@ export const SearchBar = React.memo((props: Props) => {
       err_on_exit: false,
       cb(err, output) {
         if (id !== _id.current) {
-          // computation was cancelled -- ignore result.
+          // computation was canceled -- ignore result.
           return;
         }
         if (err) {

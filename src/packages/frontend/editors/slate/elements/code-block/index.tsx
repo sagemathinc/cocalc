@@ -8,6 +8,7 @@ import { Element } from "slate";
 import { register, SlateElement, RenderElementProps } from "../register";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import infoToMode from "./info-to-mode";
+import CopyButton from "./copy-button";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -21,14 +22,17 @@ const StaticElement: React.FC<RenderElementProps> = ({
   attributes,
   element,
 }) => {
-  if (element.type != "code_block") throw Error("bug");
+  if (element.type != "code_block") {
+    throw Error("bug");
+  }
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   return (
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
       <CodeMirrorStatic
+        addonAfter={<CopyButton value={element.value} />}
         value={element.value}
-        style={{ background: "#f7f7f7" }}
-        options={{ mode: infoToMode(element.info) }}
+        style={{ background: "white", padding: "15px" }}
+        options={{ mode: infoToMode(element.info, element.value) }}
       />
     </div>
   );
@@ -37,6 +41,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
 function toSlate({ token }) {
   // fence =block of code with ``` around it, but not indented.
   let value = token.content;
+
   // We remove the last carriage return (right before ```), since it
   // is much easier to do that here...
   if (value[value.length - 1] == "\n") {

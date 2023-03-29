@@ -18,7 +18,12 @@ import {
 } from "./types";
 import { STYLE as GENERIC_STYLE } from "../../projects/hashtags";
 
-const STYLE: CSSProperties = { ...GENERIC_STYLE, ...{ margin: "5px" } };
+const STYLE: CSSProperties = {
+  ...GENERIC_STYLE,
+  margin: "5px",
+  maxHeight: "56px",
+  overflowY: "auto",
+};
 
 interface Actions {
   set_hashtag_state: (tag: string, state?: HashtagState) => void;

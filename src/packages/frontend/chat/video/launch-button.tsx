@@ -1,3 +1,4 @@
+import { CSSProperties } from "react";
 import { useInterval } from "react-interval-hook";
 import { debounce } from "lodash";
 import {
@@ -6,10 +7,10 @@ import {
   useTypedRedux,
   useRef,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Tip, VisibleMDLG } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components";
 import { user_activity } from "@cocalc/frontend/tracker";
 import { VideoChat } from "./video-chat";
-import { Button, Popconfirm } from "antd";
+import { Button, Popconfirm, Popover } from "antd";
 
 const VIDEO_UPDATE_INTERVAL_MS = 30 * 1000;
 // jit.si doesn't seem to have a limit...?
@@ -18,17 +19,15 @@ const VIDEO_CHAT_LIMIT = 99999;
 interface Props {
   project_id: string;
   path: string;
-  label?: string | JSX.Element;
-  button?: boolean;
   sendChat?: (string) => void;
+  style?: CSSProperties;
 }
 
 export default function VideoChatButton({
   project_id,
   path,
-  label,
-  button,
   sendChat,
+  style: style0,
 }: Props) {
   // to know if somebody else has video chat opened for this file
   // @ts-ignore
@@ -105,15 +104,6 @@ export default function VideoChatButton({
     }
   }
 
-  function render_tip(num_users_chatting: number): JSX.Element {
-    return (
-      <span>
-        {render_join(num_users_chatting)}
-        {render_num_chatting(num_users_chatting)}
-      </span>
-    );
-  }
-
   const num_users_chatting: number =
     video_chat.current.num_users_chatting() ?? 0;
   const style: React.CSSProperties = { cursor: "pointer" };
@@ -122,36 +112,35 @@ export default function VideoChatButton({
   }
 
   const body = (
-    <Tip
-      title={<span>Open Video Chat</span>}
-      tip={render_tip(num_users_chatting)}
-      placement="left"
-      delayShow={1000}
-    >
+    <>
       <Icon name="video-camera" />
       {num_users_chatting > 0 && (
         <span style={{ marginLeft: "5px" }}>{num_users_chatting}</span>
       )}
-      <VisibleMDLG>
-        <span style={{ marginLeft: "5px" }}>{label}</span>
-      </VisibleMDLG>
-    </Tip>
+      <span style={{ marginLeft: "5px" }}>Video Chat</span>
+    </>
   );
 
   return (
     <Popconfirm
       title={`${
         num_users_chatting ? "Join the current" : "Start a new"
-      } video chat session?`}
+      } video chat session about this document?`}
       onConfirm={click_video_button}
       okText={`${num_users_chatting ? "Join" : "Start"} video chat`}
       cancelText="Cancel"
     >
-      {button ? (
-        <Button style={style}>{body}</Button>
-      ) : (
-        <span style={{ ...style, height: "30px" }}>{body}</span>
-      )}
+      <Popover
+        mouseEnterDelay={0.8}
+        title={() => (
+          <span>
+            {render_join(num_users_chatting)}
+            {render_num_chatting(num_users_chatting)}
+          </span>
+        )}
+      >
+        <Button style={{ ...style, ...style0 }}>{body}</Button>
+      </Popover>
     </Popconfirm>
   );
 }

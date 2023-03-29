@@ -26,6 +26,7 @@ import { insertSpecialChar } from "./insert-special-char";
 import { emptyParagraph } from "../padding";
 import { SlateEditor } from "../editable-markdown";
 import { getMarks } from "../edit-bar/marks";
+import { delay } from "awaiting";
 
 // currentWord:
 //
@@ -317,8 +318,13 @@ export function restoreSelectionAndFocus(editor: SlateEditor): void {
   setSelectionAndFocus(editor, lastSelection);
 }
 
-export function formatAction(editor: SlateEditor, cmd: string, args): void {
-  restoreSelectionAndFocus(editor);
+export async function formatAction(editor: SlateEditor, cmd: string, args) {
+  const isFocused = ReactEditor.isFocused(editor);
+  if (!isFocused) {
+    ReactEditor.focus(editor);
+    restoreSelectionAndFocus(editor);
+    await delay(1);
+  }
   try {
     if (
       cmd == "bold" ||
@@ -384,7 +390,8 @@ export function formatAction(editor: SlateEditor, cmd: string, args): void {
       cmd == "insertunorderedlist" ||
       cmd == "insertorderedlist" ||
       cmd == "table" ||
-      cmd == "horizontalRule"
+      cmd == "horizontalRule" ||
+      cmd == "linebreak"
     ) {
       insertSnippet(editor, cmd);
       return;
@@ -406,7 +413,10 @@ export function formatAction(editor: SlateEditor, cmd: string, args): void {
     }
 
     if (cmd == "format_code") {
-      insertMarkdown(editor, "\n```\n```\n");
+      insertMarkdown(
+        editor,
+        "\n```\n" + selectionToText(editor).trim() + "\n```\n"
+      );
       return;
     }
 
@@ -431,9 +441,11 @@ function insertSnippet(editor: ReactEditor, name: string): boolean {
   let markdown = commands.md[name]?.wrap?.left;
   if (name == "insertunorderedlist") {
     // better for a wysiwyg editor...
-    markdown = "- ";
+    markdown = "-";
   } else if (name == "insertorderedlist") {
-    markdown = "1. ";
+    markdown = "1.";
+  } else if (name == "linebreak") {
+    markdown = "<br/>";
   }
   if (markdown == null) return false;
   insertMarkdown(editor, markdown.trim());
@@ -487,9 +499,14 @@ function transformToComment(editor: Editor): void {
   Transforms.insertFragment(editor, fragment);
 }
 
-// TODO: This is very buggy
+// TODO: This is very buggy and can't work in general, e.g., because
+// of virtualization.  we use it here usually for small snippets of
+// visible text, so it tends to be OK. Just temper your expectations!
 export function selectionToText(editor: Editor): string {
-  if (!editor.selection) return "";
+  if (!editor.selection) {
+    // no selection so nothing to do.
+    return "";
+  }
   // This is just directly using DOM API, not slatejs, so
   // could run into a subtle problem e.g., due to windowing.
   // However, that's very unlikely given our application.

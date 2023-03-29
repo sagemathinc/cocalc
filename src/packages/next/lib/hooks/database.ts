@@ -11,6 +11,7 @@ import { removeNulls } from "@cocalc/util/misc";
 
 export default function useQuery(initialQuery?): {
   error: string;
+  setError: (string) => void; // in case you want to clear the error indicator.
   value: any;
   loading: boolean;
   query: (any) => Promise<any>;
@@ -48,5 +49,5 @@ export default function useQuery(initialQuery?): {
     }
   }, []);
 
-  return { error, value, loading, query };
+  return { error, value, loading, query, setError };
 }

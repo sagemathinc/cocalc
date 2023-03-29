@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize, cmp, planInterval, stripeAmount } from "@cocalc/util/misc";
 import License from "components/licenses/license";
-import { CSS, Paragraph, Title } from "components/misc";
+import { CSS, Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import HelpEmail from "components/misc/help-email";
 import Timestamp from "components/misc/timestamp";
@@ -18,16 +18,36 @@ import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import { Details as LicenseLoader } from "../licenses/license";
+import { InvoicesData } from "@cocalc/util/types/stripe";
 
-function Description(props) {
+const DESCR_STYLE: CSS = {
+  wordWrap: "break-word",
+  wordBreak: "break-word",
+} as const;
+
+function getInvoiceById(invoices, id) {
+  for (const invoice of invoices.data ?? []) {
+    if (invoice.id == id) return invoice;
+  }
+  return null;
+}
+
+interface DescriptionProps {
+  latest_invoice: string;
+  metadata?: { license_id: string };
+  invoices: InvoicesData;
+}
+
+function Description(props: DescriptionProps) {
   const { latest_invoice, metadata, invoices } = props;
-  const style: CSS = { wordWrap: "break-word", wordBreak: "break-word" };
-  for (const invoice of invoices.data) {
-    if (latest_invoice != invoice.id) continue;
-    const cnt = invoice.lines?.total_count ?? 1;
+
+  const invoice = getInvoiceById(invoices, latest_invoice);
+
+  if (invoice?.lines != null) {
+    const cnt = invoice.lines.total_count ?? 1;
     const url = invoice.hosted_invoice_url;
     return (
-      <div style={style}>
+      <div style={DESCR_STYLE}>
         {invoice.lines.data[0].description}
         {cnt > 1 && ", etc."}
         {url && (
@@ -45,10 +65,11 @@ function Description(props) {
       </div>
     );
   }
+
   // in case the above didn't return, i.e. invoice was not found in the invoices.data array, we try to load it:
   if (metadata?.license_id) {
     return (
-      <div style={style}>
+      <div style={DESCR_STYLE}>
         <LicenseLoader license_id={metadata.license_id} condensed={true} />
         License: <License license_id={metadata.license_id} />
       </div>
@@ -80,30 +101,54 @@ function Status({ status }) {
   return <>{capitalize(status)}</>;
 }
 
-function Cost({ plan }) {
-  return (
-    <>
-      {stripeAmount(plan.amount, plan.currency)} for{" "}
-      {planInterval(plan.interval, plan.interval_count)}
-    </>
-  );
+interface CostProps {
+  latest_invoice: string;
+  plan: {
+    amount: number;
+    currency: string;
+    interval: string;
+    interval_count: number;
+  };
+  invoices: InvoicesData;
+  metadata?: { license_id: string };
 }
 
-function Cancel({
-  cancel_at_period_end,
-  cancel_at,
-  id,
-  onChange,
-}: {
+function Cost({ latest_invoice, plan, invoices, metadata }: CostProps) {
+  const invoice = getInvoiceById(invoices, latest_invoice);
+  if (invoice != null) {
+    const unitCount = invoice.lines?.data?.[0].quantity ?? 1;
+    return (
+      <>
+        {stripeAmount(plan.amount, plan.currency, unitCount)} for{" "}
+        {planInterval(plan.interval, plan.interval_count)}
+      </>
+    );
+    // since no invoice has been not found in the invoices.data array, we try to load it:
+  } else if (metadata?.license_id) {
+    return (
+      <LicenseLoader
+        license_id={metadata.license_id}
+        type={"cost"}
+        plan={plan}
+      />
+    );
+  }
+  return <Text type="secondary">no data available</Text>;
+}
+
+interface CancelProps {
   cancel_at_period_end: boolean;
   cancel_at: number | null;
   id: string;
   onChange: () => void;
-}) {
+}
+
+function Cancel(props: CancelProps) {
+  const { cancel_at_period_end, cancel_at, id, onChange } = props;
   const [error, setError] = useState<string>("");
-  const [cancelling, setCancelling] = useState<boolean>(false);
+  const [canceling, setCanceling] = useState<boolean>(false);
   const isMounted = useIsMounted();
-  const isCancelled = cancel_at_period_end || cancel_at != null;
+  const isCanceled = cancel_at_period_end || cancel_at != null;
   return (
     <div>
       <Popconfirm
@@ -119,7 +164,7 @@ function Cancel({
           </div>
         }
         onConfirm={async () => {
-          setCancelling(true);
+          setCanceling(true);
           setError("");
           try {
             await apiPost("billing/cancel-subscription", { id });
@@ -128,18 +173,18 @@ function Cancel({
             setError(err.message);
           } finally {
             if (!isMounted.current) return;
-            setCancelling(false);
+            setCanceling(false);
             onChange();
           }
         }}
         okText="Yes, cancel at period end (do not auto-renew)"
         cancelText="Make no change"
       >
-        <Button disabled={isCancelled || cancelling} type="dashed">
-          {cancelling ? (
-            <Loading delay={0}>Cancelling...</Loading>
+        <Button disabled={isCanceled || canceling} type="dashed">
+          {canceling ? (
+            <Loading delay={0}>Canceling...</Loading>
           ) : (
-            `Cancel${isCancelled ? "led" : ""}`
+            `Cancel${isCanceled ? "led" : ""}`
           )}
         </Button>
         {error && (
@@ -166,7 +211,7 @@ function columns(invoices, onChange) {
           <br />
           Period: <Period {...sub} />
           <br />
-          Cost: <Cost {...sub} />
+          Cost: <Cost {...sub} invoices={invoices} />
           <br />
           <Cancel {...sub} onChange={onChange} />
         </div>
@@ -195,7 +240,7 @@ function columns(invoices, onChange) {
       responsive: ["sm"],
       title: "Cost",
       sorter: { compare: (a, b) => cmp(a.plan.amount, b.plan.amount) },
-      render: (_, sub) => <Cost {...sub} />,
+      render: (_, sub) => <Cost {...sub} invoices={invoices} />,
     },
     {
       responsive: ["sm"],
@@ -207,7 +252,7 @@ function columns(invoices, onChange) {
 }
 
 export default function Subscriptions() {
-  const subscriptions = useAPI("billing/get-subscriptions");
+  const subscriptions = useAPI("billing/get-subscriptions", { limit: 100 });
   const invoices = useAPI("billing/get-invoices-and-receipts");
   if (subscriptions.error) {
     return <Alert type="error" message={subscriptions.error} />;

@@ -13,7 +13,7 @@ interface Props {
 
 export function EditorSettingsFontSize(props: Props): JSX.Element {
   return (
-    <LabeledRow label="Font Size" className="cc-account-prefs-font-size">
+    <LabeledRow label="Default global font size" className="cc-account-prefs-font-size">
       <NumberInput
         on_change={(n) => props.on_change("font_size", n)}
         min={5}

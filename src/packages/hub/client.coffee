@@ -38,6 +38,7 @@ db_schema            = require('@cocalc/util/db-schema')
 { COOKIE_NAME }=require("@cocalc/server/auth/remember-me");
 generateHash =require("@cocalc/server/auth/hash").default;
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
+chatgpt        = require('@cocalc/server/openai/chatgpt');
 
 {one_result} = require("@cocalc/database")
 
@@ -2071,6 +2072,19 @@ class exports.Client extends EventEmitter
                 dbg("unbanning the user")
                 await callback2(@database.unban_user, {account_id:mesg.account_id})
             @push_to_client(message.success(id:mesg.id))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_chatgpt: (mesg) =>
+        dbg = @dbg("mesg_chatgpt")
+        dbg(mesg.text)
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"not signed in")
+            return
+        try
+            output = await chatgpt.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag)
+            @push_to_client(message.chatgpt_response(id:mesg.id, text:output))
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")

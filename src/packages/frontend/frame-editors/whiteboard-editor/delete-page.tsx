@@ -1,4 +1,4 @@
-import { Popconfirm } from "antd";
+import { Button, Popconfirm, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "./hooks";
 import { COLORS } from "@cocalc/util/theme";
@@ -16,13 +16,17 @@ export default function DeletePage({ pageId }) {
         e?.stopPropagation();
       }}
     >
-      <Icon
-        style={{ color: COLORS.FILE_ICON, marginLeft: "5px" }}
-        name="trash"
-        onClick={(e) => {
-          e?.stopPropagation();
-        }}
-      />
+      <Tooltip title="Delete this page" placement="right" mouseEnterDelay={1}>
+        <Button
+          type="text"
+          size="small"
+          onClick={(e) => {
+            e?.stopPropagation();
+          }}
+        >
+          <Icon style={{ color: COLORS.FILE_ICON }} name="trash" />
+        </Button>
+      </Tooltip>
     </Popconfirm>
   );
 }

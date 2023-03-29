@@ -4,7 +4,15 @@
  */
 
 /*
-Code Editor Actions
+Code Editor Actions -- This the base class for all frame editor actions.
+
+It defines saving files, managing cursor positions, managing gutter markers, and
+managing terminals. It also contains functions for handling formatting and
+spell checking, as well as utility functions for working with the editor state.
+
+WARNING: Some editors (e.g., for X11 and Jupyter) have actions tha derive from this, even
+though they aren't used for code editing. That's basically a shortcoming of the
+design.
 */
 
 const WIKI_HELP_URL = "https://github.com/sagemathinc/cocalc/wiki/";
@@ -26,7 +34,7 @@ import {
 } from "../generic/client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { SyncString } from "@cocalc/sync/editor/string";
-import { aux_file } from "@cocalc/util/misc";
+import { aux_file, capitalize } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
 import { print_code } from "../frame-tree/print-code";
@@ -71,6 +79,8 @@ import {
 } from "@cocalc/util/code-formatter";
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import { SHELLS } from "./editor";
+import type { TimeTravelActions } from "../time-travel-editor/actions";
+import getChatActions from "@cocalc/frontend/chat/get-actions";
 
 interface gutterMarkerParams {
   line: number;
@@ -150,6 +160,10 @@ export class Actions<
   private _update_misspelled_words_last_hash: any;
   private _active_id_history: string[] = [];
   private _spellcheck_is_supported: boolean = false;
+
+  // We store these actions here so that we can remove the actions
+  // and store for time travel when this editor is closed.
+  public timeTravelActions?: TimeTravelActions;
 
   // multifile support. this will be set to the path of the parent file (master)
   protected parent_file: string | undefined = undefined;
@@ -941,6 +955,30 @@ export class Actions<
           type,
         });
 
+        return new_id;
+      }
+    }
+    throw Error("BUG -- no new frame created");
+  }
+
+  // Create new frame and take the entire existing frame tree
+  // and make it a sibling to the newly created frame.
+  public new_frame(
+    type: string, // type of new frame
+    direction?: FrameDirection, // default "col"
+    first?: boolean // if true, new frame is left or top instead of right or bottom.
+  ): string {
+    const before = this._get_leaf_ids();
+    this._tree_op("new_frame", type, direction ?? "col", first ?? false);
+    const after = this._get_leaf_ids();
+    for (const new_id in after) {
+      if (!before[new_id]) {
+        // Emit new-frame event so other code can handle or initialize
+        // creation of a new frame further.
+        this.store.emit("new-frame", {
+          id: new_id,
+          type,
+        });
         return new_id;
       }
     }
@@ -2468,23 +2506,21 @@ export class Actions<
   public show_recently_focused_frame_of_type(
     type: string,
     dir: FrameDirection = "col",
-    first: boolean = false,
-    pos: number | undefined = undefined
+    first?: boolean,
+    pos?: number
   ): string {
     let id: string | undefined =
       this._get_most_recent_active_frame_id_of_type(type);
     if (id == null) {
       // no such frame, so make one
-      const active_id = this._get_active_id();
-      this.split_frame(dir, active_id, type, undefined, first, true);
-      id = this._get_most_recent_active_frame_id_of_type(type);
-      if (pos != null && id != null) {
+      id = this.new_frame(type, dir, first);
+      if (pos != null) {
         const parent_id = this.get_parent_id(id);
         if (parent_id != null) {
           this.set_frame_tree({ id: parent_id, pos });
         }
       }
-      this.set_active_id(active_id); // above could change it.
+      this.set_active_id(id);
     }
     if (id == null) {
       throw Error("bug creating frame");
@@ -2520,6 +2556,15 @@ export class Actions<
     _id: string | undefined = undefined
   ): Promise<void> {
     const id = this.show_focused_frame_of_type("overview", "col", true, 0.3);
+    await delay(0);
+    if (this._state === "closed") return;
+    this.set_active_id(id, true);
+  }
+
+  public async show_slideshow(
+    _id: string | undefined = undefined
+  ): Promise<void> {
+    const id = this.show_focused_frame_of_type("slideshow", "col", true, 0.3);
     await delay(0);
     if (this._state === "closed") return;
     this.set_active_id(id, true);
@@ -2773,4 +2818,117 @@ export class Actions<
     }
     return frameId;
   }
+
+  // Overload this in a derived class to support editors other than cm.
+  // This is used by the chatgpt function.
+  chatgptGetText(
+    frameId: string,
+    scope: "selection" | "cell" | "all" = "all"
+  ): string {
+    switch (scope) {
+      case "selection":
+        return this._get_cm(frameId)?.getSelection()?.trim() ?? "";
+      default:
+        return this._get_cm(frameId)?.getValue()?.trim() ?? "";
+    }
+  }
+
+  // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
+  chatgptExtraFileInfo(): string {
+    return "";
+  }
+
+  chatgptGetLanguage(): string {
+    return filename_extension(this.path);
+  }
+
+  async chatgpt(
+    frameId: string,
+    {
+      codegen,
+      command,
+      allowEmpty,
+      tag,
+    }: {
+      codegen?: boolean;
+      command: string;
+      allowEmpty?: boolean;
+      tag?: string;
+    }
+  ) {
+    let input = this.chatgptGetText(frameId, "selection");
+    if (!input) {
+      input = this.chatgptGetText(frameId, "cell");
+    }
+    if (!input) {
+      input = this.chatgptGetText(frameId, "all");
+    }
+    if (!input && !allowEmpty) {
+      throw Error("Please write or select something.");
+    }
+    // Truncate input (also this MUST lazy import):
+    const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(
+      "@cocalc/frontend/misc/openai"
+    );
+    const n = numTokens(input);
+    const maxTokens = Math.floor(MAX_CHATGPT_TOKENS / 2); // output might easily be as big as input...
+    if (n >= maxTokens) {
+      input = truncateMessage(input, maxTokens) + "\n...";
+    }
+
+    const chatActions = await getChatActions(
+      this.redux,
+      this.project_id,
+      this.path
+    );
+    const delim = backtickSequence(input);
+    let message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
+      command
+    )} the following ${codegen ? "code" : ""} from the file ${
+      this.path
+    } ${this.chatgptExtraFileInfo()}:`;
+    if (input) {
+      message += `
+${delim}${this.chatgptGetLanguage()}
+${input}
+${delim}
+${codegen ? "Show the new version." : ""}`;
+    }
+    // scroll to bottom *after* the message gets sent.
+    setTimeout(() => chatActions.scrollToBottom(), 100);
+    await chatActions.send_chat(
+      message,
+      undefined,
+      undefined,
+      `code-editor-${tag ?? command}`
+    );
+  }
+}
+
+// written by chatgpt
+function backtickSequence(str) {
+  let longestSequence = "";
+  let currentSequence = "";
+  let lastChar = null;
+
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+
+    if (char === "`" && lastChar === "`") {
+      currentSequence += char;
+    } else {
+      if (currentSequence.length > longestSequence.length) {
+        longestSequence = currentSequence;
+      }
+      currentSequence = char;
+    }
+
+    lastChar = char;
+  }
+
+  if (currentSequence.length > longestSequence.length) {
+    longestSequence = currentSequence;
+  }
+
+  return longestSequence.length < 3 ? "```" : longestSequence + "`";
 }

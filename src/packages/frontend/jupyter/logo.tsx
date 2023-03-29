@@ -7,36 +7,61 @@
 The kernel's logo display
 */
 
-import { React } from "@cocalc/frontend/app-framework";
-
+import { CSSProperties, useState } from "react";
 import { get_logo_url } from "./server-urls";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
-interface LogoProps {
+const DEFAULT_HEIGHT = 24; // this matches the rest of the status bar.
+
+interface Props {
   kernel: string | null;
-  project_id: string;
-  kernel_info_known: boolean;
+  kernel_info_known?: boolean;
+  size?: number;
+  style?: CSSProperties;
+  project_id?: string; // useful if no frame context...
 }
 
-const SIZE = "24px"; // this matches the rest of the status bar.
-
-export const Logo: React.FC<LogoProps> = React.memo((props: LogoProps) => {
-  const { kernel, project_id, kernel_info_known } = props;
-  const [logo_failed, set_logo_failed] = React.useState<string | undefined>(
+export default function Logo({
+  kernel,
+  kernel_info_known = true,
+  size = DEFAULT_HEIGHT,
+  style,
+  project_id,
+}: Props) {
+  const frame = useFrameContext();
+  if (project_id == null) {
+    project_id = frame.project_id;
+  }
+  const [logo_failed, set_logo_failed] = useState<string | undefined>(
     undefined
   );
 
   if (logo_failed === kernel || kernel == null) {
-    return <img style={{ width: "0px", height: SIZE }} />;
+    return (
+      <div
+        style={{
+          fontSize: size,
+          color: "#ef6c00",
+          display: "inline-block",
+          width: size,
+          height: size,
+          lineHeight: 1,
+          ...style,
+        }}
+      >
+        {kernel?.[0]?.toUpperCase() ?? ""}
+      </div>
+    );
   } else {
     const src = get_logo_url(project_id, kernel);
     return (
       <img
         src={src}
-        style={{ width: SIZE, height: SIZE }}
+        style={{ width: size, height: size, ...style }}
         onError={() => {
           if (kernel_info_known) set_logo_failed(kernel);
         }}
       />
     );
   }
-});
+}

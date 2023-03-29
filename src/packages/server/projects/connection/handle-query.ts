@@ -111,7 +111,7 @@ export async function cancelAll(project_id: string): Promise<void> {
       await callback2(database.user_query_cancel_changefeed, { id });
       c.delete(id);
     } catch (err) {
-      logger.debug("WARNING: error cancelling changefeed", id, err);
+      logger.debug("WARNING: error canceling changefeed", id, err);
     }
   }
 }

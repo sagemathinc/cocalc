@@ -10,7 +10,6 @@ import {
   defaults,
   filename_extension,
   filename_extension_notilde,
-  meta_file,
   path_to_tab,
   required,
   uuid,
@@ -21,14 +20,10 @@ import { SITE_NAME } from "@cocalc/util/theme";
 import { redux } from "../app-framework";
 import { alert_message } from "../alerts";
 import { webapp_client } from "../webapp-client";
-import { init as init_chat } from "../chat/register";
 import { normalize } from "./utils";
 import { ensure_project_running } from "./project-start-warning";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-
-const { local_storage } = require("../editor");
-//import { local_storage } from "../editor";
-
+import { local_storage } from "../editor-local-storage";
 import { remove } from "../project-file";
 
 export async function open_file(
@@ -40,7 +35,7 @@ export async function open_file(
     fragmentId?: FragmentId; // optional URI fragment identifier that describes position in this document to jump to when we actually open it, which could be long in the future, e.g., due to shift+click to open a background tab.  Inspiration from https://en.wikipedia.org/wiki/URI_fragment
     foreground?: boolean;
     foreground_project?: boolean;
-    chat?: any;
+    chat?: boolean;
     chat_width?: number;
     ignore_kiosk?: boolean;
     new_browser_window?: boolean;
@@ -261,9 +256,7 @@ export async function open_file(
     actions.open_files.set(opts.path, "component", { is_public });
     actions.open_files.set(opts.path, "chat_width", opts.chat_width);
     if (opts.chat) {
-      init_chat(meta_file(opts.path, "chat"), redux, actions.project_id);
-      // ONLY do this *after* initializing actions/store for side chat:
-      actions.open_files.set(opts.path, "is_chat_open", opts.chat);
+      actions.open_chat({ path: opts.path });
     }
 
     redux.getActions("page").save_session();
@@ -432,7 +425,7 @@ function get_side_chat_state(
   // grab chat state from local storage
   if (local_storage != null) {
     if (opts.chat == null) {
-      opts.chat = local_storage(project_id, opts.path, "is_chat_open");
+      opts.chat = local_storage(project_id, opts.path, "chatState");
     }
     if (opts.chat_width == null) {
       opts.chat_width = local_storage(project_id, opts.path, "chat_width");

@@ -6,8 +6,9 @@
 import { CSSProperties as CSS } from "react";
 import { register } from "../register";
 import { useFocused, useSelected } from "../hooks";
-import { FOCUSED_COLOR, padLeft, padRight, padCenter } from "../../util";
+import { padLeft, padRight, padCenter } from "../../util";
 import { serialize } from "../../slate-to-markdown";
+import getStyles from "./style";
 
 function fromSlate({ node, children, info, childInfo }) {
   switch (node.type) {
@@ -89,42 +90,24 @@ export const Element = ({ attributes, children, element }) => {
     */
 
     case "table":
-      const border =
-        focused && selected ? `1px solid ${FOCUSED_COLOR}` : undefined;
+      const { divStyle, tableStyle } = getStyles(focused && selected);
       return (
-        <div
-          {...attributes}
-          className="ant-table"
-          style={{ fontSize: "inherit", border }}
-        >
-          <table style={{ tableLayout: "auto" }}>{children}</table>
+        <div {...attributes} style={divStyle}>
+          <table style={tableStyle}>{children}</table>
         </div>
       );
     case "thead":
-      return (
-        <thead {...attributes} className="ant-table-thead">
-          {children}
-        </thead>
-      );
+      return <thead {...attributes}>{children}</thead>;
     case "tbody":
-      return (
-        <tbody {...attributes} className="ant-table-tbody">
-          {children}
-        </tbody>
-      );
+      return <tbody {...attributes}>{children}</tbody>;
     case "tr":
-      return (
-        <tr {...attributes} className="ant-table-row">
-          {children}
-        </tr>
-      );
+      return <tr {...attributes}>{children}</tr>;
     case "th":
       backgroundColor = focused && selected ? "#e8f2ff" : undefined;
       return (
         <th
           {...attributes}
           style={{ backgroundColor, textAlign: element.align ?? "left" } as CSS}
-          className="ant-table-cell"
         >
           {children}
         </th>
@@ -135,7 +118,6 @@ export const Element = ({ attributes, children, element }) => {
         <td
           {...attributes}
           style={{ backgroundColor, textAlign: element.align ?? "left" } as CSS}
-          className="ant-table-cell"
         >
           {children}
         </td>

@@ -452,7 +452,7 @@ export class JupyterActions extends JupyterActions0 {
     function dialog_is_closed(state): string | undefined {
       const c = state.get("confirm_dialog");
       if (c == null) {
-        // deleting confirm_dialog prop is same as cancelling.
+        // deleting confirm_dialog prop is same as canceling.
         return "cancel";
       } else {
         return c.get("choice");
@@ -809,4 +809,5 @@ export class JupyterActions extends JupyterActions0 {
       this.setState({ cm_options: x });
     }
   }
+
 }

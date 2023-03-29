@@ -25,7 +25,7 @@ import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
-import { computeCost } from "./compute-cost";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import OtherItems from "./other-items";
 import { EditRunLimit } from "./run-limit";
 import { describeItem, describePeriod, DisplayCost } from "./site-license-cost";
@@ -188,32 +188,61 @@ export default function ShoppingCart() {
     );
   }
 
+  function Proceed() {
+    const checkout = (
+      <Button
+        disabled={subTotal == 0 || updating}
+        size="large"
+        type="primary"
+        onClick={() => {
+          router.push("/store/checkout");
+        }}
+      >
+        Proceed to Checkout
+      </Button>
+    );
+    return (
+      <div>
+        <Button.Group>
+          {checkout}
+          <Button
+            disabled={subTotal == 0 || updating}
+            size="large"
+            onClick={() => {
+              router.push("/store/vouchers");
+            }}
+          >
+            Create Vouchers
+          </Button>
+        </Button.Group>
+      </div>
+    );
+  }
+
   function renderItems() {
     return (
       <>
-        <div style={{ float: "right", marginBottom: "15px" }}>
-          <span style={{ fontSize: "13pt" }}>
+        <div style={{ float: "right" }}>
+          <span style={{ fontSize: "13pt", marginRight: "15px" }}>
             <TotalCost items={items} />
           </span>
-          <A href="/store/checkout">
-            <Button
-              disabled={subTotal == 0 || updating}
-              style={{ marginLeft: "15px" }}
-              size="large"
-              type="primary"
-            >
-              Proceed to Checkout
-            </Button>
-          </A>
+          <Proceed />
         </div>
         <h3>
           <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />{" "}
           Shopping Cart
         </h3>
-        <div style={{ marginTop: "-10px", marginBottom: "5px" }}>
+        <div style={{ marginTop: "-10px" }}>
           <SelectAllItems items={items} onChange={reload} />
+          <Button
+            type="link"
+            style={{ marginLeft: "15px" }}
+            onClick={() => router.push("/store/site-license")}
+          >
+            Continue Shopping
+          </Button>
         </div>
-        <div style={{ border: "1px solid #eee" }}>
+        <div style={{ border: "1px solid #eee", marginTop: "15px" }}>
           <Table
             showHeader={false}
             columns={columns}
@@ -293,15 +322,24 @@ function SelectAllItems({ items, onChange }) {
   if (numSelected == 0) {
     return (
       <>
-        No items selected.{" "}
-        <a onClick={() => doSelectAll(true)}>Select all items</a>
+        <Button type="primary" onClick={() => doSelectAll(true)}>
+          Select all items
+        </Button>
       </>
     );
   }
   if (numSelected < items.length) {
-    return <a onClick={() => doSelectAll(true)}>Select all items</a>;
+    return (
+      <Button type="link" onClick={() => doSelectAll(true)}>
+        Select all items
+      </Button>
+    );
   }
-  return <a onClick={() => doSelectAll(false)}>Deselect all items</a>;
+  return (
+    <Button type="link" onClick={() => doSelectAll(false)}>
+      Deselect all items
+    </Button>
+  );
 }
 
 function CheckboxColumn({

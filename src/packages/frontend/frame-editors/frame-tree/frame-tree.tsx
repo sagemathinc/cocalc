@@ -302,6 +302,12 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           name_leaf = editor.init(path_leaf, redux, project_id_leaf);
           const actions2: TimeTravelActions = redux.getActions(name_leaf);
           actions2.ambient_actions = actions;
+
+          // Store these actions so that we can remove the actions and
+          // store and clean up when the entire frame editor is closed.
+          // This is very important!
+          actions.timeTravelActions = actions2;
+
           // [j3] Assuming this is part of the hackiness above
           // Or just that Actions in the frame tree are confusing
           actions_leaf = actions2 as Actions;
@@ -391,6 +397,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             desc,
             font_size: desc.get("font_size") ?? font_size,
             isFocused: active_id == desc.get("id"),
+            isVisible: tab_is_visible
           }}
         >
           <div

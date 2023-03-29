@@ -8,11 +8,11 @@
 //   - lets you search through all available commands
 //   - see and change the keyboard shortcuts for those commands\
 
-import { Modal } from "antd";
+import { Button, Modal } from "antd";
 import { Map } from "immutable";
 import json from "json-stable-stringify";
 
-import { Button, Col, Grid, Row } from "@cocalc/frontend/antd-bootstrap";
+import { Col, Grid, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React, Rendered, useState } from "@cocalc/frontend/app-framework";
 import {
   A,
@@ -45,25 +45,25 @@ const SYMBOLS = {
   down: "⬇",
   up: "⬆",
   backspace: "⌫",
-  delete: "␡",
+  delete: "DEL",
 };
 
 function shortcut_to_string(shortcut: KeyboardCommand): string {
-  let s = "";
+  const v: string[] = [];
   if (shortcut.shift) {
-    s += SYMBOLS.shift;
+    v.push(SYMBOLS.shift);
   }
   if (shortcut.ctrl) {
-    s += SYMBOLS.ctrl;
+    v.push(SYMBOLS.ctrl);
   }
   if (shortcut.alt) {
-    s += SYMBOLS.alt;
+    v.push(SYMBOLS.alt);
   }
   if (shortcut.meta) {
-    s += SYMBOLS.meta;
+    v.push(SYMBOLS.meta);
   }
   if (shortcut.key) {
-    s += shortcut.key;
+    v.push(shortcut.key);
   } else {
     // TODO: using which is buggy/horrible/confusing/deprecated!
     // we should get rid of this...
@@ -71,31 +71,32 @@ function shortcut_to_string(shortcut: KeyboardCommand): string {
     if (keyCode != null) {
       switch (keyCode) {
         case 8:
-          s += SYMBOLS.backspace;
+          v.push(SYMBOLS.backspace);
           break;
         case 13:
-          s += SYMBOLS.return;
+          v.push(SYMBOLS.return);
           break;
         case 32:
-          s += SYMBOLS.space;
+          v.push(SYMBOLS.space);
           break;
         case 27:
-          s += "Esc";
+          v.push("Esc");
           break;
         case 40:
-          s += SYMBOLS.down;
+          v.push(SYMBOLS.down);
           break;
         case 38:
-          s += SYMBOLS.up;
+          v.push(SYMBOLS.up);
           break;
         case 46:
-          s += SYMBOLS.delete;
+          v.push(SYMBOLS.delete);
           break;
         default:
-          s += keyCode_to_chr(keyCode);
+          v.push(keyCode_to_chr(keyCode));
       }
     }
   }
+  let s = v.join(" ");
   if (shortcut.twice) {
     s = s + "," + s;
   }
@@ -111,11 +112,7 @@ export const KeyboardShortcut: React.FC<KeyboardShortcutProps> = (
 ) => {
   const { shortcut } = props;
 
-  return (
-    <span style={{ fontFamily: "monospace" }}>
-      {shortcut_to_string(shortcut)}
-    </span>
-  );
+  return <span>{shortcut_to_string(shortcut)}</span>;
 };
 
 const SHORTCUTS_STYLE: React.CSSProperties = {
@@ -153,7 +150,7 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
         const shortcut = shortcuts[key];
         result.push(render_shortcut(key, shortcut));
       }
-      return r_join(result, ", ");
+      return r_join(result, " ");
     }
 
     /* TODO: implement this...
@@ -176,15 +173,9 @@ const Shortcuts: React.FC<ShortcutsProps> = React.memo(
 
     function render_shortcut(key: string, shortcut: KeyboardCommand): Rendered {
       return (
-        <span
-          key={key}
-          style={{ border: "1px solid #999", margin: "2px", padding: "1px" }}
-        >
-          <KeyboardShortcut key={key} shortcut={shortcut} />
-          {
-            undefined // this.render_shortcut_delete_icon(shortcut) // disabled for now
-          }
-        </span>
+        <Button size="small" key={key}>
+          <KeyboardShortcut shortcut={shortcut} />
+        </Button>
       );
     }
 
@@ -488,7 +479,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
     function render_symbols_list(): Rendered[] {
       return Object.entries(SYMBOLS).map(([key, val]) => (
         <li key={key}>
-          <span style={{ width: "20px", display: "inline-block" }}>{val}</span>{" "}
+          <span style={{ width: "30px", display: "inline-block" }}>{val}</span>{" "}
           {key}
         </li>
       ));
@@ -510,7 +501,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
               Command (click to run)
             </Col>
             <Col md={4} sm={4}>
-              Keyboard shortcut
+              Keyboard shortcuts
             </Col>
           </Row>
         </Grid>
@@ -527,7 +518,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
         width={900}
         title={
           <>
-            <Icon name="keyboard" /> Jupyter commands and keyboard shortcuts
+            <Icon name="keyboard" /> Jupyter Commands and Keyboard Shortcuts
           </>
         }
         footer={

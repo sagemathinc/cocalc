@@ -81,6 +81,7 @@ interface Props {
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
+  chatGPT?: boolean;
   submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>;
   style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
@@ -115,6 +116,7 @@ interface Props {
   unregisterEditor?: () => void;
   refresh?: any; // refresh codemirror if this changes
   compact?: boolean;
+  dirtyRef?: MutableRefObject<boolean>;
 }
 
 export function MarkdownInput(props: Props) {
@@ -126,6 +128,7 @@ export function MarkdownInput(props: Props) {
     onUploadStart,
     onUploadEnd,
     enableMentions,
+    chatGPT,
     submitMentionsRef,
     style,
     onChange,
@@ -157,6 +160,7 @@ export function MarkdownInput(props: Props) {
     unregisterEditor,
     refresh,
     compact,
+    dirtyRef,
   } = props;
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
@@ -279,11 +283,14 @@ export function MarkdownInput(props: Props) {
 
     cm.current = CodeMirror.fromTextArea(node, {
       ...options,
+      // IMPORTANT: there is a useEffect involving options below
+      // where the following four properties must be explicitly excluded!
       inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
       spellcheck: true,
-      extraKeys,
       mode: { name: "gfm" },
     });
+    // gives this highest precedence:
+    cm.current.addKeyMap(extraKeys);
 
     if (getValueRef != null) {
       getValueRef.current = cm.current.getValue.bind(cm.current);
@@ -292,6 +299,12 @@ export function MarkdownInput(props: Props) {
     // (window as any).cm = cm.current;
     cm.current.setValue(value ?? "");
     cm.current.on("change", saveValue);
+
+    if (dirtyRef != null) {
+      cm.current.on("change", () => {
+        dirtyRef.current = true;
+      });
+    }
 
     if (onBlur != null) {
       cm.current.on("blur", (editor) => onBlur(editor.getValue()));
@@ -409,8 +422,9 @@ export function MarkdownInput(props: Props) {
           doc.replaceRange(text, from, to);
           mentions.push({ account_id, description, fragment_id });
         }
+        const value = doc.getValue();
         submit_mentions(project_id, path, mentions);
-        return doc.getValue();
+        return value;
       };
     }
 
@@ -468,6 +482,13 @@ export function MarkdownInput(props: Props) {
   useEffect(() => {
     if (cm.current == null) return;
     for (const key in options) {
+      if (
+        key == "inputStyle" ||
+        key == "spellcheck" ||
+        key == "mode" ||
+        key == "extraKeys"
+      )
+        continue;
       const opt = options[key];
       if (!isEqual(cm.current.options[key], opt)) {
         if (opt != null) {
@@ -753,7 +774,7 @@ export function MarkdownInput(props: Props) {
     if (project_id == null) {
       throw Error("project_id and path must be set if enableMentions is set.");
     }
-    const v = mentionableUsers(project_id);
+    const v = mentionableUsers(project_id, undefined, chatGPT);
     if (v.length == 0) {
       // nobody to mention (e.g., admin doesn't have this)
       return;

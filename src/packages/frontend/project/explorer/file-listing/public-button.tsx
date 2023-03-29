@@ -3,16 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Space, Icon } from "../../../components";
-const { Button } = require("react-bootstrap");
+import { Icon, VisibleLG } from "../../../components";
+import { Button } from "antd";
 
 export function PublicButton({ on_click }) {
   return (
-    <span>
-      <Space />
-      <Button bsStyle="info" bsSize="xsmall" onClick={on_click}>
-        <Icon name="bullhorn" /> <span className="hidden-xs">Public</span>
-      </Button>
-    </span>
+    <Button size="small" onClick={on_click}>
+      <Icon name="bullhorn" /> <VisibleLG>Published</VisibleLG>
+    </Button>
   );
 }

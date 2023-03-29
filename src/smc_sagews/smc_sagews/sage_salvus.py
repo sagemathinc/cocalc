@@ -2441,7 +2441,7 @@ def prun(code):
                     locals(), filename)
 
     @interact
-    def f(title=text_control('', "<h1>Salvus Profiler</h1>"),
+    def f(title=text_control('', "<h1>CoCalc Profiler</h1>"),
           sort=(
               "First sort by",
               selector([

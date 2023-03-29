@@ -17,7 +17,6 @@ import {
 import { List } from "immutable";
 import { debounce } from "lodash";
 import { ReactNode } from "react";
-
 import {
   Button as AntdBootstrapButton,
   ButtonGroup,
@@ -26,6 +25,7 @@ import {
 import {
   CSS,
   React,
+  redux,
   Rendered,
   useEffect,
   useForceUpdate,
@@ -52,6 +52,8 @@ import { is_safari } from "../generic/browser";
 import { get_default_font_size } from "../generic/client";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
+import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
+import ChatGPT from "./chatgpt";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -251,6 +253,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (props.editor_actions[action_name] == null) {
       return false;
     }
+    if (isExplicitlyHidden(action_name)) {
+      return false;
+    }
 
     if (buttons_ref.current == null) {
       if (!explicit) {
@@ -260,7 +265,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       buttons_ref.current =
         typeof buttons == "function" ? buttons(props.path) : buttons;
     }
+
     return !!buttons_ref.current?.[action_name];
+  }
+
+  function isExplicitlyHidden(actionName: string): boolean {
+    return !!props.spec.buttons?.[`-${actionName}`];
   }
 
   function click_close(): void {
@@ -802,7 +812,15 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <Button
         key={"undo"}
         title={"Undo last thing you did"}
-        onClick={() => props.editor_actions.undo(props.id)}
+        onClick={() => {
+          if (props.type == "chat") {
+            // we have to special case this until we come up with a better way of having
+            // different kinds of actions for other frames.
+            chatUndo(props.project_id, props.path);
+          } else {
+            props.editor_actions.undo(props.id);
+          }
+        }}
         disabled={read_only}
         bsSize={button_size()}
       >
@@ -819,7 +837,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <Button
         key={"redo"}
         title={"Redo last thing you undid"}
-        onClick={() => props.editor_actions.redo(props.id)}
+        onClick={() => {
+          if (props.type == "chat") {
+            // see undo comment above
+            chatRedo(props.project_id, props.path);
+          } else {
+            props.editor_actions.redo(props.id);
+          }
+        }}
         disabled={read_only}
         bsSize={button_size()}
       >
@@ -895,7 +920,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return (
       <Button
         key={"timetravel"}
-        title={"Show complete edit history"}
+        title={"Show edit history"}
         bsStyle={"info"}
         style={button_style()}
         bsSize={button_size()}
@@ -918,6 +943,31 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         <Icon name="history" />{" "}
         <VisibleMDLG>{labels ? "TimeTravel" : undefined}</VisibleMDLG>
       </Button>
+    );
+  }
+
+  function render_chatgpt(labels): Rendered {
+    if (
+      !is_visible("chatgpt") ||
+      !redux.getStore("projects").hasOpenAI(props.project_id)
+    ) {
+      return;
+    }
+    return (
+      <ChatGPT
+        key={"chatgpt"}
+        id={props.id}
+        actions={props.actions}
+        ButtonComponent={Button}
+        buttonSize={button_size()}
+        buttonStyle={{
+          ...button_style(),
+          backgroundColor: "rgb(16, 163, 127)",
+          color: "white",
+        }}
+        labels={labels}
+        visible={props.tab_is_visible && props.is_visible}
+      />
     );
   }
 
@@ -1040,7 +1090,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (!is_public) {
       if ((x = render_timetravel(labels))) v.push(x);
     }
+    if ((x = render_chatgpt(labels))) v.push(x);
     if ((x = render_reload(labels))) v.push(x);
+    if (v.length == 1) return v[0];
     if (v.length > 0) {
       return <ButtonGroup key={"save-group"}>{v}</ButtonGroup>;
     }
@@ -1110,6 +1162,21 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       >
         <Icon name={"overview"} />{" "}
         <VisibleMDLG>{labels ? "Overview" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
+  function render_show_slideshow(labels): Rendered {
+    if (!is_visible("show_slideshow")) return;
+    return (
+      <Button
+        key={"slideshow"}
+        bsSize={button_size()}
+        onClick={() => props.actions.show_slideshow?.(props.id)}
+        title={"Display Slideshow Presentation"}
+      >
+        <Icon name={"play-square"} />{" "}
+        <VisibleMDLG>{labels ? "Slideshow" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -1442,6 +1509,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_actions_dropdown(labels: boolean): Rendered {
+    if (isExplicitlyHidden("actions")) return;
     // We don't show this menu in kiosk mode, where none of the options make sense,
     // because they are all file management, which should be handled a different way.
     if (fullscreen == "kiosk") return;
@@ -1518,6 +1586,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_table_of_contents(labels));
     v.push(render_show_pages(labels));
     v.push(render_show_overview(labels));
+    v.push(render_show_slideshow(labels));
     v.push(render_show_speaker_notes(labels));
     v.push(render_show_search(labels));
     v.push(render_guide(labels));
@@ -1557,23 +1626,28 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function allButtonsPopover() {
     return (
       <Popover
+        overlayStyle={{ zIndex: 990 }}
         open={
           props.tab_is_visible && props.is_visible && showMainButtonsPopover
         }
         content={() => {
           return (
             <div style={{ display: "flex" }}>
-              <div style={{ width: "3px" }}></div>
-              <div style={{ maxWidth: "390px" }}>
+              <div
+                style={{
+                  maxWidth: "390px",
+                  marginLeft: "3px",
+                  marginRight: "3px",
+                }}
+              >
                 {render_buttons(true, { maxHeight: "50vh" })}
               </div>
-              <div style={{ width: "3px" }}></div>
               <div>{render_types()}</div>
               <Icon
                 onClick={() => setShowMainButtonsPopover(false)}
                 name="times"
                 style={{
-                  color: "#666",
+                  color: COLORS.GRAY_M,
                   marginTop: "10px",
                   marginLeft: "10px",
                 }}
@@ -1709,7 +1783,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function renderPage(is_active: boolean) {
-    if (props.page == null || props.pages == null) {
+    if (
+      props.page == null ||
+      props.pages == null ||
+      isExplicitlyHidden("page")
+    ) {
       // do not render anything unless both page and pages are set
       return;
     }
@@ -1738,7 +1816,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
               }}
               step={-1}
               value={props.page}
-              onChange={(page) => {
+              onChange={(page: number) => {
                 if (!page) return;
                 if (page <= 1) {
                   page = 1;

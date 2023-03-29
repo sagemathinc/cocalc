@@ -361,14 +361,7 @@ export default function NewFilePage(props: Props) {
               {renderCreate()}
             </div>
             <div style={{ flex: "0 0 auto" }}>
-              <Tip
-                icon="file"
-                title="Any Type of File"
-                tip="Create a wide range of files, including HTML, Markdown, C/C++ and Java programs, etc."
-                placement="top"
-              >
-                <NewFileDropdown create_file={submit} />
-              </Tip>
+              <NewFileDropdown create_file={submit} />
             </div>
           </div>
           {extensionWarning && renderNoExtensionAlert()}

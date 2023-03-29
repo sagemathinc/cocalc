@@ -274,7 +274,7 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
         const data = event.dataTransfer || event.data || undefined;
 
         // These two types occur while a user is composing text and can't be
-        // cancelled. Let them through and wait for the composition to end.
+        // canceled. Let them through and wait for the composition to end.
         if (
           type === "insertCompositionText" ||
           type === "deleteCompositionText"
@@ -869,7 +869,8 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
             const element = editor.children[selection?.focus.path[0] ?? 0];
             // It's definitely possible in edge cases that element is undefined.  I've hit this in production,
             // resulting in "Node.string(undefined)", which crashes.
-            const isRTL = element != null && getDirection(Node.string(element)) === "rtl";
+            const isRTL =
+              element != null && getDirection(Node.string(element)) === "rtl";
 
             // COMPAT: If a void node is selected, or a zero-width text node
             // adjacent to an inline is selected, we need to handle these

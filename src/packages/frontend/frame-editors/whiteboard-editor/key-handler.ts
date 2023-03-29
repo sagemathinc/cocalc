@@ -104,11 +104,10 @@ export default function getKeyHandler(
     if (selection == null || selection.size == 0) {
       // nothing selected.
       if (
-        actions.mainFrameType == node.get("type") &&
-        (key.startsWith("arrow") ||
-          key.startsWith("page") ||
-          key == "home" ||
-          key == "end")
+        key.startsWith("arrow") ||
+        key.startsWith("page") ||
+        key == "home" ||
+        key == "end"
       ) {
         // arrow key with no selection - change page, which is what
         // Powerpoint and google slides do.

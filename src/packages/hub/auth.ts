@@ -33,14 +33,25 @@
 //
 // Then restart the hubs.
 
+import Cookies from "cookies";
+import * as dot from "dot-object";
+import * as express from "express";
+import express_session from "express-session";
+import * as _ from "lodash";
+import ms from "ms";
+import passport from "passport";
+import { join as path_join } from "path";
+import { v4 as uuidv4, v4 } from "uuid";
+const safeJsonStringify = require("safe-json-stringify");
+
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
 import base_path from "@cocalc/backend/base-path";
+import { loadSSOConf } from "@cocalc/database/postgres/load-sso-conf";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { getLogger } from "@cocalc/hub/logger";
 import { getExtraStrategyConstructor } from "@cocalc/server/auth/sso/extra-strategies";
-import { loadSSOConf } from "@cocalc/database/postgres/load-sso-conf";
 import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-profile-callback";
 import { PassportLogin } from "@cocalc/server/auth/sso/passport-login";
 import {
@@ -61,21 +72,13 @@ import {
   PassportStrategyFrontend,
   PRIMARY_SSO,
 } from "@cocalc/util/types/passport-types";
-import Cookies from "cookies";
-import * as dot from "dot-object";
-import * as express from "express";
-import express_session from "express-session";
-import * as _ from "lodash";
-import ms from "ms";
-import passport from "passport";
-import { join as path_join } from "path";
-import { v4 as uuidv4, v4 } from "uuid";
 import {
   email_verification_problem,
   email_verified_successfully,
   welcome_email,
 } from "./email";
 //import Saml2js from "saml2js";
+import { WinstonLogger } from "@cocalc/backend/logger";
 import {
   getOauthCache,
   getPassportCache,
@@ -92,8 +95,6 @@ import {
   TwitterStrategyConf,
 } from "@cocalc/server/auth/sso/public-strategies";
 const sign_in = require("./sign-in");
-
-const safeJsonStringify = require("safe-json-stringify");
 
 const logger = getLogger("hub:auth");
 
@@ -129,6 +130,15 @@ export async function init_passport(opts: InitPassport) {
   } catch (err) {
     opts.cb(err);
   }
+}
+
+interface HandleReturnOpts {
+  Linit: WinstonLogger;
+  name: string;
+  type: PassportTypes;
+  update_on_login: boolean;
+  cookie_ttl_s: number | undefined;
+  login_info: any;
 }
 
 export class PassportManager {
@@ -526,14 +536,9 @@ export class PassportManager {
     return strategy_instance;
   }
 
-  private getHandleReturn({
-    Linit,
-    name,
-    type,
-    update_on_login,
-    cookie_ttl_s,
-    login_info,
-  }) {
+  private getHandleReturn(opts: HandleReturnOpts) {
+    const { Linit, name, type, update_on_login, cookie_ttl_s, login_info } =
+      opts;
     return async (req, res: express.Response) => {
       if (req.user == null) {
         throw Error("req.user == null -- that shouldn't happen");
@@ -542,11 +547,31 @@ export class PassportManager {
       // usually, we pick the "profile", but in some cases like SAML this is in "attributes".
       // finally, as a fallback, we just take the ".user"
       // technically, req.user should never be undefined, though.
-      const profile = (req.user.profile != null
-        ? req.user.profile
-        : req.user.attributes != null
-        ? req.user.attributes
-        : req.user) as any as passport.Profile;
+      Lret(`req.user = ${safeJsonStringify(req.user)}`);
+
+      const profile_raw =
+        req.user.profile != null
+          ? req.user.profile
+          : req.user.attributes != null
+          ? req.user.attributes
+          : req.user;
+
+      // there are cases, where profile is a JSON string (e.g. oauth2next)
+      let profile: passport.Profile;
+      try {
+        profile = (typeof profile_raw === "string"
+          ? JSON.parse(profile_raw)
+          : profile_raw) as any as passport.Profile;
+      } catch (err) {
+        Lret(`error parsing profile: ${err} -- ${profile_raw}`);
+        const { help_email } = await cb2(
+          this.database.get_server_settings_cached
+        );
+        const err_msg = `Error trying to login using '${name}' -- if this problem persists please contact ${help_email} -- ${err}<br/><pre>${err.stack}</pre>`;
+        Lret(`sending error "${err_msg}"`);
+        res.send(err_msg);
+        return;
+      }
 
       if (type === "saml") {
         // the nameID is set via the conf.identifierFormat parameter – even if we set it to

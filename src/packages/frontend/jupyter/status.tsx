@@ -23,7 +23,7 @@ import { closest_kernel_match, rpad_html } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../project/info";
 import { JupyterActions } from "./browser-actions";
-import { Logo } from "./logo";
+import Logo from "./logo";
 import { Mode } from "./mode";
 import { AlertLevel, BackendState, NotebookMode, Usage } from "./types";
 import { ALERT_COLS } from "./usage";
@@ -37,6 +37,7 @@ const KERNEL_STYLE: CSS = {
   margin: "7px 5px 0px 0px",
   position: "relative",
   zIndex: 1,
+  cursor: "pointer",
 } as const;
 
 const KERNEL_NAME_STYLE: CSS = {
@@ -136,11 +137,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       }
       return (
         <div style={{ display: "flex" }} className="pull-right">
-          <Logo
-            project_id={project_id}
-            kernel={kernel}
-            kernel_info_known={kernel_info != null}
-          />
+          <Logo kernel={kernel} kernel_info_known={kernel_info != null} />
         </div>
       );
     }

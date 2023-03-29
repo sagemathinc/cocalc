@@ -4,12 +4,13 @@
  */
 
 import { Layout } from "antd";
-import { Paragraph } from "components/misc";
+
 import ExecutablesTable from "components/landing/executables-table";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import Image from "components/landing/image";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize, CustomizeType } from "lib/customize";
 import { SoftwareEnvNames } from "lib/landing/consts";
@@ -32,9 +33,9 @@ export default function Executables(props: Props) {
   function renderInfo() {
     return (
       <div style={{ maxWidth: STYLE_PAGE.maxWidth, margin: "0 auto" }}>
-        <h1 style={{ textAlign: "center", fontSize: "32pt", color: "#444" }}>
+        <Title level={1} style={{ textAlign: "center" }}>
           Executables in CoCalc (Ubuntu {name})
-        </h1>
+        </Title>
         <div
           style={{
             width: "50%",
@@ -71,11 +72,7 @@ export default function Executables(props: Props) {
       <Head title="Executables in CoCalc" />
       <Layout>
         <Header page="software" subPage="executables" softwareEnv={name} />
-        <Layout.Content
-          style={{
-            backgroundColor: "white",
-          }}
-        >
+        <Layout.Content style={{ backgroundColor: "white" }}>
           <div style={STYLE_PAGE_WIDE}>
             {renderInfo()}
             <ExecutablesTable

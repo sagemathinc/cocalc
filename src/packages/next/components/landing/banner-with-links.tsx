@@ -7,7 +7,7 @@ import { useCustomize } from "lib/customize";
 export default function BannerWithLinks() {
   const { siteName } = useCustomize();
   return (
-    <div style={{  backgroundColor: COLORS.YELL_LL }}>
+    <div style={{ backgroundColor: COLORS.YELL_LL }}>
       <Paragraph
         style={{
           fontSize: "12pt",
@@ -19,7 +19,7 @@ export default function BannerWithLinks() {
       >
         {siteName} is used in{" "}
         <A href="https://link.springer.com/article/10.1007/s11538-022-00999-4">
-          huge courses at UCLA
+          large in-person courses at UCLA
         </A>
         , by{" "}
         <A href="https://www.cambridge.org/core/journals/journal-of-fluid-mechanics/jfm-notebooks">
@@ -30,9 +30,8 @@ export default function BannerWithLinks() {
           Yields.io's risk management platform.
         </A>{" "}
         There are{" "}
-        <A href="/share/public_paths/page/1">
-          thousands of other ways people use {siteName}...
-        </A>
+        <A href="/share/public_paths/page/1">thousands of other ways</A>{" "}
+        that <A href="/info/status">people use {siteName}...</A>
       </Paragraph>
     </div>
   );

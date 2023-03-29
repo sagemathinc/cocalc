@@ -44,6 +44,7 @@ import { TopButtonbar } from "./top-buttonbar";
 import { TopMenubar } from "./top-menubar";
 import { NotebookMode, Scroll } from "./types";
 import { Kernels as KernelsType } from "./util";
+import * as chatgpt from "./chatgpt";
 
 export const ERROR_STYLE: CSS = {
   whiteSpace: "pre" as "pre",
@@ -360,6 +361,11 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
+        chatgpt={
+          actions?.redux?.getStore("projects").hasOpenAI(project_id)
+            ? chatgpt
+            : undefined
+        }
       />
     );
   }

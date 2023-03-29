@@ -187,9 +187,13 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       const node: HTMLTextAreaElement = textareaRef.current;
       if (node == null) return;
 
-      cursorHandlers(options, editor, isInline);
-
       const cm = (cmRef.current = fromTextArea(node, options));
+      // The Up/Down/Left/Right key handlers are potentially already
+      // taken by a keymap, so we have to add them explicitly using
+      // addKeyMap, so that they have top precedence. Otherwise, somewhat
+      // randomly, things will seem to "hang" and you get stuck, which
+      // is super annoying.
+      cm.addKeyMap(cursorHandlers(editor, isInline));
 
       cm.on("change", (_, _changeObj) => {
         if (onChange != null) {
@@ -288,7 +292,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
 
 // TODO: vim version of this...
 
-function cursorHandlers(options, editor, isInline: boolean | undefined): void {
+function cursorHandlers(editor, isInline: boolean | undefined) {
   const exitDown = (cm) => {
     const cur = cm.getCursor();
     const n = cm.lastLine();
@@ -306,41 +310,38 @@ function cursorHandlers(options, editor, isInline: boolean | undefined): void {
     }
   };
 
-  options.extraKeys["Up"] = (cm) => {
-    const cur = cm.getCursor();
-    if (cur?.line === cm.firstLine() && cur?.ch == 0) {
-      // Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
-      moveCursorUp(editor, true);
-      if (!isInline) {
-        moveCursorToBeginningOfBlock(editor);
+  return {
+    Up: (cm) => {
+      const cur = cm.getCursor();
+      if (cur?.line === cm.firstLine() && cur?.ch == 0) {
+        // Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
+        moveCursorUp(editor, true);
+        if (!isInline) {
+          moveCursorToBeginningOfBlock(editor);
+        }
+        ReactEditor.focus(editor);
+      } else {
+        commands.goLineUp(cm);
       }
-      ReactEditor.focus(editor);
-    } else {
-      commands.goLineUp(cm);
-    }
-  };
-
-  options.extraKeys["Left"] = (cm) => {
-    const cur = cm.getCursor();
-    if (cur?.line === cm.firstLine() && cur?.ch == 0) {
-      Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
-      ReactEditor.focus(editor);
-    } else {
-      commands.goCharLeft(cm);
-    }
-  };
-
-  options.extraKeys["Right"] = (cm) => {
-    if (!exitDown(cm)) {
-      commands.goCharRight(cm);
-    }
-  };
-
-  options.extraKeys["Down"] = (cm) => {
-    if (!exitDown(cm)) {
-      commands.goLineDown(cm);
-    }
+    },
+    Left: (cm) => {
+      const cur = cm.getCursor();
+      if (cur?.line === cm.firstLine() && cur?.ch == 0) {
+        Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
+        ReactEditor.focus(editor);
+      } else {
+        commands.goCharLeft(cm);
+      }
+    },
+    Right: (cm) => {
+      if (!exitDown(cm)) {
+        commands.goCharRight(cm);
+      }
+    },
+    Down: (cm) => {
+      if (!exitDown(cm)) {
+        commands.goLineDown(cm);
+      }
+    },
   };
 }
-
-

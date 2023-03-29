@@ -53,6 +53,8 @@ const pii_retention_display = (retention: string) => {
   }
 };
 
+const openai_enabled = (conf) => to_bool(conf.openai_enabled);
+
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
   | "stripe_heading"
@@ -70,6 +72,8 @@ export type SiteSettingsExtrasKeys =
   | "email_smtp_password"
   | "email_smtp_port"
   | "email_smtp_secure"
+  | "openai_section"
+  | "openai_api_key"
   | "password_reset_override"
   | "password_reset_smtp_server"
   | "password_reset_smtp_from"
@@ -91,6 +95,20 @@ export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
+  openai_section: {
+    name: "OpenAI Configuration",
+    desc: "",
+    default: "",
+    show: openai_enabled,
+    type: "header",
+  },
+  openai_api_key: {
+    name: "OpenAI API Key",
+    desc: "Your OpenAI API Key from https://platform.openai.com/account/api-keys.  This key is needed to support functionality that uses OpenAI's API.",
+    default: "",
+    password: true,
+    show: openai_enabled,
+  },
   pii_retention: {
     name: "PII Retention",
     desc: "How long to keep personally identifiable information, after which the server automatically deletes certain database entries that contain PII.",

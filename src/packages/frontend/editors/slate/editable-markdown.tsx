@@ -118,6 +118,9 @@ interface Props {
   unregisterEditor?: () => void;
   getValueRef?: MutableRefObject<() => string>; // see comment in src/packages/frontend/editors/markdown-input/multimode.tsx
   submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
+  chatGPT?: boolean;
+  editBar2?: MutableRefObject<JSX.Element | undefined>;
+  dirtyRef?: MutableRefObject<boolean>;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
@@ -153,6 +156,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     unregisterEditor,
     getValueRef,
     submitMentionsRef,
+    editBar2,
+    dirtyRef,
+    chatGPT,
   } = props;
   const { project_id, path, desc } = useFrameContext();
   const isMountedRef = useIsMountedRef();
@@ -251,6 +257,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     actions._syncstring.on("before-change", beforeChange);
     actions._syncstring.on("change", change);
     return () => {
+      if (actions._syncstring == null) {
+        // This can be null if doc closed before unmounting.  I hit a crash because of this in production.
+        return;
+      }
       actions._syncstring.removeListener("before-change", beforeChange);
       actions._syncstring.removeListener("change", change);
     };
@@ -318,7 +328,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         submit_mentions(project_id, path, [{ account_id, description: "" }]);
       }
     },
-    matchingUsers: (search) => mentionableUsers(project_id, search),
+    matchingUsers: (search) => mentionableUsers(project_id, search, chatGPT),
   });
 
   const emojis = useEmojis({
@@ -360,7 +370,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
           });
         }
         submit_mentions(project_id, path, mentions);
-        return editor.getMarkdownValue();
+        const value = editor.getMarkdownValue();
+        return value;
       };
     }
   }, [submitMentionsRef]);
@@ -684,6 +695,11 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
       applyOperations,
       markdown_to_slate,
       robot: async (s: string, iterations = 1) => {
+        /*
+        This little "robot" function is so you can run rtc on several browsers at once,
+        with each typing random stuff at random, and checking that their input worked
+        without loss of data.
+        */
         let inserted = "";
         let focus = editor.selection?.focus;
         if (focus == null) throw Error("must have selection");
@@ -766,6 +782,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   // way for checking if the state of the editor has changed.  Instead
   // check editor.children itself explicitly.
   const onChange = (newEditorValue) => {
+    if (dirtyRef != null) {
+      // but see comment above
+      dirtyRef.current = true;
+    }
     if (editor._hasUnsavedChanges === false) {
       // just for initial change.
       editor._hasUnsavedChanges = undefined;
@@ -823,6 +843,21 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   }, [editorValue]);
 
   const [opacity, setOpacity] = useState<number | undefined>(0);
+
+  if (editBar2 != null) {
+    editBar2.current = (
+      <EditBar
+        Search={search.Search}
+        isCurrent={is_current}
+        marks={marks}
+        linkURL={linkURL}
+        listProperties={listProperties}
+        editor={editor}
+        style={{ ...editBarStyle, paddingRight: 0 }}
+        hideSearch={hideSearch}
+      />
+    );
+  }
 
   let slate = (
     <Slate editor={editor} value={editorValue} onChange={onChange}>

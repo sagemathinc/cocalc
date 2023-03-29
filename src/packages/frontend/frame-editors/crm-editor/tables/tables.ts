@@ -26,6 +26,8 @@ import "./public-paths";
 import "./shopping-cart-items";
 import "./syncstrings";
 import "./vouchers";
+import "./openai";
+import "./analytics";
 
 interface TableDescription {
   name: string;

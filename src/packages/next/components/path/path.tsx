@@ -31,6 +31,7 @@ import type { PathContents as PathContentsType } from "lib/share/get-contents";
 import Avatar from "components/share/proxy/avatar";
 import A from "components/misc/A";
 import { join } from "path";
+import GoogleSearch from "../share/google-search";
 
 interface Props {
   id: string;
@@ -199,8 +200,9 @@ export default function PublicPath({
     return (
       <div style={{ textAlign: "center" }}>
         {btn}
-        <br />
-        <A href="/stars">Your stars...</A>
+        <A href="/stars" style={{ marginLeft: "5px" }}>
+          Your stars...
+        </A>
       </div>
     );
   }
@@ -316,7 +318,11 @@ export default function PublicPath({
           />
         )}
         <div>
-          <div style={{ float: "right" }}>{renderStar()}</div>
+          <div style={{ float: "right", display: "flex" }}>
+            {renderStar()}
+            <div style={{ width: "15px" }} />
+            <GoogleSearch style={{ width: "225px" }} />
+          </div>
           {signingUp && (
             <Alert
               style={{ margin: "0 auto", maxWidth: "400px" }}

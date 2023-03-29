@@ -23,6 +23,7 @@ const apiVersion = "2020-03-02";
 interface StripeWithPublishableKey extends Stripe {
   publishable_key: string;
 }
+
 let stripe: StripeWithPublishableKey | undefined = undefined;
 let key: string = "";
 let last: number = 0;

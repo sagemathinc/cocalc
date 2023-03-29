@@ -27,7 +27,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
-import { computeCost } from "./compute-cost";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { InfoBar } from "./cost-info-bar";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
@@ -237,9 +237,10 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
       <Form.Item wrapperCol={{ offset: 2, span: 20 }}>
         <div
           style={{
-            border: confirmWarning ? "1px solid gray" : "3px solid red",
+            border: confirmWarning ? "1px solid gray" : "1px solid #ffe58f",
+            background: confirmWarning ? "white" : "#fffbe6",
             borderRadius: "5px",
-            padding: "10px",
+            padding: "8px 12px",
             margin: confirmWarning ? "2px" : 0, // compensate border with from above
           }}
         >
@@ -330,6 +331,7 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
           showExplanations={showExplanations}
         />
         <TitleDescription
+          form={form}
           showExplanations={showExplanations}
           disabled={!confirmWarning}
         />
