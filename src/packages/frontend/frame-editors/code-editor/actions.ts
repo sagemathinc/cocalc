@@ -34,7 +34,7 @@ import {
 } from "../generic/client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { SyncString } from "@cocalc/sync/editor/string";
-import { aux_file, capitalize } from "@cocalc/util/misc";
+import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
 import { print_code } from "../frame-tree/print-code";
@@ -80,7 +80,7 @@ import {
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import { SHELLS } from "./editor";
 import type { TimeTravelActions } from "../time-travel-editor/actions";
-import getChatActions from "@cocalc/frontend/chat/get-actions";
+import chatgptCreatechat from "../chatgpt/create-chat";
 
 interface gutterMarkerParams {
   line: number;
@@ -2842,107 +2842,7 @@ export class Actions<
     return filename_extension(this.path);
   }
 
-  async chatgpt(
-    frameId: string,
-    {
-      codegen,
-      command,
-      allowEmpty,
-      tag,
-    }: {
-      codegen?: boolean;
-      command: string;
-      allowEmpty?: boolean;
-      tag?: string;
-    }
-  ) {
-    const frameType = this._get_frame_type(frameId);
-    let input;
-    if (frameType == "terminal") {
-      input = "";
-      allowEmpty = true;
-      codegen = false;
-    } else {
-      let input = this.chatgptGetText(frameId, "selection");
-      if (!input) {
-        input = this.chatgptGetText(frameId, "cell");
-      }
-      if (!input) {
-        input = this.chatgptGetText(frameId, "all");
-      }
-      if (!input && !allowEmpty) {
-        throw Error("Please write or select something.");
-      }
-    }
-    // Truncate input (also this MUST lazy import):
-    const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(
-      "@cocalc/frontend/misc/openai"
-    );
-    const n = numTokens(input);
-    const maxTokens = MAX_CHATGPT_TOKENS - 1000; // 1000 tokens reserved for output and the prompt below.
-    if (n >= maxTokens) {
-      input = truncateMessage(input, maxTokens) + "\n...";
-    }
-
-    const chatActions = await getChatActions(
-      this.redux,
-      this.project_id,
-      this.path
-    );
-    const delim = backtickSequence(input);
-    let message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
-      command
-    )} `;
-    if (frameType != "terminal") {
-      message += ` the following ${codegen ? "code" : ""} from the file ${
-        this.path
-      } ${this.chatgptExtraFileInfo()}:`;
-      if (input.trim()) {
-        message += `
-${delim}${this.chatgptGetLanguage()}
-${input.trim()}
-${delim}
-${codegen && input.trim() ? "Show the new version." : ""}`;
-      }
-    } else {
-      message +=
-        ". I am using the bash command line Ubuntu Linux terminal in CoCalc.";
-    }
-    // scroll to bottom *after* the message gets sent.
-    setTimeout(() => chatActions.scrollToBottom(), 100);
-    await chatActions.send_chat(
-      message,
-      undefined,
-      undefined,
-      `code-editor-${tag ?? command}`
-    );
+  async chatgpt(frameId: string, options) {
+    await chatgptCreatechat({ actions: this, frameId, options });
   }
-}
-
-// written by chatgpt
-function backtickSequence(str) {
-  let longestSequence = "";
-  let currentSequence = "";
-  let lastChar = null;
-
-  for (let i = 0; i < str.length; i++) {
-    const char = str[i];
-
-    if (char === "`" && lastChar === "`") {
-      currentSequence += char;
-    } else {
-      if (currentSequence.length > longestSequence.length) {
-        longestSequence = currentSequence;
-      }
-      currentSequence = char;
-    }
-
-    lastChar = char;
-  }
-
-  if (currentSequence.length > longestSequence.length) {
-    longestSequence = currentSequence;
-  }
-
-  return longestSequence.length < 3 ? "```" : longestSequence + "`";
 }
