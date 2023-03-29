@@ -206,7 +206,7 @@ export default function Home(props: Props) {
             <div
               style={{ width: "900px", maxWidth: "100%", margin: "15px auto" }}
             >
-              <ChatGPTHelp size="large" />
+              <ChatGPTHelp size="large" tag={"index"} />
             </div>
           )}
           <Content

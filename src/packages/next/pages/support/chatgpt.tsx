@@ -6,7 +6,7 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import ChatGPTHelp from "components/openai/chatgpt-help";
 
-export default function Preferences({ customize }) {
+export default function ChatgptInfo({ customize }) {
   const { siteName } = customize;
   return (
     <Customize value={customize}>
@@ -19,7 +19,11 @@ export default function Preferences({ customize }) {
             it knows so much about the open source software in {siteName}. You
             can ask a question below or use @chatgpt in any chat message when
             using {siteName}.
-            <ChatGPTHelp style={{ marginTop: "15px" }} size="large" />
+            <ChatGPTHelp
+              style={{ marginTop: "15px" }}
+              size="large"
+              tag="support-chatgpt"
+            />
           </div>
         </div>
         <Footer />

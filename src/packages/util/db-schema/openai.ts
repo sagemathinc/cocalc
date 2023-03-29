@@ -16,6 +16,7 @@ export interface ChatGPTLogEntry {
   project_id?: string;
   path?: string;
   model?: Model;
+  tag?: string; // useful for keeping track of where queries come frome when doing analytics later
 }
 
 Table({
@@ -84,6 +85,10 @@ Table({
     model: {
       type: "string",
     },
+    tag: {
+      type: "string",
+      desc: "A string that the client can include that is useful for analytics later",
+    },
   },
   rules: {
     desc: "OpenAI ChatGPT Log",
@@ -106,6 +111,7 @@ Table({
           history: null,
           expire: null,
           model: null,
+          tag: null,
         },
       },
       set: {
@@ -144,6 +150,7 @@ Table({
           path: null,
           history: null,
           model: null,
+          tag: null,
         },
       },
     },

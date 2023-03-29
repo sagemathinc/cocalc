@@ -74,7 +74,13 @@ export default function ChatGPT({
             What would you like ChatGPT to do?
             <Button
               style={actionStyle}
-              onClick={() => chatgpt({ command: "Complete ", codegen: true })}
+              onClick={() =>
+                chatgpt({
+                  command: "Complete ",
+                  codegen: true,
+                  tag: "complete",
+                })
+              }
             >
               <Icon name="pen" />
               Autocomplete
@@ -82,7 +88,11 @@ export default function ChatGPT({
             <Button
               style={actionStyle}
               onClick={() =>
-                chatgpt({ command: "fix all errors in ", codegen: true })
+                chatgpt({
+                  command: "fix all errors in ",
+                  codegen: true,
+                  tag: "fix-errors",
+                })
               }
             >
               <Icon name="bug" />
@@ -91,7 +101,13 @@ export default function ChatGPT({
             <div style={{ display: "flex" }}>
               <Button
                 style={actionStyle}
-                onClick={() => chatgpt({ command: "explain", codegen: false })}
+                onClick={() =>
+                  chatgpt({
+                    command: "explain",
+                    codegen: false,
+                    tag: "explain",
+                  })
+                }
               >
                 <Icon name="bullhorn" />
                 Explain
@@ -100,7 +116,11 @@ export default function ChatGPT({
               <Button
                 style={actionStyle}
                 onClick={() =>
-                  chatgpt({ command: "add comments to", codegen: true })
+                  chatgpt({
+                    command: "add comments to",
+                    codegen: true,
+                    tag: "comment",
+                  })
                 }
               >
                 <Icon name="comment" />
@@ -109,7 +129,9 @@ export default function ChatGPT({
             </div>
             <div style={{ display: "flex" }}>
               <Button
-                onClick={() => chatgpt({ command: "summarize" })}
+                onClick={() =>
+                  chatgpt({ command: "summarize", tag: "summarize" })
+                }
                 style={actionStyle}
               >
                 <Icon name="bolt" />
@@ -118,7 +140,10 @@ export default function ChatGPT({
               <div style={{ width: "15px" }} />
               <Button
                 onClick={() =>
-                  chatgpt({ command: "summarize in one sentence" })
+                  chatgpt({
+                    command: "summarize in one sentence",
+                    tag: "summarize-short",
+                  })
                 }
                 style={actionStyle}
               >
@@ -133,6 +158,7 @@ export default function ChatGPT({
                   command:
                     "review for quality and correctness and suggest improvements",
                   codegen: false,
+                  tag: "review",
                 })
               }
             >
@@ -157,6 +183,7 @@ export default function ChatGPT({
                       command: generic,
                       codegen: false,
                       allowEmpty: true,
+                      tag: "custom",
                     })
                   }
                 >

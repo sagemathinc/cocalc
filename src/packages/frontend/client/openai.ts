@@ -27,6 +27,7 @@ export class OpenAIClient {
     project_id,
     path,
     model,
+    tag = "",
   }: {
     input: string;
     system?: string;
@@ -34,6 +35,7 @@ export class OpenAIClient {
     project_id?: string;
     path?: string;
     model?: Model;
+    tag?: string;
   }): Promise<string> {
     if (!redux.getStore("projects").hasOpenAI(project_id)) {
       return `OpenAI support is not currently enabled ${
@@ -75,6 +77,7 @@ export class OpenAIClient {
         path,
         history,
         model,
+        tag: `app:${tag}`,
       }),
     });
     return resp.text;

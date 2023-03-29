@@ -17,7 +17,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { ProjectLog } from "@cocalc/frontend/project/history";
 import ProjectImage from "@cocalc/frontend/project/settings/image";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { GPTGenerateFile } from "./gpt-generate-file";
+import ChatGPTGenerateJupyterNotebook from "./chatgpt-generate-jupyter";
 import { Block } from "./block";
 
 /*
@@ -34,7 +34,6 @@ import { ProjectInfo } from "@cocalc/frontend/project/info";
         <ProjectInfo project_id={project_id} />
       </Block>
       */
-
 
 export default function HomePage({ project_id }) {
   const desc = useRedux(["projects", "project_map", project_id, "description"]);
@@ -95,12 +94,12 @@ export default function HomePage({ project_id }) {
           <StaticMarkdown value={desc} />
         </Col>
         <Col span={12}>
+          <ChatGPTGenerateJupyterNotebook project_id={project_id} />
+        </Col>
+        <Col span={12}>
           <Block style={{ margin: "auto" }}>
             <ProjectLog project_id={project_id} />
           </Block>
-        </Col>
-        <Col span={12}>
-          <GPTGenerateFile project_id={project_id} />
         </Col>
       </Row>
     </div>
