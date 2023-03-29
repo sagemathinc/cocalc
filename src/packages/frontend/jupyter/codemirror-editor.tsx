@@ -666,6 +666,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           const pos = cm.current.getCursor();
           return { x: pos.ch, y: pos.line };
         },
+        getSelection: () => cm.current.getSelection(),
       });
     }
     if (frameActions.current) {
@@ -680,6 +681,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           const pos = cm.current.getCursor();
           return { x: pos.ch, y: pos.line };
         },
+        getSelection: () => cm.current.getSelection(),
       };
       frameActions.current?.register_input_editor(id, editor);
     }

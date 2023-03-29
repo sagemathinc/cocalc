@@ -140,7 +140,8 @@ export class ChatActions extends Actions<ChatState> {
   async send_chat(
     input?: string,
     sender_id?: string,
-    reply_to?: Date
+    reply_to?: Date,
+    tag?: string
   ): Promise<void> {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to send_chat before chat actions initialized");
@@ -192,7 +193,7 @@ export class ChatActions extends Actions<ChatState> {
       user_tracking("send_chat", { project_id, path });
     }
     this.save_to_disk();
-    await this.processChatGPT(fromJS(message), reply_to);
+    await this.processChatGPT(fromJS(message), reply_to, tag);
   }
 
   public set_editing(message, is_editing) {
@@ -432,7 +433,7 @@ export class ChatActions extends Actions<ChatState> {
     return false; // never reached
   }
 
-  private async processChatGPT(message, reply_to?: Date) {
+  private async processChatGPT(message, reply_to?: Date, tag?: string) {
     if (
       !this.redux.getStore("projects").hasOpenAI(this.store?.get("project_id"))
     ) {
@@ -492,6 +493,7 @@ export class ChatActions extends Actions<ChatState> {
         project_id,
         path,
         model,
+        tag,
       });
     } catch (err) {
       resp = `<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;

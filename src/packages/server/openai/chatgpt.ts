@@ -40,6 +40,7 @@ interface ChatOptions {
   analytics_cookie?: string;
   history?: { role: "assistant" | "user" | "system"; content: string }[];
   model?: Model; // default is gpt-3.5-turbo
+  tag?: string;
 }
 
 export async function evaluate({
@@ -51,6 +52,7 @@ export async function evaluate({
   analytics_cookie,
   history,
   model = "gpt-3.5-turbo",
+  tag,
 }: ChatOptions): Promise<string> {
   log.debug("evaluate", {
     input,
@@ -61,6 +63,7 @@ export async function evaluate({
     project_id,
     path,
     model,
+    tag,
   });
   const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie, model });
@@ -102,6 +105,7 @@ export async function evaluate({
     total_time_s,
     expire: account_id == null ? expire : undefined,
     model,
+    tag,
   });
 
   // NOTE about expire: If the admin setting for "PII Retention" is set *and*
@@ -137,11 +141,12 @@ async function saveResponse({
   total_time_s,
   expire,
   model,
+  tag,
 }) {
   const pool = getPool();
   try {
     await pool.query(
-      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,total_time_s,expire,model) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,total_time_s,expire,model,tag) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
       [
         input,
         system,
@@ -155,6 +160,7 @@ async function saveResponse({
         total_time_s,
         expire,
         model,
+        tag,
       ]
     );
   } catch (err) {

@@ -140,6 +140,7 @@ export const Button = (props: {
   active?: boolean;
   id?: string;
   autoFocus?: boolean;
+  placement?;
 }) => {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
@@ -178,7 +179,7 @@ export const Button = (props: {
   );
   if (props.title) {
     return (
-      <Tooltip title={props.title} mouseEnterDelay={0.7} placement="bottom">
+      <Tooltip title={props.title} mouseEnterDelay={0.7} placement={props.placement}>
         {btn}
       </Tooltip>
     );

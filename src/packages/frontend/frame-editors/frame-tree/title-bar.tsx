@@ -920,7 +920,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return (
       <Button
         key={"timetravel"}
-        title={"Show complete edit history"}
+        title={"Show edit history"}
         bsStyle={"info"}
         style={button_style()}
         bsSize={button_size()}
@@ -960,7 +960,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         actions={props.actions}
         ButtonComponent={Button}
         buttonSize={button_size()}
-        buttonStyle={button_style()}
+        buttonStyle={{
+          ...button_style(),
+          backgroundColor: "rgb(16, 163, 127)",
+          color: "white",
+        }}
         labels={labels}
         visible={props.tab_is_visible && props.is_visible}
       />
@@ -1812,7 +1816,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
               }}
               step={-1}
               value={props.page}
-              onChange={(page) => {
+              onChange={(page: number) => {
                 if (!page) return;
                 if (page <= 1) {
                   page = 1;

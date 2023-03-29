@@ -2856,7 +2856,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const full_path = segments.slice(1).join("/");
     const parent_path = segments.slice(1, segments.length - 1).join("/");
     const last = segments.slice(-1).join();
-    const main_segment = segments[0] as FixedTab;
+    const main_segment = segments[0] as FixedTab | "home";
     switch (main_segment) {
       case "files":
         if (target.endsWith("/") || full_path === "") {
@@ -2916,6 +2916,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
       case "log":
         this.set_active_tab("log", { change_history: change_history });
+        break;
+
+      case "home":
+        this.set_active_tab("home", { change_history: change_history });
         break;
 
       case "settings":

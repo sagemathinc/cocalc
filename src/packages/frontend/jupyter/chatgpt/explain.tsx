@@ -27,7 +27,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
   }
   return (
     <div style={style}>
-      <Tooltip title="Ask ChatGPT to attempt to explain what this code does.">
+      <Tooltip title="Ask ChatGPT to explain what this code does.">
         <Button
           style={{ color: "#666", fontSize: "11px" }}
           size="small"
@@ -96,5 +96,5 @@ ${cell.get("input")}
 `;
   // scroll to bottom *after* the message gets sent.
   setTimeout(() => chatActions.scrollToBottom(), 100);
-  await chatActions.send_chat(message);
+  await chatActions.send_chat(message, undefined, undefined, "jupyter-explain");
 }

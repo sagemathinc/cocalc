@@ -31,7 +31,7 @@ import { Icon } from "@cocalc/frontend/components";
 // very good support for "markdown", hence the default below.
 
 export interface EditorFunctions {
-  set_cursor?: (pos: { x?: number; y?: number }) => void;
+  set_cursor: (pos: { x?: number; y?: number }) => void;
 }
 
 interface MultimodeState {

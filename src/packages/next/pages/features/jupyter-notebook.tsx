@@ -31,6 +31,7 @@ import JupyterMem from "/public/features/cocalc-jupyter2-memory-cpu.png";
 import RTC from "/public/features/cocalc-real-time-jupyter.png";
 import JupyterLab from "/public/features/jupyter-lab.png";
 import JupyterLogo from "/public/features/jupyter-logo.svg";
+import { ChatGPTFixError } from "./openai-chatgpt";
 
 export default function JupyterNotebook({ customize }) {
   function pitchNoSetup() {
@@ -245,6 +246,31 @@ export default function JupyterNotebook({ customize }) {
             </Paragraph>
           </Info>
 
+          <ChatGPTFixError embedded={true} />
+
+          <Info
+            anchor="a-kernels"
+            title="Managed Jupyter kernels"
+            icon="python"
+            image={JupyterKernels}
+            alt="Dropdown menu showing a large number of preinstalled Jupyter kernels"
+          >
+            <Paragraph>
+              CoCalc makes sure that your desired computational environment is
+              available and ready to work with. Select from many pre-installed
+              and <strong>fully managed kernels</strong>. You can also create
+              your own{" "}
+              <A href="https://doc.cocalc.com/howto/custom-jupyter-kernel.html">
+                custom kernel
+              </A>
+              .
+            </Paragraph>
+            <Paragraph>
+              Look at our <A href="/software">list of available software</A> for
+              more about what is available.
+            </Paragraph>
+          </Info>
+
           <Info
             anchor="a-chat"
             title="Chat about your Jupyter notebook"
@@ -269,29 +295,6 @@ export default function JupyterNotebook({ customize }) {
             </Paragraph>
             <Paragraph>
               Chat fully supports markdown formatting and <LaTeX /> formulas.{" "}
-            </Paragraph>
-          </Info>
-
-          <Info
-            anchor="a-kernels"
-            title="Managed Jupyter kernels"
-            icon="python"
-            image={JupyterKernels}
-            alt="Dropdown menu showing a large number of preinstalled Jupyter kernels"
-          >
-            <Paragraph>
-              CoCalc makes sure that your desired computational environment is
-              available and ready to work with. Select from many pre-installed
-              and <strong>fully managed kernels</strong>. You can also create
-              your own{" "}
-              <A href="https://doc.cocalc.com/howto/custom-jupyter-kernel.html">
-                custom kernel
-              </A>
-              .
-            </Paragraph>
-            <Paragraph>
-              Look at our <A href="/software">list of available software</A> for
-              more about what is available.
             </Paragraph>
           </Info>
 
