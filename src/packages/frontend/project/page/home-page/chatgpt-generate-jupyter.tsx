@@ -76,6 +76,19 @@ export default function ChatGPTGenerateJupyterNotebook({
         const X = await getKernelSpec(project_id);
         X.sort(field_cmp("display_name"));
         setKernelSpecs(X);
+        if (spec == null) {
+          const name = redux
+            .getStore("account")
+            .getIn(["editor_settings", "jupyter", "kernel"]);
+          if (name != null) {
+            for (const a of X) {
+              if (a.name == name) {
+                setSpec(a);
+                break;
+              }
+            }
+          }
+        }
       } catch (err) {
         setKernelSpecs(
           "Unable to load Jupyter kernels.  Make sure the project is running and Jupyter is installed."
@@ -345,7 +358,7 @@ export default function ChatGPTGenerateJupyterNotebook({
                   </div>
                 )}
               </Paragraph>
-              <Paragraph style={{ textAlign: "center" }}>
+              <Paragraph>
                 <Button
                   type="primary"
                   size="large"
