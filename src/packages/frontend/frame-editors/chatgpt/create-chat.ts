@@ -57,10 +57,13 @@ export default async function createChat({
     command
   )} `;
   if (frameType != "terminal") {
-    message += ` the following ${codegen ? "code" : ""} from the file ${
+    message += `. I am writing in the file ${
       actions.path
-    } ${actions.chatgptExtraFileInfo()}:`;
+    } ${actions.chatgptExtraFileInfo()}.`;
     if (input.trim()) {
+      message += ` The file includes the following ${
+        codegen ? "code" : "content"
+      }:`;
       message += `
 ${delim}${actions.chatgptGetLanguage()}
 ${input.trim()}
@@ -68,8 +71,7 @@ ${delim}
 ${codegen && input.trim() ? "Show the new version." : ""}`;
     }
   } else {
-    message +=
-      ". I am currently using the Ubuntu Linux terminal in CoCalc.";
+    message += ". I am using the bash Ubuntu Linux terminal in CoCalc.";
   }
   // scroll to bottom *after* the message gets sent.
   setTimeout(() => chatActions.scrollToBottom(), 100);

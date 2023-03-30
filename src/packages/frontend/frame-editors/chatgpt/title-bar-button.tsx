@@ -145,6 +145,7 @@ export default function ChatGPT({
   );
 
   const chatgpt = async (options) => {
+    // console.log("chatgpt", options);
     setError("");
     try {
       setQuerying(true);
@@ -162,6 +163,7 @@ export default function ChatGPT({
       chatgpt({
         command: custom.trim(),
         codegen: false,
+        allowEmpty: true,
         tag: "custom",
       });
       return;
@@ -212,13 +214,30 @@ export default function ChatGPT({
               </div>
             )}{" "}
             <div style={{ display: "flex", width: "100%" }}>
+              <Input
+                allowClear
+                autoFocus
+                style={{ flex: 1 }}
+                placeholder="Describe what you want to do..."
+                value={custom}
+                onChange={(e) => {
+                  setCustom(e.target.value);
+                  setTag("");
+                  if (e.target.value) {
+                    setDescription(getCustomDescription(frameType));
+                  } else {
+                    setDescription("");
+                  }
+                }}
+                onPressEnter={doIt}
+              />
               {showOptions && (
                 <>
+                  <div style={{ margin: "5px 5px 0 5px" }}>or</div>
                   <Select
                     defaultOpen
                     showSearch
                     allowClear
-                    autoFocus
                     placeholder="Choose..."
                     optionFilterProp="children"
                     filterOption={(input, option) => {
@@ -255,28 +274,10 @@ export default function ChatGPT({
                         }
                       }
                     }}
-                    value={tag}
+                    value={tag ? tag : undefined}
                   />
-                  <div style={{ margin: "5px 5px 0 5px" }}>or</div>
                 </>
               )}
-              <Input
-                allowClear
-                autoFocus={!showOptions}
-                style={{ flex: 1 }}
-                placeholder="Describe what you want to do..."
-                value={custom}
-                onChange={(e) => {
-                  setCustom(e.target.value);
-                  setTag("");
-                  if (e.target.value) {
-                    setDescription(getCustomDescription(frameType));
-                  } else {
-                    setDescription("");
-                  }
-                }}
-                onPressEnter={doIt}
-              />
             </div>
             {description}
             <Button
