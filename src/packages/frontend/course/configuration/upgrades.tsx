@@ -5,6 +5,8 @@
 
 // Upgrading quotas for all student projects
 
+import { Alert, Card, Divider, Form, Radio, Switch, Typography } from "antd";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   Button,
@@ -31,6 +33,7 @@ import {
   A,
   Icon,
   Loading,
+  Paragraph,
   Tip,
   UPGRADE_ERROR_STYLE,
 } from "@cocalc/frontend/components";
@@ -49,7 +52,7 @@ import {
   round2,
 } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { Alert, Card, Form, Radio, Switch, Typography } from "antd";
+import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
 import {
   CourseSettingsRecord,
@@ -596,11 +599,12 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
 
   function render_site_license_strategy() {
     return (
-      <div
+      <Paragraph
         style={{
-          margin: "15px",
-          border: "1px solid lightgrey",
+          margin: "0",
+          border: `1px solid ${COLORS.GRAY_L}`,
           padding: "15px",
+          borderRadius: "5px",
         }}
       >
         <b>License strategy:</b> Since you have multiple licenses, there are two
@@ -621,15 +625,27 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
           <Radio value={"serial"} key={"serial"} style={radioStyle}>
             <b>Maximize number of covered students:</b> apply one license to
             each project associated to this course (e.g., you bought a license
-            to handle a few more students who added your course)
+            to handle a few more students who were added your course). If you
+            have more students than license seats, the first students to start
+            their projects will get the upgrades.
           </Radio>
           <Radio value={"parallel"} key={"parallel"} style={radioStyle}>
             <b>Maximize upgrades to each project:</b> apply all licenses to all
             projects associated to this course (e.g., you bought a license to
-            increase the RAM or CPU for all students)
+            increase the RAM or CPU for all students).
           </Radio>
         </Radio.Group>
-      </div>
+        <Divider type="horizontal" />
+        <Button
+          onClick={() =>
+            course_actions.configuration.configure_all_projects(true)
+          }
+          bsSize="small"
+        >
+          <Icon name="arrows" /> Redistribute licenses
+        </Button>{" "}
+        – e.g. useful if a license expired
+      </Paragraph>
     );
   }
 
