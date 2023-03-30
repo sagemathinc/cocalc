@@ -23,6 +23,7 @@ import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-sl
 import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
 import { JupyterActions } from "../../jupyter/browser-actions";
 import { NotebookFrameActions } from "./cell-notebook/actions";
+import { open_new_tab } from "../../misc";
 
 export interface JupyterEditorState extends CodeEditorState {
   slideshow?: {
@@ -496,6 +497,10 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     const kernel =
       this.jupyter_actions.store.getIn(["kernel_info", "display_name"]) ?? "";
     return `, which is a Jupyter notebook using the ${kernel} kernel`;
+  }
+
+  help(): void {
+    open_new_tab("https://doc.cocalc.com/jupyter.html");
   }
 }
 

@@ -125,13 +125,13 @@ export default function ChatGPTGenerateJupyterNotebook({
 
   async function generate() {
     if (spec == null) return;
-    setQuerying(true);
 
     const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
 
     const input = `Explain directly and to the point, how to compute the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename for code.\n\n${prompt}`;
 
     try {
+      setQuerying(true);
       const raw = await webapp_client.openai_client.chatgpt({
         input,
         project_id,

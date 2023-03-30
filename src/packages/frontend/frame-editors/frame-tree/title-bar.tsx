@@ -53,7 +53,7 @@ import { get_default_font_size } from "../generic/client";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
-import ChatGPT from "./chatgpt";
+import ChatGPT from "../chatgpt/title-bar-button";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -995,7 +995,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return (
       <Button
         key={"help"}
-        title={"Show help for working with this type of document"}
+        title={"Show documentation for working with this editor"}
         bsSize={button_size()}
         onClick={() =>
           typeof props.actions.help === "function"
@@ -1004,7 +1004,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }
       >
         <Icon name="question-circle" />{" "}
-        <VisibleMDLG>{labels ? "Help" : undefined}</VisibleMDLG>
+        <VisibleMDLG>{labels ? "Docs…" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -1017,7 +1017,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       ...{
         title: "Guide",
         descr: "Show guidebook",
-        icon: "book" as IconName,
+        icon: "magic" as IconName,
       },
       ...props.editor_spec[props.type].guide_info,
     };
