@@ -662,7 +662,7 @@ export function commands(
       f() {
         frame_actions.run_selected_cells();
         frame_actions.set_mode("escape");
-        frame_actions.scroll("cell top");
+        frame_actions.scroll("cell visible");
       },
     },
 
@@ -678,7 +678,7 @@ export function commands(
       k: [{ which: 13, shift: true }],
       f() {
         frame_actions.shift_enter_run_selected_cells();
-        frame_actions.scroll("cell top");
+        frame_actions.scroll("cell visible");
       },
     },
 
@@ -722,7 +722,7 @@ export function commands(
       f() {
         frame_actions.move_cursor(1);
         frame_actions.unselect_all_cells();
-        frame_actions.scroll("cell top");
+        frame_actions.scroll("cell visible");
       },
     },
 
@@ -734,7 +734,7 @@ export function commands(
       f() {
         frame_actions.move_cursor(-1);
         frame_actions.unselect_all_cells();
-        frame_actions.scroll("cell top");
+        frame_actions.scroll("cell visible");
       },
     },
 
