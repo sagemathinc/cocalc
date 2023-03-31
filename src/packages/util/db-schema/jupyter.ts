@@ -8,6 +8,7 @@ export interface JupyterLogEntry {
   input: string;
   history?: string[];
   output: object[];
+  hash: string;
   kernel: string;
   account_id?: string;
   analytics_cookie?: string; // at least one of analytics_cookie or account_id will be set
@@ -41,10 +42,14 @@ Table({
       pg_type: "JSONB[]",
       desc: "Output from running the computation",
     },
+    hash: {
+      type: "string",
+      desc: "Hash of the input history and this input.",
+    },
     history: {
       title: "History",
       type: "array",
-      pg_type: "string[]",
+      pg_type: "TEXT[]",
       desc: "The previous inputs",
       render: {
         type: "json",
@@ -69,33 +74,7 @@ Table({
   rules: {
     desc: "Jupyter Kernel Execution Log",
     primary_key: "id",
-    pg_indexes: ["account_id", "analytics_cookie", "time"],
-    user_query: {
-      get: {
-        pg_where: [{ "account_id = $::UUID": "account_id" }],
-        fields: {
-          id: null,
-          time: null,
-          input: null,
-          history: null,
-          output: null,
-          kernel: null,
-          account_id: null,
-          tag: null,
-          expire: null,
-          total_time_s: null,
-        },
-      },
-      set: {
-        // this is so that a user can expire any execs they wanted to have expunged from
-        // the system completely.
-        fields: {
-          account_id: "account_id",
-          id: true,
-          expire: true,
-        },
-      },
-    },
+    pg_indexes: ["time", "hash"],
   },
 });
 

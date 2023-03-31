@@ -4,24 +4,23 @@ Backend server side part of ChatGPT integration with CoCalc.
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
-import { delay } from "awaiting";
+//import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { sha1 } from "@cocalc/util/misc";
 
 const log = getLogger("jupyter:execute");
 
-async function getConfig(): Promise<{
-  enabled: boolean;
-  expire: Date | undefined;
-}> {
-  log.debug("get config");
-  const { jupyterApiEnabled, pii_retention } = await getServerSettings();
+const EXPIRE = "1 month";
 
-  return {
-    jupyterApiEnabled,
-    expire: pii_retention_to_future(pii_retention),
-  };
-}
+// async function getConfig(): Promise<{
+//   jupyterApiEnabled: boolean;
+// }> {
+//   log.debug("get config");
+//   const { jupyterApiEnabled } = await getServerSettings();
+
+//   return {
+//     jupyterApiEnabled,
+//   };
+// }
 
 interface Options {
   input: string; // new input that user types
@@ -35,30 +34,35 @@ interface Options {
 export async function execute({
   input,
   kernel,
-  histroy,
   account_id,
   analytics_cookie,
   history,
   tag,
-}: ChatOptions): Promise<string> {
+}: Options): Promise<object[]> {
   log.debug("execute", {
     input,
     kernel,
-    histroy,
+    history,
     account_id,
     analytics_cookie,
-    history,
     tag,
   });
   const start = Date.now();
   // TODO -- await checkForAbuse({ account_id, analytics_cookie });
-  const { jupyterApiEnabled, expire } = await getConfig();
-  if (false && !jupyterApiEnabled) {
-    // todo
-    throw Error("Jupyter API is not enabled on this server.");
-  }
+  //const { jupyterApiEnabled } = await getConfig();
+  //   if (!jupyterApiEnabled) {
+  //     // todo
+  //     throw Error("Jupyter API is not enabled on this server.");
+  //   }
 
-  const output = { stdout: eval(input) };
+  // for testing temporarily!
+  const output: any[] = [];
+  try {
+    output.push({ stdout: `${eval(input)}` });
+  } catch (err) {
+    output.push({ stderr: `${err}` });
+  }
+  log.debug("output", output);
   const total_time_s = (Date.now() - start) / 1000;
   saveResponse({
     input,
@@ -68,10 +72,8 @@ export async function execute({
     analytics_cookie,
     history,
     tag,
-    expire: account_id == null ? expire : undefined,
+    total_time_s,
   });
-
-  // NOTE about expire -- see ../openai/chatgpt.ts.
   return output;
 }
 
@@ -86,12 +88,12 @@ async function saveResponse({
   analytics_cookie,
   history,
   tag,
-  expire,
+  total_time_s,
 }) {
   const pool = getPool();
   try {
     await pool.query(
-      "INSERT INTO jupyter_execute_log(input,output,kernel,account_id,analytics_cookie,history,tag,expire) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8)",
+      `INSERT INTO jupyter_execute_log(time,expire,input,output,kernel,account_id,analytics_cookie,history,tag,hash,total_time_s) VALUES(NOW(),NOW()+INTERVAL '${EXPIRE}',$1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [
         input,
         output,
@@ -100,10 +102,15 @@ async function saveResponse({
         analytics_cookie,
         history,
         tag,
-        expire,
+        hash((history ?? []).concat([input])),
+        total_time_s,
       ]
     );
   } catch (err) {
     log.warn("Failed to save Jupyter execute log entry to database:", err);
   }
+}
+
+function hash(history: string[]): string {
+  return sha1(JSON.stringify(history));
 }

@@ -1,7 +1,7 @@
 /*
 Turn latex file contents into a pdf.
 
-You can call this either via GET or POST, but of course POST makes way more sense.
+You must call this via POST.
 The parameters are:
 
 - project_id: *optional* project in which to run latex.  If not given, your most recent project is used, or if you have no projects, one is created.

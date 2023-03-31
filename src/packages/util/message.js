@@ -3065,3 +3065,20 @@ message({
   id: undefined,
   text: required, // text of the response
 });
+
+API(
+  message({
+    event: "jupyter_execute",
+    id: undefined,
+    kernel: required, // jupyter kernel
+    input: required, // input code to execute
+    history: undefined, // optional history of this conversation as a list of input strings.  Do not include output
+    tag: undefined,
+  })
+);
+
+message({
+  event: "jupyter_execute_response",
+  id: undefined,
+  output: required, // the response
+});
