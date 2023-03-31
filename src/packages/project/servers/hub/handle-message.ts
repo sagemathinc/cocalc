@@ -21,6 +21,7 @@ const client = require("@cocalc/project/client");
 import { version } from "@cocalc/util/smc-version";
 import writeTextFileToProject from "./write-text-file-to-project";
 import jupyterExecute from "@cocalc/project/jupyter/stateless-api/execute";
+import { get_kernel_data } from "@cocalc/project/jupyter/kernel-data";
 
 const winston = getLogger("handle-message-from-hub");
 
@@ -65,10 +66,33 @@ export default async function handleMessage(socket, mesg: Message) {
       try {
         await jupyterExecute(socket, mesg);
       } catch (err) {
-        message.error({
-          id: mesg.id,
-          error: `${err}`,
-        });
+        socket.write_mesg(
+          "json",
+          message.error({
+            id: mesg.id,
+            error: `${err}`,
+          })
+        );
+      }
+      return;
+
+    case "jupyter_kernels":
+      try {
+        socket.write_mesg(
+          "json",
+          message.jupyter_kernels({
+            kernels: await get_kernel_data(),
+            id: mesg.id,
+          })
+        );
+      } catch (err) {
+        socket.write_mesg(
+          "json",
+          message.error({
+            id: mesg.id,
+            error: `${err}`,
+          })
+        );
       }
       return;
 

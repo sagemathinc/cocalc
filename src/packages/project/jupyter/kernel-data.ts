@@ -16,7 +16,10 @@ import { field_cmp } from "@cocalc/util/misc";
 import LRU from "lru-cache";
 import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 
-const cache = new LRU<"kernel_data", KernelSpec[]>({ ttl: 5000, max: 1000 });
+const cache = new LRU<"kernel_data", KernelSpec[]>({
+  ttl: 5000,
+  max: 5 /* silly since only one possible key */,
+});
 
 export async function get_kernel_data(): Promise<KernelSpec[]> {
   let x = cache.get("kernel_data");

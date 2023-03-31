@@ -327,18 +327,23 @@ export default function ChatGPTGenerateJupyterNotebook({
               disabled={querying}
               options={
                 typeof kernelSpecs == "object"
-                  ? kernelSpecs?.map((spec) => {
-                      return {
-                        display_name: spec.display_name,
-                        label: (
-                          <>
-                            <Logo kernel={spec.name} project_id={project_id} />{" "}
-                            {spec.display_name}
-                          </>
-                        ),
-                        value: spec.name,
-                      };
-                    })
+                  ? kernelSpecs
+                      ?.filter((spec) => !spec?.metadata?.["cocalc"]?.disabled)
+                      .map((spec) => {
+                        return {
+                          display_name: spec.display_name,
+                          label: (
+                            <>
+                              <Logo
+                                kernel={spec.name}
+                                project_id={project_id}
+                              />{" "}
+                              {spec.display_name}
+                            </>
+                          ),
+                          value: spec.name,
+                        };
+                      })
                   : []
               }
               onChange={(value) => {

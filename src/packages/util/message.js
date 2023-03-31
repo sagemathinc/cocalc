@@ -3082,3 +3082,11 @@ message({
   id: undefined,
   output: required, // the response
 });
+
+API(
+  message({
+    event: "jupyter_kernels",
+    id: undefined,
+    kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
+  })
+);
