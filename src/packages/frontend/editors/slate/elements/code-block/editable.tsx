@@ -14,9 +14,9 @@ import { useCollapsed, useSelected, useSlate } from "../hooks";
 import { SlateCodeMirror } from "../codemirror";
 import { delay } from "awaiting";
 import { useSetElement } from "../set-element";
-import { Input } from "antd";
+import { Alert, Input } from "antd";
 import infoToMode from "./info-to-mode";
-import CopyButton from "./copy-button";
+import ActionButtons from "./action-buttons";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -31,6 +31,8 @@ const Element: React.FC<RenderElementProps> = ({
 
   const [showInfo, setShowInfo] = useState<boolean>(selected && collapsed); // show the info input
   const [focusInfo, setFocusInfo] = useState<boolean>(false); // focus the info input
+  const [output, setOutput] = useState<null | object[]>(null);
+  const [error, setError] = useState<string>("");
 
   const setElement = useSetElement(editor, element);
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
@@ -38,7 +40,11 @@ const Element: React.FC<RenderElementProps> = ({
   return (
     <div {...attributes}>
       <div contentEditable={false} style={{ textIndent: 0 }}>
-        <CopyButton value={element.value} />
+        <ActionButtons
+          value={element.value}
+          setOutput={setOutput}
+          setError={setError}
+        />
         <SlateCodeMirror
           options={{ lineWrapping: true }}
           value={element.value}
@@ -74,6 +80,8 @@ const Element: React.FC<RenderElementProps> = ({
             }}
           />
         )}
+        {output != null && <pre>{JSON.stringify(output)}</pre>}
+        {error && <Alert type="error" description={error} />}
       </div>
       {children}
     </div>

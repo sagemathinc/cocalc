@@ -9,6 +9,7 @@ import { sha1 } from "@cocalc/util/misc";
 import getOneProject from "@cocalc/server/projects/get-one";
 import callProject from "@cocalc/server/projects/call";
 import { jupyter_execute } from "@cocalc/util/message";
+import { isEqual } from "lodash";
 
 const log = getLogger("jupyter:execute");
 
@@ -49,6 +50,9 @@ export async function execute({
     analytics_cookie,
     tag,
   });
+  // normalize by trimming, which we assume doesn't change eval significantly.
+  input = input.trim();
+  history = history?.map((x) => x.trim());
   const start = Date.now();
   // TODO -- await checkForAbuse({ account_id, analytics_cookie });
   const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
@@ -56,6 +60,17 @@ export async function execute({
     throw Error("Jupyter API is not enabled on this server.");
   }
 
+  const hash = computeHash((history ?? []).concat([input]));
+
+  // Check if we already have this execution history in the database:
+  const savedOutput = await getFromDatabase({ input, history, kernel, hash });
+  if (savedOutput != null) {
+    log.debug("got saved output");
+    return savedOutput;
+  }
+  log.debug("have to compute output");
+
+  // Execute the code.
   const { project_id } = await getOneProject(jupyter_account_id);
   const mesg = jupyter_execute({ input, history, kernel });
   const resp = await callProject({
@@ -78,8 +93,36 @@ export async function execute({
     history,
     tag,
     total_time_s,
+    hash,
   });
   return output;
+}
+
+async function getFromDatabase({
+  input,
+  history,
+  hash,
+  kernel,
+}): Promise<null | object[]> {
+  const pool = getPool();
+  try {
+    const { rows } = await pool.query(
+      `SELECT input, history, output FROM jupyter_execute_log WHERE kernel=$1 AND hash=$2`,
+      [kernel, hash]
+    );
+    log.debug({ input, history, hash, kernel });
+    log.debug("rows = ", rows);
+    for (const row of rows) {
+      // have to check for actual equality to make sure it's not just a hash collision
+      if (row.input == input && isEqual(row.history ?? null, history ?? null)) {
+        return row.output;
+      }
+    }
+    return null; // not in database.
+  } catch (err) {
+    log.warn("Failed to query database cache", err);
+    return null;
+  }
 }
 
 // Save mainly for analytics, metering, and to generally see how (or if)
@@ -94,6 +137,7 @@ async function saveResponse({
   history,
   tag,
   total_time_s,
+  hash,
 }) {
   const pool = getPool();
   try {
@@ -107,7 +151,7 @@ async function saveResponse({
         analytics_cookie,
         history,
         tag,
-        hash((history ?? []).concat([input])),
+        hash,
         total_time_s,
       ]
     );
@@ -116,6 +160,6 @@ async function saveResponse({
   }
 }
 
-function hash(history: string[]): string {
+function computeHash(history: string[]): string {
   return sha1(JSON.stringify(history));
 }

@@ -171,7 +171,7 @@ export function CodeMirrorStatic(props: Props) {
 
   const divStyle: React.CSSProperties = {
     width: "100%",
-    borderRadius: "2px",
+    borderRadius: "5px",
     position: "relative",
     overflowX: "auto",
     fontSize: props.font_size ? `${props.font_size}px` : undefined,

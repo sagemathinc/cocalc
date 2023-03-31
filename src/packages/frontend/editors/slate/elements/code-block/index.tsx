@@ -3,12 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
+import React, { useState } from "react";
 import { Element } from "slate";
 import { register, SlateElement, RenderElementProps } from "../register";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import infoToMode from "./info-to-mode";
-import CopyButton from "./copy-button";
+import ActionButtons from "./action-buttons";
+import { Alert } from "antd";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -22,6 +23,8 @@ const StaticElement: React.FC<RenderElementProps> = ({
   attributes,
   element,
 }) => {
+  const [output, setOutput] = useState<null | object[]>(null);
+  const [error, setError] = useState<string>("");
   if (element.type != "code_block") {
     throw Error("bug");
   }
@@ -29,11 +32,19 @@ const StaticElement: React.FC<RenderElementProps> = ({
   return (
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
       <CodeMirrorStatic
-        addonAfter={<CopyButton value={element.value} />}
+        addonAfter={
+          <ActionButtons
+            value={element.value}
+            setOutput={setOutput}
+            setError={setError}
+          />
+        }
         value={element.value}
         style={{ background: "white", padding: "15px" }}
         options={{ mode: infoToMode(element.info, element.value) }}
       />
+      {output != null && <pre>{JSON.stringify(output)}</pre>}
+      {error && <Alert type="error" description={error} />}
     </div>
   );
 };

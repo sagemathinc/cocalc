@@ -4,6 +4,9 @@
 // now that we are using antd v5.
 import "antd/dist/reset.css";
 
+// Initialize the appBasePath for the frontend codebase.
+import "@cocalc/frontend/customize/app-base-path";
+
 // CoCalc 3rd party libraries
 import "@cocalc/cdn/dist/codemirror/lib/codemirror.css";
 import "@cocalc/cdn/dist/katex/katex.min.css";
