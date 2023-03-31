@@ -3,16 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { List } from "antd";
+
+import { useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
+  Icon,
+  IconName,
   Loading,
-  Paragraph,
   PathLink,
   Text,
   TimeAgo,
   Title,
 } from "@cocalc/frontend/components";
-import { useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { EventRecordMap } from "../../history/types";
+import { handle_log_click } from "@cocalc/frontend/components/path-link";
+import { file_options } from "@cocalc/frontend/editor-tmp";
+import { EventRecordMap } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
 
 interface OpenedFile {
@@ -26,6 +31,7 @@ interface Props {
 
 /**
  * This is a distillation of the project log, showing only the most recently opened files.
+ * The purpose is to be able to quickly jump to a file that was recently opened.
  */
 export function HomeRecentFiles(props: Props) {
   const { project_id } = props;
@@ -33,6 +39,7 @@ export function HomeRecentFiles(props: Props) {
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
 
+  // select unique files, that were opened in that project and sort by time
   const log: OpenedFile[] = useMemo(() => {
     if (project_log == null) return [];
 
@@ -63,44 +70,44 @@ export function HomeRecentFiles(props: Props) {
       .toJS();
   }, [project_log]);
 
-  function recent() {
-    if (project_log == null) {
-      return <Loading />;
-    }
-
+  function renderItem(entry) {
+    const time = entry.time;
+    const account_id = entry.account_id;
+    const path = entry.filename;
+    const info = file_options(path);
+    const name: IconName = info.icon ?? "file";
     return (
-      <Paragraph>
-        <ul>
-          {log.map((entry, i) => {
-            const time = entry.time;
-            const account_id = entry.account_id;
-            return (
-              <li key={i}>
-                <>
-                  <PathLink
-                    trunc={32}
-                    full={true}
-                    style={{ fontWeight: "bold" }}
-                    path={entry.filename}
-                    project_id={project_id}
-                  />{" "}
-                  <Text type="secondary">
-                    by <User user_map={user_map} account_id={account_id} />{" "}
-                    <TimeAgo date={time} />
-                  </Text>
-                </>
-              </li>
-            );
-          })}
-        </ul>
-      </Paragraph>
+      <List.Item
+        onClick={(e) => handle_log_click(e, path, project_id)}
+        className="cc-project-home-recent-files"
+      >
+        <Icon name={name} />{" "}
+        <PathLink
+          trunc={32}
+          full={true}
+          style={{ fontWeight: "bold" }}
+          path={path}
+          project_id={project_id}
+        />{" "}
+        <Text type="secondary">
+          by <User user_map={user_map} account_id={account_id} />{" "}
+          <TimeAgo date={time} />
+        </Text>
+      </List.Item>
     );
   }
 
+  if (project_log == null) {
+    return <Loading />;
+  }
+
   return (
-    <>
-      <Title level={3}>Recent files</Title>
-      {recent()}
-    </>
+    <List
+      size="small"
+      header={<Title level={4}>Recent files</Title>}
+      bordered
+      dataSource={log}
+      renderItem={renderItem}
+    />
   );
 }

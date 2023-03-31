@@ -36,16 +36,6 @@ export const PathLink: React.FC<Props> = (props: Props) => {
     link = true,
   } = props;
 
-  function handle_click(e): void {
-    e.preventDefault();
-    const switch_to = should_open_in_foreground(e);
-    redux.getProjectActions(project_id).open_file({
-      path,
-      foreground: switch_to,
-      foreground_project: switch_to,
-    });
-  }
-
   function render_link(text): JSX.Element {
     let s;
     if (!endswith(text, "/")) {
@@ -66,8 +56,8 @@ export const PathLink: React.FC<Props> = (props: Props) => {
     if (link) {
       return (
         <a
-          onClick={handle_click}
-          style={{ color: COLORS.GRAY_M, fontWeight: "bold", ...style }}
+          onClick={(e) => handle_log_click(e, path, project_id)}
+          style={{ color: COLORS.GRAY_D, fontWeight: "bold", ...style }}
         >
           {s}
         </a>
@@ -97,3 +87,13 @@ export const PathLink: React.FC<Props> = (props: Props) => {
     return render_link(name);
   }
 };
+
+export function handle_log_click(e, path, project_id): void {
+  e.preventDefault();
+  const switch_to = should_open_in_foreground(e);
+  redux.getProjectActions(project_id).open_file({
+    path,
+    foreground: switch_to,
+    foreground_project: switch_to,
+  });
+}

@@ -13,6 +13,9 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { Block } from "./block";
 import ChatGPTGenerateJupyterNotebook from "./chatgpt-generate-jupyter";
 import { HomeRecentFiles } from "./recent-files";
+import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
+
+const SPAN = { md: 12, sm: 24, xs: 24 } as const;
 
 export default function HomePage({ project_id }) {
   const desc = useRedux(["projects", "project_map", project_id, "description"]);
@@ -24,16 +27,23 @@ export default function HomePage({ project_id }) {
     if (!redux.getStore("projects").hasOpenAI(project_id)) return null;
 
     return (
-      <Col span={12}>
+      <Col {...SPAN}>
         <ChatGPTGenerateJupyterNotebook project_id={project_id} />
       </Col>
     );
   }
 
   return (
-    <div style={{ margin: "15px" }}>
+    <div style={{ margin: "15px", maxWidth: "1300px" }}>
       <Row gutter={[30, 30]}>
-        <Col span={12} style={{}}>
+        <Col {...SPAN}>
+          <ProjectAvatarImage
+            project_id={project_id}
+            size={120}
+            style={{ textAlign: "center", cursor: "pointer", marginTop: "20px" }}
+            askToAddAvatar={true}
+            onClick={() => actions?.set_active_tab("settings")}
+          />
           <Title
             level={2}
             onClick={() => actions?.set_active_tab("settings")}
@@ -45,19 +55,22 @@ export default function HomePage({ project_id }) {
             style={{
               flex: 1,
               cursor: "pointer",
-              maxHeight: "4em",
+              maxHeight: "10em",
               overflow: "auto",
             }}
             onClick={() => actions?.set_active_tab("settings")}
           >
             <StaticMarkdown value={desc} />
           </div>
-          <HomeRecentFiles project_id={project_id} />
         </Col>
 
         {renderGPTGenerator()}
 
-        <Col span={12}>
+        <Col {...SPAN}>
+          <HomeRecentFiles project_id={project_id} />
+        </Col>
+
+        <Col {...SPAN}>
           <Block style={{ margin: "auto" }}>
             <ProjectLog project_id={project_id} />
           </Block>
