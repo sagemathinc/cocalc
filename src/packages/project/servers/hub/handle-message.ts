@@ -20,10 +20,11 @@ const { handle_save_blob_message } = require("@cocalc/project/blobs");
 const client = require("@cocalc/project/client");
 import { version } from "@cocalc/util/smc-version";
 import writeTextFileToProject from "./write-text-file-to-project";
+import jupyterExecute from "@cocalc/project/jupyter/stateless-api/execute";
 
 const winston = getLogger("handle-message-from-hub");
 
-export default function handleMessage(socket, mesg: Message) {
+export default async function handleMessage(socket, mesg: Message) {
   winston.debug("received a message", {
     event: mesg.event,
     id: mesg.id,
@@ -58,6 +59,17 @@ export default function handleMessage(socket, mesg: Message) {
       // by the hub to api key users, so do NOT remove it!
       // The web browser clients use the websocket api,
       exec_shell_code(socket, mesg);
+      return;
+
+    case "jupyter_execute":
+      try {
+        await jupyterExecute(socket, mesg);
+      } catch (err) {
+        message.error({
+          id: mesg.id,
+          error: `${err}`,
+        });
+      }
       return;
 
     case "read_file_from_project":

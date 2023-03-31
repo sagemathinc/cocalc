@@ -682,7 +682,7 @@ export class JupyterKernel
 
   // This is like execute_code, but async and returns all the results,
   // and does not use the internal execution queue.
-  // This is used for unit testing and interactive work at the terminal and nbgrader.
+  // This is used for unit testing and interactive work at the terminal and nbgrader and the stateless api.
   async execute_code_now(opts: ExecOpts): Promise<object[]> {
     this.dbg("execute_code_now")();
     if (this._state === "closed") {

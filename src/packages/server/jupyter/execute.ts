@@ -4,23 +4,25 @@ Backend server side part of ChatGPT integration with CoCalc.
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-//import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { sha1 } from "@cocalc/util/misc";
+import getOneProject from "@cocalc/server/projects/get-one";
+import callProject from "@cocalc/server/projects/call";
+import { jupyter_execute } from "@cocalc/util/message";
 
 const log = getLogger("jupyter:execute");
 
 const EXPIRE = "1 month";
 
-// async function getConfig(): Promise<{
-//   jupyterApiEnabled: boolean;
-// }> {
-//   log.debug("get config");
-//   const { jupyterApiEnabled } = await getServerSettings();
+async function getConfig() {
+  log.debug("get config");
+  const { jupyter_account_id, jupyter_api_enabled } = await getServerSettings();
 
-//   return {
-//     jupyterApiEnabled,
-//   };
-// }
+  return {
+    jupyter_account_id,
+    jupyter_api_enabled,
+  };
+}
 
 interface Options {
   input: string; // new input that user types
@@ -49,19 +51,22 @@ export async function execute({
   });
   const start = Date.now();
   // TODO -- await checkForAbuse({ account_id, analytics_cookie });
-  //const { jupyterApiEnabled } = await getConfig();
-  //   if (!jupyterApiEnabled) {
-  //     // todo
-  //     throw Error("Jupyter API is not enabled on this server.");
-  //   }
-
-  // for testing temporarily!
-  const output: any[] = [];
-  try {
-    output.push({ stdout: `${eval(input)}` });
-  } catch (err) {
-    output.push({ stderr: `${err}` });
+  const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
+  if (!jupyter_api_enabled) {
+    throw Error("Jupyter API is not enabled on this server.");
   }
+
+  const { project_id } = await getOneProject(jupyter_account_id);
+  const mesg = jupyter_execute({ input, history, kernel });
+  const resp = await callProject({
+    account_id: jupyter_account_id,
+    project_id,
+    mesg,
+  });
+  if (resp.error) {
+    throw Error(resp.error);
+  }
+  const { output } = resp;
   log.debug("output", output);
   const total_time_s = (Date.now() - start) / 1000;
   saveResponse({

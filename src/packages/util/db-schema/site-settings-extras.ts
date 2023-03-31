@@ -55,6 +55,8 @@ const pii_retention_display = (retention: string) => {
 
 const openai_enabled = (conf) => to_bool(conf.openai_enabled);
 
+const jupyter_api_enabled = (conf) => to_bool(conf.jupyter_api_enabled);
+
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
   | "stripe_heading"
@@ -74,6 +76,8 @@ export type SiteSettingsExtrasKeys =
   | "email_smtp_secure"
   | "openai_section"
   | "openai_api_key"
+  | "jupyter_section"
+  | "jupyter_account_id"
   | "password_reset_override"
   | "password_reset_smtp_server"
   | "password_reset_smtp_from"
@@ -108,6 +112,19 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: openai_enabled,
+  },
+  jupyter_section: {
+    name: "Jupyter API Configuration",
+    desc: "",
+    default: "",
+    show: jupyter_api_enabled,
+    type: "header",
+  },
+  jupyter_account_id: {
+    name: "Jupyter API Account Id",
+    desc: "account_id of an account on this server that will own projects used for the Jupyter API. Get the account_id of an existing user in the Users section above. This account does NOT have to have any special privileges.",
+    default: "",
+    show: jupyter_api_enabled,
   },
   pii_retention: {
     name: "PII Retention",
