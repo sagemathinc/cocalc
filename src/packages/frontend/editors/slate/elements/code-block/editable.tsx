@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { ReactNode } from "react";
 import {
   CSS,
   React,
@@ -14,7 +15,7 @@ import { useCollapsed, useSelected, useSlate } from "../hooks";
 import { SlateCodeMirror } from "../codemirror";
 import { delay } from "awaiting";
 import { useSetElement } from "../set-element";
-import { Alert, Input } from "antd";
+import { Input } from "antd";
 import infoToMode from "./info-to-mode";
 import ActionButtons from "./action-buttons";
 
@@ -31,19 +32,21 @@ const Element: React.FC<RenderElementProps> = ({
 
   const [showInfo, setShowInfo] = useState<boolean>(selected && collapsed); // show the info input
   const [focusInfo, setFocusInfo] = useState<boolean>(false); // focus the info input
-  const [output, setOutput] = useState<null | object[]>(null);
-  const [error, setError] = useState<string>("");
+  const [output, setOutput] = useState<null | ReactNode>(null);
 
   const setElement = useSetElement(editor, element);
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
 
   return (
     <div {...attributes}>
-      <div contentEditable={false} style={{ textIndent: 0 }}>
+      <div
+        contentEditable={false}
+        style={{ textIndent: 0, marginBottom: "1em" }}
+      >
         <ActionButtons
           value={element.value}
           setOutput={setOutput}
-          setError={setError}
+          kernel="python3"
         />
         <SlateCodeMirror
           options={{ lineWrapping: true }}
@@ -80,8 +83,7 @@ const Element: React.FC<RenderElementProps> = ({
             }}
           />
         )}
-        {output != null && <pre>{JSON.stringify(output)}</pre>}
-        {error && <Alert type="error" description={error} />}
+        {output}
       </div>
       {children}
     </div>

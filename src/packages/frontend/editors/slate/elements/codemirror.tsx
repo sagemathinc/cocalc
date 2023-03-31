@@ -35,7 +35,6 @@ const STYLE = {
   border: "1px solid #dfdfdf",
   borderRadius: "5px",
   lineHeight: "1.21429em",
-  marginBottom: "1em", // consistent with <p> tag.
 } as CSSProperties;
 
 interface Props {

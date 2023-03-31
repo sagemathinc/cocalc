@@ -7,6 +7,7 @@ interface Props {
   project_id?: string;
   directory?: string;
   more_output?;
+  hidePrompt?: boolean;
 }
 
 export default function NBViewerCellOutput({
@@ -14,6 +15,7 @@ export default function NBViewerCellOutput({
   project_id,
   directory,
   more_output,
+  hidePrompt,
 }: Props) {
   const [iCell, setICell] = useState<Map<string, any>>(fromJS(cell));
 
@@ -31,6 +33,7 @@ export default function NBViewerCellOutput({
       project_id={project_id}
       directory={directory}
       more_output={more_output}
+      hidePrompt={hidePrompt}
     />
   );
 }

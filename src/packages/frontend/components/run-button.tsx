@@ -1,11 +1,12 @@
 import { CSSProperties, useEffect, useState } from "react";
-import { Button, Tooltip } from "antd";
+import { Alert, Button, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
 import LRU from "lru-cache";
-const sha1 = require('sha1');
+const sha1 = require("sha1");
 import { isEqual } from "lodash";
+import NBViewerCellOutput from "@cocalc/frontend/jupyter/nbviewer/cell-output";
 
 const cache = new LRU<
   string,
@@ -29,8 +30,7 @@ interface Props {
   style?: CSSProperties;
   input?: string;
   history?: string[];
-  setOutput?: (output: object[] | null) => void;
-  setError?: (err: string) => void;
+  setOutput?: (output) => void;
 }
 
 export default function RunButton({
@@ -38,7 +38,6 @@ export default function RunButton({
   style,
   input,
   history,
-  setError,
   setOutput,
 }: Props) {
   const [running, setRunning] = useState<boolean>(false);
@@ -46,14 +45,17 @@ export default function RunButton({
     if (setOutput == null) return;
     const output = getFromCache({ input, history, kernel });
     if (output != null) {
-      setOutput(output);
+      setOutput(<Output output={output} setOutput={setOutput} />);
     } else {
       setOutput(null);
     }
   }, [input, history, kernel]);
 
+  // TODO: nicer display name for the kernel
   return (
-    <Tooltip title="Run this code in an isolated remote sandbox using a best guess for the Jupyter kernel.">
+    <Tooltip
+      title={`Run this code in an isolated remote sandbox using the ${kernel} Jupyter kernel.`}
+    >
       <Button
         size="small"
         type="text"
@@ -63,7 +65,6 @@ export default function RunButton({
           try {
             setRunning(true);
             setOutput?.(null);
-            setError?.("");
             const resp = await (
               await fetch(join(appBasePath, "api/v2/jupyter/execute"), {
                 method: "POST",
@@ -73,15 +74,21 @@ export default function RunButton({
                 },
               })
             ).json();
-            if (resp.error) {
-              setError?.(resp.error);
+            if (resp.error && setOutput != null) {
+              setOutput(<Output error={resp.error} setOutput={setOutput} />);
             }
             if (resp.output) {
-              setOutput?.(resp.output);
+              if (setOutput != null) {
+                setOutput(
+                  <Output output={resp.output} setOutput={setOutput} />
+                );
+              }
               saveToCache({ input, history, kernel, output: resp.output });
             }
           } catch (err) {
-            setError?.(`${err}`);
+            if (setOutput != null) {
+              setOutput(<Output error={err} setOutput={setOutput} />);
+            }
           } finally {
             setRunning(false);
           }
@@ -91,6 +98,22 @@ export default function RunButton({
         {running ? "Running" : "Run"}
       </Button>
     </Tooltip>
+  );
+}
+
+function Output({ error, output, setOutput }: { error?; output?; setOutput }) {
+  return (
+    <Alert
+      type={error ? "error" : "success"}
+      style={
+        error ? { margin: "5px 0" } : { background: "white", margin: "5px 0" }
+      }
+      description={
+        error ? error : <NBViewerCellOutput cell={{ output }} hidePrompt />
+      }
+      closable
+      onClose={() => setOutput(null)}
+    />
   );
 }
 

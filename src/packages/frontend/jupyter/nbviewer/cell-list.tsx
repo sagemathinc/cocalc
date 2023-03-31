@@ -7,6 +7,7 @@ interface Props {
   fontSize?: number;
   project_id?: string;
   directory?: string;
+  kernel: string;
 }
 
 export default function CellList({
@@ -16,6 +17,7 @@ export default function CellList({
   cmOptions,
   project_id,
   directory,
+  kernel,
 }: Props) {
   const v: JSX.Element[] = [];
   for (const id of cellList) {
@@ -23,6 +25,7 @@ export default function CellList({
     v.push(
       <Cell
         key={id}
+        kernel={kernel}
         cell={cells[id]}
         cmOptions={cmOptions}
         project_id={project_id}
@@ -32,4 +35,3 @@ export default function CellList({
   }
   return <div style={{ fontSize }}>{v}</div>;
 }
-
