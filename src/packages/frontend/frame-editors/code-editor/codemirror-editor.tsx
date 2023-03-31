@@ -273,6 +273,8 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       }
     } else {
       cmRef.current = CodeMirror.fromTextArea(node, options);
+      // We explicitly re-add all the extraKeys due to weird precedence.
+      cmRef.current.addKeyMap(options.extraKeys);
       init_new_codemirror();
     }
 
@@ -413,6 +415,9 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
       if (!isEqual(cm.options[key], opt)) {
         if (opt != null) {
           cm.setOption(key as any, opt);
+          if (key == "extraKeys") {
+            cm.addKeyMap(options.extraKeys);
+          }
         }
       }
     }
