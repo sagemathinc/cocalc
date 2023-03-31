@@ -2,88 +2,63 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 
-export type Model = "gpt-3.5-turbo" | "gpt-4";
-
-export interface ChatGPTLogEntry {
+export interface JupyterLogEntry {
   id: number;
   time: Date;
   input: string;
-  output: string;
-  total_tokens: number;
-  total_time_s: number; // how long the request took in s
-  analytics_cookie?: string; // at least one of analytics_cookie or account_id will be set
+  history?: string[];
+  output: object[];
+  kernel: string;
   account_id?: string;
-  project_id?: string;
-  path?: string;
-  model?: Model;
+  analytics_cookie?: string; // at least one of analytics_cookie or account_id will be set
   tag?: string; // useful for keeping track of where queries come frome when doing analytics later
   expire?: Date;
+  total_time_s: number; // how long the request took in s
 }
 
 Table({
-  name: "openai_chatgpt_log",
+  name: "jupyter_execute_log",
   fields: {
     id: ID,
-    time: { type: "timestamp", desc: "When this particular chat happened." },
+    time: { type: "timestamp", desc: "When this particular execute happened." },
     analytics_cookie: {
       title: "Analytics Cookie",
       type: "string",
       desc: "The analytics cookie for the user that asked this question.",
     },
     account_id: CREATED_BY,
-    system: {
-      title: "System Context",
-      type: "string",
-      desc: "System context prompt.",
-      render: {
-        type: "markdown",
-      },
-    },
     input: {
       title: "Input",
       type: "string",
-      desc: "Input text that was sent to chatgpt",
+      desc: "Input text that was sent to kernel",
       render: {
         type: "markdown",
       },
     },
     output: {
       title: "Output",
-      type: "string",
-      desc: "Output text that was returned from chatgpt",
-      render: {
-        type: "markdown",
-      },
+      type: "array",
+      pg_type: "JSONB[]",
+      desc: "Output from running the computation",
     },
     history: {
       title: "History",
       type: "array",
-      pg_type: "JSONB[]",
-      desc: "Historical context for this thread of discussion",
+      pg_type: "string[]",
+      desc: "The previous inputs",
       render: {
         type: "json",
       },
-    },
-    total_tokens: {
-      type: "integer",
-      desc: "The total number of tokens involved in this API call.",
     },
     total_time_s: {
       type: "number",
       desc: "Total amount of time the API call took in seconds.",
     },
-    project_id: {
-      type: "uuid",
-      render: { type: "project_link" },
-    },
-    path: {
-      type: "string",
-    },
     expire: {
       type: "timestamp",
       desc: "optional future date, when the entry will be deleted",
     },
-    model: {
+    kernel: {
       type: "string",
     },
     tag: {
@@ -92,7 +67,7 @@ Table({
     },
   },
   rules: {
-    desc: "OpenAI ChatGPT Log",
+    desc: "Jupyter Kernel Execution Log",
     primary_key: "id",
     pg_indexes: ["account_id", "analytics_cookie", "time"],
     user_query: {
@@ -101,22 +76,18 @@ Table({
         fields: {
           id: null,
           time: null,
-          account_id: null,
           input: null,
-          system: null,
-          output: null,
-          total_tokens: null,
-          total_time_s: null,
-          project_id: null,
-          path: null,
           history: null,
-          expire: null,
-          model: null,
+          output: null,
+          kernel: null,
+          account_id: null,
           tag: null,
+          expire: null,
+          total_time_s: null,
         },
       },
       set: {
-        // this is so that a user can expire any chats they wanted to have expunged from
+        // this is so that a user can expire any execs they wanted to have expunged from
         // the system completely.
         fields: {
           account_id: "account_id",
@@ -129,9 +100,9 @@ Table({
 });
 
 Table({
-  name: "crm_openai_chatgpt_log",
+  name: "crm_jupyter_execute_log",
   rules: {
-    virtual: "openai_chatgpt_log",
+    virtual: "jupyter_execute_log",
     primary_key: "id",
     user_query: {
       get: {
@@ -140,21 +111,18 @@ Table({
         fields: {
           id: null,
           time: null,
-          account_id: null,
-          analytics_cookie: null,
           input: null,
-          system: null,
-          output: null,
-          total_tokens: null,
-          total_time_s: null,
-          project_id: null,
-          path: null,
           history: null,
-          model: null,
+          output: null,
+          kernel: null,
+          account_id: null,
           tag: null,
+          expire: null,
+          total_time_s: null,
+          analytics_cookie: null,
         },
       },
     },
   },
-  fields: schema.openai_chatgpt_log.fields,
+  fields: schema.jupyter_execute_log.fields,
 });
