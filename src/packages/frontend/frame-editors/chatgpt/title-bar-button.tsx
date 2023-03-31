@@ -19,6 +19,7 @@ import {
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Preset {
   command: string;
@@ -189,7 +190,7 @@ export default function ChatGPT({
               setError("");
             }}
             type="text"
-            style={{ float: "right", color: "#666" }}
+            style={{ float: "right", color: COLORS.GRAY_M }}
           >
             <Icon name="times" />
           </Button>

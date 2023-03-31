@@ -4,6 +4,7 @@ Use ChatGPT to explain what the code in a cell does.
 
 import { CSSProperties, useState } from "react";
 import { Alert, Button, Tooltip } from "antd";
+
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import type { JupyterActions } from "../browser-actions";
 import getChatActions from "@cocalc/frontend/chat/get-actions";

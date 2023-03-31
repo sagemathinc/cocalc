@@ -96,30 +96,32 @@ interface CellListProps {
   chatgpt?;
 }
 
-export const CellList: React.FC<CellListProps> = ({
-  actions,
-  cell_list,
-  cell_toolbar,
-  cells,
-  cm_options,
-  complete,
-  cur_id,
-  directory,
-  font_size,
-  hook_offset,
-  is_focused,
-  md_edit_ids,
-  mode,
-  more_output,
-  name,
-  project_id,
-  scroll,
-  scrollTop,
-  sel_ids,
-  trust,
-  use_windowed_list,
-  chatgpt,
-}: CellListProps) => {
+export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
+  const {
+    actions,
+    cell_list,
+    cell_toolbar,
+    cells,
+    cm_options,
+    complete,
+    cur_id,
+    directory,
+    font_size,
+    hook_offset,
+    is_focused,
+    md_edit_ids,
+    mode,
+    more_output,
+    name,
+    project_id,
+    scroll,
+    scrollTop,
+    sel_ids,
+    trust,
+    use_windowed_list,
+    chatgpt,
+  } = props;
+
   const cell_list_node = useRef<HTMLElement | null>(null);
   const is_mounted = useIsMountedRef();
   const frameActions = useNotebookFrameActions();
@@ -389,6 +391,7 @@ export const CellList: React.FC<CellListProps> = ({
     return (
       <InsertCell
         id={id}
+        chatgpt={chatgpt}
         key={id + "insert" + position}
         position={position}
         actions={actions}

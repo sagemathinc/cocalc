@@ -63,7 +63,9 @@
   +smooth-background-color
 
 .cocalc-jupyter-insert-cell
-  height: 6px
+  margin-top: 5px
+  margin-bottom: 7px
+  height: 8px
   cursor: pointer
   text-align: center
   &:hover
@@ -75,10 +77,15 @@
   display: none
   z-index: 1
   position: relative
-  top: -9px
+  top: -6px
   &:hover
     display: block
 
+.cocalc-jupyter-insert-cell-btn
+  background-color: $COL_FG_BLUE
+  &:hover
+    background-color: $COL_BLUE_DD
+
 .cocalc-jupyter-menu
   .ant-dropdown-trigger:hover
-      background-color: white
+    background-color: white

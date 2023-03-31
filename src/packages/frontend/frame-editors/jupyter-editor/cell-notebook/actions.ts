@@ -299,6 +299,7 @@ export class NotebookFrameActions {
       this.move_cursor(1);
     }
   }
+  h;
 
   public run_selected_cells(v?: string[]): void {
     this.save_input_editor();
@@ -450,6 +451,20 @@ export class NotebookFrameActions {
     const cells = this.jupyter_actions.store.get("cells");
     if (cells == null) return;
     return cells.get(id);
+  }
+
+  getPreviousCodeCellID(id: string, delta = -1): string | undefined {
+    while (true) {
+      const prevID = this.jupyter_actions.store.get_cell_id(delta, id);
+      if (prevID == null) return;
+      const prevCell = this.get_cell_by_id(prevID);
+      if (prevCell == null) return;
+      if (prevCell.get("cell_type", "code") === "code") {
+        return prevID;
+      } else {
+        delta = delta - 1;
+      }
+    }
   }
 
   public switch_md_cell_to_edit(id: string): void {
@@ -710,6 +725,14 @@ export class NotebookFrameActions {
     }
     input1 += input.slice(i);
     this.jupyter_actions.set_cell_input(id, input1);
+  }
+
+  public set_cell_input(id, input) {
+    this.validate({ id });
+    if (this.jupyter_actions.check_edit_protection(id)) {
+      return;
+    }
+    this.jupyter_actions.set_cell_input(id, input);
   }
 
   // delta = -1 (above) or +1 (below)
