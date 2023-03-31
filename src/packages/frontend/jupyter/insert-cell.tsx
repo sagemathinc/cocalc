@@ -19,6 +19,9 @@ import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-edit
 import { COLORS } from "@cocalc/util/theme";
 import { IS_TOUCH } from "../feature";
 import { JupyterActions } from "./browser-actions";
+import { unreachable } from "@cocalc/util/misc";
+
+type TinyButtonType = "code" | "markdown" | "paste" | "chatgpt";
 
 const BTN_HEIGHT = 12;
 
@@ -32,7 +35,7 @@ const TINY_BTN_STYLE: CSS = {
   border: "none",
   backgroundColor: COLORS.FG_BLUE,
   color: "white",
-};
+} as const;
 
 export interface InsertCellProps {
   actions: JupyterActions;
@@ -60,7 +63,7 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
       return <div style={{ height: "6px" }}></div>;
     }
 
-    function insertCell(type: "code" | "markdown"): void {
+    function insertCell(type: "code" | "markdown", content?: string): void {
       const { actions, id } = props;
       if (frameActions.current == null) return;
       frameActions.current.set_cur_id(id);
@@ -71,11 +74,23 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
       switch (type) {
         case "markdown":
           actions.set_cell_type(new_id, "markdown");
-          frameActions.current?.switch_md_cell_to_edit(new_id);
+          frameActions.current.switch_md_cell_to_edit(new_id);
           break;
         case "code":
-          frameActions.current?.switch_code_cell_to_edit(new_id);
+          frameActions.current.switch_code_cell_to_edit(new_id);
+          if (content) {
+            frameActions.current?.set_cell_input(new_id, content);
+          }
           break;
+      }
+    }
+
+    async function pasteCell(): Promise<void> {
+      try {
+        const text = await navigator.clipboard.readText();
+        insertCell("code", text);
+      } catch (err) {
+        console.log("Failed to read clipboard contents: ", err);
       }
     }
 
@@ -87,22 +102,35 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
       insertCell(type);
     }
 
-    function btnClick(e, type: "code" | "markdown") {
+    function btnClick(e, type: TinyButtonType) {
       e.preventDefault();
       e.stopPropagation();
-      insertCell(type);
+      switch (type) {
+        case "code":
+        case "markdown":
+          insertCell(type);
+          break;
+        case "paste":
+          pasteCell();
+          break;
+        case "chatgpt":
+          window.alert("gpt");
+          break;
+        default:
+          unreachable(type);
+      }
     }
 
     function TinyButton(props: {
-      cellType: "code" | "markdown";
+      type: TinyButtonType;
       children?: React.ReactNode;
     }) {
-      const { cellType, children } = props;
+      const { type, children } = props;
       return (
         <Button
           style={TINY_BTN_STYLE}
           size={"small"}
-          onClick={(e) => btnClick(e, cellType)}
+          onClick={(e) => btnClick(e, type)}
         >
           {children}
         </Button>
@@ -113,8 +141,10 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
       return (
         <div className="cocalc-jupyter-insert-cell-controls">
           <Space size="large">
-            <TinyButton cellType="code">+ Code</TinyButton>
-            <TinyButton cellType="markdown">+ Text</TinyButton>
+            <TinyButton type="code">Code</TinyButton>
+            <TinyButton type="markdown">Text</TinyButton>
+            <TinyButton type="paste">Paste</TinyButton>
+            <TinyButton type="chatgpt">ChatGPT</TinyButton>
           </Space>
         </div>
       );

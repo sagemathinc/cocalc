@@ -712,6 +712,14 @@ export class NotebookFrameActions {
     this.jupyter_actions.set_cell_input(id, input1);
   }
 
+  public set_cell_input(id, input) {
+    this.validate({ id });
+    if (this.jupyter_actions.check_edit_protection(id)) {
+      return;
+    }
+    this.jupyter_actions.set_cell_input(id, input);
+  }
+
   // delta = -1 (above) or +1 (below)
   public insert_cell(delta: 1 | -1): string {
     const id = this.jupyter_actions.insert_cell_adjacent(
