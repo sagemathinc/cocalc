@@ -232,19 +232,18 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
       const lang = kernel_info?.get("language") ?? "python";
       const kernel_name = kernel_info?.get("display_name") ?? "Python 3";
       const fa = frameActions.current;
-      // default delta=-1 is fine, because the insert bar is usually *above* the current cell
       const prevCellID = fa.getPreviousCodeCellID(
         id,
         position === "below" ? 0 : -1
       );
       const prevCode =
         prevCellID != null
-          ? `The previous code cell is\n\n\`\`\`\n${fa.get_cell_input(
+          ? `The previous code cell is\n\n\`\`\`${lang}\n${fa.get_cell_input(
               prevCellID
             )}\n\`\`\``
           : "";
 
-      const input = `Create a new code cell for a Jupyter Notebook. Kernel: "${kernel_name}". Programming language: "${lang}". Return the entire code in a single block, enclosed in triple backticks, and comments as code comments. ${prevCode}\n\nThe new cell should do this:\n\n${prompt}`;
+      const input = `Create a new code cell for a Jupyter Notebook. Kernel: "${kernel_name}". Programming language: "${lang}". Return the entire code in a single block. Enclosed this block in triple backticks. Do not tell what the output will be. Add comments as code comments. ${prevCode}\n\nThe new cell should do this:\n\n${prompt}`;
 
       //console.log("input:\n", input);
 
@@ -254,7 +253,7 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
           input,
           project_id,
           path,
-          system: `Return only the code in the language "${lang}" enclosed in triple backticks.`,
+          system: `Return a single block in the language "${lang}" enclosed in triple backticks.`,
           tag: "generate-jupyter-cell",
         });
         //console.log("raw\n", raw);

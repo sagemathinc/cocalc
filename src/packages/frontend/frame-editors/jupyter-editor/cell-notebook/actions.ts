@@ -459,7 +459,7 @@ export class NotebookFrameActions {
       if (prevID == null) return;
       const prevCell = this.get_cell_by_id(prevID);
       if (prevCell == null) return;
-      if (prevCell.get("cell_type") === "code") {
+      if (prevCell.get("cell_type", "code") === "code") {
         return prevID;
       } else {
         delta = delta - 1;

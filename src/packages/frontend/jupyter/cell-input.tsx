@@ -12,12 +12,15 @@ import { useCallback, useEffect, useRef } from "react";
 import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import CopyButton from "@cocalc/frontend/components/copy-button";
+import PasteButton from "@cocalc/frontend/components/paste-button";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 import { filename_extension, startswith } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { CellHiddenPart } from "./cell-hidden-part";
 import CellTiming from "./cell-output-time";
@@ -26,7 +29,6 @@ import { CodeMirror } from "./codemirror-component";
 import { Complete } from "./complete";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
-import CopyButton from "@cocalc/frontend/components/copy-button";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -393,7 +395,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           <div
             style={{
               display: "flex",
-              color: "#666",
+              color: COLORS.GRAY_M,
               fontSize: "11px",
             }}
           >
@@ -411,10 +413,17 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 actions={props.actions}
               />
             )}
-            {input && (
+            {input ? (
               <CopyButton
                 value={props.cell.get("input") ?? ""}
-                style={{ fontSize: "11px", color: "#666" }}
+                style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+              />
+            ) : (
+              <PasteButton
+                style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+                paste={(text) =>
+                  frameActions.current?.set_cell_input(props.id, text)
+                }
               />
             )}
             {input && (
