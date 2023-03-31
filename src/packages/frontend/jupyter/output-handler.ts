@@ -312,7 +312,7 @@ export class OutputHandler extends EventEmitter {
     if (output == null) {
       return;
     }
-    const value = output.getIn([`${output.size - 1}`, "value"]);
+    const value = output?.getIn([`${output.size - 1}`, "value"]);
     if (value != null) {
       let x = value;
       if (this._opts.cell.output) {
