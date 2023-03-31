@@ -128,7 +128,7 @@ export async function jupyter_run_notebook(
   return JSON.stringify(notebook);
 }
 
-async function run_cell(
+export async function run_cell(
   jupyter: JupyterKernel,
   limits: Limits,
   cell
