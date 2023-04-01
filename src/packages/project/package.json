@@ -57,7 +57,7 @@
     "mkdirp": "^1.0.4",
     "node-pty": "^0.10.1",
     "pidusage": "^1.2.0",
-    "portfinder": "^1.0.28",
+    "portfinder": "^1.0.32",
     "prettier": "^2.6.2",
     "primus": "^8.0.6",
     "primus-multiplex": "github:STRML/primus-multiplex",

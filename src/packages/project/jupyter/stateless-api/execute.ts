@@ -8,14 +8,14 @@ import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
+import { reuseInFlight } from "async-await-utils/hof";
 
 const log = getLogger("jupyter:stateless-api:execute");
 
 export default async function jupyterExecute(socket, mesg) {
   let kernel: undefined | Kernel = undefined;
   try {
-    kernel = new Kernel(mesg.kernel);
-    await kernel.init();
+    kernel = await Kernel.getFromPool(mesg.kernel);
 
     if (mesg.history != null && mesg.history.length > 0) {
       // just execute this directly, since we will ignore the output
@@ -35,16 +35,52 @@ export default async function jupyterExecute(socket, mesg) {
   }
 }
 
-class Kernel {
+const POOL_SIZE = 2;
+
+export class Kernel {
+  private static pools: { [kernelName: string]: Kernel[] } = {};
+
   private kernel: JupyterKernel;
   private tempDir: string;
 
-  constructor(private kernelName: string) {}
+  constructor(private kernelName: string) {
+    this.init = reuseInFlight(this.init.bind(this));
+  }
 
-  async init() {
+  private static getPool(kernelName: string) {
+    let pool = Kernel.pools[kernelName];
+    if (pool == null) {
+      pool = Kernel.pools[kernelName] = [];
+    }
+    return pool;
+  }
+
+  static async getFromPool(kernelName: string): Promise<Kernel> {
+    const pool = Kernel.getPool(kernelName);
+    while (pool.length <= POOL_SIZE) {
+      // <= since going to remove one below
+      console.log("pool = ", pool);
+      const k = new Kernel(kernelName);
+      k.init(); // start init'ing, but do NOT block on it.
+      pool.push(k);
+    }
+    const k = pool.shift() as Kernel;
+    // it's ok to call again due to reuseInFlight and that no-op after init.
+    console.log("grabbed k = ", k, "initing it");
+    await k.init();
+    console.log("done");
+    return k;
+  }
+
+  private async init() {
+    if (this.kernel != null) {
+      // already initialized
+      return;
+    }
     this.tempDir = await mkdtemp(join(tmpdir(), "cocalc"));
     const path = `${this.tempDir}/execute.ipynb`;
-    this.kernel = await createKernel({ name: this.kernelName, path });
+    this.kernel = createKernel({ name: this.kernelName, path });
+    await this.kernel.ensure_running();
   }
 
   async execute(code: string) {
@@ -60,6 +96,11 @@ class Kernel {
     const cell = { cell_type: "code", source: [code], outputs: [] };
     await run_cell(this.kernel, limits, cell);
     return cell.outputs;
+  }
+
+  async returnToPool(): Promise<void> {
+    const pool = Kernel.getPool(this.kernelName);
+    pool.push(this);
   }
 
   async close() {

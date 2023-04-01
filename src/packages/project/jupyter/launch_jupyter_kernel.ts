@@ -19,14 +19,12 @@
 
 import * as path from "path";
 import * as fs from "fs";
-import { promisify } from "util";
 import * as uuid from "uuid";
 
 import { findAll } from "kernelspecs";
 import * as jupyter_paths from "jupyter-paths";
 
-import { getPorts as getPortsOrig } from "portfinder";
-const get_ports = promisify(getPortsOrig);
+import getPorts from "./get-ports";
 import { writeFile } from "jsonfile";
 import execa from "execa";
 import mkdirp from "mkdirp";
@@ -74,7 +72,7 @@ async function write_connection_file(port_options?: {
   host?: string;
 }) {
   const options = { ...DEFAULT_PORT_OPTS, ...port_options };
-  const ports = await get_ports(5, options);
+  const ports = await getPorts(5, options);
 
   // Make sure the kernel runtime dir exists before trying to write the kernel file.
   const runtimeDir = jupyter_paths.runtimeDir();

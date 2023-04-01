@@ -561,7 +561,7 @@ export class JupyterKernel
     });
   }
 
-  private async ensure_running(): Promise<void> {
+  async ensure_running(): Promise<void> {
     const dbg = this.dbg("ensure_running");
     dbg(this._state);
     if (this._state == "closed") {
