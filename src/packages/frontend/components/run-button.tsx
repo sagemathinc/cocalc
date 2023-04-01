@@ -54,9 +54,11 @@ export default function RunButton({
   const [running, setRunning] = useState<boolean>(false);
   useEffect(() => {
     if (!jupyterApiEnabled || setOutput == null) return;
-    const output = getFromCache({ input, history, kernel });
+    const { output, cacheKey } = getFromCache({ input, history, kernel });
     if (output != null) {
-      setOutput(<Output output={output} setOutput={setOutput} />);
+      setOutput(
+        <Output output={output} setOutput={setOutput} cacheKey={cacheKey} />
+      );
     } else {
       setOutput(null);
     }
@@ -76,6 +78,7 @@ export default function RunButton({
         style={style}
         disabled={!input?.trim() || running}
         onClick={async () => {
+          const cacheKey = getKey({ input, history, kernel });
           try {
             setRunning(true);
             setOutput?.(null);
@@ -94,19 +97,31 @@ export default function RunButton({
               })
             ).json();
             if (resp.error && setOutput != null) {
-              setOutput(<Output error={resp.error} setOutput={setOutput} />);
+              setOutput(
+                <Output
+                  error={resp.error}
+                  setOutput={setOutput}
+                  cacheKey={cacheKey}
+                />
+              );
             }
             if (resp.output != null) {
               if (setOutput != null) {
                 setOutput(
-                  <Output output={resp.output} setOutput={setOutput} />
+                  <Output
+                    output={resp.output}
+                    setOutput={setOutput}
+                    cacheKey={cacheKey}
+                  />
                 );
               }
               saveToCache({ input, history, kernel, output: resp.output });
             }
           } catch (err) {
             if (setOutput != null) {
-              setOutput(<Output error={err} setOutput={setOutput} />);
+              setOutput(
+                <Output error={err} setOutput={setOutput} cacheKey={cacheKey} />
+              );
             }
           } finally {
             setRunning(false);
@@ -120,7 +135,17 @@ export default function RunButton({
   );
 }
 
-function Output({ error, output, setOutput }: { error?; output?; setOutput }) {
+function Output({
+  error,
+  output,
+  setOutput,
+  cacheKey,
+}: {
+  error?;
+  output?;
+  setOutput;
+  cacheKey: string;
+}) {
   return (
     <Alert
       type={error ? "error" : "success"}
@@ -128,10 +153,15 @@ function Output({ error, output, setOutput }: { error?; output?; setOutput }) {
         error ? { margin: "5px 0" } : { background: "white", margin: "5px 0" }
       }
       description={
-        error ? error : <NBViewerCellOutput cell={{ output }} hidePrompt />
+        error ? `${error}` : <NBViewerCellOutput cell={{ output }} hidePrompt />
       }
       closable
-      onClose={() => setOutput(null)}
+      onClose={() => {
+        setOutput(null);
+        // if you close it you probably don't want it to magically reappear on render
+        // unless you explicitly re-evalute
+        cache.del(cacheKey);
+      }}
     />
   );
 }
@@ -142,18 +172,22 @@ function getKey({ input, history, kernel }) {
   );
 }
 
-function getFromCache({ input, history, kernel }) {
-  const key = getKey({ input, history, kernel });
-  const x = cache.get(key);
+function getFromCache({ input, history, kernel }): {
+  cacheKey: string;
+  output?: object[];
+} {
+  const cacheKey = getKey({ input, history, kernel });
+  const x = cache.get(cacheKey);
   if (x != null) {
     if (
       x.kernel == kernel &&
       x.input == input &&
       isEqual(x.history ?? null, history ?? null)
     ) {
-      return x.output;
+      return { cacheKey, output: x.output };
     }
   }
+  return { cacheKey };
 }
 
 function saveToCache({ input, history, kernel, output }) {
@@ -168,9 +202,11 @@ async function guessKernel({ kernel, input, history }): Promise<string> {
   }
   if (kernelInfo == null) {
     // for now, only get this once since highly unlikely to change during a session.  TODO...
+    const url = join(appBasePath, "api/v2/jupyter/kernels");
+    console.log(url);
     kernelInfo = (
       await (
-        await fetch(join(appBasePath, "api/v2/jupyter/kernels"), {
+        await fetch(url, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -180,7 +216,7 @@ async function guessKernel({ kernel, input, history }): Promise<string> {
     ).kernels;
   }
   if (kernelInfo == null) {
-    throw Error("bug");
+    throw Error("unable to determine the available Jupyter kernels");
   }
   if (kernelInfo.length == 0) {
     throw Error("there are no available kernels");

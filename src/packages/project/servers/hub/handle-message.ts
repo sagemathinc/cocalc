@@ -22,6 +22,7 @@ import { version } from "@cocalc/util/smc-version";
 import writeTextFileToProject from "./write-text-file-to-project";
 import jupyterExecute from "@cocalc/project/jupyter/stateless-api/execute";
 import { get_kernel_data } from "@cocalc/project/jupyter/kernel-data";
+import { project_id } from "@cocalc/project/data";
 
 const winston = getLogger("handle-message-from-hub");
 
@@ -155,7 +156,7 @@ export default async function handleMessage(socket, mesg: Message) {
         // only respond with error if there is an id -- otherwise response has no meaning to hub.
         const err = message.error({
           id: mesg.id,
-          error: `Project does not implement handling mesg with event='${mesg.event}'`,
+          error: `Project ${project_id} does not implement handling mesg with event='${mesg.event}'`,
         });
         socket.write_mesg("json", err);
       } else {
