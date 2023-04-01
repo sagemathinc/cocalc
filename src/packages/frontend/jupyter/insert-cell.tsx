@@ -195,6 +195,10 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
 
     /**
      * extract the code between the first and second occurance of lines starting with backticks
+     * TODO: cocalc has a markdown parser and is very good at parsing markdown (e.g., slate uses that),
+     * and we should obviously using that instead of an adhoc parsing that will break on some inputs,
+     * e.g., triple backticks is not ALWAYS the code delimiter (it can be spaces, it can be more than 3
+     * backticks).
      */
     function extractCode(raw: string): {
       content: string;

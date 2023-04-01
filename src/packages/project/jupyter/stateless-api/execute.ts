@@ -4,13 +4,22 @@ import {
   JupyterKernel,
 } from "@cocalc/project/jupyter/jupyter";
 import { run_cell } from "@cocalc/project/nbgrader/jupyter-run";
+import { mkdtemp, rm } from "fs/promises";
+import { tmpdir } from "os";
+import { join } from "path";
+import getLogger from "@cocalc/backend/logger";
+
+const log = getLogger("jupyter:stateless-api:execute");
 
 export default async function jupyterExecute(socket, mesg) {
   let kernel: undefined | JupyterKernel = undefined;
+  let tempDir = "";
   try {
+    tempDir = await mkdtemp(join(tmpdir(), "cocalc"));
+    const tempPath = `${tempDir}/execute.ipynb`;
     kernel = createKernel({
       name: mesg.kernel,
-      path: `${Math.random()}.ipynb`,
+      path: tempPath,
     });
 
     if (mesg.history != null && mesg.history.length > 0) {
@@ -36,6 +45,20 @@ export default async function jupyterExecute(socket, mesg) {
       jupyter_execute_response({ id: mesg.id, output: cell.outputs })
     );
   } finally {
-    kernel?.close();
+    // Delete all files from temporary directory and delete the directory itself
+    if (kernel) {
+      try {
+        await kernel.close();
+      } catch (err) {
+        log.warn("Error closing kernel", err);
+      }
+    }
+    if (tempDir) {
+      try {
+        await rm(tempDir, { force: true, recursive: true });
+      } catch (err) {
+        log.warn("Error cleaning up temporary directory", err);
+      }
+    }
   }
 }
