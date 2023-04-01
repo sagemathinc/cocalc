@@ -242,7 +242,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       // Make it so editor height matches text.
       const css: any = {
         height: "auto",
-        padding: "5px",
+        padding: "15px",
       };
       setCSS(css);
       cm.refresh();
@@ -279,7 +279,6 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           ...{
             border: `1px solid ${isFocused ? FOCUSED_COLOR : "#cfcfcf"}`,
             borderRadius: "5px",
-            padding: "5px",
           },
           ...style,
         }}
