@@ -31,11 +31,10 @@ const StaticElement: React.FC<RenderElementProps> = ({
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
       <CodeMirrorStatic
         addonAfter={
-          /* TODO: kernel */
           <ActionButtons
             value={element.value}
             setOutput={setOutput}
-            kernel="python3"
+            kernel={element.info}
           />
         }
         value={element.value}

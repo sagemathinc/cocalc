@@ -46,7 +46,7 @@ const Element: React.FC<RenderElementProps> = ({
         <ActionButtons
           value={element.value}
           setOutput={setOutput}
-          kernel="python3"
+          kernel={element.info}
         />
         <SlateCodeMirror
           options={{ lineWrapping: true }}
@@ -134,12 +134,12 @@ const INFO_STYLE = {
   width: "20ex",
   border: "1px solid #ccc",
   borderRadius: "5px",
-  marginTop: "-3em",
   color: "#666",
   background: "#fafafa",
   padding: "0 5px",
   fontSize: "12px",
   height: "20px",
+  marginTop: "-20px",
 } as CSS;
 
 interface InfoProps {

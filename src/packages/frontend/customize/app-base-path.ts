@@ -1,5 +1,4 @@
 function init(): string {
-  console.log("app-base-path init!");
   if (process.env.BASE_PATH) {
     // This is used by next.js.
     return process.env.BASE_PATH;
