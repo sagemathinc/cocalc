@@ -64,6 +64,12 @@ import { reuseInFlight } from "async-await-utils/hof";
 
 import { nbconvert } from "./convert";
 
+// NOTE: we choose to use node-cleanup instead of the much more
+// popular exit-hook, since node-cleanup actually works for us.
+// https://github.com/jtlapp/node-cleanup/issues/16
+// Also exit-hook is hard to import from commonjs.
+import nodeCleanup from "node-cleanup";
+
 import {
   ExecOpts,
   KernelInfo,
@@ -183,6 +189,15 @@ code execution is explicitly requested.  This makes it possible to
 call process_output without spawning an actual kernel.
 */
 const _jupyter_kernels: { [path: string]: JupyterKernel } = {};
+
+// Ensure that the kernels all get killed when the process exits.
+nodeCleanup(() => {
+  for (const kernelPath in _jupyter_kernels) {
+    // We do NOT await the close since that's not really
+    // supported or possible in general.
+    _jupyter_kernels[kernelPath].close();
+  }
+});
 
 export class JupyterKernel
   extends EventEmitter
@@ -492,6 +507,9 @@ export class JupyterKernel
     }
   }
 
+  // This is async, but the process.kill happens *before*
+  // anything async. That's important for cleaning these
+  // up when the project terminates.
   async close(): Promise<void> {
     this.dbg("close")();
     if (this._state === "closed") {

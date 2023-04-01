@@ -55,6 +55,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "mkdirp": "^1.0.4",
+    "node-cleanup": "^2.1.2",
     "node-pty": "^0.10.1",
     "pidusage": "^1.2.0",
     "portfinder": "^1.0.32",
