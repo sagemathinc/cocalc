@@ -50,6 +50,9 @@ interface IFileContext {
   // to force it to reload.  This is, e.g., useful for R markdown, where each time it
   // updates, the images may change, by their names don't, so we have to break the browser cache.
   reloadImages?: boolean;
+
+  // If true, then the jupyter code execution 
+  jupyterApiEnabled?: boolean;
 }
 
 export const FileContext = createContext<IFileContext>({});

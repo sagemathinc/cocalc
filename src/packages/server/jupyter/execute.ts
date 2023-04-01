@@ -10,6 +10,7 @@ import getOneProject from "@cocalc/server/projects/get-one";
 import callProject from "@cocalc/server/projects/call";
 import { jupyter_execute } from "@cocalc/util/message";
 import { isEqual } from "lodash";
+import { isValidUUID } from "@cocalc/util/misc";
 
 const log = getLogger("jupyter:execute");
 
@@ -54,10 +55,21 @@ export async function execute({
   input = input.trim();
   history = history?.map((x) => x.trim());
   const start = Date.now();
+
   // TODO -- await checkForAbuse({ account_id, analytics_cookie });
+
   const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
   if (!jupyter_api_enabled) {
     throw Error("Jupyter API is not enabled on this server.");
+  }
+  if (!jupyter_account_id) {
+    throw Error(
+      "Jupyter API must be configured with an account_id that owns the compute project pool."
+    );
+  }
+
+  if (!isValidUUID(jupyter_account_id)) {
+    throw Error("Jupyter API account_id is not a valid uuid.");
   }
 
   const hash = computeHash((history ?? []).concat([input]));

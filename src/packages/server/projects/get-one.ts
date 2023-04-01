@@ -7,7 +7,7 @@ export default async function getOneProject(
   account_id
 ): Promise<{ project_id: string; title?: string }> {
   if (!isValidUUID(account_id)) {
-    throw Error("user must be authenticated");
+    throw Error("getOneProject -- user must be authenticated");
   }
   const projects = await getProjects({ account_id, limit: 1 });
   if (projects.length >= 1) {

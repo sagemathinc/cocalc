@@ -138,7 +138,7 @@ export default async function getCustomize(): Promise<Customize> {
     // turned on and off independently of whether there is an api key set.
     openaiEnabled: settings.openai_enabled,
 
-    // true if jupyter api is enabled.
+    // if extra Jupyter API functionality for sandboxed ephemeral code execution is available.
     jupyterApiEnabled: settings.jupyter_api_enabled,
 
     // GitHub proxy project

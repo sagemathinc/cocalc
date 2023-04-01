@@ -7,6 +7,7 @@ import LRU from "lru-cache";
 const sha1 = require("sha1");
 import { isEqual } from "lodash";
 import NBViewerCellOutput from "@cocalc/frontend/jupyter/nbviewer/cell-output";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 const cache = new LRU<
   string,
@@ -40,9 +41,10 @@ export default function RunButton({
   history,
   setOutput,
 }: Props) {
+  const { jupyterApiEnabled } = useFileContext();
   const [running, setRunning] = useState<boolean>(false);
   useEffect(() => {
-    if (setOutput == null) return;
+    if (!jupyterApiEnabled || setOutput == null) return;
     const output = getFromCache({ input, history, kernel });
     if (output != null) {
       setOutput(<Output output={output} setOutput={setOutput} />);
@@ -50,6 +52,7 @@ export default function RunButton({
       setOutput(null);
     }
   }, [input, history, kernel]);
+  if (!jupyterApiEnabled) return null;
 
   // TODO: nicer display name for the kernel
   return (
