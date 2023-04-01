@@ -933,12 +933,15 @@ importers:
       '@types/react-dom':
         specifier: ^18.0.10
         version: 18.0.10
+      '@vscode/vscode-languagedetection':
+        specifier: ^1.0.22
+        version: 1.0.22
       antd:
         specifier: ^5.1.6
         version: 5.1.6(react-dom@18.2.0)(react@18.2.0)
       async-await-utils:
         specifier: ^3.0.1
-        version: 3.0.1(supports-color@9.3.1)
+        version: 3.0.1
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
@@ -971,7 +974,7 @@ importers:
         version: 2.1.2
       next:
         specifier: 13.2.3
-        version: 13.2.3(@babel/core@7.18.13)(react-dom@18.2.0)(react@18.2.0)
+        version: 13.2.3(react-dom@18.2.0)(react@18.2.0)
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -5402,6 +5405,11 @@ packages:
     dependencies:
       '@use-gesture/core': 10.2.24
       react: 18.2.0
+    dev: false
+
+  /@vscode/vscode-languagedetection@1.0.22:
+    resolution: {integrity: sha512-rQ/BgMyLuIXSmbA0MSkIPHtcOw14QkeDbAq19sjvaS9LTRr905yij0S8lsyqN5JgOsbtIx7pAcyOxFMzPmqhZQ==}
+    hasBin: true
     dev: false
 
   /@webassemblyjs/ast@1.11.1:
@@ -11650,6 +11658,53 @@ packages:
       - babel-plugin-macros
     dev: false
 
+  /next@13.2.3(react-dom@18.2.0)(react@18.2.0):
+    resolution: {integrity: sha512-nKFJC6upCPN7DWRx4+0S/1PIOT7vNlCT157w9AzbXEgKy6zkiPKEt5YyRUsRZkmpEqBVrGgOqNfwecTociyg+w==}
+    engines: {node: '>=14.6.0'}
+    hasBin: true
+    peerDependencies:
+      '@opentelemetry/api': ^1.4.0
+      fibers: '>= 3.1.0'
+      node-sass: ^6.0.0 || ^7.0.0
+      react: ^18.2.0
+      react-dom: ^18.2.0
+      sass: ^1.3.0
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+      fibers:
+        optional: true
+      node-sass:
+        optional: true
+      sass:
+        optional: true
+    dependencies:
+      '@next/env': 13.2.3
+      '@swc/helpers': 0.4.14
+      caniuse-lite: 1.0.30001458
+      postcss: 8.4.14
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+      styled-jsx: 5.1.1(react@18.2.0)
+    optionalDependencies:
+      '@next/swc-android-arm-eabi': 13.2.3
+      '@next/swc-android-arm64': 13.2.3
+      '@next/swc-darwin-arm64': 13.2.3
+      '@next/swc-darwin-x64': 13.2.3
+      '@next/swc-freebsd-x64': 13.2.3
+      '@next/swc-linux-arm-gnueabihf': 13.2.3
+      '@next/swc-linux-arm64-gnu': 13.2.3
+      '@next/swc-linux-arm64-musl': 13.2.3
+      '@next/swc-linux-x64-gnu': 13.2.3
+      '@next/swc-linux-x64-musl': 13.2.3
+      '@next/swc-win32-arm64-msvc': 13.2.3
+      '@next/swc-win32-ia32-msvc': 13.2.3
+      '@next/swc-win32-x64-msvc': 13.2.3
+    transitivePeerDependencies:
+      - '@babel/core'
+      - babel-plugin-macros
+    dev: false
+
   /nise@1.5.3:
     resolution: {integrity: sha512-Ymbac/94xeIrMf59REBPOv0thr+CJVFMhrlAkW/gjCIE58BGQdCj0x7KRCb3yz+Ga2Rz3E9XXSvUyyxqqhjQAQ==}
     dependencies:
@@ -14878,6 +14933,23 @@ packages:
         optional: true
     dependencies:
       '@babel/core': 7.18.13(supports-color@9.3.1)
+      client-only: 0.0.1
+      react: 18.2.0
+    dev: false
+
+  /styled-jsx@5.1.1(react@18.2.0):
+    resolution: {integrity: sha512-pW7uC1l4mBZ8ugbiZrcIsiIvVx1UmTfw7UkC3Um2tmfUq9Bhk8IiyEIPl6F8agHgjzku6j0xQEZbfA5uSgSaCw==}
+    engines: {node: '>= 12.0.0'}
+    peerDependencies:
+      '@babel/core': '*'
+      babel-plugin-macros: '*'
+      react: '>= 16.8.0 || 17.x.x || ^18.0.0-0'
+    peerDependenciesMeta:
+      '@babel/core':
+        optional: true
+      babel-plugin-macros:
+        optional: true
+    dependencies:
       client-only: 0.0.1
       react: 18.2.0
     dev: false

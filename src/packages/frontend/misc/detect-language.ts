@@ -1,19 +1,25 @@
 /*
+Detect the language of a snippet of code.  
 
-I copied this from https://github.com/speed-highlight/core/blob/main/src/detect.js
-then modified it (basically changing everything). -- William Stein
-
-Original code is CC0 = public domain licensed.
-
-Also ChatGPT queries like "What are some common C++ keywords that are not used
-in the C programming language?" were helpful.
-
+This implements a quick ad hoc synchronous in browser heuristic *and*
+an API call to the backend to run a more sophisticated tensorflow
+model (same code as vscode) that is "at least 90% correct for 54
+languages".
 */
 
 // The language should define a key in the file-associations map.
 // We automatically check that below on startup.
+// I copied this from https://github.com/speed-highlight/core/blob/main/src/detect.js
+// then modified it (basically changing everything). -- William Stein
+
+// Original code is CC0 = public domain licensed.
+
+// Also ChatGPT queries like "What are some common C++ keywords that are not used
+// in the C programming language?" were helpful.
 
 import { file_associations } from "../file-associations";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
 
 const LANGUAGES = [
   [
@@ -112,4 +118,27 @@ export default function detectLanguage(code: string): string {
   v.sort((a, b) => b[1] - a[1]);
   // console.log(code, v);
   return v[0]?.[0] ?? "txt";
+}
+
+// This calls a sophisticated tensor flow model, see
+// https://github.com/microsoft/vscode-languagedetection
+// and https://github.com/yoeo/guesslang
+
+export async function guesslang(code: string): Promise<string> {
+  return (
+    (
+      await (
+        await fetch(join(appBasePath, "api/v2/guesslang"), {
+          method: "POST",
+          body: JSON.stringify({
+            code,
+            cutoff: 1,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+      ).json()
+    ).result[0] ?? "txt"
+  );
 }
