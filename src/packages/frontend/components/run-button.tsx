@@ -10,7 +10,7 @@ import { isEqual } from "lodash";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import { capitalize, closest_kernel_match } from "@cocalc/util/misc";
-import detectLanguage from "@cocalc/frontend/misc/detect-language";
+import { guesslang } from "@cocalc/frontend/misc/detect-language";
 import { fromJS } from "immutable";
 
 // Important -- we import init-nbviewer , since otherwise NBViewerCellOutput won't
@@ -187,8 +187,8 @@ async function guessKernel({ kernel, input, history }): Promise<string> {
   }
   if (!kernel) {
     // we guess something since nothing was giving. We use the code in the input and history.
-    const lang = detectLanguage((history ?? []).concat([input]).join("\n"));
-    kernel = lang;
+    const guesses = await guesslang((history ?? []).concat([input]).join("\n"));
+    kernel = guesses[0] ?? "python3";
   }
   for (const { name, display_name, language } of kernelInfo) {
     if (name == kernel) {
@@ -204,5 +204,6 @@ async function guessKernel({ kernel, input, history }): Promise<string> {
   }
   // No really clear match, so use closest_kernel_match.
   // TODO: it's silly converting to immutable.js constantly...
-  return closest_kernel_match(kernel, fromJS(kernelInfo)).get("name");
+  const result = closest_kernel_match(kernel, fromJS(kernelInfo)).get("name");
+  return result;
 }

@@ -1,9 +1,9 @@
 /*
-Detect the language of a snippet of code.  
+Detect the language of some code.
 
 This implements a quick ad hoc synchronous in browser heuristic *and*
-an API call to the backend to run a more sophisticated tensorflow
-model (same code as vscode) that is "at least 90% correct for 54
+an API call to the backend to run a sophisticated tensorflow
+model (same code as vscode) that is "over 93% correct for 54
 languages".
 */
 
@@ -116,29 +116,29 @@ export default function detectLanguage(code: string): string {
     }
   }
   v.sort((a, b) => b[1] - a[1]);
-  // console.log(code, v);
   return v[0]?.[0] ?? "txt";
 }
 
 // This calls a sophisticated tensor flow model, see
 // https://github.com/microsoft/vscode-languagedetection
 // and https://github.com/yoeo/guesslang
-
-export async function guesslang(code: string): Promise<string> {
+// It returns up to cutoff guesses, with the first one the most likely.
+export async function guesslang(
+  code: string,
+  cutoff: number = 1
+): Promise<string[]> {
   return (
-    (
-      await (
-        await fetch(join(appBasePath, "api/v2/guesslang"), {
-          method: "POST",
-          body: JSON.stringify({
-            code,
-            cutoff: 1,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-      ).json()
-    ).result[0] ?? "txt"
-  );
+    await (
+      await fetch(join(appBasePath, "api/v2/guesslang"), {
+        method: "POST",
+        body: JSON.stringify({
+          code,
+          cutoff,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+    ).json()
+  ).result;
 }
