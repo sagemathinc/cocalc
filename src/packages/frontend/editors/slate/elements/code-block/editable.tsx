@@ -7,6 +7,7 @@ import { ReactNode } from "react";
 import {
   CSS,
   React,
+  useRef,
   useState,
   useIsMountedRef,
 } from "@cocalc/frontend/app-framework";
@@ -34,6 +35,8 @@ const Element: React.FC<RenderElementProps> = ({
   const [focusInfo, setFocusInfo] = useState<boolean>(false); // focus the info input
   const [output, setOutput] = useState<null | ReactNode>(null);
 
+  const runRef = useRef(null);
+
   const setElement = useSetElement(editor, element);
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
 
@@ -47,6 +50,7 @@ const Element: React.FC<RenderElementProps> = ({
           value={element.value}
           setOutput={setOutput}
           kernel={element.info}
+          runRef={runRef}
         />
         <SlateCodeMirror
           options={{ lineWrapping: true }}
@@ -66,6 +70,10 @@ const Element: React.FC<RenderElementProps> = ({
             if (!focusInfo) {
               setShowInfo(false);
             }
+          }}
+          onShiftEnter={() => {
+            console.log("shift enter");
+            runRef.current?.();
           }}
         />
         {element.fence && (showInfo || focusInfo) && (
@@ -133,7 +141,7 @@ const INFO_STYLE = {
   position: "relative",
   width: "20ex",
   border: "1px solid #ccc",
-  borderRadius: "5px",
+  borderRadius: "8px",
   color: "#666",
   background: "#fafafa",
   padding: "0 5px",

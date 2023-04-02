@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, MutableRefObject, useEffect, useState } from "react";
 import { Alert, Button, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -35,12 +35,15 @@ const cache = new LRU<
   },
 });
 
+export type RunFunction = () => Promise<void>;
+
 interface Props {
   kernel: string;
   style?: CSSProperties;
   input?: string;
   history?: string[];
   setOutput?: (output) => void;
+  runRef?: MutableRefObject<RunFunction | null>;
 }
 
 export default function RunButton({
@@ -49,6 +52,7 @@ export default function RunButton({
   input,
   history,
   setOutput,
+  runRef,
 }: Props) {
   const { jupyterApiEnabled } = useFileContext();
   const [running, setRunning] = useState<boolean>(false);
@@ -65,6 +69,60 @@ export default function RunButton({
   }, [input, history, kernel]);
   if (!jupyterApiEnabled) return null;
 
+  const run = async () => {
+    const cacheKey = getKey({ input, history, kernel });
+    try {
+      setRunning(true);
+      setOutput?.(null);
+      const trueKernel = await guessKernel({ kernel, input, history });
+      const resp = await (
+        await fetch(join(appBasePath, "api/v2/jupyter/execute"), {
+          method: "POST",
+          body: JSON.stringify({
+            input,
+            history,
+            kernel: trueKernel,
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+      ).json();
+      if (resp.error && setOutput != null) {
+        setOutput(
+          <Output
+            error={resp.error}
+            setOutput={setOutput}
+            cacheKey={cacheKey}
+          />
+        );
+      }
+      if (resp.output != null) {
+        if (setOutput != null) {
+          setOutput(
+            <Output
+              output={resp.output}
+              setOutput={setOutput}
+              cacheKey={cacheKey}
+            />
+          );
+        }
+        saveToCache({ input, history, kernel, output: resp.output });
+      }
+    } catch (err) {
+      if (setOutput != null) {
+        setOutput(
+          <Output error={err} setOutput={setOutput} cacheKey={cacheKey} />
+        );
+      }
+    } finally {
+      setRunning(false);
+    }
+  };
+  if (runRef != null) {
+    runRef.current = run;
+  }
+
   // TODO: nicer display name for the kernel
   return (
     <Tooltip
@@ -77,56 +135,7 @@ export default function RunButton({
         type="text"
         style={style}
         disabled={!input?.trim() || running}
-        onClick={async () => {
-          const cacheKey = getKey({ input, history, kernel });
-          try {
-            setRunning(true);
-            setOutput?.(null);
-            const trueKernel = await guessKernel({ kernel, input, history });
-            const resp = await (
-              await fetch(join(appBasePath, "api/v2/jupyter/execute"), {
-                method: "POST",
-                body: JSON.stringify({
-                  input,
-                  history,
-                  kernel: trueKernel,
-                }),
-                headers: {
-                  "Content-Type": "application/json",
-                },
-              })
-            ).json();
-            if (resp.error && setOutput != null) {
-              setOutput(
-                <Output
-                  error={resp.error}
-                  setOutput={setOutput}
-                  cacheKey={cacheKey}
-                />
-              );
-            }
-            if (resp.output != null) {
-              if (setOutput != null) {
-                setOutput(
-                  <Output
-                    output={resp.output}
-                    setOutput={setOutput}
-                    cacheKey={cacheKey}
-                  />
-                );
-              }
-              saveToCache({ input, history, kernel, output: resp.output });
-            }
-          } catch (err) {
-            if (setOutput != null) {
-              setOutput(
-                <Output error={err} setOutput={setOutput} cacheKey={cacheKey} />
-              );
-            }
-          } finally {
-            setRunning(false);
-          }
-        }}
+        onClick={run}
       >
         <Icon name={running ? "cocalc-ring" : "play"} spin={running} />
         {running ? "Running" : "Run"}
@@ -160,7 +169,7 @@ function Output({
         setOutput(null);
         // if you close it you probably don't want it to magically reappear on render
         // unless you explicitly re-evalute
-        cache.del(cacheKey);
+        cache.delete(cacheKey);
       }}
     />
   );
@@ -203,7 +212,6 @@ async function guessKernel({ kernel, input, history }): Promise<string> {
   if (kernelInfo == null) {
     // for now, only get this once since highly unlikely to change during a session.  TODO...
     const url = join(appBasePath, "api/v2/jupyter/kernels");
-    console.log(url);
     kernelInfo = (
       await (
         await fetch(url, {

@@ -33,7 +33,7 @@ const STYLE = {
   overflow: "auto",
   overflowX: "hidden",
   border: "1px solid #dfdfdf",
-  borderRadius: "5px",
+  borderRadius: "8px",
   lineHeight: "1.21429em",
 } as CSSProperties;
 
@@ -278,7 +278,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           ...STYLE,
           ...{
             border: `1px solid ${isFocused ? FOCUSED_COLOR : "#cfcfcf"}`,
-            borderRadius: "5px",
+            borderRadius: "8px",
           },
           ...style,
         }}
