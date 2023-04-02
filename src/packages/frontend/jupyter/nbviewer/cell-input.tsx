@@ -39,7 +39,7 @@ export default function CellInput({
             options={cmOptions}
             addonAfter={
               <ActionButtons
-                value={value}
+                input={value}
                 setOutput={setOutput}
                 kernel={kernel}
               />

@@ -36,14 +36,15 @@ const cache = new LRU<
 });
 
 export type RunFunction = () => Promise<void>;
+type RunRef = MutableRefObject<RunFunction | null>;
 
-interface Props {
+export interface Props {
   kernel: string;
   style?: CSSProperties;
   input?: string;
   history?: string[];
   setOutput?: (output) => void;
-  runRef?: MutableRefObject<RunFunction | null>;
+  runRef?: RunRef;
 }
 
 export default function RunButton({

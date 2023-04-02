@@ -1,9 +1,18 @@
 import CopyButton from "@cocalc/frontend/components/copy-button";
-import RunButton from "@cocalc/frontend/components/run-button";
+import RunButton, {
+  RunFunction,
+  Props as RunButtonProps,
+} from "@cocalc/frontend/components/run-button";
+export type { RunFunction };
 
 const buttonStyle = { color: "#666", fontSize: "9pt" } as const;
 
-export default function ActionButtons({ value, setOutput, kernel, runRef }) {
+export default function ActionButtons({
+  input,
+  setOutput,
+  kernel,
+  runRef,
+}: RunButtonProps) {
   return (
     <div style={{ position: "relative" }}>
       <div
@@ -18,11 +27,11 @@ export default function ActionButtons({ value, setOutput, kernel, runRef }) {
         <RunButton
           kernel={kernel}
           style={buttonStyle}
-          input={value}
+          input={input}
           setOutput={setOutput}
           runRef={runRef}
         />
-        <CopyButton style={buttonStyle} value={value} />
+        <CopyButton style={buttonStyle} value={input} />
       </div>
     </div>
   );

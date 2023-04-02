@@ -18,7 +18,7 @@ import { delay } from "awaiting";
 import { useSetElement } from "../set-element";
 import { Input } from "antd";
 import infoToMode from "./info-to-mode";
-import ActionButtons from "./action-buttons";
+import ActionButtons, { RunFunction } from "./action-buttons";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -35,7 +35,7 @@ const Element: React.FC<RenderElementProps> = ({
   const [focusInfo, setFocusInfo] = useState<boolean>(false); // focus the info input
   const [output, setOutput] = useState<null | ReactNode>(null);
 
-  const runRef = useRef(null);
+  const runRef = useRef<RunFunction | null>(null);
 
   const setElement = useSetElement(editor, element);
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
@@ -47,7 +47,7 @@ const Element: React.FC<RenderElementProps> = ({
         style={{ textIndent: 0, marginBottom: "1em" }}
       >
         <ActionButtons
-          value={element.value}
+          input={element.value}
           setOutput={setOutput}
           kernel={element.info}
           runRef={runRef}
@@ -72,7 +72,6 @@ const Element: React.FC<RenderElementProps> = ({
             }
           }}
           onShiftEnter={() => {
-            console.log("shift enter");
             runRef.current?.();
           }}
         />

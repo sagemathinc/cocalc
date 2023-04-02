@@ -32,7 +32,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
       <CodeMirrorStatic
         addonAfter={
           <ActionButtons
-            value={element.value}
+            input={element.value}
             setOutput={setOutput}
             kernel={element.info}
           />
