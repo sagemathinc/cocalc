@@ -181,6 +181,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       if (node == null) return;
 
       const cm = (cmRef.current = fromTextArea(node, options));
+
       // The Up/Down/Left/Right key handlers are potentially already
       // taken by a keymap, so we have to add them explicitly using
       // addKeyMap, so that they have top precedence. Otherwise, somewhat
