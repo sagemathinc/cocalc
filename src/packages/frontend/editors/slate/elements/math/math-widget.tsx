@@ -47,7 +47,8 @@ export const SlateMath: React.FC<Props> = React.memo(
         <SlateCodeMirror
           style={{
             border: "1px solid lightgrey",
-            boxShadow: "4px 4px 3px #aaa",
+            margin: "15px 0 15px 15px",
+            boxShadow: "6px 6px 4px #aaa",
           }}
           value={value}
           onChange={(value) => {
@@ -97,8 +98,8 @@ export const SlateMath: React.FC<Props> = React.memo(
 
     return (
       <span contentEditable={false} style={{ cursor: "pointer" }}>
-        {!isInline && renderEditMode()}
         {renderLaTeX()}
+        {!isInline && renderEditMode()}
         {isInline && renderEditMode()}
       </span>
     );

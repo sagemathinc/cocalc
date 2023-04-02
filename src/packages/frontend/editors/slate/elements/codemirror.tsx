@@ -15,7 +15,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import { fromTextArea, Editor, commands } from "codemirror";
-import { FOCUSED_COLOR } from "../util";
+import { FOCUSED_COLOR, SELECTED_COLOR } from "../util";
 import { useFocused, useSelected, useSlate, useCollapsed } from "./hooks";
 import {
   moveCursorToBeginningOfBlock,
@@ -156,11 +156,6 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           cm.refresh();
           cm.focus();
           ReactEditor.blur(editor);
-        } else {
-          setCSS({
-            backgroundColor: "#1990ff",
-            color: "white",
-          });
         }
       },
       [collapsed, options.theme]
@@ -276,7 +271,9 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         style={{
           ...STYLE,
           ...{
-            border: `1px solid ${isFocused ? FOCUSED_COLOR : "#cfcfcf"}`,
+            border: `1px solid ${
+              selected ? SELECTED_COLOR : isFocused ? FOCUSED_COLOR : "#cfcfcf"
+            }`,
             borderRadius: "8px",
           },
           ...style,

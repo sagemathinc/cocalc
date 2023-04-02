@@ -205,6 +205,8 @@ export function padCenter(s: string, n: number): string {
 //export const FOCUSED_COLOR = "#2196f3";
 export const FOCUSED_COLOR = "rgb(126,182,226)";
 
+export const SELECTED_COLOR = "#1990ff";
+
 export function string_to_style(style: string): any {
   const obj: any = {};
   for (const x of style.split(";")) {
