@@ -70,7 +70,7 @@ export default function RunButton({
   }, [input, history, kernel]);
   if (!jupyterApiEnabled) return null;
 
-  const run = async () => {
+  const run = async ({ noCache }: { noCache?: boolean } = {}) => {
     const cacheKey = getKey({ input, history, kernel });
     try {
       setRunning(true);
@@ -83,6 +83,7 @@ export default function RunButton({
             input,
             history,
             kernel: trueKernel,
+            noCache,
           }),
           headers: {
             "Content-Type": "application/json",
@@ -127,9 +128,16 @@ export default function RunButton({
   // TODO: nicer display name for the kernel
   return (
     <Tooltip
-      title={`Run this code in an isolated remote sandbox using a ${capitalize(
-        kernel
-      )} Jupyter kernel.`}
+      title={
+        <>
+          Run this code in an isolated remote sandbox using a{" "}
+          {capitalize(kernel)} Jupyter kernel.
+          <Button size="small" onClick={() => run({ noCache: true })}>
+            <Icon name={running ? "cocalc-ring" : "play"} spin={running} />
+            Recompute
+          </Button>
+        </>
+      }
     >
       <Button
         size="small"

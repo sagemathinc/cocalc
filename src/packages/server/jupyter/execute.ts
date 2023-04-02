@@ -33,6 +33,7 @@ interface Options {
   account_id?: string;
   analytics_cookie?: string;
   tag?: string;
+  noCache?: boolean;
 }
 
 export async function execute({
@@ -42,6 +43,7 @@ export async function execute({
   analytics_cookie,
   history,
   tag,
+  noCache,
 }: Options): Promise<object[]> {
   log.debug("execute", {
     input,
@@ -74,13 +76,15 @@ export async function execute({
 
   const hash = computeHash((history ?? []).concat([input]));
 
-  // Check if we already have this execution history in the database:
-  const savedOutput = await getFromDatabase({ input, history, kernel, hash });
-  if (savedOutput != null) {
-    log.debug("got saved output");
-    return savedOutput;
+  if (!noCache) {
+    // Check if we already have this execution history in the database:
+    const savedOutput = await getFromDatabase({ input, history, kernel, hash });
+    if (savedOutput != null) {
+      log.debug("got saved output");
+      return savedOutput;
+    }
+    log.debug("have to compute output");
   }
-  log.debug("have to compute output");
 
   // Execute the code.
   const { project_id } = await getOneProject(jupyter_account_id);

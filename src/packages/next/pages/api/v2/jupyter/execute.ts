@@ -28,7 +28,9 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req) {
-  const { input, kernel, history, tag } = getParams(req, { allowGet: true });
+  const { input, kernel, history, tag, noCache } = getParams(req, {
+    allowGet: true,
+  });
   const account_id = await getAccountId(req);
   const analytics_cookie = req.cookies[analytics_cookie_name];
   return {
@@ -39,6 +41,7 @@ async function doIt(req) {
       history,
       kernel,
       tag,
+      noCache,
     }),
   };
 }
