@@ -14,7 +14,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 
 const log = getLogger("jupyter:execute");
 
-const EXPIRE = "1 month";
+const EXPIRE = "3 months";
 
 async function getConfig() {
   log.debug("get config");
@@ -119,14 +119,17 @@ async function getFromDatabase({
   const pool = getPool();
   try {
     const { rows } = await pool.query(
-      `SELECT input, history, output FROM jupyter_execute_log WHERE kernel=$1 AND hash=$2`,
+      `SELECT id, input, history, output FROM jupyter_execute_log WHERE kernel=$1 AND hash=$2`,
       [kernel, hash]
     );
-    log.debug({ input, history, hash, kernel });
-    log.debug("rows = ", rows);
+    //log.debug({ id, input, history, hash, kernel });
+    // log.debug("rows = ", rows);
     for (const row of rows) {
       // have to check for actual equality to make sure it's not just a hash collision
       if (row.input == input && isEqual(row.history ?? null, history ?? null)) {
+        // update the expire timestamp, thus extending the life of this active row.
+        // but don't block on this.
+        updateExpire(pool, row.id);
         return row.output;
       }
     }
@@ -134,6 +137,17 @@ async function getFromDatabase({
   } catch (err) {
     log.warn("Failed to query database cache", err);
     return null;
+  }
+}
+
+async function updateExpire(pool, id: number) {
+  try {
+    await pool.query(
+      `UPDATE jupyter_execute_log SET expire=NOW()+INTERVAL '${EXPIRE}' WHERE id=$1`,
+      [id]
+    );
+  } catch (err) {
+    log.warn("error updating expire ", id, err);
   }
 }
 
