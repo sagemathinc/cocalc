@@ -175,10 +175,11 @@ interface KernelParams {
   name: string;
   path: string; // filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
   actions?: any; // optional redux actions object
+  ulimit?: string;
 }
 
 export function kernel(opts: KernelParams): JupyterKernel {
-  return new JupyterKernel(opts.name, opts.path, opts.actions);
+  return new JupyterKernel(opts.name, opts.path, opts.actions, opts.ulimit);
 }
 
 /*
@@ -212,6 +213,7 @@ export class JupyterKernel
   public readonly identity: string = uuid();
 
   private stderr: string = "";
+  private ulimit?: string;
   private _path: string;
   private _actions?: JupyterActions;
   private _state: string;
@@ -223,9 +225,10 @@ export class JupyterKernel
   public channel?: Channels;
   private has_ensured_running: boolean = false;
 
-  constructor(name, _path, _actions) {
+  constructor(name, _path, _actions, ulimit) {
     super();
 
+    this.ulimit = ulimit;
     this.spawn = reuseInFlight(this.spawn.bind(this));
 
     this.kernel_info = reuseInFlight(this.kernel_info.bind(this));
@@ -294,6 +297,7 @@ export class JupyterKernel
     const opts: LaunchJupyterOpts = {
       detached: true,
       env: spawn_opts?.env ?? {},
+      ulimit: this.ulimit,
     };
 
     if (this.name.indexOf("sage") == 0) {

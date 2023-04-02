@@ -52,7 +52,16 @@ export default class Kernel {
     }
     this.tempDir = await mkdtemp(join(tmpdir(), "cocalc"));
     const path = `${this.tempDir}/execute.ipynb`;
-    this.kernel = createKernel({ name: this.kernelName, path });
+    // TODO: make this configurable as part of the API call
+    //   -n = max open files
+    //   -f = max bytes allowed to write to disk (below is 10MB)
+    //   -t = max cputime is 30 seconds
+    //   -v = max virtual memory usage to 2GB
+    this.kernel = createKernel({
+      name: this.kernelName,
+      path,
+      ulimit: `-n 100 -f 10485760 -t 30 -v 2000000`,
+    });
     await this.kernel.ensure_running();
   }
 
@@ -89,4 +98,3 @@ export default class Kernel {
     }
   }
 }
-
