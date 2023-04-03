@@ -7,9 +7,10 @@
 // everything else is defined via a more general framework
 
 import { StrategyConf } from "@cocalc/server/auth/sso/types";
-import { Strategy as GoogleStrategy } from "@passport-next/passport-google-oauth2";
+import { Strategy as GoogleStrategyOld } from "@passport-next/passport-google-oauth2";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import { Strategy as GithubStrategy } from "passport-github2";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as TwitterStrategy } from "passport-twitter";
 
 // docs for getting these for your app
@@ -21,6 +22,14 @@ import { Strategy as TwitterStrategy } from "passport-twitter";
 // require 'c'; db()
 // db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
 
+// In 2023, we got emails about a deprecated login method, which is very puzzling
+// In any case, the "passport-next" variant is a unmaintaned fork of a fork of the original.
+// Here, we switch back to the original, still maintained, library.
+// However, both are 4 years old and didn't get any updates.
+// Setting this env-variable is meant as a quick fix in case things go terribly wrong.
+// If you read this well past that time, feel free to remove the passport-next variant.
+const useNewerGoogle = process.env.COCALC_USE_OLD_GOOGLE_SSO !== "true";
+
 // Scope:
 // Enabling "profile" below I think required that I explicitly go to Google Developer Console for the project,
 // then select API&Auth, then API's, then Google+, then explicitly enable it.  Otherwise, stuff just mysteriously
@@ -29,8 +38,12 @@ import { Strategy as TwitterStrategy } from "passport-twitter";
 // library hid the errors (**WHY**!!?).
 export const GoogleStrategyConf: StrategyConf = {
   name: "google",
-  type: "@passport-next/passport-google-oauth2" as any,
-  PassportStrategyConstructor: GoogleStrategy,
+  type: (useNewerGoogle
+    ? "passport-google-oauth20"
+    : "@passport-next/passport-google-oauth2") as any,
+  PassportStrategyConstructor: useNewerGoogle
+    ? GoogleStrategy
+    : GoogleStrategyOld,
   auth_opts: { scope: "openid email profile" },
   login_info: {
     id: (profile) => profile.id,
