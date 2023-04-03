@@ -15,7 +15,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import { fromTextArea, Editor, commands } from "codemirror";
-import { FOCUSED_COLOR } from "../util";
+import { FOCUSED_COLOR, SELECTED_COLOR } from "../util";
 import { useFocused, useSelected, useSlate, useCollapsed } from "./hooks";
 import {
   moveCursorToBeginningOfBlock,
@@ -33,9 +33,8 @@ const STYLE = {
   overflow: "auto",
   overflowX: "hidden",
   border: "1px solid #dfdfdf",
-  borderRadius: "3px",
+  borderRadius: "8px",
   lineHeight: "1.21429em",
-  marginBottom: "1em", // consistent with <p> tag.
 } as CSSProperties;
 
 interface Props {
@@ -99,7 +98,6 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         lineWrapping: editor_settings.get("line_wrapping", true),
         lineNumbers: false, // editor_settings.get("line_numbers", false), // disabled since breaks when scaling in whiteboard, etc. and is kind of weird in edit mode only.
         matchBrackets: editor_settings.get("match_brackets", false),
-        styleActiveLine: editor_settings.get("style_active_line", true),
         theme: editor_settings.get("theme", "default"),
         keyMap:
           bindings == null || bindings == "standard" ? "default" : bindings,
@@ -158,11 +156,6 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           cm.refresh();
           cm.focus();
           ReactEditor.blur(editor);
-        } else {
-          setCSS({
-            backgroundColor: "#1990ff",
-            color: "white",
-          });
         }
       },
       [collapsed, options.theme]
@@ -188,6 +181,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       if (node == null) return;
 
       const cm = (cmRef.current = fromTextArea(node, options));
+
       // The Up/Down/Left/Right key handlers are potentially already
       // taken by a keymap, so we have to add them explicitly using
       // addKeyMap, so that they have top precedence. Otherwise, somewhat
@@ -243,7 +237,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       // Make it so editor height matches text.
       const css: any = {
         height: "auto",
-        padding: "5px",
+        padding: "15px",
       };
       setCSS(css);
       cm.refresh();
@@ -278,7 +272,10 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         style={{
           ...STYLE,
           ...{
-            border: `2px solid ${isFocused ? FOCUSED_COLOR : "#cfcfcf"}`,
+            border: `1px solid ${
+              selected ? SELECTED_COLOR : isFocused ? FOCUSED_COLOR : "#cfcfcf"
+            }`,
+            borderRadius: "8px",
           },
           ...style,
         }}

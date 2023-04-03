@@ -20,10 +20,13 @@ const { handle_save_blob_message } = require("@cocalc/project/blobs");
 const client = require("@cocalc/project/client");
 import { version } from "@cocalc/util/smc-version";
 import writeTextFileToProject from "./write-text-file-to-project";
+import jupyterExecute from "@cocalc/project/jupyter/stateless-api/execute";
+import { get_kernel_data } from "@cocalc/project/jupyter/kernel-data";
+import { project_id } from "@cocalc/project/data";
 
 const winston = getLogger("handle-message-from-hub");
 
-export default function handleMessage(socket, mesg: Message) {
+export default async function handleMessage(socket, mesg: Message) {
   winston.debug("received a message", {
     event: mesg.event,
     id: mesg.id,
@@ -58,6 +61,40 @@ export default function handleMessage(socket, mesg: Message) {
       // by the hub to api key users, so do NOT remove it!
       // The web browser clients use the websocket api,
       exec_shell_code(socket, mesg);
+      return;
+
+    case "jupyter_execute":
+      try {
+        await jupyterExecute(socket, mesg);
+      } catch (err) {
+        socket.write_mesg(
+          "json",
+          message.error({
+            id: mesg.id,
+            error: `${err}`,
+          })
+        );
+      }
+      return;
+
+    case "jupyter_kernels":
+      try {
+        socket.write_mesg(
+          "json",
+          message.jupyter_kernels({
+            kernels: await get_kernel_data(),
+            id: mesg.id,
+          })
+        );
+      } catch (err) {
+        socket.write_mesg(
+          "json",
+          message.error({
+            id: mesg.id,
+            error: `${err}`,
+          })
+        );
+      }
       return;
 
     case "read_file_from_project":
@@ -119,7 +156,7 @@ export default function handleMessage(socket, mesg: Message) {
         // only respond with error if there is an id -- otherwise response has no meaning to hub.
         const err = message.error({
           id: mesg.id,
-          error: `Project does not implement handling mesg with event='${mesg.event}'`,
+          error: `Project ${project_id} does not implement handling mesg with event='${mesg.event}'`,
         });
         socket.write_mesg("json", err);
       } else {

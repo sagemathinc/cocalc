@@ -15,6 +15,7 @@ import { AccountClient } from "./account";
 import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
 import { OpenAIClient } from "./openai";
+import { JupyterClient } from "./jupyter";
 import { SyncClient } from "./sync";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
@@ -40,6 +41,7 @@ export interface WebappClient extends EventEmitter {
   project_client: ProjectClient;
   admin_client: AdminClient;
   openai_client: OpenAIClient;
+  jupyter_client: JupyterClient;
   sync_client: SyncClient;
   users_client: UsersClient;
   file_client: FileClient;
@@ -115,6 +117,7 @@ class Client extends EventEmitter implements WebappClient {
   project_client: ProjectClient;
   admin_client: AdminClient;
   openai_client: OpenAIClient;
+  jupyter_client: JupyterClient;
   sync_client: SyncClient;
   users_client: UsersClient;
   file_client: FileClient;
@@ -193,6 +196,9 @@ class Client extends EventEmitter implements WebappClient {
     );
     this.openai_client = bind_methods(
       new OpenAIClient(this.async_call.bind(this))
+    );
+    this.jupyter_client = bind_methods(
+      new JupyterClient(this.async_call.bind(this))
     );
     this.users_client = bind_methods(
       new UsersClient(this.call.bind(this), this.async_call.bind(this))

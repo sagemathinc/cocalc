@@ -25,6 +25,7 @@ import { containingPath } from "lib/share/util";
 import getUrlTransform from "lib/share/url-transform";
 import getAnchorTagComponent from "./anchor-tag-component";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
+import useCustomize from "lib/use-customize";
 
 interface Props {
   id: string;
@@ -43,12 +44,14 @@ export default function FileContents({
   const filename = relativePath ? relativePath : path;
   const ext = getExtension(filename);
   const raw = rawURL({ id, path, relativePath });
+  const { jupyterApiEnabled } = useCustomize();
 
   const withFileContext = (x) => {
     const relPath = containingPath(relativePath);
     const value = {
       urlTransform: getUrlTransform({ id, path, relativePath: relPath }),
       AnchorTagComponent: getAnchorTagComponent({ id, relativePath: relPath }),
+      jupyterApiEnabled,
       noSanitize: false, // We **MUST** sanitize, since we users could launch XSS attacks, mess up style, etc.,
       // This will, of course, break things, in which case users will have to open them in their own projects.
     };

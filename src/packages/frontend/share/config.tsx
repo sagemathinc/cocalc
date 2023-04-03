@@ -196,12 +196,17 @@ export default function Configure(props: Props) {
       <Row gutter={GUTTER}>
         <Col span={12}>
           <VisibleMDLG>
-            <div style={{ color: "#444", fontSize: "15pt" }}>Access level</div>
+            <div style={{ color: "#444", fontSize: "15pt" }}>
+              <Icon name="user-secret" style={{ marginRight: "5px" }} /> Access
+              level
+            </div>
           </VisibleMDLG>
         </Col>
         <Col span={12}>
           <VisibleMDLG>
-            <span style={{ fontSize: "15pt" }}>How it works</span>
+            <span style={{ fontSize: "15pt" }}>
+              <Icon name="gears" style={{ marginRight: "5px" }} /> How it works
+            </span>
           </VisibleMDLG>
         </Col>
       </Row>
@@ -283,7 +288,10 @@ export default function Configure(props: Props) {
       {sharingOptionsState != "private" && (
         <Row gutter={GUTTER} style={{ paddingTop: "12px" }}>
           <Col span={12} style={{ color: "#666" }}>
-            <h4>Description{description ? "" : " (optional)"}</h4>
+            <h4>
+              <Icon name="pencil" style={{ marginRight: "5px" }} /> Description
+              {description ? "" : " (optional)"}
+            </h4>
             Use relevant keywords, inspire curiosity by providing just enough
             information to explain what this is about, and keep your description
             to about two lines. Use Markdown and LaTeX.
@@ -300,10 +308,12 @@ export default function Configure(props: Props) {
               }}
             />
             <h4>
-              <A href="https://choosealicense.com/">
-                Choose a license {license ? "" : " (optional)"}
-              </A>
+              <Icon name="key" style={{ marginRight: "5px" }} /> Choose a
+              license {license ? "" : " (optional)"}
             </h4>
+            <div style={{ marginBottom: "5px" }}>
+              <A href="https://choosealicense.com/">About licenses...</A>
+            </div>
             <License
               disabled={parent_is_public}
               license={license}
@@ -312,9 +322,14 @@ export default function Configure(props: Props) {
           </Col>
           <Col span={12} style={{ color: "#666" }}>
             <>
-              <h4>Link</h4>
+              <h4>
+                <A href={url}>
+                  <Icon name="external-link" style={{ marginRight: "5px" }} />{" "}
+                  Link
+                </A>
+              </h4>
               <div style={{ paddingBottom: "5px" }}>
-                Your share will appear <A href={url}>here</A>:
+                <A href={url}>Your share will appear here</A>:
               </div>
               <CopyToClipBoard value={url} />
             </>

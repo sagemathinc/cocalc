@@ -136,7 +136,6 @@ export default function ChatGPTGenerateJupyterNotebook({
         input,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
-        model: "gpt-3.5-turbo",
         tag: "generate-jupyter",
       });
       await writeNotebook(raw);
@@ -327,18 +326,23 @@ export default function ChatGPTGenerateJupyterNotebook({
               disabled={querying}
               options={
                 typeof kernelSpecs == "object"
-                  ? kernelSpecs?.map((spec) => {
-                      return {
-                        display_name: spec.display_name,
-                        label: (
-                          <>
-                            <Logo kernel={spec.name} project_id={project_id} />{" "}
-                            {spec.display_name}
-                          </>
-                        ),
-                        value: spec.name,
-                      };
-                    })
+                  ? kernelSpecs
+                      ?.filter((spec) => !spec?.metadata?.["cocalc"]?.disabled)
+                      .map((spec) => {
+                        return {
+                          display_name: spec.display_name,
+                          label: (
+                            <>
+                              <Logo
+                                kernel={spec.name}
+                                project_id={project_id}
+                              />{" "}
+                              {spec.display_name}
+                            </>
+                          ),
+                          value: spec.name,
+                        };
+                      })
                   : []
               }
               onChange={(value) => {

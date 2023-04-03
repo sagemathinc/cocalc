@@ -104,6 +104,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
   const open_files =
     useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();
   const fullscreen = useTypedRedux("page", "fullscreen");
+  const jupyterApiEnabled = useTypedRedux("customize", "jupyter_api_enabled");
 
   const path = useMemo(() => {
     if (tab_name.startsWith("editor-")) {
@@ -145,6 +146,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           AnchorTagComponent: getAnchorTagComponent({ project_id, path }),
           noSanitize: true, // TODO: temporary for backward compat for now; will make it user-configurable on a per file basis later.
           MathComponent: KaTeXAndMathJaxV2,
+          jupyterApiEnabled,
         };
         return (
           <FileContext.Provider value={value}>

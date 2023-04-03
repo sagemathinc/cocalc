@@ -9,6 +9,7 @@ import { checkForAbuse } from "./abuse";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import type { Model } from "@cocalc/util/db-schema/openai";
+import { delay } from "awaiting";
 
 const log = getLogger("chatgpt");
 
@@ -82,9 +83,11 @@ export async function evaluate({
     }
   }
   messages.push({ role: "user", content: input });
-  const completion = await openai.createChatCompletion({
+  const completion = await callOpenaiAPI({
+    openai,
     model,
     messages,
+    maxAttempts: 3,
   });
   log.debug("response: ", completion.data);
   const output = (
@@ -165,5 +168,35 @@ async function saveResponse({
     );
   } catch (err) {
     log.warn("Failed to save ChatGPT log entry to database:", err);
+  }
+}
+
+// We use this since openai will periodically just fail, but then work
+// if you try again -- it's a distributed network service and the api
+// definitely has a failure rate.  Given an openai api connection, model,
+// list of messages, and number maxAttempts, this will try to make the
+// call up to maxAttempts times, then throw an error if it fails
+// maxAttempts times.
+async function callOpenaiAPI({ openai, model, messages, maxAttempts }) {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      return await openai.createChatCompletion({
+        model,
+        messages,
+      });
+    } catch (err) {
+      const retry = i < maxAttempts - 1;
+      log.debug(
+        "chatgpt api call failed",
+        err,
+        " will ",
+        retry ? "" : "NOT",
+        "retry"
+      );
+      if (!retry) {
+        throw err;
+      }
+      await delay(1000);
+    }
   }
 }

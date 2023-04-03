@@ -92,7 +92,7 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
         return (
           <Badge
             showZero
-            color={count == 0 ? COLORS.GRAY : undefined}
+            color={count == 0 ? COLORS.GRAY : COLORS.GRAY_M}
             count={count}
             className={count > 0 ? "smc-bell-notification" : ""}
           />

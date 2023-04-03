@@ -3,9 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { ReactNode } from "react";
 import {
   CSS,
   React,
+  useRef,
   useState,
   useIsMountedRef,
 } from "@cocalc/frontend/app-framework";
@@ -16,7 +18,7 @@ import { delay } from "awaiting";
 import { useSetElement } from "../set-element";
 import { Input } from "antd";
 import infoToMode from "./info-to-mode";
-import CopyButton from "./copy-button";
+import ActionButtons, { RunFunction } from "./action-buttons";
 
 const Element: React.FC<RenderElementProps> = ({
   attributes,
@@ -31,14 +33,25 @@ const Element: React.FC<RenderElementProps> = ({
 
   const [showInfo, setShowInfo] = useState<boolean>(selected && collapsed); // show the info input
   const [focusInfo, setFocusInfo] = useState<boolean>(false); // focus the info input
+  const [output, setOutput] = useState<null | ReactNode>(null);
+
+  const runRef = useRef<RunFunction | null>(null);
 
   const setElement = useSetElement(editor, element);
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
 
   return (
     <div {...attributes}>
-      <div contentEditable={false} style={{ textIndent: 0 }}>
-        <CopyButton value={element.value} />
+      <div
+        contentEditable={false}
+        style={{ textIndent: 0, marginBottom: "1em" }}
+      >
+        <ActionButtons
+          input={element.value}
+          setOutput={setOutput}
+          kernel={element.info}
+          runRef={runRef}
+        />
         <SlateCodeMirror
           options={{ lineWrapping: true }}
           value={element.value}
@@ -58,6 +71,9 @@ const Element: React.FC<RenderElementProps> = ({
               setShowInfo(false);
             }
           }}
+          onShiftEnter={() => {
+            runRef.current?.();
+          }}
         />
         {element.fence && (showInfo || focusInfo) && (
           <InfoEditor
@@ -74,6 +90,7 @@ const Element: React.FC<RenderElementProps> = ({
             }}
           />
         )}
+        {output}
       </div>
       {children}
     </div>
@@ -123,13 +140,13 @@ const INFO_STYLE = {
   position: "relative",
   width: "20ex",
   border: "1px solid #ccc",
-  borderRadius: "5px",
-  marginTop: "-3em",
+  borderRadius: "8px",
   color: "#666",
   background: "#fafafa",
   padding: "0 5px",
   fontSize: "12px",
   height: "20px",
+  marginTop: "-20px",
 } as CSS;
 
 interface InfoProps {
