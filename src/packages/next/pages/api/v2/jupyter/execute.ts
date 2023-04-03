@@ -12,14 +12,17 @@ The OUTPUT is:
 - a list of messages that describe the output of the last code execution.
 
 */
+
+import type { Request, Response } from "express";
+
 import { execute } from "@cocalc/server/jupyter/execute";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
-import { analytics_cookie_name } from "@cocalc/util/misc";
+import { ensureAnalyticsCookie } from "@cocalc/server/analytics/cookie-fallback";
 
 export default async function handle(req, res) {
   try {
-    const result = await doIt(req);
+    const result = await doIt(req, res);
     res.json({ ...result, success: true });
   } catch (err) {
     res.json({ error: `${err.message}` });
@@ -27,12 +30,12 @@ export default async function handle(req, res) {
   }
 }
 
-async function doIt(req) {
+async function doIt(req: Request, res: Response) {
   const { input, kernel, history, tag, noCache } = getParams(req, {
     allowGet: true,
   });
   const account_id = await getAccountId(req);
-  const analytics_cookie = req.cookies[analytics_cookie_name];
+  const analytics_cookie = ensureAnalyticsCookie(req, res);
   return {
     output: await execute({
       account_id,
