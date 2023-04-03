@@ -1,5 +1,5 @@
 import { CSSProperties, MutableRefObject, useEffect, useState } from "react";
-import { Alert, Button, Tooltip } from "antd";
+import { Alert, Button, Select, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
@@ -12,6 +12,7 @@ import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import { capitalize, closest_kernel_match } from "@cocalc/util/misc";
 import { guesslang } from "@cocalc/frontend/misc/detect-language";
 import { fromJS } from "immutable";
+import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 
 // Important -- we import init-nbviewer , since otherwise NBViewerCellOutput won't
 // be able to render any mime types until the user opens a Jupyter notebook.
@@ -57,6 +58,10 @@ export default function RunButton({
 }: Props) {
   const { jupyterApiEnabled } = useFileContext();
   const [running, setRunning] = useState<boolean>(false);
+
+  // actual kernel to use:
+  const [kernelName, setKernelName] = useState<string | undefined>(undefined);
+
   useEffect(() => {
     if (!jupyterApiEnabled || setOutput == null) return;
     const { output, cacheKey } = getFromCache({ input, history, kernel });
@@ -70,19 +75,33 @@ export default function RunButton({
   }, [input, history, kernel]);
   if (!jupyterApiEnabled) return null;
 
-  const run = async ({ noCache }: { noCache?: boolean } = {}) => {
+  const run = async ({
+    noCache,
+    forceKernel,
+  }: { noCache?: boolean; forceKernel?: string } = {}) => {
     const cacheKey = getKey({ input, history, kernel });
     try {
       setRunning(true);
       setOutput?.(null);
-      const trueKernel = await guessKernel({ kernel, input, history });
+      let kernelToUse;
+      if (forceKernel) {
+        kernelToUse = forceKernel;
+      } else if (kernelName) {
+        kernelToUse = kernelName;
+      } else {
+        kernelToUse = await guessKernel({
+          kernel,
+          code: (history ?? []).concat([input ?? ""]).join("\n"),
+        });
+        setKernelName(kernelToUse);
+      }
       const resp = await (
         await fetch(join(appBasePath, "api/v2/jupyter/execute"), {
           method: "POST",
           body: JSON.stringify({
             input,
             history,
-            kernel: trueKernel,
+            kernel: kernelToUse,
             noCache,
           }),
           headers: {
@@ -125,30 +144,61 @@ export default function RunButton({
     runRef.current = run;
   }
 
-  // TODO: nicer display name for the kernel
+  const disabled = !input?.trim() || running;
   return (
     <Tooltip
+      overlayInnerStyle={{ width: "260px" }}
       title={
-        <>
-          Run this code in an isolated remote sandbox using a{" "}
-          {capitalize(kernel)} Jupyter kernel.
-          <Button size="small" onClick={() => run({ noCache: true })}>
-            <Icon name={running ? "cocalc-ring" : "play"} spin={running} />
-            Recompute
-          </Button>
-        </>
+        <div>
+          Run this code in an isolated sandbox using{" "}
+          {kernelName ? "the " + kernelDisplayName(kernelName) : "a"} Jupyter
+          kernel.
+          <div
+            style={{
+              display: "flex",
+              marginTop: "5px",
+              padding: "5px",
+              borderRadius: "3px",
+
+              background: disabled ? "white" : undefined,
+            }}
+          >
+            <KernelSelector
+              disabled={disabled}
+              onSelect={(name) => {
+                setKernelName(name);
+                run({ forceKernel: name });
+              }}
+              kernel={kernelName}
+            />
+            <Button
+              style={{ marginLeft: "5px" }}
+              disabled={disabled}
+              size="small"
+              onClick={() => run({ noCache: true })}
+            >
+              <Icon name={running ? "cocalc-ring" : "redo"} spin={running} />
+              {running ? "Running" : "Run Again"}
+            </Button>
+          </div>
+          {running && (
+            <ProgressEstimate seconds={30} style={{ width: "100%" }} />
+          )}
+        </div>
       }
     >
-      <Button
-        size="small"
-        type="text"
-        style={style}
-        disabled={!input?.trim() || running}
-        onClick={run}
-      >
-        <Icon name={running ? "cocalc-ring" : "play"} spin={running} />
-        {running ? "Running" : "Run"}
-      </Button>
+      <div style={{ display: "flex" }}>
+        <Button
+          size="small"
+          type="text"
+          style={style}
+          disabled={disabled}
+          onClick={run}
+        >
+          <Icon name={running ? "cocalc-ring" : "play"} spin={running} />
+          Run
+        </Button>
+      </div>
     </Tooltip>
   );
 }
@@ -213,15 +263,12 @@ function saveToCache({ input, history, kernel, output }) {
   cache.set(key, { input, history, kernel, output });
 }
 
-let kernelInfo: null | KernelSpec[] = null;
-async function guessKernel({ kernel, input, history }): Promise<string> {
-  if (kernel == "python") {
-    kernel = "python3";
-  }
-  if (kernelInfo == null) {
+let kernelInfoCache: null | KernelSpec[] = null;
+async function getKernelInfo(): Promise<KernelSpec[]> {
+  if (kernelInfoCache == null) {
     // for now, only get this once since highly unlikely to change during a session.  TODO...
     const url = join(appBasePath, "api/v2/jupyter/kernels");
-    kernelInfo = (
+    kernelInfoCache = (
       await (
         await fetch(url, {
           method: "GET",
@@ -232,15 +279,36 @@ async function guessKernel({ kernel, input, history }): Promise<string> {
       ).json()
     ).kernels;
   }
-  if (kernelInfo == null) {
+  if (kernelInfoCache == null) {
     throw Error("unable to determine the available Jupyter kernels");
   }
+  return kernelInfoCache;
+}
+
+function kernelDisplayName(name: string): string {
+  if (kernelInfoCache == null) {
+    getKernelInfo(); // launch it.
+    return capitalize(name);
+  }
+  for (const k of kernelInfoCache) {
+    if (k.name == name) {
+      return k.display_name;
+    }
+  }
+  return capitalize(name);
+}
+
+async function guessKernel({ kernel, code }): Promise<string> {
+  if (kernel == "python") {
+    kernel = "python3";
+  }
+  const kernelInfo = await getKernelInfo();
   if (kernelInfo.length == 0) {
     throw Error("there are no available kernels");
   }
   if (!kernel) {
     // we guess something since nothing was giving. We use the code in the input and history.
-    const guesses = await guesslang((history ?? []).concat([input]).join("\n"));
+    const guesses = await guesslang(code);
     kernel = guesses[0] ?? "python3";
   }
   for (const { name, display_name, language } of kernelInfo) {
@@ -259,4 +327,56 @@ async function guessKernel({ kernel, input, history }): Promise<string> {
   // TODO: it's silly converting to immutable.js constantly...
   const result = closest_kernel_match(kernel, fromJS(kernelInfo)).get("name");
   return result;
+}
+
+function KernelSelector({
+  //code,
+  kernel,
+  onSelect,
+  disabled,
+}: {
+  //code?: string;
+  kernel?: string;
+  onSelect: (name: string) => void;
+  disabled?: boolean;
+}) {
+  const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null>(null);
+  useEffect(() => {
+    (async () => {
+      setKernelSpecs(await getKernelInfo());
+    })();
+  }, []);
+
+  return (
+    <Select
+      showSearch
+      placeholder="Kernel..."
+      optionFilterProp="children"
+      filterOption={(input, option) =>
+        (option?.display_name ?? "").toLowerCase().includes(input.toLowerCase())
+      }
+      size="small"
+      style={{ width: "125px" }}
+      disabled={disabled}
+      options={
+        kernelSpecs != null
+          ? kernelSpecs
+              ?.filter((spec) => !spec?.metadata?.["cocalc"]?.disabled)
+              .map((spec) => {
+                return {
+                  display_name: spec.display_name,
+                  label: (
+                    <Tooltip title={spec.display_name}>
+                      {spec.display_name}
+                    </Tooltip>
+                  ),
+                  value: spec.name,
+                };
+              })
+          : []
+      }
+      onChange={onSelect}
+      value={kernel}
+    />
+  );
 }

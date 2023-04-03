@@ -54,13 +54,13 @@ export default class Kernel {
     const path = `${this.tempDir}/execute.ipynb`;
     // TODO: make this configurable as part of the API call
     //   -n = max open files
-    //   -f = max bytes allowed to write to disk (below is 10MB)
+    //   -f = max bytes allowed to *write* to disk
     //   -t = max cputime is 30 seconds
-    //   -v = max virtual memory usage to 2GB
+    //   -v = max virtual memory usage to 3GB
     this.kernel = createKernel({
       name: this.kernelName,
       path,
-      ulimit: `-n 100 -f 10485760 -t 30 -v 2000000`,
+      ulimit: `-n 1000 -f 10485760 -t 30 -v 3000000`,
     });
     await this.kernel.ensure_running();
   }
