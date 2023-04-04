@@ -39,10 +39,11 @@ import * as express from "express";
 import express_session from "express-session";
 import * as _ from "lodash";
 import ms from "ms";
-import passport from "passport";
+import passport, { AuthenticateOptions } from "passport";
 import { join as path_join } from "path";
 import { v4 as uuidv4, v4 } from "uuid";
 const safeJsonStringify = require("safe-json-stringify");
+import type { Request, Response, NextFunction } from "express";
 
 import passwordHash, {
   verifyPassword,
@@ -214,7 +215,7 @@ export class PassportManager {
   }
 
   // Define handler for api key cookie setting.
-  private handle_get_api_key(req, res, next) {
+  private handle_get_api_key(req: Request, res: Response, next: NextFunction) {
     if (req.query.get_api_key) {
       logger.debug("handle_get_api_key");
       const cookies = new Cookies(req, res);
@@ -630,8 +631,12 @@ export class PassportManager {
 
   // right now, we only set this for OAauth2 (SAML knows what to do on its own)
   // This does not encode any information for now.
-  private setState(name, type: PassportTypes, auth_opts) {
-    return async (_req, _res, next) => {
+  private setState(
+    name: string,
+    type: PassportTypes,
+    auth_opts: AuthenticateOptions
+  ) {
+    return async (_req: Request, _res: Response, next: NextFunction) => {
       if (isOAuth2(type)) {
         const oauthcache = getOauthCache(name);
         const state = uuidv4();
@@ -643,15 +648,24 @@ export class PassportManager {
     };
   }
 
-  // corresponding check to the above. basically checks if the state data is still available.
-  private checkState(name, type: PassportTypes) {
-    return async (req, _res, next) => {
+  // corresponding check to setState above:
+  // checks if the state data (w/ expiration) is still available.
+  private checkState(name: string, type: PassportTypes) {
+    const W = logger.extend(`checkState:${name}`).warn;
+    return async (req: Request, _res: Response, next: NextFunction) => {
       if (isOAuth2(type)) {
         const oauthcache = getOauthCache(name);
         const state = req.query.state;
+        if (typeof state !== "string") {
+          const msg = `OAuth2 return error: 'state' is not a string: ${state}`;
+          W(msg);
+          return next(new Error(msg));
+        }
         const saved_state = await oauthcache.getAsync(state);
         if (saved_state == null) {
-          throw Error(`Invalid state: ${state}`);
+          const msg = `OAuth2 return error: invalid state: ${state}`;
+          W(msg);
+          return next(new Error(msg));
         }
         await oauthcache.removeAsync(state);
       }
