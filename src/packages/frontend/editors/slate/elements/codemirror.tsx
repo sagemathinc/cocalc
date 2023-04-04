@@ -142,6 +142,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
 
     const focusEditor = useCallback(
       (forceCollapsed?) => {
+        if (editor.getIgnoreSelection()) return;
         const cm = cmRef.current;
         if (cm == null) return;
         if (forceCollapsed || collapsed) {

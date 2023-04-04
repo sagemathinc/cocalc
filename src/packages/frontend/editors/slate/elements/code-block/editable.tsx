@@ -90,7 +90,19 @@ const Element: React.FC<RenderElementProps> = ({
             }}
           />
         )}
-        {output}
+        <div
+          onMouseDown={() => {
+            editor.setIgnoreSelection(true);
+          }}
+          onMouseUp={() => {
+            // Re-enable slate listing for selection changes again in next render loop.
+            setTimeout(() => {
+              editor.setIgnoreSelection(false);
+            }, 0);
+          }}
+        >
+          {output}
+        </div>
       </div>
       {children}
     </div>
