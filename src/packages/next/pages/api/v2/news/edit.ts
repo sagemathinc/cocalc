@@ -14,7 +14,7 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req) {
-  const { id, title, text, time, channel, url } = getParams(req);
+  const { id, title, text, date, channel, url } = getParams(req);
 
   const account_id = await getAccountId(req);
 
@@ -39,7 +39,7 @@ async function doIt(req) {
     title,
     text,
     url,
-    time: time ? new Date(time) : new Date(),
+    date: date ? new Date(date) : new Date(),
     channel,
   });
 }

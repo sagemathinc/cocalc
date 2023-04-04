@@ -126,6 +126,10 @@ const support = {
   chatgpt: { label: "ChatGPT", hide: (customize) => !customize.openaiEnabled },
 } as const;
 
+const news = {
+  index: {},
+};
+
 const PAGES = {
   features,
   software,
@@ -137,6 +141,7 @@ const PAGES = {
   "sign-in": sign_in,
   try: {},
   support,
+  news,
   store: {},
 } as const;
 

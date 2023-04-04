@@ -10,12 +10,12 @@ import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import { Paragraph, Title } from "components/misc";
+import A from "components/misc/A";
+import { MAX_WIDTH } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
-import { NewsType } from "lib/types/news";
+import type { NewsType } from "@cocalc/util/types/news";
 import withCustomize from "lib/with-customize";
-import { MAX_WIDTH } from "lib/config";
-import { useRouter } from "next/router";
 
 interface Props {
   customize: CustomizeType;
@@ -25,7 +25,6 @@ interface Props {
 export default function News(props: Props) {
   const { customize, news } = props;
   const { siteName } = customize;
-  const router = useRouter();
   const profile = useProfile({ noCache: true });
   const isAdmin = profile?.is_admin;
 
@@ -33,20 +32,14 @@ export default function News(props: Props) {
     return (
       <>
         <Title level={1}>{siteName} News</Title>
+        {isAdmin && (
+          <Paragraph>
+            Admin: <A href="/news/admin">Edit/Create News</A>
+          </Paragraph>
+        )}
         <pre style={{ whiteSpace: "pre-wrap" }}>
           {JSON.stringify(news, null, 2)}
         </pre>
-      </>
-    );
-  }
-
-  function edit() {
-    if (!isAdmin) return null;
-    return (
-      <>
-        <Title level={2}>Admin Zone</Title>
-        <Paragraph>add/edit news</Paragraph>
-        edit id: <code>{router.query.id}</code>
       </>
     );
   }
@@ -70,7 +63,6 @@ export default function News(props: Props) {
             }}
           >
             {content()}
-            {edit()}
           </div>
           <Footer />
         </Layout.Content>
