@@ -4,7 +4,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
 import LRU from "lru-cache";
-const sha1 = require("sha1");
 import { isEqual } from "lodash";
 
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
@@ -52,7 +51,7 @@ export interface Props {
 export default function RunButton({
   kernel, // this is just a potentially hint
   style,
-  input,
+  input = "",
   history,
   setOutput,
   runRef,
@@ -234,6 +233,8 @@ function Output({
   setOutput;
   cacheKey: string;
 }) {
+  // todo - not used
+  [setOutput, cacheKey];
   return (
     <Alert
       type={error ? "error" : "success"}
@@ -405,7 +406,7 @@ const getFromDatabaseCache = async (hash: string) => {
   return resp.output ?? null;
 };
 
-async function getKernel({ input, history, kernel }): string {
+async function getKernel({ input, history, kernel }): Promise<string> {
   return await guessKernel({
     kernel,
     code: (history ?? []).concat([input ?? ""]).join("\n"),
