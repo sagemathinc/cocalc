@@ -1,6 +1,6 @@
+import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import editNews from "@cocalc/server/news/edit";
 import getAccountId from "lib/account/get-account";
-import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
@@ -14,6 +14,7 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req) {
+  // date is unix timestamp in seconds
   const { id, title, text, date, channel, url } = getParams(req);
 
   const account_id = await getAccountId(req);
@@ -39,7 +40,7 @@ async function doIt(req) {
     title,
     text,
     url,
-    date: date ? new Date(date) : new Date(),
+    date: date ? new Date(1000 * date) : new Date(),
     channel,
   });
 }

@@ -10,9 +10,9 @@ Table({
   name: "news",
   fields: {
     id: ID,
-    time: {
+    date: {
       type: "timestamp",
-      desc: "time of this message",
+      desc: "date of this news item",
     },
     title: {
       type: "string",
@@ -28,7 +28,7 @@ Table({
     },
     channel: {
       type: "string",
-      desc: 'e.g. "software", "system", "features", …',
+      desc: 'e.g. "announcement", "feature", …', // defined in @cocalc/util/types/news → CHANNELS
     },
     hide: {
       type: "boolean",
@@ -37,20 +37,21 @@ Table({
   },
   rules: {
     primary_key: "id",
-    pg_indexes: ["time"],
+    pg_indexes: ["date"],
 
     anonymous: true, // allow users read access, even if not signed in
     user_query: {
       get: {
-        pg_where: ["time >= NOW() - INTERVAL '3 month'", "hide IS NOT TRUE"],
-        options: [{ order_by: "-time" }],
+        pg_where: ["date >= NOW() - INTERVAL '3 month'", "hide IS NOT TRUE"],
+        options: [{ order_by: "-date" }],
         pg_changefeed: "one-hour",
         throttle_changes: 60000,
         fields: {
           id: null,
-          time: null,
+          date: null,
           text: null,
           title: null,
+          url: null,
           channel: null,
         },
       },

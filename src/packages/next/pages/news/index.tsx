@@ -17,9 +17,13 @@ import useProfile from "lib/hooks/profile";
 import type { NewsType } from "@cocalc/util/types/news";
 import withCustomize from "lib/with-customize";
 
+interface NewsWithFuture extends NewsType {
+  inFuture: boolean;
+}
+
 interface Props {
   customize: CustomizeType;
-  news: NewsType[];
+  news: NewsWithFuture[];
 }
 
 export default function News(props: Props) {
@@ -34,11 +38,15 @@ export default function News(props: Props) {
         <Title level={1}>{siteName} News</Title>
         {isAdmin && (
           <Paragraph>
-            Admin: <A href="/news/admin">Edit/Create News</A>
+            Admin: <A href="/news/edit">Edit/Create News</A>
           </Paragraph>
         )}
         <pre style={{ whiteSpace: "pre-wrap" }}>
-          {JSON.stringify(news, null, 2)}
+          {JSON.stringify(
+            news.filter((n) => !isAdmin && !n.inFuture),
+            null,
+            2
+          )}
         </pre>
       </>
     );
@@ -74,10 +82,10 @@ export default function News(props: Props) {
 export async function getServerSideProps(context) {
   const pool = getPool("long");
   const { rows } = await pool.query(
-    `SELECT id, time, title, text, url
+    `SELECT id, extract(epoch from date) as date, title, text, url, date >= NOW() as inFuture
     FROM news
-    WHERE time >= NOW() - '3 months'::interval
-    ORDER BY time DESC
+    WHERE date >= NOW() - '6 months'::interval
+    ORDER BY date DESC
     LIMIT 100`
   );
 

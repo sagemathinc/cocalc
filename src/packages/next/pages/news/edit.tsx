@@ -16,11 +16,13 @@ import {
   Row,
   Select,
 } from "antd";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 
 import getPool from "@cocalc/database/pool";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { COLORS } from "@cocalc/util/theme";
+import { CHANNELS_DESCRIPTIONS, NewsType } from "@cocalc/util/types/news";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -30,13 +32,14 @@ import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
-import { NewsType } from "lib/types/news";
 import withCustomize from "lib/with-customize";
 
 interface Props {
   customize: CustomizeType;
-  news?: NewsType[];
+  news?: NewsType;
 }
+
+type NewsTypeForm = Omit<NewsType, "date"> & { date: dayjs.Dayjs };
 
 export default function News(props: Props) {
   const { customize, news } = props;
@@ -46,26 +49,39 @@ export default function News(props: Props) {
 
   const [form] = Form.useForm();
 
-  const [data, setData] = useState({
-    title: "",
-    text: "",
-    url: "",
-    channel: "announcement",
-    time: new Date(),
-  });
+  const init: NewsTypeForm =
+    news != null
+      ? { ...news, date: dayjs(news.date) }
+      : {
+          title: "",
+          text: "",
+          url: "",
+          channel: "news",
+          date: dayjs(),
+        };
+
+  const [data, setData] = useState<NewsTypeForm>(init);
+
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
   const [invalid, setInvalid] = useState<boolean>(false);
+  const [saved, setSaved] = useState<number | undefined>();
 
   useEffect(() => {
     form.setFieldsValue(data);
     form.validateFields();
-  }, []);
+  }, [data]);
 
   async function save() {
     setSaving(true);
     try {
-      await apiPost("/news/edit", data);
+      // send data, but convert date field to epoch seconds
+      const raw = { ...data, date: data.date.unix() };
+      const ret = await apiPost("/news/edit", raw);
+      if (ret == null || ret.id == null) {
+        throw Error("Problem saving news item – no id returned.");
+      }
+      setSaved(ret.id);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -74,21 +90,29 @@ export default function News(props: Props) {
     }
   }
 
-  function edit() {
+  function renderSaved() {
+    if (saved == null) return;
     return (
-      <>
-        <Title level={2}>Edit News</Title>
-        <pre>{JSON.stringify(news, null, 2)}</pre>
-      </>
+      <Alert
+        type="success"
+        message={
+          <>
+            Saved id="{saved}". <A href={`/news/${saved}`}>View it here</A>.
+          </>
+        }
+      />
     );
   }
 
-  function create() {
+  function edit() {
     return (
       <>
-        <Title level={2}>Create News</Title>
+        <Title level={2}>
+          News Item ({data.id != null ? `id=${data.id}` : "new"})
+        </Title>
         <Form
           form={form}
+          initialValues={data}
           labelCol={{ span: 4 }}
           wrapperCol={{ span: 20 }}
           onValuesChange={(_, allValues) => setData(allValues)}
@@ -103,8 +127,15 @@ export default function News(props: Props) {
           >
             <Input />
           </Form.Item>
-          <Form.Item label="date" name="Date" rules={[{ required: true }]}>
-            <DatePicker showTime={false} />
+          <Form.Item
+            label="Date"
+            name="date"
+            rules={[{ required: true }]}
+            extra={`Future dates will not be shown until it is time. This date is in the ${
+              form.getFieldValue("date")?.isAfter(dayjs()) ? "future" : "past"
+            }.`}
+          >
+            <DatePicker showTime={true} allowClear={false} />
           </Form.Item>
           <Form.Item
             label="Channel"
@@ -112,14 +143,24 @@ export default function News(props: Props) {
             rules={[{ required: true }]}
           >
             <Select>
-              <Select.Option value="announcement">Announcement</Select.Option>
-              <Select.Option value="news">News</Select.Option>
-              <Select.Option value="platform">Platform</Select.Option>
+              <Select.Option value="news">
+                News ({CHANNELS_DESCRIPTIONS["news"]})
+              </Select.Option>
+              <Select.Option value="announcement">
+                Announcement ({CHANNELS_DESCRIPTIONS["announcement"]})
+              </Select.Option>
+              <Select.Option value="feature">
+                Feature ({CHANNELS_DESCRIPTIONS["feature"]})
+              </Select.Option>
+              <Select.Option value="platform">
+                Platform ({CHANNELS_DESCRIPTIONS["platform"]})
+              </Select.Option>
             </Select>
           </Form.Item>
           <Form.Item
             label="Message"
             name="text"
+            extra={`Markdown is supported. Insert images via ![](url), e.g. shared on ${siteName} itself.`}
             rules={[{ required: true, min: 10 }]}
           >
             <Input.TextArea rows={4} />
@@ -163,17 +204,14 @@ export default function News(props: Props) {
     if (!isAdmin) {
       return <Alert type="error" message="Not authorized" />;
     }
-    return (
-      <>
-        <Title level={2}>Admin Zone</Title>
-        {news != null ? edit() : create()}
-      </>
-    );
+    return <>{saved ? renderSaved() : edit()}</>;
   }
+
+  const title = `${siteName} / News / Admin Zone`;
 
   return (
     <Customize value={customize}>
-      <Head title={`${siteName} News`} />
+      <Head title={title} />
       <Layout>
         <Header />
         <Layout.Content
@@ -189,7 +227,7 @@ export default function News(props: Props) {
               margin: "0 auto",
             }}
           >
-            <Title level={1}>{siteName} – News – Admin Zone</Title>
+            <Title level={1}>{title}</Title>
             <Paragraph>
               back to <A href="/news"> main news page</A>
             </Paragraph>
@@ -209,7 +247,7 @@ export async function getServerSideProps(context) {
     id != null
       ? (
           await pool.query(
-            `SELECT id, time, title, text, url
+            `SELECT id, extract(epoch from date) as date, title, text, url
             FROM news
             WHERE id = $1`,
             [id]

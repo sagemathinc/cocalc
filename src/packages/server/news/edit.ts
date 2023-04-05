@@ -9,8 +9,6 @@ export default async function editNews(opts: NewsType) {
   const { title, text, url, date, channel } = opts;
   L("editNews", { id, title, url, text, date, channel });
 
-  if (1 == 1) return;
-
   const pool = getPool();
 
   if (id) {
