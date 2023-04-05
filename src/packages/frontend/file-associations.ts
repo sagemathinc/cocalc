@@ -80,6 +80,7 @@ const codemirror_associations: { [ext: string]: string } = {
   php: "php",
   pl: "text/x-perl",
   py: "python",
+  python3: "python",
   pyx: "python",
   r: "r",
   rmd: "rmd",
