@@ -1,9 +1,16 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import type { Request, Response } from "express";
+
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import editNews from "@cocalc/server/news/edit";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+export default async function handle(req: Request, res: Response) {
   try {
     const result = await doIt(req);
     res.json({ ...result, success: true });
@@ -13,9 +20,9 @@ export default async function handle(req, res) {
   }
 }
 
-async function doIt(req) {
+async function doIt(req: Request) {
   // date is unix timestamp in seconds
-  const { id, title, text, date, channel, url } = getParams(req);
+  const { id, title, text, date, channel, url, hide } = getParams(req);
 
   const account_id = await getAccountId(req);
 
@@ -42,5 +49,6 @@ async function doIt(req) {
     url,
     date: date ? new Date(1000 * date) : new Date(),
     channel,
+    hide: !!hide,
   });
 }

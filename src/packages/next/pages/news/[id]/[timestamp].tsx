@@ -12,24 +12,24 @@ import Header from "components/landing/header";
 import A from "components/misc/A";
 import { News } from "components/news/news";
 import { NewsWithFuture } from "components/news/types";
-import { useDateStr } from "components/news/useDateStr";
 import { MAX_WIDTH } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import withCustomize from "lib/with-customize";
 import { slugURL } from "@cocalc/util/news";
+import TimeAgo from "timeago-react";
 
 interface Props {
   customize: CustomizeType;
   news: NewsWithFuture;
+  timestamp: number; // unix epoch in seconds
 }
 
 export default function NewsPage(props: Props) {
-  const { customize, news } = props;
+  const { customize, news, timestamp } = props;
   const { siteName, dns } = customize;
   const profile = useProfile({ noCache: true });
   const isAdmin = profile?.is_admin;
-  const dateStr = useDateStr(news);
   const permalink = slugURL(news);
 
   function future() {
@@ -42,7 +42,7 @@ export default function NewsPage(props: Props) {
 
   function content() {
     if (isAdmin || !news.future) {
-      return <News dns={dns} news={news} showEdit={isAdmin} standalone />;
+      return <News dns={dns} news={news} showEdit={isAdmin} historyMode standalone />;
     }
   }
 
@@ -56,8 +56,11 @@ export default function NewsPage(props: Props) {
           <A href="/news">News</A>
         </Breadcrumb.Item>
         <Breadcrumb.Item>
-          <A href={permalink}>
-            {dateStr}: {news.title}
+          <A href={permalink}>#{news.id}</A>
+        </Breadcrumb.Item>
+        <Breadcrumb.Item>
+          <A href={`/news/${news.id}/${timestamp}`}>
+            <TimeAgo datetime={1000 * timestamp} />
           </A>
         </Breadcrumb.Item>
       </Breadcrumb>
@@ -105,7 +108,7 @@ WHERE id = $1`;
 
 export async function getServerSideProps(context) {
   const pool = getPool("long");
-  const { id: idOrig } = context.query;
+  const { id: idOrig, timestamp } = context.query;
 
   // if id is null or does not start with an integer, return { notFound: true }
   if (idOrig == null) return { notFound: true };
@@ -115,14 +118,25 @@ export async function getServerSideProps(context) {
   const id = idOrig.split("-").pop();
   if (!Number.isInteger(Number(id))) return { notFound: true };
 
+  if (timestamp == null) return { notFound: true };
+  if (!Number.isInteger(Number(timestamp))) return { notFound: true };
+
   try {
     const news = (await pool.query(Q, [id])).rows[0];
     if (news == null) {
       throw new Error(`not found`);
     }
+    const historic = news.history[Number(timestamp)];
+    if (historic == null) {
+      throw new Error(`history ${timestamp} not found`);
+    }
+
     return await withCustomize({
       context,
-      props: { news },
+      props: {
+        timestamp: Number(timestamp),
+        news: { ...news, ...historic, date: Number(timestamp) },
+      },
     });
   } catch (err) {
     console.warn(`Error getting news with id=${id}`, err);

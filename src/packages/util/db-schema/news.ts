@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
@@ -33,6 +33,10 @@ Table({
     hide: {
       type: "boolean",
       desc: "optionally, hide/retract this news item",
+    },
+    history: {
+      type: "map",
+      desc: "history of changes to this news item",
     },
   },
   rules: {
