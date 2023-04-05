@@ -3,12 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import { Element } from "slate";
 import { register, SlateElement, RenderElementProps } from "../register";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import infoToMode from "./info-to-mode";
 import ActionButtons from "./action-buttons";
+import { useChange } from "../../use-change";
+import { getHistory } from "./history";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -23,6 +25,13 @@ const StaticElement: React.FC<RenderElementProps> = ({
   element,
 }) => {
   const [output, setOutput] = useState<null | ReactNode>(null);
+
+  const { change, editor } = useChange();
+  const [history, setHistory] = useState<string[]>(getHistory(editor, element));
+  useEffect(() => {
+    setHistory(getHistory(editor, element));
+  }, [change]);
+
   if (element.type != "code_block") {
     throw Error("bug");
   }
@@ -33,6 +42,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
         addonAfter={
           <ActionButtons
             input={element.value}
+            history={history}
             setOutput={setOutput}
             info={element.info}
           />

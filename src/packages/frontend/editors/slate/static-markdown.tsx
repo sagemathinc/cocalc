@@ -9,11 +9,12 @@ A constraint of this component is that it should easily render in the next.js
 application.
 */
 
-import { CSSProperties } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 import "./elements/init-ssr";
 import { getStaticRender } from "./elements/register";
 import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
 import Leaf from "./leaf";
+import { ChangeContext } from "./use-change";
 
 interface Props {
   value: string;
@@ -23,20 +24,27 @@ interface Props {
 
 export default function StaticMarkdown(props: Props) {
   const { value, style, className } = props;
+  const [change, setChange] = useState<number>(0);
+
+  useEffect(() => {
+    setChange(change + 1);
+  }, [value]);
 
   // Convert markdown to our slate JSON object representation.
-  const slate = markdownToSlate(value);
+  const children = markdownToSlate(value);
   const v: JSX.Element[] = [];
   // console.log(JSON.stringify(slate, undefined, 2));
   let n = 0;
-  for (const element of slate) {
+  for (const element of children) {
     v.push(<RenderElement key={n} element={element} />);
     n += 1;
   }
   return (
-    <div style={{ width: "100%", ...style }} className={className}>
-      {v}
-    </div>
+    <ChangeContext.Provider value={{ change, editor: { children } as any }}>
+      <div style={{ width: "100%", ...style }} className={className}>
+        {v}
+      </div>
+    </ChangeContext.Provider>
   );
 }
 

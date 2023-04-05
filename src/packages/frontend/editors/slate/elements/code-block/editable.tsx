@@ -3,14 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ReactNode } from "react";
-import {
-  CSS,
-  React,
-  useRef,
-  useState,
-  useIsMountedRef,
-} from "@cocalc/frontend/app-framework";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { register, RenderElementProps } from "../register";
 import { useCollapsed, useSelected, useSlate } from "../hooks";
 import { SlateCodeMirror } from "../codemirror";
@@ -19,13 +13,13 @@ import { useSetElement } from "../set-element";
 import { Input } from "antd";
 import infoToMode from "./info-to-mode";
 import ActionButtons, { RunFunction } from "./action-buttons";
+import { useChange } from "../../use-change";
+import { getHistory } from "./history";
 
-const Element: React.FC<RenderElementProps> = ({
-  attributes,
-  children,
-  element,
-}) => {
-  if (element.type != "code_block") throw Error("bug");
+function Element({ attributes, children, element }: RenderElementProps) {
+  if (element.type != "code_block") {
+    throw Error("bug");
+  }
   const editor = useSlate();
   const selected = useSelected();
   const collapsed = useCollapsed();
@@ -39,6 +33,11 @@ const Element: React.FC<RenderElementProps> = ({
 
   const setElement = useSetElement(editor, element);
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
+  const { change } = useChange();
+  const [history, setHistory] = useState<string[]>(getHistory(editor, element));
+  useEffect(() => {
+    setHistory(getHistory(editor, element));
+  }, [change]);
 
   return (
     <div {...attributes}>
@@ -48,6 +47,7 @@ const Element: React.FC<RenderElementProps> = ({
       >
         <ActionButtons
           input={element.value}
+          history={history}
           setOutput={setOutput}
           info={element.info}
           runRef={runRef}
@@ -75,7 +75,7 @@ const Element: React.FC<RenderElementProps> = ({
             runRef.current?.();
           }}
         />
-        {element.fence && (showInfo || focusInfo) && (
+        {element.fence && (true || showInfo || focusInfo) && (
           <InfoEditor
             value={element.info}
             onFocus={() => {
@@ -107,7 +107,7 @@ const Element: React.FC<RenderElementProps> = ({
       {children}
     </div>
   );
-};
+}
 
 function fromSlate({ node }) {
   const value = node.value as string;
@@ -150,16 +150,16 @@ register({
 const INFO_STYLE = {
   float: "right",
   position: "relative",
-  width: "20ex",
+  width: "100px",
   border: "1px solid #ccc",
-  borderRadius: "8px",
+  borderRadius: "5px",
   color: "#666",
   background: "#fafafa",
   padding: "0 5px",
   fontSize: "12px",
-  height: "20px",
-  marginTop: "-20px",
-} as CSS;
+  height: "18px",
+  margin: "-20px 1px 0 0",
+} as const;
 
 interface InfoProps {
   onFocus: () => void;
@@ -168,12 +168,7 @@ interface InfoProps {
   value: string;
 }
 
-const InfoEditor: React.FC<InfoProps> = ({
-  onBlur,
-  onChange,
-  onFocus,
-  value,
-}) => {
+function InfoEditor({ onBlur, onChange, onFocus, value }: InfoProps) {
   return (
     <Input
       size="small"
@@ -185,4 +180,4 @@ const InfoEditor: React.FC<InfoProps> = ({
       onChange={(e) => onChange(e.target.value)}
     />
   );
-};
+}

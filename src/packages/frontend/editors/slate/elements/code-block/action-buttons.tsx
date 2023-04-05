@@ -9,6 +9,7 @@ const buttonStyle = { color: "#666", fontSize: "9pt" } as const;
 
 export default function ActionButtons({
   input,
+  history,
   setOutput,
   info,
   runRef,
@@ -28,6 +29,7 @@ export default function ActionButtons({
           info={info}
           style={buttonStyle}
           input={input}
+          history={history}
           setOutput={setOutput}
           runRef={runRef}
         />
