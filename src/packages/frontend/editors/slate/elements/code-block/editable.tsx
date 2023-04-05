@@ -49,13 +49,13 @@ const Element: React.FC<RenderElementProps> = ({
         <ActionButtons
           input={element.value}
           setOutput={setOutput}
-          kernel={element.info}
+          info={element.info}
           runRef={runRef}
         />
         <SlateCodeMirror
           options={{ lineWrapping: true }}
           value={element.value}
-          info={infoToMode(element.info, element.value)}
+          info={infoToMode(element.info, { value: element.value })}
           onChange={(value) => {
             setElement({ value });
           }}

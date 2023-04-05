@@ -4,8 +4,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
 import LRU from "lru-cache";
-import { isEqual } from "lodash";
-
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import { capitalize, closest_kernel_match } from "@cocalc/util/misc";
@@ -13,26 +11,20 @@ import { guesslang } from "@cocalc/frontend/misc/detect-language";
 import { fromJS } from "immutable";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import computeHash from "@cocalc/util/jupyter-api/compute-hash";
+import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
+import { file_associations } from "@cocalc/frontend/file-associations";
 
 // Important -- we import init-nbviewer , since otherwise NBViewerCellOutput won't
 // be able to render any mime types until the user opens a Jupyter notebook.
 import NBViewerCellOutput from "@cocalc/frontend/jupyter/nbviewer/cell-output";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 
-const cache = new LRU<
-  string,
-  { input: string; history?: string[]; kernel: string; output: object[] }
->({
+const cache = new LRU<string, object[]>({
   max: 500,
   maxSize: 10000000,
-  sizeCalculation: ({ input, history, output }) => {
-    let s = input.length + output.length;
-    if (history != null) {
-      for (const h of history) {
-        s += h.length;
-      }
-    }
-    return s;
+  sizeCalculation: (output) => {
+    const n = output?.length;
+    return n ? n : 1;
   },
 });
 
@@ -40,7 +32,7 @@ export type RunFunction = () => Promise<void>;
 type RunRef = MutableRefObject<RunFunction | null>;
 
 export interface Props {
-  kernel: string;
+  info: string;
   style?: CSSProperties;
   input?: string;
   history?: string[];
@@ -49,7 +41,7 @@ export interface Props {
 }
 
 export default function RunButton({
-  kernel, // this is just a potentially hint
+  info, // markdown info mode line; use {kernel='blah'} to explicitly specify a kernel; otherwise, uses heuristics
   style,
   input = "",
   history,
@@ -64,7 +56,7 @@ export default function RunButton({
 
   useEffect(() => {
     if (!jupyterApiEnabled || setOutput == null) return;
-    const { output, cacheKey } = getFromCache({ input, history, kernel });
+    const { output, cacheKey } = getFromCache({ input, history, info });
     if (output != null) {
       setOutput(
         <Output output={output} setOutput={setOutput} cacheKey={cacheKey} />
@@ -74,15 +66,16 @@ export default function RunButton({
       // but we try to asynchronously get the output from the
       // backend, if available
       (async () => {
-        const actualKernel = await getKernel({ input, history, kernel });
+        const kernel = await getKernel({ input, history, info });
+        setKernelName(kernel);
         const hash = computeHash({
           input,
           history,
-          kernel: actualKernel,
+          kernel,
         });
         const cachedOutput = await getFromDatabaseCache(hash);
         if (cachedOutput != null) {
-          saveToCache({ input, history, kernel, output: cachedOutput });
+          saveToCache({ input, history, info, output: cachedOutput });
           setOutput(
             <Output
               output={cachedOutput}
@@ -93,7 +86,7 @@ export default function RunButton({
         }
       })();
     }
-  }, [input, history, kernel]);
+  }, [input, history, info]);
 
   if (!jupyterApiEnabled) return null;
 
@@ -101,18 +94,18 @@ export default function RunButton({
     noCache,
     forceKernel,
   }: { noCache?: boolean; forceKernel?: string } = {}) => {
-    const cacheKey = computeHash({ input, history, kernel });
+    const cacheKey = computeHash({ input, history, kernel: info });
     try {
       setRunning(true);
       setOutput?.(null);
-      let kernelToUse;
+      let kernel;
       if (forceKernel) {
-        kernelToUse = forceKernel;
+        kernel = forceKernel;
       } else if (kernelName) {
-        kernelToUse = kernelName;
+        kernel = kernelName;
       } else {
-        kernelToUse = await getKernel({ input, history, kernel });
-        setKernelName(kernelToUse);
+        kernel = await getKernel({ input, history, info });
+        setKernelName(kernel);
       }
       const resp = await (
         await fetch(join(appBasePath, "api/v2/jupyter/execute"), {
@@ -120,7 +113,7 @@ export default function RunButton({
           body: JSON.stringify({
             input,
             history,
-            kernel: kernelToUse,
+            kernel,
             noCache,
           }),
           headers: {
@@ -147,7 +140,7 @@ export default function RunButton({
             />
           );
         }
-        saveToCache({ input, history, kernel, output: resp.output });
+        saveToCache({ input, history, info, output: resp.output });
       }
     } catch (err) {
       if (setOutput != null) {
@@ -249,27 +242,19 @@ function Output({
   );
 }
 
-function getFromCache({ input, history, kernel }): {
+function getFromCache({ input, history, info }): {
   cacheKey: string;
   output?: object[];
 } {
-  const cacheKey = computeHash({ input, history, kernel });
-  const x = cache.get(cacheKey);
-  if (x != null) {
-    if (
-      x.kernel == kernel &&
-      x.input == input &&
-      isEqual(x.history ?? null, history ?? null)
-    ) {
-      return { cacheKey, output: x.output };
-    }
-  }
+  const cacheKey = computeHash({ input, history, kernel: info });
+  const output = cache.get(cacheKey);
+  if (output != null) return { cacheKey, output };
   return { cacheKey };
 }
 
-function saveToCache({ input, history, kernel, output }) {
-  const key = computeHash({ input, history, kernel });
-  cache.set(key, { input, history, kernel, output });
+function saveToCache({ input, history, info, output }) {
+  const key = computeHash({ input, history, kernel: info });
+  cache.set(key, output);
 }
 
 let kernelInfoCache: null | KernelSpec[] = null;
@@ -307,34 +292,41 @@ function kernelDisplayName(name: string): string {
   return capitalize(name);
 }
 
-async function guessKernel({ kernel, code }): Promise<string> {
-  if (kernel == "python") {
-    kernel = "python3";
+async function guessKernel({ info, code }): Promise<string> {
+  if (info == "python") {
+    info = "python3";
   }
   const kernelInfo = await getKernelInfo();
   if (kernelInfo.length == 0) {
     throw Error("there are no available kernels");
   }
-  if (!kernel) {
+  if (!info) {
     // we guess something since nothing was giving. We use the code in the input and history.
     const guesses = await guesslang(code);
-    kernel = guesses[0] ?? "python3";
+    // TODO: should restrict guesses to available kernels...
+    info = guesses[0] ?? "python3";
   }
+
+  const mode = infoToMode(info, { preferKernel: true });
+  const cmmode = file_associations[mode]?.opts?.mode;
   for (const { name, display_name, language } of kernelInfo) {
-    if (name == kernel) {
-      // kernel exactly matches a known kernel, so obviously use that.
+    if (name == mode) {
+      // mode exactly matches a known kernel, so obviously use that.
       return name;
     }
-    if (kernel == language) {
+    if (mode == language) {
       return name;
     }
-    if (kernel.toLowerCase() == display_name.toLowerCase()) {
+    if (mode == display_name.toLowerCase()) {
+      return name;
+    }
+    if (cmmode == language) {
       return name;
     }
   }
   // No really clear match, so use closest_kernel_match.
   // TODO: it's silly converting to immutable.js constantly...
-  const result = closest_kernel_match(kernel, fromJS(kernelInfo)).get("name");
+  const result = closest_kernel_match(mode, fromJS(kernelInfo)).get("name");
   return result;
 }
 
@@ -406,9 +398,9 @@ const getFromDatabaseCache = async (hash: string) => {
   return resp.output ?? null;
 };
 
-async function getKernel({ input, history, kernel }): Promise<string> {
+async function getKernel({ input, history, info }): Promise<string> {
   return await guessKernel({
-    kernel,
+    info,
     code: (history ?? []).concat([input ?? ""]).join("\n"),
   });
 }

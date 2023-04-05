@@ -41,7 +41,7 @@ export default function CellInput({
               <ActionButtons
                 input={value}
                 setOutput={setOutput}
-                kernel={kernel}
+                info={`{kernel='${kernel}'}`}
               />
             }
           />

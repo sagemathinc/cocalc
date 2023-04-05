@@ -10,7 +10,7 @@ const buttonStyle = { color: "#666", fontSize: "9pt" } as const;
 export default function ActionButtons({
   input,
   setOutput,
-  kernel,
+  info,
   runRef,
 }: RunButtonProps) {
   return (
@@ -25,7 +25,7 @@ export default function ActionButtons({
         }}
       >
         <RunButton
-          kernel={kernel}
+          info={info}
           style={buttonStyle}
           input={input}
           setOutput={setOutput}

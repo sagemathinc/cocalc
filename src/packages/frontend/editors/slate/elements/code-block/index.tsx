@@ -34,12 +34,12 @@ const StaticElement: React.FC<RenderElementProps> = ({
           <ActionButtons
             input={element.value}
             setOutput={setOutput}
-            kernel={element.info}
+            info={element.info}
           />
         }
         value={element.value}
         style={{ background: "white", padding: "15px" }}
-        options={{ mode: infoToMode(element.info, element.value) }}
+        options={{ mode: infoToMode(element.info, { value: element.value }) }}
       />
       {output}
     </div>

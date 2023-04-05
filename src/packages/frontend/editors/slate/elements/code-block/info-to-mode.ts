@@ -4,11 +4,12 @@ import detectLanguage from "@cocalc/frontend/misc/detect-language";
 // Convert the info string for a fenced code block to a codemirror mode
 export default function infoToMode(
   info: string | undefined | null,
-  value?: string
+  options: { value?: string; preferKernel?: boolean } = {}
 ): string {
+  const { value, preferKernel } = options;
   info = info?.trim().toLowerCase();
   if (!info) {
-    if (!value) return "txt";
+    if (!value) return ''; // no info
     info = detectLanguage(value);
   }
 
@@ -17,11 +18,21 @@ export default function infoToMode(
   //   ```{r test-python, engine='python'}
   //   ```{python}
   // strip leading { and trailing }
-  // Also "python-markdown" uses these braces, though differently. 
+  // Also "python-markdown" uses these braces, though differently.
   //   https://python-markdown.github.io/extensions/fenced_code_blocks
   //   ``` { .html .foo .bar }
   if (info[0] == "{") {
     info = info.slice(1, -1).trim();
+    if (preferKernel) {
+      const i = info.indexOf("kernel=");
+      if (i != -1) {
+        let mode = firstWord(info.slice(i + "kernel=".length));
+        if (mode.startsWith("'") || mode.startsWith('"')) {
+          mode = mode.slice(1, -1);
+        }
+        return mode;
+      }
+    }
   }
   info = info.toLowerCase().trim(); // our file_associations data all assumes lower case.
 
