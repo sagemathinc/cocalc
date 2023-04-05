@@ -170,7 +170,7 @@ export default function RunButton({
       overlayInnerStyle={{ width: "260px" }}
       title={
         <div>
-          Run this code in an isolated sandbox using{" "}
+          Run in an isolated sandbox using{" "}
           {kernelName ? "the " + kernelDisplayName(kernelName) : "a"} Jupyter
           kernel.
           <div
@@ -244,13 +244,6 @@ function Output({
       description={
         error ? `${error}` : <NBViewerCellOutput cell={{ output }} hidePrompt />
       }
-      closable
-      onClose={() => {
-        setOutput(null);
-        // if you close it you probably don't want it to magically reappear on render
-        // unless you explicitly re-evalute
-        cache.delete(cacheKey);
-      }}
     />
   );
 }
@@ -381,7 +374,7 @@ function KernelSelector({
                 return {
                   display_name: spec.display_name,
                   label: (
-                    <Tooltip title={spec.display_name}>
+                    <Tooltip title={spec.display_name} placement="left">
                       {spec.display_name}
                     </Tooltip>
                   ),

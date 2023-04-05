@@ -122,6 +122,7 @@ export async function execute({
     tag,
     total_time_s,
     hash,
+    noCache,
   });
   return output;
 }
@@ -174,8 +175,12 @@ async function saveResponse({
   tag,
   total_time_s,
   hash,
+  noCache,
 }) {
   const pool = getPool();
+  if (noCache) {
+    await pool.query("DELETE FROM jupyter_execute_log WHERE hash=$1", [hash]);
+  }
   try {
     await pool.query(
       `INSERT INTO jupyter_execute_log(time,input,output,kernel,account_id,analytics_cookie,history,tag,hash,total_time_s) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9)`,
