@@ -7,6 +7,13 @@ The INPUT parameters are:
 - history: list of previous inputs as string (in order) that were sent to the kernel.
 - input: a new input
 
+ALTERNATIVELY, can just give:
+
+- sha1: hash of kernel/history/input
+
+and if output is known it is returned. Otherwise, nothing happens.
+We are trusting that there aren't sha1 hash collisions for this applications.
+
 The OUTPUT is:
 
 - a list of messages that describe the output of the last code execution.
@@ -28,7 +35,7 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req) {
-  const { input, kernel, history, tag, noCache } = getParams(req, {
+  const { input, kernel, history, tag, noCache, sha1 } = getParams(req, {
     allowGet: true,
   });
   const account_id = await getAccountId(req);
@@ -38,6 +45,7 @@ async function doIt(req) {
       account_id,
       analytics_cookie,
       input,
+      sha1,
       history,
       kernel,
       tag,

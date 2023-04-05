@@ -5,11 +5,10 @@ Backend server side part of ChatGPT integration with CoCalc.
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import { sha1 } from "@cocalc/util/misc";
+import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 import getOneProject from "@cocalc/server/projects/get-one";
 import callProject from "@cocalc/server/projects/call";
 import { jupyter_execute } from "@cocalc/util/message";
-import { isEqual } from "lodash";
 import { isValidUUID } from "@cocalc/util/misc";
 
 const log = getLogger("jupyter:execute");
@@ -27,9 +26,10 @@ async function getConfig() {
 }
 
 interface Options {
-  input: string; // new input that user types
-  kernel: string;
+  input?: string; // new input that user types
+  kernel?: string;
   history?: string[];
+  sha1?: string;
   account_id?: string;
   analytics_cookie?: string;
   tag?: string;
@@ -37,6 +37,7 @@ interface Options {
 }
 
 export async function execute({
+  sha1,
   input,
   kernel,
   account_id,
@@ -44,21 +45,35 @@ export async function execute({
   history,
   tag,
   noCache,
-}: Options): Promise<object[]> {
+}: Options): Promise<object[] | null> {
+  // TODO -- await checkForAbuse({ account_id, analytics_cookie });
+
   log.debug("execute", {
     input,
     kernel,
     history,
+    sha1,
     account_id,
     analytics_cookie,
     tag,
   });
+
+  // If sha1 is given, we only check if output is in database, and
+  // if so return it.  Otherwise, return nothing.
+  if (sha1 != null) {
+    return await getFromDatabase(sha1);
+  }
+  if (input == null) {
+    throw Error("input or sha1 must not be null");
+  }
+  if (kernel == null) {
+    throw Error("kernel must be specified in sha1 is not specified");
+  }
+
   // normalize by trimming, which we assume doesn't change eval significantly.
   input = input.trim();
   history = history?.map((x) => x.trim());
   const start = Date.now();
-
-  // TODO -- await checkForAbuse({ account_id, analytics_cookie });
 
   const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
   if (!jupyter_api_enabled) {
@@ -74,11 +89,11 @@ export async function execute({
     throw Error("Jupyter API account_id is not a valid uuid.");
   }
 
-  const hash = computeHash((history ?? []).concat([input]));
+  const hash = computeHash({ history, input, kernel });
 
   if (!noCache) {
     // Check if we already have this execution history in the database:
-    const savedOutput = await getFromDatabase({ input, history, kernel, hash });
+    const savedOutput = await getFromDatabase(hash);
     if (savedOutput != null) {
       log.debug("got saved output");
       return savedOutput;
@@ -114,30 +129,22 @@ export async function execute({
   return output;
 }
 
-async function getFromDatabase({
-  input,
-  history,
-  hash,
-  kernel,
-}): Promise<null | object[]> {
+// We just assume that sha1 hash conflicts don't happen for our
+// purposes here.
+async function getFromDatabase(hash: string): Promise<null | object[]> {
   const pool = getPool();
   try {
     const { rows } = await pool.query(
-      `SELECT id, input, history, output FROM jupyter_execute_log WHERE kernel=$1 AND hash=$2`,
-      [kernel, hash]
+      `SELECT id, output FROM jupyter_execute_log WHERE hash=$1`,
+      [hash]
     );
-    //log.debug({ id, input, history, hash, kernel });
-    // log.debug("rows = ", rows);
-    for (const row of rows) {
-      // have to check for actual equality to make sure it's not just a hash collision
-      if (row.input == input && isEqual(row.history ?? null, history ?? null)) {
-        // update the expire timestamp, thus extending the life of this active row.
-        // but don't block on this.
-        updateExpire(pool, row.id);
-        return row.output;
-      }
+    const output = rows[0]?.output ?? null;
+    if (output != null) {
+      // update the expire timestamp, thus extending the life of this active row.
+      // but don't block on this.
+      updateExpire(pool, rows[0]?.id);
     }
-    return null; // not in database.
+    return output;
   } catch (err) {
     log.warn("Failed to query database cache", err);
     return null;
@@ -188,8 +195,4 @@ async function saveResponse({
   } catch (err) {
     log.warn("Failed to save Jupyter execute log entry to database:", err);
   }
-}
-
-function computeHash(history: string[]): string {
-  return sha1(JSON.stringify(history));
 }
