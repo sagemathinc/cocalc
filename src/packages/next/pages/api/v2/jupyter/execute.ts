@@ -9,10 +9,11 @@ The INPUT parameters are:
 
 ALTERNATIVELY, can just give:
 
-- sha1: hash of kernel/history/input
+- hash: hash of kernel/history/input
 
 and if output is known it is returned. Otherwise, nothing happens.
-We are trusting that there aren't sha1 hash collisions for this applications.
+We are trusting that there aren't hash collisions for this applications,
+since we're using a sha1 hash.
 
 The OUTPUT is:
 
@@ -35,7 +36,7 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req) {
-  const { input, kernel, history, tag, noCache, sha1 } = getParams(req, {
+  const { input, kernel, history, tag, noCache, hash } = getParams(req, {
     allowGet: true,
   });
   const account_id = await getAccountId(req);
@@ -45,7 +46,7 @@ async function doIt(req) {
       account_id,
       analytics_cookie,
       input,
-      sha1,
+      hash,
       history,
       kernel,
       tag,

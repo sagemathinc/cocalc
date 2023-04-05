@@ -13,6 +13,7 @@ import { capitalize, closest_kernel_match } from "@cocalc/util/misc";
 import { guesslang } from "@cocalc/frontend/misc/detect-language";
 import { fromJS } from "immutable";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
+import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 
 // Important -- we import init-nbviewer , since otherwise NBViewerCellOutput won't
 // be able to render any mime types until the user opens a Jupyter notebook.
@@ -49,7 +50,7 @@ export interface Props {
 }
 
 export default function RunButton({
-  kernel,
+  kernel, // this is just a potentially hint
   style,
   input,
   history,
@@ -71,15 +72,37 @@ export default function RunButton({
       );
     } else {
       setOutput(null);
+      // but we try to asynchronously get the output from the
+      // backend, if available
+      (async () => {
+        const actualKernel = await getKernel({ input, history, kernel });
+        const hash = computeHash({
+          input,
+          history,
+          kernel: actualKernel,
+        });
+        const cachedOutput = await getFromDatabaseCache(hash);
+        if (cachedOutput != null) {
+          saveToCache({ input, history, kernel, output: cachedOutput });
+          setOutput(
+            <Output
+              output={cachedOutput}
+              setOutput={setOutput}
+              cacheKey={cacheKey}
+            />
+          );
+        }
+      })();
     }
   }, [input, history, kernel]);
+
   if (!jupyterApiEnabled) return null;
 
   const run = async ({
     noCache,
     forceKernel,
   }: { noCache?: boolean; forceKernel?: string } = {}) => {
-    const cacheKey = getKey({ input, history, kernel });
+    const cacheKey = computeHash({ input, history, kernel });
     try {
       setRunning(true);
       setOutput?.(null);
@@ -89,10 +112,7 @@ export default function RunButton({
       } else if (kernelName) {
         kernelToUse = kernelName;
       } else {
-        kernelToUse = await guessKernel({
-          kernel,
-          code: (history ?? []).concat([input ?? ""]).join("\n"),
-        });
+        kernelToUse = await getKernel({ input, history, kernel });
         setKernelName(kernelToUse);
       }
       const resp = await (
@@ -217,9 +237,10 @@ function Output({
   return (
     <Alert
       type={error ? "error" : "success"}
-      style={
-        error ? { margin: "5px 0" } : { background: "white", margin: "5px 0" }
-      }
+      style={{
+        margin: "5px 0 5px 30px",
+        ...(!error ? { background: "white" } : undefined),
+      }}
       description={
         error ? `${error}` : <NBViewerCellOutput cell={{ output }} hidePrompt />
       }
@@ -234,17 +255,11 @@ function Output({
   );
 }
 
-function getKey({ input, history, kernel }) {
-  return sha1(
-    JSON.stringify([input.trim(), history?.map((x) => x.trim()), kernel.trim()])
-  );
-}
-
 function getFromCache({ input, history, kernel }): {
   cacheKey: string;
   output?: object[];
 } {
-  const cacheKey = getKey({ input, history, kernel });
+  const cacheKey = computeHash({ input, history, kernel });
   const x = cache.get(cacheKey);
   if (x != null) {
     if (
@@ -259,7 +274,7 @@ function getFromCache({ input, history, kernel }): {
 }
 
 function saveToCache({ input, history, kernel, output }) {
-  const key = getKey({ input, history, kernel });
+  const key = computeHash({ input, history, kernel });
   cache.set(key, { input, history, kernel, output });
 }
 
@@ -379,4 +394,27 @@ function KernelSelector({
       value={kernel}
     />
   );
+}
+
+const getFromDatabaseCache = async (hash: string) => {
+  const resp = await (
+    await fetch(join(appBasePath, "api/v2/jupyter/execute"), {
+      method: "POST",
+      body: JSON.stringify({ hash }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+  ).json();
+  if (resp.error) {
+    throw Error(resp.error);
+  }
+  return resp.output ?? null;
+};
+
+async function getKernel({ input, history, kernel }): string {
+  return await guessKernel({
+    kernel,
+    code: (history ?? []).concat([input ?? ""]).join("\n"),
+  });
 }
