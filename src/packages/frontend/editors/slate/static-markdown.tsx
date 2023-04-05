@@ -24,25 +24,20 @@ interface Props {
 
 export default function StaticMarkdown(props: Props) {
   const { value, style, className } = props;
-  const [change, setChange] = useState<number>(0);
 
+  const [change, setChange] = useState<number>(0);
   useEffect(() => {
     setChange(change + 1);
   }, [value]);
 
   // Convert markdown to our slate JSON object representation.
   const children = markdownToSlate(value);
-  const v: JSX.Element[] = [];
-  // console.log(JSON.stringify(slate, undefined, 2));
-  let n = 0;
-  for (const element of children) {
-    v.push(<RenderElement key={n} element={element} />);
-    n += 1;
-  }
   return (
     <ChangeContext.Provider value={{ change, editor: { children } as any }}>
       <div style={{ width: "100%", ...style }} className={className}>
-        {v}
+        {children.map((element, n) => {
+          return <RenderElement key={n} element={element} />;
+        })}
       </div>
     </ChangeContext.Provider>
   );

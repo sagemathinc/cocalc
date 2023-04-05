@@ -45,6 +45,7 @@ import { slate_to_markdown as slateToMarkdown } from "./slate-to-markdown";
 import Leaf from "./leaf";
 import Hashtag from "./elements/hashtag/component";
 import Highlighter from "react-highlight-words";
+import { ChangeContext } from "./use-change";
 
 interface Props {
   value: string;
@@ -84,35 +85,37 @@ export default function MostlyStaticMarkdown({
       }
     };
   }, [slate, onChange]);
+
+  const [change, setChange] = useState<number>(0);
   useEffect(() => {
     if (value == valueRef.current) return;
     valueRef.current = value;
     setSlate(markdownToSlate(value, false, syncCacheRef.current));
+    setChange(change + 1);
   }, [value]);
 
-  const v: JSX.Element[] = [];
-  let n = 0;
   if (searchWords != null && searchWords["filter"] == null) {
     // convert from Set<string> to string[], as required by the Highlighter component.
     searchWords = Array.from(searchWords);
   }
-  for (const element of slate) {
-    v.push(
-      <RenderElement
-        key={n}
-        element={element}
-        handleChange={handleChange}
-        selectedHashtags={selectedHashtags}
-        toggleHashtag={toggleHashtag}
-        searchWords={searchWords}
-      />
-    );
-    n += 1;
-  }
+
   return (
-    <div style={{ width: "100%", ...style }} className={className}>
-      {v}
-    </div>
+    <ChangeContext.Provider
+      value={{ change, editor: { children: slate } as any }}
+    >
+      <div style={{ width: "100%", ...style }} className={className}>
+        {slate.map((element, n) => (
+          <RenderElement
+            key={n}
+            element={element}
+            handleChange={handleChange}
+            selectedHashtags={selectedHashtags}
+            toggleHashtag={toggleHashtag}
+            searchWords={searchWords}
+          />
+        ))}
+      </div>
+    </ChangeContext.Provider>
   );
 }
 

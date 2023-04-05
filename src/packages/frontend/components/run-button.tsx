@@ -1,5 +1,11 @@
-import { CSSProperties, MutableRefObject, useEffect, useState } from "react";
-import { Alert, Button, Select, Tooltip } from "antd";
+import {
+  CSSProperties,
+  ReactNode,
+  MutableRefObject,
+  useEffect,
+  useState,
+} from "react";
+import { Alert, Button, Popover, Select, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
@@ -36,7 +42,8 @@ export interface Props {
   style?: CSSProperties;
   input?: string;
   history?: string[];
-  setOutput?: (output) => void;
+  output?: ReactNode | null;
+  setOutput?: (output: ReactNode | null) => void;
   runRef?: RunRef;
 }
 
@@ -45,6 +52,7 @@ export default function RunButton({
   style,
   input = "",
   history,
+  output,
   setOutput,
   runRef,
 }: Props) {
@@ -158,20 +166,31 @@ export default function RunButton({
 
   const disabled = !input?.trim() || running;
   return (
-    <Tooltip
-      overlayInnerStyle={{ width: "260px" }}
+    <Popover
+      trigger="hover"
+      overlayInnerStyle={{ width: "400px" }}
       title={
+        <>
+          <Icon
+            name="jupyter"
+            style={{ marginRight: "5px", fontSize: "16px" }}
+          />
+          Run this code and show output
+        </>
+      }
+      content={
         <div>
-          Run in an isolated sandbox using{" "}
+          Code is run in an isolated sandbox using{" "}
           {kernelName ? "the " + kernelDisplayName(kernelName) : "a"} Jupyter
-          kernel.
+          kernel. Code with the same kernel and scope is always run in order.
+          There is a hard timeout of 30 seconds.
           <div
             style={{
+              width: "100%",
               display: "flex",
               marginTop: "5px",
               padding: "5px",
               borderRadius: "3px",
-
               background: disabled ? "white" : undefined,
             }}
           >
@@ -184,9 +203,8 @@ export default function RunButton({
               kernel={kernelName}
             />
             <Button
-              style={{ marginLeft: "5px" }}
+              style={{ marginLeft: "5px", flex: 1 }}
               disabled={disabled}
-              size="small"
               onClick={() => run({ noCache: true })}
             >
               <Icon name={running ? "cocalc-ring" : "redo"} spin={running} />
@@ -205,13 +223,28 @@ export default function RunButton({
           type="text"
           style={style}
           disabled={disabled}
-          onClick={run}
+          onClick={() => {
+            if (output == null) {
+              run();
+            } else {
+              setOutput?.(null);
+            }
+          }}
         >
-          <Icon name={running ? "cocalc-ring" : "play"} spin={running} />
-          Run
+          <Icon
+            name={
+              running
+                ? "cocalc-ring"
+                : output == null
+                ? "square"
+                : "check-square"
+            }
+            spin={running}
+          />
+          Show Output
         </Button>
       </div>
-    </Tooltip>
+    </Popover>
   );
 }
 
@@ -228,17 +261,31 @@ function Output({
 }) {
   // todo - not used
   [setOutput, cacheKey];
+  if (error) {
+    return (
+      <Alert
+        type={error ? "error" : "success"}
+        style={{
+          margin: "5px 0 5px 30px",
+        }}
+        description={`${error}`}
+      />
+    );
+  }
   return (
-    <Alert
-      type={error ? "error" : "success"}
+    <div
       style={{
         margin: "5px 0 5px 30px",
-        ...(!error ? { background: "white" } : undefined),
+        padding: "10px",
+        background: "white",
+        border: "1px solid #ccc",
+        borderLeft: "5px solid #389e0d",
+        borderRadius: "8px",
+        overflow: "hidden",
       }}
-      description={
-        error ? `${error}` : <NBViewerCellOutput cell={{ output }} hidePrompt />
-      }
-    />
+    >
+      <NBViewerCellOutput cell={{ output }} hidePrompt />
+    </div>
   );
 }
 
@@ -356,8 +403,7 @@ function KernelSelector({
       filterOption={(input, option) =>
         (option?.display_name ?? "").toLowerCase().includes(input.toLowerCase())
       }
-      size="small"
-      style={{ width: "125px" }}
+      style={{ flex: 1 }}
       disabled={disabled}
       options={
         kernelSpecs != null

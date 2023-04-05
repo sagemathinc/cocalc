@@ -11,6 +11,7 @@ export default function ActionButtons({
   input,
   history,
   setOutput,
+  output,
   info,
   runRef,
 }: RunButtonProps) {
@@ -31,6 +32,7 @@ export default function ActionButtons({
           input={input}
           history={history}
           setOutput={setOutput}
+          output={output}
           runRef={runRef}
         />
         <CopyButton style={buttonStyle} value={input} />

@@ -49,6 +49,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
           input={element.value}
           history={history}
           setOutput={setOutput}
+          output={output}
           info={element.info}
           runRef={runRef}
         />
