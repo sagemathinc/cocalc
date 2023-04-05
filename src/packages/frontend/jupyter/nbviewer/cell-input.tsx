@@ -40,6 +40,7 @@ export default function CellInput({
             addonAfter={
               <ActionButtons
                 input={value}
+                output={output}
                 setOutput={setOutput}
                 info={`{kernel='${kernel}'}`}
               />

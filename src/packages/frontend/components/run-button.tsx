@@ -3,6 +3,7 @@ import {
   ReactNode,
   MutableRefObject,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { Alert, Button, Popover, Select, Tooltip } from "antd";
@@ -42,8 +43,8 @@ export interface Props {
   style?: CSSProperties;
   input?: string;
   history?: string[];
-  output?: ReactNode | null;
-  setOutput?: (output: ReactNode | null) => void;
+  output: ReactNode | null;
+  setOutput: (output: ReactNode | null) => void;
   runRef?: RunRef;
 }
 
@@ -53,24 +54,59 @@ export default function RunButton({
   input = "",
   history,
   output,
-  setOutput,
+  setOutput: setOutput0,
   runRef,
 }: Props) {
   const { jupyterApiEnabled } = useFileContext();
   const [running, setRunning] = useState<boolean>(false);
+  const outputMessagesRef = useRef<object[] | null>(null);
+
+  const setOutput = ({
+    messages = null,
+    old,
+    error,
+    running,
+  }: {
+    messages?: object[] | null;
+    old?: boolean;
+    error?: string;
+    running?: boolean;
+  } = {}) => {
+    if (running) {
+      setOutput0(
+        outputMessagesRef.current == null ? null : (
+          <Output output={outputMessagesRef.current} running />
+        )
+      );
+    } else if (error) {
+      outputMessagesRef.current = null;
+      setOutput0(<Output error={error} />);
+    } else if (old) {
+      setOutput0(
+        outputMessagesRef.current == null ? null : (
+          <Output output={outputMessagesRef.current} old />
+        )
+      );
+    } else {
+      outputMessagesRef.current = messages;
+      setOutput0(messages == null ? null : <Output output={messages} />);
+    }
+  };
 
   // actual kernel to use:
   const [kernelName, setKernelName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    if (!jupyterApiEnabled || setOutput == null) return;
-    const { output, cacheKey } = getFromCache({ input, history, info });
-    if (output != null) {
-      setOutput(
-        <Output output={output} setOutput={setOutput} cacheKey={cacheKey} />
-      );
+    if (!jupyterApiEnabled || setOutput == null || running) return;
+    const messages = getFromCache({
+      input,
+      history,
+      info,
+    });
+    if (messages != null) {
+      setOutput({ messages });
     } else {
-      setOutput(null);
+      setOutput({ old: true });
       // but we try to asynchronously get the output from the
       // backend, if available
       (async () => {
@@ -81,16 +117,10 @@ export default function RunButton({
           history,
           kernel,
         });
-        const cachedOutput = await getFromDatabaseCache(hash);
-        if (cachedOutput != null) {
-          saveToCache({ input, history, info, output: cachedOutput });
-          setOutput(
-            <Output
-              output={cachedOutput}
-              setOutput={setOutput}
-              cacheKey={cacheKey}
-            />
-          );
+        const messages = await getFromDatabaseCache(hash);
+        if (messages != null) {
+          saveToCache({ input, history, info, output: messages });
+          setOutput({ messages });
         }
       })();
     }
@@ -102,11 +132,11 @@ export default function RunButton({
     noCache,
     forceKernel,
   }: { noCache?: boolean; forceKernel?: string } = {}) => {
-    const cacheKey = computeHash({ input, history, kernel: info });
     try {
       setRunning(true);
-      setOutput?.(null);
+      setOutput({ running: true });
       let kernel;
+      1;
       if (forceKernel) {
         kernel = forceKernel;
       } else if (kernelName) {
@@ -130,32 +160,14 @@ export default function RunButton({
         })
       ).json();
       if (resp.error && setOutput != null) {
-        setOutput(
-          <Output
-            error={resp.error}
-            setOutput={setOutput}
-            cacheKey={cacheKey}
-          />
-        );
+        setOutput({ error: resp.error });
       }
       if (resp.output != null) {
-        if (setOutput != null) {
-          setOutput(
-            <Output
-              output={resp.output}
-              setOutput={setOutput}
-              cacheKey={cacheKey}
-            />
-          );
-        }
+        setOutput({ messages: resp.output });
         saveToCache({ input, history, info, output: resp.output });
       }
-    } catch (err) {
-      if (setOutput != null) {
-        setOutput(
-          <Output error={err} setOutput={setOutput} cacheKey={cacheKey} />
-        );
-      }
+    } catch (error) {
+      setOutput({ error });
     } finally {
       setRunning(false);
     }
@@ -203,17 +215,21 @@ export default function RunButton({
               kernel={kernelName}
             />
             <Button
-              style={{ marginLeft: "5px", flex: 1 }}
+              style={{
+                marginLeft: "5px",
+                flex: 1,
+              }}
               disabled={disabled}
               onClick={() => run({ noCache: true })}
             >
-              <Icon name={running ? "cocalc-ring" : "redo"} spin={running} />
-              {running ? "Running" : "Run Again"}
+              <Icon
+                style={running ? { color: "#389e0d" } : undefined}
+                name={running ? "cocalc-ring" : "redo"}
+                spin={running}
+              />
+              {running ? "Running" : "Run (Shift+Enter)"}
             </Button>
           </div>
-          {running && (
-            <ProgressEstimate seconds={30} style={{ width: "100%" }} />
-          )}
         </div>
       }
     >
@@ -227,11 +243,12 @@ export default function RunButton({
             if (output == null) {
               run();
             } else {
-              setOutput?.(null);
+              setOutput();
             }
           }}
         >
           <Icon
+            style={running ? { color: "#389e0d" } : undefined}
             name={
               running
                 ? "cocalc-ring"
@@ -241,26 +258,33 @@ export default function RunButton({
             }
             spin={running}
           />
-          Show Output
+          Run
         </Button>
       </div>
     </Popover>
   );
 }
 
+const OUTPUT_STYLE = {
+  margin: "5px 0 5px 30px",
+  padding: "10px",
+  background: "white",
+  border: "1px solid #ccc",
+  borderLeft: "5px solid #389e0d",
+  borderRadius: "8px",
+} as const;
+
 function Output({
   error,
   output,
-  setOutput,
-  cacheKey,
+  old,
+  running,
 }: {
   error?;
   output?;
-  setOutput;
-  cacheKey: string;
+  old?: boolean;
+  running?: boolean;
 }) {
-  // todo - not used
-  [setOutput, cacheKey];
   if (error) {
     return (
       <Alert
@@ -272,31 +296,28 @@ function Output({
       />
     );
   }
+  if (output == null) {
+    return null;
+  }
   return (
-    <div
-      style={{
-        margin: "5px 0 5px 30px",
-        padding: "10px",
-        background: "white",
-        border: "1px solid #ccc",
-        borderLeft: "5px solid #389e0d",
-        borderRadius: "8px",
-        overflow: "hidden",
-      }}
-    >
-      <NBViewerCellOutput cell={{ output }} hidePrompt />
-    </div>
+    <>
+      {running && <ProgressEstimate seconds={15} style={{ width: "100%" }} />}
+      <div
+        style={{
+          ...OUTPUT_STYLE,
+          borderLeft: `5px solid ${old ? "#cf1322" : "#389e0d"}`,
+          ...(old || running ? { opacity: 0.3 } : undefined),
+        }}
+      >
+        <NBViewerCellOutput cell={{ output }} hidePrompt />
+      </div>
+    </>
   );
 }
 
-function getFromCache({ input, history, info }): {
-  cacheKey: string;
-  output?: object[];
-} {
+function getFromCache({ input, history, info }): object[] | null {
   const cacheKey = computeHash({ input, history, kernel: info });
-  const output = cache.get(cacheKey);
-  if (output != null) return { cacheKey, output };
-  return { cacheKey };
+  return cache.get(cacheKey) ?? null;
 }
 
 function saveToCache({ input, history, info, output }) {

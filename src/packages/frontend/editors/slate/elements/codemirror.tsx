@@ -214,7 +214,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
 
       cm.on("focus", () => {
         setIsFocused(true);
-        setTimeout(() => focusEditor(true), 0);
+        setTimeout(() => focusEditor(true), 1);
       });
 
       cm.on("copy", (_, event) => {
