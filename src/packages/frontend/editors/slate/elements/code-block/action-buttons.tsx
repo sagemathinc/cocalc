@@ -16,27 +16,17 @@ export default function ActionButtons({
   runRef,
 }: RunButtonProps) {
   return (
-    <div style={{ position: "relative" }}>
-      <div
-        style={{
-          display: "flex",
-          position: "absolute",
-          right: 0,
-          top: "-3px",
-          zIndex: 1,
-        }}
-      >
-        <RunButton
-          info={info}
-          style={buttonStyle}
-          input={input}
-          history={history}
-          setOutput={setOutput}
-          output={output}
-          runRef={runRef}
-        />
-        <CopyButton style={buttonStyle} value={input} />
-      </div>
-    </div>
+    <>
+      <RunButton
+        info={info}
+        style={buttonStyle}
+        input={input}
+        history={history}
+        setOutput={setOutput}
+        output={output}
+        runRef={runRef}
+      />
+      <CopyButton style={buttonStyle} value={input} />
+    </>
   );
 }

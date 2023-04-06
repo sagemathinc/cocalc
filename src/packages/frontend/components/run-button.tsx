@@ -19,7 +19,7 @@ import { fromJS } from "immutable";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
-import { file_associations } from "@cocalc/frontend/file-associations";
+//import { file_associations } from "@cocalc/frontend/file-associations";
 
 // Important -- we import init-nbviewer , since otherwise NBViewerCellOutput won't
 // be able to render any mime types until the user opens a Jupyter notebook.
@@ -192,10 +192,10 @@ export default function RunButton({
       }
       content={
         <div>
-          Code is run in an isolated sandbox using{" "}
+          Code runs in an isolated sandbox using{" "}
           {kernelName ? "the " + kernelDisplayName(kernelName) : "a"} Jupyter
-          kernel. Code with the same kernel and scope is always run in order.
-          There is a hard timeout of 30 seconds.
+          kernel. Code in this document with the same kernel and scope is run in
+          order. Only use this for code that can run in a few seconds.
           <div
             style={{
               width: "100%",
@@ -265,25 +265,18 @@ export default function RunButton({
   );
 }
 
-const OUTPUT_STYLE = {
-  margin: "5px 0 5px 30px",
-  padding: "10px",
-  background: "white",
-  border: "1px solid #ccc",
-  borderLeft: "5px solid #389e0d",
-  borderRadius: "8px",
-} as const;
-
 function Output({
   error,
   output,
   old,
   running,
+  style,
 }: {
   error?;
   output?;
   old?: boolean;
   running?: boolean;
+  style?: CSSProperties;
 }) {
   if (error) {
     return (
@@ -304,9 +297,8 @@ function Output({
       {running && <ProgressEstimate seconds={15} style={{ width: "100%" }} />}
       <div
         style={{
-          ...OUTPUT_STYLE,
-          borderLeft: `5px solid ${old ? "#cf1322" : "#389e0d"}`,
-          ...(old || running ? { opacity: 0.3 } : undefined),
+          ...style,
+          ...(old || running ? { opacity: 0.2 } : undefined),
         }}
       >
         <NBViewerCellOutput cell={{ output }} hidePrompt />
@@ -376,7 +368,6 @@ async function guessKernel({ info, code }): Promise<string> {
   }
 
   const mode = infoToMode(info, { preferKernel: true });
-  const cmmode = file_associations[mode]?.opts?.mode;
   for (const { name, display_name, language } of kernelInfo) {
     if (name == mode) {
       // mode exactly matches a known kernel, so obviously use that.
@@ -386,9 +377,6 @@ async function guessKernel({ info, code }): Promise<string> {
       return name;
     }
     if (mode == display_name.toLowerCase()) {
-      return name;
-    }
-    if (cmmode == language) {
       return name;
     }
   }

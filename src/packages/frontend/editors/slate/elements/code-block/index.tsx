@@ -40,13 +40,25 @@ const StaticElement: React.FC<RenderElementProps> = ({
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
       <CodeMirrorStatic
         addonAfter={
-          <ActionButtons
-            input={element.value}
-            history={history}
-            setOutput={setOutput}
-            output={output}
-            info={element.info}
-          />
+          <div style={{ position: "relative" }}>
+            <div
+              style={{
+                display: "flex",
+                position: "absolute",
+                right: 0,
+                top: "-3px",
+                zIndex: 1,
+              }}
+            >
+              <ActionButtons
+                input={element.value}
+                history={history}
+                setOutput={setOutput}
+                output={output}
+                info={element.info}
+              />
+            </div>
+          </div>
         }
         value={element.value}
         style={{ background: "white", padding: "15px" }}

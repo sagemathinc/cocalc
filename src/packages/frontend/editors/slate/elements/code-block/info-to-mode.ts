@@ -9,7 +9,7 @@ export default function infoToMode(
   const { value, preferKernel } = options;
   info = info?.trim().toLowerCase();
   if (!info) {
-    if (!value) return ''; // no info
+    if (!value) return ""; // no info
     info = detectLanguage(value);
   }
 
@@ -54,6 +54,10 @@ export default function infoToMode(
         mode = mode.slice(1, -1);
       }
     }
+  }
+
+  if (preferKernel && mode.startsWith("sage")) {
+    return mode;
   }
 
   let spec = file_associations[mode];

@@ -5,6 +5,7 @@
 
 import React, {
   CSSProperties,
+  ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -48,6 +49,9 @@ interface Props {
   options?: { [option: string]: any };
   isInline?: boolean; // impacts how cursor moves out of codemirror.
   style?: CSSProperties;
+  addonBefore?: ReactNode;
+  addonAfter?: ReactNode;
+  wrapperStyle?: CSSProperties;
 }
 
 export const SlateCodeMirror: React.FC<Props> = React.memo(
@@ -62,6 +66,9 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     options: cmOptions,
     isInline,
     style,
+    addonBefore,
+    addonAfter,
+    wrapperStyle,
   }) => {
     const focused = useFocused();
     const selected = useSelected();
@@ -238,7 +245,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       // Make it so editor height matches text.
       const css: any = {
         height: "auto",
-        padding: "15px",
+        padding: "5px 15px",
       };
       setCSS(css);
       cm.refresh();
@@ -267,22 +274,29 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       cmRef.current?.setValueNoJump(value);
     }, [value]);
 
+    const borderColor = selected
+      ? SELECTED_COLOR
+      : isFocused
+      ? FOCUSED_COLOR
+      : "#cfcfcf";
     return (
       <span
         contentEditable={false}
         style={{
           ...STYLE,
           ...{
-            border: `1px solid ${
-              selected ? SELECTED_COLOR : isFocused ? FOCUSED_COLOR : "#cfcfcf"
-            }`,
+            border: `1px solid ${borderColor}`,
             borderRadius: "8px",
           },
           ...style,
         }}
         className="smc-vfill"
       >
-        <textarea ref={textareaRef} defaultValue={value}></textarea>
+        {addonBefore}
+        <div style={wrapperStyle}>
+          <textarea ref={textareaRef} defaultValue={value}></textarea>
+        </div>
+        {addonAfter}
       </span>
     );
   }

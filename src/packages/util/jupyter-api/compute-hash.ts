@@ -9,5 +9,11 @@ export default function computeHash({
   input: string;
   kernel: string;
 }): string {
-  return sha1(JSON.stringify([history ?? [], input, kernel]));
+  return sha1(
+    JSON.stringify([
+      (history ?? []).map((x) => x.trim()),
+      input.trim(),
+      kernel.toLowerCase().trim(),
+    ])
+  );
 }
