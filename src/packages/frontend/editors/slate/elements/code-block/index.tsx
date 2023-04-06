@@ -39,32 +39,48 @@ const StaticElement: React.FC<RenderElementProps> = ({
   return (
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
       <CodeMirrorStatic
-        addonAfter={
-          <div style={{ position: "relative" }}>
-            <div
-              style={{
-                display: "flex",
-                position: "absolute",
-                right: 0,
-                top: "-3px",
-                zIndex: 1,
-              }}
-            >
-              <ActionButtons
-                input={element.value}
-                history={history}
-                setOutput={setOutput}
-                output={output}
-                info={element.info}
-              />
-            </div>
+        addonBefore={
+          <div
+            style={{
+              borderBottom: "1px solid #ccc",
+              padding: "3px 0",
+              display: "flex",
+              background: "#f8f8f8",
+            }}
+          >
+            <div style={{ flex: 1 }}></div>
+            <ActionButtons
+              input={element.value}
+              history={history}
+              setOutput={setOutput}
+              output={output}
+              info={element.info}
+            />
           </div>
         }
         value={element.value}
-        style={{ background: "white", padding: "15px" }}
+        style={{
+          background: "white",
+          padding: "10px 15px 10px 20px",
+          borderLeft: "5px solid #46b1f6",
+          borderRadius: 0,
+        }}
         options={{ mode: infoToMode(element.info, { value: element.value }) }}
+        addonAfter={
+          output == null ? null : (
+            <div
+              style={{
+                borderTop: "1px dashed #ccc",
+                background: "white",
+                color: "#666",
+                padding: "5px 15px 5px 25px",
+              }}
+            >
+              {output}
+            </div>
+          )
+        }
       />
-      {output}
     </div>
   );
 };

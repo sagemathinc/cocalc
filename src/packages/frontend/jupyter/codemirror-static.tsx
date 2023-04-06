@@ -46,6 +46,7 @@ interface Props {
   set_click_coords?: (pos: { left: number; top: number }) => void;
   style?: React.CSSProperties; // optional style that is merged into BLURRED_STYLE
   no_border?: boolean; // if given, do not draw border around whole thing
+  addonBefore?: ReactNode;
   addonAfter?: ReactNode;
 }
 
@@ -181,14 +182,9 @@ export function CodeMirrorStatic(props: Props) {
   }
   return (
     <div style={divStyle}>
-      {props.addonAfter && (
-        <div style={{ float: "right", position: "relative" }}>
-          <div style={{ position: "absolute", right: 0, top: 0 }}>
-            {props.addonAfter}
-          </div>
-        </div>
-      )}
+      {props.addonBefore}
       {render_code()}
+      {props.addonAfter}
     </div>
   );
 }
