@@ -13,6 +13,10 @@ import { Strategy as GithubStrategy } from "passport-github2";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as TwitterStrategy } from "passport-twitter";
 
+import getLogger from "@cocalc/backend/logger";
+
+const L = getLogger("auth:sso:public-strategies");
+
 // docs for getting these for your app
 // https://developers.google.com/identity/protocols/oauth2/openid-connect#appsetup
 // and https://console.developers.google.com/apis/credentials
@@ -22,13 +26,19 @@ import { Strategy as TwitterStrategy } from "passport-twitter";
 // require 'c'; db()
 // db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
 
-// In 2023, we got emails about a deprecated login method, which is very puzzling
+// In 2023, we got emails about a deprecated login method, which is very puzzling.
 // In any case, the "passport-next" variant is a unmaintaned fork of a fork of the original.
-// Here, we switch back to the original, still maintained, library.
-// However, both are 4 years old and didn't get any updates.
-// Setting this env-variable is meant as a quick fix in case things go terribly wrong.
-// If you read this well past that time, feel free to remove the passport-next variant.
-const useNewerGoogle = process.env.COCALC_USE_OLD_GOOGLE_SSO !== "true";
+// Here, we allow to switch to the "main" module, mentioned on the website and still maintained.
+// However, both are 4 years old and didn't get any updates – not sure, though.
+// Setting this env-variable will allow testing the main variant, instead of the one we have.
+// If you read this in the future, we already tested it. Remove the passport-next variant.
+const useMainGoogleSSO = process.env.COCALC_AUTH_GOOGLE_SSO === "oauth20"; // by default, uses old passport-next module
+const googleSSOtype = (
+  useMainGoogleSSO
+    ? "passport-google-oauth20"
+    : "@passport-next/passport-google-oauth2"
+) as any;
+L.info(`Google SSO uses '${googleSSOtype}'`);
 
 // Scope:
 // Enabling "profile" below I think required that I explicitly go to Google Developer Console for the project,
@@ -38,10 +48,8 @@ const useNewerGoogle = process.env.COCALC_USE_OLD_GOOGLE_SSO !== "true";
 // library hid the errors (**WHY**!!?).
 export const GoogleStrategyConf: StrategyConf = {
   name: "google",
-  type: (useNewerGoogle
-    ? "passport-google-oauth20"
-    : "@passport-next/passport-google-oauth2") as any,
-  PassportStrategyConstructor: useNewerGoogle
+  type: googleSSOtype,
+  PassportStrategyConstructor: useMainGoogleSSO
     ? GoogleStrategy
     : GoogleStrategyOld,
   auth_opts: { scope: "openid email profile" },
