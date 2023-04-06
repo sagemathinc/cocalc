@@ -31,38 +31,9 @@ if (DEBUG) {
 
 export const VERSION = "5.3";
 
-import { EventEmitter } from "events";
-import { exists, unlink } from "./async-utils-node";
-import { createMainChannel } from "enchannel-zmq-backend";
-import { Channels, MessageType } from "@nteract/messaging";
-import {
-  merge,
-  copy,
-  deep_copy,
-  original_path,
-  path_split,
-  uuid,
-  len,
-  is_array,
-} from "@cocalc/util/misc";
-import { SyncDB } from "@cocalc/sync/editor/db/sync";
-
-import { key_value_store } from "@cocalc/util/key-value-store";
-
-import { get_blob_store } from "./jupyter-blobs-sqlite";
-import { JUPYTER_MIMETYPES } from "@cocalc/frontend/jupyter/util";
-import {
-  is_likely_iframe,
-  process as iframe_process,
-} from "@cocalc/frontend/jupyter/iframe";
-
-import { remove_redundant_reps } from "@cocalc/frontend/jupyter/import-from-ipynb";
-
-import { retry_until_success } from "@cocalc/util/async-utils";
-import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
-
-import { nbconvert } from "./convert";
+import { callback } from "awaiting";
+import { EventEmitter } from "node:events";
 
 // NOTE: we choose to use node-cleanup instead of the much more
 // popular exit-hook, since node-cleanup actually works for us.
@@ -71,24 +42,45 @@ import { nbconvert } from "./convert";
 import nodeCleanup from "node-cleanup";
 
 import {
-  ExecOpts,
-  KernelInfo,
-  CodeExecutionEmitterInterface,
-} from "@cocalc/frontend/jupyter/project-interface";
-
-import { CodeExecutionEmitter } from "./execute-code";
-
+  process as iframe_process,
+  is_likely_iframe,
+} from "@cocalc/frontend/jupyter/iframe";
+import { remove_redundant_reps } from "@cocalc/frontend/jupyter/import-from-ipynb";
 import { JupyterActions } from "@cocalc/frontend/jupyter/project-actions";
-import { JupyterStore } from "@cocalc/frontend/jupyter/store";
-
-import { JupyterKernelInterface } from "@cocalc/frontend/jupyter/project-interface";
-
 import {
-  launch_jupyter_kernel,
+  CodeExecutionEmitterInterface,
+  ExecOpts,
+  JupyterKernelInterface,
+  KernelInfo,
+} from "@cocalc/frontend/jupyter/project-interface";
+import { JupyterStore } from "@cocalc/frontend/jupyter/store";
+import { JUPYTER_MIMETYPES } from "@cocalc/frontend/jupyter/util";
+import { getLogger } from "@cocalc/project/logger";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
+import { retry_until_success } from "@cocalc/util/async-utils";
+import { key_value_store } from "@cocalc/util/key-value-store";
+import {
+  copy,
+  deep_copy,
+  is_array,
+  len,
+  merge,
+  original_path,
+  path_split,
+  uuid,
+} from "@cocalc/util/misc";
+import { Channels, MessageType } from "@nteract/messaging";
+import { createMainChannel } from "enchannel-zmq-backend";
+import { exists, unlink } from "./async-utils-node";
+import { nbconvert } from "./convert";
+import { CodeExecutionEmitter } from "./execute-code";
+import { get_blob_store } from "./jupyter-blobs-sqlite";
+import { get_kernel_data_by_name } from "./kernel-data";
+import {
   LaunchJupyterOpts,
+  launch_jupyter_kernel,
 } from "./launch_jupyter_kernel";
 
-import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("jupyter");
 
 /*
@@ -225,7 +217,12 @@ export class JupyterKernel
   public channel?: Channels;
   private has_ensured_running: boolean = false;
 
-  constructor(name, _path, _actions, ulimit) {
+  constructor(
+    name: string,
+    _path: string,
+    _actions: JupyterActions | undefined,
+    ulimit: string | undefined
+  ) {
     super();
 
     this.ulimit = ulimit;
@@ -277,7 +274,7 @@ export class JupyterKernel
     return this._state;
   }
 
-  async spawn(spawn_opts?): Promise<void> {
+  async spawn(spawn_opts?: { env?: { [key: string]: string } }): Promise<void> {
     if (this._state === "closed") {
       // game over!
       throw Error("closed");
@@ -300,9 +297,15 @@ export class JupyterKernel
       ulimit: this.ulimit,
     };
 
-    if (this.name.indexOf("sage") == 0) {
-      dbg("setting special environment for sage.* kernels");
-      opts.env = merge(opts.env, SAGE_JUPYTER_ENV);
+    try {
+      const kernelData = await get_kernel_data_by_name(this.name);
+      // This matches "sage", "sage-x.y", and Sage Python3 ("sage -python -m ipykernel")
+      if (kernelData.argv[0].startsWith("sage")) {
+        dbg("setting special environment for Sage kernels");
+        opts.env = merge(opts.env, SAGE_JUPYTER_ENV);
+      }
+    } catch (err) {
+      dbg(`No kernelData available for ${this.name}`);
     }
 
     // Make cocalc default to the colab renderer for cocalc-jupyter, since

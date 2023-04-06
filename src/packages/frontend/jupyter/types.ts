@@ -59,6 +59,19 @@ export interface KernelSpec {
   language: string;
   interrupt_mode: string; // usually "signal"
   env: { [key: string]: string }; // usually {}
-  metadata: object;
+  metadata?: KernelMetadata;
   resource_dir: string;
+  argv: string[]; // comamnd+args, how the kernel will be launched
 }
+
+export type KernelMetadata = {
+  // top level could contain a "cocalc" key, containing special settings understood by cocalc
+  cocalc?: {
+    priority?: number; // level 10 means it is important, on short list of choices, etc. 1 is low priority, for older versions
+    description: string; // Explains what the kernel is, eventually visible to the user
+    url: string; // a link to a website with more info about the kernel
+  } & {
+    // nested string/string key/value dictionary
+    [key: string]: string | Record<string, string>;
+  };
+};

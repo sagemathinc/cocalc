@@ -23,7 +23,7 @@ interface Limits {
 function global_timeout_exceeded(limits: Limits): boolean {
   return (
     limits.timeout_ms != 0 &&
-    new Date().valueOf() - limits.start_time >= limits.timeout_ms
+    Date.now() - limits.start_time >= limits.timeout_ms
   );
 }
 
@@ -42,7 +42,7 @@ export async function jupyter_run_notebook(
     timeout_ms_per_cell: opts.limits?.max_time_per_cell_ms ?? 0,
     max_output: opts.limits?.max_output ?? 0,
     max_output_per_cell: opts.limits?.max_output_per_cell ?? 0,
-    start_time: new Date().valueOf(),
+    start_time: Date.now(),
     total_output: 0,
   };
 
