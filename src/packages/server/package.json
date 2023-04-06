@@ -69,6 +69,7 @@
     "passport-oauth": "^1.0.0",
     "passport-openidconnect": "^0.1.1",
     "passport-orcid": "^0.0.4",
+    "passport-saml": "^3.2.4",
     "passport-twitter": "^1.0.4",
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",

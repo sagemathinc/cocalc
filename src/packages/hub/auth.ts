@@ -35,6 +35,7 @@
 
 import Cookies from "cookies";
 import * as dot from "dot-object";
+import type { NextFunction, Request, Response } from "express";
 import * as express from "express";
 import express_session from "express-session";
 import * as _ from "lodash";
@@ -43,7 +44,6 @@ import passport, { AuthenticateOptions } from "passport";
 import { join as path_join } from "path";
 import { v4 as uuidv4, v4 } from "uuid";
 const safeJsonStringify = require("safe-json-stringify");
-import type { Request, Response, NextFunction } from "express";
 
 import passwordHash, {
   verifyPassword,
@@ -52,12 +52,14 @@ import base_path from "@cocalc/backend/base-path";
 import { loadSSOConf } from "@cocalc/database/postgres/load-sso-conf";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { getLogger } from "@cocalc/hub/logger";
-import { getExtraStrategyConstructor } from "@cocalc/server/auth/sso/extra-strategies";
+import {
+  getExtraStrategyConstructor,
+  getSAMLVariant,
+} from "@cocalc/server/auth/sso/extra-strategies";
 import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-profile-callback";
 import { PassportLogin } from "@cocalc/server/auth/sso/passport-login";
 import {
   InitPassport,
-  isOAuth2,
   PassportLoginOpts,
   PassportManagerOpts,
   PassportStrategyDB,
@@ -65,13 +67,14 @@ import {
   PassportTypes,
   StrategyConf,
   StrategyInstanceOpts,
+  isOAuth2,
 } from "@cocalc/server/auth/sso/types";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import { DNS } from "@cocalc/util/theme";
 import {
-  PassportStrategyFrontend,
   PRIMARY_SSO,
+  PassportStrategyFrontend,
 } from "@cocalc/util/types/passport-types";
 import {
   email_verification_problem,
@@ -414,7 +417,6 @@ export class PassportManager {
         const cachedMS = ms("8 hours");
         return {
           acceptedClockSkewMs: ms("5 minutes"),
-          audience: false, // Starting with version 4, this must be set (a string) or false.
           cacheProvider: getPassportCache(name, cachedMS),
           digestAlgorithm: "sha256", // better than default sha1
           // if "*:persistent" doesn't work, use *:emailAddress
@@ -425,6 +427,11 @@ export class PassportManager {
           signatureAlgorithm: "sha256", // better than default sha1
           validateInResponseTo: true,
           wantAssertionsSigned: true,
+          ...(getSAMLVariant() === "new"
+            ? {
+                audience: false, // Starting with version 4, this must be set (a string) or false.
+              }
+            : undefined),
         };
     }
   }
