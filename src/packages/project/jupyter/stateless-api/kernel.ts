@@ -16,7 +16,7 @@ const POOL_SIZE = 2;
 export default class Kernel {
   private static pools: { [kernelName: string]: Kernel[] } = {};
 
-  private kernel: JupyterKernel;
+  private kernel?: JupyterKernel;
   private tempDir: string;
 
   constructor(private kernelName: string) {
@@ -61,12 +61,15 @@ export default class Kernel {
     this.kernel = createKernel({
       name: this.kernelName,
       path,
-     // ulimit: `-n 1000 -f 10485760 -t 30 -v 3000000`,
+      // ulimit: `-n 1000 -f 10485760 -t 30 -v 3000000`,
     });
     await this.kernel.ensure_running();
   }
 
   async execute(code: string) {
+    if (this.kernel == null) {
+      throw Error("kernel already closed");
+    }
     const limits = {
       timeout_ms: 30000,
       timeout_ms_per_cell: 30000,
@@ -81,16 +84,27 @@ export default class Kernel {
     return cell.outputs;
   }
 
+  async chdir(path: string) {
+    if (this.kernel == null) return;
+    await this.kernel.chdir(path);
+  }
+
   async returnToPool(): Promise<void> {
+    if (this.kernel == null) {
+      throw Error("kernel already closed");
+    }
     const pool = Kernel.getPool(this.kernelName);
     pool.push(this);
   }
 
   async close() {
+    if (this.kernel == null) return;
     try {
       await this.kernel.close();
     } catch (err) {
       log.warn("Error closing kernel", err);
+    } finally {
+      delete this.kernel;
     }
     try {
       await rm(this.tempDir, { force: true, recursive: true });

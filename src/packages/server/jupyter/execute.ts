@@ -10,6 +10,7 @@ import getOneProject from "@cocalc/server/projects/get-one";
 import callProject from "@cocalc/server/projects/call";
 import { jupyter_execute } from "@cocalc/util/message";
 import { isValidUUID } from "@cocalc/util/misc";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 const log = getLogger("jupyter:execute");
 
@@ -34,6 +35,8 @@ interface Options {
   analytics_cookie?: string;
   tag?: string;
   noCache?: boolean;
+  project_id?: string;
+  path?: string;
 }
 
 export async function execute({
@@ -45,6 +48,8 @@ export async function execute({
   history,
   tag,
   noCache,
+  project_id,
+  path,
 }: Options): Promise<object[] | null> {
   // TODO -- await checkForAbuse({ account_id, analytics_cookie });
 
@@ -56,6 +61,8 @@ export async function execute({
     account_id,
     analytics_cookie,
     tag,
+    project_id,
+    path,
   });
 
   // If hash is given, we only check if output is in database, and
@@ -72,7 +79,7 @@ export async function execute({
 
   const start = Date.now();
 
-  const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
+  let { jupyter_account_id, jupyter_api_enabled } = await getConfig();
   if (!jupyter_api_enabled) {
     throw Error("Jupyter API is not enabled on this server.");
   }
@@ -86,7 +93,7 @@ export async function execute({
     throw Error("Jupyter API account_id is not a valid uuid.");
   }
 
-  hash = computeHash({ history, input, kernel });
+  hash = computeHash({ history, input, kernel, project_id, path });
 
   if (!noCache) {
     // Check if we already have this execution history in the database:
@@ -99,8 +106,20 @@ export async function execute({
   }
 
   // Execute the code.
-  const { project_id } = await getOneProject(jupyter_account_id);
-  const mesg = jupyter_execute({ input, history, kernel });
+  if (project_id == null) {
+    project_id = (await getOneProject(jupyter_account_id)).project_id;
+  } else {
+    // both project_id and account_id must be set and account_id must be a collab
+    if (account_id == null) {
+      throw Error("account_id must be specified");
+    }
+    if (!isCollaborator({ project_id, account_id })) {
+      throw Error("permission denied -- user must be collaborator on project");
+    }
+    jupyter_account_id = account_id;
+  }
+
+  const mesg = jupyter_execute({ input, history, kernel, path });
   const resp = await callProject({
     account_id: jupyter_account_id,
     project_id,
@@ -117,6 +136,8 @@ export async function execute({
     output,
     kernel,
     account_id,
+    project_id,
+    path,
     analytics_cookie,
     history,
     tag,
@@ -170,6 +191,8 @@ async function saveResponse({
   output,
   kernel,
   account_id,
+  project_id,
+  path,
   analytics_cookie,
   history,
   tag,
@@ -183,12 +206,14 @@ async function saveResponse({
   }
   try {
     await pool.query(
-      `INSERT INTO jupyter_execute_log(time,input,output,kernel,account_id,analytics_cookie,history,tag,hash,total_time_s) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      `INSERT INTO jupyter_execute_log(time,input,output,kernel,account_id,project_id,path,analytics_cookie,history,tag,hash,total_time_s) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
       [
         input,
         output,
         kernel,
         account_id,
+        project_id,
+        path,
         analytics_cookie,
         history,
         tag,

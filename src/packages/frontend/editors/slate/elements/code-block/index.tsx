@@ -73,7 +73,6 @@ const StaticElement: React.FC<RenderElementProps> = ({
               style={{
                 borderTop: "1px dashed #ccc",
                 background: "white",
-                color: "#666",
                 padding: "5px 0 5px 30px",
               }}
             >

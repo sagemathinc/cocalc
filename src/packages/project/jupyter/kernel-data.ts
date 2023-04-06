@@ -49,3 +49,12 @@ export async function get_kernel_data(): Promise<KernelSpec[]> {
   cache.set("kernel_data", v);
   return v;
 }
+
+export async function getLanguage(kernelName: string): Promise<string> {
+  for (const kernelSpec of await get_kernel_data()) {
+    if (kernelSpec.name == kernelName) {
+      return kernelSpec.language;
+    }
+  }
+  throw Error(`unknown kernel ${kernelName}`);
+}

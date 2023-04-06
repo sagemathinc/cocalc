@@ -3073,6 +3073,7 @@ API(
     kernel: required, // jupyter kernel
     input: required, // input code to execute
     history: undefined, // optional history of this conversation as a list of input strings.  Do not include output
+    path: undefined, // optional path where execution happens
     tag: undefined,
   })
 );

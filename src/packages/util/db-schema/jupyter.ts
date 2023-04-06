@@ -8,6 +8,8 @@ export interface JupyterLogEntry {
   input: string;
   history?: string[];
   output: object[];
+  project_id?: string;
+  path?: string;
   hash: string;
   kernel: string;
   account_id?: string;
@@ -70,6 +72,15 @@ Table({
       type: "string",
       desc: "A string that the client can include that is useful for analytics later",
     },
+    project_id: {
+      desc: "Optional project that is used for this evaluation.",
+      type: "uuid",
+      render: { type: "project_link" },
+    },
+    path: {
+      desc: "Optional path that is used for this evaluation.",
+      type: "string",
+    },
   },
   rules: {
     desc: "Jupyter Kernel Execution Log",
@@ -99,6 +110,8 @@ Table({
           expire: null,
           total_time_s: null,
           analytics_cookie: null,
+          project_id: null,
+          path: null,
         },
       },
     },
