@@ -23,14 +23,17 @@ export default function BannerWithLinks() {
         </A>
         , by{" "}
         <A href="https://www.cambridge.org/core/journals/journal-of-fluid-mechanics/jfm-notebooks">
-          Cambridge University Press's books and journals
+          Cambridge's books and journals
         </A>
-        , and is embedded in{" "}
+        , is embedded in{" "}
         <A href="https://www.yields.io/">
-          Yields.io's risk management platform.
+          Yields.io's risk management platform,
         </A>{" "}
-        There are{" "}
-        <A href="/share/public_paths/page/1">thousands of other ways</A>{" "}
+        and{" "}
+        <A href="/features/openai-chatgpt">
+          features extensive ChatGPT integration
+        </A>
+        . There are <A href="/share/public_paths/page/1">many other ways</A>{" "}
         that <A href="/info/status">people use {siteName}...</A>
       </Paragraph>
     </div>

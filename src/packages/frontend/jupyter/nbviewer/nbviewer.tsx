@@ -66,6 +66,7 @@ export default function NBViewer({
           cmOptions={cmOptions}
           project_id={project_id}
           directory={path ? path_split(path).head : undefined}
+          kernel={kernelspec.name}
         />
       </div>
     </JupyterContext.Provider>

@@ -24,6 +24,7 @@ export type SiteSettingsKeys =
   | "imprint"
   | "policies"
   | "openai_enabled"
+  | "jupyter_api_enabled"
   | "organization_name"
   | "organization_email"
   | "organization_url"
@@ -519,6 +520,13 @@ export const site_settings_conf: SiteSettings = {
   openai_enabled: {
     name: "OpenAI ChatGPT UI",
     desc: "Controls visibility of UI elements related to ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  jupyter_api_enabled: {
+    name: "Jupyter API",
+    desc: "If true, the Jupyter API is enabled. This provides stateless evaluation of Jupyter code, which enables additional functionality.  This requires further configuration below.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

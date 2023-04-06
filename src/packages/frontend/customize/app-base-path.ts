@@ -1,13 +1,7 @@
 function init(): string {
-  if (process.env.CUSTOMIZE) {
-    // This is used by next.js.   In normal static webapp,
-    // setAppBasePath is called in static/src/init-app-base-path.
-    try {
-      const appBasePath = JSON.parse(process.env.CUSTOMIZE)?.appBasePath;
-      if (appBasePath != null) {
-        return appBasePath;
-      }
-    } catch (_) {}
+  if (process.env.BASE_PATH) {
+    // This is used by next.js.
+    return process.env.BASE_PATH;
   }
   if (typeof window != "undefined" && typeof window.location != "undefined") {
     // For static frontend we can determine the base url from the window.location

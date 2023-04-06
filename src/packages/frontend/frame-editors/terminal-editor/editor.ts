@@ -32,24 +32,24 @@ export const terminal = {
     "help",
     "connection_status",
     "guide",
+    "chatgpt",
     /*"reload" */
   ]),
   hide_public: true, // never show this editor option for public view
   clear_info: {
-    text:
-      "Clearing this Terminal terminates a running program, respawns the shell, and cleans up the display buffer.",
+    text: "Clearing this Terminal terminates a running program, respawns the shell, and cleans up the display buffer.",
     confirm: "Yes, clean up!",
   },
   guide_info: {
     title: "Guide",
-    descr: "Show a panel guiding you working with the terminal.",
+    descr: "Tool for creating, testing, and learning about terminal commands.",
   },
 } as EditorDescription;
 
 const commands_guide = {
   short: "Guide",
   name: "Guide",
-  icon: "book",
+  icon: "magic",
   component: CommandsGuide,
   buttons: set(["decrease_font_size", "increase_font_size"]),
 } as EditorDescription;

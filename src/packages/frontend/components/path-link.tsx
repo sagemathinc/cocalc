@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux } from "../app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 import {
   endswith,
   path_split,
@@ -12,6 +12,7 @@ import {
   trunc_middle,
 } from "@cocalc/util/misc";
 import { Tip } from "./tip";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   path: string;
@@ -24,16 +25,16 @@ interface Props {
 }
 
 // Component to attempt opening a cocalc path in a project
-export const PathLink: React.FC<Props> = (props) => {
-  function handle_click(e): void {
-    e.preventDefault();
-    const switch_to = should_open_in_foreground(e);
-    redux.getProjectActions(props.project_id).open_file({
-      path: props.path,
-      foreground: switch_to,
-      foreground_project: switch_to,
-    });
-  }
+export const PathLink: React.FC<Props> = (props: Props) => {
+  const {
+    path,
+    project_id,
+    full = false,
+    trunc,
+    display_name,
+    style = {},
+    link = true,
+  } = props;
 
   function render_link(text): JSX.Element {
     let s;
@@ -52,33 +53,30 @@ export const PathLink: React.FC<Props> = (props) => {
     } else {
       s = text;
     }
-    if (props.link) {
+    if (link) {
       return (
         <a
-          onClick={handle_click}
-          style={{ color: "#777", fontWeight: "bold", ...props.style }}
+          onClick={(e) => handle_log_click(e, path, project_id)}
+          style={{ color: COLORS.GRAY_D, fontWeight: "bold", ...style }}
         >
           {s}
         </a>
       );
     } else {
-      return <span style={props.style}>{s}</span>;
+      return <span style={style}>{s}</span>;
     }
   }
 
-  const name = props.full ? props.path : path_split(props.path).tail;
+  const name = full ? path : path_split(path).tail;
   if (
-    (props.trunc != null && name.length > props.trunc) ||
-    (props.display_name != null && props.display_name !== name)
+    (trunc != null && name.length > trunc) ||
+    (display_name != null && display_name !== name)
   ) {
     let text;
-    if (props.trunc != null) {
-      text = trunc_middle(
-        props.display_name != null ? props.display_name : name,
-        props.trunc
-      );
+    if (trunc != null) {
+      text = trunc_middle(display_name != null ? display_name : name, trunc);
     } else {
-      text = props.display_name != null ? props.display_name : name;
+      text = display_name != null ? display_name : name;
     }
     return (
       <Tip title="" tip={name}>
@@ -90,8 +88,12 @@ export const PathLink: React.FC<Props> = (props) => {
   }
 };
 
-PathLink.defaultProps = {
-  style: {},
-  full: false,
-  link: true,
-};
+export function handle_log_click(e, path, project_id): void {
+  e.preventDefault();
+  const switch_to = should_open_in_foreground(e);
+  redux.getProjectActions(project_id).open_file({
+    path,
+    foreground: switch_to,
+    foreground_project: switch_to,
+  });
+}

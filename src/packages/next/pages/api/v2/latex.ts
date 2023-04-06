@@ -1,7 +1,7 @@
 /*
 Turn latex file contents into a pdf.
 
-You can call this either via GET or POST, but of course POST makes way more sense.
+You must call this via POST.
 The parameters are:
 
 - project_id: *optional* project in which to run latex.  If not given, your most recent project is used, or if you have no projects, one is created.
@@ -35,13 +35,13 @@ to clean up temp file.  We do NOT do this unless the path starts with /tmp.
 
 TODO/WARNING: For some reason on kucalc (so cocalc.com), if the project isn't running you'll
 get an error while it is starting.  If you retry in a few seconds then it works.  On cocalc-docker
-and dev mode it all seems to work fine in terms of starting the project, then using.
+and dev mode it all seems to work fine in terms of starting the project, then using it.
 */
 
 import getAccountId from "lib/account/get-account";
-import { getOneProject } from "./projects/get-one";
+import getOneProject from "@cocalc/server/projects/get-one";
 import { getProject } from "@cocalc/server/projects/control";
-import { callProject } from "./projects/call";
+import callProject from "@cocalc/server/projects/call";
 import getParams from "lib/api/get-params";
 import { path_split } from "@cocalc/util/misc";
 import getCustomize from "@cocalc/server/settings/customize";

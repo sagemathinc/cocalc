@@ -19,17 +19,20 @@
 
 import * as path from "path";
 import * as fs from "fs";
-import { promisify } from "util";
 import * as uuid from "uuid";
 
 import { findAll } from "kernelspecs";
 import * as jupyter_paths from "jupyter-paths";
 
-import { getPorts as getPortsOrig } from "portfinder";
-const get_ports = promisify(getPortsOrig);
+import getPorts from "./get-ports";
 import { writeFile } from "jsonfile";
-import execa from "execa";
 import mkdirp from "mkdirp";
+import shellEscape from "shell-escape";
+
+// This is temporary hack to import the latest execa, which is only
+// available as an ES Module now.  We will of course eventually switch
+// to using esm modules instead of commonjs, but that's a big project.
+import { dynamicImport } from "tsimportlib";
 
 // this is passed to "execa", there are more options
 // https://github.com/sindresorhus/execa#options
@@ -49,6 +52,10 @@ export interface LaunchJupyterOpts {
   reject?: boolean;
   stripFinalNewline?: boolean;
   shell?: boolean | string; // default false
+  // command line options for ulimit.  You can launch a kernel
+  // but with these options set.  Note that this uses the shell
+  // to wrap launching the kernel, so it's more complicated.
+  ulimit?: string;
 }
 
 function connection_info(ports) {
@@ -74,7 +81,7 @@ async function write_connection_file(port_options?: {
   host?: string;
 }) {
   const options = { ...DEFAULT_PORT_OPTS, ...port_options };
-  const ports = await get_ports(5, options);
+  const ports = await getPorts(5, options);
 
   // Make sure the kernel runtime dir exists before trying to write the kernel file.
   const runtimeDir = jupyter_paths.runtimeDir();
@@ -105,7 +112,7 @@ const DEFAULT_SPAWN_OPTIONS = {
 // actually launch the kernel.
 // the returning object contains all the configuration information and in particular,
 // `spawn` is the running process started by "execa"
-function launch_kernel_spec(
+async function launch_kernel_spec(
   kernel_spec,
   config,
   connection_file: string,
@@ -123,7 +130,30 @@ function launch_kernel_spec(
     ...spawn_options.env,
   };
 
-  const running_kernel = execa(argv[0], argv.slice(1), full_spawn_options);
+  const { execa, execaCommand } = (await dynamicImport(
+    "execa",
+    module
+  )) as typeof import("execa");
+
+  let running_kernel;
+  if (spawn_options.ulimit) {
+    // Convert the ulimit arguments to a string
+    const ulimitCmd = `ulimit ${spawn_options.ulimit}`;
+
+    // Escape the command and arguments for safe usage in a shell command
+    const escapedCmd = shellEscape(argv);
+
+    // Prepend the ulimit command
+    const bashCmd = `${ulimitCmd} && ${escapedCmd}`;
+
+    // Execute the command with ulimit
+    running_kernel = execaCommand(bashCmd, {
+      ...full_spawn_options,
+      shell: true,
+    });
+  } else {
+    running_kernel = execa(argv[0], argv.slice(1), full_spawn_options);
+  }
 
   if (full_spawn_options.cleanupConnectionFile !== false) {
     running_kernel.on("exit", (_code, _signal) => cleanup(connection_file));

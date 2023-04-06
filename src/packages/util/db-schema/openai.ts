@@ -17,6 +17,7 @@ export interface ChatGPTLogEntry {
   path?: string;
   model?: Model;
   tag?: string; // useful for keeping track of where queries come frome when doing analytics later
+  expire?: Date;
 }
 
 Table({

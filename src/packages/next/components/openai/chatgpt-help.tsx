@@ -7,6 +7,7 @@ import { useCustomize } from "lib/customize";
 import Loading from "components/share/loading";
 import A from "components/misc/A";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
+import { FileContext } from "@cocalc/frontend/lib/file-context";
 
 type State = "input" | "wait";
 
@@ -35,7 +36,7 @@ export default function ChatGPTHelp({
   const [input, setInput] = useState<string>("");
   const [error, setError] = useState<string>("");
   const counterRef = useRef<number>(0);
-  const { siteName } = useCustomize();
+  const { jupyterApiEnabled, siteName } = useCustomize();
 
   const chatgpt = async (value?) => {
     if (value == null) {
@@ -69,70 +70,76 @@ export default function ChatGPTHelp({
   };
 
   return (
-    <div style={style}>
-      <Input.Search
-        size={size}
-        disabled={state == "wait"}
-        onFocus={() => setFocus(true)}
-        onBlur={() => setFocus(false)}
-        placeholder={placeholder ?? `What do you want to do using ${siteName}?`}
-        allowClear
-        enterButton={
-          <>
-            <OpenAIAvatar size={18} backgroundColor="transparent" />
-            {!focus && <> Ask ChatGPT</>}
-          </>
-        }
-        onSearch={chatgpt}
-      />
-      {error && (
-        <Alert
-          style={{ margin: "15px 0" }}
-          type="error"
-          message="Error"
-          showIcon
-          closable
-          onClose={() => setError("")}
-          description={
+    <FileContext.Provider value={{ jupyterApiEnabled }}>
+      <div style={style}>
+        <Input.Search
+          size={size}
+          disabled={state == "wait"}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
+          placeholder={
+            placeholder ?? `What do you want to do using ${siteName}?`
+          }
+          allowClear
+          enterButton={
             <>
-              {error}
-              <hr />
-              OpenAI <A href="https://status.openai.com/">status</A> and{" "}
-              <A href="https://downdetector.com/status/openai/">downdetector</A>
-              .
+              <OpenAIAvatar size={18} backgroundColor="transparent" />
+              {!focus && <> Ask ChatGPT</>}
             </>
           }
+          onSearch={chatgpt}
         />
-      )}
-      {state == "wait" && (
-        <div style={{ textAlign: "center", margin: "15px 0" }}>
-          <OpenAIAvatar size={18} /> ChatGPT is figuring out how to do this
-          using {siteName}...{" "}
-          <Button
-            style={{ float: "right" }}
-            onClick={() => {
-              counterRef.current += 1; // so result of outstanding request is totally ignored
-              setState("input");
-            }}
-          >
-            <Loading delay={0}>Cancel...</Loading>
-          </Button>
-          <ProgressEstimate seconds={30} />
-        </div>
-      )}
-      {output != null && (
-        <Alert
-          type="success"
-          closable
-          onClose={() => setOutput("")}
-          style={{ margin: "15px 0" }}
-          description={
-            <div>
-              <Markdown value={output} />
-            </div>
-          }
-        />
-      )}
-    </div>
+        {error && (
+          <Alert
+            style={{ margin: "15px 0" }}
+            type="error"
+            message="Error"
+            showIcon
+            closable
+            onClose={() => setError("")}
+            description={
+              <>
+                {error}
+                <hr />
+                OpenAI <A href="https://status.openai.com/">status</A> and{" "}
+                <A href="https://downdetector.com/status/openai/">
+                  downdetector
+                </A>
+                .
+              </>
+            }
+          />
+        )}
+        {state == "wait" && (
+          <div style={{ textAlign: "center", margin: "15px 0" }}>
+            <OpenAIAvatar size={18} /> ChatGPT is figuring out how to do this
+            using {siteName}...{" "}
+            <Button
+              style={{ float: "right" }}
+              onClick={() => {
+                counterRef.current += 1; // so result of outstanding request is totally ignored
+                setState("input");
+              }}
+            >
+              <Loading delay={0}>Cancel...</Loading>
+            </Button>
+            <ProgressEstimate seconds={30} />
+          </div>
+        )}
+        {output != null && (
+          <Alert
+            type="success"
+            closable
+            onClose={() => setOutput("")}
+            style={{ margin: "15px 0" }}
+            description={
+              <div>
+                <Markdown value={output} />
+              </div>
+            }
+          />
+        )}
+      </div>
+    </FileContext.Provider>
   );
 }

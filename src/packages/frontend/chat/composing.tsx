@@ -23,7 +23,7 @@ export default function Composing({ projectId, path, accountId, userMap }) {
       // This is indicated elsewhere (at that message).
       continue;
     }
-    if (record.get("active") < cutoff || !record.get("input").trim()) {
+    if (record.get("active") < cutoff || !record.get("input")?.trim()) {
       continue;
     }
     v.push(

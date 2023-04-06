@@ -43,9 +43,12 @@ export default function ChatGPT({ customize }) {
             subtitle={
               <>
                 <div>
-                  <A href={"https://openai.com/"}>{component}</A> is is a large
+                  <A href={"https://openai.com/"}>{component}</A> is a large
                   language model capable of generating human-like responses and
-                  code to various prompts and queries.
+                  code based on various prompts and queries. CoCalc integrates
+                  ChatGPT as a virtual assistant to provide coding help, error
+                  fixing, and code generation, making it easier for users to
+                  work with various programming languages.
                 </div>
               </>
             }
@@ -59,7 +62,7 @@ export default function ChatGPT({ customize }) {
               <>
                 <Title level={2}>Help with coding</Title>
                 <Paragraph>
-                  <li>ChatGPT understands many programming languages.</li>
+                  <li>ChatGPT understands most programming languages.</li>
                   <li>Based on your input, it can generate code for you.</li>
                   <li>
                     It is able to interpret error messages and give suggestions.
@@ -72,9 +75,12 @@ export default function ChatGPT({ customize }) {
               <>
                 <Title level={2}>Virtual assistant</Title>
                 <Paragraph>
-                  <li>ChatGPT can be a virtual assistant for you.</li>
-                  <li>You can ask to interpret code in front of you.</li>
-                  <li>It is able to document code.</li>
+                  <li>
+                    ChatGPT provides virtual assistance, helping you fix bugs,
+                    and understand and write code. It supports all programming
+                    languages and is easy to use with the click of a button.
+                  </li>
+                  <li>You can also ask it to add documentation to code.</li>
                   <li>
                     Complete code based on existing code and an instruction.
                   </li>
@@ -85,7 +91,14 @@ export default function ChatGPT({ customize }) {
 
           <Info.Heading
             description={
-              "There are various places where ChatGPT appears in CoCalc."
+              <>
+                There are various places where ChatGPT appears in CoCalc, as
+                illustrated below and{" "}
+                <A href="https://doc.cocalc.com/chatgpt.html">
+                  explained in the docs
+                </A>
+                .
+              </>
             }
           >
             Integrations of ChatGPT in CoCalc
@@ -94,8 +107,12 @@ export default function ChatGPT({ customize }) {
           <ChatGPTFixError />
 
           <Info
-            title={<>@chatgpt Assistant</>}
-            icon="flash"
+            title={
+              <A href="https://doc.cocalc.com/chatgpt.html#chatgpt-in-chat-rooms-and-side-chat">
+                Mention @chatgpt in any Chatroom in CoCalc
+              </A>
+            }
+            icon="comment"
             image={ChatGptGenerateCode}
             anchor="a-chatgpt-generate"
             alt="ChatGPT generates code in a chatroom"
@@ -133,7 +150,7 @@ export default function ChatGPT({ customize }) {
             narrow
           >
             <Paragraph>
-              ChatGPT can also help you with plain-text source code files. In
+              ChatGPT can also help you with plain text source code files. In
               the example on the left, an empty <Text code>learning.cpp</Text>{" "}
               C++ file is shown. The ChatGPT dialog shows the prompt to generate
               a simple code example:

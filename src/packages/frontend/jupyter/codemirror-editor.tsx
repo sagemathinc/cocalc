@@ -594,6 +594,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       node.parentNode.replaceChild(elt, node);
     }, options0);
 
+    // We explicitly re-add all the extraKeys due to weird precedence.
+    cm.current.addKeyMap(options0.extraKeys);
+
     if (getValueRef != null) {
       getValueRef.current = cm.current.getValue.bind(cm.current);
     }

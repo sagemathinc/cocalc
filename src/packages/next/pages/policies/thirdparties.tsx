@@ -284,6 +284,21 @@ export default function TermsOfService({ customize }) {
                         Data Privacy
                       </A>
                     </li>
+                    <li>
+                      The{" "}
+                      <A href="https://openai.com/policies/api-data-usage-policies">
+                        OpenAI data usage policy
+                      </A>{" "}
+                      says "OpenAI will not use data submitted by customers via
+                      our API to train or improve our models, unless you
+                      explicitly decide to share your data with us for this
+                      purpose." CoCalc does not share the data submitted by
+                      customers via the API with OpenAI to train or improve
+                      their models. Their retention policy is "Any data sent
+                      through the API will be retained for abuse and misuse
+                      monitoring purposes for a maximum of 30 days, after which
+                      it will be deleted (unless otherwise required by law)."
+                    </li>
                   </ul>
                 </li>
               </ul>

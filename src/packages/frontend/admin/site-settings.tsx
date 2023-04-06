@@ -174,6 +174,7 @@ export default function SiteSettings({}) {
     if (editedRef.current == null) return;
     editedRef.current[name] = val;
     change();
+    update();
   }
 
   function onJsonEntryChange(name: string, new_val?: string) {
@@ -480,8 +481,9 @@ function RowEntryInner({
           defaultValue={value}
           visibilityToggle={true}
           disabled={disabled}
-          onChange={(e) => onChangeEntry(name, e.target.value)}
-          onBlur={update}
+          onChange={(e) => 
+            onChangeEntry(name, e.target.value)
+          }
         />
       );
     } else {
@@ -498,7 +500,6 @@ function RowEntryInner({
             defaultValue={value}
             disabled={disabled}
             onChange={(e) => onChangeEntry(name, e.target.value)}
-            onBlur={update}
           />
         );
       } else {
@@ -509,7 +510,6 @@ function RowEntryInner({
             disabled={disabled}
             onChange={(e) => onChangeEntry(name, e.target.value)}
             allowClear={clearable}
-            onBlur={update}
           />
         );
       }

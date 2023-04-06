@@ -125,18 +125,17 @@ export default function ChatGPTGenerateJupyterNotebook({
 
   async function generate() {
     if (spec == null) return;
-    setQuerying(true);
 
     const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
 
     const input = `Explain directly and to the point, how to compute the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename for code.\n\n${prompt}`;
 
     try {
+      setQuerying(true);
       const raw = await webapp_client.openai_client.chatgpt({
         input,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
-        model: "gpt-3.5-turbo",
         tag: "generate-jupyter",
       });
       await writeNotebook(raw);
@@ -327,18 +326,23 @@ export default function ChatGPTGenerateJupyterNotebook({
               disabled={querying}
               options={
                 typeof kernelSpecs == "object"
-                  ? kernelSpecs?.map((spec) => {
-                      return {
-                        display_name: spec.display_name,
-                        label: (
-                          <>
-                            <Logo kernel={spec.name} project_id={project_id} />{" "}
-                            {spec.display_name}
-                          </>
-                        ),
-                        value: spec.name,
-                      };
-                    })
+                  ? kernelSpecs
+                      ?.filter((spec) => !spec?.metadata?.["cocalc"]?.disabled)
+                      .map((spec) => {
+                        return {
+                          display_name: spec.display_name,
+                          label: (
+                            <>
+                              <Logo
+                                kernel={spec.name}
+                                project_id={project_id}
+                              />{" "}
+                              {spec.display_name}
+                            </>
+                          ),
+                          value: spec.name,
+                        };
+                      })
                   : []
               }
               onChange={(value) => {

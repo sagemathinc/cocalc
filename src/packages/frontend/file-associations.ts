@@ -10,6 +10,10 @@ This is mainly used to support editor.coffee, which is legacy.
 
 The **complete** list of extensions --> what edits them is done
 via the newer registration system.
+
+NOTE: Obviously, github etc. has to solve basically the same problem, 
+and they have a similar massive list: https://github.com/blakeembrey/language-map/blob/main/languages.json
+Maybe that could be useful at some point.
 */
 
 import { IconName } from "./components/icon";
