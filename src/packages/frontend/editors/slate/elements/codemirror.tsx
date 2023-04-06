@@ -215,13 +215,16 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         justBlurred.current = true;
         setTimeout(() => {
           justBlurred.current = false;
-        }, 0);
+        }, 1);
         setIsFocused(false);
       });
 
       cm.on("focus", () => {
         setIsFocused(true);
-        setTimeout(() => focusEditor(true), 1);
+        focusEditor(true);
+        if (!justBlurred.current) {
+          setTimeout(() => focusEditor(true), 0);
+        }
       });
 
       cm.on("copy", (_, event) => {

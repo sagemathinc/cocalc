@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Input } from "antd";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { register, RenderElementProps } from "../register";
@@ -10,11 +11,11 @@ import { useSlate } from "../hooks";
 import { SlateCodeMirror } from "../codemirror";
 import { delay } from "awaiting";
 import { useSetElement } from "../set-element";
-import { Input } from "antd";
 import infoToMode from "./info-to-mode";
 import ActionButtons, { RunFunction } from "./action-buttons";
 import { useChange } from "../../use-change";
 import { getHistory } from "./history";
+import InsertBar from "./insert-bar";
 
 function Element({ attributes, children, element }: RenderElementProps) {
   if (element.type != "code_block") {
@@ -42,10 +43,8 @@ function Element({ attributes, children, element }: RenderElementProps) {
 
   return (
     <div {...attributes}>
-      <div
-        contentEditable={false}
-        style={{ textIndent: 0, marginBottom: "1em" }}
-      >
+      <div contentEditable={false} style={{ textIndent: 0 }}>
+        <InsertBar editor={editor} element={element} info={info} above={true} />
         <SlateCodeMirror
           wrapperStyle={{ borderLeft: "5px solid #46b1f6" }}
           options={{ lineWrapping: true }}
@@ -128,7 +127,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
                   borderTop: "1px dashed #ccc",
                   background: "white",
                   color: "#666",
-                  padding: "5px 15px 5px 25px",
+                  padding: "5px 0 5px 25px",
                 }}
               >
                 {output}
@@ -136,6 +135,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
             )
           }
         />
+        <InsertBar editor={editor} element={element} info={info} above={false} />
       </div>
       {children}
     </div>

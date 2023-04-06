@@ -73,7 +73,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
                 borderTop: "1px dashed #ccc",
                 background: "white",
                 color: "#666",
-                padding: "5px 15px 5px 25px",
+                padding: "5px 0 5px 25px",
               }}
             >
               {output}
@@ -85,7 +85,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
   );
 };
 
-function toSlate({ token }) {
+export function toSlate({ token }) {
   // fence =block of code with ``` around it, but not indented.
   let value = token.content;
 

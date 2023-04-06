@@ -147,6 +147,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           noSanitize: true, // TODO: temporary for backward compat for now; will make it user-configurable on a per file basis later.
           MathComponent: KaTeXAndMathJaxV2,
           jupyterApiEnabled,
+          hasOpenAI: redux?.getStore("projects").hasOpenAI(project_id),
         };
         return (
           <FileContext.Provider value={value}>

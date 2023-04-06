@@ -297,6 +297,8 @@ function Output({
       {running && <ProgressEstimate seconds={15} style={{ width: "100%" }} />}
       <div
         style={{
+          maxHeight: "70vh",
+          overflowY: "auto",
           ...style,
           ...(old || running ? { opacity: 0.2 } : undefined),
         }}
