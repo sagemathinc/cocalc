@@ -37,13 +37,25 @@ export default function CellInput({
           <CodeMirrorStatic
             value={value}
             options={cmOptions}
-            addonAfter={
-              <ActionButtons
-                input={value}
-                output={output}
-                setOutput={setOutput}
-                info={`{kernel='${kernel}'}`}
-              />
+            addonBefore={
+              <div style={{ position: "relative" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    position: "absolute",
+                    right: 0,
+                    top: "-3px",
+                    zIndex: 1,
+                  }}
+                >
+                  <ActionButtons
+                    input={value}
+                    output={output}
+                    setOutput={setOutput}
+                    info={`{kernel='${kernel}'}`}
+                  />
+                </div>
+              </div>
             }
           />
           {output}

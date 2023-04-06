@@ -46,7 +46,6 @@ function Element({ attributes, children, element }: RenderElementProps) {
       <div contentEditable={false} style={{ textIndent: 0 }}>
         <InsertBar editor={editor} element={element} info={info} above={true} />
         <SlateCodeMirror
-          wrapperStyle={{ borderLeft: "5px solid #46b1f6" }}
           options={{ lineWrapping: true }}
           value={element.value}
           info={infoToMode(element.info, { value: element.value })}
@@ -127,7 +126,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
                   borderTop: "1px dashed #ccc",
                   background: "white",
                   color: "#666",
-                  padding: "5px 0 5px 25px",
+                  padding: "5px 0 5px 30px",
                 }}
               >
                 {output}
@@ -135,7 +134,12 @@ function Element({ attributes, children, element }: RenderElementProps) {
             )
           }
         />
-        <InsertBar editor={editor} element={element} info={info} above={false} />
+        <InsertBar
+          editor={editor}
+          element={element}
+          info={info}
+          above={false}
+        />
       </div>
       {children}
     </div>

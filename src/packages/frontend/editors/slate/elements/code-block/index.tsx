@@ -11,6 +11,7 @@ import infoToMode from "./info-to-mode";
 import ActionButtons from "./action-buttons";
 import { useChange } from "../../use-change";
 import { getHistory } from "./history";
+import { DARK_GREY_BORDER } from "../../util";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -62,7 +63,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
         style={{
           background: "white",
           padding: "10px 15px 10px 20px",
-          borderLeft: "5px solid #46b1f6",
+          borderLeft: `10px solid ${DARK_GREY_BORDER}`,
           borderRadius: 0,
         }}
         options={{ mode: infoToMode(element.info, { value: element.value }) }}
@@ -73,7 +74,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
                 borderTop: "1px dashed #ccc",
                 background: "white",
                 color: "#666",
-                padding: "5px 0 5px 25px",
+                padding: "5px 0 5px 30px",
               }}
             >
               {output}

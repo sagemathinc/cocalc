@@ -199,13 +199,11 @@ export function padCenter(s: string, n: number): string {
   return s.slice(0, n);
 }
 
-/* This focused color is "Jupyter notebook classic" focused cell green. */
-//export const FOCUSED_COLOR = "#66bb6a";
-
-//export const FOCUSED_COLOR = "#2196f3";
-export const FOCUSED_COLOR = "rgb(126,182,226)";
-
+export const FOCUSED_COLOR = "#7eb6e2";
 export const SELECTED_COLOR = "#1990ff";
+/* This focused color is "Jupyter notebook classic" focused cell green. */
+export const CODE_FOCUSED_COLOR = "#66bb6a";
+export const DARK_GREY_BORDER = "#cfcfcf";
 
 export function string_to_style(style: string): any {
   const obj: any = {};
