@@ -120,7 +120,14 @@ export default function RunButton({
       // but we try to asynchronously get the output from the
       // backend, if available
       (async () => {
-        const kernel = await getKernel({ input, history, info, project_id });
+        let kernel;
+        try {
+          kernel = await getKernel({ input, history, info, project_id });
+        } catch (err) {
+          // could fail, e.g., if user not signed in.  shouldn't be fatal.
+          console.log(err);
+          return;
+        }
         setKernelName(kernel);
         const hash = computeHash({
           input,
@@ -436,7 +443,14 @@ function kernelDisplayName(
 ): string {
   const kernelInfo = getKernelInfoCacheOnly(project_id);
   if (kernelInfo == null) {
-    getKernelInfo(project_id); // refresh cache
+    async () => {
+      try {
+        await getKernelInfo(project_id); // refresh cache
+      } catch (err) {
+        // e.g., if you user isn't signed in and project_id is set, this will fail, but shouldn't be fatal.
+        console.warn(err);
+      }
+    };
     return capitalize(name);
   }
   for (const k of kernelInfo) {
