@@ -63,8 +63,8 @@ function createNodeChangeDirectoryCode(path) {
 }
 
 function createBashChangeDirectoryCommand(path) {
-  const escapedPath = path.replace(/(\W)/g, "\\$1");
-  return `cd "${escapedPath}"`;
+  const escapedPath = path.replace(/(["'$`\\])/g, "\\$1");
+  return `cd '${escapedPath}'`;
 }
 
 /*

@@ -216,9 +216,9 @@ export default function RunButton({
         <>
           <Icon
             name="jupyter"
-            style={{ marginRight: "5px", fontSize: "16px" }}
+            style={{ marginRight: "5px", fontSize: "20px" }}
           />
-          Run this code and show output
+          Run Code using Jupyter
         </>
       }
       content={
@@ -244,26 +244,11 @@ export default function RunButton({
               disabled={disabled}
               onSelect={(name) => {
                 setKernelName(name);
-                run({ forceKernel: name });
+                run({ forceKernel: name, noCache: false });
               }}
               kernel={kernelName}
               project_id={project_id}
             />
-            <Button
-              style={{
-                marginLeft: "5px",
-                flex: 1,
-              }}
-              disabled={disabled}
-              onClick={() => run({ noCache: true })}
-            >
-              <Icon
-                style={running ? { color: "#389e0d" } : undefined}
-                name={running ? "cocalc-ring" : "redo"}
-                spin={running}
-              />
-              {running ? "Running" : "Run (Shift+Enter)"}
-            </Button>
           </div>
           {time && (
             <div
@@ -276,7 +261,16 @@ export default function RunButton({
                 fontSize: "12px",
               }}
             >
-              Last Run: <TimeAgo date={time} />
+              Last Run:{" "}
+              <TimeAgo date={time >= new Date() ? new Date() : time} />
+              <Button type="link" onClick={() => run({ noCache: true })}>
+                <Icon
+                  style={running ? { color: "#389e0d" } : undefined}
+                  name={running ? "cocalc-ring" : "redo"}
+                  spin={running}
+                />
+                Run Now
+              </Button>
             </div>
           )}
         </div>
@@ -290,7 +284,7 @@ export default function RunButton({
           disabled={disabled}
           onClick={() => {
             if (output == null) {
-              run();
+              run({ noCache: false });
             } else {
               setOutput();
             }
