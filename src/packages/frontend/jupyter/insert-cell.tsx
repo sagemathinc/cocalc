@@ -300,6 +300,7 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
             </Paragraph>
             <Paragraph>
               <Input
+                allowClear
                 ref={inputRef}
                 autoFocus
                 disabled={querying}
@@ -320,7 +321,7 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
                 >
                   Generate
                 </Button>
-                <Button onClick={() => setShowChatGPT(false)}>Close</Button>
+                <Button onClick={() => setShowChatGPT(false)}>Cancel</Button>
               </Space>
             </Paragraph>
           </>

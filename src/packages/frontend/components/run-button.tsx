@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Alert, Button, Popover, Select, Tooltip } from "antd";
+import { Alert, Button, Popover, Select, Tooltip, Typography } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
@@ -226,13 +226,26 @@ export default function RunButton({
       }
       content={
         <div>
-          Run {project_id ? "in this project" : "in an isolated sandbox"}
-          {" using "}
-          {kernelName
-            ? "the " + kernelDisplayName(kernelName, project_id)
-            : "a"}{" "}
-          Jupyter kernel. Code in this document with the same kernel and scope
-          is always run in order. Execution time is limited.
+          <Typography.Paragraph
+            ellipsis={{
+              rows: 1,
+              expandable: true,
+              symbol: <strong>more</strong>,
+            }}
+          >
+            Run {project_id ? "" : "in an isolated sandbox"}
+            {" using "}
+            {kernelName ? (
+              <>
+                the <b>{kernelDisplayName(kernelName, project_id)}</b>
+              </>
+            ) : (
+              "a"
+            )}{" "}
+            Jupyter kernel. Cells in this document with the same kernel and
+            scope are automatically run. You don't have to worry about
+            explicitly running earlier cells. Execution time is limited.
+          </Typography.Paragraph>
           <div
             style={{
               width: "100%",
@@ -299,7 +312,7 @@ export default function RunButton({
               running
                 ? "cocalc-ring"
                 : output == null
-                ? "square"
+                ? "step-forward"
                 : "check-square"
             }
             spin={running}

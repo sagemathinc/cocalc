@@ -413,7 +413,7 @@ export default function SiteSettings({}) {
         <Input.Search
           allowClear
           value={filter}
-          style={{ float: "right", width: 400 }}
+          style={{ float: "right", width: "50%", paddingLeft: "5px" }}
           placeholder="Filter Site Settings..."
           onChange={(e) => setFilter(e.target.value)}
         />
@@ -481,9 +481,7 @@ function RowEntryInner({
           defaultValue={value}
           visibilityToggle={true}
           disabled={disabled}
-          onChange={(e) => 
-            onChangeEntry(name, e.target.value)
-          }
+          onChange={(e) => onChangeEntry(name, e.target.value)}
         />
       );
     } else {

@@ -526,7 +526,7 @@ export const site_settings_conf: SiteSettings = {
   },
   jupyter_api_enabled: {
     name: "Jupyter API",
-    desc: "If true, the public Jupyter API is enabled. This provides stateless evaluation of Jupyter code from the landing page and share server by users that may not be signed in.  This requires further configuration below.",
+    desc: "If true, the public Jupyter API is enabled. This provides stateless evaluation of Jupyter code from the landing page and share server by users that may not be signed in.  This requires further configuration of the <i>Jupyter API Account Id</i>.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
