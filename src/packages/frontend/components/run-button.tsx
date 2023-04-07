@@ -23,13 +23,13 @@ import { fromJS } from "immutable";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
+import TimeAgo from "react-timeago";
 //import { file_associations } from "@cocalc/frontend/file-associations";
 
 // Important -- we import init-nbviewer , since otherwise NBViewerCellOutput won't
 // be able to render any mime types until the user opens a Jupyter notebook.
 import NBViewerCellOutput from "@cocalc/frontend/jupyter/nbviewer/cell-output";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
-import { TimeAgo } from "./time-ago";
 
 const cache = new LRU<string, object[]>({
   max: 500,
@@ -147,7 +147,10 @@ export default function RunButton({
     }
   }, [input, history, info]);
 
-  if (!jupyterApiEnabled) return null;
+  if (!jupyterApiEnabled && !project_id) {
+    // run button is not enabled when no project_id given.
+    return null;
+  }
 
   const run = async ({
     noCache,

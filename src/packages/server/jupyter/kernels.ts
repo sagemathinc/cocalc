@@ -48,12 +48,11 @@ export default async function getKernels({
     return cache.get(key)!;
   }
 
-  // TODO -- await checkForAbuse({ account_id, analytics_cookie });
-  const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
-  if (!jupyter_api_enabled) {
-    throw Error("Jupyter API is not enabled on this server.");
-  }
   if (project_id == null) {
+    const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
+    if (!jupyter_api_enabled) {
+      throw Error("Jupyter API is not enabled on this server.");
+    }
     project_id = (await getOneProject(jupyter_account_id)).project_id;
     account_id = jupyter_account_id;
   }

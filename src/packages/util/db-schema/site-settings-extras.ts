@@ -123,7 +123,7 @@ export const EXTRAS: SettingsExtras = {
   },
   jupyter_account_id: {
     name: "Jupyter API Account Id",
-    desc: "account_id of an account on this server that will own projects used for the Jupyter API. Get the account_id of an existing user in the Users section above. This account does NOT have to have any special privileges. This must be a v4 uuid of a cocalc account.",
+    desc: "account_id of an account on this server that will own a pool of projects used for the public facing Jupyter API, if it is enabled.  You can look up the account_id of an existing user in the Users section above. This account does NOT have to have any special privileges.",
     default: "",
     valid: isValidUUID,
     show: jupyter_api_enabled,
