@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Map } from "immutable";
+
 import {
   Button,
   ButtonToolbar,
@@ -12,15 +14,14 @@ import {
 } from "@cocalc/frontend/antd-bootstrap";
 import {
   Component,
-  rclass,
   ReactDOM,
-  redux,
   Rendered,
+  rclass,
+  redux,
   rtypes,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Title } from "@cocalc/frontend/components";
 import { plural } from "@cocalc/util/misc";
-import { Map } from "immutable";
 
 interface Props {
   notifications?: Map<string, any>;

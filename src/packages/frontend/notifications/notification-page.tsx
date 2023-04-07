@@ -7,9 +7,9 @@ import { Col, Row } from "antd";
 import React from "react";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { A, Paragraph, Title } from "@cocalc/frontend/components";
+import { A, Icon, Paragraph, Title } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
-import { MentionFilter } from "./mentions/types";
+import { NotificationFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
 import { NotificationNav } from "./notification-nav";
 
@@ -30,7 +30,7 @@ const INNER_STYLE: CSS = {
   flexDirection: "column",
   margin: "0px auto",
   padding: "0 10px",
-  maxWidth: "800px",
+  maxWidth: "1200px",
   overflow: "hidden",
 } as const;
 
@@ -66,8 +66,9 @@ const LIST_STYLE: CSS = {
 export const NotificationPage: React.FC<{}> = () => {
   const account_id = useTypedRedux("account", "account_id");
   const mentions = useTypedRedux("mentions", "mentions");
+  const news = useTypedRedux("news", "news");
   const user_map = useTypedRedux("users", "user_map");
-  const filter: MentionFilter = useTypedRedux("mentions", "filter");
+  const filter: NotificationFilter = useTypedRedux("mentions", "filter");
 
   if (filter == null || account_id == null) {
     return <div />;
@@ -83,8 +84,8 @@ export const NotificationPage: React.FC<{}> = () => {
         }}
         style={{ color: COLORS.GRAY_D, flex: "0 0 auto" }}
       >
-        Someone used @your_name to explicitly mention you as a collaborator.
-        This could have happened in a{" "}
+        Global news or someone used @your_name to explicitly mention you as a
+        collaborator. This could have happened in a{" "}
         <A href="https://doc.cocalc.com/chat.html">Chatroom</A>, in the context
         of{" "}
         <A href="https://doc.cocalc.com/teaching-interactions.html#mention-collaborators-in-chat">
@@ -118,6 +119,7 @@ export const NotificationPage: React.FC<{}> = () => {
           <NotificationList
             account_id={account_id}
             mentions={mentions}
+            news={news}
             style={LIST_STYLE}
             user_map={user_map}
             filter={filter}
@@ -131,7 +133,7 @@ export const NotificationPage: React.FC<{}> = () => {
     <div style={OUTER_STYLE}>
       <div style={INNER_STYLE}>
         <Title level={2} style={{ textAlign: "center", flex: "0 0 auto" }}>
-          Mentions of You
+          <Icon name="mail" /> Notifications
         </Title>
         {renderExplanation()}
         {renderContent()}

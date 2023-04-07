@@ -4,19 +4,20 @@
  */
 
 import { fromJS } from "immutable";
-import { Actions } from "../app-framework/Actions";
-import { webapp_client } from "../webapp-client";
-import { alert_message } from "../alerts";
-import { show_announce_start, show_announce_end } from "./dates";
-import { AccountState } from "./types";
-import { AccountClient } from "../client/account";
-import { encode_path } from "@cocalc/util/misc";
-import { define, required } from "@cocalc/util/fill";
-import { set_url } from "../history";
-import { track_conversion } from "../misc";
 import { join } from "path";
-import { deleteRememberMe } from "@cocalc/frontend/misc/remember-me";
+
+import { alert_message } from "@cocalc/frontend/alerts";
+import { Actions } from "@cocalc/frontend/app-framework/Actions";
+import { AccountClient } from "@cocalc/frontend/client/account";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { set_url } from "@cocalc/frontend/history";
+import { track_conversion } from "@cocalc/frontend/misc";
+import { deleteRememberMe } from "@cocalc/frontend/misc/remember-me";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { define, required } from "@cocalc/util/fill";
+import { encode_path } from "@cocalc/util/misc";
+import { show_announce_end, show_announce_start } from "./dates";
+import { AccountState } from "./types";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
@@ -29,6 +30,11 @@ export class AccountActions extends Actions<AccountState> {
 
   private help(): string {
     return this.redux.getStore("customize").get("help_email");
+  }
+
+  public markNewsRead(): void {
+    const now: Date = webapp_client.time_client.server_time();
+    this.setState({ newsReadUntil: Math.floor(now.getTime() / 1000) });
   }
 
   derive_show_global_info(store): void {

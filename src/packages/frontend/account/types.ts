@@ -81,4 +81,5 @@ export interface AccountState {
   autosave?: number;
   show_purchase_form?: boolean;
   tableError?: TypedMap<{ error: string; query: any }>;
+  newsReadUntil?: number; // unix epoch timestamp in seconds until when user has read all news items
 }

@@ -42,24 +42,26 @@ Table({
   rules: {
     primary_key: "id",
     pg_indexes: ["date"],
-
     anonymous: true, // allow users read access, even if not signed in
     user_query: {
       get: {
-        pg_where: ["date >= NOW() - INTERVAL '3 month'", "hide IS NOT TRUE"],
-        options: [{ order_by: "-date" }],
-        pg_changefeed: "one-hour",
-        throttle_changes: 60000,
+        pg_where: [
+          "date >= NOW() - INTERVAL '3 months'",
+          "date <= NOW()",
+          "hide != true",
+        ],
+        pg_changefeed: "news",
+        options: [{ order_by: "-date" }, { limit: 100 }],
+        throttle_changes: 60 * 1000,
         fields: {
+          // we only send title, and a link to open the news item
           id: null,
           date: null,
-          text: null,
           title: null,
-          url: null,
           channel: null,
         },
       },
-      // set via v2 API
+      // no set, all done via v2 API
     },
   },
 });

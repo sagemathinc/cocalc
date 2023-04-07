@@ -22,6 +22,13 @@ export interface NewsType {
   };
 }
 
+export interface NewTypeWebapp {
+  id: string;
+  date: Date;
+  title: string;
+  channel: Channel;
+}
+
 export const CHANNELS = [
   "news",
   "announcement",

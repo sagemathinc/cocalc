@@ -1385,6 +1385,17 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             tracker.removeListener("remove_user_from_project-#{account_id}", tracker_remove)
 
 
+                else if pg_changefeed == 'news'
+                    pg_changefeed = ->
+                        where : (obj) ->
+                            if obj.hide == true
+                                return false
+                            if obj.date?
+                                return new Date(obj.date) >= misc.months_ago(3)
+                            else
+                                return true
+                        select : {id: 'SERIAL UNIQUE'}
+
                 else if pg_changefeed == 'one-hour'
                     pg_changefeed = ->
                         where : (obj) ->

@@ -18,6 +18,9 @@ import { redux } from "./app-framework";
 // Systemwide notifications that are broadcast to all users (and set by admins)
 import "./system-notifications";
 
+// News about the platform, features, etc. – also shown at https://$DNS/news
+import "./notifications/news/init";
+
 import "./launch/actions";
 
 // Various jquery plugins:
