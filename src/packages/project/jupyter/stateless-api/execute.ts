@@ -7,7 +7,7 @@ export default async function jupyterExecute(socket, mesg) {
   log.debug(mesg);
   let kernel: undefined | Kernel = undefined;
   try {
-    kernel = await Kernel.getFromPool(mesg.kernel);
+    kernel = await Kernel.getFromPool(mesg.kernel, mesg.pool);
     const outputs: object[] = [];
 
     if (mesg.path != null) {
@@ -22,13 +22,12 @@ export default async function jupyterExecute(socket, mesg) {
 
     if (mesg.history != null && mesg.history.length > 0) {
       // just execute this directly, since we will ignore the output
-      // TODO: enforce a timeout
       log.debug("evaluating history");
-      await kernel.execute(mesg.history.join("\n"));
+      await kernel.execute(mesg.history.join("\n"), mesg.limits);
     }
 
     // append the output of running mesg.input to outputs:
-    for (const output of await kernel.execute(mesg.input)) {
+    for (const output of await kernel.execute(mesg.input, mesg.limits)) {
       outputs.push(output);
     }
     socket.write_mesg(

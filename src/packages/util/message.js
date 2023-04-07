@@ -3077,6 +3077,8 @@ API(
     project_id: undefined, // project it should run in.
     path: undefined, // optional path where execution happens
     tag: undefined,
+    pool: undefined, // {size?: number; timeout_s?: number;}
+    limits: undefined, // see packages/project/nbgrader/jupyter-run.ts
   })
 );
 

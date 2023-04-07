@@ -25,6 +25,28 @@ async function getConfig() {
   };
 }
 
+const GLOBAL_LIMITS = {
+  timeout_ms: 30000,
+  timeout_ms_per_cell: 15000,
+  max_output: 2500000,
+  max_output_per_cell: 500000,
+};
+
+// For now we use a pool size of 4 in our general project(s), with a 2 hour idle timeout.
+// This will be configurable via admin settings.
+const GLOBAL_POOL = { size: 4, timeout_s: 2 * 3600 };
+
+const PROJECT_LIMITS = {
+  timeout_ms: 45000,
+  timeout_ms_per_cell: 30000,
+  max_output: 5000000,
+  max_output_per_cell: 1000000,
+};
+
+// For now, we use a pool size of 2 in user's projects, to avoid using
+// too much memory.
+const PROJECT_POOL = { size: 2, timeout_s: 900 };
+
 interface Options {
   input?: string; // new input that user types
   kernel?: string;
@@ -94,7 +116,7 @@ export async function execute({
   }
 
   // Execute the code.
-  let request_account_id, request_project_id;
+  let request_account_id, request_project_id, pool, limits;
   if (project_id == null) {
     const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
     if (!jupyter_api_enabled) {
@@ -114,6 +136,8 @@ export async function execute({
     // we only worry about abuse against the general public pool, not when used in a user's own project
     await checkForAbuse({ account_id, analytics_cookie });
     request_project_id = (await getOneProject(jupyter_account_id)).project_id;
+    pool = GLOBAL_POOL;
+    limits = GLOBAL_LIMITS;
   } else {
     request_project_id = project_id;
     // both project_id and account_id must be set and account_id must be a collab
@@ -124,9 +148,18 @@ export async function execute({
       throw Error("permission denied -- user must be collaborator on project");
     }
     request_account_id = account_id;
+    pool = PROJECT_POOL;
+    limits = PROJECT_LIMITS;
   }
 
-  const mesg = jupyter_execute({ input, history, kernel, path });
+  const mesg = jupyter_execute({
+    input,
+    history,
+    kernel,
+    path,
+    pool,
+    limits,
+  });
   const resp = await callProject({
     account_id: request_account_id,
     project_id: request_project_id,
