@@ -24,7 +24,6 @@ import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 import TimeAgo from "react-timeago";
-//import { file_associations } from "@cocalc/frontend/file-associations";
 
 // Important -- we import init-nbviewer , since otherwise NBViewerCellOutput won't
 // be able to render any mime types until the user opens a Jupyter notebook.
@@ -67,8 +66,8 @@ export default function RunButton({
   const [running, setRunning] = useState<boolean>(false);
   const outputMessagesRef = useRef<object[] | null>(null);
 
-  // when the computation was last run.
-  const [time, setTime] = useState<Date | null | undefined>(null);
+  // when the computation happened.
+  const [created, setCreated] = useState<Date | null | undefined>(null);
 
   const setOutput = ({
     messages = null,
@@ -130,7 +129,7 @@ export default function RunButton({
           project_id,
           path,
         });
-        const { output: messages, time } = await getFromDatabaseCache(hash);
+        const { output: messages, created } = await getFromDatabaseCache(hash);
         if (messages != null) {
           saveToCache({
             input,
@@ -141,7 +140,7 @@ export default function RunButton({
             path,
           });
           setOutput({ messages });
-          setTime(time);
+          setCreated(created);
         }
       })();
     }
@@ -190,7 +189,7 @@ export default function RunButton({
       }
       if (resp.output != null) {
         setOutput({ messages: resp.output });
-        setTime(resp.time);
+        setCreated(resp.created);
         saveToCache({
           input,
           history,
@@ -213,6 +212,7 @@ export default function RunButton({
   const disabled = !input?.trim() || running;
   return (
     <Popover
+      open={running ? false : undefined}
       trigger="hover"
       overlayInnerStyle={{ width: "400px" }}
       title={
@@ -266,7 +266,7 @@ export default function RunButton({
               project_id={project_id}
             />
           </div>
-          {time && (
+          {created && (
             <div
               style={{
                 textAlign: "right",
@@ -278,7 +278,7 @@ export default function RunButton({
               }}
             >
               Last Run:{" "}
-              <TimeAgo date={time >= new Date() ? new Date() : time} />
+              <TimeAgo date={created >= new Date() ? new Date() : created} />
               <Button type="link" onClick={() => run({ noCache: true })}>
                 <Icon
                   style={running ? { color: "#389e0d" } : undefined}
@@ -536,7 +536,7 @@ function KernelSelector({
 
 async function getFromDatabaseCache(hash: string): Promise<{
   output?: object[];
-  time?: Date;
+  created?: Date;
 }> {
   const resp = await (
     await fetch(join(appBasePath, "api/v2/jupyter/execute"), {

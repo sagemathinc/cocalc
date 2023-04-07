@@ -13,9 +13,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import checkForAbuse from "./abuse";
 
-const log = getLogger("jupyter:execute");
-
-//const EXPIRE = "3 months";
+const log = getLogger("jupyter-api:execute");
 
 async function getConfig() {
   log.debug("get config");
@@ -53,8 +51,7 @@ export async function execute({
   path,
 }: Options): Promise<{
   output: object[];
-  time: Date;
-  total_time_s: number;
+  created: Date;
 } | null> {
   // TODO -- await checkForAbuse({ account_id, analytics_cookie });
 
@@ -72,7 +69,7 @@ export async function execute({
 
   // If hash is given, we only check if output is in database, and
   // if so return it.  Otherwise, return nothing.
-  if (hash != null) {
+  if (hash != null && !noCache) {
     return await getFromDatabase(hash);
   }
   if (input == null) {
@@ -82,7 +79,7 @@ export async function execute({
     throw Error("kernel must be specified in hash is not specified");
   }
 
-  const time = new Date();
+  const created = new Date();
 
   hash = computeHash({ history, input, kernel, project_id, path });
 
@@ -97,7 +94,7 @@ export async function execute({
   }
 
   // Execute the code.
-  let request_account_id;
+  let request_account_id, request_project_id;
   if (project_id == null) {
     const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
     if (!jupyter_api_enabled) {
@@ -116,8 +113,9 @@ export async function execute({
 
     // we only worry about abuse against the general public pool, not when used in a user's own project
     await checkForAbuse({ account_id, analytics_cookie });
-    project_id = (await getOneProject(jupyter_account_id)).project_id;
+    request_project_id = (await getOneProject(jupyter_account_id)).project_id;
   } else {
+    request_project_id = project_id;
     // both project_id and account_id must be set and account_id must be a collab
     if (account_id == null) {
       throw Error("account_id must be specified");
@@ -131,7 +129,7 @@ export async function execute({
   const mesg = jupyter_execute({ input, history, kernel, path });
   const resp = await callProject({
     account_id: request_account_id,
-    project_id,
+    project_id: request_project_id,
     mesg,
   });
   if (resp.error) {
@@ -139,9 +137,9 @@ export async function execute({
   }
   const { output } = resp;
   log.debug("output", output);
-  const total_time_s = (Date.now() - time.valueOf()) / 1000;
+  const total_time_s = (Date.now() - created.valueOf()) / 1000;
   saveResponse({
-    time,
+    created,
     input,
     output,
     kernel,
@@ -155,22 +153,33 @@ export async function execute({
     hash,
     noCache,
   });
-  return { output, time, total_time_s };
+  return { output, created };
 }
 
 // We just assume that hash conflicts don't happen for our purposes here.  It's a cryptographic hash function.
 async function getFromDatabase(
   hash: string
-): Promise<{ output: object[]; time: Date; total_time_s: number } | null> {
+): Promise<{ output: object[]; created: Date } | null> {
   const pool = getPool();
   try {
     const { rows } = await pool.query(
-      `SELECT output, time, total_time_s FROM jupyter_execute_log WHERE hash=$1`,
+      `SELECT id, output, created FROM jupyter_api_cache WHERE hash=$1`,
       [hash]
     );
     if (rows.length == 0) {
       return null;
     }
+    // cache hit -- we also update last_active (nonblocking, nonfatal)
+    (async () => {
+      try {
+        await pool.query(
+          "UPDATE jupyter_api_cache SET last_active=NOW() WHERE id=$1",
+          [rows[0].id]
+        );
+      } catch (err) {
+        log.warn("Failed updating cache last_active", err);
+      }
+    })();
     return rows[0];
   } catch (err) {
     log.warn("Failed to query database cache", err);
@@ -178,24 +187,11 @@ async function getFromDatabase(
   }
 }
 
-/*
-async function updateExpire(pool, id: number) {
-  try {
-    await pool.query(
-      `UPDATE jupyter_execute_log SET expire=NOW()+INTERVAL '${EXPIRE}' WHERE id=$1`,
-      [id]
-    );
-  } catch (err) {
-    log.warn("error updating expire ", id, err);
-  }
-}
-*/
-
 // Save mainly for analytics, metering, and to generally see how (or if)
 // people use chatgpt in cocalc.
 // Also, we could dedup identical inputs (?).
 async function saveResponse({
-  time,
+  created,
   input,
   output,
   kernel,
@@ -211,26 +207,31 @@ async function saveResponse({
 }) {
   const pool = getPool();
   if (noCache) {
-    await pool.query("DELETE FROM jupyter_execute_log WHERE hash=$1", [hash]);
+    await pool.query("DELETE FROM jupyter_api_cache WHERE hash=$1", [hash]);
   }
   try {
-    await pool.query(
-      `INSERT INTO jupyter_execute_log(time,input,output,kernel,account_id,project_id,path,analytics_cookie,history,tag,hash,total_time_s) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-      [
-        time,
-        input,
-        output,
-        kernel,
-        account_id,
-        project_id,
-        path,
-        analytics_cookie,
-        history,
-        tag,
-        hash,
-        total_time_s,
-      ]
-    );
+    await Promise.all([
+      pool.query(
+        `INSERT INTO jupyter_api_log(created,account_id,project_id,path,analytics_cookie,tag,hash,total_time_s,kernel,history,input) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [
+          created,
+          account_id,
+          project_id,
+          path,
+          analytics_cookie,
+          tag,
+          hash,
+          total_time_s,
+          kernel,
+          history,
+          input,
+        ]
+      ),
+      pool.query(
+        `INSERT INTO jupyter_api_cache(created,hash,output,last_active) VALUES($1,$2,$3,$4)`,
+        [created, hash, output, created]
+      ),
+    ]);
   } catch (err) {
     log.warn("Failed to save Jupyter execute log entry to database:", err);
   }

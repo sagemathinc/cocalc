@@ -15,7 +15,7 @@ const cache = new LRU<string, object[]>({
   max: 300,
 });
 
-const log = getLogger("jupyter:execute");
+const log = getLogger("jupyter-api:kernels");
 
 async function getConfig() {
   log.debug("get config");
