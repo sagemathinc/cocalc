@@ -1,18 +1,17 @@
-// import { useFileContext } from "@cocalc/frontend/lib/file-context";
-//import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Button, Space } from "antd";
+import { Button } from "antd";
 import { Node, Path, Transforms } from "slate";
 import { findElement } from "../../control";
 import { toSlate } from "./index";
 import { ReactEditor } from "../../slate-react";
+import { toDisplayMath } from "../math/index";
 
-function SmallButton({ children, onClick }) {
+function InsertButton({ children, onClick }) {
   return (
     <Button
       type="link"
-      size="small"
-      style={{ fontSize: "11px" }}
       onClick={(e) => {
         e.stopPropagation(); // keep the editor with the insert bar itself from getting selected
         e.preventDefault();
@@ -25,7 +24,7 @@ function SmallButton({ children, onClick }) {
 }
 
 export default function InsertBar({ editor, element, info, above }) {
-  //const { hasOpenAI } = useFileContext();
+  const { hasOpenAI } = useFileContext();
 
   const insert = (node: Node, offset = 0) => {
     let path = findElement(editor, element);
@@ -50,21 +49,21 @@ export default function InsertBar({ editor, element, info, above }) {
     <div
       className="cocalc-slate-insert-cell"
       style={{
-        height: "1em",
+        height: "1.5em",
         cursor: "pointer",
         paddingTop: "1.5px",
       }}
     >
       <div className="cocalc-slate-insert-cell-controls">
-        <Space size="large">
-          <SmallButton
+        <div style={{ display: "flex" }}>
+          <InsertButton
             onClick={() => {
               insert(toSlate({ token: { content: "", info, type: "fence" } }));
             }}
           >
             <Icon name="code" /> Code
-          </SmallButton>
-          <SmallButton
+          </InsertButton>
+          <InsertButton
             onClick={() => {
               insert(
                 {
@@ -76,22 +75,33 @@ export default function InsertBar({ editor, element, info, above }) {
             }}
           >
             <Icon name="pen" /> Text
-          </SmallButton>
-          {/*<SmallButton>
-            <Icon name="paste" /> Paste
-          </SmallButton>
+          </InsertButton>
+          <InsertButton
+            onClick={() => {
+              insert(toDisplayMath({ token: { content: "x" } }));
+            }}
+          >
+            <Icon name="superscript" /> Math
+          </InsertButton>
           {hasOpenAI ? (
-            <SmallButton>
+            <InsertButton
+              onClick={() => {
+                console.log("TODO!");
+              }}
+            >
               <OpenAIAvatar
-                size={12}
+                size={16}
                 style={{ marginRight: "5px" }}
-                innerStyle={{ top: "2px" }}
+                innerStyle={{ top: "1.5px" }}
               />{" "}
               ChatGPT
-            </SmallButton>
+            </InsertButton>
           ) : undefined}
+          {/*<InsertButton>
+            <Icon name="paste" /> Paste
+          </InsertButton>
           */}
-        </Space>
+        </div>
       </div>
     </div>
   );

@@ -42,18 +42,16 @@ async function doIt(req) {
     });
   const account_id = await getAccountId(req);
   const analytics_cookie = req.cookies[analytics_cookie_name];
-  return {
-    output: await execute({
-      account_id,
-      project_id,
-      path,
-      analytics_cookie,
-      input,
-      hash,
-      history,
-      kernel,
-      tag,
-      noCache,
-    }),
-  };
+  return await execute({
+    account_id,
+    project_id,
+    path,
+    analytics_cookie,
+    input,
+    hash,
+    history,
+    kernel,
+    tag,
+    noCache,
+  });
 }

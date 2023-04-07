@@ -15,3 +15,20 @@ export function getHistory(editor, element): string[] {
   }
   return history;
 }
+
+export function isPreviousSiblingCodeBlock(editor, element): boolean {
+  if (editor == null) return false;
+  let foundElement = false;
+  for (let i = 0; i < editor.children.length; i++) {
+    const elt = editor.children[i];
+    if (elt === element) {
+      foundElement = true;
+      if (i > 0 && editor.children[i - 1].type === "code_block") {
+        return true;
+      }
+    } else if (foundElement) {
+      break;
+    }
+  }
+  return false;
+}

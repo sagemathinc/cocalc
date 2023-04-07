@@ -29,6 +29,7 @@ import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-
 // be able to render any mime types until the user opens a Jupyter notebook.
 import NBViewerCellOutput from "@cocalc/frontend/jupyter/nbviewer/cell-output";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
+import { TimeAgo } from "./time-ago";
 
 const cache = new LRU<string, object[]>({
   max: 500,
@@ -65,6 +66,9 @@ export default function RunButton({
   const path = project_id && filename ? path_split(filename).head : undefined;
   const [running, setRunning] = useState<boolean>(false);
   const outputMessagesRef = useRef<object[] | null>(null);
+
+  // when the computation was last run.
+  const [time, setTime] = useState<Date | null | undefined>(null);
 
   const setOutput = ({
     messages = null,
@@ -126,7 +130,7 @@ export default function RunButton({
           project_id,
           path,
         });
-        const messages = await getFromDatabaseCache(hash);
+        const { output: messages, time } = await getFromDatabaseCache(hash);
         if (messages != null) {
           saveToCache({
             input,
@@ -137,6 +141,7 @@ export default function RunButton({
             path,
           });
           setOutput({ messages });
+          setTime(time);
         }
       })();
     }
@@ -182,6 +187,7 @@ export default function RunButton({
       }
       if (resp.output != null) {
         setOutput({ messages: resp.output });
+        setTime(resp.time);
         saveToCache({
           input,
           history,
@@ -217,13 +223,13 @@ export default function RunButton({
       }
       content={
         <div>
-          Code runs {project_id ? "in this project" : "in an isolated sandbox"}
+          Run {project_id ? "in this project" : "in an isolated sandbox"}
           {" using "}
           {kernelName
             ? "the " + kernelDisplayName(kernelName, project_id)
             : "a"}{" "}
-          Jupyter kernel. All code in this document with the same kernel and
-          scope is always run in order. Execution time is limited.
+          Jupyter kernel. Code in this document with the same kernel and scope
+          is always run in order. Execution time is limited.
           <div
             style={{
               width: "100%",
@@ -259,6 +265,20 @@ export default function RunButton({
               {running ? "Running" : "Run (Shift+Enter)"}
             </Button>
           </div>
+          {time && (
+            <div
+              style={{
+                textAlign: "right",
+                borderTop: "1px dashed #ddd",
+                marginTop: "5px",
+                paddingTop: "5px",
+                color: "#666",
+                fontSize: "12px",
+              }}
+            >
+              Last Run: <TimeAgo date={time} />
+            </div>
+          )}
         </div>
       }
     >
@@ -327,7 +347,7 @@ function Output({
       <div
         style={{
           color: "#444",
-          maxHeight: "70vh",
+          maxHeight: "35vh",
           overflowY: "auto",
           ...style,
           ...(old || running ? { opacity: 0.2 } : undefined),
@@ -361,42 +381,55 @@ function saveToCache({ input, history, info, output, project_id, path }) {
   cache.set(key, output);
 }
 
-let kernelInfoCache: null | KernelSpec[] = null;
+const kernelInfoCache = new LRU<string, KernelSpec[]>({
+  ttl: 30000,
+  max: 50,
+});
+function kernelInfoCacheKey(project_id: string | undefined) {
+  return project_id ?? "global";
+}
+function getKernelInfoCacheOnly(project_id: string | undefined) {
+  return kernelInfoCache.get(kernelInfoCacheKey(project_id));
+}
 async function getKernelInfo(
   project_id: string | undefined
 ): Promise<KernelSpec[]> {
-  if (kernelInfoCache == null) {
-    // for now, only get this once since highly unlikely to change during a session.  TODO...
-    const url = join(appBasePath, "api/v2/jupyter/kernels");
-    kernelInfoCache = (
-      await (
-        await fetch(url, {
-          method: project_id ? "POST" : "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          ...(project_id // can't pass body at all to GET!
-            ? { body: JSON.stringify({ project_id }) }
-            : undefined),
-        })
-      ).json()
-    ).kernels;
+  const key = kernelInfoCacheKey(project_id);
+  let specs = kernelInfoCache.get(key);
+  if (specs != null) return specs;
+  const url = join(appBasePath, "api/v2/jupyter/kernels");
+  const resp = await (
+    await fetch(url, {
+      method: project_id ? "POST" : "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      ...(project_id // can't pass body at all to GET!
+        ? { body: JSON.stringify({ project_id }) }
+        : undefined),
+    })
+  ).json();
+  if (resp.error) {
+    throw Error(resp.error);
   }
-  if (kernelInfoCache == null) {
-    throw Error("unable to determine the available Jupyter kernels");
+  specs = resp.kernels;
+  if (specs == null) {
+    throw Error("bug");
   }
-  return kernelInfoCache;
+  kernelInfoCache.set(key, specs);
+  return specs;
 }
 
 function kernelDisplayName(
   name: string,
   project_id: string | undefined
 ): string {
-  if (kernelInfoCache == null) {
-    getKernelInfo(project_id); // launch it.
+  const kernelInfo = getKernelInfoCacheOnly(project_id);
+  if (kernelInfo == null) {
+    getKernelInfo(project_id); // refresh cache
     return capitalize(name);
   }
-  for (const k of kernelInfoCache) {
+  for (const k of kernelInfo) {
     if (k.name == name) {
       return k.display_name;
     }
@@ -491,7 +524,10 @@ function KernelSelector({
   );
 }
 
-const getFromDatabaseCache = async (hash: string) => {
+async function getFromDatabaseCache(hash: string): Promise<{
+  output?: object[];
+  time?: Date;
+}> {
   const resp = await (
     await fetch(join(appBasePath, "api/v2/jupyter/execute"), {
       method: "POST",
@@ -504,8 +540,8 @@ const getFromDatabaseCache = async (hash: string) => {
   if (resp.error) {
     throw Error(resp.error);
   }
-  return resp.output ?? null;
-};
+  return resp;
+}
 
 async function getKernel({
   input,

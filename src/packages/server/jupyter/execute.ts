@@ -50,7 +50,11 @@ export async function execute({
   noCache,
   project_id,
   path,
-}: Options): Promise<object[] | null> {
+}: Options): Promise<{
+  output: object[];
+  time: Date;
+  total_time_s: number;
+} | null> {
   // TODO -- await checkForAbuse({ account_id, analytics_cookie });
 
   log.debug("execute", {
@@ -77,7 +81,7 @@ export async function execute({
     throw Error("kernel must be specified in hash is not specified");
   }
 
-  const start = Date.now();
+  const time = new Date;
 
   let { jupyter_account_id, jupyter_api_enabled } = await getConfig();
   if (!jupyter_api_enabled) {
@@ -130,8 +134,9 @@ export async function execute({
   }
   const { output } = resp;
   log.debug("output", output);
-  const total_time_s = (Date.now() - start) / 1000;
+  const total_time_s = (Date.now() - time.valueOf()) / 1000;
   saveResponse({
+    time,
     input,
     output,
     kernel,
@@ -145,25 +150,23 @@ export async function execute({
     hash,
     noCache,
   });
-  return output;
+  return { output, time, total_time_s };
 }
 
-// We just assume that hash hash conflicts don't happen for our
-// purposes here.
-async function getFromDatabase(hash: string): Promise<null | object[]> {
+// We just assume that hash conflicts don't happen for our purposes here.  It's a cryptographic hash function.
+async function getFromDatabase(
+  hash: string
+): Promise<{ output: object[]; time: Date; total_time_s: number } | null> {
   const pool = getPool();
   try {
     const { rows } = await pool.query(
-      `SELECT id, output FROM jupyter_execute_log WHERE hash=$1`,
+      `SELECT output, time, total_time_s FROM jupyter_execute_log WHERE hash=$1`,
       [hash]
     );
-    const output = rows[0]?.output ?? null;
-    //     if (output != null) {
-    //       // update the expire timestamp, thus extending the life of this active row.
-    //       // but don't block on this.
-    //       updateExpire(pool, rows[0]?.id);
-    //     }
-    return output;
+    if (rows.length == 0) {
+      return null;
+    }
+    return rows[0];
   } catch (err) {
     log.warn("Failed to query database cache", err);
     return null;
@@ -187,6 +190,7 @@ async function updateExpire(pool, id: number) {
 // people use chatgpt in cocalc.
 // Also, we could dedup identical inputs (?).
 async function saveResponse({
+  time,
   input,
   output,
   kernel,
@@ -206,8 +210,9 @@ async function saveResponse({
   }
   try {
     await pool.query(
-      `INSERT INTO jupyter_execute_log(time,input,output,kernel,account_id,project_id,path,analytics_cookie,history,tag,hash,total_time_s) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      `INSERT INTO jupyter_execute_log(time,input,output,kernel,account_id,project_id,path,analytics_cookie,history,tag,hash,total_time_s) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
       [
+        time,
         input,
         output,
         kernel,

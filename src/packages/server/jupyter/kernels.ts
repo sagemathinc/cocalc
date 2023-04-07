@@ -10,9 +10,8 @@ import { jupyter_kernels } from "@cocalc/util/message";
 import LRU from "lru-cache";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
-// cache for 90s, since projects not under user control so kernels don't get installed often.
 const cache = new LRU<string, object[]>({
-  ttl: 60000,
+  ttl: 30000,
   max: 300,
 });
 

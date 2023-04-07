@@ -14,7 +14,7 @@ import { useSetElement } from "../set-element";
 import infoToMode from "./info-to-mode";
 import ActionButtons, { RunFunction } from "./action-buttons";
 import { useChange } from "../../use-change";
-import { getHistory } from "./history";
+import { getHistory, isPreviousSiblingCodeBlock } from "./history";
 import InsertBar from "./insert-bar";
 
 function Element({ attributes, children, element }: RenderElementProps) {
@@ -33,8 +33,12 @@ function Element({ attributes, children, element }: RenderElementProps) {
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   const { change } = useChange();
   const [history, setHistory] = useState<string[]>(getHistory(editor, element));
+  const [codeSibling, setCodeSibling] = useState<boolean>(
+    isPreviousSiblingCodeBlock(editor, element)
+  );
   useEffect(() => {
     setHistory(getHistory(editor, element));
+    setCodeSibling(isPreviousSiblingCodeBlock(editor, element));
     if (!infoFocusedRef.current && element.info != info) {
       // upstream change
       setInfo(element.info);
@@ -44,7 +48,14 @@ function Element({ attributes, children, element }: RenderElementProps) {
   return (
     <div {...attributes}>
       <div contentEditable={false} style={{ textIndent: 0 }}>
-        <InsertBar editor={editor} element={element} info={info} above={true} />
+        {!codeSibling && (
+          <InsertBar
+            editor={editor}
+            element={element}
+            info={info}
+            above={true}
+          />
+        )}
         <SlateCodeMirror
           options={{ lineWrapping: true }}
           value={element.value}
