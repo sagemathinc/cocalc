@@ -53,11 +53,12 @@ export default async function createChat({
     actions.path
   );
   const delim = backtickSequence(input);
-  let message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
+  const head = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
     command
-  )} `;
+  )}.\n`;
+  let message = "";
   if (frameType != "terminal") {
-    message += `. I am writing in the file ${
+    message += `I am writing in the file ${
       actions.path
     } ${actions.chatgptExtraFileInfo()}.`;
     if (input.trim()) {
@@ -75,6 +76,11 @@ ${codegen && input.trim() ? "Show the new version." : ""}`;
   }
   // scroll to bottom *after* the message gets sent.
   setTimeout(() => chatActions.scrollToBottom(), 100);
+  if (message.includes("<details")) {
+    message = `${head}\n\n${message}`;
+  } else {
+    message = `${head}\n\n<details>\n\n${message}\n\n</details>`;
+  }
   await chatActions.send_chat(
     message,
     undefined,
