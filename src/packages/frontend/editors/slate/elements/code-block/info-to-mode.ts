@@ -62,6 +62,13 @@ export default function infoToMode(
 
   let spec = file_associations[mode];
 
+  if (preferKernel) {
+    if (spec?.opts.mode == "shell") {
+      // there is a bash kernel
+      return "bash";
+    }
+  }
+
   if (spec == null) {
     // the keys of file_associations is (mostly) just the filename extension.
     // It's nice to also support matching the mime type of a codemirror mode partly, in case

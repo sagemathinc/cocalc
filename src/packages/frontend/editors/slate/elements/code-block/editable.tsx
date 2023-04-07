@@ -86,6 +86,13 @@ function Element({ attributes, children, element }: RenderElementProps) {
               <div style={{ flex: 1 }}></div>
               {element.fence && (
                 <Input
+                  onKeyDown={(e) => {
+                    if (e.keyCode == 13 && e.shiftKey) {
+                      runRef.current?.();
+                    } else if (e.keyCode == 40) {
+                      // down arrow and 38 is up.  TODO
+                    }
+                  }}
                   style={{
                     flex: 1,
                     color: "#666",

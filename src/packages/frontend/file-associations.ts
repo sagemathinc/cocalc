@@ -11,7 +11,7 @@ This is mainly used to support editor.coffee, which is legacy.
 The **complete** list of extensions --> what edits them is done
 via the newer registration system.
 
-NOTE: Obviously, github etc. has to solve basically the same problem, 
+NOTE: Obviously, github etc. has to solve basically the same problem,
 and they have a similar massive list: https://github.com/blakeembrey/language-map/blob/main/languages.json
 Maybe that could be useful at some point.
 */
@@ -25,6 +25,7 @@ import audioExtensions from "audio-extensions";
 const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",
   asm: "text/x-gas",
+  bash: "shell",
   c: "text/x-c",
   zig: "text/x-c", // wrong, but much better than nothing
   "c++": "text/x-c++src",
