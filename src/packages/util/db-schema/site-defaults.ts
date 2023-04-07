@@ -122,6 +122,8 @@ export const only_ints = (val) =>
   );
 export const only_nonneg_int = (val) =>
   ((v) => only_ints(v) && v >= 0)(to_int(val));
+export const only_pos_int = (val) =>
+  ((v) => only_ints(v) && v > 0)(to_int(val));
 export const from_json = (conf): Mapping => {
   try {
     if (conf !== null) return JSON.parse(conf) ?? {};

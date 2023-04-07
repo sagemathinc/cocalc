@@ -14,7 +14,6 @@ import { FormGroup, Well } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
 import {
   CopyToClipBoard,
-  ErrorDisplay,
   Icon,
   LabeledRow,
   Markdown,
@@ -87,7 +86,6 @@ export default function SiteSettings({}) {
       isReadonly[x.name] = !!x.readonly;
     }
     setState("edit");
-    setError("");
     setData(data);
     setIsReadonly(isReadonly);
     editedRef.current = deep_copy(data);
@@ -134,6 +132,8 @@ export default function SiteSettings({}) {
         }
       }
     }
+    // success save of everything, so clear error message
+    setError("");
   }
 
   async function save(): Promise<void> {
@@ -402,7 +402,6 @@ export default function SiteSettings({}) {
         />
       )}
       <Header />
-      {error && <ErrorDisplay error={error} onClose={() => setError("")} />}
       <Well
         style={{
           margin: "auto",
@@ -410,6 +409,16 @@ export default function SiteSettings({}) {
         }}
       >
         <Warning />
+        {error && (
+          <Alert
+            type="error"
+            showIcon
+            closable
+            description={error}
+            onClose={() => setError("")}
+            style={{ margin: "30px auto", maxWidth: "800px" }}
+          />
+        )}
         <Input.Search
           allowClear
           value={filter}
