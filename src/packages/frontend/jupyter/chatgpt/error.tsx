@@ -28,7 +28,7 @@ export default function ChatGPTError({ actions, id, style }: Props) {
   }
   return (
     <div>
-      <Tooltip title="Ask ChatGPT to help me fix this error.">
+      <Tooltip title="Ask ChatGPT to help fix this error.">
         <Button
           style={style}
           disabled={gettingHelp}
@@ -96,9 +96,9 @@ async function getHelp({
   const kernel_info = actions.store.get("kernel_info");
   const chatActions = await getChatActions(actions.redux, project_id, path);
   const language = kernel_info.get("language");
-  const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> I ran the following ${kernel_info.get(
+  const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span>, help me fix my code.\n\n<details>\n\nI ran the following ${kernel_info.get(
     "display_name"
-  )} code:
+  )} code:\n\n
 \`\`\`${language}
 ${cell.get("input")}
 \`\`\`
@@ -106,7 +106,7 @@ and it produced the following error message:
 \`\`\`${language}
 ${traceback}
 \`\`\`
-Help me fix my code.
+\n\n</details>
 `;
   // scroll to bottom *after* the message gets sent.
   setTimeout(() => chatActions.scrollToBottom(), 100);
