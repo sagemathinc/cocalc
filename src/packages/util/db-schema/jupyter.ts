@@ -55,7 +55,7 @@ Table({
       type: "string",
       desc: "Input text that was sent to kernel",
       render: {
-        type: "markdown",
+        type: "code",
       },
     },
   },
@@ -113,6 +113,9 @@ Table({
       type: "array",
       pg_type: "JSONB[]",
       desc: "Output from running the computation",
+      render: {
+        type: "json",
+      },
     },
   },
   rules: {
@@ -125,7 +128,7 @@ Table({
 Table({
   name: "crm_jupyter_api_cache",
   rules: {
-    virtual: "crm_jupyter_api_cache",
+    virtual: "jupyter_api_cache",
     primary_key: "id",
     user_query: {
       get: {
