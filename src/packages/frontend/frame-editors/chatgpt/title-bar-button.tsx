@@ -48,7 +48,7 @@ const PRESETS: Preset[] = [
     codegen: true,
     tag: "fix-errors",
     icon: "bug",
-    label: "Help me fix any errors",
+    label: "Help me fix errors",
     description:
       "Try to understand your selection and explain how to fix any mistakes it can find.",
   },
@@ -83,7 +83,7 @@ const PRESETS: Preset[] = [
     codegen: false,
     tag: "summarize-short",
     icon: "dot-circle",
-    label: "Short Executive Summary",
+    label: "Short Summary",
     description:
       "Write a very short one sentence executive summary of the selected text or code.",
   },
@@ -105,10 +105,9 @@ const CUSTOM_DESCRIPTIONS = {
     "Try to do anything with the current cell or selection that you can possibly imagine: explain why this is slow and how to make it faster, draw a plot of sin(x), etc.",
   generic: (
     <div>
-      Try to do anything with your selection that you can possibly imagine:
-      translate from one programming language to another, explain why code is
-      slow, finish writing a proof, show the steps to solve an equation, etc.{" "}
-      <b>Try anything!</b>
+      You can try anything that you can possibly imagine: translate from one
+      programming language to another, explain why code is slow, show the steps
+      to solve an equation, etc.
     </div>
   ),
 };
@@ -213,18 +212,7 @@ export default function ChatGPT({
             direction="vertical"
             style={{ width: "600px", maxWidth: "100%" }}
           >
-            {showOptions && (
-              <div
-                style={{
-                  marginTop: "5px",
-                  color: "#444",
-                }}
-              >
-                ChatGPT looks at your selection, the current cell or first few
-                thousand words of your file.
-              </div>
-            )}{" "}
-            <div style={{ display: "flex", width: "100%" }}>
+            <div style={{ display: "flex", width: "100%", marginTop: "5px" }}>
               <Input
                 allowClear
                 autoFocus
@@ -257,7 +245,7 @@ export default function ChatGPT({
                         .toLowerCase()
                         .includes(input.toLowerCase());
                     }}
-                    style={{ flex: 1 }}
+                    style={{ flex: 0.5 }}
                     disabled={querying}
                     options={PRESETS.map((preset) => {
                       return {
@@ -289,31 +277,46 @@ export default function ChatGPT({
                 </>
               )}
             </div>
+            {showOptions && input && (
+              <div
+                style={{
+                  marginTop: "5px",
+                  color: "#444",
+                }}
+              >
+                ChatGPT will see the following context, taken from your current
+                selection, code cell or the first few thousand words of your
+                file. To change this, close this dialog, select part of your
+                file, then open the dialog again.
+                <div style={{ height: "5px" }} />
+                <CodeMirrorStatic
+                  style={{
+                    maxHeight: "100px",
+                    overflowY: "auto",
+                    margin: "5px",
+                    padding: 0,
+                    width: undefined,
+                  }}
+                  options={{
+                    mode: path ? infoToMode(filename_extension(path)) : "",
+                  }}
+                  value={input}
+                />
+              </div>
+            )}{" "}
             {description}
             <div style={{ textAlign: "center" }}>
               <Button
                 disabled={querying || (!tag && !custom.trim())}
                 type="primary"
-                style={{ marginTop: "5px" }}
+                size="large"
                 onClick={doIt}
               >
                 {querying && <Loading text="" />} <Icon name="paper-plane" />{" "}
-                Ask ChatGPT
+                Start a Conversation with ChatGPT...
               </Button>
             </div>
             {error && <Alert type="error" message={error} />}
-            Context:
-            <CodeMirrorStatic
-              style={{
-                maxHeight: "75px",
-                overflowY: "auto",
-                margin: "5px",
-              }}
-              options={{
-                mode: path ? infoToMode(filename_extension(path)) : "",
-              }}
-              value={input}
-            />
           </Space>
         );
       }}
