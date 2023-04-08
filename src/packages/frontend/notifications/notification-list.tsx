@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 
 import { Button, Card, Collapse, List, Space } from "antd";
 const { Panel } = Collapse;
@@ -32,19 +32,21 @@ interface Props {
 
 export const NotificationList: React.FC<Props> = (props: Props) => {
   const { account_id, mentions, news, filter, style, user_map } = props;
-
   const actions = useActions("account");
-
-  useEffect(() => {
-    if (isNewsFilter(filter)) {
-      actions.markNewsRead();
-    }
-  }, [filter]);
 
   const newsData = useMemo(() => {
     // weird: using news.valueSeq().toJS() makes object reappear, which were overwritten when an update came in!?
-    return Object.values(news.toJS()).sort((a, b) => -cmp_Date(a.date, b.date));
-  }, [news]);
+    return Object.values(news.toJS())
+      .filter((n) => {
+        if (!isNewsFilter(filter)) return false;
+        if (filter === "allNews") {
+          return true;
+        } else {
+          return n.channel === filter;
+        }
+      })
+      .sort((a, b) => -cmp_Date(a.date, b.date));
+  }, [news, filter]);
 
   if (mentions == undefined || mentions.size == 0) {
     return <NoMentions filter={filter} style={style} />;
@@ -89,6 +91,11 @@ export const NotificationList: React.FC<Props> = (props: Props) => {
     return (
       <Card
         title={"News"}
+        extra={
+          <Button onClick={() => actions.markNewsRead()} type="primary">
+            <Icon name="check-square" /> Mark all read
+          </Button>
+        }
         headStyle={{ fontSize: "125%", backgroundColor: COLORS.GRAY_LLL }}
       >
         {/* <pre style={{ fontSize: "80%" }}>

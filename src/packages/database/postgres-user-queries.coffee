@@ -1391,10 +1391,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             if obj.hide == true
                                 return false
                             if obj.date?
-                                return new Date(obj.date) >= misc.months_ago(3)
+                                date_obj = new Date(obj.date)
+                                return date_obj >= misc.months_ago(3) and date_obj <= misc.minutes_ago(-1)
                             else
                                 return true
-                        select : {id: 'SERIAL UNIQUE'}
+                        select : {id: 'SERIAL UNIQUE', date: 'TIMESTAMP', hide: 'BOOLEAN'}
 
                 else if pg_changefeed == 'one-hour'
                     pg_changefeed = ->

@@ -35,10 +35,11 @@ export default async function editNews(opts: NewsType) {
       url: existing.url,
       date: existing.date,
       channel: existing.channel,
+      hide: existing.hide,
     };
     await pool.query(
-      `UPDATE news SET title=$1, text=$2, url=$3, date=$4, channel=$5, history=$6 WHERE id=$7`,
-      [title, text, url, date, channel, history, id]
+      `UPDATE news SET title=$1, text=$2, url=$3, date=$4, channel=$5, hide=$6, history=$7 WHERE id=$8`,
+      [title, text, url, date, channel, hide, history, id]
     );
   } else {
     L("editNews/insert", { id, title, url, text, date, channel, hide });

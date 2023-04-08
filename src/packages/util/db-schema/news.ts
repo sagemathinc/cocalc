@@ -47,7 +47,7 @@ Table({
       get: {
         pg_where: [
           "date >= NOW() - INTERVAL '3 months'",
-          "date <= NOW()",
+          "date <= NOW() + INTERVAL '1 minute'",
           "hide != true",
         ],
         pg_changefeed: "news",
@@ -59,6 +59,7 @@ Table({
           date: null,
           title: null,
           channel: null,
+          hide: null,
         },
       },
       // no set, all done via v2 API
