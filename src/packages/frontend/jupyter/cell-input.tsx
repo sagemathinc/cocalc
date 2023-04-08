@@ -415,6 +415,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             )}
             {input ? (
               <CopyButton
+                size="small"
                 value={props.cell.get("input") ?? ""}
                 style={{ fontSize: "11px", color: COLORS.GRAY_M }}
               />

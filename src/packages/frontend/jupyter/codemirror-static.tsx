@@ -174,7 +174,7 @@ export function CodeMirrorStatic(props: Props) {
     width: "100%",
     borderRadius: "5px",
     position: "relative",
-    overflowX: "auto",
+    overflowX: "hidden",
     fontSize: props.font_size ? `${props.font_size}px` : undefined,
   };
   if (!props.no_border) {

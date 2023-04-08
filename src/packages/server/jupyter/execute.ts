@@ -126,7 +126,7 @@ export async function execute({
     request_project_id = project_id;
     // both project_id and account_id must be set and account_id must be a collab
     if (account_id == null) {
-      throw Error("account_id must be specified");
+      throw Error("account_id must be specified -- make sure you are signed in");
     }
     if (!isCollaborator({ project_id, account_id })) {
       throw Error("permission denied -- user must be collaborator on project");

@@ -25,11 +25,13 @@ import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 import TimeAgo from "react-timeago";
 import Logo from "@cocalc/frontend/jupyter/logo";
-
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import { plural } from "@cocalc/util/misc";
 // Important -- we import init-nbviewer , since otherwise NBViewerCellOutput won't
 // be able to render any mime types until the user opens a Jupyter notebook.
 import NBViewerCellOutput from "@cocalc/frontend/jupyter/nbviewer/cell-output";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
+// import { file_associations } from "@cocalc/frontend/file-associations";
 
 const cache = new LRU<string, { output: object[]; kernel: string }>({
   max: 500,
@@ -51,6 +53,7 @@ export interface Props {
   output: ReactNode | null;
   setOutput: (output: ReactNode | null) => void;
   runRef?: RunRef;
+  tag?: string;
 }
 
 export default function RunButton({
@@ -61,6 +64,7 @@ export default function RunButton({
   output,
   setOutput: setOutput0,
   runRef,
+  tag,
 }: Props) {
   const {
     jupyterApiEnabled,
@@ -133,7 +137,7 @@ export default function RunButton({
           kernel = await getKernel({ input, history, info, project_id });
         } catch (err) {
           // could fail, e.g., if user not signed in.  shouldn't be fatal.
-          console.log(err);
+          console.warn(`WARNING: ${err}`);
           return;
         }
         setKernelName(kernel);
@@ -144,7 +148,14 @@ export default function RunButton({
           project_id,
           path,
         });
-        const { output: messages, created } = await getFromDatabaseCache(hash);
+        let x;
+        try {
+          x = await getFromDatabaseCache(hash);
+        } catch (err) {
+          console.warn(`WARNING: ${err}`);
+          return;
+        }
+        const { output: messages, created } = x;
         if (messages != null) {
           saveToCache({
             input,
@@ -181,7 +192,13 @@ export default function RunButton({
       } else if (kernelName) {
         kernel = kernelName;
       } else {
-        kernel = await getKernel({ input, history, info, project_id });
+        try {
+          kernel = await getKernel({ input, history, info, project_id });
+        } catch (error) {
+          // can fail, e.g., if user got signed out or doesn't have access to project
+          setOutput({ error: `${error}` });
+          return;
+        }
         setKernelName(kernel);
       }
       const resp = await (
@@ -194,6 +211,7 @@ export default function RunButton({
             noCache,
             project_id,
             path,
+            tag,
           }),
           headers: {
             "Content-Type": "application/json",
@@ -250,13 +268,7 @@ export default function RunButton({
       }
       content={
         <div>
-          <Typography.Paragraph
-            ellipsis={{
-              rows: 1,
-              expandable: true,
-              symbol: <strong>more</strong>,
-            }}
-          >
+          <Typography.Paragraph>
             Run {project_id ? "" : "in an isolated sandbox"}
             {" using "}
             {kernelName ? (
@@ -266,9 +278,24 @@ export default function RunButton({
             ) : (
               "a"
             )}{" "}
-            Jupyter kernel. Cells in this document with the same kernel and
-            scope are automatically run. You don't have to worry about
-            explicitly running earlier cells. Execution time is limited.
+            Jupyter kernel. Execution time is limited.{" "}
+            {history != null && history.length > 0 && (
+              <>
+                The following code from {history.length}{" "}
+                {plural(history.length, "cell")} above with the same info string
+                will always be run first:
+                <div style={{ height: "5px" }} />
+                <CodeMirrorStatic
+                  style={{
+                    maxHeight: "75px",
+                    overflowY: "auto",
+                    margin: "5px",
+                  }}
+                  options={{ mode: infoToMode(info) }}
+                  value={history.join("\n\n")}
+                />
+              </>
+            )}
           </Typography.Paragraph>
           <div
             style={{
@@ -327,7 +354,6 @@ export default function RunButton({
         <Button.Group>
           <Tooltip title={output == null ? "Run this code" : "Hide output"}>
             <Button
-              size="small"
               style={style}
               disabled={disabled}
               onClick={() => {
@@ -355,7 +381,6 @@ export default function RunButton({
           </Tooltip>
           <Tooltip title="Configure Jupyter kernel..." placement="bottom">
             <Button
-              size="small"
               style={{
                 ...style,
                 ...(showPopover ? { background: "#ccc" } : undefined),
@@ -374,6 +399,7 @@ export default function RunButton({
                 <Icon name={"jupyter"} />
               )}
               {kernelName ? kernelDisplayName(kernelName, project_id) : null}
+              &hellip;
             </Button>
           </Tooltip>
         </Button.Group>
@@ -467,7 +493,16 @@ function kernelInfoCacheKey(project_id: string | undefined) {
   return project_id ?? "global";
 }
 function getKernelInfoCacheOnly(project_id: string | undefined) {
-  return kernelInfoCache.get(kernelInfoCacheKey(project_id));
+  const kernelInfo = kernelInfoCache.get(kernelInfoCacheKey(project_id));
+  if (kernelInfo != null) return kernelInfo;
+  (async () => {
+    try {
+      await getKernelInfo(project_id); // refresh cache
+    } catch (err) {
+      // e.g., if you user isn't signed in and project_id is set, this will fail, but shouldn't be fatal.
+      console.warn(`WARNING: ${err}`);
+    }
+  })();
 }
 async function getKernelInfo(
   project_id: string | undefined
@@ -504,14 +539,6 @@ function kernelDisplayName(
 ): string {
   const kernelInfo = getKernelInfoCacheOnly(project_id);
   if (kernelInfo == null) {
-    async () => {
-      try {
-        await getKernelInfo(project_id); // refresh cache
-      } catch (err) {
-        // e.g., if you user isn't signed in and project_id is set, this will fail, but shouldn't be fatal.
-        console.warn(err);
-      }
-    };
     return capitalize(name);
   }
   for (const k of kernelInfo) {
@@ -521,6 +548,33 @@ function kernelDisplayName(
   }
   return capitalize(name);
 }
+
+/*
+function kernelLanguage(
+  name: string | undefined,
+  project_id: string | undefined
+): string | undefined {
+  if (!name) return;
+  const kernelInfo = getKernelInfoCacheOnly(project_id);
+  if (kernelInfo == null) {
+    return;
+  }
+  for (const k of kernelInfo) {
+    if (k.name == name) {
+      return k.language;
+    }
+  }
+}
+
+function cmMode(
+  name: string | undefined,
+  project_id: string | undefined,
+  content: string
+) {
+  const lang = kernelLanguage(name, project_id) ?? detectLanguage(content);
+  return file_associations[lang]?.opts?.mode;
+}
+*/
 
 async function guessKernel({ info, code, project_id }): Promise<string> {
   if (info == "python") {
@@ -569,50 +623,65 @@ function KernelSelector({
   disabled?: boolean;
   project_id?: string;
 }) {
+  const [error, setError] = useState<string>("");
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null>(null);
   useEffect(() => {
     (async () => {
-      setKernelSpecs(await getKernelInfo(project_id));
+      let kernelInfo;
+      try {
+        kernelInfo = await getKernelInfo(project_id);
+      } catch (err) {
+        setError(`${err}`);
+        return;
+      }
+      setKernelSpecs(kernelInfo);
     })();
   }, []);
 
   return (
-    <Select
-      showSearch
-      placeholder="Kernel..."
-      optionFilterProp="children"
-      filterOption={(input, option) =>
-        (option?.display_name ?? "").toLowerCase().includes(input.toLowerCase())
-      }
-      style={{ flex: 1 }}
-      disabled={disabled}
-      options={
-        kernelSpecs != null
-          ? kernelSpecs
-              ?.filter((spec) => !spec?.metadata?.["cocalc"]?.disabled)
-              .map((spec) => {
-                return {
-                  display_name: spec.display_name,
-                  label: (
-                    <Tooltip title={spec.display_name} placement="left">
-                      {project_id && (
-                        <Logo
-                          kernel={spec.name}
-                          size={18}
-                          style={{ marginRight: "5px" }}
-                        />
-                      )}{" "}
-                      {spec.display_name}
-                    </Tooltip>
-                  ),
-                  value: spec.name,
-                };
-              })
-          : []
-      }
-      onChange={onSelect}
-      value={kernel}
-    />
+    <>
+      {error && <Alert type="error" description={error} />}
+      {!error && (
+        <Select
+          showSearch
+          placeholder="Kernel..."
+          optionFilterProp="children"
+          filterOption={(input, option) =>
+            (option?.display_name ?? "")
+              .toLowerCase()
+              .includes(input.toLowerCase())
+          }
+          style={{ flex: 1 }}
+          disabled={disabled}
+          options={
+            kernelSpecs != null
+              ? kernelSpecs
+                  ?.filter((spec) => !spec?.metadata?.["cocalc"]?.disabled)
+                  .map((spec) => {
+                    return {
+                      display_name: spec.display_name,
+                      label: (
+                        <Tooltip title={spec.display_name} placement="left">
+                          {project_id && (
+                            <Logo
+                              kernel={spec.name}
+                              size={18}
+                              style={{ marginRight: "5px" }}
+                            />
+                          )}{" "}
+                          {spec.display_name}
+                        </Tooltip>
+                      ),
+                      value: spec.name,
+                    };
+                  })
+              : []
+          }
+          onChange={onSelect}
+          value={kernel}
+        />
+      )}
+    </>
   );
 }
 

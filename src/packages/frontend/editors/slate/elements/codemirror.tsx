@@ -16,7 +16,12 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import { fromTextArea, Editor, commands } from "codemirror";
-import { DARK_GREY_BORDER, CODE_FOCUSED_COLOR, SELECTED_COLOR } from "../util";
+import {
+  DARK_GREY_BORDER,
+  CODE_FOCUSED_COLOR,
+  CODE_FOCUSED_BACKGROUND,
+  SELECTED_COLOR,
+} from "../util";
 import { useFocused, useSelected, useSlate, useCollapsed } from "./hooks";
 import {
   moveCursorToBeginningOfBlock,
@@ -281,7 +286,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       ? SELECTED_COLOR
       : DARK_GREY_BORDER;
     return (
-      <span
+      <div
         contentEditable={false}
         style={{
           ...STYLE,
@@ -290,9 +295,24 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
             borderRadius: "8px",
           },
           ...style,
+          position: "relative",
         }}
         className="smc-vfill"
       >
+        {!isFocused && selected && !collapsed && (
+          <div
+            style={{
+              background: CODE_FOCUSED_BACKGROUND,
+              position: "absolute",
+              opacity: 0.5,
+              zIndex: 1,
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          ></div>
+        )}
         {addonBefore}
         <div
           style={{
@@ -304,7 +324,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           <textarea ref={textareaRef} defaultValue={value}></textarea>
         </div>
         {addonAfter}
-      </span>
+      </div>
     );
   }
 );

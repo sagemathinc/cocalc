@@ -11,7 +11,7 @@ import { toDisplayMath } from "../math/index";
 function InsertButton({ children, onClick }) {
   return (
     <Button
-      type="link"
+      size="small"
       onClick={(e) => {
         e.stopPropagation(); // keep the editor with the insert bar itself from getting selected
         e.preventDefault();
@@ -49,13 +49,13 @@ export default function InsertBar({ editor, element, info, above }) {
     <div
       className="cocalc-slate-insert-cell"
       style={{
-        height: "1.5em",
+        height: "2em",
         cursor: "pointer",
-        paddingTop: "1.5px",
+        paddingTop: "8px",
       }}
     >
       <div className="cocalc-slate-insert-cell-controls">
-        <div style={{ display: "flex" }}>
+        <Button.Group>
           <InsertButton
             onClick={() => {
               insert(toSlate({ token: { content: "", info, type: "fence" } }));
@@ -94,14 +94,14 @@ export default function InsertBar({ editor, element, info, above }) {
                 style={{ marginRight: "5px" }}
                 innerStyle={{ top: "1.5px" }}
               />{" "}
-              ChatGPT
+              ChatGPT...
             </InsertButton>
           ) : undefined}
           {/*<InsertButton>
             <Icon name="paste" /> Paste
           </InsertButton>
           */}
-        </div>
+        </Button.Group>
       </div>
     </div>
   );

@@ -26,6 +26,7 @@ export default function ActionButtons({
         output={output}
         runRef={runRef}
       />
+      <div style={{ width: "5px" }} />
       <CopyButton style={buttonStyle} value={input} />
     </>
   );

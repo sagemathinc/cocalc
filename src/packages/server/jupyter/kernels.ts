@@ -36,7 +36,7 @@ export default async function getKernels({
 }): Promise<object[]> {
   if (project_id != null) {
     if (account_id == null) {
-      throw Error("account_id must be specified");
+      throw Error("account_id must be specified -- make sure you are signed in");
     }
     if (!isCollaborator({ project_id, account_id })) {
       throw Error("permission denied -- user must be collaborator on project");
