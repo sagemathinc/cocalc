@@ -26,6 +26,7 @@ const EDITOR_SPEC = {
     icon: "pencil",
     component: EditableMarkdown,
     buttons: set([
+      "chatgpt",
       //"print",
       "decrease_font_size",
       "increase_font_size",

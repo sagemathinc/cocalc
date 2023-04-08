@@ -13,29 +13,29 @@ export default async function createChat({
   actions,
   frameId,
   options,
+  input,
 }: {
   actions;
   frameId: string;
   options: Options;
+  input?: string;
 }): Promise<void> {
   let { codegen, command, allowEmpty, tag } = options;
   const frameType = actions._get_frame_type(frameId);
-  let input;
   if (frameType == "terminal") {
     input = "";
     allowEmpty = true;
     codegen = false;
   } else {
-    input = actions.chatgptGetText(frameId, "selection");
-    if (!input) {
-      input = actions.chatgptGetText(frameId, "cell");
-    }
-    if (!input) {
-      input = actions.chatgptGetText(frameId, "all");
+    if (input == null) {
+      input = actions.chatgptGetContext();
     }
     if (!input && !allowEmpty) {
       throw Error("Please write or select something.");
     }
+  }
+  if (input == null) {
+    throw Error("bug");
   }
   // Truncate input (also this MUST lazy import):
   const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(

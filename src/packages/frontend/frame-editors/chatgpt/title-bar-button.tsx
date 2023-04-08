@@ -10,7 +10,7 @@ to do the work.
 */
 
 import { Alert, Button, Input, Popover, Select, Space, Tooltip } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Icon,
@@ -20,6 +20,9 @@ import {
 } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
+import { filename_extension } from "@cocalc/util/misc";
 
 interface Preset {
   command: string;
@@ -122,6 +125,7 @@ interface Props {
   buttonStyle;
   labels?: boolean;
   visible?: boolean;
+  path: string;
 }
 
 export default function ChatGPT({
@@ -132,6 +136,7 @@ export default function ChatGPT({
   buttonStyle,
   labels,
   visible,
+  path,
 }: Props) {
   const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -140,6 +145,11 @@ export default function ChatGPT({
   const [querying, setQuerying] = useState<boolean>(false);
   const [tag, setTag] = useState<string>("");
   const showOptions = frameType != "terminal";
+  const [input, setInput] = useState<string>("");
+
+  useEffect(() => {
+    updateInput(actions, id, setInput);
+  }, [id]);
 
   const [description, setDescription] = useState<string>(
     showOptions ? "" : getCustomDescription(frameType)
@@ -150,7 +160,7 @@ export default function ChatGPT({
     setError("");
     try {
       setQuerying(true);
-      await actions.chatgpt(id, options);
+      await actions.chatgpt(id, options, input);
       setCustom("");
     } catch (err) {
       setError(`${err}`);
@@ -219,7 +229,7 @@ export default function ChatGPT({
                 allowClear
                 autoFocus
                 style={{ flex: 1 }}
-                placeholder="Describe what you want to do..."
+                placeholder="Describe what you want ChatGPT to do..."
                 value={custom}
                 onChange={(e) => {
                   setCustom(e.target.value);
@@ -236,7 +246,6 @@ export default function ChatGPT({
                 <>
                   <div style={{ margin: "5px 5px 0 5px" }}>or</div>
                   <Select
-                    defaultOpen
                     showSearch
                     allowClear
                     placeholder="Choose..."
@@ -281,16 +290,30 @@ export default function ChatGPT({
               )}
             </div>
             {description}
-            <Button
-              disabled={querying || (!tag && !custom.trim())}
-              type="primary"
-              style={{ marginTop: "5px" }}
-              onClick={doIt}
-            >
-              {querying && <Loading text="" />} <Icon name="paper-plane" /> Ask
-              ChatGPT how to do this...
-            </Button>
+            <div style={{ textAlign: "center" }}>
+              <Button
+                disabled={querying || (!tag && !custom.trim())}
+                type="primary"
+                style={{ marginTop: "5px" }}
+                onClick={doIt}
+              >
+                {querying && <Loading text="" />} <Icon name="paper-plane" />{" "}
+                Ask ChatGPT
+              </Button>
+            </div>
             {error && <Alert type="error" message={error} />}
+            Context:
+            <CodeMirrorStatic
+              style={{
+                maxHeight: "75px",
+                overflowY: "auto",
+                margin: "5px",
+              }}
+              options={{
+                mode: path ? infoToMode(filename_extension(path)) : "",
+              }}
+              value={input}
+            />
           </Space>
         );
       }}
@@ -301,6 +324,7 @@ export default function ChatGPT({
         onClick={() => {
           setError("");
           setShowChatGPT(!showChatGPT);
+          updateInput(actions, id, setInput);
         }}
       >
         <Tooltip title="Get assistance from ChatGPT">
@@ -310,4 +334,20 @@ export default function ChatGPT({
       </ButtonComponent>
     </Popover>
   );
+}
+
+async function updateInput(actions, id, setInput) {
+  let input = actions.chatgptGetContext(id);
+  if (input.length > 2000) {
+    // Truncate input (also this MUST lazy import):
+    const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(
+      "@cocalc/frontend/misc/openai"
+    );
+    const n = numTokens(input);
+    const maxTokens = MAX_CHATGPT_TOKENS - 1000; // 1000 tokens reserved for output and the prompt below.
+    if (n >= maxTokens) {
+      input = truncateMessage(input, maxTokens) + "\n...";
+    }
+  }
+  setInput(input);
 }

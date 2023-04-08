@@ -17,6 +17,8 @@ export default function ActionButtons({
 }: RunButtonProps) {
   return (
     <>
+      <CopyButton style={buttonStyle} value={input} />
+      <div style={{ width: "5px" }} />
       <RunButton
         info={info}
         style={buttonStyle}
@@ -26,8 +28,6 @@ export default function ActionButtons({
         output={output}
         runRef={runRef}
       />
-      <div style={{ width: "5px" }} />
-      <CopyButton style={buttonStyle} value={input} />
     </>
   );
 }

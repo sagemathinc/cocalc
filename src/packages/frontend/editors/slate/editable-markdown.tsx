@@ -32,7 +32,7 @@ import { Path } from "@cocalc/frontend/frame-editors/frame-tree/path";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { createEditor, Descendant, Editor, Transforms } from "slate";
+import { createEditor, Descendant, Editor, Range, Transforms } from "slate";
 import { resetSelection } from "./control";
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
@@ -206,6 +206,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         cache: ed.syncCache,
       });
       return ed.markdownValue;
+    };
+
+    ed.selectionIsCollapsed = () => {
+      return ed.selection == null || Range.isCollapsed(ed.selection);
     };
 
     if (getValueRef != null) {

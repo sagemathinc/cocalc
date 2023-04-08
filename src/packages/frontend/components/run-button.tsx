@@ -31,7 +31,7 @@ import { plural } from "@cocalc/util/misc";
 // be able to render any mime types until the user opens a Jupyter notebook.
 import NBViewerCellOutput from "@cocalc/frontend/jupyter/nbviewer/cell-output";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
-// import { file_associations } from "@cocalc/frontend/file-associations";
+//import { file_associations } from "@cocalc/frontend/file-associations";
 
 const cache = new LRU<string, { output: object[]; kernel: string }>({
   max: 500,
@@ -56,6 +56,22 @@ export interface Props {
   tag?: string;
 }
 
+// definitely never show run buttons for text formats that can't possibly be run.
+// TODO: This sort of stuff should be in a spec file, like file associations
+const NO_RUN = new Set([
+  "txt",
+  "text",
+  "md",
+  "rmd",
+  "qmd",
+  "tex",
+  "latex",
+  "markdown",
+  "yaml",
+  "yaml-frontmatter",
+  "json",
+]);
+
 export default function RunButton({
   info, // markdown info mode line; use {kernel='blah'} to explicitly specify a kernel; otherwise, uses heuristics
   style,
@@ -66,6 +82,9 @@ export default function RunButton({
   runRef,
   tag,
 }: Props) {
+  const mode = infoToMode(info);
+  const noRun = NO_RUN.has(mode);
+
   const {
     jupyterApiEnabled,
     project_id,
@@ -116,7 +135,13 @@ export default function RunButton({
   const [showPopover, setShowPopover] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!jupyterApiEnabled || setOutput == null || running || !info.trim())
+    if (
+      noRun ||
+      !jupyterApiEnabled ||
+      setOutput == null ||
+      running ||
+      !info.trim()
+    )
       return;
     const { output: messages, kernel: usedKernel } = getFromCache({
       input,
@@ -177,7 +202,7 @@ export default function RunButton({
     }
   }, [input, history, info]);
 
-  if (!jupyterApiEnabled && !project_id) {
+  if (noRun || (!jupyterApiEnabled && !project_id)) {
     // run button is not enabled when no project_id given, or not info at all.
     return null;
   }
@@ -412,7 +437,7 @@ export default function RunButton({
                 style={{
                   textOverflow: "ellipsis",
                   overflowX: "hidden",
-                  width: "125px",
+                  width: "100px",
                 }}
               >
                 {kernelName ? (
