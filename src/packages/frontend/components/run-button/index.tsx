@@ -280,13 +280,15 @@ export default function RunButton({
           overlayInnerStyle={{ width: "350px" }}
           title={
             <>
-              <Button
-                type="text"
-                onClick={() => setShowPopover(false)}
-                style={{ float: "right" }}
-              >
-                <Icon name="times" />
-              </Button>
+              {project_id != null && (
+                <Button
+                  type="text"
+                  onClick={() => setShowPopover(false)}
+                  style={{ float: "right" }}
+                >
+                  <Icon name="times" />
+                </Button>
+              )}
               <Icon
                 name="jupyter"
                 style={{ marginRight: "5px", fontSize: "20px" }}
@@ -394,7 +396,9 @@ export default function RunButton({
             <Button
               style={{
                 ...style,
-                ...(showPopover ? { background: "#ccc" } : undefined),
+                ...(project_id != null && showPopover
+                  ? { background: "#ccc" }
+                  : undefined),
                 display: "flex",
               }}
               onClick={() => {

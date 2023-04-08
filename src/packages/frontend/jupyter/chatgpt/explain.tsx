@@ -67,8 +67,6 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
   );
 }
 
-//import { delay } from "awaiting";
-
 async function getExplanation({
   id,
   actions,

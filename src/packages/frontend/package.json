@@ -7,6 +7,7 @@
     "./app-framework": "./dist/app-framework/index.js",
     "./app-framework/syncdb": "./dist/app-framework/syncdb/index.js",
     "./components": "./dist/components/index.js",
+    "./components/run-button": "./dist/components/run-button/index.js",
     "./markdown": "./dist/markdown/index.js",
     "./misc": "./dist/misc/index.js",
     "./tracker": "./dist/tracker/index.js",
