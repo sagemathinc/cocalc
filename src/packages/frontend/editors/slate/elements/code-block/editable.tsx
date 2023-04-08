@@ -16,11 +16,13 @@ import ActionButtons, { RunFunction } from "./action-buttons";
 import { useChange } from "../../use-change";
 import { getHistory, isPreviousSiblingCodeBlock } from "./history";
 import InsertBar from "./insert-bar";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 function Element({ attributes, children, element }: RenderElementProps) {
   if (element.type != "code_block") {
     throw Error("bug");
   }
+  const { disableMarkdownCodebar } = useFileContext();
   const editor = useSlate();
   const isMountedRef = useIsMountedRef();
   const [info, setInfo] = useState<string>(element.info ?? "");
@@ -118,18 +120,20 @@ function Element({ attributes, children, element }: RenderElementProps) {
                   }}
                 />
               )}
-              <ActionButtons
-                input={element.value}
-                history={history}
-                setOutput={setOutput}
-                output={output}
-                info={info}
-                runRef={runRef}
-              />
+              {!disableMarkdownCodebar && (
+                <ActionButtons
+                  input={element.value}
+                  history={history}
+                  setOutput={setOutput}
+                  output={output}
+                  info={info}
+                  runRef={runRef}
+                />
+              )}
             </div>
           }
           addonAfter={
-            output == null ? null : (
+            disableMarkdownCodebar || output == null ? null : (
               <div
                 onMouseDown={() => {
                   editor.setIgnoreSelection(true);

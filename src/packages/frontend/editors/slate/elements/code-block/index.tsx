@@ -12,6 +12,7 @@ import ActionButtons from "./action-buttons";
 import { useChange } from "../../use-change";
 import { getHistory } from "./history";
 import { DARK_GREY_BORDER } from "../../util";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -25,6 +26,8 @@ const StaticElement: React.FC<RenderElementProps> = ({
   attributes,
   element,
 }) => {
+  const { disableMarkdownCodebar } = useFileContext();
+
   const [output, setOutput] = useState<null | ReactNode>(null);
 
   const { change, editor } = useChange();
@@ -41,23 +44,25 @@ const StaticElement: React.FC<RenderElementProps> = ({
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
       <CodeMirrorStatic
         addonBefore={
-          <div
-            style={{
-              borderBottom: "1px solid #ccc",
-              padding: "3px 0",
-              display: "flex",
-              background: "#f8f8f8",
-            }}
-          >
-            <div style={{ flex: 1 }}></div>
-            <ActionButtons
-              input={element.value}
-              history={history}
-              setOutput={setOutput}
-              output={output}
-              info={element.info}
-            />
-          </div>
+          !disableMarkdownCodebar && (
+            <div
+              style={{
+                borderBottom: "1px solid #ccc",
+                padding: "3px 0",
+                display: "flex",
+                background: "#f8f8f8",
+              }}
+            >
+              <div style={{ flex: 1 }}></div>
+              <ActionButtons
+                input={element.value}
+                history={history}
+                setOutput={setOutput}
+                output={output}
+                info={element.info}
+              />
+            </div>
+          )
         }
         value={element.value}
         style={{
@@ -68,7 +73,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
         }}
         options={{ mode: infoToMode(element.info, { value: element.value }) }}
         addonAfter={
-          output == null ? null : (
+          disableMarkdownCodebar || output == null ? null : (
             <div
               style={{
                 borderTop: "1px dashed #ccc",

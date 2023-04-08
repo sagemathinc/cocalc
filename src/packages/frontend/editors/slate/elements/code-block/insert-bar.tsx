@@ -1,5 +1,5 @@
-import { useFileContext } from "@cocalc/frontend/lib/file-context";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+//import { useFileContext } from "@cocalc/frontend/lib/file-context";
+// import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Button } from "antd";
 import { Node, Path, Transforms } from "slate";
@@ -24,7 +24,7 @@ function InsertButton({ children, onClick }) {
 }
 
 export default function InsertBar({ editor, element, info, above }) {
-  const { hasOpenAI } = useFileContext();
+  //const { hasOpenAI } = useFileContext();
 
   const insert = (node: Node, offset = 0) => {
     let path = findElement(editor, element);
@@ -83,7 +83,7 @@ export default function InsertBar({ editor, element, info, above }) {
           >
             <Icon name="superscript" /> Math
           </InsertButton>
-          {hasOpenAI ? (
+          {/* {hasOpenAI ? (
             <InsertButton
               onClick={() => {
                 console.log("TODO!");
@@ -96,8 +96,7 @@ export default function InsertBar({ editor, element, info, above }) {
               />{" "}
               ChatGPT...
             </InsertButton>
-          ) : undefined}
-          {/*<InsertButton>
+          ) : undefined}<InsertButton>
             <Icon name="paste" /> Paste
           </InsertButton>
           */}

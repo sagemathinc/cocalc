@@ -32,6 +32,7 @@ import { plural } from "@cocalc/util/misc";
 import NBViewerCellOutput from "@cocalc/frontend/jupyter/nbviewer/cell-output";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 //import { file_associations } from "@cocalc/frontend/file-associations";
+import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 
 const cache = new LRU<string, { output: object[]; kernel: string }>({
   max: 500,
@@ -90,6 +91,7 @@ export default function RunButton({
     project_id,
     path: filename,
     is_visible,
+    hasOpenAI,
   } = useFileContext();
   const path = project_id && filename ? path_split(filename).head : undefined;
   const [running, setRunning] = useState<boolean>(false);
@@ -449,6 +451,16 @@ export default function RunButton({
             </Button>
           </Tooltip>
         </Popover>
+        {hasOpenAI && (
+          <Button>
+            <OpenAIAvatar
+              size={16}
+              style={{ marginRight: "5px" }}
+              innerStyle={{ top: "3.5px" }}
+            />
+            Explain
+          </Button>
+        )}
       </Button.Group>
     </div>
   );

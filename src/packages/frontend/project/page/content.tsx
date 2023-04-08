@@ -148,6 +148,9 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           MathComponent: KaTeXAndMathJaxV2,
           jupyterApiEnabled,
           hasOpenAI: redux?.getStore("projects").hasOpenAI(project_id),
+          disableMarkdownCodebar: redux
+            ?.getStore("account")
+            .getIn(["other_settings", "disable_markdown_codebar"]),
           project_id,
           path,
           is_visible,

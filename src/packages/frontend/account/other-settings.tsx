@@ -287,6 +287,15 @@ export class OtherSettings extends Component<Props> {
             Jupyter, @chatgpt mentions, etc.
           </Checkbox>
         )}
+        <Checkbox
+          checked={!!this.props.other_settings.get("disable_markdown_codebar")}
+          onChange={(e) => {
+            this.on_change("disable_markdown_codebar", e.target.checked);
+          }}
+        >
+          Disable the markdown code bar in all markdown documents. Checking this
+          hides the extra run, copy, and explain buttons in fenced code blocks.
+        </Checkbox>
         {this.render_first_steps()}
         {this.render_new_filenames()}
         {this.render_default_file_sort()}

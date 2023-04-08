@@ -59,6 +59,9 @@ interface IFileContext {
   // If true, then the jupyter code execution
   jupyterApiEnabled?: boolean;
 
+  // Disable markdown run button
+  disableMarkdownCodebar?: boolean;
+
   // If true, then openai enabled (this changes rarely, so not dynamic)
   hasOpenAI?: boolean;
 
