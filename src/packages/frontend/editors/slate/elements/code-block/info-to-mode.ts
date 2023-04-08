@@ -58,7 +58,10 @@ export default function infoToMode(
 
   if (
     preferKernel &&
-    (mode.startsWith("sage") || mode.startsWith("julia") || mode == "jl")
+    (mode.startsWith("sage") ||
+      mode.startsWith("julia") ||
+      mode == "jl" ||
+      mode.startsWith("python"))
   ) {
     return mode;
   }

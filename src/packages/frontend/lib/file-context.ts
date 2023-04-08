@@ -64,6 +64,8 @@ interface IFileContext {
 
   project_id?: string;
   path?: string;
+
+  is_visible?: boolean;
 }
 
 export const FileContext = createContext<IFileContext>({});

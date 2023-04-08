@@ -150,6 +150,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           hasOpenAI: redux?.getStore("projects").hasOpenAI(project_id),
           project_id,
           path,
+          is_visible,
         };
         return (
           <FileContext.Provider value={value}>

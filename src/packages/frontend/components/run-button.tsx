@@ -24,16 +24,17 @@ import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 import TimeAgo from "react-timeago";
+import Logo from "@cocalc/frontend/jupyter/logo";
 
 // Important -- we import init-nbviewer , since otherwise NBViewerCellOutput won't
 // be able to render any mime types until the user opens a Jupyter notebook.
 import NBViewerCellOutput from "@cocalc/frontend/jupyter/nbviewer/cell-output";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 
-const cache = new LRU<string, object[]>({
+const cache = new LRU<string, { output: object[]; kernel: string }>({
   max: 500,
   maxSize: 10000000,
-  sizeCalculation: (output) => {
+  sizeCalculation: ({ output }) => {
     const n = output?.length;
     return n ? n : 1;
   },
@@ -61,7 +62,12 @@ export default function RunButton({
   setOutput: setOutput0,
   runRef,
 }: Props) {
-  const { jupyterApiEnabled, project_id, path: filename } = useFileContext();
+  const {
+    jupyterApiEnabled,
+    project_id,
+    path: filename,
+    is_visible,
+  } = useFileContext();
   const path = project_id && filename ? path_split(filename).head : undefined;
   const [running, setRunning] = useState<boolean>(false);
   const outputMessagesRef = useRef<object[] | null>(null);
@@ -103,10 +109,11 @@ export default function RunButton({
 
   // actual kernel to use:
   const [kernelName, setKernelName] = useState<string | undefined>(undefined);
+  const [showPopover, setShowPopover] = useState<boolean>(false);
 
   useEffect(() => {
     if (!jupyterApiEnabled || setOutput == null || running) return;
-    const messages = getFromCache({
+    const { output: messages, kernel: usedKernel } = getFromCache({
       input,
       history,
       info,
@@ -115,6 +122,7 @@ export default function RunButton({
     });
     if (messages != null) {
       setOutput({ messages });
+      setKernelName(usedKernel);
     } else {
       setOutput({ old: true });
       // but we try to asynchronously get the output from the
@@ -145,6 +153,7 @@ export default function RunButton({
             output: messages,
             project_id,
             path,
+            kernel,
           });
           setOutput({ messages });
           setCreated(created);
@@ -204,6 +213,7 @@ export default function RunButton({
           output: resp.output,
           project_id,
           path,
+          kernel,
         });
       }
     } catch (error) {
@@ -219,11 +229,18 @@ export default function RunButton({
   const disabled = !input?.trim() || running;
   return (
     <Popover
-      open={running ? false : undefined}
-      trigger="hover"
-      overlayInnerStyle={{ width: "400px" }}
+      open={is_visible && showPopover}
+      trigger={"click"}
+      overlayInnerStyle={{ width: "350px" }}
       title={
         <>
+          <Button
+            type="text"
+            onClick={() => setShowPopover(false)}
+            style={{ float: "right" }}
+          >
+            <Icon name="times" />
+          </Button>
           <Icon
             name="jupyter"
             style={{ marginRight: "5px", fontSize: "20px" }}
@@ -267,7 +284,7 @@ export default function RunButton({
               disabled={disabled}
               onSelect={(name) => {
                 setKernelName(name);
-                run({ forceKernel: name, noCache: false });
+                setShowPopover(false);
               }}
               kernel={kernelName}
               project_id={project_id}
@@ -286,46 +303,80 @@ export default function RunButton({
             >
               Last Run:{" "}
               <TimeAgo date={created >= new Date() ? new Date() : created} />
-              <Button type="link" onClick={() => run({ noCache: true })}>
-                <Icon
-                  style={running ? { color: "#389e0d" } : undefined}
-                  name={running ? "cocalc-ring" : "redo"}
-                  spin={running}
-                />
-                Run Now
-              </Button>
+              <div style={{ textAlign: "center" }}>
+                <Button
+                  onClick={() => {
+                    setShowPopover(false);
+                    run({ noCache: true });
+                  }}
+                >
+                  <Icon
+                    style={running ? { color: "#389e0d" } : undefined}
+                    name={running ? "cocalc-ring" : "redo"}
+                    spin={running}
+                  />
+                  Run Now (clear cache)
+                </Button>
+              </div>
             </div>
           )}
         </div>
       }
     >
       <div style={{ display: "flex" }}>
-        <Button
-          size="small"
-          type="text"
-          style={style}
-          disabled={disabled}
-          onClick={() => {
-            if (output == null) {
-              run({ noCache: false });
-            } else {
-              setOutput();
-            }
-          }}
-        >
-          <Icon
-            style={running ? { color: "#389e0d" } : undefined}
-            name={
-              running
-                ? "cocalc-ring"
-                : output == null
-                ? "step-forward"
-                : "check-square"
-            }
-            spin={running}
-          />
-          Run
-        </Button>
+        <Button.Group>
+          <Tooltip title={output == null ? "Run this code" : "Hide output"}>
+            <Button
+              size="small"
+              style={style}
+              disabled={disabled}
+              onClick={() => {
+                setShowPopover(false);
+                if (output == null) {
+                  run({ noCache: false });
+                } else {
+                  setOutput();
+                }
+              }}
+            >
+              <Icon
+                style={running ? { color: "#389e0d" } : undefined}
+                name={
+                  running
+                    ? "cocalc-ring"
+                    : output == null
+                    ? "step-forward"
+                    : "check-square"
+                }
+                spin={running}
+              />
+              Run
+            </Button>
+          </Tooltip>
+          <Tooltip title="Configure Jupyter kernel..." placement="bottom">
+            <Button
+              size="small"
+              style={{
+                ...style,
+                ...(showPopover ? { background: "#ccc" } : undefined),
+              }}
+              onClick={() => {
+                setShowPopover(!showPopover);
+              }}
+            >
+              {project_id && kernelName ? (
+                <Logo
+                  kernel={kernelName}
+                  size={18}
+                  style={{ marginRight: "5px" }}
+                />
+              ) : (
+                <Icon name={"jupyter"} />
+              )}
+              {kernelName ? kernelDisplayName(kernelName, project_id) : null}
+            </Button>
+          </Tooltip>
+        </Button.Group>
       </div>
     </Popover>
   );
@@ -382,7 +433,9 @@ function getFromCache({
   info,
   project_id,
   path,
-}): object[] | null {
+}):
+  | { kernel: string; output: object[] }
+  | { kernel: undefined; output: undefined } {
   const cacheKey = computeHash({
     input,
     history,
@@ -390,12 +443,20 @@ function getFromCache({
     project_id,
     path,
   });
-  return cache.get(cacheKey) ?? null;
+  return cache.get(cacheKey) ?? { kernel: undefined, output: undefined };
 }
 
-function saveToCache({ input, history, info, output, project_id, path }) {
+function saveToCache({
+  input,
+  history,
+  info,
+  project_id,
+  path,
+  output,
+  kernel,
+}) {
   const key = computeHash({ input, history, kernel: info, project_id, path });
-  cache.set(key, output);
+  cache.set(key, { output, kernel });
 }
 
 const kernelInfoCache = new LRU<string, KernelSpec[]>({
@@ -534,6 +595,13 @@ function KernelSelector({
                   display_name: spec.display_name,
                   label: (
                     <Tooltip title={spec.display_name} placement="left">
+                      {project_id && (
+                        <Logo
+                          kernel={spec.name}
+                          size={18}
+                          style={{ marginRight: "5px" }}
+                        />
+                      )}{" "}
                       {spec.display_name}
                     </Tooltip>
                   ),
