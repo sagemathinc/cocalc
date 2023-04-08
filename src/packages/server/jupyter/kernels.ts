@@ -4,7 +4,7 @@ Backend server side part of ChatGPT integration with CoCalc.
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import getOneProject from "@cocalc/server/projects/get-one";
+import getProject from "./global-project-pool";
 import callProject from "@cocalc/server/projects/call";
 import { jupyter_kernels } from "@cocalc/util/message";
 import LRU from "lru-cache";
@@ -53,7 +53,7 @@ export default async function getKernels({
     if (!jupyter_api_enabled) {
       throw Error("Jupyter API is not enabled on this server.");
     }
-    project_id = (await getOneProject(jupyter_account_id)).project_id;
+    project_id = await getProject();
     account_id = jupyter_account_id;
   }
   const mesg = jupyter_kernels({});

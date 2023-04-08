@@ -6,24 +6,13 @@ import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import computeHash from "@cocalc/util/jupyter-api/compute-hash";
-import getOneProject from "@cocalc/server/projects/get-one";
+import getProject from "./global-project-pool";
 import callProject from "@cocalc/server/projects/call";
 import { jupyter_execute } from "@cocalc/util/message";
-import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import checkForAbuse from "./abuse";
 
 const log = getLogger("jupyter-api:execute");
-
-async function getConfig() {
-  log.debug("get config");
-  const { jupyter_account_id, jupyter_api_enabled } = await getServerSettings();
-
-  return {
-    jupyter_account_id,
-    jupyter_api_enabled,
-  };
-}
 
 const GLOBAL_LIMITS = {
   timeout_ms: 30000,
@@ -118,24 +107,19 @@ export async function execute({
   // Execute the code.
   let request_account_id, request_project_id, pool, limits;
   if (project_id == null) {
-    const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
+    const { jupyter_api_enabled, jupyter_account_id } =
+      await getServerSettings();
     if (!jupyter_api_enabled) {
       throw Error("Jupyter API is not enabled on this server.");
     }
-    if (!jupyter_account_id) {
-      throw Error(
-        "Jupyter API must be configured with an account_id that owns the compute project pool."
-      );
-    }
-    request_account_id = jupyter_account_id;
 
-    if (!isValidUUID(jupyter_account_id)) {
-      throw Error("Jupyter API account_id is not a valid uuid.");
-    }
-
-    // we only worry about abuse against the general public pool, not when used in a user's own project
+    // we only worry about abuse against the general public pool, not
+    // when used in a user's own project
     await checkForAbuse({ account_id, analytics_cookie });
-    request_project_id = (await getOneProject(jupyter_account_id)).project_id;
+
+    request_account_id = jupyter_account_id;
+    request_project_id = await getProject();
+
     pool = GLOBAL_POOL;
     limits = GLOBAL_LIMITS;
   } else {
