@@ -10,7 +10,10 @@ export function getHistory(editor, element): string[] {
       elt.fence == true &&
       elt.info == element.info
     ) {
-      history.push(elt.value);
+      const value = elt.value?.trim();
+      if (value) {
+        history.push(value);
+      }
     }
   }
   return history;

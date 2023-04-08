@@ -5,7 +5,7 @@ import RunButton, {
 } from "@cocalc/frontend/components/run-button";
 export type { RunFunction };
 
-const buttonStyle = { color: "#666", fontSize: "9pt" } as const;
+const buttonStyle = { color: "#666" } as const;
 
 export default function ActionButtons({
   input,

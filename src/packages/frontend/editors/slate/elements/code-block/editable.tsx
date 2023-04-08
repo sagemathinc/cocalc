@@ -96,7 +96,6 @@ function Element({ attributes, children, element }: RenderElementProps) {
                   style={{
                     flex: 1,
                     color: "#666",
-                    fontSize: "12px",
                     minWidth: "100px",
                     maxWidth: "300px",
                     margin: "0 5px",
