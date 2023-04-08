@@ -6,42 +6,25 @@ import {
   useRef,
   useState,
 } from "react";
-import { Alert, Button, Popover, Select, Tooltip, Typography } from "antd";
+import { Button, Popover, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { join } from "path";
-import LRU from "lru-cache";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
-import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
-import {
-  capitalize,
-  closest_kernel_match,
-  path_split,
-} from "@cocalc/util/misc";
-import { guesslang } from "@cocalc/frontend/misc/detect-language";
-import { fromJS } from "immutable";
-import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
+import { path_split } from "@cocalc/util/misc";
 import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 import TimeAgo from "react-timeago";
 import Logo from "@cocalc/frontend/jupyter/logo";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { plural } from "@cocalc/util/misc";
-// Important -- we import init-nbviewer , since otherwise NBViewerCellOutput won't
-// be able to render any mime types until the user opens a Jupyter notebook.
-import NBViewerCellOutput from "@cocalc/frontend/jupyter/nbviewer/cell-output";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 //import { file_associations } from "@cocalc/frontend/file-associations";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-
-const cache = new LRU<string, { output: object[]; kernel: string }>({
-  max: 500,
-  maxSize: 10000000,
-  sizeCalculation: ({ output }) => {
-    const n = output?.length;
-    return n ? n : 1;
-  },
-});
+import { getFromCache, saveToCache } from "./cache";
+import { kernelDisplayName } from "./kernel-info";
+import api from "./api";
+import SelectKernel from "./select-kernel";
+import getKernel from "./get-kernel";
+import Output from "./output";
 
 export type RunFunction = () => Promise<void>;
 type RunRef = MutableRefObject<RunFunction | null>;
@@ -232,25 +215,20 @@ export default function RunButton({
         }
         setKernelName(kernel);
       }
-      const resp = await (
-        await fetch(join(appBasePath, "api/v2/jupyter/execute"), {
-          method: "POST",
-          body: JSON.stringify({
-            input,
-            history,
-            kernel,
-            noCache,
-            project_id,
-            path,
-            tag,
-          }),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-      ).json();
-      if (resp.error && setOutput != null) {
+      let resp;
+      try {
+        resp = await api("execute", {
+          input,
+          history,
+          kernel,
+          noCache,
+          project_id,
+          path,
+          tag,
+        });
+      } catch (err) {
         setOutput({ error: resp.error });
+        return;
       }
       if (resp.output != null) {
         setOutput({ messages: resp.output });
@@ -318,7 +296,7 @@ export default function RunButton({
           }
           content={
             <div>
-              <Typography.Paragraph>
+              <div>
                 Run {project_id ? "" : "in an isolated sandbox"}
                 {" using "}
                 {kernelName ? (
@@ -346,7 +324,7 @@ export default function RunButton({
                     />
                   </>
                 )}
-              </Typography.Paragraph>
+              </div>
               <div
                 style={{
                   width: "100%",
@@ -357,7 +335,7 @@ export default function RunButton({
                   background: disabled ? "white" : undefined,
                 }}
               >
-                <KernelSelector
+                <SelectKernel
                   disabled={running}
                   onSelect={(name) => {
                     setKernelName(name);
@@ -466,311 +444,9 @@ export default function RunButton({
   );
 }
 
-function Output({
-  error,
-  output,
-  old,
-  running,
-  style,
-}: {
-  error?;
-  output?;
-  old?: boolean;
-  running?: boolean;
-  style?: CSSProperties;
-}) {
-  if (error) {
-    return (
-      <Alert
-        type={error ? "error" : "success"}
-        style={{
-          margin: "5px 0 5px 30px",
-        }}
-        description={`${error}`}
-      />
-    );
-  }
-  if (output == null) {
-    return null;
-  }
-  return (
-    <>
-      {running && <ProgressEstimate seconds={15} style={{ width: "100%" }} />}
-      <div
-        style={{
-          color: "#444",
-          maxHeight: "35vh",
-          overflowY: "auto",
-          ...style,
-          ...(old || running ? { opacity: 0.2 } : undefined),
-        }}
-      >
-        <NBViewerCellOutput cell={{ output }} hidePrompt />
-      </div>
-    </>
-  );
-}
-
-function getFromCache({
-  input,
-  history,
-  info,
-  project_id,
-  path,
-}):
-  | { kernel: string; output: object[] }
-  | { kernel: undefined; output: undefined } {
-  const cacheKey = computeHash({
-    input,
-    history,
-    kernel: info,
-    project_id,
-    path,
-  });
-  return cache.get(cacheKey) ?? { kernel: undefined, output: undefined };
-}
-
-function saveToCache({
-  input,
-  history,
-  info,
-  project_id,
-  path,
-  output,
-  kernel,
-}) {
-  const key = computeHash({ input, history, kernel: info, project_id, path });
-  cache.set(key, { output, kernel });
-}
-
-const kernelInfoCache = new LRU<string, KernelSpec[]>({
-  ttl: 30000,
-  max: 50,
-});
-function kernelInfoCacheKey(project_id: string | undefined) {
-  return project_id ?? "global";
-}
-function getKernelInfoCacheOnly(project_id: string | undefined) {
-  const kernelInfo = kernelInfoCache.get(kernelInfoCacheKey(project_id));
-  if (kernelInfo != null) return kernelInfo;
-  (async () => {
-    try {
-      await getKernelInfo(project_id); // refresh cache
-    } catch (err) {
-      // e.g., if you user isn't signed in and project_id is set, this will fail, but shouldn't be fatal.
-      console.warn(`WARNING: ${err}`);
-    }
-  })();
-}
-async function getKernelInfo(
-  project_id: string | undefined
-): Promise<KernelSpec[]> {
-  const key = kernelInfoCacheKey(project_id);
-  let specs = kernelInfoCache.get(key);
-  if (specs != null) return specs;
-  const url = join(appBasePath, "api/v2/jupyter/kernels");
-  const resp = await (
-    await fetch(url, {
-      method: project_id ? "POST" : "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      ...(project_id // can't pass body at all to GET!
-        ? { body: JSON.stringify({ project_id }) }
-        : undefined),
-    })
-  ).json();
-  if (resp.error) {
-    throw Error(resp.error);
-  }
-  specs = resp.kernels;
-  if (specs == null) {
-    throw Error("bug");
-  }
-  kernelInfoCache.set(key, specs);
-  return specs;
-}
-
-function kernelDisplayName(
-  name: string,
-  project_id: string | undefined
-): string {
-  const kernelInfo = getKernelInfoCacheOnly(project_id);
-  if (kernelInfo == null) {
-    return capitalize(name);
-  }
-  for (const k of kernelInfo) {
-    if (k.name == name) {
-      return k.display_name;
-    }
-  }
-  return capitalize(name);
-}
-
-/*
-function kernelLanguage(
-  name: string | undefined,
-  project_id: string | undefined
-): string | undefined {
-  if (!name) return;
-  const kernelInfo = getKernelInfoCacheOnly(project_id);
-  if (kernelInfo == null) {
-    return;
-  }
-  for (const k of kernelInfo) {
-    if (k.name == name) {
-      return k.language;
-    }
-  }
-}
-
-function cmMode(
-  name: string | undefined,
-  project_id: string | undefined,
-  content: string
-) {
-  const lang = kernelLanguage(name, project_id) ?? detectLanguage(content);
-  return file_associations[lang]?.opts?.mode;
-}
-*/
-
-async function guessKernel({ info, code, project_id }): Promise<string> {
-  if (info == "python") {
-    info = "python3";
-  }
-  const kernelInfo = await getKernelInfo(project_id);
-  if (kernelInfo.length == 0) {
-    throw Error("there are no available kernels");
-  }
-  if (!info) {
-    // we guess something since nothing was giving. We use the code in the input and history.
-    const guesses = await guesslang(code);
-    // TODO: should restrict guesses to available kernels...
-    info = guesses[0] ?? "python3";
-  }
-
-  const mode = infoToMode(info, { preferKernel: true });
-  for (const { name, display_name, language } of kernelInfo) {
-    if (name == mode) {
-      // mode exactly matches a known kernel, so obviously use that.
-      return name;
-    }
-    if (mode == language) {
-      return name;
-    }
-    if (mode == display_name.toLowerCase()) {
-      return name;
-    }
-  }
-  // No really clear match, so use closest_kernel_match.
-  // TODO: it's silly converting to immutable.js constantly...
-  const result = closest_kernel_match(mode, fromJS(kernelInfo)).get("name");
-  return result;
-}
-
-function KernelSelector({
-  //code,
-  kernel,
-  onSelect,
-  disabled,
-  project_id,
-}: {
-  //code?: string;
-  kernel?: string;
-  onSelect: (name: string) => void;
-  disabled?: boolean;
-  project_id?: string;
-}) {
-  const [error, setError] = useState<string>("");
-  const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null>(null);
-  useEffect(() => {
-    (async () => {
-      let kernelInfo;
-      try {
-        kernelInfo = await getKernelInfo(project_id);
-      } catch (err) {
-        setError(`${err}`);
-        return;
-      }
-      setKernelSpecs(kernelInfo);
-    })();
-  }, []);
-
-  return (
-    <>
-      {error && <Alert type="error" description={error} />}
-      {!error && (
-        <Select
-          showSearch
-          placeholder="Kernel..."
-          optionFilterProp="children"
-          filterOption={(input, option) =>
-            (option?.display_name ?? "")
-              .toLowerCase()
-              .includes(input.toLowerCase())
-          }
-          style={{ flex: 1 }}
-          disabled={disabled}
-          options={
-            kernelSpecs != null
-              ? kernelSpecs
-                  ?.filter((spec) => !spec?.metadata?.["cocalc"]?.disabled)
-                  .map((spec) => {
-                    return {
-                      display_name: spec.display_name,
-                      label: (
-                        <Tooltip title={spec.display_name} placement="left">
-                          {project_id && (
-                            <Logo
-                              kernel={spec.name}
-                              size={18}
-                              style={{ marginRight: "5px" }}
-                            />
-                          )}{" "}
-                          {spec.display_name}
-                        </Tooltip>
-                      ),
-                      value: spec.name,
-                    };
-                  })
-              : []
-          }
-          onChange={onSelect}
-          value={kernel}
-        />
-      )}
-    </>
-  );
-}
-
 async function getFromDatabaseCache(hash: string): Promise<{
   output?: object[];
   created?: Date;
 }> {
-  const resp = await (
-    await fetch(join(appBasePath, "api/v2/jupyter/execute"), {
-      method: "POST",
-      body: JSON.stringify({ hash }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-  ).json();
-  if (resp.error) {
-    throw Error(resp.error);
-  }
-  return resp;
-}
-
-async function getKernel({
-  input,
-  history,
-  info,
-  project_id,
-}): Promise<string> {
-  return await guessKernel({
-    info,
-    code: (history ?? []).concat([input ?? ""]).join("\n"),
-    project_id,
-  });
+  return await api("execute", { hash });
 }
