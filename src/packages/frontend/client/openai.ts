@@ -11,7 +11,7 @@ import type { History } from "@cocalc/frontend/misc/openai"; // do not import un
 import type { Model } from "@cocalc/util/db-schema/openai";
 
 const DEFAULT_SYSTEM_PROMPT =
-  "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW. ENCLOSE MATH IN $.";
+  "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.  ENCLOSE ALL MATH IN $.  INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.";
 
 export class OpenAIClient {
   private async_call: AsyncCall;

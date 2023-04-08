@@ -56,7 +56,10 @@ export default function infoToMode(
     }
   }
 
-  if (preferKernel && mode.startsWith("sage")) {
+  if (
+    preferKernel &&
+    (mode.startsWith("sage") || mode.startsWith("julia") || mode == "jl")
+  ) {
     return mode;
   }
 
