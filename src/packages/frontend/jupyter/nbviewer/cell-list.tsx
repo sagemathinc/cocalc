@@ -20,18 +20,27 @@ export default function CellList({
   kernel,
 }: Props) {
   const v: JSX.Element[] = [];
+  let history: string[] = [];
   for (const id of cellList) {
-    if (cells[id] == null) continue;
+    const cell = cells[id];
+    if (cell == null) continue;
     v.push(
       <Cell
         key={id}
         kernel={kernel}
-        cell={cells[id]}
+        cell={cell}
         cmOptions={cmOptions}
         project_id={project_id}
         directory={directory}
+        history={history}
       />
     );
+    if (cell["cell_type"] == "code") {
+      const input = cell["input"]?.trim();
+      if (input) {
+        history = history.concat(input);
+      }
+    }
   }
   return <div style={{ fontSize }}>{v}</div>;
 }

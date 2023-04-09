@@ -11,6 +11,7 @@ interface Props {
   kernel: string;
   output;
   setOutput;
+  history: string[];
 }
 
 export default function CellInput({
@@ -19,6 +20,7 @@ export default function CellInput({
   kernel,
   output,
   setOutput,
+  history,
 }: Props) {
   const value = cell["input"] ?? "";
   return (
@@ -52,6 +54,7 @@ export default function CellInput({
                   output={output}
                   setOutput={setOutput}
                   info={`{kernel='${kernel}'}`}
+                  history={history}
                 />
               </div>
             }
