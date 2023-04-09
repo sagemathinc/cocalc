@@ -48,6 +48,7 @@ interface Props {
   no_border?: boolean; // if given, do not draw border around whole thing
   addonBefore?: ReactNode;
   addonAfter?: ReactNode;
+  onDoubleClick?;
 }
 
 // This is used heavily by the share server.
@@ -148,6 +149,7 @@ export function CodeMirrorStatic(props: Props) {
       <pre
         className={`CodeMirror ${theme_base} ${theme_extra} CodeMirror-wrap`}
         style={{ ...style, ...props.style }}
+        onDoubleClick={props.onDoubleClick}
       >
         <div style={{ marginLeft: width }}>
           {render_lines(width)}

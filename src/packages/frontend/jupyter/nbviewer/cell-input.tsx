@@ -10,9 +10,9 @@ import { CodeMirrorStatic } from "../codemirror-static";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { InputPrompt } from "../prompt/input-nbviewer";
 import ActionButtons from "@cocalc/frontend/editors/slate/elements/code-block/action-buttons";
-import { Button, Input, Tooltip } from "antd";
+import { Button, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useRef, useState } from "react";
+import { ElementType, useEffect, useRef, useState } from "react";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 interface Props {
@@ -43,6 +43,16 @@ export default function CellInput({
   const [newValue, setNewValue] = useState<string>(value);
   const { jupyterApiEnabled } = useFileContext();
   const runRef = useRef<any>(null);
+  const [Editor, setEditor] = useState<ElementType | null>(null);
+
+  // We lazy load the Editor because we want to support using this in nextjs.
+  useEffect(() => {
+    if (editing && Editor == null) {
+      (async () => {
+        setEditor((await import("@uiw/react-textarea-code-editor")).default);
+      })();
+    }
+  }, [editing]);
 
   const save = (run) => {
     setEdits({ ...edits, [cell["id"] ?? ""]: newValue });
@@ -69,8 +79,8 @@ export default function CellInput({
           placement="bottom"
           title={
             editing
-              ? "Save temporary changes.  Use shift+enter to run."
-              : "Temporarily edit this code."
+              ? "Temporarily save yours changes so they are available to rest of this notebook.  Use shift+enter to save and run."
+              : "Temporarily edit this code (shortcut: double click the code)."
           }
         >
           <Button
@@ -126,31 +136,34 @@ export default function CellInput({
               }}
             >
               {controlBar}
-              <Input.TextArea
-                autoFocus
-                style={{
-                  fontFamily: "monospace",
-                  fontSize: "14.6666px",
-                  lineHeight: "normal",
-                  border: "0px solid white",
-                }}
-                defaultValue={value}
-                autoSize={true}
-                onChange={(e) => setNewValue(e.target.value)}
-                onPressEnter={(e) => {
-                  if (e.shiftKey) {
-                    save(true);
-                  }
-                }}
-              />
+              {Editor && (
+                <Editor
+                  autoFocus
+                  language={cmOptions.mode?.name}
+                  value={value}
+                  style={{
+                    fontSize: "14.6666px",
+                    fontFamily: "monospace",
+                    lineHeight: "normal",
+                    border: "0px solid white",
+                  }}
+                  onChange={(e) => setNewValue(e.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.shiftKey && event.keyCode === 13) {
+                      save(true);
+                    }
+                  }}
+                />
+              )}
             </div>
           )}
           {!editing && (
             <CodeMirrorStatic
-              style={{ padding: "4px 11px" }}
+              style={{ padding: "10px" }}
               value={value}
               options={cmOptions}
               addonBefore={controlBar}
+              onDoubleClick={() => setEditing(true)}
             />
           )}
           {output}
