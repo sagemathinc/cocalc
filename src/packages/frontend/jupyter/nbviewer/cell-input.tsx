@@ -33,28 +33,26 @@ export default function CellInput({
       {cell["cell_type"] == "markdown" ? (
         <Markdown value={value} />
       ) : (
-        <div style={{ width: "100%" }}>
+        <div style={{ overflow: "hidden", flex: 1 }}>
           <CodeMirrorStatic
             value={value}
             options={cmOptions}
             addonBefore={
-              <div style={{ position: "relative" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    position: "absolute",
-                    right: 0,
-                    top: "-3px",
-                    zIndex: 1,
-                  }}
-                >
-                  <ActionButtons
-                    input={value}
-                    output={output}
-                    setOutput={setOutput}
-                    info={`{kernel='${kernel}'}`}
-                  />
-                </div>
+              <div
+                style={{
+                  borderBottom: "1px solid #ccc",
+                  padding: "3px",
+                  display: "flex",
+                  background: "#f8f8f8",
+                }}
+              >
+                <div style={{ flex: 1 }} />
+                <ActionButtons
+                  input={value}
+                  output={output}
+                  setOutput={setOutput}
+                  info={`{kernel='${kernel}'}`}
+                />
               </div>
             }
           />

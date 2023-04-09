@@ -80,7 +80,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
             <div
               style={{
                 borderBottom: "1px solid #ccc",
-                padding: "3px 0",
+                padding: "3px",
                 display: "flex",
                 background: "#f8f8f8",
               }}

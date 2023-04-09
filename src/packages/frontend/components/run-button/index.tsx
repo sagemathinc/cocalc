@@ -18,7 +18,7 @@ import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { plural } from "@cocalc/util/misc";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 //import { file_associations } from "@cocalc/frontend/file-associations";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+//import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { getFromCache, saveToCache } from "./cache";
 import { kernelDisplayName } from "./kernel-info";
 import api from "./api";
@@ -74,7 +74,7 @@ export default function RunButton({
     project_id,
     path: filename,
     is_visible,
-    hasOpenAI,
+    /*hasOpenAI, */
   } = useFileContext();
   const path = project_id && filename ? path_split(filename).head : undefined;
   const [running, setRunning] = useState<boolean>(false);
@@ -433,7 +433,7 @@ export default function RunButton({
             </Button>
           </Tooltip>
         </Popover>
-        {hasOpenAI && (
+        {/*hasOpenAI && (
           <Button>
             <OpenAIAvatar
               size={16}
@@ -442,7 +442,7 @@ export default function RunButton({
             />
             Explain
           </Button>
-        )}
+        )*/}
       </Button.Group>
     </div>
   );
