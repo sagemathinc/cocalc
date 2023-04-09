@@ -79,7 +79,7 @@ export default function ChatGPTHelp({
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}
           placeholder={
-            placeholder ?? `What do you want to do using ${siteName}?`
+            placeholder ?? `What do you want to do on ${siteName}?`
           }
           allowClear
           enterButton={
