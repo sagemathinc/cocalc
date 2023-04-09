@@ -29,23 +29,22 @@ export default function Output({
       />
     );
   }
-  if (output == null) {
-    return null;
-  }
   return (
-    <>
+    <div>
       {running && <ProgressEstimate seconds={15} style={{ width: "100%" }} />}
-      <div
-        style={{
-          color: "#444",
-          maxHeight: "35vh",
-          overflowY: "auto",
-          ...style,
-          ...(old || running ? { opacity: 0.2 } : undefined),
-        }}
-      >
-        <NBViewerCellOutput cell={{ output }} hidePrompt />
-      </div>
-    </>
+      {output != null && (
+        <div
+          style={{
+            color: "#444",
+            maxHeight: "50vh",
+            overflowY: "auto",
+            ...style,
+            ...(old || running ? { opacity: 0.2 } : undefined),
+          }}
+        >
+          <NBViewerCellOutput cell={{ output }} hidePrompt />
+        </div>
+      )}
+    </div>
   );
 }

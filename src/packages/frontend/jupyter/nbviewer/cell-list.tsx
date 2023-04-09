@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import Cell from "./cell";
 
 interface Props {
@@ -19,6 +21,9 @@ export default function CellList({
   directory,
   kernel,
 }: Props) {
+  // modifications to inputs of cells (used for temporary editing)
+  const [edits, setEdits] = useState<{ [id: string]: string } | null>(null);
+
   const v: JSX.Element[] = [];
   let history: string[] = [];
   for (const id of cellList) {
@@ -29,6 +34,8 @@ export default function CellList({
         key={id}
         kernel={kernel}
         cell={cell}
+        edits={edits}
+        setEdits={setEdits}
         cmOptions={cmOptions}
         project_id={project_id}
         directory={directory}
@@ -36,7 +43,7 @@ export default function CellList({
       />
     );
     if (cell["cell_type"] == "code") {
-      const input = cell["input"]?.trim();
+      const input = edits?.[id]?.trim() ?? cell["input"]?.trim();
       if (input) {
         history = history.concat(input);
       }

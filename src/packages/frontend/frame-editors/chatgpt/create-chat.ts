@@ -55,7 +55,7 @@ export default async function createChat({
   const delim = backtickSequence(input);
   const head = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
     command
-  )}.\n`;
+  )}:\n`;
   let message = "";
   if (frameType != "terminal") {
     message += `I am writing in the file ${

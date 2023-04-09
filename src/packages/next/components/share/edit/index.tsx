@@ -56,6 +56,7 @@ export default function Edit({
   return (
     <span>
       <Button
+        type="link"
         disabled={expanded}
         onClick={(e) => {
           e.preventDefault();

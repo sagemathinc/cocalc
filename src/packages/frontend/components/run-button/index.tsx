@@ -95,11 +95,7 @@ export default function RunButton({
     running?: boolean;
   } = {}) => {
     if (running) {
-      setOutput0(
-        outputMessagesRef.current == null ? null : (
-          <Output output={outputMessagesRef.current} running />
-        )
-      );
+      setOutput0(<Output output={outputMessagesRef.current} running />);
     } else if (error) {
       outputMessagesRef.current = null;
       setOutput0(<Output error={error} />);
@@ -257,23 +253,26 @@ export default function RunButton({
   return (
     <div style={{ display: "flex" }}>
       <Button.Group>
-        <Button
-          style={style}
-          disabled={disabled}
-          onClick={() => {
-            setShowPopover(false);
-            if (output == null) {
-              run({ noCache: false });
-            }
-          }}
+        <Tooltip
+          placement="bottom"
+          title="Run this code and anything it depends on."
         >
-          <Icon
-            style={running ? { color: "#389e0d" } : undefined}
-            name={running ? "cocalc-ring" : "step-forward"}
-            spin={running}
-          />
-          Run
-        </Button>
+          <Button
+            style={style}
+            disabled={disabled}
+            onClick={() => {
+              setShowPopover(false);
+              run({ noCache: false });
+            }}
+          >
+            <Icon
+              style={running ? { color: "#389e0d" } : undefined}
+              name={running ? "cocalc-ring" : "step-forward"}
+              spin={running}
+            />
+            Run
+          </Button>
+        </Tooltip>
         <Popover
           open={project_id == null ? undefined : is_visible && showPopover}
           trigger={project_id == null ? "click" : []}
