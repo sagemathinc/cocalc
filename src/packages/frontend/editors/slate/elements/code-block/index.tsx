@@ -29,7 +29,17 @@ const StaticElement: React.FC<RenderElementProps> = ({
   element,
 }) => {
   const { disableMarkdownCodebar } = useFileContext();
-  const [editing, setEditing] = useState<boolean>(false);
+
+  // we need both a ref and state, because editing is used both for the UI
+  // state and also at once point directly to avoid saving the last change
+  // after doing shift+enter.
+  const editingRef = useRef<boolean>(false);
+  const [editing, setEditing0] = useState<boolean>(false);
+  const setEditing = (editing) => {
+    editingRef.current = editing;
+    setEditing0(editing);
+  };
+
   const [newValue, setNewValue] = useState<string | null>(null);
   const runRef = useRef<any>(null);
 
@@ -71,11 +81,12 @@ const StaticElement: React.FC<RenderElementProps> = ({
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
       <CodeMirrorStatic
         editable={editing}
-        onChange={(event) => setNewValue(event.target.value)}
+        onChange={(event) => {
+          if (!editingRef.current) return;
+          setNewValue(event.target.value);
+        }}
         onKeyDown={(event) => {
           if (event.shiftKey && event.keyCode === 13) {
-            console.log("got shift enter, newValue=", newValue);
-            event.stopPropagation();
             save(newValue, true);
           }
         }}
