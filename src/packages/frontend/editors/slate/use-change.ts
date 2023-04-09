@@ -10,5 +10,6 @@ import { createContext, useContext } from "react";
 export const ChangeContext = createContext<{
   change: number;
   editor: SlateEditor | null;
+  setEditor?: (editor: null | any) => void;
 }>({ change: 0, editor: null });
 export const useChange = () => useContext(ChangeContext);

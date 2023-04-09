@@ -64,7 +64,7 @@ export default function Edit({
         }}
         key="edit"
       >
-        <Icon name="pencil" /> Edit...
+        <Icon name="pencil" /> Edit in a Project...
       </Button>
       {expanded && (
         <EditOptions

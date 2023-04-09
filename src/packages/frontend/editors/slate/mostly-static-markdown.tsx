@@ -101,7 +101,13 @@ export default function MostlyStaticMarkdown({
 
   return (
     <ChangeContext.Provider
-      value={{ change, editor: { children: slate } as any }}
+      value={{
+        change,
+        editor: { children: slate } as any,
+        setEditor: (editor: any) => {
+          setSlate(editor);
+        },
+      }}
     >
       <div style={{ width: "100%", ...style }} className={className}>
         {slate.map((element, n) => (

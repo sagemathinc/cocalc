@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React, { ReactNode, useEffect, useState } from "react";
+import { Button, Tooltip } from "antd";
+import React, { ReactNode, useEffect, useRef, useState } from "react";
 import { Element } from "slate";
 import { register, SlateElement, RenderElementProps } from "../register";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
@@ -13,6 +14,7 @@ import { useChange } from "../../use-change";
 import { getHistory } from "./history";
 import { DARK_GREY_BORDER } from "../../util";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -27,14 +29,39 @@ const StaticElement: React.FC<RenderElementProps> = ({
   element,
 }) => {
   const { disableMarkdownCodebar } = useFileContext();
+  const [editing, setEditing] = useState<boolean>(false);
+  const [newValue, setNewValue] = useState<string | null>(null);
+  const runRef = useRef<any>(null);
 
   const [output, setOutput] = useState<null | ReactNode>(null);
 
-  const { change, editor } = useChange();
+  const { change, editor, setEditor } = useChange();
   const [history, setHistory] = useState<string[]>(getHistory(editor, element));
   useEffect(() => {
     setHistory(getHistory(editor, element));
   }, [change]);
+
+  const save = (value: string | null, run: boolean) => {
+    setEditing(false);
+    if (value != null && setEditor != null && editor != null) {
+      // We just directly find it assuming it is a top level block for now.
+      // We aren't using the slate library since in static mode right now
+      // the editor isn't actually a slate editor object (yet).
+      const editor2 = { children: [...editor.children] };
+      for (let i = 0; i < editor2.children.length; i++) {
+        if (element === editor.children[i]) {
+          editor2.children[i] = { ...(element as any), value };
+          setEditor(editor2);
+          break;
+        }
+      }
+    }
+    if (!run) return;
+    // have to wait since above causes re-render
+    setTimeout(() => {
+      runRef.current?.();
+    }, 1);
+  };
 
   if (element.type != "code_block") {
     throw Error("bug");
@@ -43,6 +70,18 @@ const StaticElement: React.FC<RenderElementProps> = ({
   return (
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
       <CodeMirrorStatic
+        editable={editing}
+        onChange={(event) => setNewValue(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.shiftKey && event.keyCode === 13) {
+            console.log("got shift enter, newValue=", newValue);
+            event.stopPropagation();
+            save(newValue, true);
+          }
+        }}
+        onDoubleClick={() => {
+          setEditing(true);
+        }}
         addonBefore={
           !disableMarkdownCodebar && (
             <div
@@ -54,8 +93,37 @@ const StaticElement: React.FC<RenderElementProps> = ({
               }}
             >
               <div style={{ flex: 1 }}></div>
+              <Tooltip
+                title={
+                  <>
+                    Make a <i>temporary</i> change to this code.{" "}
+                    <b>This is not saved permanently anywhere!</b>
+                  </>
+                }
+              >
+                <Button
+                  type={
+                    editing && newValue != element.value ? undefined : "text"
+                  }
+                  style={
+                    editing && newValue != element.value
+                      ? { background: "#5cb85c", color: "white" }
+                      : { color: "#666" }
+                  }
+                  onClick={() => {
+                    if (editing) {
+                      save(newValue, false);
+                    } else {
+                      setEditing(true);
+                    }
+                  }}
+                >
+                  <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
+                </Button>
+              </Tooltip>{" "}
               <ActionButtons
-                input={element.value}
+                runRef={runRef}
+                input={newValue ?? element.value}
                 history={history}
                 setOutput={setOutput}
                 output={output}
@@ -64,7 +132,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
             </div>
           )
         }
-        value={element.value}
+        value={newValue ?? element.value}
         style={{
           background: "white",
           padding: "10px 15px 10px 20px",

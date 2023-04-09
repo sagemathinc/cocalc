@@ -95,6 +95,7 @@ export default class Kernel {
       // ulimit: `-n 1000 -f 10485760 -t 30 -v 3000000`,
     });
     await this.kernel.ensure_running();
+    await this.kernel.execute_code_now({ code: "" });
   }
 
   async execute(

@@ -1,9 +1,5 @@
 /*
 Show the input part of a cell.
-
-TODO: To make this editable I just used a quick Input component from antd,
-which sucks compared to what codemirror provides.  But it's only temporary.
-Codemirror is harder due to compat with nextjs and we'll do that later.
 */
 
 import { CodeMirrorStatic } from "../codemirror-static";
@@ -12,8 +8,9 @@ import { InputPrompt } from "../prompt/input-nbviewer";
 import ActionButtons from "@cocalc/frontend/editors/slate/elements/code-block/action-buttons";
 import { Button, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { ElementType, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import CodeEditor from "@cocalc/frontend/components/code-editor";
 
 interface Props {
   cell: object;
@@ -43,16 +40,6 @@ export default function CellInput({
   const [newValue, setNewValue] = useState<string>(value);
   const { jupyterApiEnabled } = useFileContext();
   const runRef = useRef<any>(null);
-  const [Editor, setEditor] = useState<ElementType | null>(null);
-
-  // We lazy load the Editor because we want to support using this in nextjs.
-  useEffect(() => {
-    if (editing && Editor == null) {
-      (async () => {
-        setEditor((await import("@uiw/react-textarea-code-editor")).default);
-      })();
-    }
-  }, [editing]);
 
   const save = (run) => {
     setEdits({ ...edits, [cell["id"] ?? ""]: newValue });
@@ -76,11 +63,14 @@ export default function CellInput({
       <div style={{ flex: 1 }} />
       {jupyterApiEnabled && (
         <Tooltip
-          placement="bottom"
+          placement="top"
           title={
-            editing
-              ? "Temporarily save yours changes so they are available to rest of this notebook.  Use shift+enter to save and run."
-              : "Temporarily edit this code (shortcut: double click the code)."
+            <>
+              Make a <i>temporary</i> change to this code.{" "}
+              <b>This is not saved permanently anywhere!</b>
+              'Edit in a Project...' for much more powerful editing and to save
+              your changes!
+            </>
           }
         >
           <Button
@@ -98,8 +88,7 @@ export default function CellInput({
               }
             }}
           >
-            <Icon name={editing ? "save" : "pencil"} />{" "}
-            {editing ? "Save" : "Edit"}
+            <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
           </Button>
         </Tooltip>
       )}
@@ -136,25 +125,24 @@ export default function CellInput({
               }}
             >
               {controlBar}
-              {Editor && (
-                <Editor
-                  autoFocus
-                  language={cmOptions.mode?.name}
-                  value={value}
-                  style={{
-                    fontSize: "14.6666px",
-                    fontFamily: "monospace",
-                    lineHeight: "normal",
-                    border: "0px solid white",
-                  }}
-                  onChange={(e) => setNewValue(e.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.shiftKey && event.keyCode === 13) {
-                      save(true);
-                    }
-                  }}
-                />
-              )}
+              <CodeEditor
+                autoFocus
+                language={cmOptions.mode?.name}
+                value={value}
+                style={{
+                  fontSize: "14.6666px",
+                  fontFamily: "monospace",
+                  lineHeight: "normal",
+                  border: "0px solid white",
+                }}
+                onChange={(event) => setNewValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.shiftKey && event.keyCode === 13) {
+                    save(true);
+                    event.stopPropagation();
+                  }
+                }}
+              />
             </div>
           )}
           {!editing && (

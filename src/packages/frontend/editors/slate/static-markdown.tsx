@@ -22,20 +22,36 @@ interface Props {
   className?: string;
 }
 
+type PartialSlateEditor = any; // TODO
+
 export default function StaticMarkdown(props: Props) {
   const { value, style, className } = props;
 
   const [change, setChange] = useState<number>(0);
   useEffect(() => {
     setChange(change + 1);
+    setEditor({ children: markdownToSlate(value) });
   }, [value]);
 
-  // Convert markdown to our slate JSON object representation.
-  const children = markdownToSlate(value);
+  const [editor, setEditor] = useState<PartialSlateEditor | null>(null);
+
+  if (editor == null) {
+    return null;
+  }
+
   return (
-    <ChangeContext.Provider value={{ change, editor: { children } as any }}>
+    <ChangeContext.Provider
+      value={{
+        change,
+        editor,
+        setEditor: (editor) => {
+          setEditor(editor);
+          setChange(change + 1);
+        },
+      }}
+    >
       <div style={{ width: "100%", ...style }} className={className}>
-        {children.map((element, n) => {
+        {editor.children.map((element, n) => {
           return <RenderElement key={n} element={element} />;
         })}
       </div>
