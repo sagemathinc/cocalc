@@ -103,7 +103,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
                     margin: "0 5px",
                   }}
                   size="small"
-                  placeholder="Info string..."
+                  placeholder="Info string (py, r, jl, tex, md, etc.)..."
                   value={info}
                   onFocus={() => {
                     infoFocusedRef.current = true;
