@@ -64,10 +64,21 @@ export default class Kernel {
   ): Promise<Kernel> {
     this.setIdleTimeout(kernelName, timeout_s);
     const pool = Kernel.getPool(kernelName);
+    let i = 1;
     while (pool.length <= size) {
       // <= since going to remove one below
       const k = new Kernel(kernelName);
-      k.init(); // start init'ing, but do NOT block on it.
+      // we cause this kernel to get init'd soon, but NOT immediately, since starting
+      // several at once just makes them all take much longer exactly when the user
+      // most wants to use their new kernel
+      setTimeout(async () => {
+        try {
+          await k.init();
+        } catch (err) {
+          log.debug("Failed to pre-init Jupyter kernel -- ", kernelName, err);
+        }
+      }, 3000 * i); // stagger startup by a few seconds, though kernels that are needed will start ASAP.
+      i += 1;
       pool.push(k);
     }
     const k = pool.shift() as Kernel;

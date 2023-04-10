@@ -21,9 +21,9 @@ const GLOBAL_LIMITS = {
   max_output_per_cell: 500000,
 };
 
-// For now we use a pool size of 4 in our general project(s), with a 2 hour idle timeout.
+// For now we use a pool size of 4 in our general project(s), with a 12 hour idle timeout.
 // This will be configurable via admin settings.
-const GLOBAL_POOL = { size: 4, timeout_s: 2 * 3600 };
+const GLOBAL_POOL = { size: 4, timeout_s: 12 * 3600 };
 
 const PROJECT_LIMITS = {
   timeout_ms: 45000,
@@ -32,9 +32,9 @@ const PROJECT_LIMITS = {
   max_output_per_cell: 1000000,
 };
 
-// For now, we use a pool size of 2 in user's projects, to avoid using
-// too much memory.
-const PROJECT_POOL = { size: 2, timeout_s: 900 };
+// For now, we use a pool size of 1 in user's projects, to avoid using
+// much memory, with 60 min idle timeout.
+const PROJECT_POOL = { size: 2, timeout_s: 60 * 60 };
 
 interface Options {
   input?: string; // new input that user types
@@ -126,7 +126,9 @@ export async function execute({
     request_project_id = project_id;
     // both project_id and account_id must be set and account_id must be a collab
     if (account_id == null) {
-      throw Error("account_id must be specified -- make sure you are signed in");
+      throw Error(
+        "account_id must be specified -- make sure you are signed in"
+      );
     }
     if (!isCollaborator({ project_id, account_id })) {
       throw Error("permission denied -- user must be collaborator on project");
