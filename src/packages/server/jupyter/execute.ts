@@ -21,9 +21,9 @@ const GLOBAL_LIMITS = {
   max_output_per_cell: 500000,
 };
 
-// For now we use a pool size of 4 in our general project(s), with a 12 hour idle timeout.
-// This will be configurable via admin settings.
-const GLOBAL_POOL = { size: 4, timeout_s: 12 * 3600 };
+// For now we use a pool size of 4 in our general project(s), with a 6 hour idle timeout.
+// This will be configurable via admin settings.  The pool shrinks to 1 after 12 hours.
+const GLOBAL_POOL = { size: 4, timeout_s: 6 * 60 * 60 };
 
 const PROJECT_LIMITS = {
   timeout_ms: 45000,
@@ -32,9 +32,10 @@ const PROJECT_LIMITS = {
   max_output_per_cell: 1000000,
 };
 
-// For now, we use a pool size of 1 in user's projects, to avoid using
-// much memory, with 60 min idle timeout.
-const PROJECT_POOL = { size: 2, timeout_s: 60 * 60 };
+// For now, we use a pool size of 2 in user's projects, to avoid using
+// much memory, with 30 min idle timeout.  Note that the pool only shrinks
+// to 1 after 30 minutes, so it's not so bad.
+const PROJECT_POOL = { size: 2, timeout_s: 30 * 60 };
 
 interface Options {
   input?: string; // new input that user types

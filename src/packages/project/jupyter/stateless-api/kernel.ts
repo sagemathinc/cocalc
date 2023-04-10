@@ -14,6 +14,9 @@ const log = getLogger("jupyter:stateless-api:kernel");
 const DEFAULT_POOL_SIZE = 2;
 const DEFAULT_POOL_TIMEOUT_S = 3600;
 
+// When we idle timeout we always keep at least this many kernels around.  We don't go to 0.
+const MIN_POOL_SIZE = 1;
+
 export default class Kernel {
   private static pools: { [kernelName: string]: Kernel[] } = {};
   private static last_active: { [kernelName: string]: number } = {};
@@ -47,11 +50,21 @@ export default class Kernel {
         // kernel was requested after now.
         return;
       }
+      // No recent request for kernelName.
+      // Keep at least MIN_POOL_SIZE in Kernel.pools[kernelName]. I.e.,
+      // instead of closing and deleting everything, we just want to
+      // shrink the pool to MIN_POOL_SIZE.
       // no request for kernelName, so we clear them from the pool
-      for (const kernel of Kernel.pools[kernelName] ?? []) {
-        kernel.close();
+      const poolToShrink = Kernel.pools[kernelName] ?? [];
+      if (poolToShrink.length > MIN_POOL_SIZE) { // check if pool needs shrinking
+        // calculate how many to close
+        const numToClose = poolToShrink.length - MIN_POOL_SIZE;
+        for (let i = 0; i < numToClose; i++) {
+          poolToShrink[i].close(); // close oldest kernels first
+        }
+        // update pool to have only the most recent kernels
+        Kernel.pools[kernelName] = poolToShrink.slice(numToClose);
       }
-      Kernel.pools[kernelName] = [];
     }, (timeout_s ?? DEFAULT_POOL_TIMEOUT_S) * 1000);
   }
 
