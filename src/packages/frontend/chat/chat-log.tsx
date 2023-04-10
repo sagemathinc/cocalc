@@ -132,6 +132,7 @@ export function ChatLog({
       )}
       <Virtuoso
         ref={virtuosoRef}
+        increaseViewportBy={3}
         totalCount={sortedDates.length}
         itemContent={(index) => {
           const date = sortedDates[index];
