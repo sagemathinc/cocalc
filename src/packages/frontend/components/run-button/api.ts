@@ -12,6 +12,9 @@ export default async function api(endpoint: string, args?: object) {
       ...(args != null ? { body: JSON.stringify(args) } : undefined),
     })
   ).json();
+  if (resp == null) {
+    throw Error("timeout -- please try again");
+  }
   if (resp.error) {
     throw Error(resp.error);
   }
