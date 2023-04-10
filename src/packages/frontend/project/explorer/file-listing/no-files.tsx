@@ -12,7 +12,7 @@ import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";
 
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
-import { Button, Row, Col } from "react-bootstrap";
+import { Button } from "react-bootstrap";
 
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 
@@ -26,13 +26,6 @@ interface Props {
   project_id: string;
   configuration_main?: MainConfiguration;
 }
-
-const row_style: CSS = {
-  textAlign: "left",
-  color: "#888",
-  marginTop: "20px",
-  wordWrap: "break-word",
-} as const;
 
 const create_button_style: CSS = {
   fontSize: "40px",
@@ -101,17 +94,23 @@ export const NoFiles: React.FC<Props> = (props: Props) => {
       ? ""
       : full_path_text(file_search, configuration_main.disabled_ext);
   return (
-    <Row style={row_style}>
-      <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
-        <span style={{ fontSize: "20px" }}>No files found</span>
-        <hr />
-        {render_create_button(actual_new_filename)}
-        <HelpAlert
-          file_search={file_search}
-          actual_new_filename={actual_new_filename}
-        />
-        {file_search.length > 0 ? render_file_type_selection() : undefined}
-      </Col>
-    </Row>
+    <div
+      style={{
+        wordWrap: "break-word",
+        overflowY: "auto",
+        padding: "0 30px",
+        margin: "0 -15px", // This negative margin is because this is placed inside a big Row/Col grid.
+      }}
+      className="smc-vfill"
+    >
+      <span style={{ fontSize: "20px" }}>No files found</span>
+      <hr />
+      {render_create_button(actual_new_filename)}
+      <HelpAlert
+        file_search={file_search}
+        actual_new_filename={actual_new_filename}
+      />
+      {file_search.length > 0 ? render_file_type_selection() : undefined}
+    </div>
   );
 };
