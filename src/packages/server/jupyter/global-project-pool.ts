@@ -59,7 +59,18 @@ export default async function getProject(): Promise<string> {
       });
       // upgrade ram; always running (but leave it NOT member hosted)
       const { set, params } = jsonbSet({
-        settings: { memory: 8000, always_running: 1, member_host: 0 },
+        settings: {
+          network: 0,
+          member_host: 0,
+          cores: 2,
+          memory: 10000,
+          mintime: 172800,
+          cpu_shares: 512,
+          disk_quota: 8000,
+          always_running: 1,
+          memory_request: 2,
+          project_id,
+        },
       });
       await pool.query(
         `UPDATE projects SET ${set} WHERE project_id=\$${params.length + 1}`,
