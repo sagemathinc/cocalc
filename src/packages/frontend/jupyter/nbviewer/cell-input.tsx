@@ -88,7 +88,7 @@ export default function CellInput({
               }
             }}
           >
-            <Icon name={"pencil"} /> {editing ? "Save" : "Tweak"}
+            <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
           </Button>
         </Tooltip>
       )}

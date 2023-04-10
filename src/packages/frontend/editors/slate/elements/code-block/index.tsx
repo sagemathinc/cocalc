@@ -129,7 +129,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
                     }
                   }}
                 >
-                  <Icon name={"pencil"} /> {editing ? "Save" : "Tweak"}
+                  <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
                 </Button>
               </Tooltip>{" "}
               <ActionButtons
