@@ -113,6 +113,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
                 }
               >
                 <Button
+                  size="small"
                   type={
                     editing && newValue != element.value ? undefined : "text"
                   }
@@ -129,10 +130,11 @@ const StaticElement: React.FC<RenderElementProps> = ({
                     }
                   }}
                 >
-                  <Icon name={"pencil"} /> {editing ? "Save" : "Tweak"}
+                  <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
                 </Button>
               </Tooltip>{" "}
               <ActionButtons
+                size="small"
                 runRef={runRef}
                 input={newValue ?? element.value}
                 history={history}

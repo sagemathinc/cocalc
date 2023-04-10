@@ -2,6 +2,7 @@ import { file_associations } from "@cocalc/frontend/file-associations";
 import detectLanguage from "@cocalc/frontend/misc/detect-language";
 
 // Convert the info string for a fenced code block to a codemirror mode
+// when preferKernel is true return the actual kernel name or language.
 export default function infoToMode(
   info: string | undefined | null,
   options: { value?: string; preferKernel?: boolean } = {}
@@ -63,6 +64,11 @@ export default function infoToMode(
       mode == "jl" ||
       mode.startsWith("python"))
   ) {
+    if (mode == "sage") {
+      // it's nice for users to be able to type "sage" to get sage mode (since it's .sage file),
+      // but the language for the sage kernels is always "sagemath".
+      return "sagemath";
+    }
     return mode;
   }
 
@@ -70,7 +76,7 @@ export default function infoToMode(
 
   if (preferKernel) {
     if (spec?.opts.mode == "shell") {
-      // there is a bash kernel
+      // there is usually a bash kernel installed
       return "bash";
     }
   }

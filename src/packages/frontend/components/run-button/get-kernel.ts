@@ -45,7 +45,11 @@ async function guessKernel({ info, code, project_id }): Promise<string> {
     matches.sort(field_cmp("priority"));
     return matches[matches.length - 1].name;
   }
-  // No really clear match, so use closest_kernel_match.
-  // TODO: it's silly converting to immutable.js constantly...
-  return closest_kernel_match(mode, fromJS(kernelInfo)).get("name");
+  if (info.includes("kernel") || info.includes("engine")) {
+    // No match but they are clearly attempting to use an explicit kernel, so use closest_kernel_match.
+    // TODO: it's not efficient converting to immutable.js constantly...
+    closest_kernel_match(mode, fromJS(kernelInfo)).get("name");
+  }
+  // Let them decide explicitly.
+  return "";
 }

@@ -38,6 +38,7 @@ export interface Props {
   setOutput: (output: ReactNode | null) => void;
   runRef?: RunRef;
   tag?: string;
+  size;
 }
 
 // definitely never show run buttons for text formats that can't possibly be run.
@@ -65,6 +66,7 @@ export default function RunButton({
   setOutput: setOutput0,
   runRef,
   tag,
+  size,
 }: Props) {
   const mode = infoToMode(info);
   const noRun = NO_RUN.has(mode);
@@ -213,6 +215,10 @@ export default function RunButton({
       }
       let resp;
       try {
+        if (!kernel) {
+          setOutput({ error: "Select a kernel" });
+          return;
+        }
         resp = await api("execute", {
           input,
           history,
@@ -252,187 +258,200 @@ export default function RunButton({
   const disabled = !input?.trim() || running;
   return (
     <div style={{ display: "flex" }}>
-      <Button.Group>
-        <Tooltip
-          placement="bottom"
-          title="Run this code and anything it depends on."
+      <Tooltip
+        placement="bottom"
+        title={
+          !kernelName
+            ? "Select a kernel if you want to run this code."
+            : "Run this code and anything it depends on."
+        }
+      >
+        <Button
+          size={size}
+          style={style}
+          disabled={disabled || !kernelName}
+          onClick={() => {
+            setShowPopover(false);
+            run({ noCache: false });
+          }}
         >
-          <Button
-            style={style}
-            disabled={disabled}
-            onClick={() => {
-              setShowPopover(false);
-              run({ noCache: false });
-            }}
-          >
-            <Icon
-              style={running ? { color: "#389e0d" } : undefined}
-              name={running ? "cocalc-ring" : "step-forward"}
-              spin={running}
-            />
-            Run
-          </Button>
-        </Tooltip>
-        <Popover
-          open={project_id == null ? undefined : is_visible && showPopover}
-          trigger={project_id == null ? "click" : []}
-          overlayInnerStyle={{ width: "350px" }}
-          title={
-            <>
-              {project_id != null && (
-                <Button
-                  type="text"
-                  onClick={() => setShowPopover(false)}
-                  style={{ float: "right" }}
-                >
-                  <Icon name="times" />
-                </Button>
-              )}
-              <Icon
-                name="jupyter"
-                style={{ marginRight: "5px", fontSize: "20px" }}
-              />
-              Run Code using Jupyter
-            </>
-          }
-          content={
-            <div>
-              <div>
-                Run {project_id ? "" : "in an isolated sandbox"}
-                {" using "}
-                {kernelName ? (
-                  <>
-                    the <b>{kernelDisplayName(kernelName, project_id)}</b>
-                  </>
-                ) : (
-                  "a"
-                )}{" "}
-                Jupyter kernel. Execution time is limited.{" "}
-                {history != null && history.length > 0 && (
-                  <>
-                    The following code from {history.length}{" "}
-                    {plural(history.length, "cell")} above with the same info
-                    string will always be run first:
-                    <div style={{ height: "5px" }} />
-                    <CodeMirrorStatic
-                      style={{
-                        maxHeight: "75px",
-                        overflowY: "auto",
-                        margin: "5px",
-                      }}
-                      options={{ mode: infoToMode(info) }}
-                      value={history.join("\n\n")}
-                    />
-                  </>
-                )}
-              </div>
-              <div
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  marginTop: "5px",
-                  padding: "5px",
-                  borderRadius: "3px",
-                  background: disabled ? "white" : undefined,
-                }}
+          <Icon
+            style={running ? { color: "#389e0d" } : undefined}
+            name={running ? "cocalc-ring" : "step-forward"}
+            spin={running}
+          />
+          Run
+        </Button>
+      </Tooltip>
+      <Popover
+        open={project_id == null ? undefined : is_visible && showPopover}
+        trigger={project_id == null ? "click" : []}
+        overlayInnerStyle={{ width: "350px" }}
+        title={
+          <>
+            {project_id != null && (
+              <Button
+                type="text"
+                onClick={() => setShowPopover(false)}
+                style={{ float: "right" }}
               >
-                <SelectKernel
-                  disabled={running}
-                  onSelect={(name) => {
-                    setKernelName(name);
-                    setShowPopover(false);
-                  }}
-                  kernel={kernelName}
-                  project_id={project_id}
-                />
-              </div>
-              {created && (
-                <div
-                  style={{
-                    textAlign: "center",
-                    borderTop: "1px dashed #ddd",
-                    marginTop: "5px",
-                    paddingTop: "5px",
-                    color: "#666",
-                  }}
-                >
-                  <div style={{ marginBottom: "5px" }}>
-                    Last Run:{" "}
-                    <TimeAgo
-                      date={created >= new Date() ? new Date() : created}
-                    />
-                  </div>
-                  <Button.Group>
-                    <Button
-                      onClick={() => {
-                        setShowPopover(false);
-                        run({ noCache: true });
-                      }}
-                    >
-                      <Icon
-                        style={running ? { color: "#389e0d" } : undefined}
-                        name={running ? "cocalc-ring" : "step-forward"}
-                        spin={running}
-                      />
-                      Run Now
-                    </Button>
-                    <Button
-                      disabled={output == null}
-                      onClick={() => {
-                        setShowPopover(false);
-                        setOutput({ messages: null });
-                      }}
-                    >
-                      Hide Output
-                    </Button>
-                  </Button.Group>
-                </div>
+                <Icon name="times" />
+              </Button>
+            )}
+            <Icon
+              name="jupyter"
+              style={{ marginRight: "5px", fontSize: "20px" }}
+            />
+            Run Code using Jupyter
+          </>
+        }
+        content={
+          <div>
+            <div>
+              Run {project_id ? "" : "in an isolated sandbox"}
+              {" using "}
+              {kernelName ? (
+                <>
+                  the <b>{kernelDisplayName(kernelName, project_id)}</b>
+                </>
+              ) : (
+                "a"
+              )}{" "}
+              Jupyter kernel. Execution time is limited.{" "}
+              {history != null && history.length > 0 && (
+                <>
+                  The following code from {history.length}{" "}
+                  {plural(history.length, "cell")} above with the same info
+                  string will always be run first:
+                  <div style={{ height: "5px" }} />
+                  <CodeMirrorStatic
+                    style={{
+                      maxHeight: "75px",
+                      overflowY: "auto",
+                      margin: "5px",
+                    }}
+                    options={{ mode: infoToMode(info) }}
+                    value={history.join("\n\n")}
+                  />
+                </>
               )}
             </div>
-          }
-        >
-          <Tooltip title="Configure..." placement="bottom">
-            <Button
+            <div
               style={{
-                ...style,
-                ...(project_id != null && showPopover
-                  ? { background: "#ccc" }
-                  : undefined),
+                width: "100%",
                 display: "flex",
-              }}
-              onClick={() => {
-                setShowPopover(!showPopover);
+                marginTop: "5px",
+                padding: "5px",
+                borderRadius: "3px",
+                background: disabled ? "white" : undefined,
               }}
             >
-              <div style={{ width: "25px" }}>
-                {project_id && kernelName ? (
-                  <Logo kernel={kernelName} size={18} />
-                ) : (
-                  <Icon
-                    name={"jupyter"}
-                    style={{
-                      fontSize: "14pt",
-                    }}
-                  />
-                )}
-              </div>
+              <SelectKernel
+                disabled={running}
+                onSelect={(name) => {
+                  setKernelName(name);
+                  setShowPopover(false);
+                }}
+                kernel={kernelName}
+                project_id={project_id}
+              />
+            </div>
+            {created && (
               <div
                 style={{
-                  textOverflow: "ellipsis",
-                  overflowX: "hidden",
-                  width: "100px",
+                  textAlign: "center",
+                  borderTop: "1px dashed #ddd",
+                  marginTop: "5px",
+                  paddingTop: "5px",
+                  color: "#666",
                 }}
               >
-                {kernelName ? (
-                  kernelDisplayName(kernelName, project_id)
-                ) : (
-                  <span style={{ color: "#999" }}>Kernel...</span>
-                )}
+                <div style={{ marginBottom: "5px" }}>
+                  Last Run:{" "}
+                  <TimeAgo
+                    date={created >= new Date() ? new Date() : created}
+                  />
+                </div>
+                <Button.Group>
+                  <Button
+                    onClick={() => {
+                      setShowPopover(false);
+                      run({ noCache: true });
+                    }}
+                  >
+                    <Icon
+                      style={running ? { color: "#389e0d" } : undefined}
+                      name={running ? "cocalc-ring" : "step-forward"}
+                      spin={running}
+                    />
+                    Run Now
+                  </Button>
+                  <Button
+                    disabled={output == null}
+                    onClick={() => {
+                      setShowPopover(false);
+                      setOutput({ messages: null });
+                    }}
+                  >
+                    Hide Output
+                  </Button>
+                </Button.Group>
               </div>
-            </Button>
-          </Tooltip>
-        </Popover>
-        {/*hasOpenAI && (
+            )}
+          </div>
+        }
+      >
+        <Tooltip title="Configure..." placement="bottom">
+          <Button
+            type="link"
+            size={size}
+            style={{
+              ...style,
+              ...(project_id != null && showPopover
+                ? { background: "#ccc" }
+                : undefined),
+              display: "flex",
+            }}
+            onClick={() => {
+              setShowPopover(!showPopover);
+            }}
+          >
+            <div style={{ width: "25px" }}>
+              {project_id && kernelName ? (
+                <Logo
+                  kernel={kernelName}
+                  size={18}
+                  style={{ marginTop: "-2px" }}
+                />
+              ) : (
+                <Icon
+                  name={"jupyter"}
+                  style={{
+                    marginTop: "4px",
+                    fontSize: "16px",
+                    color: "#666",
+                  }}
+                />
+              )}
+            </div>
+            <div
+              style={{
+                textOverflow: "ellipsis",
+                overflowX: "hidden",
+                width: "100px",
+                textAlign: "left",
+              }}
+            >
+              {kernelName ? (
+                kernelDisplayName(kernelName, project_id)
+              ) : (
+                <span style={{ color: "#999" }}>Kernel...</span>
+              )}
+            </div>
+          </Button>
+        </Tooltip>
+      </Popover>
+      {/*hasOpenAI && (
           <Button>
             <OpenAIAvatar
               size={16}
@@ -442,7 +461,6 @@ export default function RunButton({
             Explain
           </Button>
         )*/}
-      </Button.Group>
     </div>
   );
 }

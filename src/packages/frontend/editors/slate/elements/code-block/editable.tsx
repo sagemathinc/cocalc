@@ -88,6 +88,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
               <div style={{ flex: 1 }}></div>
               {element.fence && (
                 <Input
+                  size="small"
                   onKeyDown={(e) => {
                     if (e.keyCode == 13 && e.shiftKey) {
                       runRef.current?.();
@@ -102,7 +103,6 @@ function Element({ attributes, children, element }: RenderElementProps) {
                     maxWidth: "300px",
                     margin: "0 5px",
                   }}
-                  size="small"
                   placeholder="Info string (py, r, jl, tex, md, etc.)..."
                   value={info}
                   onFocus={() => {
@@ -122,6 +122,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
               )}
               {!disableMarkdownCodebar && (
                 <ActionButtons
+                  size="small"
                   input={element.value}
                   history={history}
                   setOutput={setOutput}
