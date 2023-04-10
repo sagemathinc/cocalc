@@ -78,14 +78,44 @@ export interface CodeExecutionEmitterInterface extends EventEmitterInterface {
   go(): Promise<object[]>;
 }
 
-export type KernelInfo = object;
+interface CodeMirrorMode {
+  name: string;
+  version: number;
+}
+
+interface HelpLink {
+  text: string;
+  url: string;
+}
+
+interface LanguageInfo {
+  name: string;
+  version: string;
+  mimetype: string;
+  codemirror_mode: CodeMirrorMode;
+  pygments_lexer: string;
+  nbconvert_exporter: string;
+  file_extension: string;
+}
+
+export interface KernelInfo {
+  nodejs_version: string;
+  start_time: number;
+  implementation_version: string;
+  banner: string;
+  protocol_version: string;
+  implementation: string;
+  status: string;
+  language_info: LanguageInfo;
+  help_links: HelpLink[];
+}
 
 interface JupyterKernelInterfaceSpawnOpts {
   env: { [key: string]: string }; // environment variables
 }
 
 export interface JupyterKernelInterface extends EventEmitterInterface {
-  name: string | undefined;  // name = undefined implies it is not spawnable.  It's a notebook with no actual jupyter kernel process.
+  name: string | undefined; // name = undefined implies it is not spawnable.  It's a notebook with no actual jupyter kernel process.
   store: any;
   readonly identity: string;
   get_state(): string;

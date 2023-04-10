@@ -14,6 +14,7 @@ type State = "input" | "wait";
 const PROMPT = [
   "ASSUME I HAVE FULL ACCESS TO COCALC.", // otherwise it says things like "as a large language model I don't have access to cocalc."
   "ENCLOSE MATH IN $.", // so math gets typeset nicely
+  "INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.", // otherwise often we can't evaluate code.
   "How can I do the following using CoCalc?", // give the context of how the question the user asks should be answered.
 ].join(" ");
 
@@ -78,7 +79,7 @@ export default function ChatGPTHelp({
           onFocus={() => setFocus(true)}
           onBlur={() => setFocus(false)}
           placeholder={
-            placeholder ?? `What do you want to do using ${siteName}?`
+            placeholder ?? `What do you want to do on ${siteName}?`
           }
           allowClear
           enterButton={

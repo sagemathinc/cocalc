@@ -10,7 +10,7 @@ to do the work.
 */
 
 import { Alert, Button, Input, Popover, Select, Space, Tooltip } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Icon,
@@ -20,6 +20,9 @@ import {
 } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
+import { filename_extension } from "@cocalc/util/misc";
 
 interface Preset {
   command: string;
@@ -45,7 +48,7 @@ const PRESETS: Preset[] = [
     codegen: true,
     tag: "fix-errors",
     icon: "bug",
-    label: "Help me fix any errors",
+    label: "Help me fix errors",
     description:
       "Try to understand your selection and explain how to fix any mistakes it can find.",
   },
@@ -80,7 +83,7 @@ const PRESETS: Preset[] = [
     codegen: false,
     tag: "summarize-short",
     icon: "dot-circle",
-    label: "Short Executive Summary",
+    label: "Short Summary",
     description:
       "Write a very short one sentence executive summary of the selected text or code.",
   },
@@ -102,10 +105,9 @@ const CUSTOM_DESCRIPTIONS = {
     "Try to do anything with the current cell or selection that you can possibly imagine: explain why this is slow and how to make it faster, draw a plot of sin(x), etc.",
   generic: (
     <div>
-      Try to do anything with your selection that you can possibly imagine:
-      translate from one programming language to another, explain why code is
-      slow, finish writing a proof, show the steps to solve an equation, etc.{" "}
-      <b>Try anything!</b>
+      You can try anything that you can possibly imagine: translate from one
+      programming language to another, explain why code is slow, show the steps
+      to solve an equation, etc.
     </div>
   ),
 };
@@ -122,6 +124,7 @@ interface Props {
   buttonStyle;
   labels?: boolean;
   visible?: boolean;
+  path: string;
 }
 
 export default function ChatGPT({
@@ -132,6 +135,7 @@ export default function ChatGPT({
   buttonStyle,
   labels,
   visible,
+  path,
 }: Props) {
   const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -140,6 +144,11 @@ export default function ChatGPT({
   const [querying, setQuerying] = useState<boolean>(false);
   const [tag, setTag] = useState<string>("");
   const showOptions = frameType != "terminal";
+  const [input, setInput] = useState<string>("");
+
+  useEffect(() => {
+    updateInput(actions, id, setInput);
+  }, [id]);
 
   const [description, setDescription] = useState<string>(
     showOptions ? "" : getCustomDescription(frameType)
@@ -150,7 +159,7 @@ export default function ChatGPT({
     setError("");
     try {
       setQuerying(true);
-      await actions.chatgpt(id, options);
+      await actions.chatgpt(id, options, input);
       setCustom("");
     } catch (err) {
       setError(`${err}`);
@@ -203,23 +212,12 @@ export default function ChatGPT({
             direction="vertical"
             style={{ width: "600px", maxWidth: "100%" }}
           >
-            {showOptions && (
-              <div
-                style={{
-                  marginTop: "5px",
-                  color: "#444",
-                }}
-              >
-                ChatGPT looks at your selection, the current cell or first few
-                thousand words of your file.
-              </div>
-            )}{" "}
-            <div style={{ display: "flex", width: "100%" }}>
+            <div style={{ display: "flex", width: "100%", marginTop: "5px" }}>
               <Input
                 allowClear
                 autoFocus
                 style={{ flex: 1 }}
-                placeholder="Describe what you want to do..."
+                placeholder="Describe what you want ChatGPT to do..."
                 value={custom}
                 onChange={(e) => {
                   setCustom(e.target.value);
@@ -236,7 +234,6 @@ export default function ChatGPT({
                 <>
                   <div style={{ margin: "5px 5px 0 5px" }}>or</div>
                   <Select
-                    defaultOpen
                     showSearch
                     allowClear
                     placeholder="Choose..."
@@ -248,7 +245,7 @@ export default function ChatGPT({
                         .toLowerCase()
                         .includes(input.toLowerCase());
                     }}
-                    style={{ flex: 1 }}
+                    style={{ flex: 0.5 }}
                     disabled={querying}
                     options={PRESETS.map((preset) => {
                       return {
@@ -280,16 +277,45 @@ export default function ChatGPT({
                 </>
               )}
             </div>
+            {showOptions && input && (
+              <div
+                style={{
+                  marginTop: "5px",
+                  color: "#444",
+                }}
+              >
+                ChatGPT will see the following context, taken from your current
+                selection, code cell or the first few thousand words of your
+                file. To change this, close this dialog, select part of your
+                file, then open the dialog again.
+                <div style={{ height: "5px" }} />
+                <CodeMirrorStatic
+                  style={{
+                    maxHeight: "100px",
+                    overflowY: "auto",
+                    margin: "5px",
+                    padding: 0,
+                    width: undefined,
+                  }}
+                  options={{
+                    mode: path ? infoToMode(filename_extension(path)) : "",
+                  }}
+                  value={input}
+                />
+              </div>
+            )}{" "}
             {description}
-            <Button
-              disabled={querying || (!tag && !custom.trim())}
-              type="primary"
-              style={{ marginTop: "5px" }}
-              onClick={doIt}
-            >
-              {querying && <Loading text="" />} <Icon name="paper-plane" /> Ask
-              ChatGPT how to do this...
-            </Button>
+            <div style={{ textAlign: "center" }}>
+              <Button
+                disabled={querying || (!tag && !custom.trim())}
+                type="primary"
+                size="large"
+                onClick={doIt}
+              >
+                {querying && <Loading text="" />} <Icon name="paper-plane" />{" "}
+                Start a Conversation with ChatGPT...
+              </Button>
+            </div>
             {error && <Alert type="error" message={error} />}
           </Space>
         );
@@ -301,6 +327,7 @@ export default function ChatGPT({
         onClick={() => {
           setError("");
           setShowChatGPT(!showChatGPT);
+          updateInput(actions, id, setInput);
         }}
       >
         <Tooltip title="Get assistance from ChatGPT">
@@ -310,4 +337,20 @@ export default function ChatGPT({
       </ButtonComponent>
     </Popover>
   );
+}
+
+async function updateInput(actions, id, setInput) {
+  let input = actions.chatgptGetContext(id);
+  if (input.length > 2000) {
+    // Truncate input (also this MUST lazy import):
+    const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(
+      "@cocalc/frontend/misc/openai"
+    );
+    const n = numTokens(input);
+    const maxTokens = MAX_CHATGPT_TOKENS - 1000; // 1000 tokens reserved for output and the prompt below.
+    if (n >= maxTokens) {
+      input = truncateMessage(input, maxTokens) + "\n...";
+    }
+  }
+  setInput(input);
 }

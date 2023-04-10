@@ -20,9 +20,9 @@ export default function ProgressEstimate({ seconds, style }: Props) {
       if (!isMountedRef.current) {
         return;
       }
-      const newProgress = Math.min(progress + 0.1, seconds);
+      const newProgress = Math.min(progress + 0.05, seconds);
       setProgress(newProgress);
-    }, 100);
+    }, 50);
     return () => clearInterval(interval);
   }, [progress, seconds]);
 

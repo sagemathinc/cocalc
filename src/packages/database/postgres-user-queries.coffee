@@ -423,7 +423,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 switch val
                     when 'account_id'
                         if not r.account_id?
-                            return {err: "FATAL: account_id must be specified"}
+                            return {err: "FATAL: account_id must be specified -- make sure you are signed in"}
                         r.query[field] = r.account_id
                     when 'project_id'
                         if not r.project_id?

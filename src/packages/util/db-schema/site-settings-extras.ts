@@ -19,6 +19,7 @@ import {
   only_booleans,
   to_int,
   only_nonneg_int,
+  only_pos_int,
   only_commercial,
 } from "./site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
@@ -79,6 +80,7 @@ export type SiteSettingsExtrasKeys =
   | "openai_api_key"
   | "jupyter_section"
   | "jupyter_account_id"
+  | "jupyter_project_pool_size"
   | "password_reset_override"
   | "password_reset_smtp_server"
   | "password_reset_smtp_from"
@@ -123,9 +125,17 @@ export const EXTRAS: SettingsExtras = {
   },
   jupyter_account_id: {
     name: "Jupyter API Account Id",
-    desc: "account_id of an account on this server that will own projects used for the Jupyter API. Get the account_id of an existing user in the Users section above. This account does NOT have to have any special privileges. This must be a v4 uuid of a cocalc account.",
+    desc: "account_id of an account on this server that will own a pool of projects used for the public facing Jupyter API, if it is enabled.  You can look up the account_id of an existing user in the Users section above. This account does NOT have to have any special privileges.",
     default: "",
     valid: isValidUUID,
+    show: jupyter_api_enabled,
+  },
+  jupyter_project_pool_size: {
+    name: "Jupyter API Project Pool Size",
+    desc: "The number of distinct projects that will run generic user code evaluation on the landing pages (not in projects).",
+    default: "3",
+    to_val: to_int,
+    valid: only_pos_int,
     show: jupyter_api_enabled,
   },
   pii_retention: {

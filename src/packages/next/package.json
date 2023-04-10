@@ -76,6 +76,7 @@
     "lru-cache": "^7.14.1",
     "ms": "2.1.2",
     "next": "13.2.3",
+    "next-remove-imports": "^1.0.11",
     "password-hash": "^1.2.2",
     "pg": "^8.7.1",
     "react": "^18.2.0",

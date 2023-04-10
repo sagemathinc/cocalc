@@ -2821,7 +2821,7 @@ export class Actions<
 
   // Overload this in a derived class to support editors other than cm.
   // This is used by the chatgpt function.
-  chatgptGetText(
+  protected chatgptGetText(
     frameId: string,
     scope: "selection" | "cell" | "all" = "all"
   ): string {
@@ -2833,6 +2833,14 @@ export class Actions<
     }
   }
 
+  public chatgptGetContext(frameId: string): string {
+    let input = this.chatgptGetText(frameId, "selection");
+    if (input) return input;
+    input = this.chatgptGetText(frameId, "cell");
+    if (input) return input;
+    return this.chatgptGetText(frameId, "all");
+  }
+
   // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
   chatgptExtraFileInfo(): string {
     return "";
@@ -2842,7 +2850,7 @@ export class Actions<
     return filename_extension(this.path);
   }
 
-  async chatgpt(frameId: string, options) {
-    await chatgptCreatechat({ actions: this, frameId, options });
+  async chatgpt(frameId: string, options, input: string) {
+    await chatgptCreatechat({ actions: this, frameId, options, input });
   }
 }

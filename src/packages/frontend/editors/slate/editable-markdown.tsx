@@ -32,7 +32,7 @@ import { Path } from "@cocalc/frontend/frame-editors/frame-tree/path";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { createEditor, Descendant, Editor, Transforms } from "slate";
+import { createEditor, Descendant, Editor, Range, Transforms } from "slate";
 import { resetSelection } from "./control";
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
@@ -61,6 +61,7 @@ import { slatePointToMarkdownPosition } from "./sync";
 import type { SlateEditor } from "./types";
 import { Actions } from "./types";
 import useUpload from "./upload";
+import { ChangeContext } from "./use-change";
 
 export type { SlateEditor };
 
@@ -165,6 +166,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   const id = id0 ?? "";
   const actions = actions0 ?? {};
   const font_size = font_size0 ?? desc.get("font_size") ?? 14; // so possible to use without specifying this.  TODO: should be from account settings
+  const [change, setChange] = useState<number>(0);
 
   const editor = useMemo(() => {
     const ed = withNonfatalRange(
@@ -204,6 +206,10 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         cache: ed.syncCache,
       });
       return ed.markdownValue;
+    };
+
+    ed.selectionIsCollapsed = () => {
+      return ed.selection == null || Range.isCollapsed(ed.selection);
     };
 
     if (getValueRef != null) {
@@ -782,6 +788,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   // way for checking if the state of the editor has changed.  Instead
   // check editor.children itself explicitly.
   const onChange = (newEditorValue) => {
+    setChange(change + 1);
     if (dirtyRef != null) {
       // but see comment above
       dirtyRef.current = true;
@@ -918,44 +925,46 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     </Slate>
   );
   let body = (
-    <div
-      ref={divRef}
-      className={noVfill || height == "auto" ? undefined : "smc-vfill"}
-      style={{
-        overflow: noVfill || height == "auto" ? undefined : "auto",
-        backgroundColor: "white",
-        ...style,
-        height,
-        minHeight: height == "auto" ? "50px" : undefined,
-      }}
-    >
-      {!hidePath && (
-        <Path is_current={is_current} path={path} project_id={project_id} />
-      )}
-      <EditBar
-        Search={search.Search}
-        isCurrent={is_current}
-        marks={marks}
-        linkURL={linkURL}
-        listProperties={listProperties}
-        editor={editor}
-        style={editBarStyle}
-        hideSearch={hideSearch}
-      />
+    <ChangeContext.Provider value={{ change, editor }}>
       <div
+        ref={divRef}
         className={noVfill || height == "auto" ? undefined : "smc-vfill"}
         style={{
-          ...STYLE,
-          fontSize: font_size,
+          overflow: noVfill || height == "auto" ? undefined : "auto",
+          backgroundColor: "white",
+          ...style,
           height,
-          opacity,
+          minHeight: height == "auto" ? "50px" : undefined,
         }}
       >
-        {mentions.Mentions}
-        {emojis.Emojis}
-        {slate}
+        {!hidePath && (
+          <Path is_current={is_current} path={path} project_id={project_id} />
+        )}
+        <EditBar
+          Search={search.Search}
+          isCurrent={is_current}
+          marks={marks}
+          linkURL={linkURL}
+          listProperties={listProperties}
+          editor={editor}
+          style={editBarStyle}
+          hideSearch={hideSearch}
+        />
+        <div
+          className={noVfill || height == "auto" ? undefined : "smc-vfill"}
+          style={{
+            ...STYLE,
+            fontSize: font_size,
+            height,
+            opacity,
+          }}
+        >
+          {mentions.Mentions}
+          {emojis.Emojis}
+          {slate}
+        </div>
       </div>
-    </div>
+    </ChangeContext.Provider>
   );
   return useUpload(editor, body);
 });

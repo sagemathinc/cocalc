@@ -958,6 +958,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         key={"chatgpt"}
         id={props.id}
         actions={props.actions}
+        path={props.path}
         ButtonComponent={Button}
         buttonSize={button_size()}
         buttonStyle={{
