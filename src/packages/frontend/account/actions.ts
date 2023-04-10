@@ -18,6 +18,7 @@ import { define, required } from "@cocalc/util/fill";
 import { encode_path } from "@cocalc/util/misc";
 import { show_announce_end, show_announce_start } from "./dates";
 import { AccountState } from "./types";
+import { AccountStore } from "./store";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
@@ -26,18 +27,14 @@ export class AccountActions extends Actions<AccountState> {
 
   _init(store): void {
     store.on("change", this.derive_show_global_info);
+    store.on("change", this.update_unread_news);
   }
 
   private help(): string {
     return this.redux.getStore("customize").get("help_email");
   }
 
-  public markNewsRead(): void {
-    const now: Date = webapp_client.time_client.server_time();
-    this.setState({ newsReadUntil: Math.floor(now.getTime() / 1000) });
-  }
-
-  derive_show_global_info(store): void {
+  derive_show_global_info(store: AccountStore): void {
     // TODO when there is more time, rewrite this to be tied to announcements of a specific type (and use their timestamps)
     // for now, we use the existence of a timestamp value to indicate that the banner is not shown
     let show_global_info;
@@ -67,6 +64,12 @@ export class AccountActions extends Actions<AccountState> {
       }
     }
     this.setState({ show_global_info });
+  }
+
+  update_unread_news(store: AccountStore): void {
+    const news_read_until = store.getIn(["other_settings", "news_read_until"]);
+    const news_actions = this.redux.getActions("news");
+    news_actions?.updateUnreadCount(news_read_until);
   }
 
   set_user_type(user_type): void {

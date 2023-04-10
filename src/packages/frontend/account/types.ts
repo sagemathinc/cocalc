@@ -43,6 +43,7 @@ export interface AccountState {
     dark_mode_contrast: number;
     dark_mode_sepia: number;
     dark_mode_grayscale: number;
+    news_read_until: number; // JavaScript timestamp in milliseconds
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };
@@ -81,5 +82,4 @@ export interface AccountState {
   autosave?: number;
   show_purchase_form?: boolean;
   tableError?: TypedMap<{ error: string; query: any }>;
-  newsReadUntil?: number; // unix epoch timestamp in seconds until when user has read all news items
 }

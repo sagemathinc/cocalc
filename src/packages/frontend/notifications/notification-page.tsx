@@ -7,7 +7,13 @@ import { Col, Row } from "antd";
 import React from "react";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { A, Icon, Paragraph, Title } from "@cocalc/frontend/components";
+import {
+  A,
+  Icon,
+  Loading,
+  Paragraph,
+  Title,
+} from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { NotificationFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
@@ -42,6 +48,14 @@ const CONTENT_STYLE: CSS = {
   overflow: "hidden",
 };
 
+const NAV_COL_STYLE: CSS = {
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  flex: "1 1 0",
+  overflow: "auto",
+};
+
 const NAV_STYLE: CSS = {
   width: "200px",
   margin: "0",
@@ -53,7 +67,8 @@ const LIST_CONTAINER_STYLE: CSS = {
   display: "flex",
   flexDirection: "column",
   height: "100%",
-  overflow: "hidden",
+  overflowX: "hidden",
+  overflowY: "auto",
 } as const;
 
 const LIST_STYLE: CSS = {
@@ -69,10 +84,6 @@ export const NotificationPage: React.FC<{}> = () => {
   const news = useTypedRedux("news", "news");
   const user_map = useTypedRedux("users", "user_map");
   const filter: NotificationFilter = useTypedRedux("mentions", "filter");
-
-  if (filter == null || account_id == null) {
-    return <div />;
-  }
 
   function renderExplanation() {
     return (
@@ -105,9 +116,13 @@ export const NotificationPage: React.FC<{}> = () => {
   }
 
   function renderContent() {
+    if (filter == null || account_id == null) {
+      return <Loading theme="medium" />;
+    }
+
     return (
       <Row style={CONTENT_STYLE} gutter={[20, 20]}>
-        <Col span={6}>
+        <Col span={6} style={NAV_COL_STYLE}>
           <NotificationNav
             filter={filter}
             on_click={redux.getActions("mentions").set_filter}

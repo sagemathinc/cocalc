@@ -269,6 +269,7 @@ Table({
             dark_mode_contrast: 90,
             dark_mode_sepia: 0,
             dark_mode_grayscale: 0,
+            news_read_until: 0,
           },
           name: null,
           first_name: "",

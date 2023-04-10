@@ -15,7 +15,7 @@ import {
 import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
 import { NewTypeWebapp } from "@cocalc/util/types/news";
 
-const NEWS = "news";
+export const NEWS = "news";
 
 export interface NewsState {
   loading: boolean;
@@ -23,7 +23,26 @@ export interface NewsState {
   news: Map<string, TypedMap<NewTypeWebapp>>;
 }
 
-export class NewsStore extends Store<NewsState> {}
+export class NewsStore extends Store<NewsState> {
+  public getNewestTimestamp(): number {
+    const news = this.get("news");
+    if (news == null) {
+      return 0;
+    }
+    let newest = 0;
+    news.map((m) => {
+      const date = m.get("date")?.getTime();
+      if (date && date > newest) {
+        newest = date;
+      }
+    });
+    return newest;
+  }
+
+  public getNews(): NewsState["news"] {
+    return this.get("news");
+  }
+}
 
 const store: NewsStore = redux.createStore(NEWS, NewsStore, {
   loading: true,
@@ -32,8 +51,33 @@ const store: NewsStore = redux.createStore(NEWS, NewsStore, {
 });
 
 export class NewsActions extends Actions<NewsState> {
-  getStore(): NewsStore {
+  public getStore(): NewsStore {
     return store;
+  }
+
+  public markNewsRead(): void {
+    const newest = this.getStore().getNewestTimestamp();
+    const account_actions = redux.getActions("account");
+    account_actions.set_other_settings("news_read_until", newest);
+  }
+
+  public markNewsUnread(): void {
+    const account_actions = redux.getActions("account");
+    account_actions.set_other_settings("news_read_until", 0);
+  }
+
+  public updateUnreadCount(readUntil: number): void {
+    let unread = 0;
+    this.getStore()
+      .getNews()
+      .map((m, _id) => {
+        //console.log("news change:", _id, m.toJS());
+        const date = m.get("date");
+        if (date != null && date.getTime() > readUntil) {
+          unread++;
+        }
+      });
+    actions.setState({ unread });
   }
 }
 
@@ -45,27 +89,10 @@ class NewsTable extends Table {
   }
 
   protected _change(data, _keys): void {
-    const account_store = redux.getStore("account");
-    const readUntil = new Date(
-      1000 * (account_store?.get("newsReadUntil") ?? 0)
-    );
-
-    console.log(store)
-
     actions.setState({
       loading: false,
       news: data.get(),
     });
-
-    let unread = 0;
-    data.get().map((m, id) => {
-      console.log("news change:", id, m.toJS());
-      if (m.get("date") > readUntil) {
-        unread++;
-      }
-    });
-    console.log("readUntil", readUntil, "unread news:", unread);
-    actions.setState({ unread });
   }
 }
 

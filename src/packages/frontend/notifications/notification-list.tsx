@@ -3,18 +3,29 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button, Card, Collapse, List, Space } from "antd";
 import React, { useMemo } from "react";
 
-import { Button, Card, Collapse, List, Space } from "antd";
 const { Panel } = Collapse;
 
-import { CSS, redux, useActions } from "@cocalc/frontend/app-framework";
-import { Icon, MarkAll, Text, TimeAgo } from "@cocalc/frontend/components";
+import {
+  CSS,
+  redux,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import {
+  Icon,
+  MarkAll,
+  Text,
+  TimeAgo,
+  Title,
+} from "@cocalc/frontend/components";
+import { BASE_URL, open_new_tab } from "@cocalc/frontend/misc";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { cmp_Date, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { CHANNELS_ICONS } from "@cocalc/util/types/news";
-import { BASE_URL, open_new_tab } from "../misc";
 import { MentionRow } from "./mentions/mention-row";
 import { MentionsMap, NotificationFilter } from "./mentions/types";
 import { BOOKMARK_ICON_NAME } from "./mentions/util";
@@ -32,7 +43,9 @@ interface Props {
 
 export const NotificationList: React.FC<Props> = (props: Props) => {
   const { account_id, mentions, news, filter, style, user_map } = props;
-  const actions = useActions("account");
+  const mentions_actions = redux.getActions("mentions");
+  const news_actions = useActions("news");
+  const news_unread = useTypedRedux("news", "unread");
 
   const newsData = useMemo(() => {
     // weird: using news.valueSeq().toJS() makes object reappear, which were overwritten when an update came in!?
@@ -53,13 +66,11 @@ export const NotificationList: React.FC<Props> = (props: Props) => {
   }
 
   function markRead(project_id: string, filter: "read" | "unread") {
-    const actions = redux.getActions("mentions");
-    actions.markAll(project_id, filter);
+    mentions_actions.markAll(project_id, filter);
   }
 
   function saveAll(project_id: string, filter: "read" | "unread") {
-    const actions = redux.getActions("mentions");
-    actions.saveAll(project_id, filter);
+    mentions_actions.saveAll(project_id, filter);
   }
 
   function renderMarkAll(project_id: string) {
@@ -87,20 +98,29 @@ export const NotificationList: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderNewsPanelExtra(): JSX.Element {
+    if (news_unread ?? 0 > 0) {
+      return (
+        <Button onClick={() => news_actions.markNewsRead()} type="primary">
+          <Icon name="check-square" /> Mark news read
+        </Button>
+      );
+    } else {
+      return (
+        <Button onClick={() => news_actions.markNewsUnread()}>
+          <Icon name="square" /> Mark news unread
+        </Button>
+      );
+    }
+  }
+
   function renderNewsPanel() {
     return (
       <Card
-        title={"News"}
-        extra={
-          <Button onClick={() => actions.markNewsRead()} type="primary">
-            <Icon name="check-square" /> Mark all read
-          </Button>
-        }
-        headStyle={{ fontSize: "125%", backgroundColor: COLORS.GRAY_LLL }}
+        title={<Title level={4}>News</Title>}
+        extra={renderNewsPanelExtra()}
+        headStyle={{ backgroundColor: COLORS.GRAY_LLL }}
       >
-        {/* <pre style={{ fontSize: "80%" }}>
-          {JSON.stringify(newsData, undefined, 2)}
-        </pre> */}
         <List
           itemLayout="horizontal"
           size="small"
