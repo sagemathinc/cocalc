@@ -44,6 +44,7 @@ import {
   set_local_storage,
   get_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
+
 export class TaskActions extends Actions<TaskState> {
   public syncdb: SyncDB;
   private project_id: string;
@@ -388,7 +389,7 @@ export class TaskActions extends Actions<TaskState> {
       "position",
     ]);
 
-    const positions = this.store.get_positions();
+    const positions = getPositions(this.store.get("tasks"));
     let position: number | undefined = undefined;
     if (cur_pos != null && positions.length > 0) {
       for (
@@ -515,7 +516,7 @@ export class TaskActions extends Actions<TaskState> {
     const task_id = this.store.get("current_task_id");
     if (task_id == null) return;
     this.set_task(task_id, {
-      position: this.store.get_positions()[0] - 1,
+      position: getPositions(this.store.get("tasks"))[0] - 1,
     });
   }
 
@@ -523,7 +524,7 @@ export class TaskActions extends Actions<TaskState> {
     const task_id = this.store.get("current_task_id");
     if (task_id == null) return;
     this.set_task(task_id, {
-      position: this.store.get_positions().slice(-1)[0] + 1,
+      position: getPositions(this.store.get("tasks")).slice(-1)[0] + 1,
     });
   }
 
@@ -888,4 +889,15 @@ export class TaskActions extends Actions<TaskState> {
       .getProjectActions(this.project_id)
       .open_file({ path, foreground: true });
   }
+}
+
+function getPositions(tasks): number[] {
+  const v: number[] = [];
+  tasks?.forEach((task: TaskMap) => {
+    const position = task.get("position");
+    if (position != null) {
+      v.push(position);
+    }
+  });
+  return v.sort(cmp); // cmp by <, > instead of string!
 }
