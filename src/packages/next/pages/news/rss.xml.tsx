@@ -18,6 +18,7 @@ import getCustomize from "@cocalc/server/settings/customize";
 import { NewsType } from "@cocalc/util/types/news";
 import { GetServerSideProps } from "next";
 import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
+import { slugURL } from "@cocalc/util/news";
 
 export default function RSS() {
   return null;
@@ -44,6 +45,7 @@ WHERE date BETWEEN NOW() - '6 months'::interval AND NOW()
 ORDER BY date DESC
 LIMIT 100`;
 
+// caches the DB result for a bit
 async function getRSS(): Promise<NewsType[]> {
   const rssCached = cache.get("rss");
   if (rssCached) return rssCached;
@@ -53,17 +55,19 @@ async function getRSS(): Promise<NewsType[]> {
   return rows;
 }
 
+// we have one RSS channel. this populates it with all entries from the database – with the given ordering
 async function getItemsXML(
   channel: XMLBuilder,
   dns: string
 ): Promise<XMLBuilder> {
   for (const n of await getRSS()) {
-    const { date } = n;
+    const { id, text, title, date } = n;
     const pubDate: Date =
       typeof date === "number" ? new Date(date * 1000) : date;
-    const url = `https://${dns}/news/${n.id}`;
-    const title = n.title;
-    const text = n.text;
+    // URL visible to the user
+    const url = `https://${dns}/${slugURL(n)}`;
+    // GUID must be globally unique, not shown to USER
+    const guid = `https://${dns}/news/${id}`;
 
     channel
       .ele("item")
@@ -80,13 +84,16 @@ async function getItemsXML(
       .txt(pubDate.toUTCString())
       .up()
       .ele("guid")
-      .txt(`https://${dns}/news/${n.id}`)
+      .txt(guid)
       .up();
   }
 
   return channel;
 }
 
+// render RSS news feed
+// check: https://validator.w3.org/feed/check.cgi
+// Ref: https://www.w3.org/Protocols/rfc822/ (e.g. that's why it's date.toUTCString())
 async function getXML(): Promise<string> {
   const { siteName, dns } = await getCustomize();
   if (!dns) throw Error("no dns");
@@ -96,9 +103,7 @@ async function getXML(): Promise<string> {
 
   const root = createXML({ version: "1.0", encoding: "UTF-8" });
   const channel: XMLBuilder = root
-    .ele("rss", {
-      version: "2.0",
-    })
+    .ele("rss", { version: "2.0" })
     .att(atom, "xmlns:atom", atom)
     .ele("channel")
     .ele("atom:link", {
@@ -111,10 +116,7 @@ async function getXML(): Promise<string> {
     .txt(`${siteName} News`)
     .up()
     .ele("description")
-    .txt(`News from ${siteName} available also at https://${dns}/news`)
-    .up()
-    .ele("language")
-    .txt("en-us")
+    .txt(`News about ${siteName} – also available at https://${dns}/news`)
     .up()
     .ele("link")
     .txt(selfLink)
@@ -126,9 +128,6 @@ async function getXML(): Promise<string> {
   return (await getItemsXML(channel, dns)).end({ prettyPrint: true });
 }
 
-// render RSS news feed
-// check: https://validator.w3.org/feed/check.cgi
-// Ref: https://www.w3.org/Protocols/rfc822/ (e.g. that's why it's date.toUTCString())
 export const getServerSideProps: GetServerSideProps = async ({ res }) => {
   if (!res) return { props: {} };
   res.setHeader("Content-Type", "text/xml");
