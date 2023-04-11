@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 import getPool from "@cocalc/database/pool";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
+import { slugURL } from "@cocalc/util/news";
 import {
   CHANNELS,
   CHANNELS_DESCRIPTIONS,
@@ -42,7 +43,6 @@ import { MAX_WIDTH } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import withCustomize from "lib/with-customize";
-import { slugURL } from "@cocalc/util/news";
 
 interface Props {
   customize: CustomizeType;

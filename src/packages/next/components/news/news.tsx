@@ -48,12 +48,20 @@ export function News(props: Props) {
   const dateStr = useDateStr(news);
   const permalink = slugURL(news);
 
+  const bottomLinkStyle: CSS = {
+    color: COLORS.ANTD_LINK_BLUE,
+    ...(standalone ? { fontSize: "125%", fontWeight: "bold" } : {}),
+  };
+
   function editLink() {
     return (
       <A
         key="edit"
         href={`/news/edit/${news.id}`}
-        style={{ color: COLORS.ANTD_RED_WARN, fontWeight: "bold" }}
+        style={{
+          ...bottomLinkStyle,
+          color: COLORS.ANTD_RED_WARN,
+        }}
       >
         <Icon name="edit" /> Edit
       </A>
@@ -65,10 +73,28 @@ export function News(props: Props) {
       <A
         key="url"
         href={news.url}
-        style={{ fontWeight: "bold", color: COLORS.ANTD_LINK_BLUE }}
+        style={{
+          ...bottomLinkStyle,
+          ...(small ? { color: COLORS.GRAY } : { fontWeight: "bold" }),
+        }}
       >
         <Icon name="external-link" />
         {iconOnly ? "" : " Read more"}
+      </A>
+    );
+  }
+
+  function reanderOpenLink() {
+    return (
+      <A
+        key="permalink"
+        href={permalink}
+        style={{
+          ...bottomLinkStyle,
+          ...(small ? { fontWeight: "bold" } : {}),
+        }}
+      >
+        <Icon name="external-link" /> Open
       </A>
     );
   }
@@ -83,7 +109,7 @@ export function News(props: Props) {
           )}&url=${encodeURIComponent(
             `https://${dns}${permalink}`
           )}&via=cocalc_com`}
-          style={{ color: COLORS.ANTD_LINK_BLUE }}
+          style={{ color: COLORS.ANTD_LINK_BLUE, ...bottomLinkStyle }}
         >
           <Icon name="twitter" />
           {text ? " Tweet" : ""}
@@ -94,7 +120,7 @@ export function News(props: Props) {
           href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
             `https://${dns}${permalink}`
           )}&quote=${encodeURIComponent(news.title)}`}
-          style={{ color: COLORS.ANTD_LINK_BLUE }}
+          style={{ ...bottomLinkStyle }}
         >
           <Icon name="facebook" />
           {text ? " Share" : ""}
@@ -104,24 +130,10 @@ export function News(props: Props) {
   }
 
   function actions() {
-    const actions = [
-      <A key="permalink" href={permalink}>
-        <Icon name="external-link" /> Open
-      </A>,
-    ];
-
-    if (news.url) {
-      actions.push(readMoreLink());
-    }
-
-    if (showEdit) {
-      actions.push(editLink());
-    }
-
-    if (typeof dns === "string") {
-      actions.push(shareLinks());
-    }
-
+    const actions = [reanderOpenLink()];
+    if (news.url) actions.push(readMoreLink());
+    if (showEdit) actions.push(editLink());
+    if (typeof dns === "string") actions.push(shareLinks());
     return actions;
   }
 

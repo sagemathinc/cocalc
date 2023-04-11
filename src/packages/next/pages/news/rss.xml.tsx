@@ -8,14 +8,29 @@ import { create as createXML } from "xmlbuilder2";
 import LRU from "lru-cache";
 const cache = new LRU<"rss", NewsType[]>({ max: 1, ttl: 60 * 1000 });
 
+// no TTL, since a given text never changes its rendered representation
+const renderCache = new LRU<string, string>({ max: 1000 });
+
+import { sha1 } from "@cocalc/backend/sha1";
 import getPool from "@cocalc/database/pool";
+import { markdown_to_html } from "@cocalc/frontend/markdown";
 import getCustomize from "@cocalc/server/settings/customize";
-import { GetServerSideProps } from "next";
 import { NewsType } from "@cocalc/util/types/news";
+import { GetServerSideProps } from "next";
 import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
 
 export default function RSS() {
   return null;
+}
+
+function renderMarkdown(text: string): string {
+  // hash of text
+  const key = sha1(text);
+  const cached = renderCache.get(key);
+  if (cached) return cached;
+  const html = markdown_to_html(text);
+  renderCache.set(key, html);
+  return html;
 }
 
 // we exclude hidden and future news items
@@ -53,13 +68,13 @@ async function getItemsXML(
     channel
       .ele("item")
       .ele("title")
-      .txt(title)
+      .dat(title)
       .up()
       .ele("link")
       .txt(url)
       .up()
       .ele("description")
-      .dat(text)
+      .dat(renderMarkdown(text))
       .up()
       .ele("pubDate")
       .txt(pubDate.toUTCString())

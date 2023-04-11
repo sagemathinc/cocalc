@@ -3,10 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Col, Layout, Radio, Row, Space, Input, Tooltip } from "antd";
+import { Alert, Col, Input, Layout, Radio, Row, Space, Tooltip } from "antd";
 import { useState } from "react";
 
 import getPool from "@cocalc/database/pool";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { capitalize } from "@cocalc/util/misc";
 import {
   CHANNELS,
   CHANNELS_DESCRIPTIONS,
@@ -25,22 +27,27 @@ import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import withCustomize from "lib/with-customize";
 import Image from "next/image";
+import { useRouter } from "next/router";
 import rssIcon from "public/rss.svg";
-import { capitalize } from "@cocalc/util/misc";
-import { Icon } from "@cocalc/frontend/components/icon";
 
+// news shown per page
+const SLICE_SIZE = 20;
+
+type Filter = Channel | "all";
 interface Props {
   customize: CustomizeType;
   news: NewsWithFuture[];
+  offset: number;
 }
 
 export default function AllNews(props: Props) {
-  const { customize, news } = props;
+  const { customize, news, offset } = props;
   const { siteName, dns } = customize;
+  const router = useRouter();
   const profile = useProfile({ noCache: true });
   const isAdmin = profile?.is_admin;
 
-  const [filter, setFilter] = useState<Channel | "all">("all");
+  const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState<string>("");
 
   function renderFilter() {
@@ -141,6 +148,31 @@ export default function AllNews(props: Props) {
     );
   }
 
+  function slice(dir: "future" | "past") {
+    const next = offset + (dir === "future" ? -1 : 1) * SLICE_SIZE;
+    const newOffset = Math.max(0, next);
+    router.push(`?offset=${newOffset}`);
+  }
+
+  function renderSlicer() {
+    if (news.length < SLICE_SIZE && offset === 0) return;
+    return (
+      <div style={{ marginTop: "60px", textAlign: "center" }}>
+        <Radio.Group optionType="button">
+          <Radio.Button
+            disabled={news.length < SLICE_SIZE}
+            onClick={() => slice("past")}
+          >
+            ← Older
+          </Radio.Button>
+          <Radio.Button disabled={offset === 0} onClick={() => slice("future")}>
+            Newer →
+          </Radio.Button>
+        </Radio.Group>
+      </div>
+    );
+  }
+
   return (
     <Customize value={customize}>
       <Head title={`${siteName} News`} />
@@ -160,6 +192,7 @@ export default function AllNews(props: Props) {
             }}
           >
             {content()}
+            {renderSlicer()}
           </div>
           <Footer />
         </Layout.Content>
@@ -176,10 +209,13 @@ SELECT
 FROM news
 WHERE date >= NOW() - '6 months'::interval
 ORDER BY date DESC
-LIMIT 100`;
+LIMIT ${SLICE_SIZE}
+OFFSET $1`;
 
 export async function getServerSideProps(context) {
   const pool = getPool("long");
-  const { rows: news } = await pool.query(Q);
-  return await withCustomize({ context, props: { news } });
+  const offsetVal = Number(context.query.offset ?? 0);
+  const offset = Math.max(0, Number.isNaN(offsetVal) ? 0 : offsetVal);
+  const { rows: news } = await pool.query(Q, [offset]);
+  return await withCustomize({ context, props: { news, offset } });
 }

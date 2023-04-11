@@ -33,7 +33,13 @@ export default function Head({ title }: Props) {
         name="description"
         content="CoCalc landing pages and documentation"
       />
-      <link rel="icon" href={faviconURL} />;
+      <link rel="icon" href={faviconURL} />
+      <link
+        rel="alternate"
+        type="application/rss+xml"
+        href={join(basePath, "/news/rss.xml")}
+        title={`${siteName}'s RSS Feed`}
+      />
     </NextHead>
   );
 }
