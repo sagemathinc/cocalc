@@ -34,13 +34,16 @@ function Element({ attributes, children, element }: RenderElementProps) {
   const setElement = useSetElement(editor, element);
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   const { change } = useChange();
-  const [history, setHistory] = useState<string[]>(getHistory(editor, element));
+  const [history, setHistory] = useState<string[]>(getHistory(editor, element) ?? []);
   const [codeSibling, setCodeSibling] = useState<boolean>(
     isPreviousSiblingCodeBlock(editor, element)
   );
   useEffect(() => {
-    setHistory(getHistory(editor, element));
-    setCodeSibling(isPreviousSiblingCodeBlock(editor, element));
+    const history = getHistory(editor, element);
+    if (history != null) {
+      setHistory(history);
+      setCodeSibling(isPreviousSiblingCodeBlock(editor, element));
+    }
     if (!infoFocusedRef.current && element.info != info) {
       // upstream change
       setInfo(element.info);
@@ -88,6 +91,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
               <div style={{ flex: 1 }}></div>
               {element.fence && (
                 <Input
+                  size="small"
                   onKeyDown={(e) => {
                     if (e.keyCode == 13 && e.shiftKey) {
                       runRef.current?.();
@@ -102,7 +106,6 @@ function Element({ attributes, children, element }: RenderElementProps) {
                     maxWidth: "300px",
                     margin: "0 5px",
                   }}
-                  size="small"
                   placeholder="Info string (py, r, jl, tex, md, etc.)..."
                   value={info}
                   onFocus={() => {
@@ -122,6 +125,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
               )}
               {!disableMarkdownCodebar && (
                 <ActionButtons
+                  size="small"
                   input={element.value}
                   history={history}
                   setOutput={setOutput}

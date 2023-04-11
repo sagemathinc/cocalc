@@ -74,6 +74,7 @@ export default function CellInput({
           }
         >
           <Button
+            size="small"
             type={editing && newValue != value ? undefined : "text"}
             style={
               editing && newValue != value
@@ -88,11 +89,12 @@ export default function CellInput({
               }
             }}
           >
-            <Icon name={"pencil"} /> {editing ? "Save" : "Tweak"}
+            <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
           </Button>
         </Tooltip>
       )}
       <ActionButtons
+        size="small"
         input={newValue}
         output={output}
         setOutput={setOutput}

@@ -3086,8 +3086,8 @@ message({
   event: "jupyter_execute_response",
   id: undefined,
   output: required, // the response
-  total_time_s: required,
-  time: required,
+  total_time_s: undefined,
+  time: undefined,
 });
 
 API(

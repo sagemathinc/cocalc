@@ -788,7 +788,6 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   // way for checking if the state of the editor has changed.  Instead
   // check editor.children itself explicitly.
   const onChange = (newEditorValue) => {
-    setChange(change + 1);
     if (dirtyRef != null) {
       // but see comment above
       dirtyRef.current = true;
@@ -827,6 +826,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
 
     setEditorValue(newEditorValue);
+    setChange(change + 1);
+
     // Update mentions state whenever editor actually changes.
     // This may pop up the mentions selector.
     mentions.onChange();

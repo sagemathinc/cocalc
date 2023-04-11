@@ -1,9 +1,15 @@
-export function getHistory(editor, element): string[] {
+// Get history for the given element in the editor.
+// UGLY thing: if we can't find element in editor, then we return null.
+// This DOES happen and also means we have to walk the entire children array.
+// This works fine since a moment later this gets called with everything in sync again.
+// NOTE: we are also assuming fenced code blocks are at the top level always, which
+// is questionable.
+export function getHistory(editor, element): string[] | null {
   const history: string[] = [];
   if (editor == null) return history;
   for (const elt of editor.children) {
     if (elt === element) {
-      break;
+      return history;
     }
     if (
       elt.type == "code_block" &&
@@ -16,7 +22,7 @@ export function getHistory(editor, element): string[] {
       }
     }
   }
-  return history;
+  return null;
 }
 
 export function isPreviousSiblingCodeBlock(editor, element): boolean {

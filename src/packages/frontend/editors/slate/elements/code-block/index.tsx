@@ -46,9 +46,14 @@ const StaticElement: React.FC<RenderElementProps> = ({
   const [output, setOutput] = useState<null | ReactNode>(null);
 
   const { change, editor, setEditor } = useChange();
-  const [history, setHistory] = useState<string[]>(getHistory(editor, element));
+  const [history, setHistory] = useState<string[]>(
+    getHistory(editor, element) ?? []
+  );
   useEffect(() => {
-    setHistory(getHistory(editor, element));
+    const newHistory = getHistory(editor, element);
+    if (newHistory != null) {
+      setHistory(newHistory);
+    }
   }, [change]);
 
   const save = (value: string | null, run: boolean) => {
@@ -113,6 +118,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
                 }
               >
                 <Button
+                  size="small"
                   type={
                     editing && newValue != element.value ? undefined : "text"
                   }
@@ -129,10 +135,11 @@ const StaticElement: React.FC<RenderElementProps> = ({
                     }
                   }}
                 >
-                  <Icon name={"pencil"} /> {editing ? "Save" : "Tweak"}
+                  <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
                 </Button>
               </Tooltip>{" "}
               <ActionButtons
+                size="small"
                 runRef={runRef}
                 input={newValue ?? element.value}
                 history={history}

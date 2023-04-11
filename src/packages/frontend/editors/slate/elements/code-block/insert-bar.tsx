@@ -11,6 +11,7 @@ import { toDisplayMath } from "../math/index";
 function InsertButton({ children, onClick }) {
   return (
     <Button
+      style={{ color: "#666" }}
       size="small"
       onClick={(e) => {
         e.stopPropagation(); // keep the editor with the insert bar itself from getting selected
@@ -49,7 +50,7 @@ export default function InsertBar({ editor, element, info, above }) {
     <div
       className="cocalc-slate-insert-cell"
       style={{
-        height: "2em",
+        height: "28px",
         cursor: "pointer",
         paddingTop: "8px",
       }}
