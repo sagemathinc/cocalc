@@ -71,10 +71,11 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
     const [querying, setQuerying] = useState<boolean>(false);
     const inputRef = React.useRef<any>(null);
 
-    if (IS_TOUCH) {
+    if (IS_TOUCH && position === "above") {
       // TODO: Inserting cells via hover and click does not make sense
       // for a touch device, since no notion of hover, and is just confusing and results
       // in many false inserts.
+      // Exception: last "bottom" insert bar, because it is always visible
       return <div style={{ height: "6px" }}></div>;
     }
 
