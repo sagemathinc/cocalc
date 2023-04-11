@@ -12,7 +12,6 @@ import { React, useEffect, useEditorRedux } from "../../app-framework";
 import { Row, Col } from "../../antd-bootstrap";
 import { Loading } from "../../components";
 import TaskList from "./list";
-import { ButtonBar } from "./button-bar";
 import { Find } from "./find";
 import { DescVisible } from "./desc-visible";
 import { HashtagBar } from "./hashtag-bar";
@@ -95,7 +94,6 @@ export const TaskEditor: React.FC<Props> = React.memo(
             />
           </Col>
         </Row>
-        <ButtonBar actions={actions} />
         <Headings actions={actions} sort={local_view_state.get("sort")} />
         <div style={{ paddingTop: "5px" }} />
         {visible.size == 0 ? (

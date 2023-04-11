@@ -1418,6 +1418,26 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_export_to_markdown(labels): Rendered {
+    if (
+      !is_visible("export_to_markdown") ||
+      student_project_functionality.disableActions
+    ) {
+      return;
+    }
+    return (
+      <Button
+        key={"export"}
+        bsSize={button_size()}
+        onClick={() => props.editor_actions['export_to_markdown']?.(props.id)}
+        title={"Export to Markdown File..."}
+      >
+        <Icon name={"markdown"} />{" "}
+        <VisibleMDLG>{labels ? "Export" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   function render_print(labels): Rendered {
     if (!is_visible("print") || student_project_functionality.disableActions) {
       return;
@@ -1584,6 +1604,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_terminal(labels));
     v.push(render_shell(labels));
     v.push(render_print(labels));
+    v.push(render_export_to_markdown(labels));
     v.push(render_table_of_contents(labels));
     v.push(render_show_pages(labels));
     v.push(render_show_overview(labels));

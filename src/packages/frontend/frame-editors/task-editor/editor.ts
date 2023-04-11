@@ -34,6 +34,7 @@ const EDITOR_SPEC = {
       "redo",
       "save",
       "help",
+      "export_to_markdown",
     ]),
   },
   terminal,

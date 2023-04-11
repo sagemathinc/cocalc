@@ -59,4 +59,12 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
   _raw_default_frame_tree(): FrameTree {
     return { type: "tasks" };
   }
+
+  async export_to_markdown(): Promise<void> {
+    try {
+      await this.taskActions.export_to_markdown();
+    } catch (error) {
+      this.set_error(`${error}`);
+    }
+  }
 }
