@@ -53,6 +53,7 @@ export default function Task({
     margin: "2px 5px",
     paddingTop: "5px",
     background: "white",
+    borderRadius: "8px",
   } as CSSProperties;
   if (is_current) {
     style.border = "2px solid rgb(66, 165, 245)";
@@ -125,6 +126,7 @@ export default function Task({
             color={color}
             editing={editing_desc}
             is_current={is_current}
+            isDeleted={task.get("deleted")}
             font_size={font_size}
             read_only={read_only}
             selectedHashtags={selectedHashtags}

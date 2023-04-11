@@ -39,6 +39,10 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
 
     actions._init(this.project_id, this.tasksAuxPath, this._syncstring, store);
     this.taskActions = actions;
+
+    for (const name of ["undo", "redo", "help"]) {
+      this[name] = actions[name].bind(name);
+    }
   }
 
   close(): void {

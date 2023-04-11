@@ -718,20 +718,6 @@ export class TaskActions extends Actions<TaskState> {
     this.set_local_view_state({ show_done: false });
   }
 
-  public set_font_size(size: number): void {
-    this.set_local_view_state({ font_size: size });
-  }
-
-  public increase_font_size(): void {
-    const size = this.store.getIn(["local_view_state", "font_size"]) ?? 14;
-    this.set_font_size(size + 1);
-  }
-
-  public decrease_font_size(): void {
-    const size = this.store.getIn(["local_view_state", "font_size"]) ?? 14;
-    this.set_font_size(size - 1);
-  }
-
   public empty_trash(): void {
     this.store.get("tasks")?.forEach((task: TaskMap, task_id: string) => {
       if (task.get("deleted")) {

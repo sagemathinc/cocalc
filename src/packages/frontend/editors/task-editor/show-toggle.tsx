@@ -8,8 +8,8 @@ Toggle whether or not to show tasks (deleted, done)
 */
 
 import { React, useRef } from "../../app-framework";
-import { Icon, Space } from "../../components";
 import { TaskActions } from "./actions";
+import { Checkbox } from "antd";
 
 interface Props {
   actions: TaskActions;
@@ -21,16 +21,6 @@ interface Props {
 export const ShowToggle: React.FC<Props> = React.memo(
   ({ actions, type, count, show }) => {
     const last_call_ref = useRef<number>(0);
-
-    function render_toggle() {
-      let name;
-      if (show) {
-        name = "check-square-o";
-      } else {
-        name = "square-o";
-      }
-      return <Icon name={name} />;
-    }
 
     function toggle_state() {
       // avoid accidental double clicks...
@@ -53,17 +43,20 @@ export const ShowToggle: React.FC<Props> = React.memo(
       }
     }
 
-    const toggle = render_toggle();
     if (actions == null) {
       // no support for toggling (e.g., history view)
-      return toggle;
+      return null;
     }
     const color = count > 0 || show ? "#666" : "#999";
     return (
-      <div onClick={toggle_state} style={{ color }}>
-        <span style={{ fontSize: "17pt" }}>{toggle}</span>
-        <Space />
-        <span>Show {type}</span>
+      <div onClick={toggle_state}>
+        <Checkbox
+          checked={show}
+          onClick={toggle_state}
+          style={{ fontWeight: 350, color }}
+        >
+          Show {type}
+        </Checkbox>
       </div>
     );
   }

@@ -26,18 +26,17 @@ interface Props {
   actions: TaskActions;
   path: string;
   project_id: string;
+  desc;
 }
 
 export const TaskEditor: React.FC<Props> = React.memo(
-  ({ actions, path, project_id }) => {
+  ({ actions, path, project_id, desc }) => {
     const useEditor = useEditorRedux<TaskState>({ project_id, path });
 
     const tasks = useEditor("tasks");
     const counts = useEditor("counts");
     const visible = useEditor("visible");
     const current_task_id = useEditor("current_task_id");
-    const has_unsaved_changes = useEditor("has_unsaved_changes");
-    const has_uncommitted_changes = useEditor("has_uncommitted_changes");
     const local_task_state = useEditor("local_task_state");
     const local_view_state = useEditor("local_view_state");
     const hashtags = useEditor("hashtags");
@@ -96,14 +95,7 @@ export const TaskEditor: React.FC<Props> = React.memo(
             />
           </Col>
         </Row>
-        <ButtonBar
-          actions={actions}
-          read_only={read_only}
-          has_unsaved_changes={has_unsaved_changes}
-          has_uncommitted_changes={has_uncommitted_changes}
-          current_task_id={current_task_id}
-          current_task_is_deleted={tasks?.getIn([current_task_id, "deleted"])}
-        />
+        <ButtonBar actions={actions} />
         <Headings actions={actions} sort={local_view_state.get("sort")} />
         <div style={{ paddingTop: "5px" }} />
         {visible.size == 0 ? (
@@ -128,7 +120,7 @@ export const TaskEditor: React.FC<Props> = React.memo(
             local_task_state={local_task_state}
             scrollState={(local_view_state as any).get("scrollState")?.toJS?.()}
             scroll_into_view={scroll_into_view}
-            font_size={local_view_state.get("font_size")}
+            font_size={desc.get("font_size")}
             sortable={
               !read_only &&
               is_sortable(

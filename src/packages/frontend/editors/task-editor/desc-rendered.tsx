@@ -106,7 +106,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
 
     return (
       <div
-        style={{ paddingTop: "5px" }}
+        style={{ paddingTop: "25px" }}
         onClick={!read_only && actions != null ? on_click : undefined}
         className="cocalc-task-description"
       >
