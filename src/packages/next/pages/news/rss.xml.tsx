@@ -8,30 +8,17 @@ import { create as createXML } from "xmlbuilder2";
 import LRU from "lru-cache";
 const cache = new LRU<"rss", NewsType[]>({ max: 1, ttl: 60 * 1000 });
 
-// no TTL, since a given text never changes its rendered representation
-const renderCache = new LRU<string, string>({ max: 1000 });
 
-import { sha1 } from "@cocalc/backend/sha1";
 import getPool from "@cocalc/database/pool";
-import { markdown_to_html } from "@cocalc/frontend/markdown";
 import getCustomize from "@cocalc/server/settings/customize";
+import { slugURL } from "@cocalc/util/news";
 import { NewsType } from "@cocalc/util/types/news";
 import { GetServerSideProps } from "next";
 import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
-import { slugURL } from "@cocalc/util/news";
+import { renderMarkdown } from "lib/news";
 
 export default function RSS() {
   return null;
-}
-
-function renderMarkdown(text: string): string {
-  // hash of text
-  const key = sha1(text);
-  const cached = renderCache.get(key);
-  if (cached) return cached;
-  const html = markdown_to_html(text);
-  renderCache.set(key, html);
-  return html;
 }
 
 // we exclude hidden and future news items
@@ -130,10 +117,17 @@ async function getXML(): Promise<string> {
 
 export const getServerSideProps: GetServerSideProps = async ({ res }) => {
   if (!res) return { props: {} };
+
+  try {
   res.setHeader("Content-Type", "text/xml");
   res.setHeader("Cache-Control", "public, max-age=3600");
   res.write(await getXML());
   res.end();
+  } catch (err) {
+    console.error(err);
+    res.statusCode = 500;
+    res.end();
+  }
 
   return {
     props: {},

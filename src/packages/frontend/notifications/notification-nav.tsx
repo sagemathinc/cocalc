@@ -9,7 +9,7 @@ import { capitalize } from "lodash";
 import React, { useMemo } from "react";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Text } from "@cocalc/frontend/components";
+import { Icon, IconName, Text } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { CHANNELS, CHANNELS_ICONS } from "@cocalc/util/types/news";
 import { NotificationFilter } from "./mentions/types";
@@ -102,7 +102,7 @@ const ITEMS = [
         key: c,
         label: (
           <>
-            <Icon name={CHANNELS_ICONS[c]} /> {capitalize(c)}
+            <Icon name={CHANNELS_ICONS[c] as IconName} /> {capitalize(c)}
           </>
         ),
       })),

@@ -30,25 +30,28 @@ export interface NewTypeWebapp {
 }
 
 export const CHANNELS = [
-  "news",
-  "announcement",
   "feature",
+  "announcement",
   "platform",
+  "about",
 ] as const;
 
 export type Channel = typeof CHANNELS[number];
 
-export const CHANNELS_DESCRIPTIONS = {
-  news: "General day-to-day news",
+export const CHANNELS_DESCRIPTIONS: { [name in Channel]: string } = {
   announcement: "Major announcements, important upcoming changes",
-  platform: "More on the technical side, like software environments",
-  feature: "New features, updates, and improvements",
+  platform:
+    "Technical aspects of the service itself, e.g. software environments",
+  feature: "New features, changes, and improvements",
+  about: "In one's own behalf",
 } as const;
 
 // TODO extract IconName from @cocalc/frontend/components/icon.tsx
-export const CHANNELS_ICONS /*: {[key in Channel]: IconName}*/ = {
-  news: "file-alt",
+export const CHANNELS_ICONS: {
+  [key in Channel]: string /* IconName */;
+} = {
+  feature: "file-alt",
   announcement: "bullhorn",
   platform: "wrench",
-  feature: "atom",
+  about: "user",
 } as const;

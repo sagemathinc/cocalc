@@ -7,8 +7,9 @@ import LRU from "lru-cache";
 
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
+import { NewsType } from "@cocalc/util/types/news";
 
-const cache = new LRU({ max: 1, ttl: 60 * 1000 });
+const cache = new LRU<"news", NewsType[]>({ max: 10, ttl: 60 * 1000 });
 
 const L = getLogger("server:news:list").debug;
 
@@ -22,14 +23,18 @@ WHERE date BETWEEN NOW() - '3 months'::interval AND NOW()
 ORDER BY date DESC
 LIMIT 100`;
 
-export default async function listNews(params: any) {
-  L("listNews", params);
-  if (cache.has("news")) {
-    return cache.get("news");
-  }
+async function getNews(): Promise<NewsType[]> {
+  const cached = cache.get("news");
+  if (cached) return cached;
 
   const pool = getPool("long");
   const { rows } = await pool.query(Q);
   cache.set("news", rows);
+
   return rows;
+}
+
+export async function get(params?: any) {
+  L("params", params);
+  return await getNews();
 }

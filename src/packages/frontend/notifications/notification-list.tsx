@@ -268,11 +268,11 @@ function NoMentions({
     case "all":
       text = "No mentions";
       break;
-    case "news":
     case "allNews":
     case "announcement":
-    case "feature":
     case "platform":
+    case "feature":
+    case "about":
       text = "No news";
       break;
     default:

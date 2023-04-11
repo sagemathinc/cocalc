@@ -5,7 +5,7 @@
 
 import type { Request, Response } from "express";
 
-import listNews from "@cocalc/server/news/list";
+import { get } from "@cocalc/server/news/get";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req: Request, res: Response) {
@@ -13,7 +13,11 @@ export default async function handle(req: Request, res: Response) {
     const params = getParams(req, {
       allowGet: true,
     });
-    res.json(await listNews(params));
+
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+
+    res.json(await get(params));
   } catch (err) {
     res.json({ error: `${err.message}` });
     return;
