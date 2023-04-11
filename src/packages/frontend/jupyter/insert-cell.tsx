@@ -172,7 +172,7 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
       return (
         <div
           className="cocalc-jupyter-insert-cell-controls"
-          style={showChatGPT ? { display: "block" } : {}}
+          style={showChatGPT ? { visibility: "visible", opacity: 1 } : {}}
         >
           <Space size="large">
             <TinyButton type="code">
