@@ -124,7 +124,7 @@ export function NotificationNav(props: Props) {
     <Menu
       onClick={(e) => on_click(e.key as NotificationFilter)}
       style={style}
-      defaultSelectedKeys={[filter]}
+      selectedKeys={[filter]}
       mode="inline"
       items={ITEMS}
     />

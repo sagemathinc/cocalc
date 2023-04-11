@@ -4,7 +4,7 @@
  */
 
 import { Col, Row } from "antd";
-import React from "react";
+import React, { useEffect } from "react";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -14,6 +14,7 @@ import {
   Paragraph,
   Title,
 } from "@cocalc/frontend/components";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { COLORS } from "@cocalc/util/theme";
 import { NotificationFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
@@ -84,6 +85,10 @@ export const NotificationPage: React.FC<{}> = () => {
   const news = useTypedRedux("news", "news");
   const user_map = useTypedRedux("users", "user_map");
   const filter: NotificationFilter = useTypedRedux("mentions", "filter");
+
+  useEffect(() => {
+    Fragment.set({ page: filter });
+  }, [filter]);
 
   function renderExplanation() {
     return (
