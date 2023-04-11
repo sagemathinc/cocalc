@@ -62,12 +62,12 @@
 .cocalc-jupyter-btn-interrupt
   +smooth-background-color
 
-$fadeOutDelay: 0.3s
+$fadeOutDelay: 0.25s
 $fadeOutSpeed: 0.1s
 
 .cocalc-jupyter-insert-cell
-  margin-top: 5px
-  margin-bottom: 7px
+  margin-top: 6px
+  margin-bottom: 10px
   height: 8px
   cursor: pointer
   text-align: center
@@ -82,6 +82,14 @@ $fadeOutSpeed: 0.1s
     visibility: visible
     opacity: 1
     transition: opacity 0s linear, visibility 0s linear
+  &.cocalc-jupyter-insert-cell-below
+    margin-top: 20px
+    height: 5px
+    background-color: $COL_GRAY_L
+    > .cocalc-jupyter-insert-cell-controls
+      top: -8px
+    &:hover
+      background-color: $COL_FG_BLUE
 
 .cocalc-jupyter-insert-cell-controls
   visibility: hidden
@@ -96,6 +104,11 @@ $fadeOutSpeed: 0.1s
 
 .cocalc-jupyter-insert-cell-btn
   background-color: $COL_FG_BLUE
+  &:hover
+    background-color: $COL_BLUE_DD
+
+.cocalc-jupyter-insert-cell-btn-below
+  background-color: $COL_GRAY_L
   &:hover
     background-color: $COL_BLUE_DD
 

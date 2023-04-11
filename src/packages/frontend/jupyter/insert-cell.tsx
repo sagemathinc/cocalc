@@ -156,10 +156,14 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
       children?: React.ReactNode;
     }) {
       const { type, children } = props;
+      const className =
+        position === "below"
+          ? "cocalc-jupyter-insert-cell-btn-below"
+          : "cocalc-jupyter-insert-cell-btn";
       return (
         <Button
           style={TINY_BTN_STYLE}
-          className="cocalc-jupyter-insert-cell-btn"
+          className={className}
           size={"small"}
           onClick={(e) => btnClick(e, type)}
         >
@@ -169,11 +173,16 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
     }
 
     function renderControls() {
+      const style: CSS =
+        showChatGPT || position === "below"
+          ? {
+              visibility: "visible",
+              opacity: 1,
+            }
+          : {};
+
       return (
-        <div
-          className="cocalc-jupyter-insert-cell-controls"
-          style={showChatGPT ? { visibility: "visible", opacity: 1 } : {}}
-        >
+        <div className="cocalc-jupyter-insert-cell-controls" style={style}>
           <Space size="large">
             <TinyButton type="code">
               <Icon name="code" /> Code
@@ -342,9 +351,14 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
     const style: CSS =
       position === "below" ? { marginBottom: `${BTN_HEIGHT}px` } : {};
 
+    const classNames = ["cocalc-jupyter-insert-cell"];
+    if (position === "below") {
+      classNames.push("cocalc-jupyter-insert-cell-below");
+    }
+
     return (
       <div
-        className="cocalc-jupyter-insert-cell"
+        className={classNames.join(" ")}
         style={{
           ...style,
           ...(showChatGPT ? { backgroundColor: COLORS.FG_BLUE } : {}),
