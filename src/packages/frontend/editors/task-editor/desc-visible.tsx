@@ -48,7 +48,7 @@ export function DescVisible({
     return <span />;
   }
   return (
-    <div style={{ marginTop: "7.5px", fontWeight: 350 }}>
+    <div style={{ marginTop: "12.5px", fontWeight: 500 }}>
       <span style={{ color: "#666" }}>
         {num_visible} matching {plural(num_visible, "task")}.
       </span>

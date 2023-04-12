@@ -61,13 +61,10 @@ export default function Task({
   } as CSSProperties;
   if (editing_desc) {
     style.border = `2px solid ${CODE_FOCUSED_COLOR}`;
-    style.borderLeft = `10px solid ${CODE_FOCUSED_COLOR}`;
   } else if (is_current) {
     style.border = `2px solid ${FOCUSED_COLOR}`;
-    style.borderLeft = `10px solid ${FOCUSED_COLOR}`;
   } else {
     style.border = "2px solid transparent";
-    style.borderLeft = "10px solid #ccc";
     style.borderTop = "2px solid #eeejj";
   }
   if (task.get("deleted")) {
@@ -102,14 +99,6 @@ export default function Task({
       onClick={() => actions?.set_current_task(task.get("task_id"))}
     >
       <Row>
-        <Col sm={1} style={{ textAlign: "center" }}>
-          <DoneCheckbox
-            actions={actions}
-            read_only={read_only}
-            done={!!task.get("done")}
-            task_id={task.get("task_id")}
-          />
-        </Col>
         <Col sm={1}>
           {actions != null && (
             <DragHandle sortable={sortable} id={task.get("task_id")} />
@@ -158,6 +147,14 @@ export default function Task({
           <span style={{ fontSize: "10pt", color: "#666" }}>
             <Changed last_edited={task.get("last_edited")} />
           </span>
+        </Col>
+        <Col sm={1} style={{ textAlign: "center" }}>
+          <DoneCheckbox
+            actions={actions}
+            read_only={read_only}
+            done={!!task.get("done")}
+            task_id={task.get("task_id")}
+          />
         </Col>
       </Row>
     </Grid>

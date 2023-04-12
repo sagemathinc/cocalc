@@ -119,7 +119,7 @@ export const Description: React.FC<Props> = React.memo(
             title="Delete Task?"
             onConfirm={() => actions?.delete_task(task_id)}
           >
-            <Button size="small" type="link" key="delete" disabled={read_only} danger>
+            <Button size="small" type="link" key="delete" disabled={read_only}>
               <Icon name="trash" /> Delete
             </Button>
           </Popconfirm>

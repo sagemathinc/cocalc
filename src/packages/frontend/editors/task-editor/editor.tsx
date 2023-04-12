@@ -9,6 +9,7 @@ Top-level react component for task list
 
 import { React, useEditorRedux } from "../../app-framework";
 
+import { Button } from "antd";
 import { Row, Col } from "../../antd-bootstrap";
 import { Loading } from "../../components";
 import TaskList from "./list";
@@ -17,6 +18,7 @@ import { DescVisible } from "./desc-visible";
 import { HashtagBar } from "./hashtag-bar";
 import { is_sortable } from "./headings-info";
 import { Headings } from "./headings";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 import { TaskActions } from "./actions";
 import { TaskState } from "./types";
@@ -33,7 +35,6 @@ interface Props {
 
 export const TaskEditor: React.FC<Props> = React.memo(
   ({ actions, path, project_id, desc, read_only }) => {
-
     const useEditor = useEditorRedux<TaskState>({ project_id, path });
 
     const tasks = useEditor("tasks");
@@ -66,17 +67,18 @@ export const TaskEditor: React.FC<Props> = React.memo(
 
     return (
       <div className={"smc-vfill"}>
-        {hashtags != null && (
-          <HashtagBar
-            actions={actions}
-            hashtags={hashtags}
-            selected_hashtags={local_view_state.get("selected_hashtags")}
-          />
-        )}
-
         <Row>
-          <Col md={7}>
+          <Col md={7} style={{ display: "flex", marginTop: "5px" }}>
+            <Button
+              style={{ marginLeft: "5px" }}
+              onClick={() => {
+                actions.new_task();
+              }}
+            >
+              <Icon name="plus-circle" /> New Task
+            </Button>
             <Find
+              style={{ flex: 1 }}
               actions={actions}
               local_view_state={local_view_state}
               counts={counts}
@@ -90,6 +92,17 @@ export const TaskEditor: React.FC<Props> = React.memo(
               local_view_state={local_view_state}
               search_desc={search_desc}
             />
+          </Col>
+        </Row>
+        <Row>
+          <Col md={12}>
+            {hashtags != null && (
+              <HashtagBar
+                actions={actions}
+                hashtags={hashtags}
+                selected_hashtags={local_view_state.get("selected_hashtags")}
+              />
+            )}
           </Col>
         </Row>
         <Headings actions={actions} sort={local_view_state.get("sort")} />

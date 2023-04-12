@@ -75,7 +75,10 @@ export function update_visible(
   };
   let current_is_visible = false;
 
-  const sort_column = local_view_state.getIn(["sort", "column"]) ?? "Custom Order";
+  let sort_column = local_view_state.getIn(["sort", "column"]) ?? HEADINGS[0];
+  if (!HEADINGS.includes(sort_column)) {
+    sort_column = HEADINGS[0];
+  }
   if (SORT_INFO[sort_column] == null) {
     SORT_INFO[sort_column] = SORT_INFO[HEADINGS[0]];
   }
@@ -133,10 +136,7 @@ export function update_visible(
     v.sort((a, b) => cmp(a[0], b[0]));
   }
 
-  const w: string[] = [];
-  for (const x of v) {
-    w.push(x[1]);
-  }
+  const w = v.map((x) => x[1]);
   const visible = fromJS(w);
   if ((current_task_id == null || !current_is_visible) && visible.size > 0) {
     current_task_id = visible.get(0);

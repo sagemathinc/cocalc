@@ -13,12 +13,14 @@ import { ShowToggle } from "./show-toggle";
 import { EmptyTrash } from "./empty-trash";
 import { TaskActions } from "./actions";
 import { Counts, LocalViewStateMap } from "./types";
+import { CSSProperties } from "react";
 
 interface Props {
   actions: TaskActions;
   local_view_state: LocalViewStateMap;
   counts?: Counts;
   focus_find_box?: boolean;
+  style?: CSSProperties;
 }
 
 export function Find({
@@ -26,6 +28,7 @@ export function Find({
   local_view_state,
   counts,
   focus_find_box,
+  style,
 }: Props) {
   const inputRef = useRef<any>(null);
   useEffect(() => {
@@ -35,7 +38,7 @@ export function Find({
   }, [focus_find_box]);
 
   return (
-    <div style={{ display: "flex", marginLeft: "5px" }}>
+    <div style={{ display: "flex", marginLeft: "5px", ...style }}>
       <Input.Search
         ref={inputRef}
         allowClear

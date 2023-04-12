@@ -71,7 +71,7 @@ export default function DescriptionEditor({
         enableUpload={true}
         enableMentions={true}
         height={"auto"}
-        placeholder={"Enter description..."}
+        placeholder={"Enter a description.  Use markdown with LaTeX.  Evaluate code blocks."}
         autoFocus
         onSave={() => {
           actions.save();

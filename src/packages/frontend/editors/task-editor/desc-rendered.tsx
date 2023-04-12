@@ -37,7 +37,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
     function render_content() {
       let value = desc;
       if (!value.trim()) {
-        return <span style={{ color: "#666" }}>Enter a description...</span>;
+        return <span style={{ color: "#666" }}>Description...</span>;
       }
       let show_more_link: boolean;
       if (hideBody) {
@@ -106,7 +106,7 @@ export const DescriptionRendered: React.FC<Props> = React.memo(
 
     return (
       <div
-        style={{ paddingTop: "25px" }}
+        style={{ paddingTop: "5px" }}
         onClick={!read_only && actions != null ? on_click : undefined}
         className="cocalc-task-description"
       >

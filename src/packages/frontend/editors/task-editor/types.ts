@@ -16,7 +16,7 @@ export interface Task {
   last_edited?: number;
 }
 
-export type Headings = "Custom Order" | "Due" | "Changed";
+export type Headings = "Custom" | "Due" | "Changed";
 export type HeadingsDir = "asc" | "desc";
 
 export type TaskMap = TypedMap<Task>;
