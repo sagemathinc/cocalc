@@ -135,7 +135,6 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     );
     actions._init_frame(frameId, this);
     this.taskActions[frameId] = actions;
-
     return actions;
   }
 
