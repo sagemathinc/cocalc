@@ -100,7 +100,11 @@ export class TaskActions extends Actions<TaskState> {
     }
     this.redux
       .getActions("page")
-      .set_active_key_handler(this.key_handler, this.project_id, this.frameActions.path);
+      .set_active_key_handler(
+        this.key_handler,
+        this.project_id,
+        this.frameActions.path
+      );
   }
 
   public disable_key_handler(): void {
@@ -153,6 +157,10 @@ export class TaskActions extends Actions<TaskState> {
       "search_terms",
     ]);
     this.setFrameData(obj);
+    if (obj.redoSoonMs > 0) {
+      // do it again a few times, so the recently marked done task disappears.
+      setTimeout(() => this.__update_visible(), obj.redoSoonMs);
+    }
   }
 
   public set_local_task_state(task_id: string | undefined, obj: object): void {

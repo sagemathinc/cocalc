@@ -19,7 +19,10 @@ interface Props {
 
 export function DoneCheckbox({ done, read_only, task_id, actions }: Props) {
   return (
-    <Tooltip title={done ? "This task is done" : "Mark this task done"}>
+    <Tooltip
+      title={done ? "This task is done" : "Mark this task done"}
+      placement="left"
+    >
       <Checkbox
         onChange={() => {
           if (read_only || actions == null) return;

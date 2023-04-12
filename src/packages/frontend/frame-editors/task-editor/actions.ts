@@ -205,7 +205,6 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
   }
 
   public blur(id?: string): void {
-    console.log("blur ", id);
     if (id === undefined) {
       id = this._get_active_id();
     }
