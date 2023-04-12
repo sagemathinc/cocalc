@@ -36,6 +36,7 @@ const EDITOR_SPEC = {
       "save",
       "help",
       "export_to_markdown",
+      "chatgpt",
     ]),
   },
   terminal,

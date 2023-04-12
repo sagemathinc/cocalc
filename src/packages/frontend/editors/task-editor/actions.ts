@@ -675,12 +675,28 @@ export class TaskActions extends Actions<TaskState> {
     this.enable_key_handler();
   }
 
-  // Exports the currently visible tasks to a markdown file and opens it.
-  public async export_to_markdown(): Promise<void> {
+  chatgptGetText(scope: "selection" | "cell" | "all" = "all"): string {
+    if (scope == "all") {
+      return this.toMarkdown();
+    } else if (scope == "cell") {
+      return ""; // for now, since no possible way to select cells in task editor
+    } else {
+      const local = this.getFrameData("local_task_state") ?? fromJS({});
+      for (const [id, state] of local) {
+        if (state.get("editing_desc")) {
+          // we don't have a way to get the selection in the editing task yet.
+          return this.store.getIn(["tasks", id, "desc"]) ?? "";
+        }
+      }
+      return "";
+    }
+  }
+
+  toMarkdown(): string {
     const visible = this.getFrameData("visible");
-    if (visible == null) return;
+    if (visible == null) return '';
     const tasks = this.store.get("tasks");
-    if (tasks == null) return;
+    if (tasks == null) return '';
     const v: string[] = [];
     visible.forEach((task_id) => {
       const task = tasks.get(task_id);
@@ -699,7 +715,11 @@ export class TaskActions extends Actions<TaskState> {
       s += task.get("desc") ?? "";
       v.push(s);
     });
-    const content = v.join("\n\n---\n\n");
+    return v.join("\n\n---\n\n");
+  }
+  // Exports the currently visible tasks to a markdown file and opens it.
+  public async export_to_markdown(): Promise<void> {
+    const content = this.toMarkdown();
     const path = this.path + ".md";
     await webapp_client.project_client.write_text_file({
       project_id: this.project_id,
