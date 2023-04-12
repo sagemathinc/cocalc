@@ -19,13 +19,12 @@ const EDITOR_SPEC = {
     short: "Tasks",
     name: "Task List",
     icon: "tasks",
-    component: ({ project_id, actions: frameActions, desc, id }) => {
-      const actions = frameActions.getTaskActions(id);
+    component: (props) => {
+      const actions = props.actions.getTaskActions(props.id);
       return createElement(TaskEditor, {
-        project_id,
-        path: actions.path,
+        ...props,
         actions,
-        desc,
+        path: actions.path,
       });
     },
     buttons: set([

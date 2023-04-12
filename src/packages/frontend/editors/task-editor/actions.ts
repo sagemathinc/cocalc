@@ -21,7 +21,6 @@ import {
   history_path,
   search_split,
 } from "@cocalc/util/misc";
-import { HEADINGS, HEADINGS_DIR } from "./headings-info";
 import { update_visible } from "./update-visible";
 import { create_key_handler } from "./keyboard";
 import { toggle_checkbox } from "./desc-rendering";
@@ -40,21 +39,19 @@ import {
 import { TaskStore } from "./store";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { webapp_client } from "../../webapp-client";
-import {
-  set_local_storage,
-  get_local_storage,
-} from "@cocalc/frontend/misc/local-storage";
+import type { Actions as TaskFrameActions } from "@cocalc/frontend/frame-editors/task-editor/actions";
 
 export class TaskActions extends Actions<TaskState> {
   public syncdb: SyncDB;
   private project_id: string;
   private path: string;
   private store: TaskStore;
-  private _save_local_view_state: Function;
-  private _update_visible: Function;
+  _update_visible: Function;
   private is_closed: boolean = false;
   private key_handler?: (any) => void;
   private set_save_status?: () => void;
+  private frameId: string;
+  private frameActions: TaskFrameActions;
 
   public _init(
     project_id: string,
@@ -62,20 +59,25 @@ export class TaskActions extends Actions<TaskState> {
     syncdb: SyncDB,
     store: TaskStore
   ): void {
-    this._save_local_view_state = debounce(this.__save_local_view_state, 1500);
     this._update_visible = throttle(this.__update_visible, 500);
     this.project_id = project_id;
     this.path = path;
     this.syncdb = syncdb;
     this.store = store;
-
-    this.setState({
-      local_task_state: Map(),
-      local_view_state: this._load_local_view_state(),
-      counts: fromJS({ done: 0, deleted: 0 }),
-    });
-
     this._init_has_unsaved_changes();
+  }
+
+  public _init_frame(frameId: string, frameActions) {
+    this.frameId = frameId;
+    this.frameActions = frameActions;
+  }
+
+  public setFrameData(obj): void {
+    this.frameActions.set_frame_data({ ...obj, id: this.frameId });
+  }
+
+  public getFrameData(key: string) {
+    return this.frameActions._get_frame_data(this.frameId, key);
   }
 
   public close(): void {
@@ -83,7 +85,6 @@ export class TaskActions extends Actions<TaskState> {
       return;
     }
     this.is_closed = true;
-    this.__save_local_view_state();
     if (this.key_handler != null) {
       this.redux.getActions("page").erase_active_key_handler(this.key_handler);
     }
@@ -109,53 +110,6 @@ export class TaskActions extends Actions<TaskState> {
     delete this.key_handler;
   }
 
-  private __save_local_view_state(): void {
-    // This will sometimes get called after close, since this is
-    // called via debounce. See #4957.
-    if (this.is_closed) return;
-    const local_view_state = this.store.get("local_view_state");
-    if (local_view_state != null && localStorage !== null) {
-      set_local_storage(this.name, JSON.stringify(local_view_state.toJS()));
-    }
-  }
-
-  private _load_local_view_state(): LocalViewStateMap {
-    const x = get_local_storage(this.name);
-    if (x == null) return fromJS({}); // no data, nothing to process
-    let local_view_state: LocalViewStateMap;
-    try {
-      local_view_state = fromJS(
-        typeof x === "string" ? JSON.parse(x) : x ?? {}
-      );
-    } catch (_) {
-      local_view_state = fromJS({});
-    }
-    if (!local_view_state.has("show_deleted")) {
-      local_view_state = local_view_state.set("show_deleted", false);
-    }
-    if (!local_view_state.has("show_done")) {
-      local_view_state = local_view_state.set("show_done", false);
-    }
-    if (!local_view_state.has("show_max")) {
-      local_view_state = local_view_state.set("show_max", 50);
-    }
-    if (!local_view_state.has("font_size")) {
-      local_view_state = local_view_state.set(
-        "font_size",
-        this.redux.getStore("account").get("font_size") ?? 14
-      );
-    }
-    if (!local_view_state.has("sort")) {
-      const sort = fromJS({
-        column: HEADINGS[0],
-        dir: HEADINGS_DIR[0],
-      });
-      local_view_state = local_view_state.set("sort", sort);
-    }
-
-    return local_view_state;
-  }
-
   private _init_has_unsaved_changes(): void {
     // basically copies from jupyter/actions.coffee -- opportunity to refactor
     const do_set = () => {
@@ -175,25 +129,16 @@ export class TaskActions extends Actions<TaskState> {
     this.syncdb.on("connected", this.set_save_status);
   }
 
-  private _syncdb_metadata(): void {
-    if (this.syncdb == null || this.store == null) {
-      // may happen during close
-      return;
-    }
-    const read_only = this.syncdb.is_read_only();
-    if (read_only !== this.store.get("read_only")) {
-      this.setState({ read_only });
-    }
-  }
-
   private __update_visible(): void {
     if (this.store == null) return;
     const tasks = this.store.get("tasks");
     if (tasks == null) return;
-    const view = this.store.get("local_view_state");
-    const local_task_state = this.store.get("local_task_state");
-    const current_task_id = this.store.get("current_task_id");
-    const counts = this.store.get("counts");
+    const view: LocalViewStateMap =
+      this.getFrameData("local_view_state") ?? fromJS({});
+    const local_task_state =
+      this.getFrameData("local_task_state") ?? fromJS({});
+    const current_task_id = this.getFrameData("current_task_id");
+    const counts = this.getFrameData("counts") ?? fromJS({});
 
     let obj: any = update_visible(
       tasks,
@@ -227,50 +172,7 @@ export class TaskActions extends Actions<TaskState> {
       "search_desc",
       "search_terms",
     ]);
-    this.setState(obj);
-  }
-
-  private _ensure_positions_are_unique(): void {
-    let tasks = this.store.get("tasks");
-    if (tasks == null) {
-      return;
-    }
-    // iterate through tasks adding their (string) positions to a "set" (using a map)
-    const s = {};
-    let unique = true;
-    tasks.forEach((task, id) => {
-      if (tasks == null) return; // won't happpen, but TS doesn't know that.
-      let pos = task.get("position");
-      if (pos == null) {
-        // no position set at all -- just arbitrarily set it to 0; it'll get
-        // fixed below, if this conflicts.
-        pos = 0;
-        tasks = tasks.set(id, task.set("position", 0));
-      }
-      if (s[pos]) {
-        // already got this position -- so they can't be unique
-        unique = false;
-        return false;
-      }
-      s[pos] = true;
-    });
-    if (unique) {
-      // positions turned out to all be unique - done
-      return;
-    }
-    // positions are NOT unique - this could happen, e.g., due to merging
-    // offline changes.  We fix this by simply spreading them all out to be
-    // 0 to n, arbitrarily breaking ties.
-    const v: [number, string][] = [];
-    tasks.forEach((task, id) => {
-      v.push([task.get("position") ?? 0, id]);
-    });
-    v.sort((a, b) => cmp(a[0], b[0]));
-    let position = 0;
-    for (let x of v) {
-      this.set_task(x[1], { position });
-      position += 1;
-    }
+    this.setFrameData(obj);
   }
 
   public set_local_task_state(task_id: string | undefined, obj: object): void {
@@ -278,13 +180,13 @@ export class TaskActions extends Actions<TaskState> {
       return;
     }
     if (task_id == null) {
-      task_id = this.store.get("current_task_id");
+      task_id = this.getFrameData("current_task_id");
     }
     if (task_id == null) {
       return;
     }
     // Set local state related to a specific task -- this is NOT sync'd between clients
-    const local = this.store.get("local_task_state");
+    const local = this.getFrameData("local_task_state") ?? fromJS({});
     obj["task_id"] = task_id;
     let x = local.get(obj["task_id"]);
     if (x == null) {
@@ -295,7 +197,7 @@ export class TaskActions extends Actions<TaskState> {
         x = x.set(k, fromJS(v));
       }
     }
-    this.setState({
+    this.setFrameData({
       local_task_state: local.set(obj["task_id"], x),
     });
   }
@@ -305,7 +207,8 @@ export class TaskActions extends Actions<TaskState> {
       return;
     }
     // Set local state related to what we see/search for/etc.
-    let local = this.store.get("local_view_state");
+    let local: LocalViewStateMap =
+      this.getFrameData("local_view_state") ?? fromJS({});
     for (let key in obj) {
       const value = obj[key];
       if (
@@ -323,13 +226,12 @@ export class TaskActions extends Actions<TaskState> {
         throw Error(`bug setting local_view_state -- invalid field "${key}"`);
       }
     }
-    this.setState({
+    this.setFrameData({
       local_view_state: local,
     });
     if (update_visible) {
       this._update_visible();
     }
-    this._save_local_view_state();
   }
 
   public async save(): Promise<void> {
@@ -353,7 +255,7 @@ export class TaskActions extends Actions<TaskState> {
     // create new task positioned before the current task
     const cur_pos = this.store.getIn([
       "tasks",
-      this.store.get("current_task_id") ?? "",
+      this.getFrameData("current_task_id") ?? "",
       "position",
     ]);
 
@@ -469,19 +371,19 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public delete_current_task(): void {
-    const task_id = this.store.get("current_task_id");
+    const task_id = this.getFrameData("current_task_id");
     if (task_id == null) return;
     this.delete_task(task_id);
   }
 
   public undelete_current_task(): void {
-    const task_id = this.store.get("current_task_id");
+    const task_id = this.getFrameData("current_task_id");
     if (task_id == null) return;
     this.undelete_task(task_id);
   }
 
   public move_task_to_top(): void {
-    const task_id = this.store.get("current_task_id");
+    const task_id = this.getFrameData("current_task_id");
     if (task_id == null) return;
     this.set_task(task_id, {
       position: getPositions(this.store.get("tasks"))[0] - 1,
@@ -489,7 +391,7 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public move_task_to_bottom(): void {
-    const task_id = this.store.get("current_task_id");
+    const task_id = this.getFrameData("current_task_id");
     if (task_id == null) return;
     this.set_task(task_id, {
       position: getPositions(this.store.get("tasks")).slice(-1)[0] + 1,
@@ -501,7 +403,7 @@ export class TaskActions extends Actions<TaskState> {
     if (delta !== 1 && delta !== -1) {
       return;
     }
-    const task_id = this.store.get("current_task_id");
+    const task_id = this.getFrameData("current_task_id");
     if (task_id == null) {
       return;
     }
@@ -539,17 +441,17 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public set_current_task(task_id: string): void {
-    if (this.store.get("current_task_id") == task_id) return;
-    this.setState({ current_task_id: task_id });
+    if (this.getFrameData("current_task_id") == task_id) return;
+    this.setFrameData({ current_task_id: task_id });
     this.scroll_into_view();
   }
 
   public set_current_task_delta(delta: number): void {
-    const task_id = this.store.get("current_task_id");
+    const task_id = this.getFrameData("current_task_id");
     if (task_id == null) {
       return;
     }
-    const visible = this.store.get("visible");
+    const visible = this.getFrameData("visible");
     if (visible == null) {
       return;
     }
@@ -591,21 +493,21 @@ export class TaskActions extends Actions<TaskState> {
 
   public set_task_not_done(task_id: string | undefined): void {
     if (task_id == null) {
-      task_id = this.store.get("current_task_id");
+      task_id = this.getFrameData("current_task_id");
     }
     this.set_task(task_id, { done: false });
   }
 
   public set_task_done(task_id: string | undefined): void {
     if (task_id == null) {
-      task_id = this.store.get("current_task_id");
+      task_id = this.getFrameData("current_task_id");
     }
     this.set_task(task_id, { done: true });
   }
 
   public toggle_task_done(task_id: string | undefined): void {
     if (task_id == null) {
-      task_id = this.store.get("current_task_id");
+      task_id = this.getFrameData("current_task_id");
     }
     if (task_id != null) {
       this.set_task(
@@ -661,7 +563,7 @@ export class TaskActions extends Actions<TaskState> {
 
   public toggleHideBody(task_id: string | undefined): void {
     if (task_id == null) {
-      task_id = this.store.get("current_task_id");
+      task_id = this.getFrameData("current_task_id");
     }
     if (task_id == null) {
       return;
@@ -720,7 +622,6 @@ export class TaskActions extends Actions<TaskState> {
     view = view.set("sort", sort);
     this.setState({ local_view_state: view });
     this._update_visible();
-    this.__save_local_view_state();
   }
 
   // Move task that was at position old_index to now be at

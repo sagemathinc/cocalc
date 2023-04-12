@@ -21,32 +21,32 @@ import { Headings } from "./headings";
 import { TaskActions } from "./actions";
 import { TaskState } from "./types";
 
+import { fromJS } from "immutable";
+
 interface Props {
   actions: TaskActions;
   path: string;
   project_id: string;
   desc;
+  read_only?: boolean;
 }
 
 export const TaskEditor: React.FC<Props> = React.memo(
-  ({ actions, path, project_id, desc }) => {
+  ({ actions, path, project_id, desc, read_only }) => {
     const useEditor = useEditorRedux<TaskState>({ project_id, path });
 
     const tasks = useEditor("tasks");
-    const counts = useEditor("counts");
-    const current_task_id = useEditor("current_task_id");
-    const local_task_state = useEditor("local_task_state");
-    const local_view_state = useEditor("local_view_state");
-    const hashtags = useEditor("hashtags");
-    const search_terms = useEditor("search_terms");
-    const search_desc = useEditor("search_desc");
-    const focus_find_box = useEditor("focus_find_box");
-    const read_only = useEditor("read_only");
-    const scroll_into_view = useEditor("scroll_into_view");
 
     const visible = desc.get("data-visible");
-    console.log("tasks = ", tasks);
-    console.log("visible = ", visible);
+    const local_task_state = desc.get("data-local_task_state") ?? fromJS({});
+    const local_view_state = desc.get("data-local_view_state") ?? fromJS({});
+    const hashtags = desc.get("data-hashtags");
+    const current_task_id = desc.get("data-current_task_id");
+    const counts = desc.get("data-counts");
+    const search_terms = desc.get("data-search_terms");
+    const search_desc = desc.get("data-search_desc");
+    const focus_find_box = desc.get("data-focus_find_box");
+    const scroll_into_view = desc.get("data-scroll_into_view");
 
     useEffect(() => {
       actions?.enable_key_handler();

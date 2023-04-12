@@ -28,11 +28,10 @@ export type HashtagState = -1 | 1;
 export type SelectedHashtags = Map<string, HashtagState>;
 
 export interface LocalViewState {
-  show_deleted: boolean;
-  show_done: boolean;
-  show_max: number;
-  font_size: number;
-  sort: Sort;
+  show_deleted?: boolean;
+  show_done?: boolean;
+  show_max?: number;
+  sort?: Sort;
   selected_hashtags?: SelectedHashtags;
   search?: string;
   scroll?: number;
