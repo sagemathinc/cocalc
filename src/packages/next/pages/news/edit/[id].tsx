@@ -123,10 +123,7 @@ export default function EditNews(props: Props) {
         icon={<Icon name="check" />}
         message={
           <>
-            <A href={slugURL({ ...data, id, date: data.date.unix() })}>
-              Saved News id={saved}
-            </A>
-            .
+            <A href={slugURL({ ...data, id })}>Saved News id={saved}</A>.
           </>
         }
       />
@@ -198,7 +195,12 @@ export default function EditNews(props: Props) {
               })}
             </Select>
           </Form.Item>
-          <Form.Item label="Tags" name="tags" rules={[{ required: false }]}>
+          <Form.Item
+            label="Tags"
+            name="tags"
+            rules={[{ required: false }]}
+            extra={`Common ones are "jupyter", "latex" or "sagemath". Don't set too many, one is usually good enough.`}
+          >
             <Select mode="tags" style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item
@@ -239,9 +241,7 @@ export default function EditNews(props: Props) {
               >
                 {isNew ? "Create" : "Save"}
               </Button>
-              <Button href={slugURL({ ...data, id, date: data.date.unix() })}>
-                Cancel
-              </Button>
+              <Button href={slugURL({ ...data, id })}>Cancel</Button>
             </Space>
             <Divider type="horizontal" />
             {error && <Alert type="error" message={error} />}

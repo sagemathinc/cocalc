@@ -202,6 +202,16 @@ export function News(props: Props) {
     return (
       <>
         {renderTags()}
+        <Text type="secondary" style={{ float: "right" }}>
+          {dateStr}
+        </Text>
+      </>
+    );
+  }
+
+  function renderTitle() {
+    return (
+      <>
         <Tooltip
           title={
             <>
@@ -210,15 +220,8 @@ export function News(props: Props) {
           }
         >
           <Icon name={CHANNELS_ICONS[channel] as IconName} />
-        </Tooltip>
-      </>
-    );
-  }
-
-  function renderTitle() {
-    return (
-      <>
-        {dateStr}: <A href={permalink}>{title}</A>
+        </Tooltip>{" "}
+        <A href={permalink}>{title}</A>
       </>
     );
   }
