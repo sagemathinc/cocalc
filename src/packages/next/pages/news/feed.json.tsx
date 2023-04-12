@@ -8,7 +8,7 @@ import LRU from "lru-cache";
 import { get } from "@cocalc/server/news/get";
 import getCustomize from "@cocalc/server/settings/customize";
 import { slugURL } from "@cocalc/util/news";
-import { NewsType } from "@cocalc/util/types/news";
+import { NewsItem } from "@cocalc/util/types/news";
 import { renderMarkdown } from "lib/news";
 import { GetServerSideProps } from "next";
 import IconLogo from "public/logo/icon.svg";
@@ -49,7 +49,7 @@ async function feed() {
   return feed;
 }
 
-function getItems(data: NewsType[], dns): object[] {
+function getItems(data: NewsItem[], dns): object[] {
   return data.map((n) => {
     const { id, text, title, date, url } = n;
     const date_published = (
@@ -69,7 +69,7 @@ function getItems(data: NewsType[], dns): object[] {
 }
 
 // This follows https://www.jsonfeed.org/version/1.1/
-async function getFeed(data: NewsType[]): Promise<object> {
+async function getFeed(data: NewsItem[]): Promise<object> {
   const { siteName, dns } = await getCustomize();
   const icon_url = IconLogo.src;
   const home_page_url = `https://${dns}/news`;

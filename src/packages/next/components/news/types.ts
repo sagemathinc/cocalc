@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { NewsType } from "@cocalc/util/types/news";
+import { NewsItem } from "@cocalc/util/types/news";
 
-export interface NewsWithFuture extends NewsType {
+export interface NewsWithFuture extends NewsItem {
   future: boolean;
 }

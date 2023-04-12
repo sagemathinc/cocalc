@@ -6,13 +6,13 @@
 import { create as createXML } from "xmlbuilder2";
 
 import LRU from "lru-cache";
-const cache = new LRU<"rss", NewsType[]>({ max: 1, ttl: 60 * 1000 });
+const cache = new LRU<"rss", NewsItem[]>({ max: 1, ttl: 60 * 1000 });
 
 
 import getPool from "@cocalc/database/pool";
 import getCustomize from "@cocalc/server/settings/customize";
 import { slugURL } from "@cocalc/util/news";
-import { NewsType } from "@cocalc/util/types/news";
+import { NewsItem } from "@cocalc/util/types/news";
 import { GetServerSideProps } from "next";
 import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
 import { renderMarkdown } from "lib/news";
@@ -33,12 +33,12 @@ ORDER BY date DESC
 LIMIT 100`;
 
 // caches the DB result for a bit
-async function getRSS(): Promise<NewsType[]> {
+async function getRSS(): Promise<NewsItem[]> {
   const rssCached = cache.get("rss");
   if (rssCached) return rssCached;
   const pool = getPool("long");
   const { rows } = await pool.query(Q);
-  cache.set("rss", rows as NewsType[]);
+  cache.set("rss", rows as NewsItem[]);
   return rows;
 }
 

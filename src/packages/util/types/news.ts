@@ -3,22 +3,22 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export interface NewsType {
-  id?: string;
+interface NewsProto {
+  id?: string; // assigned by DB, immutable
+  channel: Channel; // see CHANNELS_DESCRIPTIONS
   date: number | Date; // number is unix timestamp in seconds
-  title: string;
-  channel: Channel;
-  text: string;
-  url: string;
   hide?: boolean; // default false
+  tags?: string[]; // list of strings, e.g. ["jupyter", "python"]
+  text: string; // Markdown text
+  title: string; // title of the news item, should be short
+  url?: string; // URL link to an external page (not the news item itself)
+}
+
+export interface NewsItem extends NewsProto {
   history?: {
-    // unix epoch in seconds, when history has been made
-    [key: number]: {
-      title: string;
-      text: string;
-      url: string;
-      channel: Channel;
-    };
+    // key: unix epoch in seconds, when history has been made
+    // we don't pick id and hide, because that's not relevant
+    [key: number]: Omit<NewsProto, "id" | "hide">;
   };
 }
 
@@ -46,12 +46,12 @@ export const CHANNELS_DESCRIPTIONS: { [name in Channel]: string } = {
   about: "In one's own behalf",
 } as const;
 
-// TODO extract IconName from @cocalc/frontend/components/icon.tsx
+// TODO move IconName from @cocalc/frontend/components/icon.tsx out of frontend
 export const CHANNELS_ICONS: {
   [key in Channel]: string /* IconName */;
 } = {
   feature: "file-alt",
   announcement: "bullhorn",
   platform: "wrench",
-  about: "user",
+  about: "team-outlined",
 } as const;

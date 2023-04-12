@@ -6,9 +6,9 @@
 import dayjs from "dayjs";
 import { useMemo } from "react";
 
-import { NewsType } from "@cocalc/util/types/news";
+import { NewsItem } from "@cocalc/util/types/news";
 
-export function useDateStr(news: NewsType): string {
+export function useDateStr(news: NewsItem): string {
   return useMemo(
     () =>
       typeof news.date === "number"

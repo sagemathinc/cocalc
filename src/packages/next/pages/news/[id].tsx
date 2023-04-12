@@ -97,7 +97,7 @@ export default function NewsPage(props: Props) {
 
 const Q = `
 SELECT
-  id, title, channel, text, url, hide, history,
+  id, title, channel, text, url, hide, history, tags,
   date >= NOW() as future,
   extract(epoch from date::timestamptz)::INTEGER as date
 FROM news

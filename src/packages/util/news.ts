@@ -3,11 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { NewsType } from "./types/news";
+import { NewsItem } from "./types/news";
 
 // slug URL, based on the title and with "-[id]" at the end
 // https://www.semrush.com/blog/what-is-a-url-slug/
-export function slugURL(news: NewsType): string {
+export function slugURL(news: NewsItem): string {
   const shortTitle = news.title
     .toLowerCase()
     .slice(0, 200)

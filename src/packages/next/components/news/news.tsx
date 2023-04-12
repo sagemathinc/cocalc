@@ -14,7 +14,7 @@ import { COLORS } from "@cocalc/util/theme";
 import {
   CHANNELS_DESCRIPTIONS,
   CHANNELS_ICONS,
-  NewsType,
+  NewsItem,
 } from "@cocalc/util/types/news";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
@@ -28,7 +28,7 @@ const STYLE: CSS = {
 
 interface Props {
   // NewsWithFuture with optional future property
-  news: NewsType & { future?: boolean };
+  news: NewsItem & { future?: boolean };
   dns?: string;
   showEdit?: boolean;
   small?: boolean; // limit height, essentially

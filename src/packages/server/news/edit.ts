@@ -5,12 +5,12 @@
 
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
-import type { NewsType } from "@cocalc/util/types/news";
+import type { NewsItem } from "@cocalc/util/types/news";
 import dayjs from "dayjs";
 
 const L = getLogger("server:news:edit").debug;
 
-export default async function editNews(opts: NewsType) {
+export default async function editNews(opts: NewsItem) {
   let { id } = opts;
   const { title, text, url, date, channel, hide } = opts;
 

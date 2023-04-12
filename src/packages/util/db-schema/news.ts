@@ -22,6 +22,11 @@ Table({
       type: "string",
       desc: "markdown text of this news item",
     },
+    tags: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc: "list of strings, e.g. ['jupyter', 'python']",
+    },
     url: {
       type: "string",
       desc: "optional url",
@@ -58,6 +63,7 @@ Table({
           id: null,
           date: null,
           title: null,
+          tags: null,
           channel: null,
           hide: null,
         },

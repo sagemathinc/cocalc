@@ -29,7 +29,7 @@ import { slugURL } from "@cocalc/util/news";
 import {
   CHANNELS,
   CHANNELS_DESCRIPTIONS,
-  NewsType,
+  NewsItem,
 } from "@cocalc/util/types/news";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -46,10 +46,10 @@ import withCustomize from "lib/with-customize";
 
 interface Props {
   customize: CustomizeType;
-  news?: NewsType;
+  news?: NewsItem;
 }
 
-type NewsTypeForm = Omit<NewsType, "date"> & { date: dayjs.Dayjs };
+type NewsTypeForm = Omit<NewsItem, "date"> & { date: dayjs.Dayjs };
 
 export default function EditNews(props: Props) {
   const { customize, news } = props;
@@ -74,7 +74,7 @@ export default function EditNews(props: Props) {
           title: "",
           text: "",
           url: "",
-          channel: "news",
+          channel: "feature",
           date: dayjs(),
         };
 
@@ -281,7 +281,7 @@ export default function EditNews(props: Props) {
 // and the UTC epoch timestamp will be used in the browser client as the basis, adding your TZ offset
 const Q = `
 SELECT
-  id, channel, title, text, url, hide,
+  id, channel, title, text, url, hide, tags,
   extract(epoch from date::timestamptz)::INTEGER as date
 FROM news
 WHERE id = $1`;

@@ -3,11 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Col, Input, Layout, Radio, Row, Space, Tooltip } from "antd";
+import {
+  Alert,
+  Col,
+  Divider,
+  Input,
+  Layout,
+  Radio,
+  Row,
+  Space,
+  Tooltip,
+} from "antd";
 import { useState } from "react";
 
 import getPool from "@cocalc/database/pool";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
 import {
   CHANNELS,
@@ -29,6 +39,7 @@ import withCustomize from "lib/with-customize";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import rssIcon from "public/rss.svg";
+import jsonfeedIcon from "public/jsonfeed.png";
 
 // news shown per page
 const SLICE_SIZE = 20;
@@ -63,7 +74,7 @@ export default function AllNews(props: Props) {
             {CHANNELS.map((c) => (
               <Tooltip key={c} title={CHANNELS_DESCRIPTIONS[c]}>
                 <Radio.Button key={c} value={c}>
-                  <Icon name={CHANNELS_ICONS[c]} /> {capitalize(c)}
+                  <Icon name={CHANNELS_ICONS[c] as IconName} /> {capitalize(c)}
                 </Radio.Button>
               </Tooltip>
             ))}
@@ -155,7 +166,7 @@ export default function AllNews(props: Props) {
   }
 
   function renderSlicer() {
-    if (news.length < SLICE_SIZE && offset === 0) return;
+    //if (news.length < SLICE_SIZE && offset === 0) return;
     return (
       <div style={{ marginTop: "60px", textAlign: "center" }}>
         <Radio.Group optionType="button">
@@ -170,6 +181,49 @@ export default function AllNews(props: Props) {
           </Radio.Button>
         </Radio.Group>
       </div>
+    );
+  }
+
+  function renderFeeds() {
+    const iconSize = 20;
+    return (
+      <>
+        <Divider
+          orientation="center"
+          style={{
+            marginTop: "60px",
+            textAlign: "center",
+          }}
+        />
+        <div
+          style={{
+            marginTop: "60px",
+            marginBottom: "60px",
+            textAlign: "center",
+          }}
+        >
+          <Space direction="horizontal" size="large">
+            <A href="/news/rss.xml" external>
+              <Image
+                src={rssIcon}
+                width={iconSize}
+                height={iconSize}
+                alt="RSS Feed"
+              />{" "}
+              RSS
+            </A>
+            <A href="/news/feed.json" external>
+              <Image
+                src={jsonfeedIcon}
+                width={iconSize}
+                height={iconSize}
+                alt="Json Feed"
+              />{" "}
+              JSON
+            </A>
+          </Space>
+        </div>
+      </>
     );
   }
 
@@ -193,6 +247,7 @@ export default function AllNews(props: Props) {
           >
             {content()}
             {renderSlicer()}
+            {renderFeeds()}
           </div>
           <Footer />
         </Layout.Content>
@@ -203,7 +258,7 @@ export default function AllNews(props: Props) {
 
 const Q = `
 SELECT
-  id, channel, title, text, url, hide,
+  id, channel, title, text, url, hide, tags,
   date >= NOW() as future,
   extract(epoch from date::timestamptz)::INTEGER as date
 FROM news
