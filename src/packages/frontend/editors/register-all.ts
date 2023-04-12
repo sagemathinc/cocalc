@@ -21,8 +21,6 @@ import "./media-viewer/register";
 // Raw data editors
 import "./data-editor/generic";
 
-import "./task-editor/register";
-
 // All the frame-tree editors
 import "../frame-editors/register";
 

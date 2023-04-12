@@ -3,10 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { delay } from "awaiting";
 import { Set } from "immutable";
 import { isEqual } from "lodash";
-
+import { delay } from "awaiting";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { move_selected_cells } from "@cocalc/frontend/jupyter/cell-utils";
 import {
@@ -351,10 +350,11 @@ export class NotebookFrameActions {
     this.setState({ mode });
   }
 
-  public focus(wait?: boolean): void {
-    // TODO: wait is ignored!
-    wait = wait;
-    this.enable_key_handler();
+  public focus(_wait?: boolean): void {
+    // we always wait 1 ms.
+    setTimeout(() => {
+      this.enable_key_handler();
+    }, 1);
   }
 
   public blur(): void {

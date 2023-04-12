@@ -135,6 +135,13 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     }
   }
 
+  public blur(id?: string): void {
+    const actions = this.get_frame_actions(id);
+    if (actions != null) {
+      actions.blur?.();
+    }
+  }
+
   public refresh(id: string): void {
     const actions = this.get_frame_actions(id);
     if (actions != null) {

@@ -79,18 +79,11 @@ export const Headings: React.FC<HeadingsProps> = React.memo(
       // sort by that.
       return (
         <Row style={{ borderBottom: "1px solid lightgray", marginLeft: "8px" }}>
-          <Col
-            xs={1}
-            style={{ color: "#666", textAlign: "center" }}
-            className={"visible-sm-inline visible-md-inline visible-lg-inline"}
-          >
-            Done
-          </Col>
-          <Col xs={1} style={{ color: "#666", textAlign: "center" }}></Col>
-          <Col xs={6} style={{ color: "#666" }}>
+          <Col xs={1} style={{ color: "#666" }}>Drag</Col>
+          <Col xs={7} style={{ color: "#666" }}>
             Description
           </Col>
-          <Col xs={2}>
+          <Col xs={1}>
             {render_heading(
               HEADINGS[0],
               column === HEADINGS[0] ? dir : undefined
@@ -107,6 +100,13 @@ export const Headings: React.FC<HeadingsProps> = React.memo(
               HEADINGS[2],
               column === HEADINGS[2] ? dir : undefined
             )}
+          </Col>
+          <Col
+            xs={1}
+            style={{ color: "#666", textAlign: "center" }}
+            className={"visible-sm-inline visible-md-inline visible-lg-inline"}
+          >
+            Done
           </Col>
         </Row>
       );

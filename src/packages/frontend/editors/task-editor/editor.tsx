@@ -7,51 +7,48 @@
 Top-level react component for task list
 */
 
-import { React, useEffect, useEditorRedux } from "../../app-framework";
+import { React, useEditorRedux } from "../../app-framework";
 
+import { Button } from "antd";
 import { Row, Col } from "../../antd-bootstrap";
 import { Loading } from "../../components";
 import TaskList from "./list";
-import { ButtonBar } from "./button-bar";
 import { Find } from "./find";
 import { DescVisible } from "./desc-visible";
 import { HashtagBar } from "./hashtag-bar";
 import { is_sortable } from "./headings-info";
 import { Headings } from "./headings";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 import { TaskActions } from "./actions";
 import { TaskState } from "./types";
+
+import { fromJS } from "immutable";
 
 interface Props {
   actions: TaskActions;
   path: string;
   project_id: string;
+  desc;
+  read_only?: boolean;
 }
 
 export const TaskEditor: React.FC<Props> = React.memo(
-  ({ actions, path, project_id }) => {
+  ({ actions, path, project_id, desc, read_only }) => {
     const useEditor = useEditorRedux<TaskState>({ project_id, path });
 
     const tasks = useEditor("tasks");
-    const counts = useEditor("counts");
-    const visible = useEditor("visible");
-    const current_task_id = useEditor("current_task_id");
-    const has_unsaved_changes = useEditor("has_unsaved_changes");
-    const has_uncommitted_changes = useEditor("has_uncommitted_changes");
-    const local_task_state = useEditor("local_task_state");
-    const local_view_state = useEditor("local_view_state");
-    const hashtags = useEditor("hashtags");
-    const search_terms = useEditor("search_terms");
-    const search_desc = useEditor("search_desc");
-    const focus_find_box = useEditor("focus_find_box");
-    const read_only = useEditor("read_only");
-    const scroll_into_view = useEditor("scroll_into_view");
-    const load_time_estimate = useEditor("load_time_estimate");
 
-    useEffect(() => {
-      actions?.enable_key_handler();
-      return actions?.disable_key_handler;
-    }, []);
+    const visible = desc.get("data-visible");
+    const local_task_state = desc.get("data-local_task_state") ?? fromJS({});
+    const local_view_state = desc.get("data-local_view_state") ?? fromJS({});
+    const hashtags = desc.get("data-hashtags");
+    const current_task_id = desc.get("data-current_task_id");
+    const counts = desc.get("data-counts");
+    const search_terms = desc.get("data-search_terms");
+    const search_desc = desc.get("data-search_desc");
+    const focus_find_box = desc.get("data-focus_find_box");
+    const scroll_into_view = desc.get("data-scroll_into_view");
 
     if (tasks == null || visible == null) {
       return (
@@ -63,24 +60,25 @@ export const TaskEditor: React.FC<Props> = React.memo(
             color: "#999",
           }}
         >
-          <Loading estimate={load_time_estimate} />
+          <Loading />
         </div>
       );
     }
 
     return (
       <div className={"smc-vfill"}>
-        {hashtags != null && (
-          <HashtagBar
-            actions={actions}
-            hashtags={hashtags}
-            selected_hashtags={local_view_state.get("selected_hashtags")}
-          />
-        )}
-
         <Row>
-          <Col md={7}>
+          <Col md={7} style={{ display: "flex", marginTop: "5px" }}>
+            <Button
+              style={{ marginLeft: "5px" }}
+              onClick={() => {
+                actions.new_task();
+              }}
+            >
+              <Icon name="plus-circle" /> New Task
+            </Button>
             <Find
+              style={{ flex: 1 }}
               actions={actions}
               local_view_state={local_view_state}
               counts={counts}
@@ -96,14 +94,17 @@ export const TaskEditor: React.FC<Props> = React.memo(
             />
           </Col>
         </Row>
-        <ButtonBar
-          actions={actions}
-          read_only={read_only}
-          has_unsaved_changes={has_unsaved_changes}
-          has_uncommitted_changes={has_uncommitted_changes}
-          current_task_id={current_task_id}
-          current_task_is_deleted={tasks?.getIn([current_task_id, "deleted"])}
-        />
+        <Row>
+          <Col md={12}>
+            {hashtags != null && (
+              <HashtagBar
+                actions={actions}
+                hashtags={hashtags}
+                selected_hashtags={local_view_state.get("selected_hashtags")}
+              />
+            )}
+          </Col>
+        </Row>
         <Headings actions={actions} sort={local_view_state.get("sort")} />
         <div style={{ paddingTop: "5px" }} />
         {visible.size == 0 ? (
@@ -128,7 +129,7 @@ export const TaskEditor: React.FC<Props> = React.memo(
             local_task_state={local_task_state}
             scrollState={(local_view_state as any).get("scrollState")?.toJS?.()}
             scroll_into_view={scroll_into_view}
-            font_size={local_view_state.get("font_size")}
+            font_size={desc.get("font_size")}
             sortable={
               !read_only &&
               is_sortable(
