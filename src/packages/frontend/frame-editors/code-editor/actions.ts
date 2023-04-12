@@ -81,6 +81,7 @@ import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import { SHELLS } from "./editor";
 import type { TimeTravelActions } from "../time-travel-editor/actions";
 import chatgptCreatechat from "../chatgpt/create-chat";
+import type { PageActions } from "@cocalc/frontend/app/actions";
 
 interface gutterMarkerParams {
   line: number;
@@ -2486,8 +2487,8 @@ export class Actions<
     }
   }
 
-  public set_active_key_handler(key_handler: Function): void {
-    (this.redux.getActions("page") as any).set_active_key_handler(
+  public set_active_key_handler(key_handler: (e: any) => void): void {
+    (this.redux.getActions("page") as PageActions).set_active_key_handler(
       key_handler,
       this.project_id,
       this.path
@@ -2495,10 +2496,17 @@ export class Actions<
     this._key_handler = key_handler;
   }
 
-  public erase_active_key_handler(key_handler: Function): void {
-    (this.redux.getActions("page") as any).erase_active_key_handler(
+  public erase_active_key_handler(key_handler: (e: any) => void): void {
+    (this.redux.getActions("page") as PageActions).erase_active_key_handler(
       key_handler
     );
+  }
+
+  // called when this editor is made not visible
+  blur() {
+    if (this._key_handler) {
+      this.erase_active_key_handler(this._key_handler);
+    }
   }
 
   // Show the most recently focused frame of the given type, or create

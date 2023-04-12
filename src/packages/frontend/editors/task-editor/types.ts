@@ -11,7 +11,7 @@ export interface Task {
   deleted?: boolean;
   position?: number;
   desc?: string;
-  due_date?: number;
+  due_date?: number
   done?: boolean;
   last_edited?: number;
 }

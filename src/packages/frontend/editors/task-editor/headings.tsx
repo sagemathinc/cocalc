@@ -79,7 +79,9 @@ export const Headings: React.FC<HeadingsProps> = React.memo(
       // sort by that.
       return (
         <Row style={{ borderBottom: "1px solid lightgray", marginLeft: "8px" }}>
-          <Col xs={1} style={{ color: "#666" }}>Drag</Col>
+          <Col xs={1} style={{ color: "#666" }}>
+            Drag
+          </Col>
           <Col xs={7} style={{ color: "#666" }}>
             Description
           </Col>

@@ -85,7 +85,7 @@ export class TaskActions extends Actions<TaskState> {
     }
     this.is_closed = true;
     if (this.key_handler != null) {
-      this.redux.getActions("page").erase_active_key_handler(this.key_handler);
+      this.frameActions.erase_active_key_handler(this.key_handler);
     }
     close(this);
     this.is_closed = true;
@@ -98,18 +98,12 @@ export class TaskActions extends Actions<TaskState> {
     if (this.key_handler == null) {
       this.key_handler = create_key_handler(this);
     }
-    this.redux
-      .getActions("page")
-      .set_active_key_handler(
-        this.key_handler,
-        this.project_id,
-        this.frameActions.path
-      );
+    this.frameActions.set_active_key_handler(this.key_handler);
   }
 
   public disable_key_handler(): void {
     if (this.key_handler == null || this.redux == null) return;
-    this.redux.getActions("page").erase_active_key_handler(this.key_handler);
+    this.frameActions.erase_active_key_handler(this.key_handler);
     delete this.key_handler;
   }
 
@@ -369,7 +363,6 @@ export class TaskActions extends Actions<TaskState> {
     if (task_id == null) return;
     this.undelete_task(task_id);
   }
-
 
   // only delta = 1 or -1 is supported!
   public move_task_delta(delta: -1 | 1): void {
