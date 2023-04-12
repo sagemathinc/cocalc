@@ -992,7 +992,7 @@ export class NotebookFrameActions {
         sync
       );
     } catch (err) {
-      this.frame_tree_actions.setFormatError(`${err}`);
+      this.frame_tree_actions.setFormatError(`${err}`, err.formatInput);
     } finally {
       this.frame_tree_actions.set_status("");
     }
@@ -1003,7 +1003,7 @@ export class NotebookFrameActions {
       this.frame_tree_actions.set_status("Formatting selected cells...");
       await this.jupyter_actions.format_all_cells(sync);
     } catch (err) {
-      this.frame_tree_actions.setFormatError(`${err}`);
+      this.frame_tree_actions.setFormatError(`${err}`, err.formatInput);
     } finally {
       this.frame_tree_actions.set_status("");
     }

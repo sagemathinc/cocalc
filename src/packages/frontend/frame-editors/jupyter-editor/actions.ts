@@ -511,11 +511,17 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   chatgptExtraFileInfo(): string {
     const kernel =
       this.jupyter_actions.store.getIn(["kernel_info", "display_name"]) ?? "";
-    return `, which is a Jupyter notebook using the ${kernel} kernel`;
+    return `Jupyter notebook using the ${kernel} kernel`;
   }
 
   help(): void {
     open_new_tab("https://doc.cocalc.com/jupyter.html");
+  }
+
+  chatgptCodeDescription(): string {
+    const kernel =
+      this.jupyter_actions.store.getIn(["kernel_info", "display_name"]) ?? "";
+    return `Jupyter notebook using the ${kernel} kernel`;
   }
 }
 

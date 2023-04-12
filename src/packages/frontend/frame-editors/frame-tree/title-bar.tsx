@@ -1114,7 +1114,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         key={"format"}
         bsSize={button_size()}
         onClick={() => props.editor_actions.format(props.id)}
-        title={"Canonically format the entire document."}
+        title={"Syntactically format the document."}
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
         <VisibleMDLG>{labels ? "Format" : undefined}</VisibleMDLG>
@@ -1584,6 +1584,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (!is_public) {
       v.push(render_undo_redo_group());
     }
+    v.push(render_format(labels));
     v.push(render_restart(labels));
     v.push(render_close_and_halt(labels));
 
@@ -1600,7 +1601,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_clear());
     v.push(render_count_words());
     v.push(render_kick_other_users_out());
-    v.push(render_format(labels));
     v.push(render_terminal(labels));
     v.push(render_shell(labels));
     v.push(render_print(labels));

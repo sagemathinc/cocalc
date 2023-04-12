@@ -182,7 +182,9 @@ export class JupyterActions extends JupyterActions0 {
     ).api.formatter_string(str, config, timeout_ms);
   }
 
-  // throws an error if anything goes wrong
+  // throws an error if anything goes wrong. the error
+  // has a formatInput attribute with the input that was
+  // sent to the formatter.
   private async format_cell(id: string): Promise<void> {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
@@ -209,7 +211,12 @@ export class JupyterActions extends JupyterActions0 {
     //  console.log("FMT", cell_type, options, code);
     let resp: string | undefined;
     code = parsing.process_magics(code, config.syntax, "escape");
-    resp = await this.api_call_formatter(code, config);
+    try {
+      resp = await this.api_call_formatter(code, config);
+    } catch (err) {
+      err.formatInput = code;
+      throw err;
+    }
     resp = parsing.process_magics(resp, config.syntax, "unescape");
     if (resp == null) return; // make everyone happy …
     // We additionally trim the output, because formatting code introduces

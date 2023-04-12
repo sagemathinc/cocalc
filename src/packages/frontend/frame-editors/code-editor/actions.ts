@@ -37,6 +37,7 @@ import { SyncString } from "@cocalc/sync/editor/string";
 import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
+import { filenameMode } from "@cocalc/frontend/file-associations";
 import { print_code } from "../frame-tree/print-code";
 import {
   ConnectionStatus,
@@ -124,6 +125,7 @@ export interface CodeEditorState {
   error: string;
   errorstyle?: ErrorStyles;
   formatError?: string;
+  formatInput?: string;
   status: string;
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
@@ -2109,14 +2111,14 @@ export class Actions<
       }
       this.setFormatError("");
     } catch (err) {
-      this.setFormatError(`${err}`);
+      this.setFormatError(`${err}`, this._syncstring.to_str());
     } finally {
       this.set_status("");
     }
   }
 
-  setFormatError(formatError?: string) {
-    this.setState({ formatError });
+  setFormatError(formatError: string, formatInput: string = "") {
+    this.setState({ formatError, formatInput });
   }
 
   // call this and get back a function that can be used
@@ -2856,9 +2858,11 @@ export class Actions<
 
   // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
   chatgptExtraFileInfo(): string {
-    return "";
+    return `${filenameMode(this.path)} code`;
   }
 
+  // This is something like "python" or "py", "r", etc., i.e., what typically
+  // goes as an info string in markdown fenced code blocks.
   chatgptGetLanguage(): string {
     return filename_extension(this.path);
   }
