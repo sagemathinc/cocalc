@@ -7,7 +7,7 @@
 Top-level react component for task list
 */
 
-import { React, useEffect, useEditorRedux } from "../../app-framework";
+import { React, useEditorRedux } from "../../app-framework";
 
 import { Row, Col } from "../../antd-bootstrap";
 import { Loading } from "../../components";
@@ -47,11 +47,6 @@ export const TaskEditor: React.FC<Props> = React.memo(
     const search_desc = desc.get("data-search_desc");
     const focus_find_box = desc.get("data-focus_find_box");
     const scroll_into_view = desc.get("data-scroll_into_view");
-
-    useEffect(() => {
-      actions?.enable_key_handler();
-      return actions?.disable_key_handler;
-    }, []);
 
     if (tasks == null || visible == null) {
       return (
