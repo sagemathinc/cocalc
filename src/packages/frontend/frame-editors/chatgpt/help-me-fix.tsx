@@ -7,19 +7,24 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { Alert, Button, Tooltip } from "antd";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
-import { redux } from "@cocalc/frontend/app-framework";
 import { CSSProperties, useState } from "react";
 import { trunc } from "@cocalc/util/misc";
 
 interface Props {
-  error: string; // the error it produced. This is viewed as code.
-  task: string; // what you're doing, e.g., "Editing the file foo.ts" or "Using a Jupyter notebook with kernel SageMath 9.8".
+  error: string | (() => string); // the error it produced. This is viewed as code.
   input?: string | (() => string); // the input, e.g., code you ran
+  task?: string; // what you're doing, e.g., "ran a cell in a Jupyter notebook" or "ran a code formatter"
   tag?: string;
   language?: string;
   extraFileInfo?: string;
   style?: CSSProperties;
-  size;
+  size?;
+}
+
+function get(f: undefined | string | (() => string)): string {
+  if (f == null) return "";
+  if (typeof f == "string") return f;
+  return f();
 }
 
 export default function HelpMeFix({
@@ -32,10 +37,10 @@ export default function HelpMeFix({
   style,
   size,
 }: Props) {
-  const { project_id, path } = useFrameContext();
+  const { redux, project_id, path } = useFrameContext();
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
   const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
-  if (!redux.getStore("projects").hasOpenAI(project_id)) {
+  if (redux == null || !redux.getStore("projects").hasOpenAI(project_id)) {
     return null;
   }
   return (
@@ -52,17 +57,13 @@ export default function HelpMeFix({
               await getHelp({
                 project_id,
                 path,
-                error,
+                error: get(error),
                 task,
-                input:
-                  input == null
-                    ? ""
-                    : typeof input == "string"
-                    ? input
-                    : input(),
+                input: get(input),
                 tag,
                 language,
                 extraFileInfo,
+                redux,
               });
             } catch (err) {
               setErrorGettingHelp(`${err}`);
@@ -104,12 +105,13 @@ async function getHelp({
   task = "",
   language = "",
   extraFileInfo = "",
+  redux,
 }) {
   let message =
     '<span class="user-mention" account-id=chatgpt>@ChatGPT</span> help me fix my code.\n\n<details>\n\n';
 
   if (task) {
-    message += `\n${task}.\n`;
+    message += `\nI ${task}.\n`;
   }
 
   message += `\nI received the following error:\n\n`;

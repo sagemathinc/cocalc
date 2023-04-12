@@ -14,11 +14,13 @@ interface Props {
 
 export default function FormatError({ formatError, formatInput }: Props) {
   const { actions } = useFrameContext();
-  const language = useMemo(() => actions.chatgptGetLanguage(), [actions]);
+  const language = useMemo(() => actions?.chatgptGetLanguage(), [actions]);
   const mode = useMemo(
     () => file_associations[language]?.opts?.mode ?? language,
     [language]
   );
+
+  if (actions == null) return null;
 
   return (
     <Alert
@@ -42,7 +44,7 @@ export default function FormatError({ formatError, formatInput }: Props) {
             <HelpMeFix
               size="large"
               style={{ width: "100%" }}
-              task={"I ran a code formatter."}
+              task={"ran a code formatter"}
               error={formatError}
               input={formatInput}
               language={language}
