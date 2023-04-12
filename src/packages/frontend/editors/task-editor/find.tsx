@@ -24,7 +24,7 @@ import { Counts, LocalViewStateMap } from "./types";
 interface Props {
   actions: TaskActions;
   local_view_state: LocalViewStateMap;
-  counts: Counts;
+  counts?: Counts;
   focus_find_box?: boolean;
 }
 
@@ -39,6 +39,7 @@ export const Find: React.FC<Props> = React.memo(
     const search_ref = useRef(null);
 
     function render_toggle(type: "deleted" | "done") {
+      if (counts == null) return null;
       const count = counts.get(type);
       const show = local_view_state.get(`show_${type}`);
       return (

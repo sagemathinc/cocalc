@@ -34,7 +34,6 @@ export const TaskEditor: React.FC<Props> = React.memo(
 
     const tasks = useEditor("tasks");
     const counts = useEditor("counts");
-    const visible = useEditor("visible");
     const current_task_id = useEditor("current_task_id");
     const local_task_state = useEditor("local_task_state");
     const local_view_state = useEditor("local_view_state");
@@ -44,7 +43,10 @@ export const TaskEditor: React.FC<Props> = React.memo(
     const focus_find_box = useEditor("focus_find_box");
     const read_only = useEditor("read_only");
     const scroll_into_view = useEditor("scroll_into_view");
-    const load_time_estimate = useEditor("load_time_estimate");
+
+    const visible = desc.get("data-visible");
+    console.log("tasks = ", tasks);
+    console.log("visible = ", visible);
 
     useEffect(() => {
       actions?.enable_key_handler();
@@ -61,7 +63,7 @@ export const TaskEditor: React.FC<Props> = React.memo(
             color: "#999",
           }}
         >
-          <Loading estimate={load_time_estimate} />
+          <Loading />
         </div>
       );
     }

@@ -76,14 +76,6 @@ export class TaskActions extends Actions<TaskState> {
     });
 
     this._init_has_unsaved_changes();
-    this.syncdb.on("change", this._syncdb_change);
-    this.syncdb.once("change", this._ensure_positions_are_unique);
-    this.syncdb.once("ready", this._syncdb_metadata);
-    this.syncdb.on("metadata-change", this._syncdb_metadata);
-
-    this.syncdb.once("load-time-estimate", (est) =>
-      this.setState({ load_time_estimate: est })
-    );
   }
 
   public close(): void {
@@ -92,7 +84,6 @@ export class TaskActions extends Actions<TaskState> {
     }
     this.is_closed = true;
     this.__save_local_view_state();
-    this.syncdb.close();
     if (this.key_handler != null) {
       this.redux.getActions("page").erase_active_key_handler(this.key_handler);
     }
@@ -113,7 +104,7 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public disable_key_handler(): void {
-    if (this.key_handler == null) return;
+    if (this.key_handler == null || this.redux == null) return;
     this.redux.getActions("page").erase_active_key_handler(this.key_handler);
     delete this.key_handler;
   }
@@ -193,29 +184,6 @@ export class TaskActions extends Actions<TaskState> {
     if (read_only !== this.store.get("read_only")) {
       this.setState({ read_only });
     }
-  }
-
-  private _syncdb_change(changes): void {
-    if (this.syncdb == null || this.store == null) {
-      // may happen during close
-      return;
-    }
-    let tasks = this.store.get("tasks") ?? Map();
-    changes.forEach((x) => {
-      const task_id = x.get("task_id");
-      const t = this.syncdb.get_one(x);
-      if (t == null) {
-        // deleted
-        tasks = tasks.delete(task_id);
-      } else {
-        // changed
-        tasks = tasks.set(task_id, t as any);
-      }
-    });
-
-    this.setState({ tasks });
-    this._update_visible();
-    this.set_save_status?.();
   }
 
   private __update_visible(): void {

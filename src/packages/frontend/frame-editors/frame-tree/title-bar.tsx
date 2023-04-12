@@ -1429,7 +1429,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <Button
         key={"export"}
         bsSize={button_size()}
-        onClick={() => props.editor_actions['export_to_markdown']?.(props.id)}
+        onClick={() => props.editor_actions["export_to_markdown"]?.(props.id)}
         title={"Export to Markdown File..."}
       >
         <Icon name={"markdown"} />{" "}

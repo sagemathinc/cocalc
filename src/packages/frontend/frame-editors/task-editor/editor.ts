@@ -19,13 +19,15 @@ const EDITOR_SPEC = {
     short: "Tasks",
     name: "Task List",
     icon: "tasks",
-    component: ({ project_id, actions, desc }) =>
-      createElement(TaskEditor, {
+    component: ({ project_id, actions: frameActions, desc, id }) => {
+      const actions = frameActions.getTaskActions(id);
+      return createElement(TaskEditor, {
         project_id,
-        path: actions.tasksAuxPath,
-        actions: actions.taskActions,
+        path: actions.path,
+        actions,
         desc,
-      }),
+      });
+    },
     buttons: set([
       "decrease_font_size",
       "increase_font_size",

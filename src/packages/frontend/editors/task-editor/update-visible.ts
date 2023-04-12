@@ -102,7 +102,7 @@ export function update_visible(
       new_counts.deleted += 1;
     }
 
-    const editing_desc = local_task_state.getIn([id, "editing_desc"]);
+    const editing_desc = local_task_state?.getIn([id, "editing_desc"]);
     if (!editing_desc && !is_visible(task, id)) {
       return;
     }
