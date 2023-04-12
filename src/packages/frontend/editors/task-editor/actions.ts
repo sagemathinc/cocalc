@@ -69,6 +69,16 @@ export class TaskActions extends Actions<TaskState> {
   public _init_frame(frameId: string, frameActions) {
     this.frameId = frameId;
     this.frameActions = frameActions;
+    // Ensure that the list of visible tasks is updated soon.
+    // Can't do without waiting a moment, do this being called
+    // during a react render loop and also triggering one.
+    // This is triggered if you close all of the frames and
+    // then the default frame tree comes back, and it would
+    // otherwise just sit there waiting on a syncdoc change.
+    setTimeout(() => {
+      if (this.is_closed) return;
+      this._update_visible();
+    }, 1);
   }
 
   public setFrameData(obj): void {
@@ -677,10 +687,13 @@ export class TaskActions extends Actions<TaskState> {
 
   chatgptGetText(scope: "selection" | "cell" | "all" = "all"): string {
     if (scope == "all") {
+      // TODO: it would be better to uniformly shorten long tasks, rather than just truncating at the end...
       return this.toMarkdown();
     } else if (scope == "cell") {
       return ""; // for now, since no possible way to select cells in task editor
     } else {
+      return ""; // for now
+      /*
       const local = this.getFrameData("local_task_state") ?? fromJS({});
       for (const [id, state] of local) {
         if (state.get("editing_desc")) {
@@ -688,15 +701,15 @@ export class TaskActions extends Actions<TaskState> {
           return this.store.getIn(["tasks", id, "desc"]) ?? "";
         }
       }
-      return "";
+      return "";*/
     }
   }
 
   toMarkdown(): string {
     const visible = this.getFrameData("visible");
-    if (visible == null) return '';
+    if (visible == null) return "";
     const tasks = this.store.get("tasks");
-    if (tasks == null) return '';
+    if (tasks == null) return "";
     const v: string[] = [];
     visible.forEach((task_id) => {
       const task = tasks.get(task_id);
