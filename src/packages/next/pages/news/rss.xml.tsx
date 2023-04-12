@@ -8,14 +8,19 @@ import { create as createXML } from "xmlbuilder2";
 import LRU from "lru-cache";
 const cache = new LRU<"rss", NewsItem[]>({ max: 1, ttl: 60 * 1000 });
 
-
 import getPool from "@cocalc/database/pool";
 import getCustomize from "@cocalc/server/settings/customize";
 import { slugURL } from "@cocalc/util/news";
-import { NewsItem } from "@cocalc/util/types/news";
+import {
+  CHANNELS,
+  CHANNELS_DESCRIPTIONS,
+  Channel,
+  NewsItem,
+} from "@cocalc/util/types/news";
 import { GetServerSideProps } from "next";
 import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
 import { renderMarkdown } from "lib/news";
+import { capitalize } from "@cocalc/util/misc";
 
 export default function RSS() {
   return null;
@@ -44,11 +49,13 @@ async function getRSS(): Promise<NewsItem[]> {
 
 // we have one RSS channel. this populates it with all entries from the database – with the given ordering
 async function getItemsXML(
-  channel: XMLBuilder,
+  xml: XMLBuilder,
+  ch: Channel,
   dns: string
 ): Promise<XMLBuilder> {
   for (const n of await getRSS()) {
-    const { id, text, title, date } = n;
+    const { id, text, title, date, channel } = n;
+    if (channel !== ch) continue;
     const pubDate: Date =
       typeof date === "number" ? new Date(date * 1000) : date;
     // URL visible to the user
@@ -56,7 +63,7 @@ async function getItemsXML(
     // GUID must be globally unique, not shown to USER
     const guid = `https://${dns}/news/${id}`;
 
-    channel
+    xml
       .ele("item")
       .ele("title")
       .dat(title)
@@ -75,7 +82,7 @@ async function getItemsXML(
       .up();
   }
 
-  return channel;
+  return xml;
 }
 
 // render RSS news feed
@@ -88,41 +95,48 @@ async function getXML(): Promise<string> {
   const selfLink = `https://${dns}/news/rss.xml`;
   const atom = "http://www.w3.org/2005/Atom";
 
-  const root = createXML({ version: "1.0", encoding: "UTF-8" });
-  const channel: XMLBuilder = root
+  const root = createXML({ version: "1.0", encoding: "UTF-8" })
     .ele("rss", { version: "2.0" })
-    .att(atom, "xmlns:atom", atom)
-    .ele("channel")
-    .ele("atom:link", {
-      href: selfLink,
-      rel: "self",
-      type: "application/rss+xml",
-    })
-    .up()
-    .ele("title")
-    .txt(`${siteName} News`)
-    .up()
-    .ele("description")
-    .txt(`News about ${siteName} – also available at https://${dns}/news`)
-    .up()
-    .ele("link")
-    .txt(selfLink)
-    .up()
-    .ele("pubDate")
-    .txt(new Date().toUTCString())
-    .up();
+    .att(atom, "xmlns:atom", atom);
 
-  return (await getItemsXML(channel, dns)).end({ prettyPrint: true });
+  for (const ch of CHANNELS) {
+    const channel: XMLBuilder = root
+      .ele("channel")
+      .ele("atom:link", {
+        href: selfLink,
+        rel: "self",
+        type: "application/rss+xml",
+      })
+      .up()
+      .ele("title")
+      .txt(`${siteName} News – ${capitalize(ch)}`)
+      .up()
+      .ele("description")
+      .txt(
+        `News about ${siteName}. ${CHANNELS_DESCRIPTIONS[ch]}. This is also available at https://${dns}/news`
+      )
+      .up()
+      .ele("link")
+      .txt(selfLink)
+      .up()
+      .ele("pubDate")
+      .txt(new Date().toUTCString())
+      .up();
+
+    await getItemsXML(channel, ch, dns);
+  }
+
+  return root.end({ prettyPrint: true });
 }
 
 export const getServerSideProps: GetServerSideProps = async ({ res }) => {
   if (!res) return { props: {} };
 
   try {
-  res.setHeader("Content-Type", "text/xml");
-  res.setHeader("Cache-Control", "public, max-age=3600");
-  res.write(await getXML());
-  res.end();
+    res.setHeader("Content-Type", "text/xml");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.write(await getXML());
+    res.end();
   } catch (err) {
     console.error(err);
     res.statusCode = 500;

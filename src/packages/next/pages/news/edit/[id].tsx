@@ -29,6 +29,7 @@ import { slugURL } from "@cocalc/util/news";
 import {
   CHANNELS,
   CHANNELS_DESCRIPTIONS,
+  Channel,
   NewsItem,
 } from "@cocalc/util/types/news";
 import Footer from "components/landing/footer";
@@ -132,6 +133,19 @@ export default function EditNews(props: Props) {
     );
   }
 
+  function explainChannel(channel: Channel): JSX.Element | string {
+    switch (channel) {
+      case "feature":
+        return "Updates, modified features, general news, etc. The default category for all news.";
+      case "announcement":
+        return "Use this rarely, only once or twice a month.";
+      case "about":
+        return "This is the meta-level category.";
+      default:
+        return CHANNELS_DESCRIPTIONS[channel];
+    }
+  }
+
   function edit() {
     return (
       <>
@@ -172,6 +186,7 @@ export default function EditNews(props: Props) {
             label="Channel"
             name="channel"
             rules={[{ required: true }]}
+            extra={explainChannel(data.channel)}
           >
             <Select>
               {CHANNELS.map((ch) => {
