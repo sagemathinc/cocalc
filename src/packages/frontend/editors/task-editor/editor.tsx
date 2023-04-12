@@ -19,6 +19,7 @@ import { HashtagBar } from "./hashtag-bar";
 import { is_sortable } from "./headings-info";
 import { Headings } from "./headings";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { HEADINGS } from "./headings-info";
 
 import { TaskActions } from "./actions";
 import { TaskState } from "./types";
@@ -133,7 +134,7 @@ export const TaskEditor: React.FC<Props> = React.memo(
             sortable={
               !read_only &&
               is_sortable(
-                local_view_state.getIn(["sort", "column"]) ?? "Custom Order"
+                local_view_state.getIn(["sort", "column"]) ?? HEADINGS[0]
               )
             }
             read_only={read_only}

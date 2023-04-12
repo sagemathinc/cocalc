@@ -6,7 +6,7 @@
 /*
 Headings of the task list:
 
-  - Custom order
+  - Custom
   - Due
   - Changed
 */

@@ -370,21 +370,6 @@ export class TaskActions extends Actions<TaskState> {
     this.undelete_task(task_id);
   }
 
-  public move_task_to_top(): void {
-    const task_id = this.getFrameData("current_task_id");
-    if (task_id == null) return;
-    this.set_task(task_id, {
-      position: getPositions(this.store.get("tasks"))[0] - 1,
-    });
-  }
-
-  public move_task_to_bottom(): void {
-    const task_id = this.getFrameData("current_task_id");
-    if (task_id == null) return;
-    this.set_task(task_id, {
-      position: getPositions(this.store.get("tasks")).slice(-1)[0] + 1,
-    });
-  }
 
   // only delta = 1 or -1 is supported!
   public move_task_delta(delta: -1 | 1): void {
