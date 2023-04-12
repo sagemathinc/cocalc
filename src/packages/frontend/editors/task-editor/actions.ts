@@ -11,7 +11,7 @@ const LAST_EDITED_THRESH_S = 30;
 const TASKS_HELP_URL = "https://doc.cocalc.com/tasks.html";
 
 import { fromJS, Map } from "immutable";
-import { debounce, throttle } from "lodash";
+import { throttle } from "lodash";
 import { delay } from "awaiting";
 import {
   close,
@@ -64,7 +64,6 @@ export class TaskActions extends Actions<TaskState> {
     this.path = path;
     this.syncdb = syncdb;
     this.store = store;
-    this._init_has_unsaved_changes();
   }
 
   public _init_frame(frameId: string, frameActions) {
@@ -108,25 +107,6 @@ export class TaskActions extends Actions<TaskState> {
     if (this.key_handler == null || this.redux == null) return;
     this.redux.getActions("page").erase_active_key_handler(this.key_handler);
     delete this.key_handler;
-  }
-
-  private _init_has_unsaved_changes(): void {
-    // basically copies from jupyter/actions.coffee -- opportunity to refactor
-    const do_set = () => {
-      if (this.is_closed) return;
-      this.setState({
-        has_unsaved_changes: this.syncdb?.has_unsaved_changes(),
-        has_uncommitted_changes: this.syncdb?.has_uncommitted_changes(),
-      });
-    };
-    const f = async () => {
-      do_set();
-      await delay(3000);
-      do_set();
-    };
-    this.set_save_status = debounce(f, 500);
-    this.syncdb.on("metadata-change", this.set_save_status);
-    this.syncdb.on("connected", this.set_save_status);
   }
 
   private __update_visible(): void {
@@ -287,7 +267,7 @@ export class TaskActions extends Actions<TaskState> {
     // Default new task is search description, but
     // do not include any negations.  This is handy and also otherwise
     // you wouldn't see the new task!
-    const search = this.store.get("search_desc");
+    const search = this.getFrameData("search_desc");
     const desc = search_split(search)
       .filter((x) => x[0] !== "-")
       .join(" ");
@@ -308,7 +288,7 @@ export class TaskActions extends Actions<TaskState> {
       return;
     }
     if (task_id == null) {
-      task_id = this.store.get("current_task_id");
+      task_id = this.getFrameData("current_task_id");
     }
     if (task_id == null) {
       return;
@@ -407,7 +387,7 @@ export class TaskActions extends Actions<TaskState> {
     if (task_id == null) {
       return;
     }
-    const visible = this.store.get("visible");
+    const visible = this.getFrameData("visible");
     if (visible == null) {
       return;
     }
@@ -532,7 +512,7 @@ export class TaskActions extends Actions<TaskState> {
 
   public edit_desc(task_id: string | undefined): void {
     // close any that were currently in edit state before opening new one
-    const local = this.store.get("local_task_state");
+    const local = this.getFrameData("local_task_state") ?? fromJS({});
     for (const [id, state] of local) {
       if (state.get("editing_desc")) {
         this.stop_editing_desc(id);
@@ -598,7 +578,7 @@ export class TaskActions extends Actions<TaskState> {
 
   public set_hashtag_state(tag: string, state?: HashtagState): void {
     let selected_hashtags: SelectedHashtags =
-      this.store.getIn(["local_view_state", "selected_hashtags"]) ??
+      this.getFrameData("local_view_state")?.get("selected_hashtags") ??
       Map<string, HashtagState>();
     if (state == null) {
       selected_hashtags = selected_hashtags.delete(tag);
@@ -615,12 +595,12 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public set_sort_column(column: Headings, dir: HeadingsDir): void {
-    let view = this.store.get("local_view_state");
+    let view = this.getFrameData("local_view_state") ?? fromJS({});
     let sort = view.get("sort") ?? (fromJS({}) as Sort);
     sort = sort.set("column", column);
     sort = sort.set("dir", dir);
     view = view.set("sort", sort);
-    this.setState({ local_view_state: view });
+    this.setFrameData({ local_view_state: view });
     this._update_visible();
   }
 
@@ -630,7 +610,7 @@ export class TaskActions extends Actions<TaskState> {
     if (old_index === new_index) {
       return;
     }
-    const visible = this.store.get("visible");
+    const visible = this.getFrameData("visible");
     const old_id = visible.get(old_index);
     const new_id = visible.get(new_index);
     if (new_id == null) return;
@@ -659,21 +639,21 @@ export class TaskActions extends Actions<TaskState> {
 
   public focus_find_box(): void {
     this.disable_key_handler();
-    this.setState({ focus_find_box: true });
+    this.setFrameData({ focus_find_box: true });
   }
 
   public blur_find_box(): void {
     this.enable_key_handler();
-    this.setState({ focus_find_box: false });
+    this.setFrameData({ focus_find_box: false });
   }
 
   async scroll_into_view(): Promise<void> {
     await delay(50);
-    this.setState({ scroll_into_view: true });
+    this.setFrameData({ scroll_into_view: true });
   }
 
   public scroll_into_view_done(): void {
-    this.setState({ scroll_into_view: false });
+    this.setFrameData({ scroll_into_view: false });
   }
 
   public set_show_max(show_max: number): void {
@@ -711,7 +691,7 @@ export class TaskActions extends Actions<TaskState> {
 
   // Exports the currently visible tasks to a markdown file and opens it.
   public async export_to_markdown(): Promise<void> {
-    const visible = this.store.get("visible");
+    const visible = this.getFrameData("visible");
     if (visible == null) return;
     const tasks = this.store.get("tasks");
     if (tasks == null) return;

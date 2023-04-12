@@ -3,9 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List, Map, Set } from "immutable";
+import { Map, Set } from "immutable";
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { LoadingEstimate } from "@cocalc/frontend/components";
 
 export interface Task {
   task_id: string;
@@ -49,19 +48,5 @@ export type HashtagsOfVisibleTasks = Set<string>;
 
 // State of the Store
 export interface TaskState {
-  read_only: boolean;
   tasks?: Tasks;
-  local_view_state: LocalViewStateMap;
-  local_task_state: LocalTaskStateMap;
-  current_task_id?: string;
-  counts: Counts;
-  search_desc: string;
-  search_terms?: Set<string>;
-  visible: List<string>; // ordered immutable js list of task_id's
-  load_time_estimate?: LoadingEstimate;
-  has_unsaved_changes?: boolean;
-  has_uncommitted_changes?: boolean;
-  scroll_into_view?: boolean;
-  focus_find_box?: boolean;
-  hashtags?: HashtagsOfVisibleTasks;
 }
