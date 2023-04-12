@@ -197,6 +197,7 @@ export default function ChatGPT({
             onClick={() => {
               setShowChatGPT(false);
               setError("");
+              actions.focus();
             }}
             type="text"
             style={{ float: "right", color: COLORS.GRAY_M }}
@@ -328,6 +329,7 @@ export default function ChatGPT({
           setError("");
           setShowChatGPT(!showChatGPT);
           updateInput(actions, id, setInput);
+          actions.blur();
         }}
       >
         <Tooltip title="Get assistance from ChatGPT">
