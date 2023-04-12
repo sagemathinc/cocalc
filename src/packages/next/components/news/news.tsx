@@ -4,6 +4,7 @@
  */
 
 import { Alert, Card, Space, Tag, Tooltip } from "antd";
+import { useRouter } from "next/router";
 import { Fragment } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
@@ -16,7 +17,7 @@ import {
   CHANNELS_ICONS,
   NewsItem,
 } from "@cocalc/util/types/news";
-import { CSS, Paragraph, Title } from "components/misc";
+import { CSS, Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import TimeAgo from "timeago-react";
 import { useDateStr } from "./useDateStr";
@@ -50,6 +51,7 @@ export function News(props: Props) {
   const { id, url, tags, title, date, channel, text, future, hide } = news;
   const dateStr = useDateStr(news);
   const permalink = slugURL(news);
+  const router = useRouter();
 
   const bottomLinkStyle: CSS = {
     color: COLORS.ANTD_LINK_BLUE,
@@ -174,6 +176,10 @@ export function News(props: Props) {
     }
   }
 
+  function onTagClickStandalone(tag: string) {
+    router.push(`/news?tag=${tag}`);
+  }
+
   function renderTags() {
     if (tags == null || !Array.isArray(tags) || tags.length === 0) return;
     return (
@@ -182,8 +188,8 @@ export function News(props: Props) {
           <Tag
             color={getRandomColor(tag)}
             key={tag}
-            style={onTagClick != null ? { cursor: "pointer" } : undefined}
-            onClick={() => onTagClick?.(tag)}
+            style={{ cursor: "pointer" }}
+            onClick={() => (onTagClick ?? onTagClickStandalone)(tag)}
           >
             {tag}
           </Tag>
@@ -253,8 +259,11 @@ export function News(props: Props) {
     const renderedTags = renderTags();
     return (
       <>
+        <Paragraph style={{ textAlign: "right" }}>
+          <Text type="secondary">Date: {dateStr}</Text>
+        </Paragraph>
         <Title level={2}>
-          [{dateStr}] {title}
+          <Icon name={CHANNELS_ICONS[channel] as IconName} /> {title}
           {url && <div style={{ float: "right" }}>{readMoreLink(true)}</div>}
           {renderedTags && (
             <span style={{ float: "right" }}>{renderedTags}</span>

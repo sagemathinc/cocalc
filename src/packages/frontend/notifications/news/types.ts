@@ -6,7 +6,7 @@
 import { Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { CHANNELS, NewTypeWebapp } from "@cocalc/util/types/news";
+import { CHANNELS, NewsItemWebapp } from "@cocalc/util/types/news";
 
 export const NEWS_CHANNELS = ["allNews", ...CHANNELS] as const;
 
@@ -19,4 +19,4 @@ export function isNewsFilter(ch: string): ch is NewsFilter {
 
 export type NewsMap = Map<string, NewsInfo>;
 
-export type NewsInfo = TypedMap<NewTypeWebapp>;
+export type NewsInfo = TypedMap<NewsItemWebapp>;

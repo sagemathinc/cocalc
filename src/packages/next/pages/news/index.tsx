@@ -14,7 +14,7 @@ import {
   Space,
   Tooltip,
 } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import getPool from "@cocalc/database/pool";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
@@ -49,10 +49,11 @@ interface Props {
   customize: CustomizeType;
   news: NewsWithFuture[];
   offset: number;
+  tag?: string; // used for searching for a tag, used on /news/[id] standalone pages
 }
 
 export default function AllNews(props: Props) {
-  const { customize, news, offset } = props;
+  const { customize, news, offset, tag } = props;
   const { siteName, dns } = customize;
   const router = useRouter();
   const profile = useProfile({ noCache: true });
@@ -60,6 +61,10 @@ export default function AllNews(props: Props) {
 
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState<string>("");
+
+  useEffect(() => {
+    if (tag) setSearch(`#${tag}`);
+  }, []);
 
   function renderFilter() {
     return (
@@ -172,21 +177,27 @@ export default function AllNews(props: Props) {
           {siteName} News
           {titleFeedIcons()}
         </Title>
-        <Paragraph>
-          Recent news about {siteName}. You can also subscribe via{" "}
-          {/* This is intentonally a regular link, to "break out" of next.js */}
-          <A href="/news/rss.xml" external>
-            <Image src={rssIcon} width={16} height={16} alt="RSS Feed" /> RSS
-            Feed
-          </A>{" "}
-          or{" "}
-          <A href="/news/feed.json" external>
-            <Image src={jsonfeedIcon} width={16} height={16} alt="JSON Feed" />{" "}
-            JSON Feed
-          </A>
-          .
-        </Paragraph>
         <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+          <Paragraph>
+            <div style={{ float: "right" }}>{renderSlicer("small")}</div>
+            Recent news about {siteName}. You can also subscribe via{" "}
+            {/* This is intentonally a regular link, to "break out" of next.js */}
+            <A href="/news/rss.xml" external>
+              <Image src={rssIcon} width={16} height={16} alt="RSS Feed" /> RSS
+              Feed
+            </A>{" "}
+            or{" "}
+            <A href="/news/feed.json" external>
+              <Image
+                src={jsonfeedIcon}
+                width={16}
+                height={16}
+                alt="JSON Feed"
+              />{" "}
+              JSON Feed
+            </A>
+            .
+          </Paragraph>
           {renderFilter()}
           {adminInfo()}
           {renderNews()}
@@ -201,22 +212,23 @@ export default function AllNews(props: Props) {
     router.push(`?offset=${newOffset}`);
   }
 
-  function renderSlicer() {
+  function renderSlicer(size?: "small") {
     //if (news.length < SLICE_SIZE && offset === 0) return;
+    const extraProps = size === "small" ? { size } : {};
     return (
-      <div style={{ marginTop: "60px", textAlign: "center" }}>
-        <Radio.Group optionType="button">
+      <>
+        <Radio.Group optionType="button" {...extraProps}>
           <Radio.Button
             disabled={news.length < SLICE_SIZE}
             onClick={() => slice("past")}
           >
-            ← Older
+            <Icon name="arrow-left" /> Older
           </Radio.Button>
           <Radio.Button disabled={offset === 0} onClick={() => slice("future")}>
-            Newer →
+            Newer <Icon name="arrow-right" />
           </Radio.Button>
         </Radio.Group>
-      </div>
+      </>
     );
   }
 
@@ -282,7 +294,9 @@ export default function AllNews(props: Props) {
             }}
           >
             {content()}
-            {renderSlicer()}
+            <div style={{ marginTop: "60px", textAlign: "center" }}>
+              {renderSlicer()}
+            </div>
             {renderFeeds()}
           </div>
           <Footer />
@@ -304,9 +318,11 @@ LIMIT ${SLICE_SIZE}
 OFFSET $1`;
 
 export async function getServerSideProps(context) {
+  const { query } = context;
+  const tag = typeof query.tag === "string" ? query.tag : null;
   const pool = getPool("long");
-  const offsetVal = Number(context.query.offset ?? 0);
+  const offsetVal = Number(query.offset ?? 0);
   const offset = Math.max(0, Number.isNaN(offsetVal) ? 0 : offsetVal);
   const { rows: news } = await pool.query(Q, [offset]);
-  return await withCustomize({ context, props: { news, offset } });
+  return await withCustomize({ context, props: { news, offset, tag } });
 }

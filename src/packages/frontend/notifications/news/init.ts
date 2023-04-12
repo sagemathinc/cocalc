@@ -13,14 +13,14 @@ import {
   redux,
 } from "@cocalc/frontend/app-framework";
 import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
-import { NewTypeWebapp } from "@cocalc/util/types/news";
+import { NewsItemWebapp } from "@cocalc/util/types/news";
 
 export const NEWS = "news";
 
 export interface NewsState {
   loading: boolean;
   unread: number;
-  news: Map<string, TypedMap<NewTypeWebapp>>;
+  news: Map<string, TypedMap<NewsItemWebapp>>;
 }
 
 export class NewsStore extends Store<NewsState> {
@@ -47,7 +47,7 @@ export class NewsStore extends Store<NewsState> {
 const store: NewsStore = redux.createStore(NEWS, NewsStore, {
   loading: true,
   unread: 0,
-  news: Map<string, TypedMap<NewTypeWebapp>>(),
+  news: Map<string, TypedMap<NewsItemWebapp>>(),
 });
 
 export class NewsActions extends Actions<NewsState> {

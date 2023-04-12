@@ -3,9 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Breadcrumb, Layout } from "antd";
+import { Alert, Breadcrumb, Col, Layout, Radio, Row } from "antd";
+import { useRouter } from "next/router";
 
 import getPool from "@cocalc/database/pool";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { slugURL } from "@cocalc/util/news";
+import { NewsItem } from "@cocalc/util/types/news";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -17,20 +21,24 @@ import { MAX_WIDTH } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import withCustomize from "lib/with-customize";
-import { slugURL } from "@cocalc/util/news";
 
 interface Props {
   customize: CustomizeType;
   news: NewsWithFuture;
+  prev?: Pick<NewsItem, "id" | "title">;
+  next?: Pick<NewsItem, "id" | "title">;
 }
 
 export default function NewsPage(props: Props) {
-  const { customize, news } = props;
+  const { customize, news, prev, next } = props;
   const { siteName, dns } = customize;
   const profile = useProfile({ noCache: true });
+  const router = useRouter();
   const isAdmin = profile?.is_admin;
   const dateStr = useDateStr(news);
   const permalink = slugURL(news);
+
+  const title = `${news.title} – News – ${siteName}`;
 
   function future() {
     if (news.future && !isAdmin) {
@@ -48,7 +56,7 @@ export default function NewsPage(props: Props) {
 
   function breadcrumb() {
     return (
-      <Breadcrumb style={{ margin: "30px 0" }}>
+      <Breadcrumb>
         <Breadcrumb.Item>
           <A href="/">{siteName}</A>
         </Breadcrumb.Item>
@@ -64,7 +72,39 @@ export default function NewsPage(props: Props) {
     );
   }
 
-  const title = `${news.title} – News – ${siteName}`;
+  function prevNext() {
+    return (
+      <Radio.Group buttonStyle="outline">
+        <Radio.Button
+          disabled={!prev}
+          style={{ userSelect: "none" }}
+          onClick={() => {
+            prev && router.push(slugURL(prev));
+          }}
+        >
+          <Icon name="arrow-left" /> Prev
+        </Radio.Button>
+        <Radio.Button
+          disabled={!next}
+          style={{ userSelect: "none" }}
+          onClick={() => {
+            next && router.push(slugURL(next));
+          }}
+        >
+          <Icon name="arrow-right" /> Next
+        </Radio.Button>
+      </Radio.Group>
+    );
+  }
+
+  function renderTop() {
+    return (
+      <Row justify="space-between" gutter={15} style={{ margin: "30px 0" }}>
+        <Col>{breadcrumb()}</Col>
+        <Col>{prevNext()}</Col>
+      </Row>
+    );
+  }
 
   return (
     <Customize value={customize}>
@@ -84,7 +124,7 @@ export default function NewsPage(props: Props) {
               margin: "0 auto",
             }}
           >
-            {breadcrumb()}
+            {renderTop()}
             {future()}
             {content()}
           </div>
@@ -103,6 +143,26 @@ SELECT
 FROM news
 WHERE id = $1`;
 
+const NEXT = `
+SELECT id, title
+FROM news
+WHERE date >= (SELECT date FROM news WHERE id = $1)
+  AND id != $1
+  AND hide IS NOT TRUE
+  AND date < NOW()
+ORDER BY date ASC, id ASC
+LIMIT 1`;
+
+const PREV = `
+SELECT id, title
+FROM news
+WHERE date <= (SELECT date FROM news WHERE id = $1)
+  AND id != $1
+  AND hide IS NOT TRUE
+  AND date < NOW()
+ORDER BY date DESC, id DESC
+LIMIT 1`;
+
 export async function getServerSideProps(context) {
   const pool = getPool("long");
   const { id: idOrig } = context.query;
@@ -116,13 +176,22 @@ export async function getServerSideProps(context) {
   if (!Number.isInteger(Number(id))) return { notFound: true };
 
   try {
-    const news = (await pool.query(Q, [id])).rows[0];
+    const [newsDB, prevDB, nextDB] = await Promise.all([
+      pool.query(Q, [id]),
+      pool.query(PREV, [id]),
+      pool.query(NEXT, [id]),
+    ]);
+    const [news, prev, next] = [
+      newsDB.rows[0],
+      prevDB.rows[0] ?? null,
+      nextDB.rows[0] ?? null,
+    ];
     if (news == null) {
       throw new Error(`not found`);
     }
     return await withCustomize({
       context,
-      props: { news },
+      props: { news, prev, next },
     });
   } catch (err) {
     console.warn(`Error getting news with id=${id}`, err);

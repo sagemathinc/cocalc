@@ -22,7 +22,8 @@ export interface NewsItem extends NewsProto {
   };
 }
 
-export interface NewTypeWebapp {
+// This is what the frontend gets from the backend
+export interface NewsItemWebapp {
   id: string;
   date: Date;
   title: string;
@@ -55,3 +56,7 @@ export const CHANNELS_ICONS: {
   platform: "wrench",
   about: "team-outlined",
 } as const;
+
+export function isNewsChannel(channel: string): channel is Channel {
+  return typeof channel === "string" && CHANNELS.includes(channel as Channel);
+}

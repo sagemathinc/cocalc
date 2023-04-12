@@ -6,7 +6,10 @@
 import { create as createXML } from "xmlbuilder2";
 
 import LRU from "lru-cache";
-const cache = new LRU<"rss", NewsItem[]>({ max: 1, ttl: 60 * 1000 });
+const cache = new LRU<"db" | Channel | "all", any>({
+  max: 10,
+  ttl: 10 * 60 * 1000,
+});
 
 import getPool from "@cocalc/database/pool";
 import getCustomize from "@cocalc/server/settings/customize";
@@ -39,23 +42,23 @@ LIMIT 100`;
 
 // caches the DB result for a bit
 async function getRSS(): Promise<NewsItem[]> {
-  const rssCached = cache.get("rss");
+  const rssCached = cache.get("db");
   if (rssCached) return rssCached;
   const pool = getPool("long");
   const { rows } = await pool.query(Q);
-  cache.set("rss", rows as NewsItem[]);
+  cache.set("db", rows as NewsItem[]);
   return rows;
 }
 
 // we have one RSS channel. this populates it with all entries from the database – with the given ordering
-async function getItemsXML(
+async function populateNewsItems(
   xml: XMLBuilder,
-  ch: Channel,
+  ch: Channel | "all",
   dns: string
 ): Promise<XMLBuilder> {
   for (const n of await getRSS()) {
     const { id, text, title, date, channel } = n;
-    if (channel !== ch) continue;
+    if (ch != "all" && channel !== ch) continue;
     const pubDate: Date =
       typeof date === "number" ? new Date(date * 1000) : date;
     // URL visible to the user
@@ -88,54 +91,69 @@ async function getItemsXML(
 // render RSS news feed
 // check: https://validator.w3.org/feed/check.cgi
 // Ref: https://www.w3.org/Protocols/rfc822/ (e.g. that's why it's date.toUTCString())
-async function getXML(): Promise<string> {
+// There can only be one channel per RSS feed, but we let users filter by channel.
+async function getXML(channel?: string): Promise<string> {
   const { siteName, dns } = await getCustomize();
   if (!dns) throw Error("no dns");
 
+  const ch: Channel | "all" =
+    channel && CHANNELS.includes(channel as Channel)
+      ? (channel as Channel)
+      : "all";
+
+  const cached = cache.get(ch);
+  if (cached) return cached;
+
   const selfLink = `https://${dns}/news/rss.xml`;
   const atom = "http://www.w3.org/2005/Atom";
+  const descExtra = ch === "all" ? "" : `${CHANNELS_DESCRIPTIONS[ch]}. `;
 
   const root = createXML({ version: "1.0", encoding: "UTF-8" })
     .ele("rss", { version: "2.0" })
     .att(atom, "xmlns:atom", atom);
 
-  for (const ch of CHANNELS) {
-    const channel: XMLBuilder = root
-      .ele("channel")
-      .ele("atom:link", {
-        href: selfLink,
-        rel: "self",
-        type: "application/rss+xml",
-      })
-      .up()
-      .ele("title")
-      .txt(`${siteName} News – ${capitalize(ch)}`)
-      .up()
-      .ele("description")
-      .txt(
-        `News about ${siteName}. ${CHANNELS_DESCRIPTIONS[ch]}. This is also available at https://${dns}/news`
-      )
-      .up()
-      .ele("link")
-      .txt(selfLink)
-      .up()
-      .ele("pubDate")
-      .txt(new Date().toUTCString())
-      .up();
+  const xml: XMLBuilder = root
+    .ele("channel")
+    .ele("atom:link", {
+      href: selfLink,
+      rel: "self",
+      type: "application/rss+xml",
+    })
+    .up()
+    .ele("title")
+    .txt(`${siteName} News${ch != "all" ? `– ${capitalize(ch)}` : ""}`)
+    .up()
+    .ele("description")
+    .txt(
+      `News about ${siteName}. ${descExtra}Also available at https://${dns}/news`
+    )
+    .up()
+    .ele("link")
+    .txt(selfLink)
+    .up()
+    .ele("pubDate")
+    .txt(new Date().toUTCString())
+    .up();
 
-    await getItemsXML(channel, ch, dns);
-  }
+  await populateNewsItems(xml, ch, dns);
 
-  return root.end({ prettyPrint: true });
+  const xmlstr = xml.end({ prettyPrint: true });
+  cache.set(ch, xmlstr);
+  return xmlstr;
 }
 
-export const getServerSideProps: GetServerSideProps = async ({ res }) => {
+export const getServerSideProps: GetServerSideProps = async ({
+  query,
+  res,
+}) => {
   if (!res) return { props: {} };
+  const { channel } = query;
+  const ch = typeof channel === "string" ? channel : undefined;
 
   try {
     res.setHeader("Content-Type", "text/xml");
     res.setHeader("Cache-Control", "public, max-age=3600");
-    res.write(await getXML());
+    res.write(await getXML(ch));
     res.end();
   } catch (err) {
     console.error(err);

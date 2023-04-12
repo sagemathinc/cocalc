@@ -16,6 +16,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import {
   Icon,
+  IconName,
   MarkAll,
   Text,
   TimeAgo,
@@ -25,7 +26,7 @@ import { BASE_URL, open_new_tab } from "@cocalc/frontend/misc";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { cmp_Date, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { CHANNELS_ICONS } from "@cocalc/util/types/news";
+import { CHANNELS_ICONS, NewsItemWebapp } from "@cocalc/util/types/news";
 import { MentionRow } from "./mentions/mention-row";
 import { MentionsMap, NotificationFilter } from "./mentions/types";
 import { BOOKMARK_ICON_NAME } from "./mentions/util";
@@ -47,7 +48,8 @@ export const NotificationList: React.FC<Props> = (props: Props) => {
   const news_actions = useActions("news");
   const news_unread = useTypedRedux("news", "unread");
 
-  const newsData = useMemo(() => {
+  const newsData: NewsItemWebapp[] = useMemo(() => {
+    if (!isNewsFilter(filter)) return [];
     // weird: using news.valueSeq().toJS() makes object reappear, which were overwritten when an update came in!?
     return Object.values(news.toJS())
       .filter((n) => {
@@ -114,6 +116,44 @@ export const NotificationList: React.FC<Props> = (props: Props) => {
     }
   }
 
+  function newsItemOnClick(e: React.MouseEvent, url: string) {
+    e.stopPropagation();
+    // If a user clicks on a news item, we assume they saw all news.
+    // (and even if not, it's fine, they don't vanish)
+    news_actions.markNewsRead();
+    open_new_tab(url);
+  }
+
+  function renderNewsItem(n: NewsItemWebapp) {
+    const { id, title, channel, date } = n;
+    const icon = CHANNELS_ICONS[channel] as IconName;
+    const url = `${BASE_URL}/news/${id}`;
+    return (
+      <List.Item
+        key={id}
+        onClick={(e) => newsItemOnClick(e, url)}
+        actions={[
+          <Button
+            key="read"
+            type="ghost"
+            onClick={(e) => newsItemOnClick(e, url)}
+          >
+            <Icon name="external-link" />
+          </Button>,
+        ]}
+      >
+        <List.Item.Meta
+          title={
+            <Text strong>
+              <Icon name={icon} /> {title}
+            </Text>
+          }
+        />
+        <TimeAgo date={date} />
+      </List.Item>
+    );
+  }
+
   function renderNewsPanel() {
     return (
       <Card
@@ -125,39 +165,7 @@ export const NotificationList: React.FC<Props> = (props: Props) => {
           itemLayout="horizontal"
           size="small"
           dataSource={newsData}
-          renderItem={(n) => {
-            const url = `${BASE_URL}/news/${n.id}`;
-            return (
-              <List.Item
-                key={n.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  open_new_tab(url);
-                }}
-                actions={[
-                  <Button
-                    key="read"
-                    type="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      open_new_tab(url);
-                    }}
-                  >
-                    <Icon name="external-link" />
-                  </Button>,
-                ]}
-              >
-                <List.Item.Meta
-                  title={
-                    <Text strong>
-                      <Icon name={CHANNELS_ICONS[n.channel]} /> {n.title}
-                    </Text>
-                  }
-                />
-                <TimeAgo date={n.date} />
-              </List.Item>
-            );
-          }}
+          renderItem={renderNewsItem}
         />
       </Card>
     );
@@ -247,13 +255,13 @@ export const NotificationList: React.FC<Props> = (props: Props) => {
   );
 };
 
-function NoMentions({
-  filter,
-  style,
-}: {
+interface NoMentionsProps {
   filter: NotificationFilter;
   style: CSS;
-}) {
+}
+
+function NoMentions(props: NoMentionsProps) {
+  const { filter, style } = props;
   let text = "No new mentions";
   switch (filter) {
     case "unread":
@@ -268,15 +276,12 @@ function NoMentions({
     case "all":
       text = "No mentions";
       break;
-    case "allNews":
-    case "announcement":
-    case "platform":
-    case "feature":
-    case "about":
-      text = "No news";
-      break;
     default:
-      unreachable(filter);
+      if (isNewsFilter(filter)) {
+        text = "No news";
+      } else {
+        unreachable(filter);
+      }
   }
   return <NoNewNotifications text={text} style={style} />;
 }
