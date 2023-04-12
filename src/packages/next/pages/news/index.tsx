@@ -42,7 +42,7 @@ import rssIcon from "public/rss.svg";
 import jsonfeedIcon from "public/jsonfeed.png";
 
 // news shown per page
-const SLICE_SIZE = 20;
+const SLICE_SIZE = 10;
 
 type Filter = Channel | "all";
 interface Props {
@@ -95,19 +95,33 @@ export default function AllNews(props: Props) {
 
   function renderNews() {
     const rendered = news
+      // only admins see future and hidden news
       .filter((n) => isAdmin || (!n.future && !n.hide))
       .filter((n) => filter === "all" || n.channel == filter)
       .filter((n) => {
         if (search === "") return true;
         const txt = search.toLowerCase();
         return (
+          // substring match for title and text
           n.title.toLowerCase().includes(txt) ||
-          n.text.toLowerCase().includes(txt)
+          n.text.toLowerCase().includes(txt) ||
+          // exact match for tags
+          n.tags?.map((t) => `#${t.toLowerCase()}`).some((t) => t == txt)
         );
       })
       .map((n) => (
         <Col key={n.id} xs={24} sm={24} md={12}>
-          <News news={n} dns={dns} showEdit={isAdmin} small />
+          <News
+            news={n}
+            dns={dns}
+            showEdit={isAdmin}
+            small
+            onTagClick={(tag) => {
+              const ht = `#${tag}`;
+              // that's a toggle: if user clicks again on the same tag, remove the search filter
+              search === ht ? setSearch("") : setSearch(ht);
+            }}
+          />
         </Col>
       ));
     if (rendered.length === 0) {
@@ -122,7 +136,7 @@ export default function AllNews(props: Props) {
     return (
       <Alert
         banner={true}
-        type="info"
+        type="error"
         message={
           <>
             Admin only: <A href="/news/edit/new">Create News Item</A>
@@ -132,14 +146,31 @@ export default function AllNews(props: Props) {
     );
   }
 
+  function titleFeedIcons() {
+    return (
+      <Space direction="horizontal" size="middle" style={{ float: "right" }}>
+        <A href="/news/rss.xml" external>
+          <Image src={rssIcon} width={32} height={32} alt="RSS Feed" />
+        </A>
+        <A href="/news/feed.json" external>
+          <Image
+            src={jsonfeedIcon}
+            width={32}
+            height={32}
+            alt="JSON Feed"
+            style={{ borderRadius: "5px" }}
+          />
+        </A>
+      </Space>
+    );
+  }
+
   function content() {
     return (
       <>
         <Title level={1}>
           {siteName} News
-          <A href="/news/rss.xml" external style={{ float: "right" }}>
-            <Image src={rssIcon} width={32} height={32} alt="RSS Feed" />
-          </A>
+          {titleFeedIcons()}
         </Title>
         <Paragraph>
           Recent news about {siteName}. You can also subscribe via{" "}
@@ -147,6 +178,11 @@ export default function AllNews(props: Props) {
           <A href="/news/rss.xml" external>
             <Image src={rssIcon} width={16} height={16} alt="RSS Feed" /> RSS
             Feed
+          </A>{" "}
+          or{" "}
+          <A href="/news/feed.json" external>
+            <Image src={jsonfeedIcon} width={16} height={16} alt="JSON Feed" />{" "}
+            JSON Feed
           </A>
           .
         </Paragraph>

@@ -2382,3 +2382,23 @@ export function firstLetterUppercase(str: string | undefined) {
   if (str == null) return "";
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
+/**
+ * For a given string s, return a random bright color, but not too bright.
+ * Use a hash to make this random, but deterministic.
+ */
+export function getRandomColor(
+  s: string,
+  opts?: { min: number; max: number }
+): string {
+  const { min = 120, max = 220 } = opts ?? {};
+  const mod = max - min;
+
+  const hash = sha1(s)
+    .split("")
+    .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
+  const r = (((hash >> 0) & 0xff) % mod) + min;
+  const g = (((hash >> 8) & 0xff) % mod) + min;
+  const b = (((hash >> 16) & 0xff) % mod) + min;
+  return `rgb(${r}, ${g}, ${b})`;
+}

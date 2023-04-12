@@ -68,12 +68,13 @@ export default function EditNews(props: Props) {
 
   const init: NewsTypeForm =
     news != null
-      ? { ...news, date }
+      ? { ...news, tags: news.tags ?? [], date }
       : {
           hide: false,
           title: "",
           text: "",
           url: "",
+          tags: [],
           channel: "feature",
           date: dayjs(),
         };
@@ -113,7 +114,7 @@ export default function EditNews(props: Props) {
   }
 
   function renderSaved() {
-    if (saved == null) return;
+    if (saving || saved == null) return;
     return (
       <Alert
         banner
@@ -182,13 +183,19 @@ export default function EditNews(props: Props) {
               })}
             </Select>
           </Form.Item>
+          <Form.Item label="Tags" name="tags" rules={[{ required: false }]}>
+            <Select mode="tags" style={{ width: "100%" }} />
+          </Form.Item>
           <Form.Item
             label="Message"
             name="text"
             extra={`Markdown is supported. Insert images via ![](url), e.g. shared on ${siteName} itself.`}
             rules={[{ required: true, min: 1 }]}
           >
-            <Input.TextArea rows={4} />
+            <Input.TextArea
+              rows={10}
+              style={{ fontFamily: "monospace", fontSize: "90%" }}
+            />
           </Form.Item>
           <Form.Item
             label="URL"
@@ -224,7 +231,7 @@ export default function EditNews(props: Props) {
             <Divider type="horizontal" />
             {error && <Alert type="error" message={error} />}
             {saving && <Loading />}
-            {saved && renderSaved()}
+            {renderSaved()}
           </Col>
         </Row>
       </>

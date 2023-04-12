@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Card, Space, Tooltip } from "antd";
+import { Alert, Card, Space, Tag, Tooltip } from "antd";
 import { Fragment } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { capitalize, plural } from "@cocalc/util/misc";
+import { capitalize, getRandomColor, plural } from "@cocalc/util/misc";
 import { slugURL } from "@cocalc/util/news";
 import { COLORS } from "@cocalc/util/theme";
 import {
@@ -34,6 +34,7 @@ interface Props {
   small?: boolean; // limit height, essentially
   standalone?: boolean; // default false
   historyMode?: boolean; // default false
+  onTagClick?: (tag: string) => void;
 }
 
 export function News(props: Props) {
@@ -44,7 +45,9 @@ export function News(props: Props) {
     standalone = false,
     historyMode = false,
     dns,
+    onTagClick,
   } = props;
+  const { id, url, tags, title, date, channel, text, future, hide } = news;
   const dateStr = useDateStr(news);
   const permalink = slugURL(news);
 
@@ -57,7 +60,7 @@ export function News(props: Props) {
     return (
       <A
         key="edit"
-        href={`/news/edit/${news.id}`}
+        href={`/news/edit/${id}`}
         style={{
           ...bottomLinkStyle,
           color: COLORS.ANTD_RED_WARN,
@@ -72,7 +75,7 @@ export function News(props: Props) {
     return (
       <A
         key="url"
-        href={news.url}
+        href={url}
         style={{
           ...bottomLinkStyle,
           ...(small ? { color: COLORS.GRAY } : { fontWeight: "bold" }),
@@ -105,7 +108,7 @@ export function News(props: Props) {
         <A
           key="tweet"
           href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-            news.title
+            title
           )}&url=${encodeURIComponent(
             `https://${dns}${permalink}`
           )}&via=cocalc_com`}
@@ -114,12 +117,11 @@ export function News(props: Props) {
           <Icon name="twitter" />
           {text ? " Tweet" : ""}
         </A>
-        {/* link to share on facebook */}
         <A
           key="facebook"
           href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
             `https://${dns}${permalink}`
-          )}&quote=${encodeURIComponent(news.title)}`}
+          )}&quote=${encodeURIComponent(title)}`}
           style={{ ...bottomLinkStyle }}
         >
           <Icon name="facebook" />
@@ -131,7 +133,7 @@ export function News(props: Props) {
 
   function actions() {
     const actions = [reanderOpenLink()];
-    if (news.url) actions.push(readMoreLink());
+    if (url) actions.push(readMoreLink());
     if (showEdit) actions.push(editLink());
     if (typeof dns === "string") actions.push(shareLinks());
     return actions;
@@ -139,9 +141,8 @@ export function News(props: Props) {
 
   const style = small ? { height: "200px", overflow: "auto" } : undefined;
 
-  function future() {
-    if (news.future) {
-      const { date } = news;
+  function renderFuture() {
+    if (future) {
       return (
         <Alert
           banner
@@ -161,8 +162,8 @@ export function News(props: Props) {
     }
   }
 
-  function hidden() {
-    if (news.hide) {
+  function renderHidden() {
+    if (hide) {
       return (
         <Alert
           banner
@@ -173,24 +174,45 @@ export function News(props: Props) {
     }
   }
 
-  function extra() {
+  function renderTags() {
+    if (tags == null || !Array.isArray(tags) || tags.length === 0) return;
     return (
-      <Tooltip
-        title={
-          <>
-            {capitalize(news.channel)}: {CHANNELS_DESCRIPTIONS[news.channel]}
-          </>
-        }
-      >
-        <Icon name={CHANNELS_ICONS[news.channel] as IconName} />
-      </Tooltip>
+      <Space size={[0, 4]} wrap>
+        {tags.map((tag) => (
+          <Tag
+            color={getRandomColor(tag)}
+            key={tag}
+            style={onTagClick != null ? { cursor: "pointer" } : undefined}
+            onClick={() => onTagClick?.(tag)}
+          >
+            {tag}
+          </Tag>
+        ))}
+      </Space>
     );
   }
 
-  function title() {
+  function extra() {
     return (
       <>
-        {dateStr}: <A href={permalink}>{news.title}</A>
+        {renderTags()}
+        <Tooltip
+          title={
+            <>
+              {capitalize(channel)}: {CHANNELS_DESCRIPTIONS[channel]}
+            </>
+          }
+        >
+          <Icon name={CHANNELS_ICONS[channel] as IconName} />
+        </Tooltip>
+      </>
+    );
+  }
+
+  function renderTitle() {
+    return (
+      <>
+        {dateStr}: <A href={permalink}>{title}</A>
       </>
     );
   }
@@ -215,7 +237,7 @@ export function News(props: Props) {
           Previous {plural(timestamps.length, "version")}:{" "}
           {timestamps
             .map((ts) => [
-              <A key={ts} href={`/news/${news.id}/${ts}`}>
+              <A key={ts} href={`/news/${id}/${ts}`}>
                 <TimeAgo datetime={new Date(1000 * ts)} />
               </A>,
               <Fragment key={`m-${ts}`}> &middot; </Fragment>,
@@ -228,17 +250,19 @@ export function News(props: Props) {
   }
 
   if (standalone) {
+    const renderedTags = renderTags();
     return (
       <>
         <Title level={2}>
-          [{dateStr}] {news.title}
-          {news.url && (
-            <div style={{ float: "right" }}>{readMoreLink(true)}</div>
+          [{dateStr}] {title}
+          {url && <div style={{ float: "right" }}>{readMoreLink(true)}</div>}
+          {renderedTags && (
+            <span style={{ float: "right" }}>{renderedTags}</span>
           )}
         </Title>
-        {future()}
-        {hidden()}
-        <Markdown value={news.text} style={{ ...style, minHeight: "50vh" }} />
+        {renderFuture()}
+        {renderHidden()}
+        <Markdown value={text} style={{ ...style, minHeight: "50vh" }} />
         <Paragraph
           style={{
             fontSize: "150%",
@@ -248,7 +272,7 @@ export function News(props: Props) {
         >
           <Space size="middle" direction="horizontal">
             {showEdit ? editLink() : undefined}
-            {news.url ? readMoreLink() : undefined}
+            {url ? readMoreLink() : undefined}
             {shareLinks(true)}
           </Space>
         </Paragraph>
@@ -258,10 +282,15 @@ export function News(props: Props) {
   } else {
     return (
       <>
-        <Card title={title()} style={STYLE} extra={extra()} actions={actions()}>
-          {future()}
-          {hidden()}
-          <Markdown value={news.text} style={style} />
+        <Card
+          title={renderTitle()}
+          style={STYLE}
+          extra={extra()}
+          actions={actions()}
+        >
+          {renderFuture()}
+          {renderHidden()}
+          <Markdown value={text} style={style} />
         </Card>
       </>
     );
