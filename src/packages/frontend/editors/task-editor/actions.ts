@@ -681,6 +681,8 @@ export class TaskActions extends Actions<TaskState> {
     } else if (scope == "cell") {
       return ""; // for now, since no possible way to select cells in task editor
     } else {
+      return ""; // for now
+      /*
       const local = this.getFrameData("local_task_state") ?? fromJS({});
       for (const [id, state] of local) {
         if (state.get("editing_desc")) {
@@ -688,15 +690,15 @@ export class TaskActions extends Actions<TaskState> {
           return this.store.getIn(["tasks", id, "desc"]) ?? "";
         }
       }
-      return "";
+      return "";*/
     }
   }
 
   toMarkdown(): string {
     const visible = this.getFrameData("visible");
-    if (visible == null) return '';
+    if (visible == null) return "";
     const tasks = this.store.get("tasks");
-    if (tasks == null) return '';
+    if (tasks == null) return "";
     const v: string[] = [];
     visible.forEach((task_id) => {
       const task = tasks.get(task_id);
