@@ -212,4 +212,14 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
       this.getTaskActions(id)?.hide();
     }
   }
+
+  protected chatgptGetText(
+    frameId: string,
+    scope: "selection" | "cell" | "all" = "all"
+  ): string {
+    if (this._get_frame_type(frameId) == "tasks") {
+      return this.getTaskActions(frameId)?.chatgptGetText(scope) ?? "";
+    }
+    return super.chatgptGetText(frameId, scope);
+  }
 }

@@ -313,7 +313,7 @@ export default function ChatGPT({
                 onClick={doIt}
               >
                 {querying && <Loading text="" />} <Icon name="paper-plane" />{" "}
-                Start a Conversation with ChatGPT...
+                Ask ChatGPT...
               </Button>
             </div>
             {error && <Alert type="error" message={error} />}

@@ -44,7 +44,7 @@ export class NotebookFrameActions {
   private _is_closed: boolean = false;
   private frame_tree_actions: JupyterEditorActions;
   private jupyter_actions: JupyterActions;
-  private key_handler?: Function;
+  private key_handler?: (e: any) => void;
   private input_editors: { [id: string]: EditorFunctions } = {};
   private scroll_before_change?: number;
   private cur_id_before_change: string | undefined = undefined;
@@ -261,7 +261,9 @@ export class NotebookFrameActions {
         this.frame_tree_actions
       );
     }
-    this.frame_tree_actions.set_active_key_handler(this.key_handler);
+    if (this.key_handler != null) {
+      this.frame_tree_actions.set_active_key_handler(this.key_handler);
+    }
   }
 
   public disable_key_handler(): void {
