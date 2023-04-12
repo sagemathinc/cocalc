@@ -10,6 +10,7 @@ Toggle whether or not to show tasks (deleted, done)
 import { React, useRef } from "../../app-framework";
 import { TaskActions } from "./actions";
 import { Checkbox } from "antd";
+import { capitalize } from "@cocalc/util/misc";
 
 interface Props {
   actions: TaskActions;
@@ -49,13 +50,13 @@ export const ShowToggle: React.FC<Props> = React.memo(
     }
     const color = count > 0 || show ? "#666" : "#999";
     return (
-      <div onClick={toggle_state}>
+      <div onClick={toggle_state} style={{ margin: "5px 0 0 15px" }}>
         <Checkbox
           checked={show}
           onClick={toggle_state}
           style={{ fontWeight: 350, color }}
         >
-          Show {type}
+          {capitalize(type)}
         </Checkbox>
       </div>
     );

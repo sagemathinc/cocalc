@@ -19,6 +19,10 @@ import { header_part } from "./desc-rendering";
 import { TaskMap } from "./types";
 import { TaskActions } from "./actions";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import {
+  CODE_FOCUSED_COLOR,
+  FOCUSED_COLOR,
+} from "@cocalc/frontend/editors/slate/util";
 
 interface Props {
   actions?: TaskActions;
@@ -55,9 +59,12 @@ export default function Task({
     background: "white",
     borderRadius: "8px",
   } as CSSProperties;
-  if (is_current) {
-    style.border = "2px solid rgb(66, 165, 245)";
-    style.borderLeft = "10px solid rgb(66, 165, 245)";
+  if (editing_desc) {
+    style.border = `2px solid ${CODE_FOCUSED_COLOR}`;
+    style.borderLeft = `10px solid ${CODE_FOCUSED_COLOR}`;
+  } else if (is_current) {
+    style.border = `2px solid ${FOCUSED_COLOR}`;
+    style.borderLeft = `10px solid ${FOCUSED_COLOR}`;
   } else {
     style.border = "2px solid transparent";
     style.borderLeft = "10px solid #ccc";

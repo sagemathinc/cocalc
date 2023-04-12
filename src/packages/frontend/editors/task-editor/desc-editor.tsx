@@ -56,7 +56,7 @@ export default function DescriptionEditor({
   }, []);
 
   return (
-    <div style={{ border: "1px solid #40a9ff", padding: "5px 15px" }}>
+    <div>
       <MarkdownInput
         cacheId={task_id}
         value={desc}
@@ -86,7 +86,7 @@ export default function DescriptionEditor({
         editBarStyle={{ marginBottom: "10px" }}
       />
       <ColorPicker
-        toggle={<Button style={{ float: "right" }}>Color...</Button>}
+        toggle={<Button style={{ float: "right" }}>Background...</Button>}
         color={color}
         onChange={(color) => {
           actions.set_color(task_id, color);
@@ -101,8 +101,13 @@ export default function DescriptionEditor({
           boxShadow: "3px 3px 3px #ccc",
         }}
       />
-      <Button onClick={saveAndClose} style={{ marginTop: "5px" }}>
-        <Icon name="save" /> Save (Shift+Enter)
+      <Button
+        onClick={saveAndClose}
+        size="small"
+        type="link"
+        style={{ marginTop: "5px" }}
+      >
+        <Icon name="save" /> Done (shift+enter)
       </Button>
     </div>
   );

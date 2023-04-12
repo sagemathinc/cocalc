@@ -33,6 +33,7 @@ interface Props {
 
 export const TaskEditor: React.FC<Props> = React.memo(
   ({ actions, path, project_id, desc, read_only }) => {
+
     const useEditor = useEditorRedux<TaskState>({ project_id, path });
 
     const tasks = useEditor("tasks");

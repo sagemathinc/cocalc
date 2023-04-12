@@ -111,7 +111,7 @@ export const Description: React.FC<Props> = React.memo(
       return (
         <Button.Group>
           <Tooltip title="Edit this task (double click or enter key)">
-            <Button size="small" onClick={edit}>
+            <Button size="small" type="link" onClick={edit}>
               <Icon name={"edit"} /> Edit
             </Button>
           </Tooltip>
@@ -119,7 +119,7 @@ export const Description: React.FC<Props> = React.memo(
             title="Delete Task?"
             onConfirm={() => actions?.delete_task(task_id)}
           >
-            <Button size="small" key="delete" disabled={read_only} danger>
+            <Button size="small" type="link" key="delete" disabled={read_only} danger>
               <Icon name="trash" /> Delete
             </Button>
           </Popconfirm>

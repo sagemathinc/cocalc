@@ -77,7 +77,7 @@ function Toggle({ type, counts, local_view_state, actions }) {
   const count = counts.get(type);
   const show = local_view_state.get(`show_${type}`);
   return (
-    <div style={{ minWidth: "150px", padding: "2px 5px" }}>
+    <div style={{ padding: "2px 5px", display: "flex" }}>
       <ShowToggle actions={actions} type={type} show={show} count={count} />
       {show && type === "deleted" && count > 0 && (
         <EmptyTrash actions={actions} count={count} />

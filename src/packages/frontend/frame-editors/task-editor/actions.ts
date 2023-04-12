@@ -203,4 +203,14 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     }
     super.focus(id);
   }
+
+  public blur(id?: string): void {
+    console.log("blur ", id);
+    if (id === undefined) {
+      id = this._get_active_id();
+    }
+    if (this._get_frame_type(id) == "tasks") {
+      this.getTaskActions(id)?.hide();
+    }
+  }
 }
