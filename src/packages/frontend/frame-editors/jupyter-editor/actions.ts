@@ -220,7 +220,15 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   async format(id: string): Promise<void> {
     const actions = this.get_frame_actions(id);
-    actions != null ? await actions.format() : await super.format(id);
+    if (actions != null) {
+      try {
+        await actions.format();
+      } catch (err) {
+        this.setFormatError(`${err}`);
+      }
+    } else {
+      await super.format(id);
+    }
   }
 
   halt_jupyter(): void {

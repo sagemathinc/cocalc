@@ -123,6 +123,7 @@ export interface CodeEditorState {
   load_time_estimate: number;
   error: string;
   errorstyle?: ErrorStyles;
+  formatError?: string;
   status: string;
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
@@ -2106,12 +2107,16 @@ export class Actions<
         this._syncstring.commit();
         this.set_codemirror_to_syncstring();
       }
-      this.set_error("");
+      this.setFormatError("");
     } catch (err) {
-      this.set_error(`Error formatting code: \n${err}`, "monospace");
+      this.setFormatError(`${err}`);
     } finally {
       this.set_status("");
     }
+  }
+
+  setFormatError(formatError?: string) {
+    this.setState({ formatError });
   }
 
   // call this and get back a function that can be used
