@@ -5,7 +5,8 @@
 
 import { List } from "antd";
 
-import { useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { CSSProperties } from "react";
+import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
@@ -27,15 +28,21 @@ interface OpenedFile {
 }
 interface Props {
   project_id: string;
+  max?: number;
+  style?: CSSProperties;
+  noHeading?: boolean;
 }
 
 /**
  * This is a distillation of the project log, showing only the most recently opened files.
  * The purpose is to be able to quickly jump to a file that was recently opened.
  */
-export function HomeRecentFiles(props: Props) {
-  const { project_id } = props;
-
+export function HomeRecentFiles({
+  max = 50,
+  project_id,
+  style,
+  noHeading,
+}: Props) {
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
 
@@ -59,7 +66,7 @@ export function HomeRecentFiles(props: Props) {
         dedupe.push(fn);
         return true;
       })
-      .slice(0, 10)
+      .slice(0, max)
       .map((entry: EventRecordMap) => {
         return {
           filename: entry.getIn(["event", "filename"]),
@@ -83,7 +90,7 @@ export function HomeRecentFiles(props: Props) {
       >
         <Icon name={name} />{" "}
         <PathLink
-          trunc={32}
+          trunc={48}
           full={true}
           style={{ fontWeight: "bold" }}
           path={path}
@@ -98,13 +105,15 @@ export function HomeRecentFiles(props: Props) {
   }
 
   if (project_log == null) {
+    redux.getProjectStore(project_id).init_table("project_log"); // kick off loading it
     return <Loading />;
   }
 
   return (
     <List
+      style={{ maxHeight: "500px", overflow: "auto", ...style }}
       size="small"
-      header={<Title level={4}>Recent files</Title>}
+      header={!noHeading && <Title level={4}>Recent files</Title>}
       bordered
       dataSource={log}
       renderItem={renderItem}

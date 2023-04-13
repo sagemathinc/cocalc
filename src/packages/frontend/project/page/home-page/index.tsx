@@ -8,9 +8,7 @@ import { Col, Row } from "antd";
 import { redux, useActions, useRedux } from "@cocalc/frontend/app-framework";
 import { Title } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { ProjectLog } from "@cocalc/frontend/project/history";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { Block } from "./block";
 import ChatGPTGenerateJupyterNotebook from "./chatgpt-generate-jupyter";
 import { HomeRecentFiles } from "./recent-files";
 import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
@@ -37,10 +35,19 @@ export default function HomePage({ project_id }) {
     <div style={{ margin: "15px", maxWidth: "1300px" }}>
       <Row gutter={[30, 30]}>
         <Col {...SPAN}>
+          <HomeRecentFiles project_id={project_id} />
+        </Col>
+        {renderGPTGenerator()}
+
+        <Col {...SPAN}>
           <ProjectAvatarImage
             project_id={project_id}
             size={120}
-            style={{ textAlign: "center", cursor: "pointer", marginTop: "20px" }}
+            style={{
+              textAlign: "center",
+              cursor: "pointer",
+              marginTop: "20px",
+            }}
             askToAddAvatar={true}
             onClick={() => actions?.set_active_tab("settings")}
           />
@@ -62,18 +69,6 @@ export default function HomePage({ project_id }) {
           >
             <StaticMarkdown value={desc} />
           </div>
-        </Col>
-
-        {renderGPTGenerator()}
-
-        <Col {...SPAN}>
-          <HomeRecentFiles project_id={project_id} />
-        </Col>
-
-        <Col {...SPAN}>
-          <Block style={{ margin: "auto" }}>
-            <ProjectLog project_id={project_id} />
-          </Block>
         </Col>
       </Row>
     </div>

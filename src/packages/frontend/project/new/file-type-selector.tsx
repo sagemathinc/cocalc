@@ -11,6 +11,7 @@ import { redux, useActions } from "@cocalc/frontend/app-framework";
 import { A, Icon, Tip } from "@cocalc/frontend/components";
 import { useAvailableFeatures } from "../use-available-features";
 import { NewFileButton } from "./new-file-button";
+import { ChatGPTGenerateNotebookButton } from "../page/home-page/chatgpt-generate-jupyter";
 
 interface Props {
   create_file: (name?: string) => void;
@@ -21,9 +22,12 @@ interface Props {
 
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
-export const FileTypeSelector: React.FC<Props> = (props: Props) => {
-  const { create_file, create_folder, project_id, children } = props;
-
+export const FileTypeSelector: React.FC<Props> = ({
+  create_file,
+  create_folder,
+  project_id,
+  children,
+}: Props) => {
   const project_actions = useActions({ project_id });
   const available = useAvailableFeatures(project_id);
 
@@ -59,6 +63,10 @@ export const FileTypeSelector: React.FC<Props> = (props: Props) => {
                 ext={"ipynb"}
               />
             </Tip>
+            <ChatGPTGenerateNotebookButton
+              project_id={project_id}
+              style={{ width: "100%" }}
+            />
           </Col>
         )}
 

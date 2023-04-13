@@ -9,8 +9,8 @@ A single tab in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
 
-import { Popover } from "antd";
-import { CSSProperties } from "react";
+import { Popover, Space } from "antd";
+import { CSSProperties, ReactNode } from "react";
 
 import {
   CSS,
@@ -24,6 +24,11 @@ import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { TITLE as SERVERS_TITLE } from "../servers";
 import { PROJECT_INFO_TITLE } from "../info";
+import { RestartProject } from "../settings/restart-project";
+import { StopProject } from "../settings/stop-project";
+import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
+import { HomeRecentFiles } from "./home-page/recent-files";
+import { ChatGPTGenerateNotebookButton } from "./home-page/chatgpt-generate-jupyter";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -40,7 +45,7 @@ type FixedTabs = {
   [name in FixedTab]: {
     label: string;
     icon: IconName;
-    tooltip: string;
+    tooltip: string | ((props: { project_id: string }) => ReactNode);
     noAnonymous?: boolean;
   };
 };
@@ -55,13 +60,13 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   new: {
     label: "New",
     icon: "plus-circle",
-    tooltip: "Create new file, folder, worksheet or terminal",
+    tooltip: NewPopover,
     noAnonymous: false,
   },
   log: {
     label: "Log",
     icon: "history",
-    tooltip: "Log of project activity",
+    tooltip: LogPopover,
     noAnonymous: false,
   },
   search: {
@@ -73,7 +78,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   servers: {
     label: SERVERS_TITLE,
     icon: "server",
-    tooltip: "Launch servers: e.g., Jupyter, Pluto, …",
+    tooltip: ServersPopover,
     noAnonymous: true,
   },
   info: {
@@ -85,7 +90,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   settings: {
     label: "Settings",
     icon: "wrench",
-    tooltip: "Project settings and controls",
+    tooltip: SettingsPopover,
     noAnonymous: true,
   },
 } as const;
@@ -216,11 +221,17 @@ export function FileTab(props: Props) {
   return (
     <Popover
       zIndex={10000}
-      title={
-        <span style={{ fontWeight: "bold" }}>
-          {path != null ? path : FIXED_PROJECT_TABS[name!].tooltip}
-        </span>
-      }
+      title={() => {
+        if (path != null) {
+          return <b>{path}</b>;
+        }
+        const { tooltip } = FIXED_PROJECT_TABS[name!];
+        if (tooltip == null) return <b>{name}</b>;
+        if (typeof tooltip == "string") {
+          return <b>{tooltip}</b>;
+        }
+        return tooltip({ project_id });
+      }}
       content={
         // only editor-tabs can pop up
         !isFixedTab ? (
@@ -282,6 +293,59 @@ function DisplayedLabel({ path, label }) {
         {label}
         <span style={{ color: COLORS.FILE_EXT }}>{ext}</span>
       </span>
+    </div>
+  );
+}
+
+function NewPopover({ project_id }) {
+  return (
+    <div>
+      Create or Upload New Files (click for more...)
+      <hr />
+      <ChatGPTGenerateNotebookButton project_id={project_id} />
+    </div>
+  );
+}
+
+function LogPopover({ project_id }) {
+  return (
+    <div>
+      Project Activity Log (click for more...)
+      <hr />
+      <HomeRecentFiles
+        noHeading
+        project_id={project_id}
+        style={{ maxHeight: "125px" }}
+        max={30}
+      />
+    </div>
+  );
+}
+
+function SettingsPopover({ project_id }) {
+  return (
+    <div>
+      Project settings and controls (click for more...)
+      <hr />
+      <Space>
+        <RestartProject project_id={project_id} />
+        <StopProject project_id={project_id} />
+      </Space>
+    </div>
+  );
+}
+
+function ServersPopover({ project_id }) {
+  return (
+    <div>
+      Launch servers: Jupyter, Pluto, VS Code (click for more details...)
+      <hr />
+      <Space direction="vertical">
+        <ServerLink name="jupyterlab" project_id={project_id} />
+        <ServerLink name="jupyter" project_id={project_id} />
+        <ServerLink name="code" project_id={project_id} />
+        <ServerLink name="pluto" project_id={project_id} />
+      </Space>
     </div>
   );
 }
