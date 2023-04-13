@@ -12,12 +12,7 @@ to do the work.
 import { Alert, Button, Input, Popover, Select, Space, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 
-import {
-  Icon,
-  IconName,
-  Loading,
-  VisibleMDLG,
-} from "@cocalc/frontend/components";
+import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
@@ -211,10 +206,10 @@ export default function ChatGPT({
         return (
           <Space
             direction="vertical"
-            style={{ width: "600px", maxWidth: "100%" }}
+            style={{ width: "800px", maxWidth: "100%" }}
           >
             <div style={{ display: "flex", width: "100%", marginTop: "5px" }}>
-              <Input
+              <Input.TextArea
                 allowClear
                 autoFocus
                 style={{ flex: 1 }}
@@ -229,52 +224,59 @@ export default function ChatGPT({
                     setDescription("");
                   }
                 }}
-                onPressEnter={doIt}
+                onPressEnter={(e) => {
+                  if (e.shiftKey) {
+                    doIt();
+                  }
+                }}
+                autoSize={{ minRows: 2, maxRows: 6 }}
               />
               {showOptions && (
                 <>
                   <div style={{ margin: "5px 5px 0 5px" }}>or</div>
-                  <Select
-                    showSearch
-                    allowClear
-                    placeholder="Choose..."
-                    optionFilterProp="children"
-                    filterOption={(input, option) => {
-                      if (!option) return false;
-                      const preset = option.preset;
-                      return `${preset.command} ${preset.label} ${preset.description}`
-                        .toLowerCase()
-                        .includes(input.toLowerCase());
-                    }}
-                    style={{ flex: 0.5 }}
-                    disabled={querying}
-                    options={PRESETS.map((preset) => {
-                      return {
-                        label: (
-                          <>
-                            <Icon name={preset.icon} /> {preset.label}
-                          </>
-                        ),
-                        value: preset.tag,
-                        preset: preset,
-                      };
-                    })}
-                    onChange={(tag) => {
-                      setTag(tag);
-                      if (!tag) {
-                        setDescription("");
-                      } else {
-                        for (const x of PRESETS) {
-                          if (x.tag == tag) {
-                            setDescription(x.description);
-                            setCustom("");
-                            break;
+                  <div style={{ height: "40px", flex: 0.5 }}>
+                    <Select
+                      showSearch
+                      allowClear
+                      placeholder="Choose..."
+                      optionFilterProp="children"
+                      filterOption={(input, option) => {
+                        if (!option) return false;
+                        const preset = option.preset;
+                        return `${preset.command} ${preset.label} ${preset.description}`
+                          .toLowerCase()
+                          .includes(input.toLowerCase());
+                      }}
+                      style={{ width: "100%" }}
+                      disabled={querying}
+                      options={PRESETS.map((preset) => {
+                        return {
+                          label: (
+                            <>
+                              <Icon name={preset.icon} /> {preset.label}
+                            </>
+                          ),
+                          value: preset.tag,
+                          preset: preset,
+                        };
+                      })}
+                      onChange={(tag) => {
+                        setTag(tag);
+                        if (!tag) {
+                          setDescription("");
+                        } else {
+                          for (const x of PRESETS) {
+                            if (x.tag == tag) {
+                              setDescription(x.description);
+                              setCustom("");
+                              break;
+                            }
                           }
                         }
-                      }
-                    }}
-                    value={tag ? tag : undefined}
-                  />
+                      }}
+                      value={tag ? tag : undefined}
+                    />
+                  </div>
                 </>
               )}
             </div>
@@ -313,8 +315,11 @@ export default function ChatGPT({
                 size="large"
                 onClick={doIt}
               >
-                {querying && <Loading text="" />} <Icon name="paper-plane" />{" "}
-                Ask ChatGPT...
+                <Icon
+                  name={querying ? "spinner" : "paper-plane"}
+                  spin={querying}
+                />{" "}
+                Ask ChatGPT (shift+enter)
               </Button>
             </div>
             {error && <Alert type="error" message={error} />}
