@@ -24,16 +24,19 @@ interface Props {
 
 type PartialSlateEditor = any; // TODO
 
-export default function StaticMarkdown(props: Props) {
-  const { value, style, className } = props;
-
+export default function StaticMarkdown({ value, style, className }: Props) {
+  const [editor, setEditor] = useState<PartialSlateEditor>({
+    children: markdownToSlate(value),
+  });
   const [change, setChange] = useState<number>(0);
   useEffect(() => {
     setChange(change + 1);
-    setEditor({ children: markdownToSlate(value) });
+    if (change > 0) {
+      // no need to set it the first time because it is set in the useState initialization.
+      // and we *have* to set it there so it works for server side rendering and exporting to html/pdf.
+      setEditor({ children: markdownToSlate(value) });
+    }
   }, [value]);
-
-  const [editor, setEditor] = useState<PartialSlateEditor | null>(null);
 
   if (editor == null) {
     return null;

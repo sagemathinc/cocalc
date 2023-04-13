@@ -164,6 +164,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           disableMarkdownCodebar: redux
             ?.getStore("account")
             .getIn(["other_settings", "disable_markdown_codebar"]),
+          disableExtraButtons: false,
           project_id,
           path,
           is_visible,

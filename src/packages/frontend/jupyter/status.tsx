@@ -471,13 +471,13 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         : KERNEL_USAGE_STYLE_SMALL;
 
       if (isSpwarning) {
-        // we overestimate, 15s for python and co, and 30s for sage and julia
+        // we massively overestimate: 15s for python and co, and 30s for sage and julia
         const s =
           kernel.startsWith("sage") || kernel.startsWith("julia") ? 30 : 15;
         return (
           <div style={{ ...usage_style, display: "flex" }}>
             <ProgressEstimate
-              style={{ ...pstyle, width: "7em", top: "-3px" }}
+              style={{ ...pstyle, width: "200px", top: "-3px" }}
               seconds={s}
             />
           </div>
