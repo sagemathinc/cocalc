@@ -10,7 +10,7 @@ such as Google and for people to browse.
 */
 
 import { useEffect, useState } from "react";
-import { Radio, Space } from "antd";
+import { Input, Radio, Space } from "antd";
 import Link from "next/link";
 import SiteName from "components/share/site-name";
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
@@ -80,6 +80,20 @@ export default function All({ page, publicPaths, customize }) {
     });
   }
 
+  const [search, setSearch] = useState<string>("");
+  useEffect(() => {
+    if (router.query.search) {
+      setSearch(router.query.search as string);
+    }
+  }, [router.query.search]);
+
+  function handleSearchGo(search: string) {
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, search },
+    });
+  }
+
   return (
     <Customize value={customize}>
       <Layout title={`Page ${page} of public files`}>
@@ -107,6 +121,22 @@ export default function All({ page, publicPaths, customize }) {
           .
           <br />
           <br />
+          <Input.Search
+            allowClear
+            placeholder="Search path & description..."
+            style={{ marginLeft: "5px", float: "right", width: "275px" }}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              if (!e.target.value) {
+                setTimeout(() => {
+                  handleSearchGo("");
+                }, 1);
+              }
+            }}
+            onSearch={() => handleSearchGo(search)}
+            onPressEnter={() => handleSearchGo(search)}
+          />
           <Radio.Group
             value={sort}
             onChange={handleSortChange}
@@ -134,7 +164,12 @@ export async function getServerSideProps(context) {
   const isAuthenticated = (await getAccountId(context.req)) != null;
   const page = getPage(context.params);
   const sort = getSort(context);
+  const { search, searchQuery } = getSearch(context);
   const pool = getPool("medium");
+  const params = [isAuthenticated, PAGE_SIZE, PAGE_SIZE * (page - 1)];
+  if (search) {
+    params.push(search);
+  }
   const { rows } = await pool.query(
     `SELECT public_paths.id, public_paths.path, public_paths.url, public_paths.description, ${timeInSeconds(
       "public_paths.last_edited",
@@ -146,11 +181,26 @@ export async function getServerSideProps(context) {
     WHERE public_paths.project_id = projects.project_id
     AND public_paths.vhost IS NULL AND public_paths.disabled IS NOT TRUE AND public_paths.unlisted IS NOT TRUE AND
     ((public_paths.authenticated IS TRUE AND $1 IS TRUE) OR (public_paths.authenticated IS NOT TRUE))
+    ${searchQuery}
     ORDER BY ${sort} LIMIT $2 OFFSET $3`,
-    [isAuthenticated, PAGE_SIZE, PAGE_SIZE * (page - 1)]
+    params
   );
 
   return await withCustomize({ context, props: { page, publicPaths: rows } });
+}
+
+function getSearch(context) {
+  const { query } = context;
+  const search = query?.search || "";
+  if (search) {
+    return {
+      search: `%${search}%`,
+      searchQuery:
+        "AND (LOWER(public_paths.path) LIKE LOWER($4) OR LOWER(public_paths.description) LIKE LOWER($4))",
+    };
+  } else {
+    return { search, searchQuery: "" };
+  }
 }
 
 function getSort(context) {

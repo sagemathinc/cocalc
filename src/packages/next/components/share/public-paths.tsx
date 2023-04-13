@@ -13,7 +13,7 @@ import { PublicPath } from "lib/share/types";
 import A from "components/misc/A";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { field_cmp, trunc_middle } from "@cocalc/util/misc";
+import { trunc_middle } from "@cocalc/util/misc";
 import { SHARE_AUTHENTICATED_ICON } from "@cocalc/util/consts/ui";
 
 function Description({
