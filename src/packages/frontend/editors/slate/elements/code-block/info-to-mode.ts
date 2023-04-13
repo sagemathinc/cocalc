@@ -14,6 +14,18 @@ export default function infoToMode(
     info = detectLanguage(value);
   }
 
+  // Format that seems to work well with github (unlike python-markdown and rmarkdown!), and we
+  // use internally, e.g.,
+  //      py {kernel='sage-9.8'}   or      py {kernel="sage-9.8"}
+  // so we have extra info in braces. Github just looks at the "python" part.
+  if (preferKernel) {
+    // extra the string that is after kernel as in the examples above, e.g., sage-9.8
+    const kernelMatch = /kernel\s*=\s*[\'\"](.*?)[\'\"]/i.exec(info);
+    if (kernelMatch) {
+      return kernelMatch[1];
+    }
+  }
+
   // Rmarkdown format -- looks like {r stuff,engine=python,stuff}.
   //   https://github.com/yihui/knitr-examples/blob/master/023-engine-python.Rmd
   //   ```{r test-python, engine='python'}

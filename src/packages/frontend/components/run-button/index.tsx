@@ -72,7 +72,6 @@ export default function RunButton({
   size,
   auto,
 }: Props) {
-  console.log("info = ", { info });
   const mode = infoToMode(info);
   const noRun = NO_RUN.has(mode);
 
@@ -146,10 +145,6 @@ export default function RunButton({
       setKernelName(usedKernel);
     } else {
       setOutput({ old: true });
-      if (!auto && outputMessagesRef.current == null) {
-        // we don't initially automatically check database since auto is false.
-        return;
-      }
       // but we try to asynchronously get the output from the
       // backend, if available
       (async () => {
@@ -162,6 +157,11 @@ export default function RunButton({
           return;
         }
         setKernelName(kernel);
+        if (!auto && outputMessagesRef.current == null) {
+          // we don't initially automatically check database since auto is false.
+          return;
+        }
+
         const hash = computeHash({
           input,
           history,
