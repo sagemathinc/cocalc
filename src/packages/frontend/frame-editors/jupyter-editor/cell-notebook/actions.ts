@@ -985,6 +985,7 @@ export class NotebookFrameActions {
 
   public async format_selected_cells(sync: boolean = true): Promise<void> {
     this.save_input_editor();
+    this.frame_tree_actions.setFormatError("");
     try {
       this.frame_tree_actions.set_status("Formatting selected cells...");
       await this.jupyter_actions.format_cells(
@@ -999,6 +1000,7 @@ export class NotebookFrameActions {
   }
   public async format_all_cells(sync: boolean = true): Promise<void> {
     this.save_input_editor();
+    this.frame_tree_actions.setFormatError("");
     try {
       this.frame_tree_actions.set_status("Formatting selected cells...");
       await this.jupyter_actions.format_all_cells(sync);

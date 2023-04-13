@@ -7,9 +7,9 @@
 React component that describes the input of a cell
 */
 import { fromJS, Map } from "immutable";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+import { Button, Tooltip } from "antd";
 import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import CopyButton from "@cocalc/frontend/components/copy-button";
@@ -29,6 +29,7 @@ import { CodeMirror } from "./codemirror-component";
 import { Complete } from "./complete";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
+import { delay } from "awaiting";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -80,6 +81,7 @@ export interface CellInputProps {
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
+    const [formatting, setFormatting] = useState<boolean>(false);
     const frameActions = useNotebookFrameActions();
     function render_input_prompt(type: string): Rendered {
       return (
@@ -173,14 +175,14 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         return;
       }
       return (
-        <ButtonGroup style={{ float: "right" }}>
+        <Button.Group style={{ float: "right" }}>
           <Button onClick={handle_md_double_click}>
             <Icon name="edit" /> Edit
           </Button>
           <Button onClick={handle_upload_click}>
             <Icon name="image" />
           </Button>
-        </ButtonGroup>
+        </Button.Group>
       );
     }
 
@@ -412,6 +414,34 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 id={props.id}
                 actions={props.actions}
               />
+            )}
+            {/* Should only show formatter button if there is a way to format this code. */}
+            {!props.is_readonly && (
+              <Tooltip title="Format this code to look nice" placement="top">
+                <Button
+                  disabled={formatting}
+                  type="text"
+                  size="small"
+                  style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+                  onClick={async () => {
+                    // kind of a hack: clicking on this button makes this cell
+                    // the selected one
+                    try {
+                      setFormatting(true);
+                      await delay(1);
+                      await frameActions.current?.format_selected_cells();
+                    } finally {
+                      setFormatting(false);
+                    }
+                  }}
+                >
+                  <Icon
+                    name={formatting ? "spinner" : "sitemap"}
+                    spin={formatting}
+                  />{" "}
+                  Format
+                </Button>
+              </Tooltip>
             )}
             {input ? (
               <CopyButton
