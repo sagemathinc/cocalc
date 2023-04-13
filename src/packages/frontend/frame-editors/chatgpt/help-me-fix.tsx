@@ -121,7 +121,7 @@ async function getHelp({
   // It's much more important to show the error, obviously.
   if (input) {
     if (input.length < CUTOFF) {
-      message += `\nMy ${extraFileInfo ?? ""} code is:\n\n`;
+      message += `\nMy ${extraFileInfo ?? ""} contains:\n\n`;
     } else {
       input = trunc(input, CUTOFF);
       message += `\nMy ${

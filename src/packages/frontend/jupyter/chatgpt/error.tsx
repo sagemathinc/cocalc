@@ -5,6 +5,7 @@ Use ChatGPT to explain an error message and help the user fix it.
 import { CSSProperties } from "react";
 import Anser from "anser";
 import HelpMeFix from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface Props {
   actions?;
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export default function ChatGPTError({ actions, id, style }: Props) {
+  const { actions: frameActions } = useFrameContext();
+  if (frameActions == null) return null;
   return (
     <HelpMeFix
       style={style}
@@ -20,6 +23,8 @@ export default function ChatGPTError({ actions, id, style }: Props) {
       error={() => getError(actions, id)}
       input={() => getInput(actions, id)}
       tag="jupyter-notebook-cell-eval"
+      extraFileInfo={frameActions.chatgptExtraFileInfo()}
+      language={frameActions.chatgptGetLanguage()}
     />
   );
 }
