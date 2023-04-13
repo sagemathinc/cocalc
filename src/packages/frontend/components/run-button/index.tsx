@@ -39,6 +39,9 @@ export interface Props {
   runRef?: RunRef;
   tag?: string;
   size;
+  // automatically check for known output in database on initial load, e.g.,
+  // yes for markdown, but not for a jupyter notebook on the share server.
+  auto?: boolean;
 }
 
 // definitely never show run buttons for text formats that can't possibly be run.
@@ -67,7 +70,9 @@ export default function RunButton({
   runRef,
   tag,
   size,
+  auto,
 }: Props) {
+  console.log("info = ", { info });
   const mode = infoToMode(info);
   const noRun = NO_RUN.has(mode);
 
@@ -141,6 +146,10 @@ export default function RunButton({
       setKernelName(usedKernel);
     } else {
       setOutput({ old: true });
+      if (!auto && outputMessagesRef.current == null) {
+        // we don't initially automatically check database since auto is false.
+        return;
+      }
       // but we try to asynchronously get the output from the
       // backend, if available
       (async () => {
