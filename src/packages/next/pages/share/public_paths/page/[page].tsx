@@ -25,7 +25,7 @@ import getAccountId from "lib/account/get-account";
 import A from "components/misc/A";
 import { useRouter } from "next/router";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 100;
 
 function getPage(obj): number {
   let { page } = obj ?? {};
