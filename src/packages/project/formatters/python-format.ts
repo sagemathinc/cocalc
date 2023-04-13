@@ -102,10 +102,10 @@ export function addContext(input: string, stderr: string): string {
     // split input into lines so we can extract the relevant line
     const lines = input.split("\n");
     let n = Math.max(0, lineNum - 3);
-    function line() {
+    const line = () => {
       n += 1;
       return n;
-    }
+    };
 
     const before = lines
       .slice(Math.max(0, lineNum - 3), lineNum - 1)
