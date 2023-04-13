@@ -10,7 +10,7 @@ such as Google and for people to browse.
 */
 
 import { useEffect, useState } from "react";
-import { Input, Radio, Space } from "antd";
+import { Alert, Button, Input, Popconfirm, Radio, Space } from "antd";
 import Link from "next/link";
 import SiteName from "components/share/site-name";
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
@@ -24,6 +24,8 @@ import ProxyInput from "components/share/proxy-input";
 import getAccountId from "lib/account/get-account";
 import A from "components/misc/A";
 import { useRouter } from "next/router";
+import useProfile from "lib/hooks/profile";
+import apiPost from "lib/api/post";
 
 const PAGE_SIZE = 100;
 
@@ -175,12 +177,88 @@ export default function All({ page, publicPaths, customize }) {
           </Radio.Group>
           {pager}
           <br />
+          {typeof router.query.search == "string" &&
+            router.query.search.trim() &&
+            publicPaths.length > 0 && (
+              <AdminUnpublish publicPaths={publicPaths} />
+            )}
           <PublicPaths publicPaths={publicPaths} />
           <br />
           {pager}
         </div>
       </Layout>
     </Customize>
+  );
+}
+
+async function adminUnpublish(id: string): Promise<void> {
+  const query = {
+    crm_public_paths: {
+      id,
+      disabled: true,
+    },
+  };
+  await apiPost("/user-query", { query });
+}
+
+function AdminUnpublish({ publicPaths }) {
+  const profile = useProfile();
+  const router = useRouter();
+  const [error, setError] = useState("");
+
+  if (!profile?.is_admin) return null;
+
+  const handleUnpublish = async () => {
+    setError("");
+    try {
+      await Promise.all(publicPaths.map((x) => adminUnpublish(x.id)));
+    } catch (error) {
+      setError(error.toString());
+    }
+    // refresh the current page
+    router.push({
+      pathname: router.pathname,
+      query: router.query,
+    });
+  };
+
+  return (
+    <Alert
+      style={{ margin: "0 0 15px" }}
+      type="info"
+      message={"Administrator Controls"}
+      description={
+        <div>
+          {error && (
+            <Alert
+              showIcon
+              style={{ margin: "15px 0" }}
+              message={"Error"}
+              description={error}
+              type="error"
+              closable
+              onClose={() => setError("")}
+            />
+          )}
+          <Popconfirm
+            title={
+              <div style={{ width: "400px" }}>
+                Are you sure you want to unpublish ALL {publicPaths.length}{" "}
+                items displayed below? These items will be made completely
+                private (not visible in any way, except to collaborators).
+              </div>
+            }
+            onConfirm={handleUnpublish}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button danger>
+              Unpublish ALL {publicPaths.length} listed items...
+            </Button>
+          </Popconfirm>
+        </div>
+      }
+    />
   );
 }
 
