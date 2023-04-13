@@ -313,10 +313,8 @@ function LogPopover({ project_id }) {
       Project Activity Log (click for more...)
       <hr />
       <HomeRecentFiles
-        noHeading
         project_id={project_id}
         style={{ maxHeight: "125px" }}
-        max={30}
       />
     </div>
   );

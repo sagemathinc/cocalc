@@ -1,11 +1,6 @@
-/*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
- */
+import { List, Input, Space } from "antd";
 
-import { List } from "antd";
-
-import { CSSProperties } from "react";
+import { CSSProperties, useState } from "react";
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   Icon,
@@ -14,7 +9,6 @@ import {
   PathLink,
   Text,
   TimeAgo,
-  Title,
 } from "@cocalc/frontend/components";
 import { handle_log_click } from "@cocalc/frontend/components/path-link";
 import { file_options } from "@cocalc/frontend/editor-tmp";
@@ -30,23 +24,14 @@ interface Props {
   project_id: string;
   max?: number;
   style?: CSSProperties;
-  noHeading?: boolean;
 }
 
-/**
- * This is a distillation of the project log, showing only the most recently opened files.
- * The purpose is to be able to quickly jump to a file that was recently opened.
- */
-export function HomeRecentFiles({
-  max = 50,
-  project_id,
-  style,
-  noHeading,
-}: Props) {
+export function HomeRecentFiles({ max = 100, project_id, style }: Props) {
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
 
-  // select unique files, that were opened in that project and sort by time
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
   const log: OpenedFile[] = useMemo(() => {
     if (project_log == null) return [];
 
@@ -66,6 +51,12 @@ export function HomeRecentFiles({
         dedupe.push(fn);
         return true;
       })
+      .filter((entry: EventRecordMap) =>
+        entry
+          .getIn(["event", "filename"], "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())
+      ) // <-- added filter
       .slice(0, max)
       .map((entry: EventRecordMap) => {
         return {
@@ -75,7 +66,7 @@ export function HomeRecentFiles({
         };
       })
       .toJS();
-  }, [project_log]);
+  }, [project_log, searchTerm]);
 
   function renderItem(entry) {
     const time = entry.time;
@@ -110,13 +101,25 @@ export function HomeRecentFiles({
   }
 
   return (
-    <List
-      style={{ maxHeight: "500px", overflow: "auto", ...style }}
-      size="small"
-      header={!noHeading && <Title level={4}>Recent files</Title>}
-      bordered
-      dataSource={log}
-      renderItem={renderItem}
-    />
+    <>
+      <List
+        style={{ maxHeight: "500px", overflow: "auto", ...style }}
+        size="small"
+        header={
+          <Space style={{ width: "100%" }}>
+            Recent Files{" "}
+            <Input
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: "350px" }}
+            />
+          </Space>
+        }
+        bordered
+        dataSource={log}
+        renderItem={renderItem}
+      />
+    </>
   );
 }
