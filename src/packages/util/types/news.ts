@@ -60,3 +60,5 @@ export const CHANNELS_ICONS: {
 export function isNewsChannel(channel: string): channel is Channel {
   return typeof channel === "string" && CHANNELS.includes(channel as Channel);
 }
+
+export type NewsPrevNext = Pick<NewsItem, "id" | "title">;

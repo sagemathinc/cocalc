@@ -3,10 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import dayjs from "dayjs";
+import { omit } from "lodash";
+
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
+import { clearCache } from "@cocalc/database/postgres/news";
 import type { NewsItem } from "@cocalc/util/types/news";
-import dayjs from "dayjs";
 
 const L = getLogger("server:news:edit").debug;
 
@@ -14,6 +17,7 @@ export default async function editNews(opts: NewsItem) {
   let { id } = opts;
   const { title, text, url, date, channel, hide, tags } = opts;
 
+  // we do this operation without touching any caches
   const pool = getPool();
 
   if (id) {
@@ -29,15 +33,7 @@ export default async function editNews(opts: NewsItem) {
       )
     ).rows[0];
     const history = existing.history ?? {};
-    history[dayjs().unix()] = {
-      title: existing.title,
-      text: existing.text,
-      url: existing.url,
-      date: existing.date,
-      channel: existing.channel,
-      tags: existing.tags,
-      hide: existing.hide,
-    };
+    history[dayjs().unix()] = omit(existing, ["id", "history"]);
     await pool.query(
       `UPDATE news SET title=$1, text=$2, url=$3, date=$4, channel=$5, tags=$6, hide=$7, history=$8 WHERE id=$9`,
       [title, text, url, date, channel, tags, hide, history, id]
@@ -51,6 +47,7 @@ export default async function editNews(opts: NewsItem) {
     id = rows[0].id;
   }
 
-  // upon success, return id
+  // upon success: clear cache and return id
+  clearCache();
   return { id };
 }

@@ -22,7 +22,7 @@ import dayjs from "dayjs";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
-import getPool from "@cocalc/database/pool";
+import { getNewsItem } from "@cocalc/database/postgres/news";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
 import { slugURL } from "@cocalc/util/news";
@@ -40,10 +40,12 @@ import A from "components/misc/A";
 import { News } from "components/news/news";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
-import { MAX_WIDTH } from "lib/config";
+import { MAX_WIDTH, NOT_FOUND } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
+import { extractID } from "lib/news";
 import withCustomize from "lib/with-customize";
+import { GetServerSidePropsContext } from "next";
 
 interface Props {
   customize: CustomizeType;
@@ -261,7 +263,7 @@ export default function EditNews(props: Props) {
     return edit();
   }
 
-  const title = `${siteName} / News / Edit / ${isNew ? "new" : `${id}`}`;
+  const title = `${siteName} / Edit News / ${isNew ? "new" : `${id}`}`;
 
   return (
     <Customize value={customize}>
@@ -299,24 +301,18 @@ export default function EditNews(props: Props) {
   );
 }
 
-// ::timestamptz because if your server is not in UTC, it will be converted to UTC
-// and the UTC epoch timestamp will be used in the browser client as the basis, adding your TZ offset
-const Q = `
-SELECT
-  id, channel, title, text, url, hide, tags,
-  extract(epoch from date::timestamptz)::INTEGER as date
-FROM news
-WHERE id = $1`;
+export async function getServerSideProps(context: GetServerSidePropsContext) {
+  const { query } = context;
+  const { id: idQ } = query;
 
-export async function getServerSideProps(context) {
-  const pool = getPool("long");
-  const { id } = context.query;
-
-  if (id === "new") {
+  if (idQ === "new") {
     return await withCustomize({ context, props: { news: null } });
-  } else if (id != null && Number.isInteger(Number(id))) {
+  }
+
+  const id = extractID(idQ);
+  if (id != null) {
     try {
-      const news = (await pool.query(Q, [id])).rows[0];
+      const news = await getNewsItem(id);
       if (news != null) {
         return await withCustomize({ context, props: { news } });
       }
@@ -325,5 +321,5 @@ export async function getServerSideProps(context) {
     }
   }
 
-  return { notFound: true };
+  return NOT_FOUND;
 }

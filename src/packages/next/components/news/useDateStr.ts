@@ -8,11 +8,12 @@ import { useMemo } from "react";
 
 import { NewsItem } from "@cocalc/util/types/news";
 
-export function useDateStr(news: NewsItem): string {
+export function useDateStr(news: NewsItem, minutes = false): string {
+  const f = minutes ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD";
   return useMemo(
     () =>
       typeof news.date === "number"
-        ? dayjs(news.date * 1000).format("YYYY-MM-DD")
+        ? dayjs(news.date * 1000).format(f)
         : `${news.date}`,
     [news.date]
   );

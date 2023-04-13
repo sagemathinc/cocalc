@@ -16,7 +16,7 @@ import {
 } from "antd";
 import { useEffect, useState } from "react";
 
-import getPool from "@cocalc/database/pool";
+import { getIndex } from "@cocalc/database/postgres/news";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
 import {
@@ -36,10 +36,11 @@ import { MAX_WIDTH } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import withCustomize from "lib/with-customize";
+import { GetServerSidePropsContext } from "next";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import rssIcon from "public/rss.svg";
 import jsonfeedIcon from "public/jsonfeed.png";
+import rssIcon from "public/rss.svg";
 
 // news shown per page
 const SLICE_SIZE = 10;
@@ -54,7 +55,7 @@ interface Props {
 
 export default function AllNews(props: Props) {
   const { customize, news, offset, tag } = props;
-  const { siteName, dns } = customize;
+  const { siteName } = customize;
   const router = useRouter();
   const profile = useProfile({ noCache: true });
   const isAdmin = profile?.is_admin;
@@ -89,6 +90,7 @@ export default function AllNews(props: Props) {
           <Input.Search
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            status={search ? "warning" : undefined}
             addonBefore="Filter"
             placeholder="Search text…"
             allowClear
@@ -118,7 +120,6 @@ export default function AllNews(props: Props) {
         <Col key={n.id} xs={24} sm={24} md={12}>
           <News
             news={n}
-            dns={dns}
             showEdit={isAdmin}
             small
             onTagClick={(tag) => {
@@ -174,7 +175,7 @@ export default function AllNews(props: Props) {
     return (
       <>
         <Title level={1}>
-          {siteName} News
+          <Icon name="file-alt" /> {siteName} News
           {titleFeedIcons()}
         </Title>
         <Space direction="vertical" size="middle" style={{ width: "100%" }}>
@@ -306,23 +307,11 @@ export default function AllNews(props: Props) {
   );
 }
 
-const Q = `
-SELECT
-  id, channel, title, text, url, hide, tags,
-  date >= NOW() as future,
-  extract(epoch from date::timestamptz)::INTEGER as date
-FROM news
-WHERE date >= NOW() - '6 months'::interval
-ORDER BY date DESC
-LIMIT ${SLICE_SIZE}
-OFFSET $1`;
-
-export async function getServerSideProps(context) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { query } = context;
   const tag = typeof query.tag === "string" ? query.tag : null;
-  const pool = getPool("long");
   const offsetVal = Number(query.offset ?? 0);
   const offset = Math.max(0, Number.isNaN(offsetVal) ? 0 : offsetVal);
-  const { rows: news } = await pool.query(Q, [offset]);
+  const news = await getIndex(SLICE_SIZE, offset);
   return await withCustomize({ context, props: { news, offset, tag } });
 }

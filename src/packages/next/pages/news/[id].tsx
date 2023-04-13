@@ -6,10 +6,10 @@
 import { Alert, Breadcrumb, Col, Layout, Radio, Row } from "antd";
 import { useRouter } from "next/router";
 
-import getPool from "@cocalc/database/pool";
+import { getNewsItemUserPrevNext } from "@cocalc/database/postgres/news";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { slugURL } from "@cocalc/util/news";
-import { NewsItem } from "@cocalc/util/types/news";
+import { NewsPrevNext } from "@cocalc/util/types/news";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -17,21 +17,23 @@ import A from "components/misc/A";
 import { News } from "components/news/news";
 import { NewsWithFuture } from "components/news/types";
 import { useDateStr } from "components/news/useDateStr";
-import { MAX_WIDTH } from "lib/config";
+import { MAX_WIDTH, NOT_FOUND } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
+import { extractID } from "lib/news";
 import withCustomize from "lib/with-customize";
+import { GetServerSidePropsContext } from "next";
 
 interface Props {
   customize: CustomizeType;
   news: NewsWithFuture;
-  prev?: Pick<NewsItem, "id" | "title">;
-  next?: Pick<NewsItem, "id" | "title">;
+  prev?: NewsPrevNext;
+  next?: NewsPrevNext;
 }
 
 export default function NewsPage(props: Props) {
   const { customize, news, prev, next } = props;
-  const { siteName, dns } = customize;
+  const { siteName } = customize;
   const profile = useProfile({ noCache: true });
   const router = useRouter();
   const isAdmin = profile?.is_admin;
@@ -50,7 +52,7 @@ export default function NewsPage(props: Props) {
 
   function content() {
     if (isAdmin || !news.future) {
-      return <News dns={dns} news={news} showEdit={isAdmin} standalone />;
+      return <News news={news} showEdit={isAdmin} standalone />;
     }
   }
 
@@ -72,9 +74,9 @@ export default function NewsPage(props: Props) {
     );
   }
 
-  function prevNext() {
+  function olderNewer() {
     return (
-      <Radio.Group buttonStyle="outline">
+      <Radio.Group buttonStyle="outline" size="small">
         <Radio.Button
           disabled={!prev}
           style={{ userSelect: "none" }}
@@ -82,7 +84,15 @@ export default function NewsPage(props: Props) {
             prev && router.push(slugURL(prev));
           }}
         >
-          <Icon name="arrow-left" /> Prev
+          <Icon name="arrow-left" /> Older
+        </Radio.Button>
+        <Radio.Button
+          style={{ userSelect: "none" }}
+          onClick={() => {
+            router.push("/news");
+          }}
+        >
+          <Icon name="arrow-up" /> Overview
         </Radio.Button>
         <Radio.Button
           disabled={!next}
@@ -91,7 +101,7 @@ export default function NewsPage(props: Props) {
             next && router.push(slugURL(next));
           }}
         >
-          <Icon name="arrow-right" /> Next
+          <Icon name="arrow-right" /> Newer
         </Radio.Button>
       </Radio.Group>
     );
@@ -101,7 +111,7 @@ export default function NewsPage(props: Props) {
     return (
       <Row justify="space-between" gutter={15} style={{ margin: "30px 0" }}>
         <Col>{breadcrumb()}</Col>
-        <Col>{prevNext()}</Col>
+        <Col>{olderNewer()}</Col>
       </Row>
     );
   }
@@ -135,57 +145,14 @@ export default function NewsPage(props: Props) {
   );
 }
 
-const Q = `
-SELECT
-  id, title, channel, text, url, hide, history, tags,
-  date >= NOW() as future,
-  extract(epoch from date::timestamptz)::INTEGER as date
-FROM news
-WHERE id = $1`;
-
-const NEXT = `
-SELECT id, title
-FROM news
-WHERE date >= (SELECT date FROM news WHERE id = $1)
-  AND id != $1
-  AND hide IS NOT TRUE
-  AND date < NOW()
-ORDER BY date ASC, id ASC
-LIMIT 1`;
-
-const PREV = `
-SELECT id, title
-FROM news
-WHERE date <= (SELECT date FROM news WHERE id = $1)
-  AND id != $1
-  AND hide IS NOT TRUE
-  AND date < NOW()
-ORDER BY date DESC, id DESC
-LIMIT 1`;
-
-export async function getServerSideProps(context) {
-  const pool = getPool("long");
-  const { id: idOrig } = context.query;
-
-  // if id is null or does not start with an integer, return { notFound: true }
-  if (idOrig == null) return { notFound: true };
-
-  // we support URLs with a slug and id at the end, e.g., "my-title-1234"
-  // e.g. https://www.semrush.com/blog/what-is-a-url-slug/
-  const id = idOrig.split("-").pop();
-  if (!Number.isInteger(Number(id))) return { notFound: true };
+export async function getServerSideProps(context: GetServerSidePropsContext) {
+  const { query } = context;
+  const id = extractID(query.id);
+  if (id == null) return NOT_FOUND;
 
   try {
-    const [newsDB, prevDB, nextDB] = await Promise.all([
-      pool.query(Q, [id]),
-      pool.query(PREV, [id]),
-      pool.query(NEXT, [id]),
-    ]);
-    const [news, prev, next] = [
-      newsDB.rows[0],
-      prevDB.rows[0] ?? null,
-      nextDB.rows[0] ?? null,
-    ];
+    const { news, prev, next } = await getNewsItemUserPrevNext(id);
+
     if (news == null) {
       throw new Error(`not found`);
     }
@@ -197,7 +164,5 @@ export async function getServerSideProps(context) {
     console.warn(`Error getting news with id=${id}`, err);
   }
 
-  return {
-    notFound: true,
-  };
+  return NOT_FOUND;
 }

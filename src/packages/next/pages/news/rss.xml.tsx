@@ -3,51 +3,31 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { create as createXML } from "xmlbuilder2";
-
 import LRU from "lru-cache";
-const cache = new LRU<"db" | Channel | "all", any>({
+import { GetServerSideProps } from "next";
+import { create as createXML } from "xmlbuilder2";
+import type { XMLBuilder } from "xmlbuilder2/lib/interfaces";
+
+// We cache the processed RSS feed for 10 minutes, so that we don't have to recompute it every time.
+const cache = new LRU<Channel | "all", any>({
   max: 10,
   ttl: 10 * 60 * 1000,
 });
 
-import getPool from "@cocalc/database/pool";
 import getCustomize from "@cocalc/server/settings/customize";
+import { capitalize } from "@cocalc/util/misc";
 import { slugURL } from "@cocalc/util/news";
 import {
   CHANNELS,
   CHANNELS_DESCRIPTIONS,
   Channel,
-  NewsItem,
 } from "@cocalc/util/types/news";
-import { GetServerSideProps } from "next";
-import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
 import { renderMarkdown } from "lib/news";
-import { capitalize } from "@cocalc/util/misc";
+import { getFeedData } from "@cocalc/database/postgres/news";
 
+// Empty page. getServerSideProps below defines what's going on
 export default function RSS() {
   return null;
-}
-
-// we exclude hidden and future news items
-const Q = `
-SELECT
-  id, channel, title, text, url,
-  extract(epoch from date::timestamp)::integer as date
-FROM news
-WHERE date BETWEEN NOW() - '6 months'::interval AND NOW()
-  AND hide IS NOT TRUE
-ORDER BY date DESC
-LIMIT 100`;
-
-// caches the DB result for a bit
-async function getRSS(): Promise<NewsItem[]> {
-  const rssCached = cache.get("db");
-  if (rssCached) return rssCached;
-  const pool = getPool("long");
-  const { rows } = await pool.query(Q);
-  cache.set("db", rows as NewsItem[]);
-  return rows;
 }
 
 // we have one RSS channel. this populates it with all entries from the database – with the given ordering
@@ -56,7 +36,7 @@ async function populateNewsItems(
   ch: Channel | "all",
   dns: string
 ): Promise<XMLBuilder> {
-  for (const n of await getRSS()) {
+  for (const n of await getFeedData()) {
     const { id, text, title, date, channel } = n;
     if (ch != "all" && channel !== ch) continue;
     const pubDate: Date =
