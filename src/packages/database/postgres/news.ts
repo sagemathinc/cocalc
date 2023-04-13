@@ -18,7 +18,7 @@ SELECT
   id, channel, title, text, url,
   extract(epoch from date::timestamp)::integer as date
 FROM news
-WHERE date BETWEEN NOW() - '6 months'::interval AND NOW()
+WHERE news.date <= NOW()
   AND hide IS NOT TRUE
 ORDER BY date DESC
 LIMIT 100`;
@@ -93,7 +93,6 @@ SELECT
   date >= NOW() as future,
   extract(epoch from date::timestamptz)::INTEGER as date
 FROM news
-WHERE date >= NOW() - '6 months'::interval
 ORDER BY date DESC
 LIMIT $1
 OFFSET $2`;

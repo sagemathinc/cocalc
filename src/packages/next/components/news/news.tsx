@@ -282,9 +282,14 @@ export function News(props: Props) {
     const renderedTags = renderTags();
     return (
       <>
-        <Paragraph style={{ textAlign: "right" }}>
-          <Text type="secondary">Date: {dateStr}</Text>
-        </Paragraph>
+        {historyMode && (
+          <Paragraph type="danger">
+            Archived version
+            <Text type="secondary" style={{ float: "right" }}>
+              Published: {dateStr}
+            </Text>
+          </Paragraph>
+        )}
         <Title level={2}>
           <Icon name={CHANNELS_ICONS[channel] as IconName} /> {title}
           {renderedTags && (

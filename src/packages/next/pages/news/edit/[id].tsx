@@ -220,6 +220,7 @@ export default function EditNews(props: Props) {
             label="URL"
             name="url"
             rules={[{ required: false, type: "url" }]}
+            extra={`optional, external URL, will be shown as "Read more" link.`}
           >
             <Input allowClear />
           </Form.Item>

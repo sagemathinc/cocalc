@@ -34,8 +34,8 @@ interface Props {
 export default function NewsPage(props: Props) {
   const { customize, news, prev, next } = props;
   const { siteName } = customize;
-  const profile = useProfile({ noCache: true });
   const router = useRouter();
+  const profile = useProfile({ noCache: true });
   const isAdmin = profile?.is_admin;
   const dateStr = useDateStr(news);
   const permalink = slugURL(news);

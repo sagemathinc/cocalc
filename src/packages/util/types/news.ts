@@ -28,6 +28,7 @@ export interface NewsItemWebapp {
   date: Date;
   title: string;
   channel: Channel;
+  tags?: string[];
 }
 
 export const CHANNELS = [
