@@ -26,6 +26,7 @@ import { AvailableFeatures } from "../../project_configuration";
 import { Map, Set } from "immutable";
 import { clone } from "lodash";
 import { chat } from "../generic/chat";
+import FormatError from "./format-error";
 
 interface FrameTreeEditorProps {
   name: string;
@@ -94,6 +95,8 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     );
     const error: string = useRedux(name, "error");
     const errorstyle: ErrorStyles = useRedux(name, "errorstyle");
+    const formatError: string | undefined = useRedux(name, "formatError");
+    const formatInput: string | undefined = useRedux(name, "formatInput");
     const cursors: Map<string, any> = useRedux(name, "cursors");
     const status: string = useRedux(name, "status");
     const load_time_estimate: LoadingEstimate | undefined = useRedux(
@@ -210,6 +213,9 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
 
     return (
       <div className="smc-vfill cc-frame-tree-editor">
+        {formatError && (
+          <FormatError formatError={formatError} formatInput={formatInput} />
+        )}
         {render_error()}
         {render_format_bar()}
         {render_loading()}

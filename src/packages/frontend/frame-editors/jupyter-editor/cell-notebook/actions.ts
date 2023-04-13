@@ -985,14 +985,30 @@ export class NotebookFrameActions {
 
   public async format_selected_cells(sync: boolean = true): Promise<void> {
     this.save_input_editor();
-    await this.jupyter_actions.format_cells(
-      this.store.get_selected_cell_ids_list(),
-      sync
-    );
+    this.frame_tree_actions.setFormatError("");
+    try {
+      this.frame_tree_actions.set_status("Formatting selected cells...");
+      await this.jupyter_actions.format_cells(
+        this.store.get_selected_cell_ids_list(),
+        sync
+      );
+    } catch (err) {
+      this.frame_tree_actions.setFormatError(`${err}`, err.formatInput);
+    } finally {
+      this.frame_tree_actions.set_status("");
+    }
   }
   public async format_all_cells(sync: boolean = true): Promise<void> {
     this.save_input_editor();
-    await this.jupyter_actions.format_all_cells(sync);
+    this.frame_tree_actions.setFormatError("");
+    try {
+      this.frame_tree_actions.set_status("Formatting selected cells...");
+      await this.jupyter_actions.format_all_cells(sync);
+    } catch (err) {
+      this.frame_tree_actions.setFormatError(`${err}`, err.formatInput);
+    } finally {
+      this.frame_tree_actions.set_status("");
+    }
   }
 
   public async format(): Promise<void> {

@@ -9,6 +9,8 @@ with a simple page.  It is mainly meant to be walked by crawlers
 such as Google and for people to browse.
 */
 
+import { useEffect, useState } from "react";
+import { Input, Radio, Space } from "antd";
 import Link from "next/link";
 import SiteName from "components/share/site-name";
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
@@ -17,9 +19,11 @@ import { Layout } from "components/share/layout";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/share/customize";
 import GoogleSearch from "components/share/google-search";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 import ProxyInput from "components/share/proxy-input";
 import getAccountId from "lib/account/get-account";
 import A from "components/misc/A";
+import { useRouter } from "next/router";
 
 const PAGE_SIZE = 100;
 
@@ -57,13 +61,58 @@ function Pager({ page, publicPaths }) {
 
 export default function All({ page, publicPaths, customize }) {
   const pager = <Pager page={page} publicPaths={publicPaths} />;
+  const router = useRouter();
+  const [sort, setSort] = useState<string>("last_edited");
+
+  // Set default value of `sort` from query parameter `sort`
+  useEffect(() => {
+    if (router.query.sort) {
+      setSort(router.query.sort as string);
+    }
+  }, [router.query.sort]);
+
+  function handleSortChange(e) {
+    const sort = e.target.value;
+    // Update the query parameter with new `sort` value
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, sort },
+    });
+  }
+
+  const [search, setSearch] = useState<string>("");
+  useEffect(() => {
+    if (router.query.search) {
+      setSearch(router.query.search as string);
+    }
+  }, [router.query.search]);
+
+  function handleSearchGo(search: string) {
+    router.push({
+      pathname: router.pathname,
+      query: { ...router.query, search },
+    });
+  }
+
   return (
     <Customize value={customize}>
       <Layout title={`Page ${page} of public files`}>
         <div>
-          <div style={{ float: "right", width: "250px", marginTop: "7.5px" }}>
-            <GoogleSearch />
-          </div>
+          <Space
+            style={{
+              float: "right",
+              justifyContent: "flex-end",
+              marginTop: "7.5px",
+            }}
+            direction="vertical"
+          >
+            <GoogleSearch style={{ width: "450px" }} />
+            <ChatGPTHelp
+              tag={"share"}
+              style={{ width: "450px" }}
+              prompt={"I am browsing all shared public files."}
+            />
+          </Space>
           <h2>
             Browse publicly shared documents on <SiteName />
           </h2>
@@ -72,6 +121,34 @@ export default function All({ page, publicPaths, customize }) {
           .
           <br />
           <br />
+          <Input.Search
+            allowClear
+            placeholder="Search path & description..."
+            style={{ marginLeft: "5px", float: "right", width: "275px" }}
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              if (!e.target.value) {
+                setTimeout(() => {
+                  handleSearchGo("");
+                }, 1);
+              }
+            }}
+            onSearch={() => handleSearchGo(search)}
+            onPressEnter={() => handleSearchGo(search)}
+          />
+          <Radio.Group
+            value={sort}
+            onChange={handleSortChange}
+            style={{ float: "right" }}
+          >
+            <Radio.Button value="last_edited">Newest</Radio.Button>
+            <Radio.Button value="-last_edited">Oldest</Radio.Button>
+            <Radio.Button value="stars">Stars</Radio.Button>
+            <Radio.Button value="-stars">Least stars</Radio.Button>
+            <Radio.Button value="views">Views</Radio.Button>
+            <Radio.Button value="-views">Least views</Radio.Button>
+          </Radio.Group>
           {pager}
           <br />
           <PublicPaths publicPaths={publicPaths} />
@@ -86,7 +163,13 @@ export default function All({ page, publicPaths, customize }) {
 export async function getServerSideProps(context) {
   const isAuthenticated = (await getAccountId(context.req)) != null;
   const page = getPage(context.params);
+  const sort = getSort(context);
+  const { search, searchQuery } = getSearch(context);
   const pool = getPool("medium");
+  const params = [isAuthenticated, PAGE_SIZE, PAGE_SIZE * (page - 1)];
+  if (search) {
+    params.push(search);
+  }
   const { rows } = await pool.query(
     `SELECT public_paths.id, public_paths.path, public_paths.url, public_paths.description, ${timeInSeconds(
       "public_paths.last_edited",
@@ -98,8 +181,41 @@ export async function getServerSideProps(context) {
     WHERE public_paths.project_id = projects.project_id
     AND public_paths.vhost IS NULL AND public_paths.disabled IS NOT TRUE AND public_paths.unlisted IS NOT TRUE AND
     ((public_paths.authenticated IS TRUE AND $1 IS TRUE) OR (public_paths.authenticated IS NOT TRUE))
-    ORDER BY stars DESC, public_paths.last_edited DESC LIMIT $2 OFFSET $3`,
-    [isAuthenticated, PAGE_SIZE, PAGE_SIZE * (page - 1)]
+    ${searchQuery}
+    ORDER BY ${sort} LIMIT $2 OFFSET $3`,
+    params
   );
+
   return await withCustomize({ context, props: { page, publicPaths: rows } });
+}
+
+function getSearch(context) {
+  const { query } = context;
+  const search = query?.search || "";
+  if (search) {
+    return {
+      search: `%${search}%`,
+      searchQuery:
+        "AND (LOWER(public_paths.path) LIKE LOWER($4) OR LOWER(public_paths.description) LIKE LOWER($4))",
+    };
+  } else {
+    return { search, searchQuery: "" };
+  }
+}
+
+function getSort(context) {
+  switch (context.query?.sort) {
+    case "stars":
+      return "stars DESC, public_paths.last_edited DESC";
+    case "-stars":
+      return "stars ASC, public_paths.last_edited DESC";
+    case "views":
+      return "COALESCE(counter,0) DESC,  public_paths.last_edited DESC";
+    case "-views":
+      return "COALESCE(counter,0) ASC,  public_paths.last_edited DESC";
+    case "-last_edited":
+      return "public_paths.last_edited ASC";
+    default:
+      return "public_paths.last_edited DESC";
+  }
 }

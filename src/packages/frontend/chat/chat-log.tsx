@@ -132,8 +132,8 @@ export function ChatLog({
       )}
       <Virtuoso
         ref={virtuosoRef}
-        increaseViewportBy={3}
         totalCount={sortedDates.length}
+        overscan={10000}
         itemContent={(index) => {
           const date = sortedDates[index];
           const message: MessageMap | undefined = messages.get(date);
