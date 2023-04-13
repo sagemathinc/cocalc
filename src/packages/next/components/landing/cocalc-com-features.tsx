@@ -135,9 +135,10 @@ export default function CoCalcComFeatures(props: CCFeatures) {
         <Info
           title={
             <>
-              Explore what{" "}
-              <A href="/share/public_paths/page/1">people have published</A> on{" "}
-              {siteName}!
+              <A href="/share/public_paths/page/1">
+                Explore what people have published on
+                {siteName}!
+              </A>
             </>
           }
           level={2}
