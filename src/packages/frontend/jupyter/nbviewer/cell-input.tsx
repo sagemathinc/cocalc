@@ -38,7 +38,7 @@ export default function CellInput({
   const value = edits?.[cell["id"] ?? ""] ?? cell["input"] ?? "";
   const [editing, setEditing] = useState<boolean>(false);
   const [newValue, setNewValue] = useState<string>(value);
-  const { jupyterApiEnabled } = useFileContext();
+  const { jupyterApiEnabled, disableExtraButtons } = useFileContext();
   const runRef = useRef<any>(null);
 
   const save = (run) => {
@@ -51,7 +51,7 @@ export default function CellInput({
     }, 1);
   };
 
-  const controlBar = (
+  const controlBar = disableExtraButtons ? null : (
     <div
       style={{
         borderBottom: "1px solid #ccc",

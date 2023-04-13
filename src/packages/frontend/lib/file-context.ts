@@ -62,6 +62,9 @@ interface IFileContext {
   // Disable markdown run button
   disableMarkdownCodebar?: boolean;
 
+  // if true disable all extra buttons, e.g., "copy". This is used for printing.
+  disableExtraButtons?: boolean;
+
   // If true, then openai enabled (this changes rarely, so not dynamic)
   hasOpenAI?: boolean;
 

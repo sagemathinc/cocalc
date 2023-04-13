@@ -383,7 +383,8 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
     }
 
-    function renderCodeBar(): Rendered {
+    function renderCodeBar() {
+      if (fileContext.disableExtraButtons) return null;
       const input = props.cell.get("input")?.trim();
       return (
         <div
