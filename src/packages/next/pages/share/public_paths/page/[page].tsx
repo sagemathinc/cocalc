@@ -25,7 +25,7 @@ import getAccountId from "lib/account/get-account";
 import A from "components/misc/A";
 import { useRouter } from "next/router";
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 10;
 
 function getPage(obj): number {
   let { page } = obj ?? {};
@@ -40,18 +40,42 @@ function getPage(obj): number {
 }
 
 function Pager({ page, publicPaths }) {
+  const router = useRouter();
+
   return (
     <div>
       Page {page}
       &nbsp;&nbsp;
       {page > 1 ? (
-        <Link href={`/share/public_paths/page/${page - 1}`}>Previous</Link>
+        <Link
+          href={{
+            pathname: `/share/public_paths/page/${page - 1}`,
+            query: router.query,
+          }}
+          as={`/share/public_paths/page/${page - 1}${
+            router.asPath.split("?")[1] ? "?" + router.asPath.split("?")[1] : ""
+          }`}
+          passHref
+        >
+          Previous
+        </Link>
       ) : (
         <span style={{ color: "#888" }}>Previous</span>
       )}
       &nbsp;&nbsp;
       {publicPaths != null && publicPaths.length >= PAGE_SIZE ? (
-        <Link href={`/share/public_paths/page/${page + 1}`}>Next</Link>
+        <Link
+          href={{
+            pathname: `/share/public_paths/page/${page + 1}`,
+            query: router.query,
+          }}
+          as={`/share/public_paths/page/${page + 1}${
+            router.asPath.split("?")[1] ? "?" + router.asPath.split("?")[1] : ""
+          }`}
+          passHref
+        >
+          Next
+        </Link>
       ) : (
         <span style={{ color: "#888" }}>Next</span>
       )}
