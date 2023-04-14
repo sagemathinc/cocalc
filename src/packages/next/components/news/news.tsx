@@ -283,8 +283,10 @@ export function News(props: Props) {
     return (
       <>
         {historyMode && (
-          <Paragraph type="danger">
-            Archived version
+          <Paragraph>
+            <Text type="danger" strong>
+              Archived version
+            </Text>
             <Text type="secondary" style={{ float: "right" }}>
               Published: {dateStr}
             </Text>
