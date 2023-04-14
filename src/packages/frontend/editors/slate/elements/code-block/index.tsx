@@ -139,6 +139,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
                 </Button>
               </Tooltip>{" "}
               <ActionButtons
+                auto
                 size="small"
                 runRef={runRef}
                 input={newValue ?? element.value}

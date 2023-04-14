@@ -15,6 +15,7 @@ export default function ActionButtons({
   info,
   runRef,
   size,
+  auto,
 }: RunButtonProps) {
   return (
     <>
@@ -29,6 +30,7 @@ export default function ActionButtons({
         output={output}
         runRef={runRef}
         size={size}
+        auto={auto}
       />
     </>
   );

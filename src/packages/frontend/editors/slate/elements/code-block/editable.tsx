@@ -125,6 +125,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
               )}
               {!disableMarkdownCodebar && (
                 <ActionButtons
+                  auto
                   size="small"
                   input={element.value}
                   history={history}
