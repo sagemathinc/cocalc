@@ -1,13 +1,11 @@
-import {
-  kernel as createKernel,
-  JupyterKernel,
-} from "@cocalc/project/jupyter/jupyter";
+import { JupyterKernel } from "@cocalc/project/jupyter/jupyter";
 import { run_cell, Limits } from "@cocalc/project/nbgrader/jupyter-run";
 import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
 import { reuseInFlight } from "async-await-utils/hof";
+import { path_split } from "@cocalc/util/misc";
 
 const log = getLogger("jupyter:stateless-api:kernel");
 
@@ -56,7 +54,8 @@ export default class Kernel {
       // shrink the pool to MIN_POOL_SIZE.
       // no request for kernelName, so we clear them from the pool
       const poolToShrink = Kernel.pools[kernelName] ?? [];
-      if (poolToShrink.length > MIN_POOL_SIZE) { // check if pool needs shrinking
+      if (poolToShrink.length > MIN_POOL_SIZE) {
+        // check if pool needs shrinking
         // calculate how many to close
         const numToClose = poolToShrink.length - MIN_POOL_SIZE;
         for (let i = 0; i < numToClose; i++) {
@@ -68,16 +67,59 @@ export default class Kernel {
     }, (timeout_s ?? DEFAULT_POOL_TIMEOUT_S) * 1000);
   }
 
-  static async getFromPool(
+  // This gets a JupyterKernel object and configure it to have
+  // the given name and path.  It is NOT async, though it does
+  // start chdir and init as soon as it is called.  It returns
+  // null if nothing was available in the pool, and in that case
+  // it also replenishes the pool.
+  static getJupyterKernelFromPool(
+    { name, path, actions }: { name: string; path: string; actions? },
+    opts?
+  ): JupyterKernel | null {
+    let k;
+    try {
+      const pool = Kernel.getPool(name);
+      log.debug(`getJupyterKernelFromPool(${name}), pool size = `, pool.length);
+      if (pool.length == 0) {
+        return null;
+      }
+      k = pool.shift();
+      if (k == null) {
+        return null;
+      }
+    } finally {
+      // no matter what we always fill the pool.
+      this.fillPool(name, opts);
+    }
+    k.kernel.setPath(path);
+    k.kernel.setActions(actions);
+    (async () => {
+      await k.init();
+      const { head } = path_split(path);
+      await k.chdir(head);
+      if (k.tempDir) {
+        // get rid of the tmpdir:
+        try {
+          await rm(k.tempDir, { force: true, recursive: true });
+        } catch (err) {
+          log.warn("Error cleaning up temporary directory", err);
+        }
+      }
+    })();
+    return k.kernel;
+  }
+
+  private static fillPool(
     kernelName: string,
     {
       size = DEFAULT_POOL_SIZE,
       timeout_s = DEFAULT_POOL_TIMEOUT_S,
     }: { size?: number; timeout_s?: number } = {}
-  ): Promise<Kernel> {
+  ) {
     this.setIdleTimeout(kernelName, timeout_s);
     const pool = Kernel.getPool(kernelName);
     let i = 1;
+    log.debug(`fillPool(${kernelName}), cur=`, pool.length, ", goal=,", size);
     while (pool.length <= size) {
       // <= since going to remove one below
       const k = new Kernel(kernelName);
@@ -94,6 +136,11 @@ export default class Kernel {
       i += 1;
       pool.push(k);
     }
+  }
+
+  static async getFromPool(kernelName: string, opts?): Promise<Kernel> {
+    this.fillPool(kernelName, opts);
+    const pool = Kernel.getPool(kernelName);
     const k = pool.shift() as Kernel;
     // it's ok to call again due to reuseInFlight and that no-op after init.
     await k.init();
@@ -113,11 +160,7 @@ export default class Kernel {
     //   -f = max bytes allowed to *write* to disk
     //   -t = max cputime is 30 seconds
     //   -v = max virtual memory usage to 3GB
-    this.kernel = createKernel({
-      name: this.kernelName,
-      path,
-      // ulimit: `-n 1000 -f 10485760 -t 30 -v 3000000`,
-    });
+    this.kernel = new JupyterKernel(this.kernelName, path);
     await this.kernel.ensure_running();
     await this.kernel.execute_code_now({ code: "" });
   }
@@ -167,10 +210,12 @@ export default class Kernel {
     } finally {
       delete this.kernel;
     }
-    try {
-      await rm(this.tempDir, { force: true, recursive: true });
-    } catch (err) {
-      log.warn("Error cleaning up temporary directory", err);
+    if (this.tempDir) {
+      try {
+        await rm(this.tempDir, { force: true, recursive: true });
+      } catch (err) {
+        log.warn("Error cleaning up temporary directory", err);
+      }
     }
   }
 }

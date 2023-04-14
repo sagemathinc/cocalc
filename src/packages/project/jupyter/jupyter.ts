@@ -86,6 +86,7 @@ import { JupyterActions } from "@cocalc/frontend/jupyter/project-actions";
 import { JupyterStore } from "@cocalc/frontend/jupyter/store";
 
 import { JupyterKernelInterface } from "@cocalc/frontend/jupyter/project-interface";
+import KernelPool from "./stateless-api/kernel";
 
 import {
   launch_jupyter_kernel,
@@ -180,12 +181,31 @@ export async function remove_jupyter_backend(
 interface KernelParams {
   name: string;
   path: string; // filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
-  actions?: any; // optional redux actions object
+  actions?: JupyterActions; // optional redux actions object
   ulimit?: string;
 }
 
 export function kernel(opts: KernelParams): JupyterKernel {
-  return new JupyterKernel(opts.name, opts.path, opts.actions, opts.ulimit);
+  winston.debug("kernel", opts.name, opts.path);
+  if (!opts.ulimit) {
+    // Try to get one from the pool.  If nothing in the pool this will cause
+    // the pool to get populated with size kernels for later.
+    const kernel = KernelPool.getJupyterKernelFromPool(opts, { size: 1 });
+    if (kernel) {
+      winston.debug("kernel - using pool for: ", opts.name, opts.path);
+      // yeah, there was something in the pool -- return it.
+      return kernel;
+    }
+  }
+  // fallback.
+  winston.debug("kernel - NOT using pool for: ", opts.name, opts.path);
+  const kernel = new JupyterKernel(
+    opts.name,
+    opts.path,
+    opts.actions,
+    opts.ulimit
+  );
+  return kernel;
 }
 
 /*
@@ -231,8 +251,11 @@ export class JupyterKernel
   public channel?: Channels;
   private has_ensured_running: boolean = false;
 
-  constructor(name, _path, _actions, ulimit) {
+  constructor(name, _path, _actions?, ulimit?) {
     super();
+
+    const dbg = this.dbg("constructor");
+    dbg();
 
     this.ulimit = ulimit;
     this.spawn = reuseInFlight(this.spawn.bind(this));
@@ -245,25 +268,34 @@ export class JupyterKernel
     this.process_output = this.process_output.bind(this);
 
     this.name = name;
-    this._path = _path;
-    this._actions = _actions;
+    this.setPath(_path);
+    this.setActions(_actions);
 
     this.store = key_value_store();
-    const { head, tail } = path_split(this._path);
-    this._directory = head;
-    this._filename = tail;
-    this._set_state("off");
+    this._set_state("ready");
     this._execute_code_queue = [];
-    if (_jupyter_kernels[this._path] !== undefined) {
-      // This happens when we change the kernel for a given file, e.g., from python2 to python3.
-      // Obviously, it is important to clean up after the old kernel.
-      _jupyter_kernels[this._path].close();
-    }
-    _jupyter_kernels[this._path] = this;
-    const dbg = this.dbg("constructor");
-    dbg();
+
     process.on("exit", this.close.bind(this));
     this.setMaxListeners(100);
+  }
+
+  public setPath(path: string) {
+    if (_jupyter_kernels[path] != null) {
+      // Make sure target is available:
+      // This happens when we change the kernel for a given file, e.g., from python2 to python3.
+      // Obviously, it is important to clean up after the old kernel.
+      _jupyter_kernels[path].close();
+    }
+    delete _jupyter_kernels[this._path];
+    this._path = path;
+    _jupyter_kernels[path] = this;
+    const { head, tail } = path_split(path);
+    this._directory = head;
+    this._filename = tail;
+  }
+
+  public setActions(actions?: JupyterActions) {
+    this._actions = actions;
   }
 
   public get_path() {
@@ -333,7 +365,7 @@ export class JupyterKernel
       if (this._state === "closed") {
         throw Error("closed");
       }
-      this._set_state("off");
+      this._set_state("ready");
       throw err;
     }
   }
@@ -436,7 +468,7 @@ export class JupyterKernel
       if (signal != null) {
         this.emit(
           "kernel_error",
-          `Kernel last terminated by signal ${signal}.${stderr}`
+          `Kernel last terminated by signal ${signal}.`
         );
       } else if (exit_code != null) {
         this.emit(

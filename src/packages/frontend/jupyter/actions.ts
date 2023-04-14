@@ -1839,19 +1839,17 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   });
 
   restart = reuseInFlight(async (): Promise<void> => {
-    await this.halt();
     if (this._state === "closed") return;
-    // Actually start it running again (rather than waiting for
-    // user to do something), since this is called "restart".
-    await this.set_backend_kernel_info(); // causes kernel to start
+    await this.halt();
   });
 
   public shutdown = reuseInFlight(async (): Promise<void> => {
-    if (this._state === "closed") return;
+    this.clear_all_cell_run_state();
+    // save before kill, since saving will start the kernel again.
+    await this.save_asap();
+    await awaiting.delay(100);
     await this.signal("SIGKILL");
     if (this._state === "closed") return;
-    this.clear_all_cell_run_state();
-    await this.save_asap();
   });
 
   set_backend_kernel_info = async (): Promise<void> => {

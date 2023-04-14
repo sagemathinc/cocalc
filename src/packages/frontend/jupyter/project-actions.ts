@@ -223,7 +223,7 @@ export class JupyterActions extends JupyterActions0 {
             var record = this.syncdb.get_one(key);
             if (record != null) {
               // ensure kernel is properly configured
-              this.ensure_backend_kernel_setup();
+              // this.ensure_backend_kernel_setup();
               // only the backend should change kernel and backend state;
               // however, our security model allows otherwise (e.g., via TimeTravel).
               if (
@@ -320,12 +320,6 @@ export class JupyterActions extends JupyterActions0 {
     this._running_cells = {};
     this.clear_all_cell_run_state();
 
-    // When the kernel closes, make sure a new kernel gets setup.
-    this.jupyter_kernel.once("closed", () => {
-      dbg("kernel closed -- make new one.");
-      this.ensure_backend_kernel_setup();
-    });
-
     // Track backend state changes other than closing, so they
     // are visible to user etc.
     // TODO: Maybe all these need to move to ephemeral table?
@@ -347,10 +341,11 @@ export class JupyterActions extends JupyterActions0 {
       // save so gets reported to frontend, and surfaced to user:
       // https://github.com/sagemathinc/cocalc/issues/4847
       this.set_kernel_error(err);
+      this.set_backend_state("ready");
     });
 
     this.handle_all_cell_attachments();
-    this.set_backend_state("ready");
+    this.set_backend_state(this.jupyter_kernel.get_state() as BackendState);
   };
 
   set_connection_file = () => {
@@ -1060,9 +1055,9 @@ export class JupyterActions extends JupyterActions0 {
     if (this.jupyter_kernel == null) {
       // The kernel is needed to get access to the blob store, which
       // may be needed to save to disk.
-      this.ensure_backend_kernel_setup();
+      // this.ensure_backend_kernel_setup();
       if (this.jupyter_kernel == null) {
-        // still not null?  This would happen if no kernel is set at all,
+        // still null?  This would happen if no kernel is set at all,
         // in which case it's OK that saving isn't possible.
         throw Error("no kernel so cannot save");
       }
