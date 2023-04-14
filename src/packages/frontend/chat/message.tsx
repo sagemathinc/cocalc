@@ -319,12 +319,21 @@ export default function Message(props: Props) {
           )}
           {isEditing && renderEditMessage()}
           {!isEditing && (
-            <div style={{ display: "flex", alignItems: "flex-end" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
               <div>
                 {new Date().valueOf() -
                   new Date(props.message.get("date")).valueOf() <
                   SHOW_EDIT_BUTTON_MS && (
-                  <Tooltip title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.">
+                  <Tooltip
+                    title="Edit this message. You can edit any past message by anybody at any time by double clicking on it."
+                    placement="left"
+                  >
                     <Button
                       disabled={replying}
                       style={{
@@ -343,19 +352,17 @@ export default function Message(props: Props) {
                 {!props.message.get("reply_to") &&
                   props.allowReply &&
                   !replying && (
-                    <Tooltip title="Write a reply to this message">
-                      <Button
-                        disabled={replying}
-                        style={{
-                          color: is_viewers_message ? "white" : "#555",
-                        }}
-                        type="text"
-                        size="small"
-                        onClick={() => setReplying(true)}
-                      >
-                        <Icon name="reply" /> Reply
-                      </Button>
-                    </Tooltip>
+                    <Button
+                      disabled={replying}
+                      style={{
+                        color: is_viewers_message ? "white" : "#555",
+                      }}
+                      type="text"
+                      size="small"
+                      onClick={() => setReplying(true)}
+                    >
+                      <Icon name="reply" /> Reply
+                    </Button>
                   )}
               </div>
               {(props.message.get("history").size > 1 ||

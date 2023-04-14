@@ -546,7 +546,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             email_address : undefined
             cb            : required
         if not opts.account_id? and not opts.email_address?
-            opts.cb("one of email address or account_id must be specified")
+            opts.cb("one of email address or account_id must be specified -- make sure you are signed in")
             return
 
         query = undefined

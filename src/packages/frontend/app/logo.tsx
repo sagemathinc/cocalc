@@ -50,9 +50,6 @@ export const AppLogo: React.FC<Props> = React.memo((props: Props) => {
         placement="right"
       >
         <div
-          onClick={() => {
-            console.log("click");
-          }}
           style={{
             ...STYLE,
             height: dimension,

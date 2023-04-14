@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import Cell from "./cell";
 
 interface Props {
@@ -7,6 +9,7 @@ interface Props {
   fontSize?: number;
   project_id?: string;
   directory?: string;
+  kernel: string;
 }
 
 export default function CellList({
@@ -16,20 +19,35 @@ export default function CellList({
   cmOptions,
   project_id,
   directory,
+  kernel,
 }: Props) {
+  // modifications to inputs of cells (used for temporary editing)
+  const [edits, setEdits] = useState<{ [id: string]: string } | null>(null);
+
   const v: JSX.Element[] = [];
+  let history: string[] = [];
   for (const id of cellList) {
-    if (cells[id] == null) continue;
+    const cell = cells[id];
+    if (cell == null) continue;
     v.push(
       <Cell
         key={id}
-        cell={cells[id]}
+        kernel={kernel}
+        cell={cell}
+        edits={edits}
+        setEdits={setEdits}
         cmOptions={cmOptions}
         project_id={project_id}
         directory={directory}
+        history={history}
       />
     );
+    if (cell["cell_type"] == "code") {
+      const input = edits?.[id]?.trim() ?? cell["input"]?.trim();
+      if (input) {
+        history = history.concat(input);
+      }
+    }
   }
   return <div style={{ fontSize }}>{v}</div>;
 }
-

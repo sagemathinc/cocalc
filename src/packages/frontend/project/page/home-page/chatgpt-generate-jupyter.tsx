@@ -8,8 +8,8 @@ TODO:
 */
 
 import { delay } from "awaiting";
-import { Alert, Button, Input, Select } from "antd";
-import { useState, useEffect } from "react";
+import { Alert, Button, Input, Modal, Select } from "antd";
+import { CSSProperties, useState, useEffect } from "react";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import {
@@ -54,11 +54,15 @@ const LANG_EXTRA: { [language: string]: string } = {
   sagemath: "Use all functions in SageMath.",
 } as const;
 
-export default function ChatGPTGenerateJupyterNotebook({
-  project_id,
-}: {
+interface Props {
   project_id: string;
-}) {
+  onSuccess?: () => void;
+}
+
+export default function ChatGPTGenerateJupyterNotebook({
+  onSuccess,
+  project_id,
+}: Props) {
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
     null
   );
@@ -125,21 +129,21 @@ export default function ChatGPTGenerateJupyterNotebook({
 
   async function generate() {
     if (spec == null) return;
-    setQuerying(true);
 
     const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
 
     const input = `Explain directly and to the point, how to compute the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename for code.\n\n${prompt}`;
 
     try {
+      setQuerying(true);
       const raw = await webapp_client.openai_client.chatgpt({
         input,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
-        model: "gpt-3.5-turbo",
         tag: "generate-jupyter",
       });
       await writeNotebook(raw);
+      onSuccess?.();
     } catch (err) {
       setError(
         `${err}\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`
@@ -327,18 +331,23 @@ export default function ChatGPTGenerateJupyterNotebook({
               disabled={querying}
               options={
                 typeof kernelSpecs == "object"
-                  ? kernelSpecs?.map((spec) => {
-                      return {
-                        display_name: spec.display_name,
-                        label: (
-                          <>
-                            <Logo kernel={spec.name} project_id={project_id} />{" "}
-                            {spec.display_name}
-                          </>
-                        ),
-                        value: spec.name,
-                      };
-                    })
+                  ? kernelSpecs
+                      ?.filter((spec) => !spec?.metadata?.["cocalc"]?.disabled)
+                      .map((spec) => {
+                        return {
+                          display_name: spec.display_name,
+                          label: (
+                            <>
+                              <Logo
+                                kernel={spec.name}
+                                project_id={project_id}
+                              />{" "}
+                              {spec.display_name}
+                            </>
+                          ),
+                          value: spec.name,
+                        };
+                      })
                   : []
               }
               onChange={(value) => {
@@ -362,12 +371,18 @@ export default function ChatGPTGenerateJupyterNotebook({
               </Paragraph>
               <Paragraph>
                 <Input.TextArea
-                  rows={4}
-                  maxLength={1000}
+                  allowClear
+                  autoSize={{ minRows: 2, maxRows: 6 }}
+                  maxLength={2000}
                   placeholder={PLACEHOLDER}
                   value={prompt}
                   disabled={querying}
                   onChange={({ target: { value } }) => setPrompt(value)}
+                  onPressEnter={(e) => {
+                    if (e.shiftKey) {
+                      generate();
+                    }
+                  }}
                 />
                 <br />
                 {example && (
@@ -376,14 +391,14 @@ export default function ChatGPTGenerateJupyterNotebook({
                   </div>
                 )}
               </Paragraph>
-              <Paragraph>
+              <Paragraph style={{ textAlign: "center" }}>
                 <Button
                   type="primary"
                   size="large"
                   onClick={generate}
                   disabled={querying || !prompt?.trim() || !spec}
                 >
-                  <Icon name="bolt" /> Generate Notebook
+                  <Icon name="bolt" /> Generate Notebook (shift+enter)
                 </Button>
               </Paragraph>
               {!error && querying && <ProgressEstimate seconds={30} />}
@@ -411,4 +426,43 @@ function stripTrailingWhitespace(source: string[]) {
   if (source.length > 0) {
     source[source.length - 1] = source[source.length - 1].trimRight();
   }
+}
+
+export function ChatGPTGenerateNotebookButton({
+  project_id,
+  style,
+}: {
+  project_id: string;
+  style?: CSSProperties;
+}) {
+  const [show, setShow] = useState<boolean>(false);
+  if (!redux.getStore("projects").hasOpenAI(project_id)) {
+    return null;
+  }
+  const handleOk = () => {
+    setShow(false);
+  };
+
+  const handleCancel = () => {
+    setShow(false);
+  };
+
+  return (
+    <>
+      <Button onClick={() => setShow(true)} style={style}>
+        Generate Jupyter Notebook...
+      </Button>
+      <Modal
+        title="Generate Jupyter Notebook"
+        visible={show}
+        onOk={handleOk}
+        onCancel={handleCancel}
+      >
+        <ChatGPTGenerateJupyterNotebook
+          project_id={project_id}
+          onSuccess={() => setShow(false)}
+        />
+      </Modal>
+    </>
+  );
 }

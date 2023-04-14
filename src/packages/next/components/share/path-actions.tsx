@@ -36,25 +36,6 @@ export default function PathActions({
 }: Props) {
   const include = (action: string) => !exclude?.has(action);
   const v: JSX.Element[] = [];
-  if (include("edit")) {
-    if (url && isDir) {
-      // TODO!
-      // have to implement git clone...
-    } else {
-      v.push(
-        <Edit
-          key="edit"
-          id={id}
-          path={path}
-          url={url}
-          relativePath={relativePath}
-          image={image}
-          project_id={project_id}
-          description={description}
-        />
-      );
-    }
-  }
   if (!url && include("hosted")) {
     v.push(
       <Link key="hosted" href={`/share/public_paths/${id}`}>
@@ -87,6 +68,26 @@ export default function PathActions({
         Raw
       </ExternalLink>
     );
+  }
+
+  if (include("edit")) {
+    if (url && isDir) {
+      // TODO!
+      // have to implement git clone...
+    } else {
+      v.push(
+        <Edit
+          key="edit"
+          id={id}
+          path={path}
+          url={url}
+          relativePath={relativePath}
+          image={image}
+          project_id={project_id}
+          description={description}
+        />
+      );
+    }
   }
 
   return <div style={{ marginTop: "5px" }}>{r_join(v, " | ")}</div>;

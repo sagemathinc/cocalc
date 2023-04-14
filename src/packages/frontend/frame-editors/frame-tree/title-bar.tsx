@@ -53,7 +53,7 @@ import { get_default_font_size } from "../generic/client";
 import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
-import ChatGPT from "./chatgpt";
+import ChatGPT from "../chatgpt/title-bar-button";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -958,6 +958,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         key={"chatgpt"}
         id={props.id}
         actions={props.actions}
+        path={props.path}
         ButtonComponent={Button}
         buttonSize={button_size()}
         buttonStyle={{
@@ -995,7 +996,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return (
       <Button
         key={"help"}
-        title={"Show help for working with this type of document"}
+        title={"Show documentation for working with this editor"}
         bsSize={button_size()}
         onClick={() =>
           typeof props.actions.help === "function"
@@ -1004,7 +1005,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }
       >
         <Icon name="question-circle" />{" "}
-        <VisibleMDLG>{labels ? "Help" : undefined}</VisibleMDLG>
+        <VisibleMDLG>{labels ? "Docs…" : undefined}</VisibleMDLG>
       </Button>
     );
   }
@@ -1017,7 +1018,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       ...{
         title: "Guide",
         descr: "Show guidebook",
-        icon: "book" as IconName,
+        icon: "magic" as IconName,
       },
       ...props.editor_spec[props.type].guide_info,
     };
@@ -1113,7 +1114,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         key={"format"}
         bsSize={button_size()}
         onClick={() => props.editor_actions.format(props.id)}
-        title={"Canonically format the entire document."}
+        title={"Syntactically format the document."}
       >
         <Icon name={FORMAT_SOURCE_ICON} />{" "}
         <VisibleMDLG>{labels ? "Format" : undefined}</VisibleMDLG>
@@ -1417,6 +1418,26 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_export_to_markdown(labels): Rendered {
+    if (
+      !is_visible("export_to_markdown") ||
+      student_project_functionality.disableActions
+    ) {
+      return;
+    }
+    return (
+      <Button
+        key={"export"}
+        bsSize={button_size()}
+        onClick={() => props.editor_actions["export_to_markdown"]?.(props.id)}
+        title={"Export to Markdown File..."}
+      >
+        <Icon name={"markdown"} />{" "}
+        <VisibleMDLG>{labels ? "Export" : undefined}</VisibleMDLG>
+      </Button>
+    );
+  }
+
   function render_print(labels): Rendered {
     if (!is_visible("print") || student_project_functionality.disableActions) {
       return;
@@ -1563,6 +1584,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     if (!is_public) {
       v.push(render_undo_redo_group());
     }
+    v.push(render_format(labels));
     v.push(render_restart(labels));
     v.push(render_close_and_halt(labels));
 
@@ -1579,10 +1601,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     v.push(render_clear());
     v.push(render_count_words());
     v.push(render_kick_other_users_out());
-    v.push(render_format(labels));
     v.push(render_terminal(labels));
     v.push(render_shell(labels));
     v.push(render_print(labels));
+    v.push(render_export_to_markdown(labels));
     v.push(render_table_of_contents(labels));
     v.push(render_show_pages(labels));
     v.push(render_show_overview(labels));

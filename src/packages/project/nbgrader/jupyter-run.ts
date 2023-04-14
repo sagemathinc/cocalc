@@ -11,20 +11,18 @@ import { retry_until_success } from "@cocalc/util/async-utils";
 import { kernel, JupyterKernel } from "../jupyter/jupyter";
 
 // For tracking limits during the run:
-interface Limits {
+export interface Limits {
   timeout_ms_per_cell: number;
   max_output_per_cell: number;
-  timeout_ms: number;
   max_output: number;
-  start_time: number;
   total_output: number;
+  timeout_ms?: number;
+  start_time?: number;
 }
 
 function global_timeout_exceeded(limits: Limits): boolean {
-  return (
-    limits.timeout_ms != 0 &&
-    new Date().valueOf() - limits.start_time >= limits.timeout_ms
-  );
+  if (limits.timeout_ms == null || limits.start_time == null) return false;
+  return Date.now() - limits.start_time >= limits.timeout_ms;
 }
 
 export async function jupyter_run_notebook(
@@ -42,7 +40,7 @@ export async function jupyter_run_notebook(
     timeout_ms_per_cell: opts.limits?.max_time_per_cell_ms ?? 0,
     max_output: opts.limits?.max_output ?? 0,
     max_output_per_cell: opts.limits?.max_output_per_cell ?? 0,
-    start_time: new Date().valueOf(),
+    start_time: Date.now(),
     total_output: 0,
   };
 
@@ -128,7 +126,7 @@ export async function jupyter_run_notebook(
   return JSON.stringify(notebook);
 }
 
-async function run_cell(
+export async function run_cell(
   jupyter: JupyterKernel,
   limits: Limits,
   cell
@@ -137,7 +135,7 @@ async function run_cell(
     throw Error("jupyter must be defined");
   }
 
-  if (global_timeout_exceeded(limits)) {
+  if (limits.timeout_ms && global_timeout_exceeded(limits)) {
     // the total time has been exceeded -- this will mark outputs as error
     // for each cell in the rest of the notebook.
     throw Error(

@@ -4,6 +4,7 @@ Use ChatGPT to explain what the code in a cell does.
 
 import { CSSProperties, useState } from "react";
 import { Alert, Button, Tooltip } from "antd";
+
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import type { JupyterActions } from "../browser-actions";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
@@ -66,8 +67,6 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
   );
 }
 
-//import { delay } from "awaiting";
-
 async function getExplanation({
   id,
   actions,
@@ -89,11 +88,11 @@ async function getExplanation({
   const language = kernel_info.get("language");
   const message = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> Explain the following ${kernel_info.get(
     "display_name"
-  )} code in a Jupyter notebook:
+  )} code that is in a Jupyter notebook:\n\n<details>\n\n
 \`\`\`${language}
 ${cell.get("input")}
 \`\`\`
-`;
+\n\n</details>`;
   // scroll to bottom *after* the message gets sent.
   setTimeout(() => chatActions.scrollToBottom(), 100);
   await chatActions.send_chat(message, undefined, undefined, "jupyter-explain");

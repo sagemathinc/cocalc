@@ -27,6 +27,7 @@ interface Customize extends ServerCustomize {
   sandboxProjectId?: string; // a sandbox project to put on landing pages...
   serverTime?: number; // the time on the server, in milliseconds since the epoch
   openaiEnabled?: boolean; // backend is configured to provide openai integration.
+  jupyterApiEnabled?: boolean; // backend configured to use a pool of projects for sandboxed ephemeral jupyter code execution
 }
 
 const CustomizeContext = createContext<Partial<Customize>>({});

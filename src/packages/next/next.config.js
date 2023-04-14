@@ -15,7 +15,9 @@ const cacheDirectory = join(
   resolve(".")
 );
 
-module.exports = {
+const removeImports = require("next-remove-imports")();
+
+module.exports = removeImports({
   basePath,
   swcMinify: true, //  enable faster RUST-based minifier
   env: { BASE_PATH },
@@ -74,4 +76,4 @@ module.exports = {
     defaultLocale: "en-US",
   },
   poweredByHeader: false, // https://github.com/sagemathinc/cocalc/issues/6101
-};
+});

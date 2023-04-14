@@ -83,7 +83,6 @@ async function connection_to_project0(project_id: string): Promise<any> {
   async function get_primus(do_eval: boolean) {
     let timeout: number = 750;
     await retry_until_success({
-      // log: console.log,
       f: async function () {
         if (do_eval && READING_PRIMUS_JS) {
           throw Error("currently reading one already");
@@ -162,7 +161,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
           //console.log("success!");
         }
       },
-      start_delay: 50,
+      start_delay: 150,
       max_delay: 5000, // do not make too aggressive or it DDOS proxy server;
       // but also not too slow since project startup will feel slow to user.
       // NOTE that since we wait until the project is running before any attempt to connect,
@@ -172,9 +171,9 @@ async function connection_to_project0(project_id: string): Promise<any> {
       // is even possible).
       factor: 1.2,
       desc: "connecting to project",
-      log: (...x) => {
-        log("retry primus:", ...x);
-      },
+//       log: (...x) => {
+//         log("retry primus:", ...x);
+//       },
     });
 
     log("got primus.js successfully");

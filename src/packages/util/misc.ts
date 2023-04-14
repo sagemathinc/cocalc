@@ -2235,8 +2235,7 @@ export function closest_kernel_match(
     }
   }
   if (bestMatch == null) {
-    // should be impossible in practice since kernel_list is non-empty and so
-    // on, but just in case...
+    // kernel list could be empty...
     return kernel_list.get(0) ?? immutable.Map<string, string>();
   }
   return bestMatch;

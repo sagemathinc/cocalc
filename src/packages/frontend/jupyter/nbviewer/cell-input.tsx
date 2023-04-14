@@ -1,16 +1,111 @@
+/*
+Show the input part of a cell.
+*/
+
 import { CodeMirrorStatic } from "../codemirror-static";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { InputPrompt } from "../prompt/input-nbviewer";
+import ActionButtons from "@cocalc/frontend/editors/slate/elements/code-block/action-buttons";
+import { Button, Tooltip } from "antd";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { useRef, useState } from "react";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import CodeEditor from "@cocalc/frontend/components/code-editor";
 
 interface Props {
   cell: object;
   cmOptions: { [field: string]: any };
   project_id?: string;
   directory?: string;
+  kernel: string;
+  output;
+  setOutput;
+  history: string[];
+  edits: { [id: string]: string } | null;
+  setEdits: (edits: { [id: string]: string } | null) => void;
 }
 
-export default function CellInput({ cell, cmOptions }: Props) {
-  const value = cell["input"] ?? "";
+export default function CellInput({
+  cell,
+  cmOptions,
+  kernel,
+  output,
+  setOutput,
+  history,
+  edits,
+  setEdits,
+}: Props) {
+  const value = edits?.[cell["id"] ?? ""] ?? cell["input"] ?? "";
+  const [editing, setEditing] = useState<boolean>(false);
+  const [newValue, setNewValue] = useState<string>(value);
+  const { jupyterApiEnabled, disableExtraButtons } = useFileContext();
+  const runRef = useRef<any>(null);
+
+  const save = (run) => {
+    setEdits({ ...edits, [cell["id"] ?? ""]: newValue });
+    setEditing(false);
+    if (!run) return;
+    // have to wait since above causes re-render
+    setTimeout(() => {
+      runRef.current?.();
+    }, 1);
+  };
+
+  const controlBar = disableExtraButtons ? null : (
+    <div
+      style={{
+        borderBottom: "1px solid #ccc",
+        padding: "3px",
+        display: "flex",
+        background: "#f8f8f8",
+      }}
+    >
+      <div style={{ flex: 1 }} />
+      {jupyterApiEnabled && (
+        <Tooltip
+          placement="top"
+          title={
+            <>
+              Make a <i>temporary</i> change to this code.{" "}
+              <b>This is not saved permanently anywhere!</b>
+              'Edit in a Project...' for much more powerful editing and to save
+              your changes!
+            </>
+          }
+        >
+          <Button
+            size="small"
+            type={editing && newValue != value ? undefined : "text"}
+            style={
+              editing && newValue != value
+                ? { background: "#5cb85c", color: "white" }
+                : { color: "#666" }
+            }
+            onClick={() => {
+              if (editing) {
+                save(false);
+              } else {
+                setEditing(!editing);
+              }
+            }}
+          >
+            <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
+          </Button>
+        </Tooltip>
+      )}
+      <ActionButtons
+        auto={false}
+        size="small"
+        input={newValue}
+        output={output}
+        setOutput={setOutput}
+        info={`${cmOptions.mode?.name} {kernel='${kernel}'}`}
+        history={history}
+        runRef={runRef}
+      />
+    </div>
+  );
+
   return (
     <div
       style={{
@@ -23,7 +118,47 @@ export default function CellInput({ cell, cmOptions }: Props) {
       {cell["cell_type"] == "markdown" ? (
         <Markdown value={value} />
       ) : (
-        <CodeMirrorStatic value={value} options={cmOptions} />
+        <div style={{ overflow: "hidden", flex: 1 }}>
+          {editing && (
+            <div
+              style={{
+                border: "1px solid #ccc",
+                borderRadius: "5px",
+                overflow: "hidden",
+              }}
+            >
+              {controlBar}
+              <CodeEditor
+                autoFocus
+                language={cmOptions.mode?.name}
+                value={value}
+                style={{
+                  fontSize: "14.6666px",
+                  fontFamily: "monospace",
+                  lineHeight: "normal",
+                  border: "0px solid white",
+                }}
+                onChange={(event) => setNewValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.shiftKey && event.keyCode === 13) {
+                    save(true);
+                    event.stopPropagation();
+                  }
+                }}
+              />
+            </div>
+          )}
+          {!editing && (
+            <CodeMirrorStatic
+              style={{ padding: "10px" }}
+              value={value}
+              options={cmOptions}
+              addonBefore={controlBar}
+              onDoubleClick={() => setEditing(true)}
+            />
+          )}
+          {output}
+        </div>
       )}
     </div>
   );

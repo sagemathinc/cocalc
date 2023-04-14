@@ -9,7 +9,7 @@ The kernel's logo display
 
 import { CSSProperties, useState } from "react";
 import { get_logo_url } from "./server-urls";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
 const DEFAULT_HEIGHT = 24; // this matches the rest of the status bar.
 
@@ -28,15 +28,15 @@ export default function Logo({
   style,
   project_id,
 }: Props) {
-  const frame = useFrameContext();
+  const fileContext = useFileContext();
   if (project_id == null) {
-    project_id = frame.project_id;
+    project_id = fileContext.project_id;
   }
   const [logo_failed, set_logo_failed] = useState<string | undefined>(
     undefined
   );
 
-  if (logo_failed === kernel || kernel == null) {
+  if (logo_failed === kernel || kernel == null || project_id == null) {
     return (
       <div
         style={{

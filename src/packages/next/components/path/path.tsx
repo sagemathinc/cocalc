@@ -4,7 +4,14 @@
  */
 
 import { useEffect, useState } from "react";
-import { Alert, Avatar as AntdAvatar, Button, Divider, Tooltip } from "antd";
+import {
+  Alert,
+  Avatar as AntdAvatar,
+  Button,
+  Divider,
+  Space,
+  Tooltip,
+} from "antd";
 import Link from "next/link";
 import PathContents from "components/share/path-contents";
 import PathActions from "components/share/path-actions";
@@ -32,6 +39,7 @@ import Avatar from "components/share/proxy/avatar";
 import A from "components/misc/A";
 import { join } from "path";
 import GoogleSearch from "../share/google-search";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 
 interface Props {
   id: string;
@@ -198,11 +206,11 @@ export default function PublicPath({
       );
     }
     return (
-      <div style={{ textAlign: "center" }}>
-        {btn}
-        <A href="/stars" style={{ marginLeft: "5px" }}>
+      <div>
+        <A href="/stars" style={{ marginRight: "10px" }}>
           Your stars...
         </A>
+        {btn}
       </div>
     );
   }
@@ -318,11 +326,19 @@ export default function PublicPath({
           />
         )}
         <div>
-          <div style={{ float: "right", display: "flex" }}>
+          <Space
+            style={{ float: "right", justifyContent: "flex-end" }}
+            direction="vertical"
+          >
             {renderStar()}
-            <div style={{ width: "15px" }} />
-            <GoogleSearch style={{ width: "225px" }} />
-          </div>
+            <GoogleSearch style={{ width: "450px" }} size="large" />
+            <ChatGPTHelp
+              size="large"
+              tag={"share"}
+              style={{ width: "450px" }}
+              prompt={`I am using the file ${path}.`}
+            />
+          </Space>
           {signingUp && (
             <Alert
               style={{ margin: "0 auto", maxWidth: "400px" }}

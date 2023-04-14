@@ -37,6 +37,9 @@ interface SelectionState {
   // changes it), and true selection is then used to select proper part of editor
   // that is actually rendered in the DOM.
   windowedSelection?: true | Range;
+
+  // if true, the selection sync hooks are temporarily disabled.
+  ignoreSelection: boolean;
 }
 
 export const useUpdateDOMSelection = ({
@@ -52,7 +55,11 @@ export const useUpdateDOMSelection = ({
   // by new text), so this setting of the selection usually happens, and happens
   // **a lot**.
   const updateDOMSelection = () => {
-    if (state.isComposing || !ReactEditor.isFocused(editor)) {
+    if (
+      state.isComposing ||
+      !ReactEditor.isFocused(editor) ||
+      state.ignoreSelection
+    ) {
       return;
     }
 
@@ -194,7 +201,7 @@ export const useDOMSelectionChange = ({
   // while a selection is being dragged.
 
   const onDOMSelectionChange = useCallback(() => {
-    if (readOnly || state.isComposing) {
+    if (readOnly || state.isComposing || state.ignoreSelection) {
       return;
     }
 

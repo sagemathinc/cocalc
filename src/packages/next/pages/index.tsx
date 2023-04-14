@@ -241,7 +241,7 @@ export async function getServerSideProps(context) {
     FROM public_paths
     WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
     ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
-    ORDER BY stars DESC,last_edited DESC LIMIT $2`,
+    ORDER BY last_edited DESC LIMIT $2`,
       [isAuthenticated, 150]
     );
     publicPaths = rows;

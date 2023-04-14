@@ -61,7 +61,7 @@ export function create_key_handler(
   jupyter_actions: JupyterActions,
   frame_actions: NotebookFrameActions,
   editor_actions: JupyterEditorActions
-): Function {
+): (e: any) => void {
   if (
     jupyter_actions == null ||
     frame_actions == null ||
