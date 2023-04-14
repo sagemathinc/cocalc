@@ -24,6 +24,7 @@ export interface NewsState {
 }
 
 export class NewsStore extends Store<NewsState> {
+  // returns the newest timestamp of all news items as an epoch timestamp in milliseconds
   public getNewestTimestamp(): number {
     const news = this.get("news");
     if (news == null) {
@@ -55,8 +56,9 @@ export class NewsActions extends Actions<NewsState> {
     return store;
   }
 
-  public markNewsRead(): void {
-    const newest = this.getStore().getNewestTimestamp();
+  public markNewsRead(date?: Date): void {
+    const newest: number = // javascript epoch timestamp in milliseconds
+      date == null ? this.getStore().getNewestTimestamp() : date.getTime();
     const account_actions = redux.getActions("account");
     account_actions.set_other_settings("news_read_until", newest);
   }

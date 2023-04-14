@@ -48,11 +48,13 @@ export function NewsPanel(props: NewsPanelProps) {
       .sort((a, b) => -cmp_Date(a.date, b.date));
   }, [news, filter]);
 
-  function newsItemOnClick(e: React.MouseEvent, url: string) {
+  // If a user clicks on a news item, we assume they saw all news up until that point.
+  // (and even if not, it's fine, they don't vanish)
+  function newsItemOnClick(e: React.MouseEvent, news: NewsItemWebapp) {
+    const { id, date } = news;
     e.stopPropagation();
-    // If a user clicks on a news item, we assume they saw all news.
-    // (and even if not, it's fine, they don't vanish)
-    news_actions.markNewsRead();
+    const url = `${BASE_URL}/news/${id}`;
+    news_actions.markNewsRead(date);
     open_new_tab(url);
   }
 
@@ -99,13 +101,12 @@ export function NewsPanel(props: NewsPanelProps) {
   function renderNewsItem(n: NewsItemWebapp) {
     const { id, title, channel, date, tags } = n;
     const icon = CHANNELS_ICONS[channel] as IconName;
-    const url = `${BASE_URL}/news/${id}`;
     const isUnread =
       news_read_until == null || date.getTime() > news_read_until;
     return (
       <List.Item
         key={id}
-        onClick={(e) => newsItemOnClick(e, url)}
+        onClick={(e) => newsItemOnClick(e, n)}
         style={{
           backgroundColor: isUnread ? COLORS.ANTD_BG_BLUE_L : undefined,
         }}
@@ -113,7 +114,7 @@ export function NewsPanel(props: NewsPanelProps) {
           <Button
             key="read"
             type="ghost"
-            onClick={(e) => newsItemOnClick(e, url)}
+            onClick={(e) => newsItemOnClick(e, n)}
           >
             <Icon name="external-link" />
           </Button>,
