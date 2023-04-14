@@ -78,10 +78,10 @@ async function connection_to_project0(project_id: string): Promise<any> {
   // So that the store reflects that we are not connected but are trying.
   set_project_websocket_state(project_id, "offline");
 
-  const MAX_AJAX_TIMEOUT_MS: number = 3500;
+  const MAX_AJAX_TIMEOUT_MS: number = 5000;
 
   async function get_primus(do_eval: boolean) {
-    let timeout: number = 750;
+    let timeout: number = 2000;
     await retry_until_success({
       f: async function () {
         if (do_eval && READING_PRIMUS_JS) {
@@ -244,7 +244,7 @@ async function connection_to_project0(project_id: string): Promise<any> {
     // put this delay in since otherwise we try to reconnect so rapidly that
     // we basically DOS the project thus slowing down connecting by a
     // few seconds, which is dumb:
-    await delay(1000);
+    await delay(2000);
     if (conn.api == null) return; // done with this connection
     update_state("offline");
     await get_primus(false);
