@@ -52,21 +52,20 @@ export class OpenAIClient {
     }
     // await delay(5000);
     // return "Test";
-    const { numTokens, truncateHistory, truncateMessage, MAX_CHATGPT_TOKENS } =
-      await import("@cocalc/frontend/misc/openai");
-    const n = numTokens(input);
+    const {
+      numTokensUpperBound,
+      truncateHistory,
+      truncateMessage,
+      MAX_CHATGPT_TOKENS,
+    } = await import("@cocalc/frontend/misc/openai");
     // We leave some room for output, hence about 3000 instead of 4000 here:
     const maxTokens = MAX_CHATGPT_TOKENS - 1000;
+    input = truncateMessage(input, maxTokens);
+    const n = numTokensUpperBound(input);
     if (n >= maxTokens) {
-      if (n > maxTokens) {
-        input = truncateMessage(input, maxTokens);
-      }
       history = undefined;
-    } else {
-      history =
-        history != null
-          ? truncateHistory(history, maxTokens - numTokens(input))
-          : undefined;
+    } else if (history != null) {
+      history = truncateHistory(history, maxTokens - n);
     }
     // console.log("chatgpt", { input, system, history, project_id, path });
     const resp = await this.async_call({
