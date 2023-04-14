@@ -4,18 +4,18 @@ Backend server side part of ChatGPT integration with CoCalc.
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import getOneProject from "@cocalc/server/projects/get-one";
+import getProject from "./global-project-pool";
 import callProject from "@cocalc/server/projects/call";
 import { jupyter_kernels } from "@cocalc/util/message";
 import LRU from "lru-cache";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
-// cache for 90s, since projects not under user control so kernels don't get installed often.
-const cache = new LRU<"kernel_data", object[]>({
-  ttl: 90000,
-  max: 5 /* silly since only one possible key */,
+const cache = new LRU<string, object[]>({
+  ttl: 30000,
+  max: 300,
 });
 
-const log = getLogger("jupyter:execute");
+const log = getLogger("jupyter-api:kernels");
 
 async function getConfig() {
   log.debug("get config");
@@ -27,25 +27,44 @@ async function getConfig() {
   };
 }
 
-export default async function getKernels(): Promise<object[]> {
-  if (cache.has("kernel_data")) {
-    return cache.get("kernel_data")!;
+export default async function getKernels({
+  project_id,
+  account_id,
+}: {
+  project_id?: string;
+  account_id?: string;
+}): Promise<object[]> {
+  if (project_id != null) {
+    if (account_id == null) {
+      throw Error("account_id must be specified -- make sure you are signed in");
+    }
+    if (!isCollaborator({ project_id, account_id })) {
+      throw Error("permission denied -- user must be collaborator on project");
+    }
   }
-  // TODO -- await checkForAbuse({ account_id, analytics_cookie });
-  const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
-  if (!jupyter_api_enabled) {
-    throw Error("Jupyter API is not enabled on this server.");
+
+  const key = project_id ?? "global";
+  if (cache.has(key)) {
+    return cache.get(key)!;
   }
-  const { project_id } = await getOneProject(jupyter_account_id);
+
+  if (project_id == null) {
+    const { jupyter_account_id, jupyter_api_enabled } = await getConfig();
+    if (!jupyter_api_enabled) {
+      throw Error("Jupyter API is not enabled on this server.");
+    }
+    project_id = await getProject();
+    account_id = jupyter_account_id;
+  }
   const mesg = jupyter_kernels({});
   const resp = await callProject({
-    account_id: jupyter_account_id,
+    account_id,
     project_id,
     mesg,
   });
   if (resp.error) {
     throw Error(resp.error);
   }
-  cache.set("kernel_data", resp.kernels);
+  cache.set(key, resp.kernels);
   return resp.kernels;
 }

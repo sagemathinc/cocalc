@@ -54,6 +54,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   ]);
   useProjectStatus(actions);
   const fullscreen = useTypedRedux("page", "fullscreen");
+  const active_top_tab = useTypedRedux("page", "active_top_tab");
   const modal = useTypedRedux({ project_id }, "modal");
   const open_files_order = useTypedRedux({ project_id }, "open_files_order");
   const active_project_tab = useTypedRedux(
@@ -79,10 +80,13 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             actions: redux.getEditorActions(project_id, path) as any,
             isFocused: active_project_tab === tab_name,
             isVisible: active_project_tab === tab_name,
+            redux,
           }}
         >
           <Content
-            is_visible={active_project_tab === tab_name}
+            is_visible={
+              active_top_tab == project_id && active_project_tab === tab_name
+            }
             project_id={project_id}
             tab_name={tab_name}
           />

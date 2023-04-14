@@ -14,9 +14,9 @@ export class JupyterClient {
     this.async_call = async_call;
   }
 
-  public async kernels(): Promise<KernelSpec[]> {
+  public async kernels(project_id?: string): Promise<KernelSpec[]> {
     const resp = await this.async_call({
-      message: message.jupyter_kernels({}),
+      message: message.jupyter_kernels({ project_id }),
     });
     if (resp.error) {
       throw Error(resp.error);
@@ -28,24 +28,33 @@ export class JupyterClient {
     input,
     kernel,
     history,
+    hash,
     tag = "",
+    project_id,
+    path,
   }: {
-    input: string;
-    kernel: string;
+    input?: string;
+    kernel?: string;
     history?: string[];
+    hash?: string;
     tag?: string;
-  }): Promise<string> {
+    project_id?: string;
+    path?: string;
+  }): Promise<{ output: object[]; time: Date; total_time_s: number } | null> {
     const resp = await this.async_call({
       message: message.jupyter_execute({
+        hash,
         input,
         kernel,
         history,
         tag,
+        project_id,
+        path,
       }),
     });
     if (resp.error) {
       throw Error(resp.error);
     }
-    return resp.output;
+    return resp;
   }
 }

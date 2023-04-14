@@ -14,6 +14,7 @@ type State = "input" | "wait";
 const PROMPT = [
   "ASSUME I HAVE FULL ACCESS TO COCALC.", // otherwise it says things like "as a large language model I don't have access to cocalc."
   "ENCLOSE MATH IN $.", // so math gets typeset nicely
+  "INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.", // otherwise often we can't evaluate code.
   "How can I do the following using CoCalc?", // give the context of how the question the user asks should be answered.
 ].join(" ");
 
@@ -72,23 +73,54 @@ export default function ChatGPTHelp({
   return (
     <FileContext.Provider value={{ jupyterApiEnabled }}>
       <div style={style}>
-        <Input.Search
-          size={size}
-          disabled={state == "wait"}
-          onFocus={() => setFocus(true)}
-          onBlur={() => setFocus(false)}
-          placeholder={
-            placeholder ?? `What do you want to do using ${siteName}?`
-          }
-          allowClear
-          enterButton={
-            <>
-              <OpenAIAvatar size={18} backgroundColor="transparent" />
-              {!focus && <> Ask ChatGPT</>}
-            </>
-          }
-          onSearch={chatgpt}
-        />
+        <div style={{ width: "100%", display: "flex" }}>
+          <Input.TextArea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            style={{ flex: 1 }}
+            size={size}
+            autoSize={{ minRows: focus ? 2 : 1, maxRows: 5 }}
+            disabled={state == "wait"}
+            onFocus={() => setFocus(true)}
+            onBlur={() => setFocus(false)}
+            placeholder={
+              placeholder ?? `What do you want to do on ${siteName}?`
+            }
+            allowClear
+            onPressEnter={(e) => {
+              if (e.shiftKey) {
+                chatgpt();
+              }
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              textAlign: "center",
+            }}
+          >
+            <Button
+              disabled={!input?.trim()}
+              size={size}
+              type="primary"
+              style={{
+                marginLeft: "5px",
+                height: size == "large" ? "39px" : undefined,
+              }}
+            >
+              <OpenAIAvatar
+                size={size == "large" ? 24 : 18}
+                backgroundColor="transparent"
+                style={{ marginRight: "5px", marginTop: "-4px" }}
+              />
+              Ask ChatGPT
+            </Button>
+            <span style={{ color: "#666" }}>
+              {focus && input.trim() && "Shift + Enter"}
+            </span>
+          </div>
+        </div>
         {error && (
           <Alert
             style={{ margin: "15px 0" }}

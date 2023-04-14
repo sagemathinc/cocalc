@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CookieOptions, Response, Request } from "express";
+import type { CookieOptions, Request, Response } from "express";
 import ms from "ms";
 
 import {
@@ -15,10 +15,7 @@ import {
 // This is a fallback, if either analytics is not activated or it has not been set yet.
 // The usual case would be that hub/analytics-script.ts sets the cookie.
 // @return a UUID string
-export  function ensureAnalyticsCookie(
-  req: Request,
-  res: Response
-): string {
+export function ensureAnalyticsCookie(req: Request, res: Response): string {
   const analytics_cookie = req.cookies[ANALYTICS_COOKIE_NAME];
 
   if (is_valid_uuid_string(analytics_cookie)) {

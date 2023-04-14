@@ -42,6 +42,9 @@ export interface ReactEditor extends Editor {
   forceUpdate: (editor: ReactEditor) => void;
   ticks: number;
   updateDOMSelection?: () => void;
+  // if true, temporary ignore selection. This is used to make it possible to select and copy inside of void elements.
+  setIgnoreSelection: (value: boolean) => void;
+  getIgnoreSelection: () => boolean;
 }
 
 export const ReactEditor = {

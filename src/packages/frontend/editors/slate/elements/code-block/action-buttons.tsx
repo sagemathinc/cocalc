@@ -5,34 +5,33 @@ import RunButton, {
 } from "@cocalc/frontend/components/run-button";
 export type { RunFunction };
 
-const buttonStyle = { color: "#666", fontSize: "9pt" } as const;
+const buttonStyle = { color: "#666" } as const;
 
 export default function ActionButtons({
   input,
+  history,
   setOutput,
-  kernel,
+  output,
+  info,
   runRef,
+  size,
+  auto,
 }: RunButtonProps) {
   return (
-    <div style={{ position: "relative" }}>
-      <div
-        style={{
-          display: "flex",
-          position: "absolute",
-          right: 0,
-          top: "-3px",
-          zIndex: 1,
-        }}
-      >
-        <RunButton
-          kernel={kernel}
-          style={buttonStyle}
-          input={input}
-          setOutput={setOutput}
-          runRef={runRef}
-        />
-        <CopyButton style={buttonStyle} value={input} />
-      </div>
-    </div>
+    <>
+      <CopyButton style={buttonStyle} value={input} size={size} />
+      <div style={{ width: "5px" }} />
+      <RunButton
+        info={info}
+        style={buttonStyle}
+        input={input}
+        history={history}
+        setOutput={setOutput}
+        output={output}
+        runRef={runRef}
+        size={size}
+        auto={auto}
+      />
+    </>
   );
 }

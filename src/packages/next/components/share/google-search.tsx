@@ -6,15 +6,24 @@
 import { CSSProperties, useState } from "react";
 import { Input } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { useCustomize } from "lib/customize";
 
-export default function GoogleSearch({ style }: { style?: CSSProperties }) {
+export default function GoogleSearch({
+  style,
+  size,
+}: {
+  style?: CSSProperties;
+  size?;
+}) {
   const [focus, setFocus] = useState<boolean>(false);
+  const { siteName } = useCustomize();
   return (
     <Input.Search
+      size={size}
       onFocus={() => setFocus(true)}
       onBlur={() => setFocus(false)}
       style={style}
-      placeholder="Search..."
+      placeholder={`Google ${siteName} for Shared Files...`}
       allowClear
       enterButton={
         <>

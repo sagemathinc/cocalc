@@ -9,6 +9,9 @@ interface Props {
   project_id?: string;
   directory?: string;
   kernel: string;
+  history: string[];
+  edits: { [id: string]: string } | null;
+  setEdits: (edits: { [id: string]: string } | null) => void;
 }
 
 export default function Cell({
@@ -17,6 +20,9 @@ export default function Cell({
   project_id,
   directory,
   kernel,
+  history,
+  edits,
+  setEdits,
 }: Props) {
   const [output, setOutput] = useState<null | ReactNode>(null);
   return (
@@ -27,8 +33,11 @@ export default function Cell({
         kernel={kernel}
         output={output}
         setOutput={setOutput}
+        history={history}
+        edits={edits}
+        setEdits={setEdits}
       />
-      {output == null && (
+      {edits == null && output == null && (
         <CellOutput cell={cell} project_id={project_id} directory={directory} />
       )}
     </div>

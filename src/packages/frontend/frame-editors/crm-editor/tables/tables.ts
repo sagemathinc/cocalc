@@ -28,6 +28,7 @@ import "./syncstrings";
 import "./vouchers";
 import "./openai";
 import "./analytics";
+import "./jupyter-api";
 
 interface TableDescription {
   name: string;

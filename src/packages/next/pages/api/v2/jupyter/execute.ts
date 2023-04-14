@@ -7,20 +7,28 @@ The INPUT parameters are:
 - history: list of previous inputs as string (in order) that were sent to the kernel.
 - input: a new input
 
+ALTERNATIVELY, can just give:
+
+- hash: hash of kernel/history/input
+
+and if output is known it is returned. Otherwise, nothing happens.
+We are trusting that there aren't hash collisions for this applications,
+since we're using a sha1 hash.
+
 The OUTPUT is:
 
 - a list of messages that describe the output of the last code execution.
 
 */
 
-import type { Request, Response } from "express";
+import type { Response, Request } from "express";
 
 import { execute } from "@cocalc/server/jupyter/execute";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 import { ensureAnalyticsCookie } from "@cocalc/server/analytics/cookie-fallback";
 
-export default async function handle(req, res) {
+export default async function handle(req: Request, res: Response) {
   try {
     const result = await doIt(req, res);
     res.json({ ...result, success: true });
@@ -31,20 +39,22 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req: Request, res: Response) {
-  const { input, kernel, history, tag, noCache } = getParams(req, {
-    allowGet: true,
-  });
+  const { input, kernel, history, tag, noCache, hash, project_id, path } =
+    getParams(req, {
+      allowGet: true,
+    });
   const account_id = await getAccountId(req);
   const analytics_cookie = ensureAnalyticsCookie(req, res);
-  return {
-    output: await execute({
-      account_id,
-      analytics_cookie,
-      input,
-      history,
-      kernel,
-      tag,
-      noCache,
-    }),
-  };
+  return await execute({
+    account_id,
+    project_id,
+    path,
+    analytics_cookie,
+    input,
+    hash,
+    history,
+    kernel,
+    tag,
+    noCache,
+  });
 }

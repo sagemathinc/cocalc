@@ -5,7 +5,8 @@
 
 import { Icon, Space } from "../components";
 import { plural } from "@cocalc/util/misc";
-import { Alert, Button, ButtonGroup, ButtonToolbar } from "../antd-bootstrap";
+import { Button } from "antd";
+import { Alert, ButtonGroup, ButtonToolbar } from "../antd-bootstrap";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";
 import {
@@ -38,7 +39,13 @@ export const ProjectsListingDescription: React.FC<Props> = ({
   }, [selected_hashtags, deleted, hidden]);
 
   const [show_alert, set_show_alert] = useState<
-    "none" | "hide" | "remove" | "remove-upgrades" | "delete"
+    | "none"
+    | "hide"
+    | "remove"
+    | "remove-upgrades"
+    | "delete"
+    | "stop"
+    | "restart"
   >("none");
 
   const project_map = useTypedRedux("projects", "project_map");
@@ -64,7 +71,9 @@ export const ProjectsListingDescription: React.FC<Props> = ({
   function render_span(query: string): JSX.Element {
     return (
       <span>
-        whose title, description, state or users match <strong>{query}</strong>
+        whose title, description, state or users match{" "}
+        <strong>{query.trim() ? `'${query}'` : "anything"}</strong>
+        {query.trim() && <> (use a space to select everything)</>}.
         <Space />
         <Space />
         <Button
@@ -81,22 +90,22 @@ export const ProjectsListingDescription: React.FC<Props> = ({
 
   function render_projects_actions_toolbar(): JSX.Element {
     return (
-      <div>
-        <ButtonGroup>
-          {visible_projects.length > 0
-            ? render_remove_from_all_button()
-            : undefined}
-          {visible_projects.length > 0 && !deleted
-            ? render_delete_all_button()
-            : undefined}
-          {visible_projects.length > 0 && !hidden
-            ? render_hide_all_button()
-            : undefined}
-          {visible_projects.length > 0
-            ? render_remove_upgrades_from_all_button()
-            : undefined}
-        </ButtonGroup>
-      </div>
+      <ButtonGroup style={{ margin: "15px" }}>
+        {visible_projects.length > 0
+          ? render_remove_from_all_button()
+          : undefined}
+        {visible_projects.length > 0 && !deleted
+          ? render_delete_all_button()
+          : undefined}
+        {visible_projects.length > 0 && !hidden
+          ? render_hide_all_button()
+          : undefined}
+        {visible_projects.length > 0
+          ? render_remove_upgrades_from_all_button()
+          : undefined}
+        {visible_projects.length > 0 ? render_stop_all_button() : undefined}
+        {visible_projects.length > 0 ? render_restart_all_button() : undefined}
+      </ButtonGroup>
     );
   }
 
@@ -110,6 +119,10 @@ export const ProjectsListingDescription: React.FC<Props> = ({
         return render_remove_upgrades_from_all();
       case "delete":
         return render_delete_all();
+      case "stop":
+        return render_stop_all();
+      case "restart":
+        return render_restart_all();
     }
   }
 
@@ -189,6 +202,28 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     );
   }
 
+  function render_stop_all_button(): JSX.Element {
+    return (
+      <Button
+        disabled={show_alert === "stop"}
+        onClick={() => set_show_alert("stop")}
+      >
+        <Icon name="stop" /> Stop...
+      </Button>
+    );
+  }
+
+  function render_restart_all_button(): JSX.Element {
+    return (
+      <Button
+        disabled={show_alert === "restart"}
+        onClick={() => set_show_alert("restart")}
+      >
+        <Icon name="sync-alt" /> Restart...
+      </Button>
+    );
+  }
+
   function render_hide_all(): JSX.Element | undefined {
     if (visible_projects.length === 0) {
       return;
@@ -204,7 +239,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
         <b>This hides the project from you, not your collaborators.</b>
         {render_can_be_undone()}
         <ButtonToolbar style={{ marginTop: "15px" }}>
-          <Button bsStyle="warning" onClick={do_hide_all}>
+          <Button danger onClick={do_hide_all}>
             <Icon name="eye-slash" /> Hide {visible_projects.length}{" "}
             {plural(visible_projects.length, "project")}
           </Button>
@@ -304,7 +339,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
             You will no longer have access and cannot add yourself back.
           </b>{" "}
           <ButtonToolbar style={{ marginTop: "15px" }}>
-            <Button bsStyle="danger" onClick={do_remove_from_all}>
+            <Button danger onClick={do_remove_from_all}>
               <Icon name="user-times" /> Remove Myself From {v.length}{" "}
               {plural(v.length, "Project")}
             </Button>
@@ -328,6 +363,58 @@ export const ProjectsListingDescription: React.FC<Props> = ({
         <br />
         This can be undone in project settings.
       </span>
+    );
+  }
+
+  function render_stop_all(): JSX.Element | undefined {
+    if (visible_projects.length === 0) {
+      return;
+    }
+    return (
+      <Alert>
+        <div>Stop these {visible_projects.length} projects?</div>
+
+        <ButtonToolbar style={{ marginTop: "15px" }}>
+          <Button
+            danger
+            onClick={() => {
+              for (const project_id of visible_projects) {
+                actions.stop_project(project_id);
+              }
+              set_show_alert("none");
+            }}
+          >
+            Stop
+          </Button>
+          <Button onClick={() => set_show_alert("none")}>Cancel</Button>
+        </ButtonToolbar>
+      </Alert>
+    );
+  }
+
+  function render_restart_all(): JSX.Element | undefined {
+    if (visible_projects.length === 0) {
+      return;
+    }
+    return (
+      <Alert>
+        <div>Restart these {visible_projects.length} projects?</div>
+
+        <ButtonToolbar style={{ marginTop: "15px" }}>
+          <Button
+            danger
+            onClick={() => {
+              for (const project_id of visible_projects) {
+                actions.restart_project(project_id);
+              }
+              set_show_alert("none");
+            }}
+          >
+            Restart
+          </Button>
+          <Button onClick={() => set_show_alert("none")}>Cancel</Button>
+        </ButtonToolbar>
+      </Alert>
     );
   }
 
@@ -360,8 +447,8 @@ export const ProjectsListingDescription: React.FC<Props> = ({
         </b>{" "}
         {render_can_be_undone()}{" "}
         <ButtonToolbar style={{ marginTop: "15px" }}>
-          <Button bsStyle="danger" onClick={do_delete_all}>
-            <Icon name="trash" /> Yes, please delete {visible_projects.length}{" "}
+          <Button danger onClick={do_delete_all}>
+            <Icon name="trash" /> Yes, delete {visible_projects.length}{" "}
             {plural(visible_projects.length, "project")}
           </Button>
           <Button onClick={() => set_show_alert("none")}>Cancel</Button>

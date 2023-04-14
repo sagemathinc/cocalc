@@ -34,13 +34,23 @@ interface Props {
   maxHeight?: string;
   style?: CSS;
   title?: JSX.Element | string;
+  size?;
 }
 
 const STYLE = { margin: "6px 10px", cursor: "pointer" } as CSS;
 
 export const DropdownMenu: React.FC<Props> = (props: Props) => {
-  const { button, disabled, hide_down, id, items, maxHeight, style, title } =
-    props;
+  const {
+    button,
+    disabled,
+    hide_down,
+    id,
+    items,
+    maxHeight,
+    style,
+    title,
+    size,
+  } = props;
 
   function render_title() {
     if (title !== "") {
@@ -58,7 +68,7 @@ export const DropdownMenu: React.FC<Props> = (props: Props) => {
   function render_body() {
     if (button && !IS_TOUCH) {
       return (
-        <Button style={style} disabled={disabled} id={id}>
+        <Button style={style} disabled={disabled} id={id} size={size}>
           {render_title()}
         </Button>
       );

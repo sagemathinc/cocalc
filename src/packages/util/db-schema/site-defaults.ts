@@ -122,6 +122,8 @@ export const only_ints = (val) =>
   );
 export const only_nonneg_int = (val) =>
   ((v) => only_ints(v) && v >= 0)(to_int(val));
+export const only_pos_int = (val) =>
+  ((v) => only_ints(v) && v > 0)(to_int(val));
 export const from_json = (conf): Mapping => {
   try {
     if (conf !== null) return JSON.parse(conf) ?? {};
@@ -526,7 +528,7 @@ export const site_settings_conf: SiteSettings = {
   },
   jupyter_api_enabled: {
     name: "Jupyter API",
-    desc: "If true, the Jupyter API is enabled. This provides stateless evaluation of Jupyter code, which enables additional functionality.  This requires further configuration below.",
+    desc: "If true, the public Jupyter API is enabled. This provides stateless evaluation of Jupyter code from the landing page and share server by users that may not be signed in.  This requires further configuration of the <i>Jupyter API Account Id</i>.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

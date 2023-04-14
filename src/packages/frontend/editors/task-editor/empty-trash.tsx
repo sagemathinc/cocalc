@@ -8,7 +8,7 @@ Button to empty the trash, thus "permanently" deleting all deleted tasks.
 */
 
 import { React } from "../../app-framework";
-import { Button } from "../../antd-bootstrap";
+import { Button, Popconfirm } from "antd";
 import { TaskActions } from "./actions";
 
 interface Props {
@@ -22,15 +22,21 @@ export const EmptyTrash: React.FC<Props> = React.memo(({ actions, count }) => {
   }
 
   return (
-    <Button
-      bsStyle="danger"
-      onClick={() => {
+    <Popconfirm
+      title="Empty the trash removing all deleted tasks?"
+      onConfirm={() => {
         actions.stop_showing_deleted();
         actions.empty_trash();
       }}
-      disabled={count === 0}
     >
-      Empty Trash ({count})
-    </Button>
+      <Button
+        style={{ marginTop: "3px" }}
+        size="small"
+        danger
+        disabled={count === 0}
+      >
+        Empty Trash ({count})
+      </Button>
+    </Popconfirm>
   );
 });

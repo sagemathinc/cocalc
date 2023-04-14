@@ -3,21 +3,20 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List, Map, Set } from "immutable";
+import { Map, Set } from "immutable";
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { LoadingEstimate } from "@cocalc/frontend/components";
 
 export interface Task {
   task_id: string;
   deleted?: boolean;
   position?: number;
   desc?: string;
-  due_date?: number;
+  due_date?: number
   done?: boolean;
   last_edited?: number;
 }
 
-export type Headings = "Custom Order" | "Due" | "Changed";
+export type Headings = "Custom" | "Due" | "Changed";
 export type HeadingsDir = "asc" | "desc";
 
 export type TaskMap = TypedMap<Task>;
@@ -28,11 +27,10 @@ export type HashtagState = -1 | 1;
 export type SelectedHashtags = Map<string, HashtagState>;
 
 export interface LocalViewState {
-  show_deleted: boolean;
-  show_done: boolean;
-  show_max: number;
-  font_size: number;
-  sort: Sort;
+  show_deleted?: boolean;
+  show_done?: boolean;
+  show_max?: number;
+  sort?: Sort;
   selected_hashtags?: SelectedHashtags;
   search?: string;
   scroll?: number;
@@ -50,19 +48,5 @@ export type HashtagsOfVisibleTasks = Set<string>;
 
 // State of the Store
 export interface TaskState {
-  read_only: boolean;
   tasks?: Tasks;
-  local_view_state: LocalViewStateMap;
-  local_task_state: LocalTaskStateMap;
-  current_task_id?: string;
-  counts: Counts;
-  search_desc: string;
-  search_terms?: Set<string>;
-  visible: List<string>; // ordered immutable js list of task_id's
-  load_time_estimate?: LoadingEstimate;
-  has_unsaved_changes?: boolean;
-  has_uncommitted_changes?: boolean;
-  scroll_into_view?: boolean;
-  focus_find_box?: boolean;
-  hashtags?: HashtagsOfVisibleTasks;
 }

@@ -140,19 +140,22 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
         );
       }
     }
+    const help =
+      hasError && id && actions && chatgpt ? (
+        <chatgpt.ChatGPTError
+          style={{ margin: "5px 0" }}
+          actions={actions}
+          id={id}
+        />
+      ) : undefined;
+
     return (
       <div
         style={scrolled && !hasIframes ? OUTPUT_STYLE_SCROLLED : OUTPUT_STYLE}
         className="cocalc-jupyter-rendered"
       >
+        {help}
         {v}
-        {hasError && id && actions && chatgpt && (
-          <chatgpt.ChatGPTError
-            style={{ margin: "5px 0" }}
-            actions={actions}
-            id={id}
-          />
-        )}
       </div>
     );
   },

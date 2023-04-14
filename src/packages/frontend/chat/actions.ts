@@ -462,7 +462,10 @@ export class ChatActions extends Actions<ChatState> {
     const model: Model =
       (input.toLowerCase().includes("@chatgpt4") ? "gpt-4" : thread) ??
       "gpt-3.5-turbo";
-    input = stripMentions(input); // without any mentions, of course.
+    // without any mentions, of course:
+    input = stripMentions(input);
+    // also important to strip details, since they tend to confuse chatgpt:
+    //input = stripDetails(input);
     const sender_id = model == "gpt-4" ? "chatgpt4" : "chatgpt";
     const start = new Date().valueOf();
     const draft = () => {
@@ -564,3 +567,9 @@ function stripMentions(value: string): string {
   }
   return value.trim();
 }
+
+// not necessary
+// // Remove instances of <details> and </details> from value:
+// function stripDetails(value: string): string {
+//   return value.replace(/<details>/g, "").replace(/<\/details>/g, "");
+// }
