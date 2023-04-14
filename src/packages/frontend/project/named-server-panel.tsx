@@ -75,21 +75,28 @@ interface Props {
   name: NamedServerName;
 }
 
-export const NamedServerPanel: React.FC<Props> = (props: Props) => {
-  const { project_id, name } = props;
+function getServerInfo(name: string) {
+  return (
+    SPEC[name] ?? {
+      icon: "server",
+      longName: `${capitalize(name)} Server`,
+      description: `The ${capitalize(
+        name
+      )} server runs from your project. It does not yet
+          support multiple users or TimeTravel, but fully supports most other
+          features and extensions of ${name}.`,
+    }
+  );
+}
 
+export const NamedServerPanel: React.FC<Props> = ({
+  project_id,
+  name,
+}: Props) => {
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
 
-  const { longName, description, icon } = SPEC[name] ?? {
-    icon: "server",
-    longName: `${capitalize(name)} Server`,
-    description: `The ${capitalize(
-      name
-    )} server runs from your project. It does not yet
-          support multiple users or TimeTravel, but fully supports most other
-          features and extensions of ${name}.`,
-  };
+  const { longName, description, icon } = getServerInfo(name);
 
   let body;
   if (
@@ -116,8 +123,11 @@ export const NamedServerPanel: React.FC<Props> = (props: Props) => {
         <Paragraph
           style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}
         >
-          <LinkRetry href={serverURL(project_id, name)}>
-            <Icon name={icon} /> {longName} Server
+          <LinkRetry
+            href={serverURL(project_id, name)}
+            loadingText="Launching server..."
+          >
+            <Icon name={icon} /> {longName} Server...
           </LinkRetry>
         </Paragraph>
       </>
@@ -139,5 +149,23 @@ export function serverURL(project_id: string, name: NamedServerName): string {
       SPEC[name]?.usesBasePath ? "port" : "server",
       name
     ) + "/"
+  );
+}
+
+export function ServerLink({
+  project_id,
+  name,
+}: {
+  project_id: string;
+  name: NamedServerName;
+}) {
+  const { icon, longName } = getServerInfo(name);
+  return (
+    <LinkRetry
+      href={serverURL(project_id, name)}
+      loadingText="Launching server..."
+    >
+      <Icon name={icon} /> {longName} Server...
+    </LinkRetry>
   );
 }

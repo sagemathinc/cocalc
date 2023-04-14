@@ -20,8 +20,7 @@ import { SORT_INFO, HEADINGS, HEADINGS_DIR } from "./headings-info";
 import { Counts, LocalTaskStateMap, LocalViewStateMap, TaskMap } from "./types";
 
 // Show tasks for a few seconds, even after marked done:
-// Set to 0 to disable (since it is actually really annoying, and we have undo.)
-const DONE_CUTOFF_MS = 0;
+export const DONE_CUTOFF_MS = 3 * 1000;
 
 export function update_visible(
   tasks: Map<string, TaskMap>,
@@ -33,21 +32,27 @@ export function update_visible(
   const show_deleted = !!local_view_state.get("show_deleted");
   const show_done = !!local_view_state.get("show_done");
 
-  const now = new Date();
+  const now = Date.now();
   const _is_visible: { [id: string]: boolean } = {}; // cache
+  let redoSoonMs = 0;
   function is_visible(task: TaskMap, id: string): boolean {
     const c = _is_visible[id];
     if (c != null) {
       return c;
     }
-    if (
-      (!show_deleted && task.get("deleted")) ||
-      (!show_done &&
-        task.get("done") &&
-        (!DONE_CUTOFF_MS ||
-          now.valueOf() - (task.get("last_edited") ?? 0) > DONE_CUTOFF_MS))
-    ) {
+
+    if (!show_deleted && task.get("deleted")) {
       _is_visible[id] = false;
+    } else if (!show_done && task.get("done")) {
+      if (now - (task.get("last_edited") ?? 0) > DONE_CUTOFF_MS) {
+        _is_visible[id] = false;
+      } else {
+        _is_visible[id] = true;
+        const redo = DONE_CUTOFF_MS - (now - (task.get("last_edited") ?? 0));
+        if (redo > 0) {
+          redoSoonMs = Math.max(redo, redoSoonMs) + 1000;
+        }
+      }
     } else {
       _is_visible[id] = true;
     }
@@ -75,7 +80,10 @@ export function update_visible(
   };
   let current_is_visible = false;
 
-  const sort_column = local_view_state.getIn(["sort", "column"]) ?? "Custom Order";
+  let sort_column = local_view_state.getIn(["sort", "column"]) ?? HEADINGS[0];
+  if (!HEADINGS.includes(sort_column)) {
+    sort_column = HEADINGS[0];
+  }
   if (SORT_INFO[sort_column] == null) {
     SORT_INFO[sort_column] = SORT_INFO[HEADINGS[0]];
   }
@@ -102,7 +110,7 @@ export function update_visible(
       new_counts.deleted += 1;
     }
 
-    const editing_desc = local_task_state.getIn([id, "editing_desc"]);
+    const editing_desc = local_task_state?.getIn([id, "editing_desc"]);
     if (!editing_desc && !is_visible(task, id)) {
       return;
     }
@@ -133,10 +141,7 @@ export function update_visible(
     v.sort((a, b) => cmp(a[0], b[0]));
   }
 
-  const w: string[] = [];
-  for (const x of v) {
-    w.push(x[1]);
-  }
+  const w = v.map((x) => x[1]);
   const visible = fromJS(w);
   if ((current_task_id == null || !current_is_visible) && visible.size > 0) {
     current_task_id = visible.get(0);
@@ -173,5 +178,6 @@ export function update_visible(
     search_desc: search.join(" "),
     search_terms,
     nonhash_search,
+    redoSoonMs,
   };
 }

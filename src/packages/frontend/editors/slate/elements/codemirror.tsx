@@ -5,6 +5,7 @@
 
 import React, {
   CSSProperties,
+  ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -15,7 +16,12 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { Transforms } from "slate";
 import { ReactEditor } from "../slate-react";
 import { fromTextArea, Editor, commands } from "codemirror";
-import { FOCUSED_COLOR, SELECTED_COLOR } from "../util";
+import {
+  DARK_GREY_BORDER,
+  CODE_FOCUSED_COLOR,
+  CODE_FOCUSED_BACKGROUND,
+  SELECTED_COLOR,
+} from "../util";
 import { useFocused, useSelected, useSlate, useCollapsed } from "./hooks";
 import {
   moveCursorToBeginningOfBlock,
@@ -48,6 +54,8 @@ interface Props {
   options?: { [option: string]: any };
   isInline?: boolean; // impacts how cursor moves out of codemirror.
   style?: CSSProperties;
+  addonBefore?: ReactNode;
+  addonAfter?: ReactNode;
 }
 
 export const SlateCodeMirror: React.FC<Props> = React.memo(
@@ -62,6 +70,8 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
     options: cmOptions,
     isInline,
     style,
+    addonBefore,
+    addonAfter,
   }) => {
     const focused = useFocused();
     const selected = useSelected();
@@ -208,13 +218,16 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         justBlurred.current = true;
         setTimeout(() => {
           justBlurred.current = false;
-        }, 0);
+        }, 1);
         setIsFocused(false);
       });
 
       cm.on("focus", () => {
         setIsFocused(true);
-        setTimeout(() => focusEditor(true), 0);
+        focusEditor(true);
+        if (!justBlurred.current) {
+          setTimeout(() => focusEditor(true), 0);
+        }
       });
 
       cm.on("copy", (_, event) => {
@@ -238,7 +251,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       // Make it so editor height matches text.
       const css: any = {
         height: "auto",
-        padding: "15px",
+        padding: "5px 15px",
       };
       setCSS(css);
       cm.refresh();
@@ -267,23 +280,51 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
       cmRef.current?.setValueNoJump(value);
     }, [value]);
 
+    const borderColor = isFocused
+      ? CODE_FOCUSED_COLOR
+      : selected
+      ? SELECTED_COLOR
+      : DARK_GREY_BORDER;
     return (
-      <span
+      <div
         contentEditable={false}
         style={{
           ...STYLE,
           ...{
-            border: `1px solid ${
-              selected ? SELECTED_COLOR : isFocused ? FOCUSED_COLOR : "#cfcfcf"
-            }`,
+            border: `1px solid ${borderColor}`,
             borderRadius: "8px",
           },
           ...style,
+          position: "relative",
         }}
         className="smc-vfill"
       >
-        <textarea ref={textareaRef} defaultValue={value}></textarea>
-      </span>
+        {!isFocused && selected && !collapsed && (
+          <div
+            style={{
+              background: CODE_FOCUSED_BACKGROUND,
+              position: "absolute",
+              opacity: 0.5,
+              zIndex: 1,
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          ></div>
+        )}
+        {addonBefore}
+        <div
+          style={{
+            borderLeft: `10px solid ${
+              isFocused ? CODE_FOCUSED_COLOR : borderColor
+            }`,
+          }}
+        >
+          <textarea ref={textareaRef} defaultValue={value}></textarea>
+        </div>
+        {addonAfter}
+      </div>
     );
   }
 );

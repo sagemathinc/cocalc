@@ -3,19 +3,26 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// Rendering of static codemirror editor.
-//
-// Meant to be efficient to render many of these on the page at once.
-//
-// We use this for:
-//
-//   - the share server
-//   - rendering cells that are offscreen or scrolling.
-//
-// In benchmarks, this seems to easily be 10x faster than creating an actual CodeMirror editor.
+/*
+
+Rendering of static codemirror editor.
+
+Meant to be efficient to render many of these on the page at once.
+
+We use this for:
+
+  - the share server
+  - rendering cells that are offscreen or scrolling.
+
+In benchmarks, this seems to easily be 10x faster than creating an actual CodeMirror editor.
+
+It also has an editable prop you can pass in that uses a *lightweight*
+nextjs friendly code editor to make it editable.  (This is NOT codemirror.)
+*/
 
 import React, { ReactNode } from "react";
 import CodeMirror from "@cocalc/frontend/codemirror/static";
+import CodeEditor from "@cocalc/frontend/components/code-editor";
 
 const BLURRED_STYLE: React.CSSProperties = {
   width: "100%",
@@ -46,7 +53,12 @@ interface Props {
   set_click_coords?: (pos: { left: number; top: number }) => void;
   style?: React.CSSProperties; // optional style that is merged into BLURRED_STYLE
   no_border?: boolean; // if given, do not draw border around whole thing
+  addonBefore?: ReactNode;
   addonAfter?: ReactNode;
+  onDoubleClick?;
+  editable?: boolean;
+  onChange?;
+  onKeyDown?;
 }
 
 // This is used heavily by the share server.
@@ -147,6 +159,7 @@ export function CodeMirrorStatic(props: Props) {
       <pre
         className={`CodeMirror ${theme_base} ${theme_extra} CodeMirror-wrap`}
         style={{ ...style, ...props.style }}
+        onDoubleClick={props.onDoubleClick}
       >
         <div style={{ marginLeft: width }}>
           {render_lines(width)}
@@ -169,26 +182,40 @@ export function CodeMirrorStatic(props: Props) {
     }
   }
 
+  const fontSize = props.font_size ? `${props.font_size}px` : undefined;
   const divStyle: React.CSSProperties = {
     width: "100%",
     borderRadius: "5px",
     position: "relative",
-    overflowX: "auto",
-    fontSize: props.font_size ? `${props.font_size}px` : undefined,
+    overflowX: "hidden",
+    fontSize,
   };
   if (!props.no_border) {
     divStyle.border = "1px solid rgb(207, 207, 207)";
   }
   return (
     <div style={divStyle}>
-      {props.addonAfter && (
-        <div style={{ float: "right", position: "relative" }}>
-          <div style={{ position: "absolute", right: 0, top: 0 }}>
-            {props.addonAfter}
-          </div>
-        </div>
+      {props.addonBefore}
+      {props.editable ? (
+        <CodeEditor
+          style={{
+            // Note -- some natural properties here, e.g., padding and line height, *totally mess up either the app or nextjs*.
+            // Basically, the screw up computations done internally with this editor.  This is all just a shim, and we'll switch
+            // to codemirror at some point, so little point in debugging this.
+            fontSize: fontSize ?? "14.6666px",
+            fontFamily: "monospace",
+            border: "0px solid transparent",
+            borderLeft: `10px solid #cfcfcf`,
+          }}
+          value={props.value}
+          language={props.options?.mode}
+          onChange={props.onChange}
+          onKeyDown={props.onKeyDown}
+        />
+      ) : (
+        render_code()
       )}
-      {render_code()}
+      {props.addonAfter}
     </div>
   );
 }

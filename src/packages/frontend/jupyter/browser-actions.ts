@@ -182,6 +182,9 @@ export class JupyterActions extends JupyterActions0 {
     ).api.formatter_string(str, config, timeout_ms);
   }
 
+  // throws an error if anything goes wrong. the error
+  // has a formatInput attribute with the input that was
+  // sent to the formatter.
   private async format_cell(id: string): Promise<void> {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
@@ -207,16 +210,14 @@ export class JupyterActions extends JupyterActions0 {
     }
     //  console.log("FMT", cell_type, options, code);
     let resp: string | undefined;
+    code = parsing.process_magics(code, config.syntax, "escape");
     try {
-      code = parsing.process_magics(code, config.syntax, "escape");
       resp = await this.api_call_formatter(code, config);
-      resp = parsing.process_magics(resp, config.syntax, "unescape");
     } catch (err) {
-      this.set_error(err);
-      // Do not process response (probably empty anyways) if
-      // there is a problem
-      return;
+      err.formatInput = code;
+      throw err;
     }
+    resp = parsing.process_magics(resp, config.syntax, "unescape");
     if (resp == null) return; // make everyone happy …
     // We additionally trim the output, because formatting code introduces
     // a trailing newline
@@ -231,21 +232,22 @@ export class JupyterActions extends JupyterActions0 {
     return str;
   }
 
+  // this just throws an exception if the formatting fails
   public async format_cells(
     cell_ids: string[],
     sync: boolean = true
   ): Promise<void> {
-    this.set_error(null);
     const jobs: string[] = cell_ids.filter((id) =>
       this.store.is_cell_editable(id)
     );
 
-    try {
-      await awaiting.map(jobs, 4, this.format_cell.bind(this));
-    } catch (err) {
-      this.set_error(err.message);
-      return;
-    }
+    // TODO: This is badly implemented in terms of performance.
+    // Imagine a notebook
+    // with hundreds of cells... this would involves hundreds of distinct
+    // calls to the backend to run yapf (say) repeatedly.  It would be
+    // absolutely horrendous!  Instead, it should just all be done as
+    // one single call (in a single string), and parsed.  Gees.
+    await awaiting.map(jobs, 4, this.format_cell.bind(this));
 
     if (sync) {
       this._sync();
@@ -809,5 +811,4 @@ export class JupyterActions extends JupyterActions0 {
       this.setState({ cm_options: x });
     }
   }
-
 }

@@ -45,6 +45,7 @@ import { slate_to_markdown as slateToMarkdown } from "./slate-to-markdown";
 import Leaf from "./leaf";
 import Hashtag from "./elements/hashtag/component";
 import Highlighter from "react-highlight-words";
+import { ChangeContext } from "./use-change";
 
 interface Props {
   value: string;
@@ -68,51 +69,64 @@ export default function MostlyStaticMarkdown({
   // Convert markdown to our slate JSON object representation.
   const syncCacheRef = useRef<any>({});
   const valueRef = useRef<string>(value);
-  const [slate, setSlate] = useState(
-    markdownToSlate(value, false, syncCacheRef.current)
-  );
+  const [editor, setEditor] = useState({
+    children: markdownToSlate(value, false, syncCacheRef.current),
+  });
   const handleChange = useMemo(() => {
     if (onChange == null) return; // nothing
     return (element, change) => {
-      // Make a new slate value via setSlate, and also
+      // Make a new slate value via setEditor, and also
       // report new markdown string via onChange.
-      const slate1 = [...slate];
-      if (mutateSlate(slate1, element, change)) {
+      const editor1 = { children: [...editor.children] };
+      if (mutateEditor(editor1.children, element, change)) {
         // actual change
-        onChange(slateToMarkdown(slate1, { cache: syncCacheRef.current }));
-        setSlate(slate1);
+        onChange(
+          slateToMarkdown(editor1.children, { cache: syncCacheRef.current })
+        );
+        setEditor(editor1);
       }
     };
-  }, [slate, onChange]);
+  }, [editor, onChange]);
+
+  const [change, setChange] = useState<number>(0);
   useEffect(() => {
     if (value == valueRef.current) return;
     valueRef.current = value;
-    setSlate(markdownToSlate(value, false, syncCacheRef.current));
+    setEditor({
+      children: markdownToSlate(value, false, syncCacheRef.current),
+    });
+    setChange(change + 1);
   }, [value]);
 
-  const v: JSX.Element[] = [];
-  let n = 0;
   if (searchWords != null && searchWords["filter"] == null) {
     // convert from Set<string> to string[], as required by the Highlighter component.
     searchWords = Array.from(searchWords);
   }
-  for (const element of slate) {
-    v.push(
-      <RenderElement
-        key={n}
-        element={element}
-        handleChange={handleChange}
-        selectedHashtags={selectedHashtags}
-        toggleHashtag={toggleHashtag}
-        searchWords={searchWords}
-      />
-    );
-    n += 1;
-  }
+
   return (
-    <div style={{ width: "100%", ...style }} className={className}>
-      {v}
-    </div>
+    <ChangeContext.Provider
+      value={{
+        change,
+        editor: editor as any,
+        setEditor: (editor) => {
+          setEditor(editor);
+          setChange(change + 1);
+        },
+      }}
+    >
+      <div style={{ width: "100%", ...style }} className={className}>
+        {editor.children.map((element, n) => (
+          <RenderElement
+            key={n}
+            element={element}
+            handleChange={handleChange}
+            selectedHashtags={selectedHashtags}
+            toggleHashtag={toggleHashtag}
+            searchWords={searchWords}
+          />
+        ))}
+      </div>
+    </ChangeContext.Provider>
   );
 }
 
@@ -194,8 +208,8 @@ function RenderElement({
   );
 }
 
-function mutateSlate(slate: any[], element, change): boolean {
-  for (const elt of slate) {
+function mutateEditor(children: any[], element, change): boolean {
+  for (const elt of children) {
     if (elt === element) {
       for (const key in change) {
         elt[key] = change[key];
@@ -203,7 +217,8 @@ function mutateSlate(slate: any[], element, change): boolean {
       return true;
     }
     if (elt.children != null) {
-      if (mutateSlate(elt.children, element, change)) {
+      // recurse
+      if (mutateEditor(elt.children, element, change)) {
         return true;
       }
     }

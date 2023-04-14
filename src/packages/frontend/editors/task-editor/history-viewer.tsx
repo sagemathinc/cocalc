@@ -7,10 +7,10 @@
 History viewer for Tasks notebooks  --- very similar to same file in jupyter/ directory. Refactor!
 */
 
+import { Checkbox } from "antd";
 import { fromJS, Map } from "immutable";
 import TaskList from "./list";
 import { CSS, React, useState } from "../../app-framework";
-import { Icon } from "../../components";
 import { cmp } from "@cocalc/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { Tasks } from "./types";
@@ -70,9 +70,13 @@ export const TasksHistoryViewer: React.FC<Props> = ({
         overflowY: "hidden",
       }}
     >
-      <div onClick={() => set_show_done(!show_done)} style={SHOW_DONE_STYLE}>
-        <Icon name={show_done ? "check-square-o" : "square-o"} /> Show done
-        tasks
+      <div style={SHOW_DONE_STYLE}>
+        <Checkbox
+          checked={show_done}
+          onChange={() => set_show_done(!show_done)}
+        >
+          Show finished tasks
+        </Checkbox>
       </div>
       {doc == null ? <span>Unknown version</span> : render_task_list(doc)}
     </div>

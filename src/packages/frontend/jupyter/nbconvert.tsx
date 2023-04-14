@@ -14,29 +14,58 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { A, Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import * as misc from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
+import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 
 const NAMES = {
   python: { ext: "py", display: "Python", internal: true },
-  "cocalc-html": { ext: "html", display: "HTML", no_run_button: true },
-  "classic-html": { ext: "html", display: "HTML (Classic template)" },
-  "lab-html": { ext: "html", display: "HTML (JupyterLab template)" },
-  "classic-pdf": { ext: "pdf", display: "PDF (Classic template)" },
-  "lab-pdf": { ext: "pdf", display: "PDF (JupyterLab template)" },
-  markdown: { ext: "md", display: "Markdown", internal: true },
-  rst: { ext: "rst", display: "reST", internal: true },
-  asciidoc: { ext: "asciidoc", display: "AsciiDoc" },
-  slides: { ext: "slides.html", display: "Slides" },
-  latex: { ext: "tex", display: "LaTeX", internal: true },
+  "cocalc-html": {
+    ext: "html",
+    display: "HTML",
+    no_run_button: true,
+    estimate: 5,
+  },
+  "classic-html": {
+    ext: "html",
+    display: "HTML (Classic template)",
+    estimate: 30,
+  },
+  "lab-html": {
+    ext: "html",
+    display: "HTML (JupyterLab template)",
+    estimate: 30,
+  },
+  "classic-pdf": {
+    ext: "pdf",
+    display: "PDF (Classic template)",
+    estimate: 45,
+  },
+  "lab-pdf": { ext: "pdf", display: "PDF (JupyterLab template)", estimate: 45 },
+  markdown: { ext: "md", display: "Markdown", internal: true, estimate: 20 },
+  rst: { ext: "rst", display: "reST", internal: true, estimate: 30 },
+  asciidoc: { ext: "asciidoc", display: "AsciiDoc", estimate: 30 },
+  slides: { ext: "slides.html", display: "Slides", estimate: 30 },
+  latex: { ext: "tex", display: "LaTeX", internal: true, estimate: 45 },
   sagews: {
     ext: "sagews",
     display: "Sage Worksheet",
     internal: true,
     nolink: true,
+    estimate: 10,
   },
-  pdf: { ext: "pdf", display: "PDF via nbconvert and LaTeX" },
-  webpdf: { ext: "pdf", display: "PDF via nbconvert webpdf" },
-  script: { ext: "", display: "Executable Script", internal: true },
-  "cocalc-pdf": { ext: "pdf", display: "PDF", no_run_button: true },
+  pdf: { ext: "pdf", display: "PDF via nbconvert and LaTeX", estimate: 45 },
+  webpdf: { ext: "pdf", display: "PDF via nbconvert webpdf", estimate: 45 },
+  script: {
+    ext: "",
+    display: "Executable Script",
+    internal: true,
+    estimate: 30,
+  },
+  "cocalc-pdf": {
+    ext: "pdf",
+    display: "PDF",
+    no_run_button: true,
+    estimate: 10,
+  },
 } as const;
 
 interface ErrorProps {
@@ -289,6 +318,9 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
                 style={{ fontSize: "20px", color: "#666" }}
                 text="Exporting..."
               />{" "}
+              <ProgressEstimate
+                seconds={NAMES[nbconvert_dialog.get("to")]?.estimate ?? 30}
+              />
               {render_started()}
             </div>
           );
@@ -353,8 +385,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
           footer={null}
           title={
             <>
-              <Icon name="slides" /> Jupyter Notebook
-              Slideshow
+              <Icon name="slides" /> Jupyter Notebook Slideshow
             </>
           }
         >

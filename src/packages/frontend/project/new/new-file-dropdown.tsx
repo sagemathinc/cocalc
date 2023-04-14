@@ -61,13 +61,13 @@ export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
       style={{ marginRight: "5px" }}
     >
       <Button.Group>
-        <Button onClick={() => create_file()}>
+        <Button size="large" onClick={() => create_file()}>
           <span>
             <Icon name="file" /> More file types...
           </span>
         </Button>
 
-        <DropdownMenu button={true} items={items} />
+        <DropdownMenu size="large" button={true} items={items} />
       </Button.Group>
     </span>
   );

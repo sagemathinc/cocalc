@@ -21,8 +21,6 @@ import "./media-viewer/register";
 // Raw data editors
 import "./data-editor/generic";
 
-import "./task-editor/register";
-
 // All the frame-tree editors
 import "../frame-editors/register";
 
@@ -40,3 +38,9 @@ init_jupyter(); // must run after register_nonreact_editors
 
 // Ensure that we load all the codemirror plugins, modes, etc.
 import "@cocalc/frontend/codemirror/init";
+
+// CSS for the lightweight (< 1MB) nextjs friendly CodeEditor
+// component (in components/code-editor).
+// This is only for making this editro work in this frontend app.
+// This dist.css is only 7K.
+import "@uiw/react-textarea-code-editor/dist.css";

@@ -535,6 +535,7 @@ const Explorer0 = rclass(
               display: "flex",
               flexDirection: "column",
             }}
+            className="smc-vfill"
           >
             <FileListing
               isRunning={
@@ -809,6 +810,7 @@ const Explorer0 = rclass(
             ) : undefined}
           </div>
           <div
+            className="smc-vfill"
             style={{
               flex: "1 0 auto",
               display: "flex",

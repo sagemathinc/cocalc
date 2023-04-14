@@ -295,4 +295,38 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
   help(): void {
     open_new_tab("https://doc.cocalc.com/markdown.html");
   }
+
+  chatgptGetText(
+    frameId: string,
+    scope: "selection" | "cell" | "all" = "all"
+  ): string {
+    const node = this._get_frame_node(frameId);
+    if (node?.get("type") == "cm") {
+      return super.chatgptGetText(frameId, scope);
+    } else if (node?.get("type") == "slate") {
+      if (scope == "selection") {
+        const ed = this.getSlateEditor(frameId);
+        if (!ed) {
+          return this._syncstring.to_str();
+        }
+        const fragment = ed.getFragment() ?? [];
+        if (ed.selectionIsCollapsed()) {
+          // if collapsed it could still be a void element, in which case we grab it.
+          for (const x of fragment) {
+            if (x?.['isVoid']) {
+              return ed.getSourceValue(fragment);
+            }
+          }
+          // normal text -- return nothing, so can get all via next call
+          return "";
+        }
+        return ed.getSourceValue(fragment) ?? "";
+      } else {
+        return this._syncstring.to_str();
+      }
+    } else {
+      // shouldn't happen but it's an ok fallback.
+      return this._syncstring.to_str();
+    }
+  }
 }
