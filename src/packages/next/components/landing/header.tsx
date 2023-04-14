@@ -198,6 +198,13 @@ export default function Header(props: Props) {
         >
           Support
         </A>{" "}
+        <A
+          style={page == "news" ? SelectedStyle : LinkStyle}
+          href="/news"
+          title={`News about ${siteName}`}
+        >
+          News
+        </A>{" "}
         {account ? (
           <AccountNavTab
             style={page == "account" ? SelectedStyle : LinkStyle}

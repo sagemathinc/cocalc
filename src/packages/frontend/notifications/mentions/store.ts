@@ -4,11 +4,11 @@
  */
 
 import { Store } from "@cocalc/frontend/app-framework";
-import { MentionsMap, MentionFilter } from "./types";
+import { MentionsMap, NotificationFilter } from "./types";
 
 export interface MentionsState {
   mentions: MentionsMap;
-  filter: MentionFilter;
+  filter: NotificationFilter;
 }
 export const MentionsState = null; // webpack + TS es2020 modules need this
 
