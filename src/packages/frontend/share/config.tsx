@@ -43,6 +43,7 @@ import {
   SHARE_FLAGS,
 } from "@cocalc/util/consts/ui";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import UpdatePublishedFiles from "./update";
 
 // https://ant.design/components/grid/
 const GUTTER: [number, number] = [16, 24];
@@ -323,6 +324,12 @@ export default function Configure(props: Props) {
           <Col span={12} style={{ color: "#666" }}>
             <>
               <h4>
+                <UpdatePublishedFiles
+                  project_id={props.project_id}
+                  path={props.path}
+                  style={{ float: "right" }}
+                  last_edited={props.public?.last_edited}
+                />
                 <A href={url}>
                   <Icon name="external-link" style={{ marginRight: "5px" }} />{" "}
                   Link
