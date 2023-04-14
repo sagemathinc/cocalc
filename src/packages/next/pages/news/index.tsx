@@ -45,27 +45,79 @@ import rssIcon from "public/rss.svg";
 // news shown per page
 const SLICE_SIZE = 10;
 
-type Filter = Channel | "all";
+type ChannelAll = Channel | "all";
+
+function isChannelAll(s?: string): s is ChannelAll {
+  return s != null && (CHANNELS.includes(s as Channel) || s === "all");
+}
 interface Props {
   customize: CustomizeType;
   news: NewsWithFuture[];
   offset: number;
   tag?: string; // used for searching for a tag, used on /news/[id] standalone pages
+  channel?: string; // a channel to filter by
+  search?: string; // a search query
 }
 
 export default function AllNews(props: Props) {
-  const { customize, news, offset, tag } = props;
+  const {
+    customize,
+    news,
+    offset,
+    tag,
+    channel: initChannel,
+    search: initSearch,
+  } = props;
   const { siteName } = customize;
   const router = useRouter();
   const profile = useProfile({ noCache: true });
   const isAdmin = profile?.is_admin;
 
-  const [filter, setFilter] = useState<Filter>("all");
-  const [search, setSearch] = useState<string>("");
+  const [channel, setChannel] = useState<ChannelAll>(
+    isChannelAll(initChannel) ? initChannel : "all"
+  );
+  const [search, setSearchState] = useState<string>(initSearch ?? "");
 
+  // when loading the page, we want to set the search to the given tag
   useEffect(() => {
-    if (tag) setSearch(`#${tag}`);
+    if (tag) setSearchState(`#${tag}`);
   }, []);
+
+  function setQuery(param: "tag" | "search" | "channel", value: string) {
+    const query = { ...router.query };
+    switch (param) {
+      case "tag":
+        delete query.search;
+        break;
+      case "search":
+        delete query.tag;
+        break;
+    }
+
+    if (param === "channel" && value === "all") {
+      delete query.channel;
+    } else if (value) {
+      query[param] = param === "tag" ? value.slice(1) : value;
+    } else {
+      delete query[param];
+    }
+    router.replace({ query }, undefined, { shallow: true });
+  }
+
+  // when the filter changes, change the channel=[filter] query parameter of the url
+  useEffect(() => {
+    setQuery("channel", channel);
+  }, [channel]);
+
+  function setTag(tag: string) {
+    setSearchState(tag);
+    setQuery("tag", tag);
+  }
+
+  function setSearch(search: string) {
+    setSearchState(search);
+    setQuery("search", search);
+  }
 
   function renderFilter() {
     return (
@@ -73,8 +125,9 @@ export default function AllNews(props: Props) {
         <Col>
           <Radio.Group
             defaultValue={"all"}
+            value={channel}
             buttonStyle="solid"
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={(e) => setChannel(e.target.value)}
           >
             <Radio.Button value="all">Show All</Radio.Button>
             {CHANNELS.map((c) => (
@@ -104,7 +157,7 @@ export default function AllNews(props: Props) {
     const rendered = news
       // only admins see future and hidden news
       .filter((n) => isAdmin || (!n.future && !n.hide))
-      .filter((n) => filter === "all" || n.channel == filter)
+      .filter((n) => channel === "all" || n.channel == channel)
       .filter((n) => {
         if (search === "") return true;
         const txt = search.toLowerCase();
@@ -125,7 +178,7 @@ export default function AllNews(props: Props) {
             onTagClick={(tag) => {
               const ht = `#${tag}`;
               // that's a toggle: if user clicks again on the same tag, remove the search filter
-              search === ht ? setSearch("") : setSearch(ht);
+              search === ht ? setTag("") : setTag(ht);
             }}
           />
         </Col>
@@ -210,7 +263,13 @@ export default function AllNews(props: Props) {
   function slice(dir: "future" | "past") {
     const next = offset + (dir === "future" ? -1 : 1) * SLICE_SIZE;
     const newOffset = Math.max(0, next);
-    router.push(`?offset=${newOffset}`);
+    const query = { ...router.query };
+    if (newOffset === 0) {
+      delete query.offset;
+    } else {
+      query.offset = `${newOffset}`;
+    }
+    router.push({ query });
   }
 
   function renderSlicer(size?: "small") {
@@ -310,8 +369,13 @@ export default function AllNews(props: Props) {
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { query } = context;
   const tag = typeof query.tag === "string" ? query.tag : null;
+  const channel = typeof query.channel === "string" ? query.channel : null;
+  const search = typeof query.search === "string" ? query.search : null;
   const offsetVal = Number(query.offset ?? 0);
   const offset = Math.max(0, Number.isNaN(offsetVal) ? 0 : offsetVal);
   const news = await getIndex(SLICE_SIZE, offset);
-  return await withCustomize({ context, props: { news, offset, tag } });
+  return await withCustomize({
+    context,
+    props: { news, offset, tag, channel, search },
+  });
 }
