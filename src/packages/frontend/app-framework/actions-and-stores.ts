@@ -18,46 +18,50 @@ which is VERY BAD.
 */
 
 // account
-export { AccountStore, AccountActions } from "../account";
-export type { AccountState } from "../account/types";
+export { AccountStore, AccountActions } from "@cocalc/frontend/account";
+export type { AccountState } from "@cocalc/frontend/account/types";
 // admin-site-licenses
-export { SiteLicensesActions } from "../site-licenses/admin/actions";
-export { SiteLicensesStore } from "../site-licenses/admin/store";
-export type { SiteLicensesState } from "../site-licenses/admin/types";
+export { SiteLicensesActions } from "@cocalc/frontend/site-licenses/admin/actions";
+export { SiteLicensesStore } from "@cocalc/frontend/site-licenses/admin/store";
+export type { SiteLicensesState } from "@cocalc/frontend/site-licenses/admin/types";
 // admin-users
-export { AdminUsersActions } from "../admin/users/actions";
-export { AdminUsersStore } from "../admin/users/store";
-export type { StoreState as AdminUsersState } from "../admin/users/store";
+export { AdminUsersActions } from "@cocalc/frontend/admin/users/actions";
+export { AdminUsersStore } from "@cocalc/frontend/admin/users/store";
+export type { StoreState as AdminUsersState } from "@cocalc/frontend/admin/users/store";
 // billing
-export { BillingActions } from "../billing/actions";
-export { BillingStore } from "../billing/store";
-export type { BillingStoreState as BillingState } from "../billing/store";
+export { BillingActions } from "@cocalc/frontend/billing/actions";
+export { BillingStore } from "@cocalc/frontend/billing/store";
+export type { BillingStoreState as BillingState } from "@cocalc/frontend/billing/store";
 
 // compute_images
 export {
   ComputeImagesActions,
   ComputeImagesStore,
 } from "../custom-software/init";
-export type { ComputeImagesState } from "../custom-software/init";
+export type { ComputeImagesState } from "@cocalc/frontend/custom-software/init";
 // customize
-export { CustomizeActions, CustomizeStore } from "../customize";
-export type { CustomizeState } from "../customize";
+export { CustomizeActions, CustomizeStore } from "@cocalc/frontend/customize";
+export type { CustomizeState } from "@cocalc/frontend/customize";
 // file_use
-export { FileUseStore } from "../file-use/store";
-export { FileUseActions } from "../file-use/actions";
-export type { FileUseState } from "../file-use/store";
+export { FileUseStore } from "@cocalc/frontend/file-use/store";
+export { FileUseActions } from "@cocalc/frontend/file-use/actions";
+export type { FileUseState } from "@cocalc/frontend/file-use/store";
 // mentions
-export { MentionsActions, MentionsStore } from "../notifications";
-export type { MentionsState } from "../notifications";
+export { MentionsActions, MentionsStore } from "@cocalc/frontend/notifications";
+export type { MentionsState } from "@cocalc/frontend/notifications";
 // page
-export { PageActions } from "../app/actions";
-export { PageStore } from "../app/store";
-export type { PageState } from "../app/store";
+export { PageActions } from "@cocalc/frontend/app/actions";
+export { PageStore } from "@cocalc/frontend/app/store";
+export type { PageState } from "@cocalc/frontend/app/store";
 // projects
-export { ProjectsActions } from "../projects/actions";
-export { ProjectsStore } from "../projects/store";
-export type { ProjectsState } from "../projects/store";
+export { ProjectsActions } from "@cocalc/frontend/projects/actions";
+export { ProjectsStore } from "@cocalc/frontend/projects/store";
+export type { ProjectsState } from "@cocalc/frontend/projects/store";
 // users
-export { UsersStore } from "../users/store";
-export { UsersActions } from "../users/actions";
-export type { UsersState } from "../users/types";
+export { UsersStore } from "@cocalc/frontend/users/store";
+export { UsersActions } from "@cocalc/frontend/users/actions";
+export type { UsersState } from "@cocalc/frontend/users/types";
+// news
+export type { NewsState } from "@cocalc/frontend/notifications/news/init";
+export { NewsStore } from "@cocalc/frontend/notifications/news/init";
+export { NewsActions } from "@cocalc/frontend/notifications/news/init";

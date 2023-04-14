@@ -8,17 +8,21 @@ import { MentionsStore, MentionsState } from "./store";
 import { MentionsActions } from "./actions";
 import { MentionsTable } from "./table";
 import { REDUX_NAME } from "./util";
+import { getNotificationFilterFromFragment } from "@cocalc/frontend/notifications/fragment";
 
 export function init(redux: AppRedux) {
   if (redux.getStore(REDUX_NAME) != undefined) {
     return;
   }
+
   redux.createStore<MentionsState, MentionsStore>(REDUX_NAME, MentionsStore, {
-    filter: "unread",
+    filter: getNotificationFilterFromFragment() ?? "unread",
   });
+
   redux.createActions<MentionsState, MentionsActions>(
     REDUX_NAME,
     MentionsActions
   );
+
   redux.createTable(REDUX_NAME, MentionsTable);
 }

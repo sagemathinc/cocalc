@@ -11,7 +11,6 @@ to do the work.
 
 import { Alert, Button, Input, Popover, Select, Space, Tooltip } from "antd";
 import { useEffect, useState } from "react";
-
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
@@ -349,15 +348,12 @@ export default function ChatGPT({
 async function updateInput(actions, id, setInput) {
   let input = actions.chatgptGetContext(id);
   if (input.length > 2000) {
-    // Truncate input (also this MUST lazy import):
-    const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(
+    // Truncate input (also this MUST be a lazy import):
+    const { truncateMessage, MAX_CHATGPT_TOKENS } = await import(
       "@cocalc/frontend/misc/openai"
     );
-    const n = numTokens(input);
     const maxTokens = MAX_CHATGPT_TOKENS - 1000; // 1000 tokens reserved for output and the prompt below.
-    if (n >= maxTokens) {
-      input = truncateMessage(input, maxTokens) + "\n...";
-    }
+    input = truncateMessage(input, maxTokens);
   }
   setInput(input);
 }
