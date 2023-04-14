@@ -7,12 +7,16 @@ import type { Request, Response } from "express";
 
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import editNews from "@cocalc/server/news/edit";
+import { clearCache } from "@cocalc/database/postgres/news";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req: Request, res: Response) {
   try {
     const result = await doIt(req);
+    // edit has been successful: clear cache
+    // (there is also a clearCache in server/news/edit but it isn't effective. Module loaded more than once? Can't hurt, though.)
+    clearCache();
     res.json({ ...result, success: true });
   } catch (err) {
     res.json({ error: `${err.message}` });

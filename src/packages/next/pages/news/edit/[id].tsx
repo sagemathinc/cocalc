@@ -98,13 +98,13 @@ export default function EditNews(props: Props) {
     setSaving(true);
     try {
       // send data, but convert date field to epoch seconds
-      const raw = { ...data, id, date: data.date.unix() };
-      const ret = await apiPost("/news/edit", raw);
+      const next = { ...data, id, date: data.date.unix() };
+      const ret = await apiPost("/news/edit", next);
       if (ret == null || ret.id == null) {
         throw Error("Problem saving news item – no id returned.");
       }
       if (isNew) {
-        router.push(`/news/edit/${ret.id}`);
+        router.push(`/news/edit/${ret.id}`, undefined, { scroll: false });
       }
       // this signals to the user that the save was successful
       setSaved(ret.id);
@@ -291,7 +291,9 @@ export default function EditNews(props: Props) {
               <Breadcrumb.Item>
                 <A href="/news">News</A>
               </Breadcrumb.Item>
-              <Breadcrumb.Item>{isNew ? "new" : `#${id}`}</Breadcrumb.Item>
+              <Breadcrumb.Item>
+                {isNew ? "Create New" : `Edit #${id}`}
+              </Breadcrumb.Item>
             </Breadcrumb>
             {content()}
           </div>

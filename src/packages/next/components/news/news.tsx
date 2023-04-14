@@ -204,7 +204,7 @@ export function News(props: Props) {
     if (tags == null || !Array.isArray(tags) || tags.length === 0) return;
     return (
       <Space size={[0, 4]} wrap>
-        {tags.map((tag) => (
+        {tags.sort().map((tag) => (
           <Tag
             color={getRandomColor(tag)}
             key={tag}

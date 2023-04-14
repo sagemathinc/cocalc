@@ -62,7 +62,7 @@ export function NewsPanel(props: NewsPanelProps) {
     if (tags == null) return null;
     return (
       <span style={{ paddingLeft: "10px" }}>
-        {tags.map((tag) => (
+        {tags.sort().map((tag) => (
           <Tag
             key={tag}
             color={getRandomColor(tag)}
