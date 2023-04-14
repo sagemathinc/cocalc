@@ -48,7 +48,7 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
         unreachable(type);
         return 0;
     }
-  }, [type, mentions]);
+  }, [type, notify_count, mentions]);
 
   const outer_style: CSS = {
     padding: `${topPaddingIcons} ${sidePaddingIcons}`,
