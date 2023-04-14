@@ -63,11 +63,15 @@ export class LRUQueryCache {
   public query = reuseInFlight(
     async <T>(
       query: string,
-      args: (string | number | Date)[] = []
+      args: (string | number | Date)[] = [],
+      cached = true
     ): Promise<T[]> => {
       const key = sha1(JSON.stringify([query, ...args]));
-      let value = this.cache.get(key);
-      if (value != null) return value;
+
+      if (cached) {
+        let value = this.cache.get(key);
+        if (value != null) return value;
+      }
 
       const { rows } = await this.pool.query(query, args);
       this.cache.set(key, rows);
@@ -77,9 +81,10 @@ export class LRUQueryCache {
 
   public async queryOne<T = any>(
     query: string,
-    args: (string | number | Date)[] = []
+    args: (string | number | Date)[] = [],
+    cached = true
   ): Promise<T | null> {
-    const rows = await this.query(query, args);
+    const rows = await this.query(query, args, cached);
     // NOTE: fallback to "null" is there to avoid serialization errors with next.js
     return rows[0] ?? null;
   }

@@ -7,6 +7,7 @@ import { Button, Card, List, Space, Tag } from "antd";
 import React, { useMemo } from "react";
 
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   Icon,
   IconName,
@@ -35,9 +36,12 @@ export function NewsPanel(props: NewsPanelProps) {
 
   const newsData: NewsItemWebapp[] = useMemo(() => {
     if (!isNewsFilter(filter)) return [];
+    const now = webapp_client.server_time();
     // weird: using news.valueSeq().toJS() makes object reappear, which were overwritten when an update came in!?
     return Object.values(news.toJS())
       .filter((n) => {
+        if (n.hide ?? false) return false;
+        if (n.date > now) return false;
         if (!isNewsFilter(filter)) return false;
         if (filter === "allNews") {
           return true;
@@ -54,7 +58,7 @@ export function NewsPanel(props: NewsPanelProps) {
     const { id, date } = news;
     e.stopPropagation();
     const url = `${BASE_URL}/news/${id}`;
-    news_actions.markNewsRead(date);
+    news_actions.markNewsRead({ date, current: news_read_until });
     open_new_tab(url);
   }
 

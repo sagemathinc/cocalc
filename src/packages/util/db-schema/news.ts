@@ -53,7 +53,7 @@ Table({
         pg_where: [
           "date >= NOW() - INTERVAL '3 months'",
           "date <= NOW() + INTERVAL '1 minute'",
-          "hide != true",
+          "hide IS NOT true",
         ],
         pg_changefeed: "news",
         options: [{ order_by: "-date" }, { limit: 100 }],

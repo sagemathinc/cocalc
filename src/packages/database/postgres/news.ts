@@ -37,8 +37,11 @@ FROM news
 WHERE id = $1`;
 
 // This is used for editing a news item
-export async function getNewsItem(id: number): Promise<NewsItem | null> {
-  return await C.queryOne<NewsItem>(Q_BY_ID, [id]);
+export async function getNewsItem(
+  id: number,
+  cached = true
+): Promise<NewsItem | null> {
+  return await C.queryOne<NewsItem>(Q_BY_ID, [id], cached);
 }
 
 const Q_BY_ID_USER = `

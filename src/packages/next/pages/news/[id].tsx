@@ -15,6 +15,7 @@ import Head from "components/landing/head";
 import Header from "components/landing/header";
 import A from "components/misc/A";
 import { News } from "components/news/news";
+import Loading from "components/share/loading";
 import { NewsWithFuture } from "components/news/types";
 import { useDateStr } from "components/news/useDateStr";
 import { MAX_WIDTH, NOT_FOUND } from "lib/config";
@@ -51,6 +52,10 @@ export default function NewsPage(props: Props) {
   }
 
   function content() {
+    if (profile == null) return <Loading />;
+    if (!isAdmin && news.hide) {
+      return <Alert type="error" message="Not authorized" />;
+    }
     if (isAdmin || !news.future) {
       return <News news={news} showEdit={isAdmin} standalone />;
     }
@@ -67,7 +72,13 @@ export default function NewsPage(props: Props) {
         </Breadcrumb.Item>
         <Breadcrumb.Item>
           <A href={permalink}>
-            {dateStr}: {news.title}
+            {isAdmin || (!news.future && !news.hide) ? (
+              <>
+                {dateStr}: {news.title}
+              </>
+            ) : (
+              "Not Authorized"
+            )}
           </A>
         </Breadcrumb.Item>
       </Breadcrumb>

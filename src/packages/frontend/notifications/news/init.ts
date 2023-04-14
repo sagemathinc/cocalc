@@ -12,6 +12,7 @@ import {
   TypedMap,
   redux,
 } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
 import { NewsItemWebapp } from "@cocalc/util/types/news";
 
@@ -56,11 +57,15 @@ export class NewsActions extends Actions<NewsState> {
     return store;
   }
 
-  public markNewsRead(date?: Date): void {
-    const newest: number = // javascript epoch timestamp in milliseconds
-      date == null ? this.getStore().getNewestTimestamp() : date.getTime();
+  public markNewsRead(opts?: { date?: Date; current?: number }): void {
+    // javascript epoch timestamp in milliseconds
+    const newest: number =
+      opts?.date?.getTime() ?? this.getStore().getNewestTimestamp();
+    const current = opts?.current ?? 0;
+    // Math.max, because clicking on a slightly older item shouldn't make newer ones unread
+    const until = Math.max(current, newest);
     const account_actions = redux.getActions("account");
-    account_actions.set_other_settings("news_read_until", newest);
+    account_actions.set_other_settings("news_read_until", until);
   }
 
   public markNewsUnread(): void {
@@ -70,12 +75,13 @@ export class NewsActions extends Actions<NewsState> {
 
   public updateUnreadCount(readUntil: number): void {
     let unread = 0;
+    const now = webapp_client.server_time();
     this.getStore()
       .getNews()
       .map((m, _id) => {
-        //console.log("news change:", _id, m.toJS());
+        if (m.get("hide", false)) return;
         const date = m.get("date");
-        if (date != null && date.getTime() > readUntil) {
+        if (date != null && date.getTime() > readUntil && date < now) {
           unread++;
         }
       });
@@ -91,10 +97,15 @@ class NewsTable extends Table {
   }
 
   protected _change(data, _keys): void {
+    //console.log("news/change: data=", data.get()?.toJS());
     actions.setState({
       loading: false,
       news: data.get(),
     });
+    const readUntil = redux
+      .getStore("account")
+      ?.getIn(["other_settings", "news_read_until"]);
+    actions.updateUnreadCount(readUntil);
   }
 }
 

@@ -315,7 +315,8 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   const id = extractID(idQ);
   if (id != null) {
     try {
-      const news = await getNewsItem(id);
+      // false: bypasses cache
+      const news = await getNewsItem(id, false);
       if (news != null) {
         return await withCustomize({ context, props: { news } });
       }
