@@ -55,7 +55,8 @@ export function getPosition(element: Element) {
 
 export function getPageSpan(
   elements: Element[],
-  margin: number = 0
+  margin: number = 0,
+  presentation: boolean = false
 ): {
   xMin: number;
   xMax: number;
@@ -65,6 +66,21 @@ export function getPageSpan(
   zMax: number;
 } {
   // NOTE: we exclude elements with w=0 or h=0, since they take up no space.
+  //   In presentation mode, the x and y ranges are determined by the
+  // elements with z=-oo (e.g., the slide), like for getTransforms.
+
+  if (presentation) {
+    // We do getTransforms with everything except z=-oo excluded.
+    return getPageSpan(
+      elements
+        .filter((elt) => elt.z == -Infinity)
+        .map((elt) => {
+          return { ...elt, z: 0 };
+        }),
+      margin,
+      false
+    );
+  }
 
   let xMin, xMax, yMin, yMax, zMin, zMax;
   let init = false;
@@ -397,7 +413,7 @@ export function getTransforms(
 
   This doesn't do anything related to scaling.
 
-  In presentation mode, the x/y ranges are determined by the elements with
+  In presentation mode, the x and y ranges are determined by the elements with
   z=-oo (e.g., the slide).
   */
 

@@ -134,14 +134,14 @@ function* iter(subs: LicenseSubs) {
 
 // returns true, if this subscription is actively funding
 function is_funding(sub): boolean {
-  // there are subs, which are "active" but the cancel_at time is in the past and hence are cancelled.
+  // there are subs, which are "active" but the cancel_at time is in the past and hence are canceled.
   // that's not in the stripe API but could happen to us here if the account's stripe info is no longer synced
-  const cancelled =
+  const canceled =
     typeof sub.cancel_at === "number"
       ? new Date(sub.cancel_at * 1000) < new Date()
       : false;
 
-  return (sub.status == "active" || sub.status == "trialing") && !cancelled;
+  return (sub.status == "active" || sub.status == "trialing") && !canceled;
 }
 
 // for each subscription status, we set the associated license status
@@ -202,11 +202,11 @@ async function sync_subscriptions_to_licenses(
   return n;
 }
 
-// this handles the case when the subscription, which is funding a license key, has been cancelled.
+// this handles the case when the subscription, which is funding a license key, has been canceled.
 // hence this checks all active licenses without an expiration, if there is still an associated subscription.
 // if not, the license is expired.
 // keep in mind there are special licenses like "trials", which aren't funded and might not have an expiration...
-async function expire_cancelled_subscriptions(
+async function expire_canceled_subscriptions(
   db: PostgreSQL,
   subs: LicenseSubs,
   test_mode: boolean
@@ -277,7 +277,7 @@ export async function sync_site_license_subscriptions(
   let n = await sync_subscriptions_to_licenses(db, licenses, subs, test_mode);
 
   if (account_id == null) {
-    n += await expire_cancelled_subscriptions(db, subs, test_mode);
+    n += await expire_canceled_subscriptions(db, subs, test_mode);
   }
 
   return n;

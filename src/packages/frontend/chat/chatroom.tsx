@@ -5,6 +5,7 @@
 
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
+import { Button as AntdButton } from "antd";
 
 import {
   Button,
@@ -33,8 +34,8 @@ import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-butto
 import { sanitize_html_safe } from "@cocalc/frontend/misc";
 import { history_path } from "@cocalc/util/misc";
 import { ChatLog } from "./chat-log";
-import { ChatInput } from "./input";
-import { INPUT_HEIGHT, mark_chat_as_read_if_unseen } from "./utils";
+import ChatInput from "./input";
+import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
 
 const PREVIEW_STYLE: React.CSSProperties = {
@@ -56,7 +57,7 @@ const GRID_STYLE: React.CSSProperties = {
 } as const;
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
-  margin: "0",
+  margin: "5px 0",
   padding: "0",
   background: "white",
   flex: "1 0 auto",
@@ -103,7 +104,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }, []);
 
   function mark_as_read() {
-    mark_chat_as_read_if_unseen(project_id, path);
+    markChatAsReadIfUnseen(project_id, path);
   }
 
   function on_send_button_click(e): void {
@@ -247,8 +248,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
       <VideoChatButton
         project_id={project_id}
         path={path}
-        button={true}
-        label={"Video"}
         sendChat={(value) => actions.send_chat(value)}
       />
     );
@@ -257,7 +256,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   function render_search() {
     return (
       <SearchInput
-        placeholder={"Search messages (use /re/ for regexp)..."}
+        placeholder={"Filter messages (use /re/ for regexp)..."}
         default_value={search}
         on_change={debounce(
           (value) => actions.setState({ search: value }),
@@ -314,7 +313,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function on_send(): void {
-    const value = submitMentionsRef.current?.();
+    const value = submitMentionsRef.current?.({ chatgpt: true });
     scrollToBottomRef.current?.(true);
     actions.send_chat(value);
   }
@@ -340,6 +339,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             }}
           >
             <ChatInput
+              autoFocus
               cacheId={`${path}${project_id}-new`}
               input={input}
               on_send={on_send}
@@ -349,6 +349,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               }}
               submitMentionsRef={submitMentionsRef}
               syncdb={actions.syncdb}
+              date={0}
               editBarStyle={{ overflow: "auto" }}
             />
           </div>
@@ -361,23 +362,22 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             }}
           >
             <div style={{ flex: 1 }} />
-            <Button
+            <AntdButton
               onClick={on_send_button_click}
               disabled={input.trim() === "" || is_uploading}
-              bsStyle="success"
+              type="primary"
               style={{ height: "47.5px" }}
             >
-              Send
-            </Button>
+              <Icon name="paper-plane" /> Send
+            </AntdButton>
             <div style={{ height: "5px" }} />
-            <Button
+            <AntdButton
               onClick={() => actions.set_is_preview(true)}
-              bsStyle="info"
               style={{ height: "47.5px" }}
               disabled={is_preview}
             >
               Preview
-            </Button>
+            </AntdButton>
           </div>
         </div>
       </div>

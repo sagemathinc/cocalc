@@ -10,8 +10,7 @@ Task description:
  - allows for changing it
 */
 
-import { Tooltip } from "antd";
-import { Button } from "../../antd-bootstrap";
+import { Button, Popconfirm, Tooltip } from "antd";
 import { React } from "../../app-framework";
 import { Icon } from "../../components";
 import { DescriptionRendered } from "./desc-rendered";
@@ -32,6 +31,7 @@ interface Props {
   selectedHashtags: Set<string>;
   searchWords?: string[];
   hideBody?: boolean;
+  isDeleted?: boolean;
 }
 
 export const Description: React.FC<Props> = React.memo(
@@ -49,6 +49,7 @@ export const Description: React.FC<Props> = React.memo(
     selectedHashtags,
     searchWords,
     hideBody,
+    isDeleted,
   }) => {
     function edit() {
       actions?.edit_desc(task_id);
@@ -95,12 +96,34 @@ export const Description: React.FC<Props> = React.memo(
       if (!is_current || editing) {
         return;
       }
-      return (
-        <Tooltip title="Edit this task (double click or enter key)">
-          <Button onClick={edit} style={{ float: "right" }}>
-            <Icon name={"edit"} /> Edit
+      if (isDeleted)
+        return (
+          <Button
+            size="small"
+            key="delete"
+            disabled={read_only}
+            onClick={() => actions?.undelete_task(task_id)}
+          >
+            <Icon name="trash" /> Undelete
           </Button>
-        </Tooltip>
+        );
+
+      return (
+        <Button.Group>
+          <Tooltip title="Edit this task (double click or enter key)">
+            <Button size="small" type="link" onClick={edit}>
+              <Icon name={"edit"} /> Edit
+            </Button>
+          </Tooltip>
+          <Popconfirm
+            title="Delete Task?"
+            onConfirm={() => actions?.delete_task(task_id)}
+          >
+            <Button size="small" type="link" key="delete" disabled={read_only}>
+              <Icon name="trash" /> Delete
+            </Button>
+          </Popconfirm>
+        </Button.Group>
       );
     }
 
@@ -110,7 +133,7 @@ export const Description: React.FC<Props> = React.memo(
     return (
       <div>
         {render_editor()}
-        {render_edit_button()}
+        <div style={{ float: "right" }}>{render_edit_button()}</div>
         {render_desc()}
       </div>
     );

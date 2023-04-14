@@ -4,8 +4,10 @@
  */
 
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { useDebouncedCallback } from "use-debounce";
 
 import {
+  CSS,
   redux,
   useIsMountedRef,
   useRedux,
@@ -14,13 +16,15 @@ import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { useDebouncedCallback } from "use-debounce";
+import type { SyncDB } from "@cocalc/sync/editor/db";
 
 interface Props {
   on_send: (value: string) => void;
+  onChange: (string) => void;
+  syncdb: SyncDB;
+  date: number; // ms since epoch of when this message was first sent; set to 0 for editing new message. set to -time (negative time) to respond to message at time!
   input?: string;
   on_paste?: (e) => void;
-  onChange: (string) => void;
   height?: string;
   submitMentionsRef?: any;
   font_size?: number;
@@ -29,32 +33,53 @@ interface Props {
   cacheId?: string;
   onFocus?: () => void;
   onBlur?: () => void;
-  syncdb?;
-  editBarStyle?;
+  editBarStyle?: CSS;
+  placeholder?: string;
+  autoFocus?: boolean;
 }
 
-export const ChatInput: React.FC<Props> = (props) => {
-  const { syncdb } = props;
+export default function ChatInput({
+  on_send,
+  input: propsInput,
+  onChange,
+  height,
+  submitMentionsRef,
+  font_size,
+  hideHelp,
+  style,
+  cacheId,
+  onFocus,
+  onBlur,
+  syncdb,
+  date,
+  editBarStyle,
+  placeholder,
+  autoFocus,
+}: Props) {
   const { project_id, path, actions } = useFrameContext();
-  const font_size =
-    props.font_size ?? useRedux(["font_size"], project_id, path);
+  const fontSize = useRedux(["font_size"], project_id, path);
+  if (font_size == null) {
+    font_size = fontSize;
+  }
   const sender_id = useMemo(
     () => redux.getStore("account").get_account_id(),
     []
   );
 
   const [input, setInput] = useState<string>(() => {
-    if (syncdb != null) {
-      const input = syncdb
-        .get_one({
-          event: "draft",
-          sender_id,
-          date: 0,
-        })
-        ?.get("input");
-      return input;
-    }
-    return props.input ?? "";
+    const dbInput = syncdb
+      .get_one({
+        event: "draft",
+        sender_id,
+        date,
+      })
+      ?.get("input");
+    // take version from syncdb if it is there; otherwise, version from input prop.
+    // the db version is used when you refresh your browser while editing, or scroll up and down
+    // thus unmounting and remounting the currently editing message (due to virtualization).
+    // See https://github.com/sagemathinc/cocalc/issues/6415
+    const input = dbInput ?? propsInput;
+    return input;
   });
 
   const isMountedRef = useIsMountedRef();
@@ -62,7 +87,7 @@ export const ChatInput: React.FC<Props> = (props) => {
   const saveChat = useDebouncedCallback(
     (input) => {
       if (!isMountedRef.current || syncdb == null) return;
-      props.onChange(input);
+      onChange(input);
       lastSavedRef.current = input;
       // also save to syncdb, so we have undo, etc.
       // but definitely don't save (thus updating active) if
@@ -72,7 +97,7 @@ export const ChatInput: React.FC<Props> = (props) => {
         .get_one({
           event: "draft",
           sender_id,
-          date: 0,
+          date,
         })
         ?.get("input");
       if (input0 != input) {
@@ -86,7 +111,7 @@ export const ChatInput: React.FC<Props> = (props) => {
           event: "draft",
           sender_id,
           input,
-          date: 0, // it's a primary key so can't use this to represent when user last edited this; may use other date for editing past chats.
+          date, // it's a primary key so can't use this to represent when user last edited this; use other date for editing past chats.
           active: new Date().valueOf(),
         });
         syncdb.commit();
@@ -102,7 +127,7 @@ export const ChatInput: React.FC<Props> = (props) => {
       const x = syncdb.get_one({
         event: "draft",
         sender_id,
-        date: 0,
+        date,
       });
       const input = x?.get("input");
       if (input != null && input !== lastSavedRef.current) {
@@ -118,35 +143,35 @@ export const ChatInput: React.FC<Props> = (props) => {
 
   return (
     <MarkdownInput
-      autoFocus
+      autoFocus={autoFocus}
       saveDebounceMs={0}
-      onFocus={props.onFocus}
-      onBlur={props.onBlur}
-      cacheId={props.cacheId}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      cacheId={cacheId}
       value={input}
       enableUpload={true}
       onUploadStart={() => actions?.set_uploading(true)}
       onUploadEnd={() => actions?.set_uploading(false)}
       enableMentions={true}
-      submitMentionsRef={props.submitMentionsRef}
+      submitMentionsRef={submitMentionsRef}
       onChange={(input) => {
         setInput(input);
         saveChat(input);
       }}
       onShiftEnter={(input) => {
         saveChat.cancel();
-        props.on_send(input);
+        on_send(input);
       }}
-      height={props.height}
-      placeholder={"Type a message..."}
+      height={height}
+      placeholder={placeholder ?? "Type a new message..."}
       extraHelp={
         IS_MOBILE
           ? "Click the date to edit chats."
           : "Double click to edit chats."
       }
       fontSize={font_size}
-      hideHelp={props.hideHelp}
-      style={props.style}
+      hideHelp={hideHelp}
+      style={style}
       onUndo={() => {
         saveChat.cancel();
         syncdb?.undo();
@@ -155,7 +180,9 @@ export const ChatInput: React.FC<Props> = (props) => {
         saveChat.cancel();
         syncdb?.redo();
       }}
-      editBarStyle={props.editBarStyle}
+      editBarStyle={editBarStyle}
+      overflowEllipsis={true}
+      chatGPT={redux.getStore("projects").hasOpenAI(project_id)}
     />
   );
-};
+}

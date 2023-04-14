@@ -39,7 +39,7 @@ export const slidesButtons = set([
   "show_overview",
   "show_slideshow",
   "show_speaker_notes",
-  /* "help", */ // be sure to change actions to have a proper link for this once some help is written.
+  "help",
 ]);
 
 export const EDITOR_SPEC = {
@@ -79,7 +79,7 @@ export const EDITOR_SPEC = {
     name: "Pages",
     icon: "pic-centered",
     component: Pages,
-    buttons: set(["show_slideshow"]),
+    buttons: set(["show_slideshow", "help"]),
   },
   overview: {
     short: "Overview",
@@ -91,6 +91,7 @@ export const EDITOR_SPEC = {
       "decrease_font_size",
       "increase_font_size",
       "set_zoom",
+      "help",
     ]),
   },
   terminal,

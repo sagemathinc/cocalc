@@ -14,20 +14,18 @@ and it displays the file as an editor associated with that path in the project,
 or Loading... if the file is still being loaded.
 */
 
+import { useEffect, useMemo, useRef } from "react";
 import { Map } from "immutable";
 import Draggable from "react-draggable";
-
 import {
   React,
   ReactDOM,
   redux,
   useForceUpdate,
-  useMemo,
-  useRef,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
-import { SideChat } from "@cocalc/frontend/chat/side-chat";
+import SideChat from "@cocalc/frontend/chat/side-chat";
 import { Loading } from "@cocalc/frontend/components";
 import KaTeXAndMathJaxV2 from "@cocalc/frontend/components/math/katex-and-mathjax2";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
@@ -51,6 +49,7 @@ import { hidden_meta_file } from "@cocalc/util/misc";
 import getAnchorTagComponent from "./anchor-tag-component";
 import HomePage from "./home-page";
 import getUrlTransform from "./url-transform";
+import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -101,9 +100,11 @@ interface TabContentProps {
 
 const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
   const { project_id, tab_name, is_visible } = props;
+
   const open_files =
     useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();
   const fullscreen = useTypedRedux("page", "fullscreen");
+  const jupyterApiEnabled = useTypedRedux("customize", "jupyter_api_enabled");
 
   const path = useMemo(() => {
     if (tab_name.startsWith("editor-")) {
@@ -112,6 +113,19 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
       return "";
     }
   }, [tab_name]);
+
+  const lastIsVisibleRef = useRef<boolean>(is_visible);
+  useEffect(() => {
+    if (!is_visible && lastIsVisibleRef.current) {
+      // a tab changed to not be visible, so let it know, so it can
+      // remove its keyboard handler.
+      if (tab_name.startsWith("editor-")) {
+        // if the actions are defined and there is a blur method, call it.
+        redux.getEditorActions(project_id, path)?.["blur"]?.();
+      }
+    }
+    lastIsVisibleRef.current = is_visible;
+  }, [is_visible]);
 
   // show the kiosk mode banner instead of anything besides a file editor
   if (fullscreen === "kiosk" && !tab_name.startsWith("editor-")) {
@@ -145,6 +159,15 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           AnchorTagComponent: getAnchorTagComponent({ project_id, path }),
           noSanitize: true, // TODO: temporary for backward compat for now; will make it user-configurable on a per file basis later.
           MathComponent: KaTeXAndMathJaxV2,
+          jupyterApiEnabled,
+          hasOpenAI: redux?.getStore("projects").hasOpenAI(project_id),
+          disableMarkdownCodebar: redux
+            ?.getStore("account")
+            .getIn(["other_settings", "disable_markdown_codebar"]),
+          disableExtraButtons: false,
+          project_id,
+          path,
+          is_visible,
         };
         return (
           <FileContext.Provider value={value}>
@@ -152,7 +175,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
               project_id={project_id}
               path={path}
               is_visible={is_visible}
-              is_chat_open={open_files.getIn([path, "is_chat_open"])}
+              chatState={open_files.getIn([path, "chatState"])}
               chat_width={
                 open_files.getIn([path, "chat_width"]) ?? DEFAULT_CHAT_WIDTH
               }
@@ -204,14 +227,14 @@ interface EditorContentProps {
   path: string;
   is_visible: boolean;
   chat_width: number;
-  is_chat_open?: boolean;
+  chatState?: ChatState;
   component: { Editor?; redux_name?: string };
 }
 
 const EditorContent: React.FC<EditorContentProps> = (
   props: EditorContentProps
 ) => {
-  const { project_id, path, chat_width, is_visible, is_chat_open, component } =
+  const { project_id, path, chat_width, is_visible, chatState, component } =
     props;
   const editor_container_ref = useRef(null);
   const force_update = useForceUpdate();
@@ -240,7 +263,7 @@ const EditorContent: React.FC<EditorContentProps> = (
   );
 
   let content: JSX.Element;
-  if (is_chat_open) {
+  if (chatState == "external") {
     // 2-column layout with chat
     content = (
       <div
@@ -269,11 +292,12 @@ const EditorContent: React.FC<EditorContentProps> = (
         />
         <div
           style={{
-            flexBasis: `${chat_width * 100}%`,
             position: "relative",
+            flexBasis: `${chat_width * 100}%`,
           }}
         >
           <SideChat
+            style={{ position: "absolute" }}
             project_id={project_id}
             path={hidden_meta_file(path, "sage-chat")}
           />

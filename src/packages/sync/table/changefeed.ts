@@ -159,7 +159,7 @@ export class Changefeed extends EventEmitter {
     } catch (err) {
       // ignore error, which might be due to disconnecting and isn't a big deal.
       // Basically anything that could cause an error would have also
-      // cancelled the changefeed anyways.
+      // canceled the changefeed anyways.
     }
   }
 

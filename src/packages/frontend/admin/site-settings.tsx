@@ -2,24 +2,18 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { Input, InputRef, Popover } from "antd";
+
+import { Loading } from "@cocalc/frontend/components";
+import { CSSProperties, useMemo, useRef, useState } from "react";
+import { Alert, Button, Input, InputRef, Popover, Select } from "antd";
 import humanizeList from "humanize-list";
 import { isEqual } from "lodash";
-
+import { delay } from "awaiting";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { Button, FormGroup, Well } from "@cocalc/frontend/antd-bootstrap";
-import {
-  Component,
-  rclass,
-  React,
-  ReactDOM,
-  redux,
-  Rendered,
-  rtypes,
-} from "@cocalc/frontend/app-framework";
+import { FormGroup, Well } from "@cocalc/frontend/antd-bootstrap";
+import { redux } from "@cocalc/frontend/app-framework";
 import {
   CopyToClipBoard,
-  ErrorDisplay,
   Icon,
   LabeledRow,
   Markdown,
@@ -35,12 +29,13 @@ import {
   RowType,
 } from "@cocalc/util/db-schema/site-defaults";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
-import { copy, deep_copy, keys, unreachable } from "@cocalc/util/misc";
+import { deep_copy, keys, unreachable } from "@cocalc/util/misc";
 import { site_settings_conf } from "@cocalc/util/schema";
 import { version } from "@cocalc/util/smc-version";
 import { COLORS } from "@cocalc/util/theme";
 import { ON_PREM_DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
 import { JsonEditor } from "./json-editor";
+import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -49,71 +44,29 @@ const FIELD_DEFAULTS = {
   max_upgrades: MAX_UPGRADES,
 } as const;
 
-// We use this for now since antd's rewriting their components
-// in such a way that ReactDOM.findDOMNode no longer applies,
-// and we use Input from there...
-// This whole admin settings pages desparately needs a rewrite!
-function findDOMNode(x: any) {
-  try {
-    return ReactDOM.findDOMNode(x);
-  } catch (err) {
-    if (x.input != null) {
-      return x.input;
-    }
-    throw err;
-  }
-}
-
 type State = "view" | "load" | "edit" | "save" | "error";
 
-interface SiteSettingsProps {
-  email_address: string;
-}
+type Data = { [name: string]: string };
 
-interface SiteSettingsState {
-  state: State; // view --> load --> edit --> save --> view
-  error?: string;
-  edited?: any;
-  data?: { [name: string]: string };
-  isReadonly?: { [name: string]: boolean };
-  disable_tests: boolean;
-}
+export default function SiteSettings({}) {
+  const { inc: change } = useCounter();
+  const testEmailRef = useRef<InputRef>(null);
+  const [disableTests, setDisableTests] = useState<boolean>(false);
+  const [state, setState] = useState<State>("view");
+  const [error, setError] = useState<string>("");
+  const [data, setData] = useState<Data | null>(null);
+  const [filter, setFilter] = useState<string>("");
+  const editedRef = useRef<Data | null>(null);
+  const savedRef = useRef<Data | null>(null);
+  const [isReadonly, setIsReadonly] = useState<{
+    [name: string]: boolean;
+  } | null>(null);
+  const update = () => {
+    setData(deep_copy(editedRef.current));
+  };
 
-class SiteSettingsComponent extends Component<
-  SiteSettingsProps,
-  SiteSettingsState
-> {
-  private testEmailRef: React.RefObject<InputRef>;
-
-  constructor(props, state) {
-    super(props, state);
-    this.on_json_entry_change = this.on_json_entry_change.bind(this);
-    this.on_change_entry = this.on_change_entry.bind(this);
-    this.testEmailRef = React.createRef();
-    this.state = { state: "view", disable_tests: false };
-  }
-
-  public static reduxProps(): object {
-    return {
-      account: {
-        email_address: rtypes.string,
-      },
-    };
-  }
-
-  render_error(): Rendered {
-    if (this.state.error) {
-      return (
-        <ErrorDisplay
-          error={this.state.error}
-          onClose={() => this.setState({ error: "" })}
-        />
-      );
-    }
-  }
-
-  async load(): Promise<void> {
-    this.setState({ state: "load" as State });
+  async function load(): Promise<void> {
+    setState("load");
     let result: any;
     try {
       result = await query({
@@ -122,10 +75,8 @@ class SiteSettingsComponent extends Component<
         },
       });
     } catch (err) {
-      this.setState({
-        state: "error",
-        error: `${err} – query error, please try again…`,
-      });
+      setState("error");
+      setError(`${err} – query error, please try again…`);
       return;
     }
     const data: { [name: string]: string } = {};
@@ -134,482 +85,125 @@ class SiteSettingsComponent extends Component<
       data[x.name] = x.value;
       isReadonly[x.name] = !!x.readonly;
     }
-    this.setState({
-      state: "edit" as State,
-      error: undefined,
-      data,
-      isReadonly,
-      edited: deep_copy(data),
-      disable_tests: false,
-    });
+    setState("edit");
+    setData(data);
+    setIsReadonly(isReadonly);
+    editedRef.current = deep_copy(data);
+    savedRef.current = deep_copy(data);
+    setDisableTests(false);
   }
 
-  private toggle_view() {
-    switch (this.state.state) {
+  function toggleView() {
+    switch (state) {
       case "view":
       case "error":
-        this.load();
+        load();
       case "edit":
-        this.cancel();
+        cancel();
     }
   }
 
-  // return true, if the given settings key is a header
-  private is_header(name): boolean {
+  // returns true if the given settings key is a header
+  function isHeader(name: string): boolean {
     return (
-      EXTRAS[name]?.type == ("header" as RowType) ||
-      site_settings_conf[name]?.type == ("header" as RowType)
+      EXTRAS[name]?.type == "header" ||
+      site_settings_conf[name]?.type == "header"
     );
   }
 
-  private async store(): Promise<void> {
-    if (this.state.data == null || this.state.edited == null) return;
-    for (const name in this.state.edited) {
-      const value = this.state.edited[name];
-      if (this.is_header[name]) continue;
-      if (!isEqual(value, this.state.data[name])) {
+  async function store(): Promise<void> {
+    if (data == null || editedRef.current == null || savedRef.current == null)
+      return;
+    for (const name in editedRef.current) {
+      const value = editedRef.current[name];
+      if (isHeader[name]) continue;
+      if (!isEqual(value, savedRef.current[name])) {
         try {
           await query({
             query: {
-              site_settings: { name: name, value: value },
+              site_settings: { name, value },
             },
           });
+          savedRef.current[name] = value;
         } catch (err) {
-          this.setState({ state: "error" as State, error: err });
+          setState("error");
+          setError(err);
           return;
         }
       }
     }
+    // success save of everything, so clear error message
+    setError("");
   }
 
-  private async save(): Promise<void> {
-    this.setState({ state: "save" as State });
-    await this.store();
-    this.setState({ state: "view" as State });
+  async function save(): Promise<void> {
+    setState("save");
+    await store();
+    setState("view");
+    await load();
   }
 
-  private cancel(): void {
-    this.setState({ state: "view" as State });
+  function cancel(): void {
+    setState("view");
+    setData(deep_copy(savedRef.current));
   }
 
-  render_save_button(): Rendered {
-    if (this.state.data == null || this.state.edited == null) return;
+  function SaveButton() {
+    if (data == null || savedRef.current == null) return null;
     let disabled: boolean = true;
-    for (const name in this.state.edited) {
-      const value = this.state.edited[name];
-      if (!isEqual(value, this.state.data[name])) {
+    for (const name in { ...savedRef.current, ...data }) {
+      const value = savedRef.current[name];
+      if (!isEqual(value, data[name])) {
         disabled = false;
         break;
       }
     }
 
     return (
-      <Button bsStyle="success" disabled={disabled} onClick={() => this.save()}>
-        Save
+      <Button type="primary" disabled={disabled} onClick={save}>
+        {state == "save" ? <Loading text="Saving" /> : "Save"}
       </Button>
     );
   }
 
-  render_cancel_button(): Rendered {
-    return <Button onClick={() => this.cancel()}>Cancel</Button>;
+  function CancelButton() {
+    return <Button onClick={cancel}>Cancel</Button>;
   }
 
-  render_version_hint(value: string): Rendered {
-    let error;
-    if (new Date(parseInt(value) * 1000) > new Date()) {
-      error = (
-        <div
-          style={{
-            background: "red",
-            color: "white",
-            margin: "15px",
-            padding: "15px",
-          }}
-        >
-          INVALID version - it is in the future!!
-        </div>
-      );
-    } else {
-      error = undefined;
-    }
-    return (
-      <div style={{ marginTop: "15px", color: "#666" }}>
-        Your browser version:{" "}
-        <CopyToClipBoard
-          style={{
-            display: "inline-block",
-            width: "50ex",
-            margin: 0,
-          }}
-          value={`${version}`}
-        />{" "}
-        {error}
-      </div>
-    );
+  function onChangeEntry(name, val) {
+    if (editedRef.current == null) return;
+    editedRef.current[name] = val;
+    change();
+    update();
   }
 
-  private on_json_entry_change(name: string, new_val?: string) {
-    const e = copy(this.state.edited);
+  function onJsonEntryChange(name: string, new_val?: string) {
+    if (editedRef.current == null) return;
     try {
       if (new_val == null) return;
       JSON.parse(new_val); // does it throw?
-      e[name] = new_val;
-      this.setState({ edited: e });
+      editedRef.current[name] = new_val;
     } catch (err) {
-      console.log(`error saving json of ${name}`, err.message);
+      // TODO: obviously this should be visible to the user!  Gees.
+      console.warn(`Error saving json of ${name}`, err.message);
     }
+    change();
   }
 
-  // this is specific to on-premises kubernetes setups
-  // the production site works differently
-  // TODO make this a more sophisticated data editor
-  private render_json_entry(name, data, readonly: boolean) {
-    const jval = JSON.parse(data ?? "{}") ?? {};
-    const dflt = FIELD_DEFAULTS[name];
-    const quotas = Object.assign({}, dflt, jval);
-    const value = JSON.stringify(quotas);
-    return (
-      <JsonEditor
-        value={value}
-        readonly={readonly}
-        rows={10}
-        onSave={(value) => this.on_json_entry_change(name, value)}
-      />
-    );
-  }
-
-  private render_row_entry_parsed(parsed_val?: string): Rendered | undefined {
-    if (parsed_val != null) {
-      return (
-        <span>
-          {" "}
-          Interpreted as <code>{parsed_val}</code>.{" "}
-        </span>
-      );
-    } else {
-      return undefined;
-    }
-  }
-
-  private render_row_entry_valid(valid?: ConfigValid): Rendered | undefined {
-    if (valid != null && Array.isArray(valid)) {
-      return <span>Valid values: {humanizeList(valid)}.</span>;
-    } else {
-      return undefined;
-    }
-  }
-
-  private render_row_version_hint(name, value): Rendered | undefined {
-    if (name === "version_recommended_browser") {
-      return this.render_version_hint(value);
-    } else {
-      return undefined;
-    }
-  }
-
-  private render_row_hint(
-    conf: Config,
-    raw_value: string
-  ): Rendered | undefined {
-    if (typeof conf.hint == "function") {
-      return <Markdown value={conf.hint(raw_value)} />;
-    } else {
-      return undefined;
-    }
-  }
-
-  private row_entry_style(value, valid?: ConfigValid): React.CSSProperties {
-    if (
-      (Array.isArray(valid) && !valid.includes(value)) ||
-      (typeof valid == "function" && !valid(value))
-    ) {
-      return { backgroundColor: "red", color: "white" };
-    }
-    return {};
-  }
-
-  private on_change_entry(name, val?) {
-    const e = copy(this.state.edited);
-    e[name] = val ?? findDOMNode(this.refs[name])?.value;
-    return this.setState({ edited: e });
-  }
-
-  private render_row_entry_inner(
-    name,
-    value,
-    valid,
-    password,
-    clearable,
-    multiline
-  ): Rendered {
-    if (this.state.isReadonly == null) return; // typescript
-    const disabled = this.state.isReadonly[name] === true;
-
-    if (Array.isArray(valid)) {
-      /* This antd code below is broken because something about
-         antd is broken.  Maybe it is a bug in antd.
-         Even the first official example in the antd
-         docs breaks for me!
-         See https://github.com/sagemathinc/cocalc/issues/4714
-         */
-      /*return
-        <Select
-          defaultValue={value}
-          onChange={(val) => this.on_change_entry(name, val)}
-          style={{ width: "100%" }}
-        >
-          {valid.map((e) => (
-            <Option value={e} key={e}>
-              {e}
-            </Option>
-          ))}
-        </Select>
-      );
-      */
-      return (
-        <select
-          defaultValue={value}
-          disabled={disabled}
-          onChange={(event) => this.on_change_entry(name, event.target.value)}
-          style={{ width: "100%" }}
-        >
-          {valid.map((e) => (
-            <option value={e} key={e}>
-              {e}
-            </option>
-          ))}
-        </select>
-      );
-    } else {
-      if (password) {
-        return (
-          <Input.Password
-            style={this.row_entry_style(value, valid)}
-            value={value}
-            visibilityToggle={true}
-            disabled={disabled}
-            onChange={(e) => this.on_change_entry(name, e.target.value)}
-          />
-        );
-      } else {
-        if (multiline != null) {
-          const style = Object.assign(this.row_entry_style(value, valid), {
-            fontFamily: "monospace",
-            fontSize: "80%",
-          } as React.CSSProperties);
-          return (
-            <Input.TextArea
-              rows={4}
-              ref={name}
-              style={style}
-              value={value}
-              disabled={disabled}
-              onChange={(e) => this.on_change_entry(name, e.target.value)}
-            />
-          );
-        } else {
-          return (
-            <Input
-              ref={name}
-              style={this.row_entry_style(value, valid)}
-              value={value}
-              disabled={disabled}
-              onChange={() => this.on_change_entry(name)}
-              // clearable disabled, otherwise it's not possible to edit the value
-              allowClear={clearable && false}
-            />
-          );
-        }
-      }
-    }
-  }
-
-  private render_row_entry(
-    name: string,
-    value: string,
-    password: boolean,
-    displayed_val?: string,
-    valid?: ConfigValid,
-    hint?: Rendered,
-    row_type?: RowType,
-    clearable?: boolean,
-    multiline?: number
-  ) {
-    if (this.state.isReadonly == null) return; // typescript
-    const renderReadonly = (readonly) => {
-      if (readonly)
-        return (
-          <>
-            Value controlled via{" "}
-            <code>
-              ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
-            </code>
-            .
-          </>
-        );
-    };
-    if (row_type == ("header" as RowType)) {
-      return <div />;
-    } else {
-      switch (name) {
-        case "default_quotas":
-        case "max_upgrades":
-          const ro: boolean = this.state.isReadonly[name];
-          return (
-            <>
-              {this.render_json_entry(name, value, ro)}
-              {renderReadonly(ro)}
-            </>
-          );
-        default:
-          return (
-            <FormGroup>
-              {this.render_row_entry_inner(
-                name,
-                value,
-                valid,
-                password,
-                clearable,
-                multiline
-              )}
-              <div style={{ fontSize: "90%", display: "inlineBlock" }}>
-                {this.render_row_version_hint(name, value)}
-                {hint}
-                {renderReadonly(this.state.isReadonly[name])}
-                {this.render_row_entry_parsed(displayed_val)}
-                {this.render_row_entry_valid(valid)}
-              </div>
-            </FormGroup>
-          );
-      }
-    }
-  }
-
-  private render_default_row(name): Rendered | undefined {
-    const conf: Config = site_settings_conf[name];
-    if (conf.cocalc_only) {
-      if (!document.location.host.endsWith("cocalc.com")) {
-        return;
-      }
-    }
-    return this.render_row(name, conf);
-  }
-
-  private render_extras_row(name): Rendered | undefined {
-    const conf: Config = EXTRAS[name];
-    return this.render_row(name, conf);
-  }
-
-  private renderRowHelp(help?: string) {
-    if (typeof help !== "string") return;
-    return (
-      <Popover
-        content={
-          <StaticMarkdown
-            className={"admin-site-setting-popover-help"}
-            style={{ fontSize: "90%" }}
-            value={help}
-          />
-        }
-        trigger={["hover", "click"]}
-        placement="right"
-        overlayStyle={{ maxWidth: "500px" }}
-      >
-        <Icon style={{ color: COLORS.GRAY }} name="question-circle" />
-      </Popover>
-    );
-  }
-
-  private render_row(name: string, conf: Config): Rendered | undefined {
-    // don't show certain fields, i.e. where show evals to false
-    if (typeof conf.show == "function" && !conf.show(this.state.edited)) {
-      return undefined;
-    }
-    const raw_value = this.state.edited[name] ?? conf.default;
-    const row_type: RowType = conf.type ?? ("setting" as RowType);
-
-    // fallbacks: to_display? → to_val? → undefined
-    const parsed_value: string | undefined =
-      typeof conf.to_display == "function"
-        ? `${conf.to_display(raw_value)}`
-        : typeof conf.to_val == "function"
-        ? `${conf.to_val(raw_value, this.state.edited)}`
-        : undefined;
-
-    const clearable = conf.clearable ?? false;
-
-    const label = (
-      <>
-        <strong>{conf.name}</strong> {this.renderRowHelp(conf.help)}
-        <br />
-        <StaticMarkdown style={{ fontSize: "90%" }} value={conf.desc} />
-      </>
-    );
-
-    const hint: Rendered | undefined = this.render_row_hint(conf, raw_value);
-
-    const style: React.CSSProperties = { marginTop: "2rem" };
-    // indent optional fields
-    if (typeof conf.show == "function" && row_type == ("setting" as RowType)) {
-      Object.assign(style, {
-        borderLeft: `2px solid ${COLORS.GRAY}`,
-        marginLeft: "0px",
-        paddingLeft: "5px",
-        marginTop: "0px",
-      } as React.CSSProperties);
-    }
-
-    return (
-      <LabeledRow label={label} key={name} style={style}>
-        {this.render_row_entry(
-          name,
-          raw_value,
-          conf.password ?? false,
-          parsed_value,
-          conf.valid,
-          hint,
-          row_type,
-          clearable,
-          conf.multiline
-        )}
-      </LabeledRow>
-    );
-  }
-
-  private render_editor_site_settings(): Rendered[] {
-    return keys(site_settings_conf).map((name) =>
-      this.render_default_row(name)
-    );
-  }
-
-  private render_editor_extras(): Rendered[] {
-    return keys(EXTRAS).map((name) => this.render_extras_row(name));
-  }
-
-  private render_editor(): Rendered {
-    return (
-      <React.Fragment>
-        {this.render_editor_site_settings()}
-        {this.render_editor_extras()}
-        <Space />
-      </React.Fragment>
-    );
-  }
-
-  private render_buttons(): Rendered {
+  function Buttons() {
     return (
       <div>
-        {this.render_save_button()}
+        <SaveButton />
         <Space />
-        {this.render_cancel_button()}
+        <CancelButton />
       </div>
     );
   }
 
-  private async send_test_email(
+  async function sendTestEmail(
     type: "password_reset" | "invite_email" | "mention" | "verification"
   ): Promise<void> {
-    const email = this.testEmailRef.current?.input?.value;
+    const email = testEmailRef.current?.input?.value;
     if (!email) {
       alert_message({
         type: "error",
@@ -622,10 +216,10 @@ class SiteSettingsComponent extends Component<
       message: `sending test email "${type}" to ${email}`,
     });
     // saving info
-    await this.store();
-    this.setState({ disable_tests: true });
+    await store();
+    setDisableTests(true);
     // wait 3 secs
-    await new Promise((done) => setTimeout(done, 3000));
+    await delay(3000);
     switch (type) {
       case "password_reset":
         redux.getActions("account").forgot_password(email);
@@ -633,13 +227,13 @@ class SiteSettingsComponent extends Component<
       case "invite_email":
         alert_message({
           type: "error",
-          message: "Simulated invite emails are NYI",
+          message: "Simulated invite emails are not implemented yet",
         });
         break;
       case "mention":
         alert_message({
           type: "error",
-          message: "Simulated mention emails are NYI",
+          message: "Simulated mention emails are not implemented yet",
         });
         break;
       case "verification":
@@ -656,10 +250,10 @@ class SiteSettingsComponent extends Component<
       default:
         unreachable(type);
     }
-    this.setState({ disable_tests: false });
+    setDisableTests(false);
   }
 
-  private render_tests(): Rendered {
+  function Tests() {
     return (
       <div style={{ marginBottom: "1rem" }}>
         <strong>Tests:</strong>
@@ -668,38 +262,39 @@ class SiteSettingsComponent extends Component<
         <Space />
         <Input
           style={{ width: "auto" }}
-          defaultValue={this.props.email_address}
-          ref={this.testEmailRef}
+          defaultValue={redux.getStore("account").get("email_address")}
+          ref={testEmailRef}
         />
         <Button
           style={{ marginLeft: "10px" }}
-          bsSize={"small"}
-          disabled={this.state.disable_tests}
-          onClick={() => this.send_test_email("password_reset")}
+          size={"small"}
+          disabled={disableTests}
+          onClick={() => sendTestEmail("password_reset")}
         >
           Send Test Forgot Password Email
         </Button>
         {
+          // commented out since they aren't implemented
           // <Button
-          //   disabled={this.state.disable_tests}
-          //   bsSize={"small"}
-          //   onClick={() => this.send_test_email("verification")}
+          //   disabled={disableTests}
+          //   size={"small"}
+          //   onClick={() => sendTestEmail("verification")}
           // >
           //   Verify
           // </Button>
         }
         {
           // <Button
-          //   disabled={this.state.disable_tests}
-          //   bsSize={"small"}
-          //   onClick={() => this.send_test_email("invite_email")}
+          //   disabled={disableTests}
+          //   size={"small"}
+          //   onClick={() => sendTestEmail("invite_email")}
           // >
           //   Invite
           // </Button>
           // <Button
-          //   disabled={this.state.disable_tests}
-          //   bsSize={"small"}
-          //   onClick={() => this.send_test_email("mention")}
+          //   disabled={disableTests}
+          //   size={"small"}
+          //   onClick={() => sendTestEmail("mention")}
           // >
           //   @mention
           // </Button>
@@ -708,79 +303,492 @@ class SiteSettingsComponent extends Component<
     );
   }
 
-  private render_warning() {
+  function Warning() {
     return (
-      <div
-        style={{
-          margin: " 15px 0",
-          background: "white",
-          padding: "15px",
-          border: "1px solid lightgrey",
-        }}
-      >
-        <b>Important:</b>{" "}
-        <i>
-          Most settings will take effect within 1 minute of saving them;
-          however, some might require restarting the server. If the box
-          containing a setting is red, that means the value that you entered is
-          invalid. Also, the form below are not very nice since it is not user
-          facing; we plan to implement a nicer interface someday.
-        </i>
+      <div>
+        <Alert
+          type="warning"
+          style={{
+            maxWidth: "800px",
+            margin: "0 auto 20px auto",
+            border: "1px solid lightgrey",
+          }}
+          message={
+            <div>
+              <i>
+                <ul style={{ marginBottom: 0 }}>
+                  <li>
+                    Most settings will take effect within 1 minute of save;
+                    however, some might require restarting the server.
+                  </li>
+                  <li>
+                    If the box containing a setting has a red border, that means
+                    the value that you entered is invalid.
+                  </li>
+                </ul>
+              </i>
+            </div>
+          }
+        />
       </div>
     );
   }
 
-  private render_main(): Rendered | undefined {
-    switch (this.state.state) {
-      case "edit":
-        return (
-          <Well
-            style={{
-              margin: "auto",
-              maxWidth: "80%",
-            }}
-          >
-            {this.render_warning()}
-            {this.render_buttons()}
-            {this.render_editor()}
-            {this.render_tests()}
-            {this.render_buttons()}
-          </Well>
-        );
-      case "save":
-        return <div>Saving site configuration...</div>;
-      case "load":
-        return <div>Loading site configuration...</div>;
-      default:
-        return undefined;
-    }
-  }
+  const editRows = useMemo(() => {
+    return (
+      <>
+        {keys(site_settings_conf).map((name) => (
+          <RenderRow
+            filter={filter}
+            key={name}
+            name={name}
+            conf={site_settings_conf[name]}
+            data={data}
+            update={update}
+            isReadonly={isReadonly}
+            onChangeEntry={onChangeEntry}
+            onJsonEntryChange={onJsonEntryChange}
+          />
+        ))}
+        {keys(EXTRAS).map((name) => (
+          <RenderRow
+            filter={filter}
+            key={name}
+            name={name}
+            conf={EXTRAS[name]}
+            data={data}
+            update={update}
+            isReadonly={isReadonly}
+            onChangeEntry={onChangeEntry}
+            onJsonEntryChange={onJsonEntryChange}
+          />
+        ))}
+      </>
+    );
+  }, [state, data, filter]);
 
-  render_header(): Rendered {
+  function Header() {
     return (
       <Title
         level={4}
-        onClick={() => this.toggle_view()}
+        onClick={() => toggleView()}
         style={{ cursor: "pointer" }}
       >
         <Icon
           style={{ width: "20px" }}
-          name={this.state.state == "edit" ? "caret-down" : "caret-right"}
+          name={state == "edit" ? "caret-down" : "caret-right"}
         />{" "}
         Site Settings
       </Title>
     );
   }
 
-  render(): Rendered {
+  if (state == "view") return <Header />;
+
+  return (
+    <div>
+      {state == "save" && (
+        <Loading
+          delay={1000}
+          style={{ float: "right", fontSize: "15pt" }}
+          text="Saving site configuration..."
+        />
+      )}
+      {state == "load" && (
+        <Loading
+          delay={1000}
+          style={{ float: "right", fontSize: "15pt" }}
+          text="Loading site configuration..."
+        />
+      )}
+      <Header />
+      <Well
+        style={{
+          margin: "auto",
+          maxWidth: "80%",
+        }}
+      >
+        <Warning />
+        {error && (
+          <Alert
+            type="error"
+            showIcon
+            closable
+            description={error}
+            onClose={() => setError("")}
+            style={{ margin: "30px auto", maxWidth: "800px" }}
+          />
+        )}
+        <Input.Search
+          allowClear
+          value={filter}
+          style={{ float: "right", width: "50%", paddingLeft: "5px" }}
+          placeholder="Filter Site Settings..."
+          onChange={(e) => setFilter(e.target.value)}
+        />
+        <Buttons />
+        {editRows}
+        <Space />
+        {!filter.trim() && <Tests />}
+        {!filter.trim() && <Buttons />}
+        {filter.trim() && (
+          <Alert
+            showIcon
+            type="warning"
+            message={`Some items may be hidden by the filter.`}
+          />
+        )}
+      </Well>
+    </div>
+  );
+}
+
+function rowEntryStyle(value, valid?: ConfigValid): CSSProperties {
+  if (
+    (Array.isArray(valid) && !valid.includes(value)) ||
+    (typeof valid == "function" && !valid(value))
+  ) {
+    return { border: "2px solid red" };
+  }
+  return {};
+}
+
+function RowEntryInner({
+  name,
+  value,
+  valid,
+  password,
+  multiline,
+  onChangeEntry,
+  isReadonly,
+  clearable,
+  update,
+}) {
+  if (isReadonly == null) return null; // typescript
+  const disabled = isReadonly[name] == true;
+
+  if (Array.isArray(valid)) {
     return (
-      <div>
-        {this.render_header()}
-        {this.render_main()}
-        {this.render_error()}
-      </div>
+      <Select
+        defaultValue={value}
+        disabled={disabled}
+        onChange={(value) => {
+          onChangeEntry(name, value);
+          update();
+        }}
+        style={{ width: "100%" }}
+        options={valid.map((e) => {
+          return { value: e, label: e };
+        })}
+      />
     );
+  } else {
+    if (password) {
+      return (
+        <Input.Password
+          style={rowEntryStyle(value, valid)}
+          defaultValue={value}
+          visibilityToggle={true}
+          disabled={disabled}
+          onChange={(e) => onChangeEntry(name, e.target.value)}
+        />
+      );
+    } else {
+      if (multiline != null) {
+        const style = {
+          ...rowEntryStyle(value, valid),
+          fontFamily: "monospace",
+          fontSize: "80%",
+        } as CSSProperties;
+        return (
+          <Input.TextArea
+            rows={4}
+            style={style}
+            defaultValue={value}
+            disabled={disabled}
+            onChange={(e) => onChangeEntry(name, e.target.value)}
+          />
+        );
+      } else {
+        return (
+          <Input
+            style={rowEntryStyle(value, valid)}
+            defaultValue={value}
+            disabled={disabled}
+            onChange={(e) => onChangeEntry(name, e.target.value)}
+            allowClear={clearable}
+          />
+        );
+      }
+    }
   }
 }
 
-export const SiteSettings = rclass(SiteSettingsComponent);
+function RowEntry({
+  name,
+  value,
+  password,
+  displayed_val,
+  valid,
+  hint,
+  rowType,
+  multiline,
+  isReadonly,
+  onJsonEntryChange,
+  onChangeEntry,
+  clearable,
+  update,
+}: {
+  name: string;
+  value: string;
+  password: boolean;
+  displayed_val?: string;
+  valid?: ConfigValid;
+  hint?;
+  rowType?: RowType;
+  multiline?: number;
+  isReadonly;
+  onJsonEntryChange;
+  onChangeEntry;
+  clearable;
+  update;
+}) {
+  if (isReadonly == null) return null; // typescript
+  function ReadOnly({ readonly }) {
+    if (readonly) {
+      return (
+        <>
+          Value controlled via{" "}
+          <code>
+            ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
+          </code>
+          .
+        </>
+      );
+    } else {
+      return null;
+    }
+  }
+  if (rowType == "header") {
+    return <div />;
+  } else {
+    switch (name) {
+      case "default_quotas":
+      case "max_upgrades":
+        const ro: boolean = isReadonly[name];
+        return (
+          <>
+            <JsonEntry
+              name={name}
+              data={value}
+              readonly={ro}
+              onJsonEntryChange={onJsonEntryChange}
+            />
+            {ro && (
+              <>
+                Value controlled via{" "}
+                <code>
+                  ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
+                </code>
+                .
+              </>
+            )}
+          </>
+        );
+      default:
+        return (
+          <FormGroup>
+            <RowEntryInner
+              name={name}
+              value={value}
+              valid={valid}
+              password={password}
+              multiline={multiline}
+              onChangeEntry={onChangeEntry}
+              isReadonly={isReadonly}
+              clearable={clearable}
+              update={update}
+            />
+            <div style={{ fontSize: "90%", display: "inlineBlock" }}>
+              {name == "version_recommended_browser" && (
+                <VersionHint value={value} />
+              )}
+              {hint}
+              <ReadOnly readonly={isReadonly[name]} />
+              {displayed_val != null && (
+                <span>
+                  {" "}
+                  Interpreted as <code>{displayed_val}</code>.{" "}
+                </span>
+              )}
+              {valid != null && Array.isArray(valid) && (
+                <span>Valid values: {humanizeList(valid)}.</span>
+              )}
+            </div>
+          </FormGroup>
+        );
+    }
+  }
+}
+
+function VersionHint({ value }: { value: string }) {
+  let error;
+  if (new Date(parseInt(value) * 1000) > new Date()) {
+    error = (
+      <div
+        style={{
+          background: "red",
+          color: "white",
+          margin: "15px",
+          padding: "15px",
+        }}
+      >
+        INVALID version - it is in the future!!
+      </div>
+    );
+  } else {
+    error = undefined;
+  }
+  return (
+    <div style={{ marginTop: "15px", color: "#666" }}>
+      Your browser version:{" "}
+      <CopyToClipBoard
+        style={{
+          display: "inline-block",
+          width: "50ex",
+          margin: 0,
+        }}
+        value={`${version}`}
+      />{" "}
+      {error}
+    </div>
+  );
+}
+
+// This is specific to on-premises kubernetes setups.
+// The production site works differently.
+// TODO: make this a more sophisticated data editor.
+function JsonEntry({ name, data, readonly, onJsonEntryChange }) {
+  const jval = JSON.parse(data ?? "{}") ?? {};
+  const dflt = FIELD_DEFAULTS[name];
+  const quotas = { ...dflt, ...jval };
+  const value = JSON.stringify(quotas);
+  return (
+    <JsonEditor
+      value={value}
+      readonly={readonly}
+      rows={10}
+      onSave={(value) => onJsonEntryChange(name, value)}
+    />
+  );
+}
+
+function RenderRow({
+  name,
+  conf,
+  data,
+  update,
+  isReadonly,
+  onChangeEntry,
+  onJsonEntryChange,
+  filter,
+}) {
+  if (data == null) return null;
+  if (filter) {
+    // dumb
+    if (!JSON.stringify(conf).toLowerCase().includes(filter.toLowerCase())) {
+      return null;
+    }
+  }
+  if (conf.cocalc_only) {
+    if (!document.location.host.endsWith("cocalc.com")) {
+      return null;
+    }
+  }
+  // don't show certain fields, i.e. where show evals to false
+  if (typeof conf.show == "function" && !conf.show(data)) {
+    return null;
+  }
+  const rawValue = data[name] ?? conf.default;
+  const rowType: RowType = conf.type ?? "setting";
+
+  // fallbacks: to_display? → to_val? → undefined
+  const parsed_value: string | undefined =
+    typeof conf.to_display == "function"
+      ? `${conf.to_display(rawValue)}`
+      : typeof conf.to_val == "function"
+      ? `${conf.to_val(rawValue, data)}`
+      : undefined;
+
+  // not currently supported.
+  // const clearable = conf.clearable ?? false;
+
+  const label = (
+    <div style={{ paddingRight: "15px" }}>
+      <strong>{conf.name}</strong> <RowHelp help={conf.help} />
+      <br />
+      <StaticMarkdown style={{ color: "#666" }} value={conf.desc} />
+    </div>
+  );
+
+  const hint = <RowHint conf={conf} rawValue={rawValue} />;
+
+  let style = { marginTop: "15px", paddingLeft: "10px" } as CSSProperties;
+  // indent optional fields
+  if (typeof conf.show == "function" && rowType == "setting") {
+    style = {
+      ...style,
+      borderLeft: `2px solid ${COLORS.GRAY}`,
+      marginLeft: "0px",
+      marginTop: "0px",
+    } as CSSProperties;
+  }
+
+  return (
+    <LabeledRow label={label} key={name} style={style} label_cols={6}>
+      <RowEntry
+        name={name}
+        value={rawValue}
+        password={conf.password ?? false}
+        displayed_val={parsed_value}
+        valid={conf.valid}
+        hint={hint}
+        rowType={rowType}
+        multiline={conf.multiline}
+        isReadonly={isReadonly}
+        onJsonEntryChange={onJsonEntryChange}
+        onChangeEntry={onChangeEntry}
+        clearable={conf.clearable}
+        update={update}
+      />
+    </LabeledRow>
+  );
+}
+
+function RowHint({ conf, rawValue }: { conf: Config; rawValue: string }) {
+  if (typeof conf.hint == "function") {
+    return <Markdown value={conf.hint(rawValue)} />;
+  } else {
+    return null;
+  }
+}
+
+function RowHelp({ help }: { help?: string }) {
+  if (typeof help !== "string") return null;
+  return (
+    <Popover
+      content={
+        <StaticMarkdown
+          className={"admin-site-setting-popover-help"}
+          style={{ fontSize: "90%" }}
+          value={help}
+        />
+      }
+      trigger={["hover", "click"]}
+      placement="right"
+      overlayStyle={{ maxWidth: "500px" }}
+    >
+      <Icon style={{ color: COLORS.GRAY }} name="question-circle" />
+    </Popover>
+  );
+}

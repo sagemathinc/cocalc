@@ -14,7 +14,7 @@ export type Scroll =
   | "cell visible"
   | "cell visible force"
   | "cell top"
-  | "list up"   // should probably have been called "page up" and "page down"...
+  | "list up" // should probably have been called "page up" and "page down"...
   | "list down";
 
 export type KernelInfo = immutable.Map<string, any>;
@@ -52,3 +52,13 @@ export type BackendState =
   | "spawning"
   | "starting"
   | "running";
+
+export interface KernelSpec {
+  name: string;
+  display_name: string;
+  language: string;
+  interrupt_mode: string; // usually "signal"
+  env: { [key: string]: string }; // usually {}
+  metadata?: { [key: string]: any }; // pretty generic
+  resource_dir: string;
+}

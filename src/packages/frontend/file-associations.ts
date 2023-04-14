@@ -10,6 +10,10 @@ This is mainly used to support editor.coffee, which is legacy.
 
 The **complete** list of extensions --> what edits them is done
 via the newer registration system.
+
+NOTE: Obviously, github etc. has to solve basically the same problem,
+and they have a similar massive list: https://github.com/blakeembrey/language-map/blob/main/languages.json
+Maybe that could be useful at some point.
 */
 
 import { IconName } from "./components/icon";
@@ -17,10 +21,16 @@ import { IconName } from "./components/icon";
 import imageExtensions from "image-extensions";
 import videoExtensions from "video-extensions";
 import audioExtensions from "audio-extensions";
+import { filename_extension } from "@cocalc/util/misc";
+
+export function filenameMode(path: string): string {
+  return file_associations[filename_extension(path)]?.opts?.mode ?? "text";
+}
 
 const codemirror_associations: { [ext: string]: string } = {
   adb: "ada",
   asm: "text/x-gas",
+  bash: "shell",
   c: "text/x-c",
   zig: "text/x-c", // wrong, but much better than nothing
   "c++": "text/x-c++src",
@@ -76,6 +86,7 @@ const codemirror_associations: { [ext: string]: string } = {
   php: "php",
   pl: "text/x-perl",
   py: "python",
+  python3: "python",
   pyx: "python",
   r: "r",
   rmd: "rmd",
@@ -173,6 +184,16 @@ file_associations["tex"] = {
   icon: "tex-file",
   opts: { mode: "stex2", indent_unit: 2, tab_size: 2 },
   name: "LaTeX",
+};
+
+file_associations["latex"] = file_associations["tex"];
+
+// actual editor is defined in frame-editors.
+// I'm just putting this here so it appears in the +New menu.
+file_associations["csv"] = {
+  name: "CSV File",
+  icon: "csv",
+  opts: {},
 };
 
 // At https://cs.lmu.edu/~ray/notes/gasexamples/ they use .s, so I'm also including that.
@@ -471,6 +492,7 @@ for (const ext of "zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip"
   file_associations[ext] = archive_association;
 }
 
+file_associations["sagemath"] = file_associations["sage"];
 file_associations["sage"].name = "sage code";
 file_associations["sage"].icon = "sagemath-bold";
 

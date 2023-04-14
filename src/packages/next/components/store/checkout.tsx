@@ -14,7 +14,7 @@ import {
 } from "react-google-recaptcha-v3";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { money } from "@cocalc/util/licenses/purchase/utils";
+import { money,  } from "@cocalc/util/licenses/purchase/utils";
 import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
 import PaymentMethods from "components/billing/payment-methods";
 import A from "components/misc/A";
@@ -25,7 +25,7 @@ import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import useCustomize from "lib/use-customize";
 import { useRouter } from "next/router";
-import { computeCost } from "./compute-cost";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { describeItem, DisplayCost } from "./site-license-cost";
 import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph, Title, Text } from "components/misc";
@@ -51,30 +51,19 @@ function Checkout() {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const router = useRouter();
   const isMounted = useIsMounted();
-  const { profile, reload: reloadProfile } = useProfileWithReload({
-    noCache: true,
-  });
   const [placingOrder, setPlacingOrder] = useState<boolean>(false);
   const [haveCreditCard, setHaveCreditCard] = useState<boolean>(false);
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
   const [taxRate, setTaxRate] = useState<number>(0);
-  const [emailSuccess, setEmailSuccess] = useState<boolean>(false);
-
-  const noEmail = useMemo(
-    () => profile?.email_address == null,
-    [profile?.email_address]
-  );
+  const { profile, reload: reloadProfile } = useProfileWithReload({
+    noCache: true,
+  });
 
   // most likely, user will do the purchase and then see the congratulations page
   useEffect(() => {
     router.prefetch("/store/congrats");
   }, []);
-
-  function onSuccess() {
-    reloadProfile();
-    setEmailSuccess(true);
-  }
 
   const cart = useAPI("/shopping/cart/get");
 
@@ -129,69 +118,17 @@ function Checkout() {
     }
   }
 
-  function renderProjectID(project_id: string): JSX.Element | null {
-    if (!project_id || !isValidUUID(project_id)) return null;
-    return (
-      <div>
-        For project: <code>{project_id}</code>
-      </div>
-    );
-  }
+  const columns = getColumns();
 
-  const columns = [
-    {
-      responsive: ["xs" as "xs"],
-      render: ({ cost, description, project_id }) => {
-        return (
-          <div>
-            <DescriptionColumn cost={cost} description={description} />
-            {renderProjectID(project_id)}
-            <div>
-              <b style={{ fontSize: "11pt" }}>
-                <DisplayCost cost={cost} simple oneLine />
-              </b>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      responsive: ["sm" as "sm"],
-      title: "Product",
-      align: "center" as "center",
-      render: () => (
-        <div style={{ color: "darkblue" }}>
-          <Icon name="key" style={{ fontSize: "24px" }} />
-          <div style={{ fontSize: "10pt" }}>Site License</div>
-        </div>
-      ),
-    },
-    {
-      responsive: ["sm" as "sm"],
-      width: "60%",
-      render: (_, { cost, description, project_id }) => (
-        <>
-          <DescriptionColumn cost={cost} description={description} />{" "}
-          {renderProjectID(project_id)}
-        </>
-      ),
-    },
-    {
-      responsive: ["sm" as "sm"],
-      title: "Price",
-      align: "right" as "right",
-      render: (_, { cost }) => (
-        <b style={{ fontSize: "11pt" }}>
-          <DisplayCost cost={cost} simple />
-        </b>
-      ),
-    },
-  ];
-
-  function placeOrderButton() {
+  function PlaceOrderButton() {
     return (
       <Button
-        disabled={subTotal == 0 || placingOrder || !haveCreditCard || noEmail}
+        disabled={
+          subTotal == 0 ||
+          placingOrder ||
+          !haveCreditCard ||
+          !profile?.email_address
+        }
         style={{ marginTop: "7px", marginBottom: "15px" }}
         size="large"
         type="primary"
@@ -206,24 +143,9 @@ function Checkout() {
     );
   }
 
-  function renderOrderError() {
-    if (!orderError) return;
+  function EmptyCart() {
     return (
-      <Alert
-        type="error"
-        message={
-          <>
-            <b>Error placing order:</b> {orderError}
-          </>
-        }
-        style={{ margin: "30px 0" }}
-      />
-    );
-  }
-
-  function emptyCart() {
-    return (
-      <>
+      <div style={{ maxWidth: "800px", margin: "auto" }}>
         <h3>
           <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
           {cart.result?.length > 0 && (
@@ -238,15 +160,22 @@ function Checkout() {
             </>
           )}
         </h3>
-        <A href="/store/site-license">Buy a License</A>
-      </>
+        <br />
+        <br />
+        You must have at least one item in <A href="/store/cart">
+          your cart
+        </A>{" "}
+        to checkout. Shop for <A href="/store/site-license">upgrades</A>, a{" "}
+        <A href="/store/boost">license boost</A>, or a{" "}
+        <A href="/dedicated">dedicated VM or disk</A>.
+      </div>
     );
   }
 
   function nonemptyCart(items) {
     return (
       <>
-        {renderOrderError()}
+        <OrderError orderError={orderError} />
         <Row>
           <Col md={14} sm={24}>
             <div>
@@ -279,7 +208,7 @@ function Checkout() {
                   minWidth: "300px",
                 }}
               >
-                {placeOrderButton()}
+                <PlaceOrderButton />
                 <Terms />
                 <OrderSummary items={items} taxRate={taxRate} />
                 <span style={{ fontSize: "13pt" }}>
@@ -308,7 +237,9 @@ function Checkout() {
         </h4>
         <div style={{ fontSize: "12pt" }}>
           <Row>
-            <Col sm={12}>{placeOrderButton()}</Col>
+            <Col sm={12}>
+              <PlaceOrderButton />
+            </Col>
             <Col sm={12}>
               <div style={{ fontSize: "15pt" }}>
                 <TotalCost items={cart.result} taxRate={taxRate} />
@@ -322,70 +253,17 @@ function Checkout() {
     );
   }
 
-  function renderRequireEmailAddressDescr(): JSX.Element {
-    if (emailSuccess) {
-      return (
-        <Paragraph>
-          Your email address is now:{" "}
-          <Text code>{profile?.email_address ?? ""}</Text>.
-        </Paragraph>
-      );
-    } else {
-      return (
-        <Paragraph
-          style={{
-            backgroundColor: "white",
-            padding: "20px",
-            borderRadius: "10px",
-          }}
-        >
-          <ChangeEmailAddress embedded={true} onSuccess={onSuccess} />
-        </Paragraph>
-      );
-    }
-  }
-
-  function renderRequireEmailAddressMesg(): JSX.Element {
-    return (
-      <>
-        <Title level={2}>
-          <Icon name="envelope" />{" "}
-          {!emailSuccess ? "Missing Email Address" : "Email Address Saved"}
-        </Title>
-        {!emailSuccess && (
-          <Paragraph>
-            To place an order, we need to know an email address of yours.
-            Please save it to your profile:
-          </Paragraph>
-        )}
-      </>
-    );
-  }
-
-  function renderRequireEmailAddress() {
-    if (!noEmail && !emailSuccess) return;
-
-    return (
-      <Alert
-        style={{ marginBottom: "30px" }}
-        type={emailSuccess ? "success" : "error"}
-        message={renderRequireEmailAddressMesg()}
-        description={renderRequireEmailAddressDescr()}
-      />
-    );
-  }
-
   return (
     <>
-      {renderRequireEmailAddress()}
-      {items.length == 0 && emptyCart()}
+      <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
+      {items.length == 0 && <EmptyCart />}
       {items.length > 0 && nonemptyCart(items)}
-      {renderOrderError()}
+      <OrderError orderError={orderError} />
     </>
   );
 }
 
-function fullCost(items) {
+export function fullCost(items) {
   let full_cost = 0;
   for (const { cost, checked } of items) {
     if (checked) {
@@ -395,7 +273,7 @@ function fullCost(items) {
   return full_cost;
 }
 
-function discountedCost(items) {
+export function discountedCost(items) {
   let discounted_cost = 0;
   for (const { cost, checked } of items) {
     if (checked) {
@@ -451,7 +329,7 @@ function Terms() {
   );
 }
 
-function DescriptionColumn({ cost, description }) {
+export function DescriptionColumn({ cost, description, voucherPeriod }) {
   const { input } = cost;
   return (
     <>
@@ -462,7 +340,7 @@ function DescriptionColumn({ cost, description }) {
           </div>
         )}
         {description.description && <div>{description.description}</div>}
-        {describeItem({ info: input })}
+        {describeItem({ info: input, voucherPeriod })}
       </div>
     </>
   );
@@ -567,5 +445,175 @@ function GetAQuote({ items }) {
         </Paragraph>
       )}
     </Paragraph>
+  );
+}
+
+function RequireEmailAddressDescr({
+  emailSuccess,
+  onSuccess,
+  profile,
+}): JSX.Element {
+  if (emailSuccess) {
+    return (
+      <Paragraph>
+        Your email address is now:{" "}
+        <Text code>{profile?.email_address ?? ""}</Text>.
+      </Paragraph>
+    );
+  } else {
+    return (
+      <Paragraph
+        style={{
+          backgroundColor: "white",
+          padding: "20px",
+          borderRadius: "10px",
+        }}
+      >
+        <ChangeEmailAddress embedded={true} onSuccess={onSuccess} />
+      </Paragraph>
+    );
+  }
+}
+
+function RequireEmailAddressMesg({ emailSuccess }): JSX.Element {
+  return (
+    <>
+      <Title level={2}>
+        <Icon name="envelope" />{" "}
+        {!emailSuccess ? "Missing Email Address" : "Email Address Saved"}
+      </Title>
+      {!emailSuccess && (
+        <Paragraph>
+          To place an order, we need to know an email address of yours. Please
+          save it to your profile:
+        </Paragraph>
+      )}
+    </>
+  );
+}
+
+export function RequireEmailAddress({ profile, reloadProfile }) {
+  const [emailSuccess, setEmailSuccess] = useState<boolean>(false);
+
+  if (profile == null) {
+    // profile not yet loaded.
+    // there was a bug where it would flash the alert below while
+    // loading the user's profile, which looks really dumb.
+    return null;
+  }
+  if (profile?.email_address != null && !emailSuccess) {
+    // address is defined, and they didn't just set it (so we don't
+    // have to show a message confirming that), then nothing to do.
+    return null;
+  }
+
+  return (
+    <Alert
+      style={{ marginBottom: "30px" }}
+      type={emailSuccess ? "success" : "error"}
+      message={<RequireEmailAddressMesg emailSuccess={emailSuccess} />}
+      description={
+        <RequireEmailAddressDescr
+          emailSuccess={emailSuccess}
+          profile={profile}
+          onSuccess={() => {
+            reloadProfile();
+            setEmailSuccess(true);
+          }}
+        />
+      }
+    />
+  );
+}
+
+export function OrderError({ orderError }) {
+  if (!orderError) return null;
+  return (
+    <Alert
+      type="error"
+      message={
+        <>
+          <b>Error placing order:</b> {orderError}
+        </>
+      }
+      style={{ margin: "30px 0" }}
+    />
+  );
+}
+
+export function getColumns({
+  noDiscount,
+  voucherPeriod,
+}: { noDiscount?: boolean; voucherPeriod?: boolean } = {}) {
+  return [
+    {
+      responsive: ["xs" as "xs"],
+      render: ({ cost, description, project_id }) => {
+        return (
+          <div>
+            <DescriptionColumn
+              cost={cost}
+              description={description}
+              voucherPeriod={voucherPeriod}
+            />
+            <ProjectID project_id={project_id} />
+            <div>
+              <b style={{ fontSize: "11pt" }}>
+                <DisplayCost
+                  cost={cost}
+                  simple
+                  oneLine
+                  noDiscount={noDiscount}
+                />
+              </b>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      responsive: ["sm" as "sm"],
+      title: "Product",
+      align: "center" as "center",
+      render: () => (
+        <div style={{ color: "darkblue" }}>
+          <Icon name="key" style={{ fontSize: "24px" }} />
+          <div style={{ fontSize: "10pt" }}>License</div>
+        </div>
+      ),
+    },
+    {
+      responsive: ["sm" as "sm"],
+      width: "60%",
+      render: (_, { cost, description, project_id }) => (
+        <>
+          <DescriptionColumn
+            cost={cost}
+            description={description}
+            voucherPeriod={voucherPeriod}
+          />{" "}
+          <ProjectID project_id={project_id} />
+        </>
+      ),
+    },
+    {
+      responsive: ["sm" as "sm"],
+      title: "Price",
+      align: "right" as "right",
+      render: (_, { cost }) => (
+        <b style={{ fontSize: "11pt" }}>
+          <DisplayCost cost={cost} simple noDiscount={noDiscount} />
+        </b>
+      ),
+    },
+  ];
+}
+
+function ProjectID({ project_id }: { project_id: string }): JSX.Element | null {
+  if (!project_id || !isValidUUID(project_id)) return null;
+  return (
+    <div>
+      For project: <code>{project_id}</code>
+    </div>
   );
 }

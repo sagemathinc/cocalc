@@ -31,17 +31,14 @@ export default function Overview() {
         Welcome to the <SiteName /> Store!
       </h2>
       <div style={{ fontSize: "13pt" }}>
-        Shop below or explore an{" "}
-        <A href="/pricing">overview of products and pricing</A>.
+        Shop below, explore an{" "}
+        <A href="/pricing">overview of products and pricing</A>, or{" "}
+        <A href="/vouchers">explore vouchers</A>.
       </div>
       <OverviewRow>
-        <Product
-          icon="key"
-          title="Quota Upgrade License"
-          href="/store/site-license"
-        >
-          Upgrade your project, remove the warning banner, get internet access,
-          more CPU and Memory, etc.
+        <Product icon="key" title="Upgrade" href="/store/site-license">
+          Upgrade your projects, remove the warning banner, get internet access,
+          more CPU and memory, etc.
         </Product>
         <Product icon="rocket" title="License Booster" href="/store/boost">
           Add additional upgrades to an existing license.
@@ -56,9 +53,9 @@ export default function Overview() {
         <Product
           href={"/store/dedicated?type=vm"}
           icon="dedicated"
-          title="Dedicated VM"
+          title="Dedicated Virtual Machine"
         >
-          Move your project to a much more powerful VM.
+          Move your project to a much more powerful Virtual Machine.
         </Product>
       </OverviewRow>
       <Paragraph style={{ marginTop: "4em" }}>

@@ -12,7 +12,16 @@ This file is not part of the open-source licensed release, because it contains i
 specific to the company "SageMath, Inc." and the product "CoCalc".
 Upon deployment, please replace this file with a suitable replacement (i.e. come up with your own name, etc.)
 
-This is used mainly in the front-end, but some aspects are also used on the back-end
+This is used mainly in the frontend, but some aspects are also used on the backend.
+
+If you change the colors in this file, you MUST run
+
+   pnpm run update-color-theme
+
+in the src/packages/frontend, then explicitly checkin the updated _colors.sass file.
+No part of the CoCalc build process will autogenerate _colors.sass -- you must do
+so manually when updating this file.  Why? Because "pnpm run build" on a clean
+checkout should not result in any files under revision control changing.
 */
 
 export const SITE_NAME = "CoCalc";

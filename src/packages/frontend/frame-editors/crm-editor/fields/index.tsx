@@ -7,6 +7,7 @@ import { useViewOnlyContext } from "./context";
 import "./accounts";
 import "./assignee";
 import "./boolean";
+import "./code";
 import "./color";
 import "./email-address";
 import "./fallback";
@@ -111,6 +112,9 @@ function getWidth(renderSpec: RenderSpec): number {
     return 200;
   }
   if (renderSpec.type == "json") {
+    return 300;
+  }
+  if (renderSpec.type == "code") {
     return 300;
   }
   if (renderSpec.type == "icon") {

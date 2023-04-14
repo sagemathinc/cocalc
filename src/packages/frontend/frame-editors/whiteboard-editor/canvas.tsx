@@ -168,7 +168,7 @@ export default function Canvas({
   const editFocus = frame.desc.get("editFocus");
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
   if (!margin) {
-    margin = getMargin(mainFrameType, canvasScale, presentation);
+    margin = getMargin(mainFrameType, presentation);
   }
   const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
 
@@ -513,7 +513,7 @@ export default function Canvas({
   // get zoom (plus offset) so everything is visible properly
   // on the page; also set fitToScreen back to false in
   // frame tree data.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isNavigator || !frame.desc.get("fitToScreen")) return;
     try {
       const viewport = getViewportData();
@@ -527,31 +527,29 @@ export default function Canvas({
         return;
       }
       lastViewport.current = viewport;
-      let rect, s;
-      if (presentation) {
+      let rect;
+      if (mainFrameType == "slides" || presentation) {
         rect = rectSpan(elements.filter((elt) => elt.z == -Infinity));
-        s = Math.min(
-          2,
-          Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
-        );
       } else {
         rect = rectSpan(elements);
-        s =
-          Math.min(
-            2 / 0.95,
-            Math.max(
-              MIN_ZOOM,
-              fitRectToRect(rect, viewport).scale * canvasScale
-            )
-          ) * 0.95; // 0.95 for extra room too.
       }
+      const factor = presentation ? 1 : 0.95; // 0.95 for extra room too.
+      const s =
+        Math.min(
+          2 / factor,
+          Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
+        ) * factor;
       scale.set(s);
       frame.actions.set_font_size(frame.id, zoomToFontSize(s));
-      setCenterPositionData({
-        x: rect.x + rect.w / 2,
-        y: rect.y + rect.h / 2,
-      });
-      saveViewport();
+      const centerIt = () => {
+        setCenterPositionData({
+          x: rect.x + rect.w / 2,
+          y: rect.y + rect.h / 2,
+        });
+        saveViewport();
+      };
+      centerIt();
+      setTimeout(centerIt, 0);
     } finally {
       frame.actions.fitToScreen(frame.id, false);
     }
@@ -1367,7 +1365,7 @@ export default function Canvas({
             : undefined,
         overflow: "hidden",
         position: "relative",
-        ...(presentation
+        ...(presentation && !isNavigator
           ? {
               left: `${
                 ((getViewportWindow()?.w ?? 0) -
@@ -1586,7 +1584,6 @@ function getSelectedElements({
 
 function getMargin(
   mainFrameType: MainFrameType,
-  scale: number,
   presentation?: boolean
 ): number {
   if (presentation) {
@@ -1597,9 +1594,10 @@ function getMargin(
       // This is just a slightly more usable setting.  This should probably
       // work much more like powerpoint, but that's a lot more subtle to
       // implement.
-      return 100 / Math.min(scale, 1);
+      // It would be nice to make this smaller, but the tools and format bars get cut off.
+      return 500;
     case "whiteboard":
     default:
-      return 1000 / Math.min(scale, 1);
+      return 3000;
   }
 }

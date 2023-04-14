@@ -35,6 +35,9 @@ export function markdownAutoformat(editor: SlateEditor): boolean {
   // Must be a text node
   if (!Text.isText(node)) return false;
 
+  // If we wanted the format to always be undo-able.
+  // editor.saveValue(true);
+
   let r: boolean | Function = false;
   try {
     Editor.withoutNormalizing(editor, () => {

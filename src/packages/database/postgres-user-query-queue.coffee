@@ -9,7 +9,7 @@ User query queue.
 The point of this is to make it so:
  (1) there is a limit on the number of simultaneous queries that a single connected client
      can make to the database, and
- (2) when the client disconnects, any outstanding (not started) queries are cancelled, and
+ (2) when the client disconnects, any outstanding (not started) queries are canceled, and
  (3) queries that don't even start until a certain amount of time after they were made are
      automatically considered to have failed (so the client retries).
 ###

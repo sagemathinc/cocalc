@@ -66,18 +66,20 @@ const software = {
 const features = {
   index: {},
   "jupyter-notebook": { label: "Jupyter" },
-  slides: { label: "Slides" },
-  whiteboard: { label: "Whiteboard" },
+  julia: { label: "Julia" },
   "latex-editor": { label: "LaTeX" },
   linux: { label: "Linux" },
+  octave: { label: "Octave" },
   python: { label: "Python" },
   "r-statistical-software": { label: "R Stats" },
   sage: { label: "SageMath" },
-  octave: { label: "Octave" },
-  julia: { label: "Julia" },
+  slides: { label: "Slides" },
   teaching: { label: "Teaching" },
   terminal: { label: "Terminal" },
+  whiteboard: { label: "Whiteboard" },
   x11: { label: "X11" },
+  foo: { type: "divider" },
+  "openai-chatgpt": { label: "ChatGPT" },
   compare: { label: "Compare" },
   api: { label: "API" },
 } as const;
@@ -87,6 +89,7 @@ const pricing = {
   products: { label: "Products" },
   subscriptions: { label: "Subscriptions" },
   courses: { label: "Courses" },
+  institutions: { label: "Institutions" },
   dedicated: { label: "Dedicated" },
   onprem: { label: "OnPrem" },
 } as const;
@@ -120,6 +123,7 @@ const support = {
   community: { label: "Community" },
   new: { label: "New Ticket", hide: (customize) => !customize.zendesk },
   tickets: { label: "Tickets", hide: (customize) => !customize.zendesk },
+  chatgpt: { label: "ChatGPT", hide: (customize) => !customize.openaiEnabled },
 } as const;
 
 const PAGES = {
@@ -179,15 +183,20 @@ export default function SubNav(props: Props) {
   if (p == null || isEmpty(p)) return null;
 
   function renderSoftwareEnvs() {
+    if (page != "software") return;
+
     const links = SOFTWARE_ENV_NAMES.map((name) => {
       const selected = name === softwareEnv;
       const style =
         SOFTWARE_ENV_DEFAULT === name ? { fontWeight: "bold" } : undefined;
+      // clicking on the software env link should not switch between subpages
+      const sub =
+        subPage != null && software[subPage] != null ? subPage : "executables";
       return (
         <A
           key={name}
           style={{ ...tabStyle(selected), ...style }}
-          href={`/software/executables/${name}`}
+          href={`/software/${sub}/${name}`}
         >
           {name}
         </A>
@@ -207,6 +216,20 @@ export default function SubNav(props: Props) {
   for (const name in p) {
     if (p[name]?.disabled) continue;
     if (p[name]?.hide?.(customize)) continue;
+
+    if (p[name].type === "divider") {
+      tabs.push(
+        <Divider
+          key={name}
+          type="vertical"
+          style={{
+            borderColor: COLORS.GRAY_D,
+          }}
+        />
+      );
+      continue; // this is a divider, not a tab to click on
+    }
+
     let { label, href, icon } = p[name];
     if (name == "index") {
       if (!href) href = `/${page}`;
@@ -220,6 +243,7 @@ export default function SubNav(props: Props) {
         selected={selected}
         name={name}
         softwareEnv={softwareEnv}
+        style={{ marginRight: "5px", marginLeft: "5px" }}
         label={
           <>
             {icon && (
@@ -238,8 +262,8 @@ export default function SubNav(props: Props) {
 
   const links = (
     <>
-      {r_join(tabs, SEP)}
-      {page == "software" && renderSoftwareEnvs()}
+      {tabs}
+      {renderSoftwareEnvs()}
     </>
   );
 
@@ -312,10 +336,11 @@ interface SubPageTabProps {
   page: string;
   selected: boolean;
   softwareEnv?: SoftwareEnvNames;
+  style?: CSS;
 }
 
 function SubPageTab(props: SubPageTabProps) {
-  const { page, name, selected, label, href, softwareEnv } = props;
+  const { page, name, selected, label, href, softwareEnv, style } = props;
 
   // those software subpages also need the image name as the subpage
   const suffix =
@@ -324,7 +349,7 @@ function SubPageTab(props: SubPageTabProps) {
   const url = href ?? `/${page}/${name}${suffix}`;
 
   return (
-    <A href={url} style={tabStyle(selected)}>
+    <A href={url} style={{ ...tabStyle(selected), ...style }}>
       {label}
     </A>
   );

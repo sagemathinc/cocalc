@@ -237,7 +237,7 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
 
   function render_format(): JSX.Element {
     const help =
-      "Format the syntax of selected cells. Only works, if a formatter is available.";
+      "Format the syntax of selected cells. Only works if a formatter is installed.";
     return (
       <ButtonGroup className="hidden-xs">
         <Button onClick={() => frameActions.current?.format()} title={help}>

@@ -266,19 +266,31 @@ function restoreSessionState(redux: AppRedux, state: State[]): void {
     for (const project_id in openTabsInProject) {
       const paths = openTabsInProject[project_id];
       // restore_session false, b/c we only want to see the tabs from the session
-      projects.open_project({
-        project_id,
-        switch_to: false,
-        restore_session: false,
-      });
+      try {
+        projects.open_project({
+          project_id,
+          switch_to: false,
+          restore_session: false,
+        });
+      } catch (err) {
+        // this could happen, e.g., invalid project_id, and shouldn't be fatal.
+        console.warn("Unable to open a project", err);
+        continue;
+      }
       if (paths.length > 0) {
         const project = redux.getProjectActions(project_id);
         for (const path of paths) {
-          project.open_file({
-            path,
-            foreground: false,
-            foreground_project: false,
-          });
+          try {
+            project.open_file({
+              path,
+              foreground: false,
+              foreground_project: false,
+            });
+          } catch (err) {
+            // no clue if this could happen or not now, but maybe someday, and also shouldn't be fatal.
+            console.warn("Unable to open a file", path);
+            continue;
+          }
         }
       }
     }

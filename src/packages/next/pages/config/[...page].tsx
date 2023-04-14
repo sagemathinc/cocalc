@@ -40,7 +40,7 @@ export default function Preferences({ customize, page }) {
     <Customize value={customize}>
       <Head title="Configuration" />
       <Layout>
-        <Header />
+        <Header page={"account"} />
         <ConfigLayout page={page} />
         {noteAboutConfig()}
         <Footer />

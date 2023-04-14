@@ -465,7 +465,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         cancel_connecting = () =>
             @_local_hub_socket_connecting = false
             if @_local_hub_socket_queue?
-                @dbg("local_hub_socket: cancelled due to timeout")
+                @dbg("local_hub_socket: canceled due to timeout")
                 for c in @_local_hub_socket_queue
                     c?('timeout')
                 delete @_local_hub_socket_queue

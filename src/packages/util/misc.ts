@@ -1715,12 +1715,16 @@ export function to_money(n: number): string {
   return n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
 }
 
-export function stripeAmount(units: number, currency: string): string {
+export function stripeAmount(
+  unitPrice: number,
+  currency: string,
+  units = 1
+): string {
   // input is in pennies
   if (currency !== "usd") {
     throw Error(`not-implemented currency ${currency}`);
   }
-  let s = `$${to_money(units / 100)} USD`;
+  let s = `$${to_money((units * unitPrice) / 100)} USD`;
   return s;
 }
 
@@ -2231,8 +2235,7 @@ export function closest_kernel_match(
     }
   }
   if (bestMatch == null) {
-    // should be impossible in practice since kernel_list is non-empty and so
-    // on, but just in case...
+    // kernel list could be empty...
     return kernel_list.get(0) ?? immutable.Map<string, string>();
   }
   return bestMatch;
@@ -2373,4 +2376,9 @@ export function rowBackground({
   } else {
     return "white";
   }
+}
+
+export function firstLetterUppercase(str: string | undefined) {
+  if (str == null) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }

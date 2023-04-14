@@ -7,6 +7,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { Alert, Button, Popconfirm } from "antd";
 import { NextRouter } from "next/router";
 import { useLicenseProject } from "./util";
+import Project from "components/project/link";
 
 interface ApplyLicenseToProjectProps {
   router: NextRouter;
@@ -23,7 +24,7 @@ export const ApplyLicenseToProject: React.FC<ApplyLicenseToProjectProps> = (
     return (
       <div>
         After purchase, this license will applied to project{" "}
-        <code>{upgradeProjectId}</code> automatically.
+        <Project project_id={upgradeProjectId} /> automatically.
       </div>
     );
   }

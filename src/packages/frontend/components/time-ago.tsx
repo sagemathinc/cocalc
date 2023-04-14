@@ -11,9 +11,9 @@
 import React, { CSSProperties as CSS } from "react";
 import { default as UpstreamTimeAgo } from "react-timeago";
 
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import { is_date, is_different as misc_is_different } from "@cocalc/util/misc";
-import { Tip } from "./tip";
+import { Popover, Radio } from "antd";
 
 function timeago_formatter(value, unit, suffix, _date) {
   if (value === 0) {
@@ -51,7 +51,6 @@ export function is_different_date(
 }
 
 interface TimeAgoElementProps {
-  popover?: boolean;
   placement?;
   tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
@@ -62,7 +61,6 @@ interface TimeAgoElementProps {
 }
 
 export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
-  popover,
   placement,
   tip,
   live,
@@ -71,7 +69,6 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
   style,
   minPeriod,
 }) => {
-  if (popover == null) popover = true;
   if (live == null) live = true;
 
   // "minPeriod and maxPeriod now accept seconds not milliseconds. This matches the documentation."
@@ -85,7 +82,7 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
       <UpstreamTimeAgo
         title=""
         date={d}
-        style={style}
+        style={{ cursor: "pointer", ...style }}
         formatter={timeago_formatter}
         minPeriod={minPeriod}
         live={live}
@@ -93,22 +90,38 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
     );
   }
 
-  function render_timeago(d) {
-    if (popover) {
-      let s;
-      try {
-        s = d.toLocaleString();
-      } catch (err) {
-        s = `${err}`;
-      }
-      return (
-        <Tip title={s} tip={tip} placement={placement}>
-          {render_timeago_element(d)}
-        </Tip>
-      );
-    } else {
-      return render_timeago_element(d);
+  function iso(d) {
+    try {
+      return <div style={{ color: "#666" }}>{d.toISOString()}</div>;
+    } catch (err) {
+      return `${err}`;
     }
+  }
+
+  function render_timeago(d) {
+    let s;
+    try {
+      s = d.toLocaleString();
+    } catch (err) {
+      s = `${err}`;
+    }
+    return (
+      <Popover
+        trigger="click"
+        title={s}
+        content={() => (
+          <>
+            <div>{render_timeago_element(d)}</div>
+            {iso(d)}
+            <ToggleRelativeAndAbsolute />
+            {tip}
+          </>
+        )}
+        placement={placement}
+      >
+        {render_timeago_element(d)}
+      </Popover>
+    );
   }
 
   function render_absolute(d) {
@@ -118,7 +131,22 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
     } catch (err) {
       s = `${err}`;
     }
-    return <span>{s}</span>;
+    return (
+      <Popover
+        trigger="click"
+        title={s}
+        content={() => (
+          <>
+            {render_timeago_element(d)}
+            {iso(d)}
+            <ToggleRelativeAndAbsolute />
+          </>
+        )}
+        placement={placement}
+      >
+        <span style={{ cursor: "pointer", ...style }}>{s}</span>
+      </Popover>
+    );
   }
 
   const d = is_date(date) ? (date as Date) : new Date(date);
@@ -138,7 +166,6 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
 };
 
 interface TimeAgoProps {
-  popover?: boolean;
   placement?;
   tip?: string | JSX.Element; // optional body of the tip popover with title the original time.
   live?: boolean; // whether or not to auto-update
@@ -150,16 +177,8 @@ interface TimeAgoProps {
 
 export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
   (props: TimeAgoElementProps) => {
-    const {
-      popover,
-      placement,
-      tip,
-      live,
-      style,
-      date,
-      minPeriod,
-      time_ago_absolute,
-    } = props;
+    const { placement, tip, live, style, date, minPeriod, time_ago_absolute } =
+      props;
 
     const other_settings = useTypedRedux("account", "other_settings");
     if (date == null) return <></>;
@@ -167,7 +186,6 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
     return (
       <TimeAgoElement
         date={date}
-        popover={popover}
         placement={placement}
         tip={tip}
         live={live}
@@ -183,7 +201,31 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
     // areEqual
     return !(
       is_different_date(props.date, next.date) ||
-      misc_is_different(props, next, ["popover", "placement", "tip", "live"])
+      misc_is_different(props, next, ["placement", "tip", "live"])
     );
   }
 );
+
+function ToggleRelativeAndAbsolute({}) {
+  const other = useTypedRedux("account", "other_settings");
+  const absolute = other?.get("time_ago_absolute") ?? false;
+
+  return (
+    <div style={{ marginTop: "10px", textAlign: "center" }}>
+      <Radio.Group
+        onChange={() => {
+          redux
+            .getActions("account")
+            .set_other_settings("time_ago_absolute", !absolute);
+        }}
+        value={absolute ? "absolute" : "relative"}
+        optionType="button"
+        buttonStyle="solid"
+        size="small"
+      >
+        <Radio value="relative">Relative</Radio>
+        <Radio value="absolute">Absolute</Radio>
+      </Radio.Group>
+    </div>
+  );
+}

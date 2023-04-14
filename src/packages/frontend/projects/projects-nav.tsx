@@ -7,7 +7,6 @@ import { Avatar, Popover, Tabs } from "antd";
 import type { TabsProps } from "antd";
 
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { trunc } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-row";
@@ -27,6 +26,7 @@ import {
   renderTabBar,
   useItemContext,
 } from "@cocalc/frontend/components/sortable-tabs";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 const PROJECT_NAME_STYLE: CSSProperties = {
   whiteSpace: "nowrap",
@@ -113,15 +113,16 @@ function ProjectTab({ project_id }: ProjectTabProps) {
 
   function renderContent() {
     return (
-      <div style={{ maxWidth: "400px" }}>
+      <div style={{ maxWidth: "400px", maxHeight: "50vh", overflow: "auto" }}>
         <ProjectAvatarImage
           project_id={project_id}
           size={120}
           style={{ textAlign: "center" }}
         />
-        <div style={{ textAlign: "center" }}>
-          {trunc(project?.get("description") ?? "", 128)}
-        </div>
+        <StaticMarkdown
+          style={{ display: "inline-block" }}
+          value={project?.get("description") ?? ""}
+        />
         <hr />
         <div style={{ color: COLORS.GRAY }}>
           Hint: Shift+click any project or file tab to open it in new window.
@@ -162,7 +163,9 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   return (
     <Popover
       zIndex={10000}
-      title={title}
+      title={
+        <StaticMarkdown style={{ display: "inline-block" }} value={title} />
+      }
       content={renderContent()}
       placement="bottom"
       open={active != null ? false : undefined}

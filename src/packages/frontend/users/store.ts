@@ -81,7 +81,10 @@ export class UsersStore extends Store<UsersState> {
     return x?.profile?.image;
   }
 
-  public get_name(account_id): string | undefined {
+  public get_name(account_id: string): string | undefined {
+    if (account_id == "chatgpt") {
+      return "ChatGPT";
+    }
     const user_map = this.get("user_map");
     if (user_map == null) {
       return;

@@ -93,6 +93,7 @@ function EditText({
   const [editFocus, setEditFocus] = useEditFocus(false);
   const getValueRef = useRef<any>(null);
   const saveValueRef = useRef<any>(() => {});
+  const dirtyRef = useRef<boolean>(false);
 
   // NOTE: do **NOT** autoFocus the MultiMarkdownInput.  This causes many serious problems,
   // including break first render of the overall canvas if any text is focused.
@@ -101,6 +102,10 @@ function EditText({
 
   useEffect(() => {
     saveValueRef.current = (str?) => {
+      if (!dirtyRef.current) {
+        return;
+      }
+      dirtyRef.current = true;
       const id = element.id;
       if (str == null) {
         if (!getValueRef.current) return;
@@ -191,6 +196,7 @@ function EditText({
             */
   const body = (
     <MultiMarkdownInput
+      dirtyRef={dirtyRef}
       getValueRef={getValueRef}
       fixedMode={element.rotate || !focused ? "editor" : undefined}
       refresh={canvasScale}
@@ -237,7 +243,7 @@ function EditText({
       {...(mouseClickDrag ?? {})}
       style={{
         ...getStyle(element),
-        padding: `${PADDING}px ${PADDING}px 0 ${PADDING}px `,
+        padding: `${PADDING}px`,
         height: "100%",
       }}
       className={editFocus ? "nodrag" : undefined}

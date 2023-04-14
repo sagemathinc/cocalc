@@ -12,7 +12,7 @@ const dataSource = [
   {
     link: "/info/doc",
     title: "Documentation",
-    logo: "life-saver",
+    logo: "medkit",
     description: (
       <>
         Where to find{" "}

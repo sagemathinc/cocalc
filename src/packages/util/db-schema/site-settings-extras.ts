@@ -19,8 +19,10 @@ import {
   only_booleans,
   to_int,
   only_nonneg_int,
+  only_pos_int,
   only_commercial,
 } from "./site-defaults";
+import { isValidUUID } from "@cocalc/util/misc";
 
 import { is_valid_email_address, expire_time } from "@cocalc/util/misc";
 
@@ -53,6 +55,10 @@ const pii_retention_display = (retention: string) => {
   }
 };
 
+const openai_enabled = (conf) => to_bool(conf.openai_enabled);
+
+const jupyter_api_enabled = (conf) => to_bool(conf.jupyter_api_enabled);
+
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
   | "stripe_heading"
@@ -70,6 +76,11 @@ export type SiteSettingsExtrasKeys =
   | "email_smtp_password"
   | "email_smtp_port"
   | "email_smtp_secure"
+  | "openai_section"
+  | "openai_api_key"
+  | "jupyter_section"
+  | "jupyter_account_id"
+  | "jupyter_project_pool_size"
   | "password_reset_override"
   | "password_reset_smtp_server"
   | "password_reset_smtp_from"
@@ -91,6 +102,42 @@ export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
+  openai_section: {
+    name: "OpenAI Configuration",
+    desc: "",
+    default: "",
+    show: openai_enabled,
+    type: "header",
+  },
+  openai_api_key: {
+    name: "OpenAI API Key",
+    desc: "Your OpenAI API Key from https://platform.openai.com/account/api-keys.  This key is needed to support functionality that uses OpenAI's API.",
+    default: "",
+    password: true,
+    show: openai_enabled,
+  },
+  jupyter_section: {
+    name: "Jupyter API Configuration",
+    desc: "",
+    default: "",
+    show: jupyter_api_enabled,
+    type: "header",
+  },
+  jupyter_account_id: {
+    name: "Jupyter API Account Id",
+    desc: "account_id of an account on this server that will own a pool of projects used for the public facing Jupyter API, if it is enabled.  You can look up the account_id of an existing user in the Users section above. This account does NOT have to have any special privileges.",
+    default: "",
+    valid: isValidUUID,
+    show: jupyter_api_enabled,
+  },
+  jupyter_project_pool_size: {
+    name: "Jupyter API Project Pool Size",
+    desc: "The number of distinct projects that will run generic user code evaluation on the landing pages (not in projects).",
+    default: "3",
+    to_val: to_int,
+    valid: only_pos_int,
+    show: jupyter_api_enabled,
+  },
   pii_retention: {
     name: "PII Retention",
     desc: "How long to keep personally identifiable information, after which the server automatically deletes certain database entries that contain PII.",
@@ -188,6 +235,7 @@ export const EXTRAS: SettingsExtras = {
     name: "GitHub Project ID",
     desc: "If this is set to a `project_id` (a UUID v4 of a project on your server), then the share server will proxy GitHub URL's.  For example, when a user visits https://yoursite.com/github/sagemathinc/cocalc they see a rendered version.  They can star the repo from cocalc, edit it in cocalc, etc.  This extends your CoCalc server to provide similar functionality to what nbviewer.org provides.  Optionally set a GitHub username and personal access token below to massively increase GitHub's API rate limits.",
     default: "",
+    valid: isValidUUID,
   },
   github_username: {
     name: "GitHub Username",

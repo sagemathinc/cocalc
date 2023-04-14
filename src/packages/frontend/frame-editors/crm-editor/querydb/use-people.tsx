@@ -35,7 +35,7 @@ export function usePerson(id: number): PersonType | undefined {
 async function peopleSearch(query: string): Promise<PersonType[] | null> {
   query = query.trim();
   if (!query) {
-    // view this as cancelling the search rather than returning everything
+    // view this as canceling the search rather than returning everything
     return null;
   }
 

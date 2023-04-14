@@ -129,6 +129,11 @@ export function blocksCursor(editor, up: boolean = false): boolean {
   } catch (_) {
     return false;
   }
+  if (elt == null) {
+    // fragment above was empty.
+    // I hit not checking for this randomly once in production and it caused a crash.
+    return false;
+  }
   if (Editor.isVoid(editor, elt)) {
     return true;
   }

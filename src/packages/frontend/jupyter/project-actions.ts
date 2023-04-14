@@ -492,7 +492,7 @@ export class JupyterActions extends JupyterActions0 {
     const identity = this._running_cells[id];
     if (identity == null) return;
     if (this.jupyter_kernel.identity == identity) {
-      dbg("cancelling");
+      dbg("canceling");
       this.jupyter_kernel.cancel_execute(id);
     } else {
       dbg("not canceling since wrong identity");

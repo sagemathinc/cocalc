@@ -4,26 +4,27 @@
  */
 
 import { List } from "immutable";
-import { rowBackground, search_split, search_match } from "@cocalc/util/misc";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+
 import {
   React,
   redux,
-  TypedMap,
   Rendered,
+  TypedMap,
   useActions,
   useEffect,
   useForceUpdate,
-  useState,
   useRef,
+  useState,
   useTypedRedux,
-} from "../../app-framework";
-import { Button } from "antd";
-import { Icon, Loading } from "../../components";
-import { LogSearch } from "./search";
-import { LogEntry } from "./log-entry";
-import { EventRecord, to_search_string } from "./types";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+} from "@cocalc/frontend/app-framework";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { rowBackground, search_match, search_split } from "@cocalc/util/misc";
+import { Button } from "antd";
+import { LogEntry } from "./log-entry";
+import { LogSearch } from "./search";
+import { EventRecord, to_search_string } from "./types";
 
 interface Props {
   project_id: string;
@@ -234,7 +235,7 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
     <div style={{ padding: "15px" }} className={"smc-vfill"}>
       <>
         <h1 style={{ marginTop: "0px" }}>
-          <Icon name="history" /> Project activity log
+          <Icon name="history" /> Project Activity Log
         </h1>
         {render_search()}
         {render_body()}

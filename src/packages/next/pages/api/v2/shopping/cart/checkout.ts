@@ -1,8 +1,3 @@
-/*
-Get shopping cart for signed in user.  Can also optionally get everything
-ever removed from cart, and also everything ever purchased.
-*/
-
 import checkout from "@cocalc/server/shopping/cart/checkout";
 import getAccountId from "lib/account/get-account";
 import reCaptcha from "@cocalc/server/auth/recaptcha";

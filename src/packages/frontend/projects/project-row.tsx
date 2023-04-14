@@ -21,6 +21,7 @@ import { AddCollaborators } from "@cocalc/frontend/collaborators";
 import {
   Icon,
   Markdown,
+  Paragraph,
   ProjectState,
   Space,
   TimeAgo,
@@ -240,17 +241,16 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
   );
 };
 
-export function ProjectAvatarImage({
-  project_id,
-  size,
-  onClick,
-  style,
-}: {
+interface ProjectAvatarImageProps {
   project_id: string;
   size?: number;
   onClick?: Function;
   style?: CSSProperties;
-}) {
+  askToAddAvatar?: boolean;
+}
+
+export function ProjectAvatarImage(props: ProjectAvatarImageProps) {
+  const { project_id, size, onClick, style, askToAddAvatar = false } = props;
   const isMounted = useIsMountedRef();
   const [avatarImage, setAvatarImage] = useState<string | undefined>(undefined);
 
@@ -264,6 +264,15 @@ export function ProjectAvatarImage({
     })();
   }, []);
 
+  function renderAdd(): JSX.Element {
+    if (!askToAddAvatar || onClick == null) return <></>;
+    return (
+      <Paragraph type="secondary" style={style} onClick={(e) => onClick(e)}>
+        (Click to add avatar image)
+      </Paragraph>
+    );
+  }
+
   return avatarImage ? (
     <div style={style} onClick={(e) => onClick?.(e)}>
       <Avatar
@@ -273,6 +282,6 @@ export function ProjectAvatarImage({
       />
     </div>
   ) : (
-    <></>
+    renderAdd()
   );
 }

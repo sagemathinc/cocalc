@@ -280,6 +280,7 @@ interface MapProps {
   margin?: number;
   minScale?: number;
   maxScale?: number;
+  presentation?: boolean;
 }
 
 export function Overview({
@@ -294,9 +295,10 @@ export function Overview({
   margin = 15,
   minScale,
   maxScale,
+  presentation,
 }: MapProps) {
   const { id, actions } = useFrameContext();
-  const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1);
+  const { xMin, yMin, xMax, yMax } = getPageSpan(elements, 1, presentation);
   const xDiff = xMax - xMin + 2 * margin;
   const yDiff = yMax - yMin + 2 * margin;
   let scale;
@@ -342,6 +344,7 @@ export function Overview({
         elements={elements}
         elementsMap={elementsMap}
         scale={scale}
+        presentation={presentation}
       />
       {setResize != null && (
         <Draggable

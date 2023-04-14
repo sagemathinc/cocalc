@@ -1413,13 +1413,42 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     this.setFragmentIdToPage(frameId);
   }
 
-  newPage(frameId: string, commit: boolean = true): string {
+  newPage(
+    frameId: string,
+    afterPageId: string = "",
+    commit: boolean = true
+  ): string {
     const n = this.store.get("pages")?.size ?? 1;
     const page = this.createPage(false);
     this.setPages(frameId, n + 1);
     this.setPageId(frameId, page);
+    if (afterPageId) {
+      const pages = this.sortedPageIds();
+      const cur = pages.indexOf(afterPageId);
+      const elements = this.store.get("elements");
+      if (cur >= 0 && elements != null) {
+        // Complexity: we don't just move the newly inserted page by calling
+        // movePage, since the store isn't updated yet (that only happens in
+        // response to commit), and movePage works on what is in the store.
+        const curPos = elements.getIn([pages.get(cur) ?? "", "data", "pos"]);
+        const nextPos = elements.getIn([
+          pages.get(cur + 1) ?? "",
+          "data",
+          "pos",
+        ]);
+        const pos = nextPos == null ? curPos + 1 : (curPos + nextPos) / 2;
+        this.setElement({
+          create: false,
+          obj: { id: page, data: { pos } },
+          commit: false,
+        });
+      }
+    }
     if (commit) {
       this.syncstring_commit();
+      if (afterPageId) {
+        this.ensurePagePositionsAreDistinct();
+      }
     }
     return page;
   }
@@ -1460,7 +1489,9 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       obj: { id: pages.get(oldIndex), data: { pos } },
       commit,
     });
-    this.ensurePagePositionsAreDistinct();
+    if (commit) {
+      this.ensurePagePositionsAreDistinct();
+    }
   }
 
   // Ensure that the the page pos's aren't too close.  This could happen if

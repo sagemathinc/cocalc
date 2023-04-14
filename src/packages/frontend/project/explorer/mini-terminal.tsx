@@ -18,8 +18,7 @@ IDEAS FOR LATER:
 import { React } from "../../app-framework";
 import { user_activity } from "../../tracker";
 import { ProjectActions } from "../../project_actions";
-import { Input } from "antd";
-import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Button, Input, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 
@@ -27,23 +26,27 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { webapp_client } from "../../webapp-client";
 
 export const output_style_searchbox: React.CSSProperties = {
+  background: "white",
   position: "absolute",
   zIndex: 2,
   width: "93%",
-  boxShadow: "0px 0px 7px #aaa",
+  boxShadow: "-4px 4px 7px #aaa",
   maxHeight: "450px",
   overflow: "auto",
+  borderRadius: "5px",
 } as const;
 
 export const output_style_miniterm: React.CSSProperties = {
+  background: "white",
   position: "absolute",
   zIndex: 2,
-  boxShadow: "0px 0px 7px #aaa",
+  boxShadow: "-4px 4px 7px #aaa",
   maxHeight: "450px",
   overflow: "auto",
   right: 0,
   maxWidth: "80%",
   marginRight: "5px",
+  borderRadius: "5px",
 } as const;
 
 const BAD_COMMANDS = {
@@ -51,14 +54,11 @@ const BAD_COMMANDS = {
   ipython:
     "Create a Jupyter notebook instead,\nor type 'ipython' in a full terminal.",
   gp: "Create a Sage worksheet in GP mode\nor type 'gp' in a full terminal.",
-  vi:
-    "Type vi in a full terminal instead,\nor just click on the file in the listing.",
-  vim:
-    "Type vim in a full terminal instead,\nor just click on the file in the listing.",
+  vi: "Type vi in a full terminal instead,\nor just click on the file in the listing.",
+  vim: "Type vim in a full terminal instead,\nor just click on the file in the listing.",
   emacs:
     "Type emacs in a full terminal instead,\nor just click on the file in the listing.",
-  open:
-    "The open command is not yet supported\nin the miniterminal.  See\nhttps://github.com/sagemathinc/cocalc/issues/230",
+  open: "The open command is not yet supported\nin the miniterminal.  See\nhttps://github.com/sagemathinc/cocalc/issues/230",
 } as const;
 
 const EXEC_TIMEOUT = 10; // in seconds
@@ -126,7 +126,7 @@ class MiniTerminal0 extends React.Component<Props, State> {
       err_on_exit: false,
       cb: (err, output) => {
         if (this._id !== id) {
-          // computation was cancelled -- ignore result.
+          // computation was canceled -- ignore result.
           return;
         }
         if (err) {
@@ -169,7 +169,9 @@ class MiniTerminal0 extends React.Component<Props, State> {
           this.setState({
             state: "edit",
             error: output.stderr,
-            stdout: output.stdout,
+            stdout: `${
+              this.props.current_path ? "~/" + this.props.current_path : "~"
+            }$ ${input}\n${output.stdout}`,
           });
           if (!output.stderr) {
             this.setState({ input: "" });
@@ -229,23 +231,6 @@ class MiniTerminal0 extends React.Component<Props, State> {
     }
   }
 
-  render_clear() {
-    if (
-      (this.state.stdout ? this.state.stdout.length : 0) == 0 &&
-      (this.state.error ? this.state.error.length : 0) == 0
-    )
-      return;
-
-    return (
-      <Button
-        onClick={() => this.setState({ stdout: "", error: "" })}
-        bsStyle={"warning"}
-      >
-        <Icon name={"times-circle"} />
-      </Button>
-    );
-  }
-
   keydown = (e) => {
     // IMPORTANT: if you do window.e and look at e, it's all null!! But it is NOT
     // all null right now -- see
@@ -266,31 +251,32 @@ class MiniTerminal0 extends React.Component<Props, State> {
             this.execute_command();
           }}
         >
-          <Input
-            type="text"
-            value={this.state.input}
-            placeholder="Terminal command..."
-            onChange={(e) => {
-              e.preventDefault();
-              const input = e?.target?.value;
-              if (input == null) return;
-              this.setState({ input });
-            }}
-            onKeyDown={this.keydown}
-            addonAfter={
-              <>
-                {this.render_clear()}
-                {this.render_button()}
-              </>
-            }
-          />
+          <Space.Compact style={{ width: "100%" }}>
+            <Input
+              allowClear
+              type="text"
+              value={this.state.input}
+              placeholder="Terminal command..."
+              onChange={(e) => {
+                e.preventDefault();
+                const input = e?.target?.value;
+                if (!input) {
+                  this.setState({ stdout: "", error: "" });
+                }
+                if (input == null) return;
+                this.setState({ input });
+              }}
+              onKeyDown={this.keydown}
+            />
+            {this.render_button()}
+          </Space.Compact>
         </form>
         <div style={output_style_miniterm}>
+          {this.render_output(this.state.stdout, { margin: 0 })}
           {this.render_output(this.state.error, {
             color: "darkred",
             margin: 0,
           })}
-          {this.render_output(this.state.stdout, { margin: 0 })}
         </div>
       </>
     );

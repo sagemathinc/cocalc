@@ -33,14 +33,26 @@
 //
 // Then restart the hubs.
 
+import Cookies from "cookies";
+import * as dot from "dot-object";
+import * as express from "express";
+import express_session from "express-session";
+import * as _ from "lodash";
+import ms from "ms";
+import passport, { AuthenticateOptions } from "passport";
+import { join as path_join } from "path";
+import { v4 as uuidv4, v4 } from "uuid";
+const safeJsonStringify = require("safe-json-stringify");
+import type { Request, Response, NextFunction } from "express";
+
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
 import base_path from "@cocalc/backend/base-path";
+import { loadSSOConf } from "@cocalc/database/postgres/load-sso-conf";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { getLogger } from "@cocalc/hub/logger";
 import { getExtraStrategyConstructor } from "@cocalc/server/auth/sso/extra-strategies";
-import { loadSSOConf } from "@cocalc/database/postgres/load-sso-conf";
 import { addUserProfileCallback } from "@cocalc/server/auth/sso/oauth2-user-profile-callback";
 import { PassportLogin } from "@cocalc/server/auth/sso/passport-login";
 import {
@@ -61,21 +73,13 @@ import {
   PassportStrategyFrontend,
   PRIMARY_SSO,
 } from "@cocalc/util/types/passport-types";
-import Cookies from "cookies";
-import * as dot from "dot-object";
-import * as express from "express";
-import express_session from "express-session";
-import * as _ from "lodash";
-import ms from "ms";
-import passport from "passport";
-import { join as path_join } from "path";
-import { v4 as uuidv4, v4 } from "uuid";
 import {
   email_verification_problem,
   email_verified_successfully,
   welcome_email,
 } from "./email";
 //import Saml2js from "saml2js";
+import { WinstonLogger } from "@cocalc/backend/logger";
 import {
   getOauthCache,
   getPassportCache,
@@ -92,8 +96,6 @@ import {
   TwitterStrategyConf,
 } from "@cocalc/server/auth/sso/public-strategies";
 const sign_in = require("./sign-in");
-
-const safeJsonStringify = require("safe-json-stringify");
 
 const logger = getLogger("hub:auth");
 
@@ -129,6 +131,15 @@ export async function init_passport(opts: InitPassport) {
   } catch (err) {
     opts.cb(err);
   }
+}
+
+interface HandleReturnOpts {
+  Linit: WinstonLogger;
+  name: string;
+  type: PassportTypes;
+  update_on_login: boolean;
+  cookie_ttl_s: number | undefined;
+  login_info: any;
 }
 
 export class PassportManager {
@@ -204,7 +215,7 @@ export class PassportManager {
   }
 
   // Define handler for api key cookie setting.
-  private handle_get_api_key(req, res, next) {
+  private handle_get_api_key(req: Request, res: Response, next: NextFunction) {
     if (req.query.get_api_key) {
       logger.debug("handle_get_api_key");
       const cookies = new Cookies(req, res);
@@ -526,14 +537,9 @@ export class PassportManager {
     return strategy_instance;
   }
 
-  private getHandleReturn({
-    Linit,
-    name,
-    type,
-    update_on_login,
-    cookie_ttl_s,
-    login_info,
-  }) {
+  private getHandleReturn(opts: HandleReturnOpts) {
+    const { Linit, name, type, update_on_login, cookie_ttl_s, login_info } =
+      opts;
     return async (req, res: express.Response) => {
       if (req.user == null) {
         throw Error("req.user == null -- that shouldn't happen");
@@ -542,11 +548,31 @@ export class PassportManager {
       // usually, we pick the "profile", but in some cases like SAML this is in "attributes".
       // finally, as a fallback, we just take the ".user"
       // technically, req.user should never be undefined, though.
-      const profile = (req.user.profile != null
-        ? req.user.profile
-        : req.user.attributes != null
-        ? req.user.attributes
-        : req.user) as any as passport.Profile;
+      Lret(`req.user = ${safeJsonStringify(req.user)}`);
+
+      const profile_raw =
+        req.user.profile != null
+          ? req.user.profile
+          : req.user.attributes != null
+          ? req.user.attributes
+          : req.user;
+
+      // there are cases, where profile is a JSON string (e.g. oauth2next)
+      let profile: passport.Profile;
+      try {
+        profile = (typeof profile_raw === "string"
+          ? JSON.parse(profile_raw)
+          : profile_raw) as any as passport.Profile;
+      } catch (err) {
+        Lret(`error parsing profile: ${err} -- ${profile_raw}`);
+        const { help_email } = await cb2(
+          this.database.get_server_settings_cached
+        );
+        const err_msg = `Error trying to login using '${name}' -- if this problem persists please contact ${help_email} -- ${err}<br/><pre>${err.stack}</pre>`;
+        Lret(`sending error "${err_msg}"`);
+        res.send(err_msg);
+        return;
+      }
 
       if (type === "saml") {
         // the nameID is set via the conf.identifierFormat parameter – even if we set it to
@@ -605,8 +631,12 @@ export class PassportManager {
 
   // right now, we only set this for OAauth2 (SAML knows what to do on its own)
   // This does not encode any information for now.
-  private setState(name, type: PassportTypes, auth_opts) {
-    return async (_req, _res, next) => {
+  private setState(
+    name: string,
+    type: PassportTypes,
+    auth_opts: AuthenticateOptions
+  ) {
+    return async (_req: Request, _res: Response, next: NextFunction) => {
       if (isOAuth2(type)) {
         const oauthcache = getOauthCache(name);
         const state = uuidv4();
@@ -618,15 +648,24 @@ export class PassportManager {
     };
   }
 
-  // corresponding check to the above. basically checks if the state data is still available.
-  private checkState(name, type: PassportTypes) {
-    return async (req, _res, next) => {
+  // corresponding check to setState above:
+  // checks if the state data (w/ expiration) is still available.
+  private checkState(name: string, type: PassportTypes) {
+    const W = logger.extend(`checkState:${name}`).warn;
+    return async (req: Request, _res: Response, next: NextFunction) => {
       if (isOAuth2(type)) {
         const oauthcache = getOauthCache(name);
         const state = req.query.state;
+        if (typeof state !== "string") {
+          const msg = `OAuth2 return error: 'state' is not a string: ${state}`;
+          W(msg);
+          return next(new Error(msg));
+        }
         const saved_state = await oauthcache.getAsync(state);
         if (saved_state == null) {
-          throw Error(`Invalid state: ${state}`);
+          const msg = `OAuth2 return error: invalid state: ${state}`;
+          W(msg);
+          return next(new Error(msg));
         }
         await oauthcache.removeAsync(state);
       }

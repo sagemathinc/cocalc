@@ -9,6 +9,7 @@ import { useProcessLinks } from "../hooks";
 import { open_new_tab } from "@cocalc/frontend/misc";
 const linkify = require("linkify-it")();
 import { Link, LINK_STYLE } from "./index";
+import { Tooltip } from "antd";
 
 register({
   slateType: "link",
@@ -20,23 +21,25 @@ register({
     return (
       <span {...attributes}>
         <span ref={ref}>
-          <a
-            href={url}
-            title={title}
-            onClick={() => {
-              if (url) {
-                open_new_tab(url);
-              }
-            }}
-            style={LINK_STYLE}
-          >
-            {children}
-            {element.children.length == 1 &&
-              Text.isText(element.children[0]) &&
-              !element.children[0].text.trim() && (
-                <span contentEditable={false}>(blank link)</span>
-              )}
-          </a>
+          <Tooltip title={url ? `Double click to open ${url}...` : undefined}>
+            <a
+              href={url}
+              title={title}
+              onDoubleClick={() => {
+                if (url) {
+                  open_new_tab(url);
+                }
+              }}
+              style={LINK_STYLE}
+            >
+              {children}
+              {element.children.length == 1 &&
+                Text.isText(element.children[0]) &&
+                !element.children[0].text.trim() && (
+                  <span contentEditable={false}>(blank link)</span>
+                )}
+            </a>
+          </Tooltip>
         </span>
       </span>
     );

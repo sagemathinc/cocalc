@@ -5,6 +5,7 @@ import Footer from "components/landing/footer";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import A from "components/misc/A";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 
 import IndexList, { DataSource } from "components/landing/index-list";
 
@@ -20,7 +21,8 @@ const dataSource = [
         <A href="/support/new">
           <b>create a support ticket</b>
         </A>
-        .  You do NOT have to be a paying customer to open a ticket, though we prioritize customer requests.
+        . You do NOT have to be a paying customer to open a ticket, though we
+        prioritize customer requests.
       </>
     ),
   },
@@ -36,6 +38,24 @@ const dataSource = [
           <b>status of your support tickets</b>
         </A>
         .
+      </>
+    ),
+  },
+  {
+    link: "/support/chatgpt",
+    title: "ChatGPT Suppport",
+    logo: "robot",
+    hide: (customize) => !customize.openaiEnabled,
+    description: (
+      <>
+        Our <A href="/support/chatgpt">integrated ChatGPT support</A> is free
+        and often very helpful since it knows so much about the open source
+        software in CoCalc.
+        <ChatGPTHelp
+          style={{ marginTop: "15px" }}
+          size="large"
+          tag="support-index"
+        />
       </>
     ),
   },

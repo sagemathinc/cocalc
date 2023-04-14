@@ -7,10 +7,16 @@ import { original_path } from "@cocalc/util/misc";
 import { redux } from "../../app-framework";
 import { webapp_client } from "../../webapp-client";
 
+interface Mention {
+  account_id: string;
+  description: string;
+  fragment_id?: string;
+}
+
 export async function submit_mentions(
   project_id: string,
   path: string,
-  mentions: { account_id: string; description: string; fragment_id?: string }[]
+  mentions: Mention[]
 ): Promise<void> {
   const source = redux.getStore("account")?.get("account_id");
   if (source == null) {

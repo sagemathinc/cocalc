@@ -8,8 +8,13 @@ import { Item } from "./complete";
 
 import { trunc_middle, timestamp_cmp, cmp } from "@cocalc/util/misc";
 import { Avatar } from "../../account/avatar/avatar";
+import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 
-export function mentionableUsers(project_id: string, search?: string): Item[] {
+export function mentionableUsers(
+  project_id: string,
+  search?: string,
+  chatGPT?: boolean
+): Item[] {
   const users = redux
     .getStore("projects")
     .getIn(["project_map", project_id, "users"]);
@@ -44,6 +49,17 @@ export function mentionableUsers(project_id: string, search?: string): Item[] {
 
   const users_store = redux.getStore("users");
   const v: Item[] = [];
+  if (chatGPT) {
+    v.push({
+      value: "chatgpt",
+      label: (
+        <span>
+          <OpenAIAvatar size={24} /> ChatGPT
+        </span>
+      ),
+      search: "chatgpt",
+    });
+  }
   for (const { account_id } of project_users) {
     const fullname = users_store.get_name(account_id) ?? "";
     const s = fullname.toLowerCase();

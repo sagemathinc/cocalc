@@ -164,7 +164,7 @@ CodeMirror.defineExtension("insert_link", async function () {
   }
 
   if (opts == null) {
-    return; // user cancelled
+    return; // user canceled
   }
 
   const selections = cm.listSelections();

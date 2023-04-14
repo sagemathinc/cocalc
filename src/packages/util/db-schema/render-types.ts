@@ -82,6 +82,10 @@ interface Json {
   editable?: boolean;
 }
 
+interface Code {
+  type: "code";
+}
+
 interface JsonString {
   type: "json-string";
 }
@@ -157,6 +161,7 @@ export type RenderSpec =
   | Assignee
   | Blob
   | Boolean
+  | Code
   | Color
   | Copyable
   | EmailAddress

@@ -4,7 +4,12 @@
  */
 
 export { SCHEMA } from "./types";
-export type { DBSchema, TableSchema, FieldSpec, UserOrProjectQuery } from "./types";
+export type {
+  DBSchema,
+  TableSchema,
+  FieldSpec,
+  UserOrProjectQuery,
+} from "./types";
 export type { RenderSpec } from "./render-types";
 
 // The tables
@@ -26,9 +31,11 @@ import "./file-use";
 import "./file-use-times";
 import "./hub-servers";
 import "./instances"; // probably deprecated
+import "./jupyter";
 import "./listings";
 import "./lti";
 import "./mentions";
+import "./openai";
 import "./organizations";
 import "./password-reset";
 import "./pg-system";

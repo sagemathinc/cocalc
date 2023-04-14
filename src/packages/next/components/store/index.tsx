@@ -5,8 +5,6 @@
 import { Alert, Layout } from "antd";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
-
-import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
@@ -17,6 +15,7 @@ import useCustomize from "lib/use-customize";
 import Boost from "./boost";
 import Cart from "./cart";
 import Checkout from "./checkout";
+import Vouchers from "./vouchers";
 import Congrats from "./congrats";
 import DedicatedResource from "./dedicated";
 import Menu from "./menu";
@@ -34,6 +33,7 @@ interface Props {
     | "cart"
     | "checkout"
     | "congrats"
+    | "vouchers"
     | undefined
   )[];
 }
@@ -77,7 +77,7 @@ export default function StoreLayout({ page }: Props) {
   const { account_id, is_anonymous } = profile;
   const noAccount = account_id == null;
 
-  // wrapper, only the pages showing the prices will be shown to the general public or anonymous users
+  // wrapper: only the pages showing the prices will be shown to the general public or anonymous users
   function requireAccount(StorePage): JSX.Element {
     if (noAccount) {
       return (
@@ -112,11 +112,12 @@ export default function StoreLayout({ page }: Props) {
         return requireAccount(Cart);
       case "checkout":
         return requireAccount(Checkout);
+      case "vouchers":
+        return requireAccount(Vouchers);
       case "congrats":
         return requireAccount(Congrats);
       default:
-        unreachable(main);
-        return { notFound: true };
+        return <Alert type="error" message={`Invalid page ${main}`} />;
     }
   }
 
@@ -132,7 +133,7 @@ export default function StoreLayout({ page }: Props) {
       >
         <Content
           style={{
-            margin: 0,
+            margin: "0 30px",
             minHeight: "60vh",
           }}
         >

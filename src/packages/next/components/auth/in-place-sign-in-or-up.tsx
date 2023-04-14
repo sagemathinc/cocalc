@@ -10,21 +10,26 @@ import { Divider } from "antd";
 import SignInAuth from "components/auth/sign-in";
 import SignUpAuth from "components/auth/sign-up";
 import { useRouter } from "next/router";
-import { ReactNode, useState } from "react";
+import { CSSProperties, ReactNode, useState } from "react";
 
 interface Props {
-  title: ReactNode;
+  title?: ReactNode;
   why?: ReactNode;
   onSuccess?: () => void;
+  style?: CSSProperties;
 }
 
-export default function InPlaceSignInOrUp(props: Props) {
-  const { title, why, onSuccess } = props;
+export default function InPlaceSignInOrUp({
+  title,
+  why,
+  onSuccess,
+  style,
+}: Props) {
   const router = useRouter();
   const [show, setShow] = useState<"sign-in" | "sign-up" | "">("");
 
   return (
-    <div style={{ textAlign: "center" }}>
+    <div style={{ textAlign: "center", ...style }}>
       <Divider>
         <Icon name="sign-in" style={{ marginRight: "10px" }} /> {title}
       </Divider>

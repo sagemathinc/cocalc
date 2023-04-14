@@ -10,9 +10,17 @@ import {
 } from "@cocalc/frontend/codemirror/extensions/insert-link";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { getSelection, selectionToText } from "./commands";
+import { delay } from "awaiting";
 
 export async function insertLink(editor): Promise<void> {
   let opts: Options | undefined = undefined;
+  // insertLink is typically called from formatAction, which
+  // restores the selection -- however, that restore doesn't
+  // impact the DOM until the next render loop.  Since the whole
+  // insertLink is async and involves a modal dialog, it's fine
+  // to wait until the DOM selection is set before getting
+  // the selected text (otherwise it is blank).
+  await delay(0);
   try {
     opts = await get_insert_link_opts_from_user(selectionToText(editor), false);
   } catch (err) {

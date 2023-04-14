@@ -29,7 +29,16 @@ export default function exportToHTML({
   const notebook = createElement(NBViewer, { content, fontSize, style });
   const element = createElement(
     FileContext.Provider,
-    { value: { noSanitize: true } },
+    {
+      value: {
+        noSanitize: true,
+        is_visible: true,
+        disableMarkdownCodebar: true,
+        disableExtraButtons: true,
+        hasOpenAI: false,
+        jupyterApiEnabled: false,
+      },
+    },
     [notebook]
   );
   const body = renderToString(element);

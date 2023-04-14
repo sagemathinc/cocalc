@@ -145,10 +145,17 @@ export async function createUser(project_id: string): Promise<void> {
   );
 }
 
+
+export async function stopProjectProcesses(project_id: string): Promise<void> {
+    const uid = `${getUid(project_id)}`;
+    const scmd = `pkill -9 -u ${uid} | true `; // | true since pkill exit 1 if nothing killed.
+    await exec(scmd); 
+}
+ 
+
 export async function deleteUser(project_id: string): Promise<void> {
+  await stopProjectProcesses(project_id);  
   const username = getUsername(project_id);
-  const uid = `${getUid(project_id)}`;
-  await exec(`pkill -9 -u ${uid} | true`); // | true since pkill exit 1 if nothing killed.
   try {
     await exec(`/usr/sbin/userdel ${username}`); // this also deletes the group
   } catch (_) {

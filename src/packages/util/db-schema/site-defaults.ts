@@ -23,6 +23,8 @@ export type SiteSettingsKeys =
   | "index_info_html"
   | "imprint"
   | "policies"
+  | "openai_enabled"
+  | "jupyter_api_enabled"
   | "organization_name"
   | "organization_email"
   | "organization_url"
@@ -120,6 +122,8 @@ export const only_ints = (val) =>
   );
 export const only_nonneg_int = (val) =>
   ((v) => only_ints(v) && v >= 0)(to_int(val));
+export const only_pos_int = (val) =>
+  ((v) => only_ints(v) && v > 0)(to_int(val));
 export const from_json = (conf): Mapping => {
   try {
     if (conf !== null) return JSON.parse(conf) ?? {};
@@ -514,5 +518,19 @@ export const site_settings_conf: SiteSettings = {
     name: "Sandbox Project ID",
     desc: "The `project_id` (a UUIDv4) of a sandbox project on your server for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
     default: "",
+  },
+  openai_enabled: {
+    name: "OpenAI ChatGPT UI",
+    desc: "Controls visibility of UI elements related to ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  jupyter_api_enabled: {
+    name: "Jupyter API",
+    desc: "If true, the public Jupyter API is enabled. This provides stateless evaluation of Jupyter code from the landing page and share server by users that may not be signed in.  This requires further configuration of the <i>Jupyter API Account Id</i>.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
   },
 } as const;

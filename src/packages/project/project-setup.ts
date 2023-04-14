@@ -102,6 +102,9 @@ export function cleanup(): void {
     .join(":");
   // don't delete NODE_ENV below, since it's potentially confusing to have the value of NODE_ENV change
   // during a running program.
+  // Also, don't delete DEBUG, since doing that in some cases breaks the debug library actually working,
+  // not surprisingly.  All this cleanup should instead be moved to wherever we spawn subprocesses,
+  // and then NODE_ENV and DEBUG could be added back to being removed.
   const envrm = [
     "DATA",
     "BASE_PATH",
@@ -110,7 +113,6 @@ export function cleanup(): void {
     "NVM_CD_FLAGS",
     "NVM_DIR",
     "NVM_BIN",
-    "DEBUG",
     "PATH_COCALC",
     "COCALC_ROOT",
   ];

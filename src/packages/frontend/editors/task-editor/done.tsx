@@ -7,8 +7,7 @@
 Checkbox for toggling done status
 */
 
-import { React, CSS } from "../../app-framework";
-import { Icon } from "../../components";
+import { Checkbox, Tooltip } from "antd";
 import { TaskActions } from "./actions";
 
 interface Props {
@@ -18,18 +17,14 @@ interface Props {
   task_id: string;
 }
 
-const STYLE: CSS = {
-  fontSize: "17pt",
-  color: "#888",
-  width: "40px",
-  padding: "0 10px",
-} as const;
-
-export const DoneCheckbox: React.FC<Props> = React.memo(
-  ({ done, read_only, task_id, actions }) => {
-    return (
-      <span
-        onClick={() => {
+export function DoneCheckbox({ done, read_only, task_id, actions }: Props) {
+  return (
+    <Tooltip
+      title={done ? "This task is done" : "Mark this task done"}
+      placement="left"
+    >
+      <Checkbox
+        onChange={() => {
           if (read_only || actions == null) return;
           if (done) {
             actions.set_task_not_done(task_id);
@@ -37,10 +32,8 @@ export const DoneCheckbox: React.FC<Props> = React.memo(
             actions.set_task_done(task_id);
           }
         }}
-        style={STYLE}
-      >
-        <Icon name={done ? "check-square-o" : "square-o"} />
-      </span>
-    );
-  }
-);
+        checked={done}
+      ></Checkbox>
+    </Tooltip>
+  );
+}

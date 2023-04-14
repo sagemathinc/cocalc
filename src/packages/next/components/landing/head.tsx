@@ -22,9 +22,13 @@ export default function Head({ title }: Props) {
     ? logoSquareURL
     : join(basePath ?? "", IconLogo.src);
 
+  // This shows the title if given, otherwise the siteName.
+  // It used to always show the sitename first, but that's
+  // mostly useless, the site is clear already from the favicon,
+  // and other sites like github and amazon do NOT do that.
   return (
     <NextHead>
-      <title>{`${siteName} ${siteName ? "–" : ""} ${title}`}</title>
+      <title>{`${title ? title : siteName}`}</title>
       <meta
         name="description"
         content="CoCalc landing pages and documentation"

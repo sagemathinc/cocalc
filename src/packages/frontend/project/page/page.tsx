@@ -44,6 +44,7 @@ interface Props {
 
 export const ProjectPage: React.FC<Props> = (props: Props) => {
   const { project_id, is_active } = props;
+  const hideActionButtons = useTypedRedux({ project_id }, "hideActionButtons");
   const actions = useActions({ project_id });
   const is_deleted = useRedux([
     "projects",
@@ -53,6 +54,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   ]);
   useProjectStatus(actions);
   const fullscreen = useTypedRedux("page", "fullscreen");
+  const active_top_tab = useTypedRedux("page", "active_top_tab");
   const modal = useTypedRedux({ project_id }, "modal");
   const open_files_order = useTypedRedux({ project_id }, "open_files_order");
   const active_project_tab = useTypedRedux(
@@ -77,10 +79,14 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             path,
             actions: redux.getEditorActions(project_id, path) as any,
             isFocused: active_project_tab === tab_name,
+            isVisible: active_project_tab === tab_name,
+            redux,
           }}
         >
           <Content
-            is_visible={active_project_tab === tab_name}
+            is_visible={
+              active_top_tab == project_id && active_project_tab === tab_name
+            }
             project_id={project_id}
             tab_name={tab_name}
           />
@@ -164,7 +170,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       {is_deleted && <DeletedProjectWarning />}
       <StartButton project_id={project_id} />
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {(!fullscreen || fullscreen == "project") && (
+        {!hideActionButtons && (!fullscreen || fullscreen == "project") && (
           <div
             style={{
               background: "rgba(0, 0, 0, 0.02)",
@@ -179,7 +185,14 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             />
           </div>
         )}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflowX: "auto",
+          }}
+        >
           {renderEditorContent()}
           {render_project_content()}
           {render_project_modal()}

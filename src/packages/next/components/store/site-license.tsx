@@ -22,7 +22,7 @@ import { isEmpty } from "lodash";
 import { useRouter } from "next/router";
 import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
-import { computeCost } from "./compute-cost";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { InfoBar } from "./cost-info-bar";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
@@ -76,18 +76,29 @@ export default function SiteLicense(props: Props) {
           : "Buy a Quota Upgrades License"}
       </Title>
       {router.query.id == null && (
-        <Paragraph>
-          <A href="https://doc.cocalc.com/licenses.html">
-            <SiteName /> site licenses
-          </A>{" "}
-          allow you to upgrade any number of projects to run more quickly, have
-          network access, more disk space, memory, or run on a dedicated
-          computer. Quota upgrade licenses can be for a wide range of sizes,
-          ranging from a single hobbyist project to thousands of simultaneous
-          users across an entire department of school. Create a license using
-          the form below then add it to your{" "}
-          <A href="/store/cart">shopping cart</A>.
-        </Paragraph>
+        <>
+          <Paragraph>
+            <A href="https://doc.cocalc.com/licenses.html">
+              <SiteName /> site licenses
+            </A>{" "}
+            allow you to upgrade any number of projects to run more quickly,
+            have network access, more disk space, memory, or run on a dedicated
+            computer. Quota upgrade licenses can be for a wide range of sizes,
+            ranging from a single hobbyist project to thousands of simultaneous
+            users across an entire department of school. Create a license using
+            the form below then add it to your{" "}
+            <A href="/store/cart">shopping cart</A>.
+          </Paragraph>
+          <Paragraph>
+            You might also be interested in a{" "}
+            <A href="/store/boost">license boost</A>,{" "}
+            <A href="/store/dedicated">dedicated VM</A>, or{" "}
+            <A href="/store/dedicated">dedicated disk</A>. It is also possible
+            to{" "}
+            <A href="https://doc.cocalc.com/vouchers.html">create vouchers</A>{" "}
+            for resale or distribution.
+          </Paragraph>
+        </>
       )}
       <CreateSiteLicense
         showInfoBar={scrollY > offsetHeader}

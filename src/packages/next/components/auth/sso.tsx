@@ -3,17 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert, Avatar, Tooltip, Typography } from "antd";
+import { useRouter } from "next/router";
+import { join } from "path";
+import { CSSProperties, ReactNode, useMemo } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { checkRequiredSSO } from "@cocalc/server/auth/sso/check-required-sso";
 import { PRIMARY_SSO } from "@cocalc/util/types/passport-types";
 import { Strategy } from "@cocalc/util/types/sso";
-import { Alert, Avatar, Tooltip, Typography } from "antd";
 import Loading from "components/share/loading";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
-import { useRouter } from "next/router";
-import { join } from "path";
-import { CSSProperties, ReactNode, useMemo } from "react";
 
 const { Link: AntdLink } = Typography;
 
@@ -145,7 +146,6 @@ export function StrategyAvatar(props: AvatarProps) {
           style={{
             height: `${size - 2}px`,
             width: `${size - 2}px`,
-            marginLeft: "2.5px",
             objectFit: "contain",
           }}
         />

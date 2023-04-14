@@ -136,12 +136,18 @@ const MODULE_RULES = [
   },
 ] as Rules;
 
-export default function moduleRules(devServer?: boolean) : Rules {
+export default function moduleRules(devServer?: boolean): Rules {
   return (
     [
       {
         test: /\.(js|jsx|ts|tsx|mjs|cjs)$/,
-        exclude: /.*node_modules\/jquery.*/,
+        // the swc-loader absolutely mangles some upstream libraries so they
+        // are totally broken!  Examples include: jquery and react-virtuoso.
+        // We could exclude just those two via "/.*node_modules\/(jquery.*|react-virtuoso.*)/",
+        // but instead we just exclude *all* of node_modules, since any
+        // random module or upgraded could get broken at any time and that
+        // is very painful and confusing.
+        exclude: /.*node_modules\/.*/,
         use: [
           {
             loader: "swc-loader",

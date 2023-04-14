@@ -18,6 +18,8 @@ import { SlateCodeMirror } from "../codemirror";
 import { useFocused, useSelected } from "../../slate-react";
 import { useCollapsed } from "../hooks";
 import { StaticElement } from "./index";
+import { Popover } from "antd";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   value: string;
@@ -41,45 +43,31 @@ export const SlateMath: React.FC<Props> = React.memo(
       }
     }, [selected, focused, collapsed]);
 
-    function renderEditMode() {
-      if (!editMode) return;
-      return (
-        <SlateCodeMirror
-          style={{
-            border: "1px solid lightgrey",
-            boxShadow: "4px 4px 3px #aaa",
-          }}
-          value={value}
-          onChange={(value) => {
-            onChange?.(value.trim().replace(/^\s*[\r\n]/gm, ""));
-          }}
-          onBlur={() => {
-            justBlurred.current = true;
-            setTimeout(() => {
-              justBlurred.current = false;
-            }, 1);
-            setEditMode(false);
-          }}
-          info="tex"
-          options={{
-            lineWrapping: true,
-            autofocus: true,
-          }}
-          isInline={true}
-        />
-      );
-    }
-
     function renderLaTeX() {
+      const Element = isInline ? "span" : "div";
       return (
-        <span
-          style={editMode ? { color: "#337ab7" } : undefined}
+        <Element
+          style={
+            editMode
+              ? {
+                  color: "#337ab7",
+                  border: "1px solid #337ab7",
+                  borderRadius: "8px",
+                  ...(isInline
+                    ? { margin: "-7px -3px", padding: "6px 2px" }
+                    : undefined),
+                }
+              : !isInline
+              ? { border: "1px solid transparent" }
+              : undefined
+          }
           onClick={async (e) => {
             e.preventDefault();
             e.stopPropagation();
             // switch to edit mode when you click on it.
             setEditMode?.(true);
-            frameContext.actions.set_active_id(frameContext.id);
+            // also make the frame containing this active... if we're in a frame editor (hence the ?. !)
+            frameContext.actions?.set_active_id?.(frameContext.id);
           }}
         >
           {/* below since we are abusing the StaticElement component a bit */}
@@ -90,15 +78,48 @@ export const SlateMath: React.FC<Props> = React.memo(
             children={undefined}
             attributes={{} as any}
           />
-        </span>
+        </Element>
       );
     }
+    // putting renderEditMode before is critical since as we type, length of formula changes,
+    // and default would move the popover as we type, which is horrible
 
     return (
       <span contentEditable={false} style={{ cursor: "pointer" }}>
-        {!isInline && renderEditMode()}
-        {renderLaTeX()}
-        {isInline && renderEditMode()}
+        <Popover
+          open={editMode && frameContext.isFocused && frameContext.isVisible}
+          destroyTooltipOnHide={true}
+          title={
+            <>
+              <Icon name="pencil" style={{ marginRight: "5px" }} />{" "}
+              {isInline ? "Inline" : "Display"} LaTeX Mathematics
+            </>
+          }
+          content={() => (
+            <SlateCodeMirror
+              style={{ maxWidth: "90vw", width: "700px" }}
+              value={value}
+              onChange={(value) => {
+                onChange?.(value.trim().replace(/^\s*[\r\n]/gm, ""));
+              }}
+              onBlur={() => {
+                justBlurred.current = true;
+                setTimeout(() => {
+                  justBlurred.current = false;
+                }, 1);
+                setEditMode(false);
+              }}
+              info="tex"
+              options={{
+                lineWrapping: true,
+                autofocus: true,
+              }}
+              isInline={true}
+            />
+          )}
+        >
+          {renderLaTeX()}
+        </Popover>
       </span>
     );
   }

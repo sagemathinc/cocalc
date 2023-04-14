@@ -10,12 +10,8 @@ import { basename } from "node:path";
 
 import { hours_ago } from "@cocalc/util/relative-time";
 import withCustomize from "lib/with-customize";
-import {
-  SoftwareEnvNames,
-  SOFTWARE_ENV_NAMES,
-  SOFTWARE_FALLBACK,
-  SOFTWARE_URLS,
-} from "./consts";
+import { SoftwareEnvNames, SOFTWARE_ENV_NAMES } from "./consts";
+import { SOFTWARE_FALLBACK, SOFTWARE_URLS } from "./software-data";
 import {
   ComputeComponents,
   ComputeInventory,

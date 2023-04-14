@@ -38,6 +38,9 @@ db_schema            = require('@cocalc/util/db-schema')
 { COOKIE_NAME }=require("@cocalc/server/auth/remember-me");
 generateHash =require("@cocalc/server/auth/hash").default;
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
+chatgpt        = require('@cocalc/server/openai/chatgpt');
+jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
+jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
 
 {one_result} = require("@cocalc/database")
 
@@ -2074,3 +2077,40 @@ class exports.Client extends EventEmitter
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_chatgpt: (mesg) =>
+        dbg = @dbg("mesg_chatgpt")
+        dbg(mesg.text)
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"not signed in")
+            return
+        try
+            output = await chatgpt.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag)
+            @push_to_client(message.chatgpt_response(id:mesg.id, text:output))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_jupyter_execute: (mesg) =>
+        dbg = @dbg("mesg_jupyter_execute")
+        dbg(mesg.text)
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"not signed in")
+            return
+        try
+            resp = await jupyter_execute(mesg)
+            resp.id = mesg.id
+            @push_to_client(message.jupyter_execute_response(resp))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_jupyter_kernels: (mesg) =>
+        dbg = @dbg("mesg_jupyter_kernels")
+        dbg(mesg.text)
+        try
+            @push_to_client(message.jupyter_kernels(id:mesg.id, kernels:await jupyter_kernels({project_id:mesg.project_id, account_id:@account_id})))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+

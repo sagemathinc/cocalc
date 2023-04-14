@@ -9,11 +9,12 @@ A constraint of this component is that it should easily render in the next.js
 application.
 */
 
-import { CSSProperties } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 import "./elements/init-ssr";
 import { getStaticRender } from "./elements/register";
 import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
 import Leaf from "./leaf";
+import { ChangeContext } from "./use-change";
 
 interface Props {
   value: string;
@@ -21,22 +22,43 @@ interface Props {
   className?: string;
 }
 
-export default function StaticMarkdown(props: Props) {
-  const { value, style, className } = props;
+type PartialSlateEditor = any; // TODO
 
-  // Convert markdown to our slate JSON object representation.
-  const slate = markdownToSlate(value);
-  const v: JSX.Element[] = [];
-  // console.log(JSON.stringify(slate, undefined, 2));
-  let n = 0;
-  for (const element of slate) {
-    v.push(<RenderElement key={n} element={element} />);
-    n += 1;
+export default function StaticMarkdown({ value, style, className }: Props) {
+  const [editor, setEditor] = useState<PartialSlateEditor>({
+    children: markdownToSlate(value),
+  });
+  const [change, setChange] = useState<number>(0);
+  useEffect(() => {
+    setChange(change + 1);
+    if (change > 0) {
+      // no need to set it the first time because it is set in the useState initialization.
+      // and we *have* to set it there so it works for server side rendering and exporting to html/pdf.
+      setEditor({ children: markdownToSlate(value) });
+    }
+  }, [value]);
+
+  if (editor == null) {
+    return null;
   }
+
   return (
-    <div style={{ width: "100%", ...style }} className={className}>
-      {v}
-    </div>
+    <ChangeContext.Provider
+      value={{
+        change,
+        editor,
+        setEditor: (editor) => {
+          setEditor(editor);
+          setChange(change + 1);
+        },
+      }}
+    >
+      <div style={{ width: "100%", ...style }} className={className}>
+        {editor.children.map((element, n) => {
+          return <RenderElement key={n} element={element} />;
+        })}
+      </div>
+    </ChangeContext.Provider>
   );
 }
 

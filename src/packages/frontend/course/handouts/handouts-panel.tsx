@@ -190,14 +190,15 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
               <h3>Add a Handout to your Course</h3>
               <p>
                 A handout is a <i>directory</i> of files somewhere in your
-                CoCalc project, which you send to all of your students. They can
+                CoCalc project, which you copy to all of your students. They can
                 then do anything they want with that handout.
               </p>
 
               <p>
-                Add a handout to your course by creating a directory using the
-                Files tab, then type the name of the directory in the box in the
-                upper right and click to search.
+                Add handouts to your course by clicking "Add Handout..." above.
+                You can create or select one or more directories and they will
+                become handouts that you can then customize and distribute to
+                your students.
               </p>
             </div>
           }

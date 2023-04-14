@@ -9,6 +9,7 @@ export interface SlateEditor extends ReactEditor {
   applyingOperations?: boolean;
   lastSelection?: Range;
   curSelection?: Range;
+  selectionIsCollapsed: () => boolean;
   inverseSearch: (boolean?) => Promise<void>;
   hasUnsavedChanges: () => boolean;
   _hasUnsavedChanges: any;

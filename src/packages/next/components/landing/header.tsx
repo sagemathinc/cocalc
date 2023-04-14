@@ -18,6 +18,7 @@ import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import { SoftwareEnvNames } from "lib/landing/consts";
 import SubNav, { Page, SubPage } from "./sub-nav";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 
 const GAP = "4%";
 
@@ -27,10 +28,12 @@ export const LinkStyle: React.CSSProperties = {
   display: "inline-block",
 } as const;
 
+// The style shouldn't change the size of the label, e.g., don't
+// use bold.  Otherwise, everything moves a little when you select
+// an option, which looks weird.
 const SelectedStyle: React.CSSProperties = {
   ...LinkStyle,
   color: COLORS.LANDING.TOP_BG,
-  fontWeight: "bold",
   borderBottom: "5px solid #c7d9f5",
 } as const;
 
@@ -51,6 +54,7 @@ export default function Header(props: Props) {
     landingPages,
     account,
     onCoCalcCom,
+    openaiEnabled,
   } = useCustomize();
 
   if (basePath == null) return null;
@@ -68,12 +72,13 @@ export default function Header(props: Props) {
             outline: `1px solid ${COLORS.BLUE_DD}`,
             padding: "2px 8px",
             borderRadius: "5px",
+            width: "70px", // CRITICAL -- this is to prevent flicker -- see https://github.com/sagemathinc/cocalc/issues/6504
           }}
         >
           <A
             type="primary"
             size="large"
-            href="/support/new?hideExtra=true&type=question&subject=&body=&title=Ask%20Us%20Anything!"
+            href="/support/new?type=question&subject=&body=&title=Ask%20Us%20Anything!"
             title="Ask a question"
             style={{
               color: "white",
@@ -226,6 +231,15 @@ export default function Header(props: Props) {
         )}{" "}
       </Layout.Header>
       <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
+      {openaiEnabled && page == "features" && (
+        <div style={{ width: "700px", maxWidth: "100%", margin: "15px auto" }}>
+          <ChatGPTHelp
+            size="large"
+            prompt={subPage ? `I am using ${subPage}.` : ""}
+            tag={`features-${subPage}`}
+          />
+        </div>
+      )}
     </>
   );
 }

@@ -270,12 +270,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         dbg = @_dbg("user_query_cancel_changefeed(id='#{opts.id}')")
         feed = @_changefeeds?[opts.id]
         if feed?
-            dbg("actually cancelling feed")
+            dbg("actually canceling feed")
             @_dec_changefeed_count(opts.id)
             delete @_changefeeds[opts.id]
             feed.close()
         else
-            dbg("already cancelled before (no such feed)")
+            dbg("already canceled before (no such feed)")
         opts.cb?()
 
     _user_get_query_columns: (query, remove_from_query) =>
@@ -423,7 +423,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 switch val
                     when 'account_id'
                         if not r.account_id?
-                            return {err: "FATAL: account_id must be specified"}
+                            return {err: "FATAL: account_id must be specified -- make sure you are signed in"}
                         r.query[field] = r.account_id
                     when 'project_id'
                         if not r.project_id?

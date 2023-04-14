@@ -3045,3 +3045,56 @@ message({
   id: undefined,
   resp: required, // a string - basically a message to show the user
 });
+
+API(
+  message({
+    event: "chatgpt",
+    id: undefined,
+    text: required, // text of the question
+    system: undefined, // optional (highly recommended!) extra system context, e.g,. "using cocalc".
+    history: undefined, // optional history of this conversation in chatgpt format, so { role: "assistant" | "user" | "system"; content: string }[];
+    project_id: undefined,
+    path: undefined,
+    model: undefined,
+    tag: undefined,
+  })
+);
+
+message({
+  event: "chatgpt_response",
+  id: undefined,
+  text: required, // text of the response
+});
+
+API(
+  message({
+    event: "jupyter_execute",
+    id: undefined,
+    hash: undefined, // give either hash *or* kernel, input, history, etc.
+    kernel: undefined, // jupyter kernel
+    input: undefined, // input code to execute
+    history: undefined, // optional history of this conversation as a list of input strings.  Do not include output
+    project_id: undefined, // project it should run in.
+    path: undefined, // optional path where execution happens
+    tag: undefined,
+    pool: undefined, // {size?: number; timeout_s?: number;}
+    limits: undefined, // see packages/project/nbgrader/jupyter-run.ts
+  })
+);
+
+message({
+  event: "jupyter_execute_response",
+  id: undefined,
+  output: required, // the response
+  total_time_s: undefined,
+  time: undefined,
+});
+
+API(
+  message({
+    event: "jupyter_kernels",
+    id: undefined,
+    project_id: undefined,
+    kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
+  })
+);

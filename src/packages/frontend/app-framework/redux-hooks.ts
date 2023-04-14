@@ -58,10 +58,12 @@ export function useReduxNamedStore(path: string[]) {
     }
     const store = redux.getStore(path[0]);
     if (store == null) {
-      // TODO: I could make it return undefined until the store is created.
-      // I *did* do this for useReduxEditorStore, but just haven't gotten
-      // around to doing this for useReduxNamedStore yet.
-      throw Error(`store "${path[0]}" must exist!`);
+      // This could happen if some input is invalid, e.g., trying to create one of these
+      // redux hooks with an invalid project_id. There will be other warnings in the logs
+      // about that.  It's better at this point to warn once in the logs, rather than completely
+      // crash the client.
+      console.warn(`store "${path[0]}" must exist; path=`, path);
+      return undefined;
     }
     const subpath = path.slice(1);
     let last_value = value;

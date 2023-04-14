@@ -14,7 +14,9 @@ The functions below in some cases return things, and in some cases set global va
 
 COPYRIGHT : (c) 2021 SageMath, Inc.
 LICENSE   : AGPLv3
-*/ process.env.COCALC_ROOT = require("path").resolve(__dirname);
+*/
+
+process.env.COCALC_ROOT = require("path").resolve(__dirname);
 console.log(process.env.COCALC_ROOT);
 console.log(`Logging debug info to the file "${process.env.LOGS}/log"`);
 process.env.PGUSER = process.env.PGUSER ?? "smc";
@@ -25,6 +27,7 @@ global.done = misc.done;
 global.done1 = misc.done1;
 global.done2 = misc.done2;
 global.password_hash = require("./packages/hub/dist/auth").password_hash;
+const { syncCustomer } = require("./packages/database/dist/postgres/stripe");
 
 let db = undefined;
 function get_db(cb) {
@@ -113,6 +116,8 @@ global.load = function (filename) {
   return JSON.parse(fs.readFileSync(filename));
 };
 
-global.stripe = (account_id) =>
-  get_db((err, db) => db.stripe_update_customer({ account_id, cb: done() }));
-console.log("stripe [account_id] -- update stripe info about user");
+global.stripe = async (account_id) => {
+  console.log(await syncCustomer({ account_id }));
+};
+console.log("stripe('account_id') -- update stripe info about user");
+console.log("\n> ");

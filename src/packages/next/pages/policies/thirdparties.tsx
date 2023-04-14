@@ -30,7 +30,6 @@ export default function TermsOfService({ customize }) {
               <h1 style={{ fontSize: "28pt" }}>
                 CoCalc - Third Parties Statements
               </h1>
-              <h2>Last Updated: September 15, 2021</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -265,6 +264,43 @@ export default function TermsOfService({ customize }) {
                     </A>{" "}
                   </li>
                 </ul>
+                <li>
+                  <A href="https://openai.com/">OpenAI</A>
+                  <ul>
+                    <li>
+                      Answer questions about CoCalc functionality on the landing
+                      pages.
+                    </li>
+                    <li>
+                      Internal cocalc chat that explicitly mentions @chatgpt.
+                    </li>
+                    <li>
+                      <A href="https://openai.com/policies/terms-of-use">
+                        GDPR Information
+                      </A>
+                    </li>
+                    <li>
+                      <A href="https://openai.com/policies/privacy-policy">
+                        Data Privacy
+                      </A>
+                    </li>
+                    <li>
+                      The{" "}
+                      <A href="https://openai.com/policies/api-data-usage-policies">
+                        OpenAI data usage policy
+                      </A>{" "}
+                      says "OpenAI will not use data submitted by customers via
+                      our API to train or improve our models, unless you
+                      explicitly decide to share your data with us for this
+                      purpose." CoCalc does not share the data submitted by
+                      customers via the API with OpenAI to train or improve
+                      their models. Their retention policy is "Any data sent
+                      through the API will be retained for abuse and misuse
+                      monitoring purposes for a maximum of 30 days, after which
+                      it will be deleted (unless otherwise required by law)."
+                    </li>
+                  </ul>
+                </li>
               </ul>
               <h1>Questions?</h1>
               <p>
@@ -274,6 +310,7 @@ export default function TermsOfService({ customize }) {
               </p>
               <h1>Changes</h1>
               <ul>
+                <li>March 16, 2023: added openai.</li>
                 <li>
                   September 15, 2021: removed appear.in, which we no longer use.
                 </li>

@@ -2,7 +2,7 @@
 Edit with either plain text input **or** WYSIWYG slate-based input.
 */
 
-import { Radio } from "antd";
+import { Popover, Radio } from "antd";
 import { fromJS, Map as ImmutableMap } from "immutable";
 import LRU from "lru-cache";
 import {
@@ -23,13 +23,15 @@ import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/con
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc";
 import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { COLORS } from "@cocalc/util/theme";
 import { BLURED_STYLE, FOCUSED_STYLE, MarkdownInput } from "./component";
+import { Icon } from "@cocalc/frontend/components";
 
 // NOTE: on mobile there is very little suppport for "editor" = "slate", but
 // very good support for "markdown", hence the default below.
 
 export interface EditorFunctions {
-  set_cursor?: (pos: { x?: number; y?: number }) => void;
+  set_cursor: (pos: { x?: number; y?: number }) => void;
 }
 
 interface MultimodeState {
@@ -76,6 +78,7 @@ interface Props {
   modeSwitchStyle?: CSSProperties;
   autoFocus?: boolean; // note - this is broken on safari for the slate editor, but works on chrome and firefox.
   enableMentions?: boolean;
+  chatGPT?: boolean; // if true, add @chatgpt as an option for @mentions.
   enableUpload?: boolean; // whether to enable upload of files via drag-n-drop or paste.  This is on by default! (Note: not possible to disable for slate editor mode anyways.)
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
@@ -125,6 +128,10 @@ interface Props {
 
   // refresh codemirror if this changes
   refresh?: any;
+
+  overflowEllipsis?: boolean; // if true, show "..." button popping up all menu entries
+
+  dirtyRef?: MutableRefObject<boolean>; // a boolean react ref that gets set to true whenever document changes for any reason (client should explicitly set this back to false).
 }
 
 export default function MultiMarkdownInput(props: Props) {
@@ -143,6 +150,7 @@ export default function MultiMarkdownInput(props: Props) {
     style,
     autoFocus,
     enableMentions,
+    chatGPT,
     enableUpload = true,
     onUploadStart,
     onUploadEnd,
@@ -170,8 +178,17 @@ export default function MultiMarkdownInput(props: Props) {
     unregisterEditor,
     modeSwitchStyle,
     refresh,
+    overflowEllipsis = false,
+    dirtyRef,
   } = props;
-  const { project_id, path } = useFrameContext();
+  const {
+    isFocused: isFocusedFrame,
+    isVisible,
+    project_id,
+    path,
+  } = useFrameContext();
+
+  const editBar2 = useRef<JSX.Element | undefined>(undefined);
 
   function getCache() {
     return cacheId === undefined
@@ -186,6 +203,8 @@ export default function MultiMarkdownInput(props: Props) {
       getLocalStorageMode() ??
       (IS_MOBILE ? "markdown" : "editor")
   );
+
+  const [editBarPopover, setEditBarPopover] = useState<boolean>(false);
 
   useEffect(() => {
     onModeChange?.(mode);
@@ -238,6 +257,34 @@ export default function MultiMarkdownInput(props: Props) {
     };
   }, [mode]);
 
+  function toggleEditBarPopupver() {
+    setEditBarPopover(!editBarPopover);
+  }
+
+  function renderEditBarEllipsis() {
+    return (
+      <span style={{ fontWeight: 400 }}>
+        {"\u22EF"}
+        <Popover
+          open={isFocusedFrame && isVisible && editBarPopover}
+          content={
+            <div style={{ display: "flex" }}>
+              {editBar2.current}
+              <Icon
+                onClick={() => setEditBarPopover(false)}
+                name="times"
+                style={{
+                  color: COLORS.GRAY_M,
+                  marginTop: "5px",
+                }}
+              />
+            </div>
+          }
+        />
+      </span>
+    );
+  }
+
   return (
     <div
       style={{
@@ -272,7 +319,7 @@ export default function MultiMarkdownInput(props: Props) {
           <div
             style={{
               background: "white",
-              color: "#666",
+              color: COLORS.GRAY_M,
               ...(mode == "editor" || hideHelp
                 ? {
                     position: "absolute",
@@ -285,6 +332,21 @@ export default function MultiMarkdownInput(props: Props) {
           >
             <Radio.Group
               options={[
+                ...(overflowEllipsis && mode == "editor"
+                  ? [
+                      {
+                        label: renderEditBarEllipsis(),
+                        value: "menu",
+                        style: {
+                          backgroundColor: editBarPopover
+                            ? COLORS.GRAY_L
+                            : "white",
+                          paddingLeft: 10,
+                          paddingRight: 10,
+                        },
+                      },
+                    ]
+                  : []),
                 // fontWeight is needed to undo a stupid conflict with bootstrap css, which will go away when we get rid of that ancient nonsense.
                 {
                   label: <span style={{ fontWeight: 400 }}>Text</span>,
@@ -296,7 +358,12 @@ export default function MultiMarkdownInput(props: Props) {
                 },
               ]}
               onChange={(e) => {
-                setMode(e.target.value as Mode);
+                const mode = e.target.value;
+                if (mode === "menu") {
+                  toggleEditBarPopupver();
+                } else {
+                  setMode(mode as Mode);
+                }
               }}
               value={mode}
               optionType="button"
@@ -321,6 +388,7 @@ export default function MultiMarkdownInput(props: Props) {
           onUploadStart={onUploadStart}
           onUploadEnd={onUploadEnd}
           enableMentions={enableMentions}
+          chatGPT={chatGPT}
           onShiftEnter={onShiftEnter}
           placeholder={placeholder ?? "Type markdown..."}
           fontSize={fontSize}
@@ -350,6 +418,7 @@ export default function MultiMarkdownInput(props: Props) {
           unregisterEditor={unregisterEditor}
           refresh={refresh}
           compact={compact}
+          dirtyRef={dirtyRef}
         />
       )}
       {mode == "editor" && (
@@ -427,6 +496,9 @@ export default function MultiMarkdownInput(props: Props) {
             unregisterEditor={unregisterEditor}
             placeholder={placeholder ?? "Type text..."}
             submitMentionsRef={submitMentionsRef}
+            chatGPT={chatGPT}
+            editBar2={editBar2}
+            dirtyRef={dirtyRef}
           />
         </div>
       )}

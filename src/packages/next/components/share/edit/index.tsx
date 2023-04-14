@@ -56,6 +56,7 @@ export default function Edit({
   return (
     <span>
       <Button
+        type="link"
         disabled={expanded}
         onClick={(e) => {
           e.preventDefault();
@@ -63,7 +64,7 @@ export default function Edit({
         }}
         key="edit"
       >
-        <Icon name="pencil" /> Edit...
+        <Icon name="pencil" /> Edit in a Project...
       </Button>
       {expanded && (
         <EditOptions

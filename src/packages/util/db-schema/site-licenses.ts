@@ -92,6 +92,10 @@ Table({
       desc: "The maximum number of projects that may simultaneously have this license applied to them.  When this is exceeded, older projects have the license automatically removed.  If this changes how the projects are upgraded, then those projects are stopped.",
       render: { type: "number", integer: true, min: 1, editable: true },
     },
+    voucher_code: {
+      type: "string",
+      desc: "If this license was created using a voucher, then this is the code of that voucher.",
+    },
   },
   rules: {
     desc: "Site Licenses",
@@ -123,6 +127,7 @@ Table({
           quota: null,
           run_limit: null,
           apply_limit: null,
+          voucher_code: null,
         },
       },
       set: {
@@ -544,6 +549,7 @@ Table({
     quota: true,
     run_limit: true,
     apply_limit: true,
+    voucher_code: true,
   },
   rules: {
     virtual: "site_licenses", // don't make an actual table
@@ -567,6 +573,7 @@ Table({
           quota: null,
           run_limit: null,
           apply_limit: null,
+          voucher_code: null,
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         // We also completely ignore the user-requested fields and just return everything, since

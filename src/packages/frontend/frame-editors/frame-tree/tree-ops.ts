@@ -89,8 +89,15 @@ export function set_leafs(
   return process(tree);
 }
 
-function generate_id(): string {
-  return uuid().slice(0, 8);
+// modifies ids to contain generated id.
+function generate_id(ids?: Set<string>): string {
+  let id = uuid().slice(0, 8);
+  if (ids == null) return id;
+  while (ids.has(id)) {
+    id = uuid().slice(0, 8);
+  }
+  ids.add(id);
+  return id;
 }
 
 // Ensure every node of the tree has an id set.
@@ -142,6 +149,17 @@ export function get_leaf_ids(tree: ImmutableFrameTree): SetMap {
   walk(tree, function (node) {
     if (is_leaf(node)) {
       ids[node.get("id")] = true;
+    }
+  });
+  return ids;
+}
+
+export function getAllIds(tree: ImmutableFrameTree): Set<string> {
+  const ids = new Set<string>([]);
+  walk(tree, function (node) {
+    const id = node.get("id");
+    if (id) {
+      ids.add(id);
     }
   });
   return ids;
@@ -265,16 +283,17 @@ function split_the_leaf(
   direction: FrameDirection,
   type?: string,
   extra?: object,
-  first?: boolean
+  first?: boolean,
+  ids?: Set<string>
 ) {
   // 1. split this leaf node
   let leaf2;
   if (type == leaf.get("type") || type == null) {
     // Same type: Make another leaf that is identical, except with a new id.
-    leaf2 = leaf.set("id", generate_id());
+    leaf2 = leaf.set("id", generate_id(ids));
   } else {
     // Different type: make blank leaf with just an id and type
-    leaf2 = fromJS({ id: generate_id(), type });
+    leaf2 = fromJS({ id: generate_id(ids), type });
   }
   // Also, set extra data if given.
   if (extra != null) {
@@ -283,7 +302,7 @@ function split_the_leaf(
     }
   }
   // 2. Make node with these two leafs
-  let node = fromJS({ direction, id: generate_id(), type: "node" });
+  let node = fromJS({ direction, id: generate_id(ids), type: "node" });
   if (first) {
     node = node.set("first", leaf2);
     node = node.set("second", leaf);
@@ -309,7 +328,14 @@ export function split_leaf(
     }
     if (node.get("id") === id) {
       done = true;
-      return split_the_leaf(node, direction, type, extra, first);
+      return split_the_leaf(
+        node,
+        direction,
+        type,
+        extra,
+        first,
+        getAllIds(tree)
+      );
     }
     for (const x of ["first", "second"]) {
       // descend the tree
@@ -322,12 +348,26 @@ export function split_leaf(
     }
     return node;
   };
-  let t1 = process(tree);
-  if (t1 !== tree) {
-    // some change -- make sure any newly generated id's are unique...
-    t1 = ensure_ids_are_unique(t1);
-  }
-  return t1;
+  return process(tree);
+}
+
+// create a new frame next to or below the current frame tree.
+// This results in an entirely new root with two children.
+// One child is the current frame tree, and the other is a new leaf.
+export function new_frame(
+  tree: ImmutableFrameTree,
+  type: string,
+  direction: FrameDirection,
+  first: boolean // if true, new leaf is left or top instead of right or bottom.
+): ImmutableFrameTree {
+  const ids = getAllIds(tree);
+  const newTree = fromJS({
+    id: generate_id(ids),
+    direction,
+    type: "node",
+    [first ? "first" : "second"]: { type, id: generate_id(ids) },
+  });
+  return newTree.set(first ? "second" : "first", tree);
 }
 
 export function is_leaf_id(tree: ImmutableFrameTree, id: string): boolean {

@@ -8,8 +8,6 @@ import { file } from "tmp";
 import { callback } from "awaiting";
 import { spawn } from "child_process";
 
-
-
 interface ParserOptions {
   parser?: string;
   tabWidth?: number;
@@ -25,22 +23,6 @@ function close(proc, cb): void {
 
 function yapf(input_path) {
   return spawn("yapf", ["-i", input_path]);
-}
-
-// from a full stacktrace, only show user the last line (encodes some reason and line number) ... everything else does not help.
-function tail(str?: string, lines = 4): string {
-  if (str == null) {
-    return "Problem running formatter.";
-  } else {
-    return (
-      str
-        .trim()
-        .split(/\r?\n/)
-        .slice(-lines)
-        .filter((x) => x.trim().length > 0)
-        .join("\n") || ""
-    );
-  }
 }
 
 export async function python_format(
@@ -86,8 +68,9 @@ export async function python_format(
         // ENOENT
         throw new Error(`Formatting utility "${util}" is not installed`);
       }
-      stderr = tail(stderr);
-      const err_msg = `Python formatter "${util}" exited with code ${code}:\n${stdout}\n${stderr}`;
+      const err_msg = `Python formatter "${util}" exited with code ${code}:${
+        stdout.trim() ? "\n" + stdout.trim() : ""
+      }\n${stderr.trim()}\n${addContext(input, stderr)}'`;
       logger.debug(`format python error: ${err_msg}`);
       throw new Error(err_msg);
     }
@@ -99,4 +82,46 @@ export async function python_format(
   } finally {
     unlink(input_path, () => {});
   }
+}
+
+// This is designed to look like the context output by prettier.
+export function addContext(input: string, stderr: string): string {
+  // the format of an error is
+  //   yapf: a.py:2:27: EOL while scanning string literal
+  // and there is ABSOLUTELY NO WAY to get yapf to provide any context
+  // around the error.  So we add it right here.
+
+  // Given that stderr looks like 'yapf: /tmp/tmp-35898eBshJwli6pIM.tmp:2:27: EOL while scanning string literal'
+  // figure out the line number (2 in this case), etc.
+
+  const pattern = /:([\d]+):/;
+  const match = stderr.match(pattern);
+  if (match != null && match?.[1] != null) {
+    const lineNum = parseInt(match?.[1] ?? "0");
+
+    // split input into lines so we can extract the relevant line
+    const lines = input.split("\n");
+    let n = Math.max(0, lineNum - 3);
+    const line = () => {
+      n += 1;
+      return n;
+    };
+
+    const before = lines
+      .slice(Math.max(0, lineNum - 3), lineNum - 1)
+      .map((x) => `  ${line()} | ${x}`)
+      .join("\n");
+    const at = `> ${line()} | ${lines[lineNum - 1]}`;
+    const after = lines
+      .slice(lineNum, lineNum + 2)
+      .map((x) => `  ${line()} | ${x}`)
+      .join("\n");
+
+    return `Error occurred at line ${lineNum}:
+
+${before}
+${at}
+${after}`;
+  }
+  return "";
 }

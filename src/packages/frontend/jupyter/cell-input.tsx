@@ -7,25 +7,29 @@
 React component that describes the input of a cell
 */
 import { fromJS, Map } from "immutable";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+import { Button, Tooltip } from "antd";
 import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import CopyButton from "@cocalc/frontend/components/copy-button";
+import PasteButton from "@cocalc/frontend/components/paste-button";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 import { filename_extension, startswith } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { CellHiddenPart } from "./cell-hidden-part";
-import { CellTiming } from "./cell-output-time";
+import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
 import { Complete } from "./complete";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
+import { delay } from "awaiting";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -72,10 +76,12 @@ export interface CellInputProps {
   is_scrolling?: boolean;
   id: string;
   index: number;
+  chatgpt?;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
+    const [formatting, setFormatting] = useState<boolean>(false);
     const frameActions = useNotebookFrameActions();
     function render_input_prompt(type: string): Rendered {
       return (
@@ -169,14 +175,14 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         return;
       }
       return (
-        <ButtonGroup style={{ float: "right" }}>
+        <Button.Group style={{ float: "right" }}>
           <Button onClick={handle_md_double_click}>
             <Icon name="edit" /> Edit
           </Button>
           <Button onClick={handle_upload_click}>
             <Icon name="image" />
           </Button>
-        </ButtonGroup>
+        </Button.Group>
       );
     }
 
@@ -200,9 +206,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         value = "";
       }
       value = value.trim();
-      if (value === "" && props.actions) {
-        value = "Type *Markdown* and LaTeX: $\\alpha^2$";
-      }
       return (
         <div
           onDoubleClick={handle_md_double_click}
@@ -380,59 +383,95 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
     }
 
-    function render_time(): Rendered {
+    function renderCodeBar() {
+      if (fileContext.disableExtraButtons) return null;
+      const input = props.cell.get("input")?.trim();
       return (
         <div
           style={{
             position: "absolute",
-            zIndex: 1,
             right: "2px",
-            width: "100%",
-            paddingLeft: "5px",
+            top: "2px",
           }}
-          className="pull-right hidden-xs"
+          className="hidden-xs"
         >
           <div
             style={{
-              color: "#666",
-              fontSize: "8pt",
-              position: "absolute",
-              right: "5px",
-              lineHeight: 1.25,
-              top: "1px",
-              textAlign: "right",
+              display: "flex",
+              color: COLORS.GRAY_M,
+              fontSize: "11px",
             }}
           >
-            <span style={{ float: "right" }}>{render_cell_number()}</span>
-            {render_cell_timing()}
+            {props.cell.get("start") != null && (
+              <div style={{ marginTop: "5px" }}>
+                <CellTiming
+                  start={props.cell.get("start")}
+                  end={props.cell.get("end")}
+                />
+              </div>
+            )}
+            {props.chatgpt != null && (
+              <props.chatgpt.ChatGPTExplain
+                id={props.id}
+                actions={props.actions}
+              />
+            )}
+            {/* Should only show formatter button if there is a way to format this code. */}
+            {!props.is_readonly && (
+              <Tooltip title="Format this code to look nice" placement="top">
+                <Button
+                  disabled={formatting}
+                  type="text"
+                  size="small"
+                  style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+                  onClick={async () => {
+                    // kind of a hack: clicking on this button makes this cell
+                    // the selected one
+                    try {
+                      setFormatting(true);
+                      await delay(1);
+                      await frameActions.current?.format_selected_cells();
+                    } finally {
+                      setFormatting(false);
+                    }
+                  }}
+                >
+                  <Icon
+                    name={formatting ? "spinner" : "sitemap"}
+                    spin={formatting}
+                  />{" "}
+                  Format
+                </Button>
+              </Tooltip>
+            )}
+            {input ? (
+              <CopyButton
+                size="small"
+                value={props.cell.get("input") ?? ""}
+                style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+              />
+            ) : (
+              <PasteButton
+                style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+                paste={(text) =>
+                  frameActions.current?.set_cell_input(props.id, text)
+                }
+              />
+            )}
+            {input && (
+              <div
+                style={{
+                  marginLeft: "3px",
+                  padding: "4px",
+                  borderLeft: "1px solid #ccc",
+                  borderBottom: "1px solid #ccc",
+                }}
+              >
+                {props.index + 1}
+              </div>
+            )}
           </div>
         </div>
-      );
-    }
-
-    function render_cell_timing(): Rendered {
-      if (props.cell.get("start") == null) return;
-      return (
-        <CellTiming
-          start={props.cell.get("start")}
-          end={props.cell.get("end")}
-          state={props.cell.get("state")}
-        />
-      );
-    }
-
-    function render_cell_number(): Rendered {
-      return (
-        <span
-          style={{
-            marginLeft: "3px",
-            padding: "0 3px",
-            borderLeft: "1px solid #ccc",
-            borderBottom: "1px solid #ccc",
-          }}
-        >
-          {props.index + 1}
-        </span>
       );
     }
 
@@ -471,7 +510,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             {render_input_prompt(type)}
             {render_complete()}
             {render_input_value(type)}
-            {render_time()}
+            {type == "code" && renderCodeBar()}
           </div>
         </div>
       </FileContext.Provider>
