@@ -61,8 +61,12 @@ import { remove_redundant_reps } from "@cocalc/frontend/jupyter/import-from-ipyn
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
+import os from "os";
+import path from "path";
 
 import { nbconvert } from "./convert";
+
+import { getLanguage } from "./kernel-data";
 
 // NOTE: we choose to use node-cleanup instead of the much more
 // popular exit-hook, since node-cleanup actually works for us.
@@ -87,6 +91,8 @@ import {
   launch_jupyter_kernel,
   LaunchJupyterOpts,
 } from "./launch_jupyter_kernel";
+
+import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 
 import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("jupyter");
@@ -953,6 +959,27 @@ export class JupyterKernel
     // and the Frontend listens for them on the IOPub channel." -- docs
     this.channel?.next(message);
   }
+
+  async chdir(path: string): Promise<void> {
+    if (!this.name) return; // no kernel, no current directory
+    const dbg = this.dbg("chdir");
+    let lang;
+    try {
+      // using probably cached data, so likely very fast
+      lang = await getLanguage(this.name);
+    } catch (err) {
+      dbg("WARNING ", err);
+      const info = await this.kernel_info();
+      lang = info.language_info?.name ?? "";
+    }
+
+    const absPath = getAbsolutePathFromHome(path);
+    const code = createChdirCommand(lang, absPath);
+    if (code) {
+      // returns '' if no command needed, e.g., for sparql.
+      await this.execute_code_now({ code });
+    }
+  }
 }
 
 export function get_existing_kernel(path: string): JupyterKernel | undefined {
@@ -966,4 +993,16 @@ export function get_kernel_by_pid(pid: number): JupyterKernel | undefined {
     }
   }
   return;
+}
+
+const HOME_DIRECTORY = os.homedir();
+
+// written by ChatGPT4
+function getAbsolutePathFromHome(relativePath: string): string {
+  if (relativePath[0] == "/") {
+    // actually an absolute path.
+    return relativePath;
+  }
+  const absolutePath = path.resolve(HOME_DIRECTORY, relativePath);
+  return absolutePath;
 }

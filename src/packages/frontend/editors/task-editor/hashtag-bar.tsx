@@ -21,7 +21,7 @@ import { STYLE as GENERIC_STYLE } from "../../projects/hashtags";
 const STYLE: CSSProperties = {
   ...GENERIC_STYLE,
   margin: "5px",
-  maxHeight: "56px",
+  maxHeight: "40px",
   overflowY: "auto",
 };
 

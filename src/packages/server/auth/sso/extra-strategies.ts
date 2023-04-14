@@ -24,7 +24,7 @@ const L = getLogger("server:auth:sso:extra-strategies");
 
 export function getSAMLVariant(): "old" | "new" {
   const ret = process.env.COCALC_SSO_SAML === "new" ? "new" : "old";
-  L(`SAML variant: ${ret}`);
+  L.debug(`SAML variant: ${ret}`);
   return ret;
 }
 

@@ -37,6 +37,7 @@ import { SyncString } from "@cocalc/sync/editor/string";
 import { aux_file } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
+import { filenameMode } from "@cocalc/frontend/file-associations";
 import { print_code } from "../frame-tree/print-code";
 import {
   ConnectionStatus,
@@ -81,6 +82,7 @@ import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import { SHELLS } from "./editor";
 import type { TimeTravelActions } from "../time-travel-editor/actions";
 import chatgptCreatechat from "../chatgpt/create-chat";
+import type { PageActions } from "@cocalc/frontend/app/actions";
 
 interface gutterMarkerParams {
   line: number;
@@ -122,6 +124,8 @@ export interface CodeEditorState {
   load_time_estimate: number;
   error: string;
   errorstyle?: ErrorStyles;
+  formatError?: string;
+  formatInput?: string;
   status: string;
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
@@ -2105,12 +2109,16 @@ export class Actions<
         this._syncstring.commit();
         this.set_codemirror_to_syncstring();
       }
-      this.set_error("");
+      this.setFormatError("");
     } catch (err) {
-      this.set_error(`Error formatting code: \n${err}`, "monospace");
+      this.setFormatError(`${err}`, this._syncstring.to_str());
     } finally {
       this.set_status("");
     }
+  }
+
+  setFormatError(formatError: string, formatInput: string = "") {
+    this.setState({ formatError, formatInput });
   }
 
   // call this and get back a function that can be used
@@ -2486,8 +2494,8 @@ export class Actions<
     }
   }
 
-  public set_active_key_handler(key_handler: Function): void {
-    (this.redux.getActions("page") as any).set_active_key_handler(
+  public set_active_key_handler(key_handler: (e: any) => void): void {
+    (this.redux.getActions("page") as PageActions).set_active_key_handler(
       key_handler,
       this.project_id,
       this.path
@@ -2495,10 +2503,17 @@ export class Actions<
     this._key_handler = key_handler;
   }
 
-  public erase_active_key_handler(key_handler: Function): void {
-    (this.redux.getActions("page") as any).erase_active_key_handler(
+  public erase_active_key_handler(key_handler: (e: any) => void): void {
+    (this.redux.getActions("page") as PageActions).erase_active_key_handler(
       key_handler
     );
+  }
+
+  // called when this editor is made not visible
+  blur() {
+    if (this._key_handler) {
+      this.erase_active_key_handler(this._key_handler);
+    }
   }
 
   // Show the most recently focused frame of the given type, or create
@@ -2821,7 +2836,7 @@ export class Actions<
 
   // Overload this in a derived class to support editors other than cm.
   // This is used by the chatgpt function.
-  chatgptGetText(
+  protected chatgptGetText(
     frameId: string,
     scope: "selection" | "cell" | "all" = "all"
   ): string {
@@ -2833,16 +2848,26 @@ export class Actions<
     }
   }
 
-  // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
-  chatgptExtraFileInfo(): string {
-    return "";
+  public chatgptGetContext(frameId: string): string {
+    let input = this.chatgptGetText(frameId, "selection");
+    if (input) return input;
+    input = this.chatgptGetText(frameId, "cell");
+    if (input) return input;
+    return this.chatgptGetText(frameId, "all");
   }
 
+  // used to add extra context like ", which is a Jupyter notebook using the Python 3 kernel"
+  chatgptExtraFileInfo(): string {
+    return `${filenameMode(this.path)} code`;
+  }
+
+  // This is something like "python" or "py", "r", etc., i.e., what typically
+  // goes as an info string in markdown fenced code blocks.
   chatgptGetLanguage(): string {
     return filename_extension(this.path);
   }
 
-  async chatgpt(frameId: string, options) {
-    await chatgptCreatechat({ actions: this, frameId, options });
+  async chatgpt(frameId: string, options, input: string) {
+    await chatgptCreatechat({ actions: this, frameId, options, input });
   }
 }

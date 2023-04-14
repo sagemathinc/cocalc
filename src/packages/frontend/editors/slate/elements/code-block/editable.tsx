@@ -3,111 +3,174 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ReactNode } from "react";
-import {
-  CSS,
-  React,
-  useRef,
-  useState,
-  useIsMountedRef,
-} from "@cocalc/frontend/app-framework";
+import { Input } from "antd";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { register, RenderElementProps } from "../register";
-import { useCollapsed, useSelected, useSlate } from "../hooks";
+import { useSlate } from "../hooks";
 import { SlateCodeMirror } from "../codemirror";
 import { delay } from "awaiting";
 import { useSetElement } from "../set-element";
-import { Input } from "antd";
 import infoToMode from "./info-to-mode";
 import ActionButtons, { RunFunction } from "./action-buttons";
+import { useChange } from "../../use-change";
+import { getHistory, isPreviousSiblingCodeBlock } from "./history";
+import InsertBar from "./insert-bar";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
 
-const Element: React.FC<RenderElementProps> = ({
-  attributes,
-  children,
-  element,
-}) => {
-  if (element.type != "code_block") throw Error("bug");
+function Element({ attributes, children, element }: RenderElementProps) {
+  if (element.type != "code_block") {
+    throw Error("bug");
+  }
+  const { disableMarkdownCodebar } = useFileContext();
   const editor = useSlate();
-  const selected = useSelected();
-  const collapsed = useCollapsed();
   const isMountedRef = useIsMountedRef();
-
-  const [showInfo, setShowInfo] = useState<boolean>(selected && collapsed); // show the info input
-  const [focusInfo, setFocusInfo] = useState<boolean>(false); // focus the info input
+  const [info, setInfo] = useState<string>(element.info ?? "");
+  const infoFocusedRef = useRef<boolean>(false);
   const [output, setOutput] = useState<null | ReactNode>(null);
 
   const runRef = useRef<RunFunction | null>(null);
 
   const setElement = useSetElement(editor, element);
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
+  const { change } = useChange();
+  const [history, setHistory] = useState<string[]>(getHistory(editor, element) ?? []);
+  const [codeSibling, setCodeSibling] = useState<boolean>(
+    isPreviousSiblingCodeBlock(editor, element)
+  );
+  useEffect(() => {
+    const history = getHistory(editor, element);
+    if (history != null) {
+      setHistory(history);
+      setCodeSibling(isPreviousSiblingCodeBlock(editor, element));
+    }
+    if (!infoFocusedRef.current && element.info != info) {
+      // upstream change
+      setInfo(element.info);
+    }
+  }, [change]);
 
   return (
     <div {...attributes}>
-      <div
-        contentEditable={false}
-        style={{ textIndent: 0, marginBottom: "1em" }}
-      >
-        <ActionButtons
-          input={element.value}
-          setOutput={setOutput}
-          kernel={element.info}
-          runRef={runRef}
-        />
+      <div contentEditable={false} style={{ textIndent: 0 }}>
+        {!codeSibling && (
+          <InsertBar
+            editor={editor}
+            element={element}
+            info={info}
+            above={true}
+          />
+        )}
         <SlateCodeMirror
           options={{ lineWrapping: true }}
           value={element.value}
-          info={infoToMode(element.info, element.value)}
+          info={infoToMode(element.info, { value: element.value })}
           onChange={(value) => {
             setElement({ value });
           }}
           onFocus={async () => {
             await delay(1); // must be a little longer than the onBlur below.
             if (!isMountedRef.current) return;
-            setShowInfo(true);
           }}
           onBlur={async () => {
             await delay(0);
             if (!isMountedRef.current) return;
-            if (!focusInfo) {
-              setShowInfo(false);
-            }
           }}
           onShiftEnter={() => {
             runRef.current?.();
           }}
+          addonBefore={
+            <div
+              style={{
+                borderBottom: "1px solid #ccc",
+                padding: "3px",
+                display: "flex",
+                background: "#f8f8f8",
+              }}
+            >
+              <div style={{ flex: 1 }}></div>
+              {element.fence && (
+                <Input
+                  size="small"
+                  onKeyDown={(e) => {
+                    if (e.keyCode == 13 && e.shiftKey) {
+                      runRef.current?.();
+                    } else if (e.keyCode == 40) {
+                      // down arrow and 38 is up.  TODO
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    color: "#666",
+                    minWidth: "100px",
+                    maxWidth: "300px",
+                    margin: "0 5px",
+                  }}
+                  placeholder="Info string (py, r, jl, tex, md, etc.)..."
+                  value={info}
+                  onFocus={() => {
+                    infoFocusedRef.current = true;
+                    editor.setIgnoreSelection(true);
+                  }}
+                  onBlur={() => {
+                    infoFocusedRef.current = false;
+                    editor.setIgnoreSelection(false);
+                  }}
+                  onChange={(e) => {
+                    const info = e.target.value;
+                    setInfo(info);
+                    setElement({ info });
+                  }}
+                />
+              )}
+              {!disableMarkdownCodebar && (
+                <ActionButtons
+                  auto
+                  size="small"
+                  input={element.value}
+                  history={history}
+                  setOutput={setOutput}
+                  output={output}
+                  info={info}
+                  runRef={runRef}
+                />
+              )}
+            </div>
+          }
+          addonAfter={
+            disableMarkdownCodebar || output == null ? null : (
+              <div
+                onMouseDown={() => {
+                  editor.setIgnoreSelection(true);
+                }}
+                onMouseUp={() => {
+                  // Re-enable slate listing for selection changes again in next render loop.
+                  setTimeout(() => {
+                    editor.setIgnoreSelection(false);
+                  }, 0);
+                }}
+                style={{
+                  borderTop: "1px dashed #ccc",
+                  background: "white",
+                  padding: "5px 0 5px 30px",
+                }}
+              >
+                {output}
+              </div>
+            )
+          }
         />
-        {element.fence && (showInfo || focusInfo) && (
-          <InfoEditor
-            value={element.info}
-            onFocus={() => {
-              setFocusInfo(true);
-            }}
-            onBlur={() => {
-              setShowInfo(false);
-              setFocusInfo(false);
-            }}
-            onChange={(info) => {
-              setElement({ info });
-            }}
-          />
-        )}
-        <div
-          onMouseDown={() => {
-            editor.setIgnoreSelection(true);
-          }}
-          onMouseUp={() => {
-            // Re-enable slate listing for selection changes again in next render loop.
-            setTimeout(() => {
-              editor.setIgnoreSelection(false);
-            }, 0);
-          }}
-        >
-          {output}
-        </div>
+        <InsertBar
+          editor={editor}
+          element={element}
+          info={info}
+          above={false}
+        />
       </div>
       {children}
     </div>
   );
-};
+}
 
 function fromSlate({ node }) {
   const value = node.value as string;
@@ -144,45 +207,3 @@ register({
     autoAdvance: true,
   },
 });
-
-// The info editor.
-
-const INFO_STYLE = {
-  float: "right",
-  position: "relative",
-  width: "20ex",
-  border: "1px solid #ccc",
-  borderRadius: "8px",
-  color: "#666",
-  background: "#fafafa",
-  padding: "0 5px",
-  fontSize: "12px",
-  height: "20px",
-  marginTop: "-20px",
-} as CSS;
-
-interface InfoProps {
-  onFocus: () => void;
-  onBlur: () => void;
-  onChange: (string) => void;
-  value: string;
-}
-
-const InfoEditor: React.FC<InfoProps> = ({
-  onBlur,
-  onChange,
-  onFocus,
-  value,
-}) => {
-  return (
-    <Input
-      size="small"
-      placeholder="Language..."
-      style={INFO_STYLE}
-      onFocus={onFocus}
-      onBlur={onBlur}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    />
-  );
-};

@@ -15,6 +15,13 @@
 .nav-pills > .disabled > a:hover
   background-color : transparent
 
+// Bootstrap changes the background color and puts a border around any pre.
+// This is annoying, especially because, e.g., the @uiw/react-textarea-code-editor
+// code editor uses a pre.
+pre
+  border: inherit
+  background: inherit
+
 
 .smc-toggle-show
   border-bottom : 1px solid grey

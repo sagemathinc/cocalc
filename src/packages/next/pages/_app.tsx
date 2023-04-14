@@ -75,6 +75,7 @@ import "@cocalc/cdn/dist/codemirror/theme/xq-dark.css";
 import "@cocalc/cdn/dist/codemirror/theme/xq-light.css";
 import "@cocalc/cdn/dist/codemirror/theme/yeti.css";
 import "@cocalc/cdn/dist/codemirror/theme/zenburn.css";
+import "@uiw/react-textarea-code-editor/dist.css";
 
 // this must be last to overwrite things like antd
 import "../styles/globals.css";

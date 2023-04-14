@@ -12,28 +12,37 @@ import { useRouter } from "next/router";
 export default function ProxyInput() {
   const router = useRouter();
   const [error, setError] = useState<string>("");
+  const [show, setShow] = useState<boolean>(false);
 
   return (
     <div style={{ margin: "15px 0" }}>
-      <A href="https://doc.cocalc.com/share.html">
-        Share what you create in <SiteName />
-      </A>{" "}
-      or paste a URL to a <A href="http://github.com/">GitHub</A> repository or{" "}
-      <A href="https://gist.github.com/">Gist</A>
-      :
-      <Input.Search
-        style={{ marginTop: "10px" }}
-        placeholder="URL to GitHub repository or Gist"
-        allowClear
-        enterButton="View GitHub Repository or Gist"
-        onSearch={(url) => {
-          try {
-            router.push(urlToProxyURL(url));
-          } catch (err) {
-            setError(`${err}`);
-          }
-        }}
-      />
+      <A href="https://doc.cocalc.com/share.html">Share what you create</A> in{" "}
+      <SiteName /> or{" "}
+      {show ? (
+        <>
+          paste a URL to a <A href="http://github.com/">GitHub</A> repository or{" "}
+          <A href="https://gist.github.com/">Gist</A>:
+        </>
+      ) : (
+        <a onClick={() => setShow(true)}>
+          paste a URL to a GitHub repository or Gist.
+        </a>
+      )}
+      {show && (
+        <Input.Search
+          style={{ marginTop: "10px" }}
+          placeholder="URL to GitHub repository or Gist"
+          allowClear
+          enterButton="View GitHub Repository or Gist"
+          onSearch={(url) => {
+            try {
+              router.push(urlToProxyURL(url));
+            } catch (err) {
+              setError(`${err}`);
+            }
+          }}
+        />
+      )}
       {error && (
         <Alert
           style={{ marginTop: "15px" }}

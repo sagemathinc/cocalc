@@ -223,6 +223,7 @@ export const FileListing: React.FC<Props> = (props: Props) => {
       )}
       <Col
         sm={12}
+        className="smc-vfill"
         style={{
           flex: "1 0 auto",
           zIndex: 1,

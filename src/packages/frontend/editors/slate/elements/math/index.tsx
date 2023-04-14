@@ -69,17 +69,19 @@ register({
   },
 });
 
+export function toDisplayMath({ token }) {
+  return {
+    type: "math_block",
+    value: stripMathEnvironment(token.content).trim(),
+    isVoid: true,
+    children: [{ text: "" }],
+  } as Element;
+}
+
 register({
   slateType: ["math_block", "math_block_eqno"],
   StaticElement,
-  toSlate: ({ token }) => {
-    return {
-      type: "math_block",
-      value: stripMathEnvironment(token.content).trim(),
-      isVoid: true,
-      children: [{ text: "" }],
-    } as Element;
-  },
+  toSlate: toDisplayMath,
 });
 
 export function stripMathEnvironment(s: string): string {

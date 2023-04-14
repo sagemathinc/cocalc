@@ -20,6 +20,7 @@ interface Props {
   mode?: "link" | "button";
   children?;
   size?: "small" | undefined; // antd button size
+  loadingText?: string;
 }
 
 const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
@@ -94,7 +95,7 @@ const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
           </a>
           {mode === "link" && loading && (
             <span>
-              <Space /> <Loading />
+              <Space /> <Loading text={props.loadingText} />
             </span>
           )}
           {error && (
