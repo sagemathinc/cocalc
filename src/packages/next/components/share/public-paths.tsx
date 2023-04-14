@@ -13,7 +13,7 @@ import { PublicPath } from "lib/share/types";
 import A from "components/misc/A";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { field_cmp, trunc_middle } from "@cocalc/util/misc";
+import { trunc_middle } from "@cocalc/util/misc";
 import { SHARE_AUTHENTICATED_ICON } from "@cocalc/util/consts/ui";
 
 function Description({
@@ -135,7 +135,7 @@ const COLUMNS0: any[] = [
       />
     ),
     responsive: ["sm"] as any,
-    sorter: field_cmp("path"),
+    //sorter: field_cmp("path"),
   },
   {
     title: "Description",
@@ -145,7 +145,7 @@ const COLUMNS0: any[] = [
       <Description description={description} maxWidth="250px" />
     ),
     responsive: ["sm"] as any,
-    sorter: field_cmp("description"),
+    //sorter: field_cmp("description"),
   },
   {
     title: "Last Modified",
@@ -153,7 +153,7 @@ const COLUMNS0: any[] = [
     key: "last_edited",
     render: (last_edited) => <LastEdited last_edited={last_edited} />,
     responsive: ["sm"] as any,
-    sorter: field_cmp("last_edited"),
+    //sorter: field_cmp("last_edited"),
   },
   {
     title: "Stars",
@@ -161,7 +161,7 @@ const COLUMNS0: any[] = [
     key: "stars",
     render: (stars) => <Badge count={stars} />,
     responsive: ["sm"] as any,
-    sorter: field_cmp("stars"),
+    //sorter: field_cmp("stars"),
   },
   {
     title: "Views",
@@ -169,7 +169,7 @@ const COLUMNS0: any[] = [
     key: "counter",
     render: (counter) => <Badge count={counter} />,
     responsive: ["sm"] as any,
-    sorter: field_cmp("counter"),
+    //sorter: field_cmp("counter"),
   },
 ];
 
@@ -207,7 +207,7 @@ const COLUMNS_WITH_VISIBILITY: any[] = COLUMNS0.concat([
       />
     ),
     responsive: ["sm"] as any,
-    sorter: field_cmp(["disabled", "unlisted", "vhost", "authenticated"]),
+    //sorter: field_cmp(["disabled", "unlisted", "vhost", "authenticated"]),
   },
   {
     title: "Documents",

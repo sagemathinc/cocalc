@@ -14,7 +14,7 @@ import {
   Typography,
 } from "antd";
 import * as immutable from "immutable";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 
 import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
@@ -27,6 +27,7 @@ import Logo from "./logo";
 import { Mode } from "./mode";
 import { AlertLevel, BackendState, NotebookMode, Usage } from "./types";
 import { ALERT_COLS } from "./usage";
+import ProgressEstimate from "../components/progress-estimate";
 
 const KERNEL_STYLE: CSS = {
   float: "right",
@@ -62,7 +63,9 @@ const KERNEL_USAGE_STYLE_SMALL: CSS = {
   width: "5em",
 } as const;
 
-const KERNEL_USAGE_STYLE_NUM: CSS = { fontFamily: "monospace" } as const;
+const KERNEL_USAGE_STYLE_NUM: CSS = {
+  fontFamily: "monospace",
+} as const;
 
 const KERNEL_ERROR_STYLE: CSS = {
   margin: "5px",
@@ -127,6 +130,18 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       "backend_state",
     ]);
     const kernel_state: undefined | string = useRedux([name, "kernel_state"]);
+
+    const backendIsStarting =
+      backend_state === "starting" || backend_state === "spawning";
+
+    const [isSpwarning, setIsSpawarning] = React.useState(false);
+    useEffect(() => {
+      if (isSpwarning && !backendIsStarting) {
+        setIsSpawarning(false);
+      } else if (!isSpwarning && backendIsStarting) {
+        setIsSpawarning(true);
+      }
+    }, [backend_state]);
 
     // render functions start there
 
@@ -210,9 +225,6 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           name = "stop";
           break;
         case "spawning":
-          name = "cocalc-ring";
-          spin = true;
-          break;
         case "starting":
           name = "cocalc-ring";
           spin = true;
@@ -334,7 +346,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
               </>
             );
         }
-      } else if (backend_state == "starting") {
+      } else if (backendIsStarting) {
         return "Kernel is starting";
       }
       return "Kernel will start when you run code";
@@ -441,9 +453,6 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     function render_usage_graphical() {
       if (kernel == null) return;
 
-      // unknown, e.g, not reporting/working or old backend.
-      if (usage == null || expected_cell_runtime == null) return;
-
       const style: CSS = is_fullscreen
         ? { display: "flex" }
         : {
@@ -460,6 +469,23 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       const usage_style: CSS = is_fullscreen
         ? KERNEL_USAGE_STYLE
         : KERNEL_USAGE_STYLE_SMALL;
+
+      if (isSpwarning) {
+        // we massively overestimate: 15s for python and co, and 30s for sage and julia
+        const s =
+          kernel.startsWith("sage") || kernel.startsWith("julia") ? 30 : 15;
+        return (
+          <div style={{ ...usage_style, display: "flex" }}>
+            <ProgressEstimate
+              style={{ ...pstyle, width: "200px", top: "-3px" }}
+              seconds={s}
+            />
+          </div>
+        );
+      }
+
+      // unknown, e.g, not reporting/working or old backend.
+      if (usage == null || expected_cell_runtime == null) return;
 
       // const status = usage.cpu > 50 ? "active" : undefined
       // const status = usage.cpu_runtime != null ? "active" : undefined;

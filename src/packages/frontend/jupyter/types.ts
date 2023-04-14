@@ -59,6 +59,6 @@ export interface KernelSpec {
   language: string;
   interrupt_mode: string; // usually "signal"
   env: { [key: string]: string }; // usually {}
-  metadata: object;
+  metadata?: { [key: string]: any }; // pretty generic
   resource_dir: string;
 }

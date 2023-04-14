@@ -150,14 +150,25 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     isComposing: boolean;
     latestElement: DOMElement | null;
     shiftKey: boolean;
+    ignoreSelection: boolean;
   } = useMemo(
     () => ({
       isComposing: false,
       latestElement: null as DOMElement | null,
       shiftKey: false,
+      ignoreSelection: false,
     }),
     []
   );
+
+  // start ignoring the selection sync
+  editor.setIgnoreSelection = (value: boolean) => {
+    state.ignoreSelection = value;
+  };
+  // stop ignoring selection sync
+  editor.getIgnoreSelection = () => {
+    return state.ignoreSelection;
+  };
 
   // state whose change causes an update
   const [hiddenChildren, setHiddenChildren] = useState<Set<number>>(

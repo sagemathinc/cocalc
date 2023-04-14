@@ -138,7 +138,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
         />
       ) : undefined}
       <h1 style={{ marginTop: "0px" }}>
-        <Icon name="wrench" /> Project Settings
+        <Icon name="wrench" /> Project Settings and Controls
       </h1>
       <SavingProjectSettingsError project_id={project_id} />
       <Row>

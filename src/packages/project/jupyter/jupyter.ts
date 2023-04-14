@@ -61,8 +61,18 @@ import { remove_redundant_reps } from "@cocalc/frontend/jupyter/import-from-ipyn
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
+import os from "os";
+import path from "path";
 
 import { nbconvert } from "./convert";
+
+import { getLanguage } from "./kernel-data";
+
+// NOTE: we choose to use node-cleanup instead of the much more
+// popular exit-hook, since node-cleanup actually works for us.
+// https://github.com/jtlapp/node-cleanup/issues/16
+// Also exit-hook is hard to import from commonjs.
+import nodeCleanup from "node-cleanup";
 
 import {
   ExecOpts,
@@ -82,6 +92,7 @@ import {
   LaunchJupyterOpts,
 } from "./launch_jupyter_kernel";
 
+import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import { Client } from "@cocalc/project/client";
 
 import { getLogger } from "@cocalc/project/logger";
@@ -171,12 +182,13 @@ export interface KernelParams {
   name: string;
   path: string; // filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
   actions?: any; // optional redux actions object
+  ulimit?: string;
   verbose?: boolean;
   client?: Client;
 }
 
 export function kernel(opts: KernelParams): JupyterKernel {
-  return new JupyterKernel(opts.name, opts.path, opts.actions);
+  return new JupyterKernel(opts.name, opts.path, opts.actions, opts.ulimit);
 }
 
 /*
@@ -187,6 +199,15 @@ code execution is explicitly requested.  This makes it possible to
 call process_output without spawning an actual kernel.
 */
 const _jupyter_kernels: { [path: string]: JupyterKernel } = {};
+
+// Ensure that the kernels all get killed when the process exits.
+nodeCleanup(() => {
+  for (const kernelPath in _jupyter_kernels) {
+    // We do NOT await the close since that's not really
+    // supported or possible in general.
+    _jupyter_kernels[kernelPath].close();
+  }
+});
 
 export class JupyterKernel
   extends EventEmitter
@@ -201,6 +222,7 @@ export class JupyterKernel
   public readonly identity: string = uuid();
 
   private stderr: string = "";
+  private ulimit?: string;
   private _path: string;
   private _actions?: JupyterActions;
   private _state: string;
@@ -212,9 +234,10 @@ export class JupyterKernel
   public channel?: Channels;
   private has_ensured_running: boolean = false;
 
-  constructor(name, _path, _actions) {
+  constructor(name, _path, _actions, ulimit) {
     super();
 
+    this.ulimit = ulimit;
     this.spawn = reuseInFlight(this.spawn.bind(this));
 
     this.kernel_info = reuseInFlight(this.kernel_info.bind(this));
@@ -283,6 +306,7 @@ export class JupyterKernel
     const opts: LaunchJupyterOpts = {
       detached: true,
       env: spawn_opts?.env ?? {},
+      ulimit: this.ulimit,
     };
 
     if (this.name.indexOf("sage") == 0) {
@@ -496,6 +520,9 @@ export class JupyterKernel
     }
   }
 
+  // This is async, but the process.kill happens *before*
+  // anything async. That's important for cleaning these
+  // up when the project terminates.
   async close(): Promise<void> {
     this.dbg("close")();
     if (this._state === "closed") {
@@ -565,7 +592,7 @@ export class JupyterKernel
     });
   }
 
-  private async ensure_running(): Promise<void> {
+  async ensure_running(): Promise<void> {
     const dbg = this.dbg("ensure_running");
     dbg(this._state);
     if (this._state == "closed") {
@@ -686,7 +713,7 @@ export class JupyterKernel
 
   // This is like execute_code, but async and returns all the results,
   // and does not use the internal execution queue.
-  // This is used for unit testing and interactive work at the terminal and nbgrader.
+  // This is used for unit testing and interactive work at the terminal and nbgrader and the stateless api.
   async execute_code_now(opts: ExecOpts): Promise<object[]> {
     this.dbg("execute_code_now")();
     if (this._state === "closed") {
@@ -935,6 +962,27 @@ export class JupyterKernel
     // and the Frontend listens for them on the IOPub channel." -- docs
     this.channel?.next(message);
   }
+
+  async chdir(path: string): Promise<void> {
+    if (!this.name) return; // no kernel, no current directory
+    const dbg = this.dbg("chdir");
+    let lang;
+    try {
+      // using probably cached data, so likely very fast
+      lang = await getLanguage(this.name);
+    } catch (err) {
+      dbg("WARNING ", err);
+      const info = await this.kernel_info();
+      lang = info.language_info?.name ?? "";
+    }
+
+    const absPath = getAbsolutePathFromHome(path);
+    const code = createChdirCommand(lang, absPath);
+    if (code) {
+      // returns '' if no command needed, e.g., for sparql.
+      await this.execute_code_now({ code });
+    }
+  }
 }
 
 export function get_existing_kernel(path: string): JupyterKernel | undefined {
@@ -948,4 +996,16 @@ export function get_kernel_by_pid(pid: number): JupyterKernel | undefined {
     }
   }
   return;
+}
+
+const HOME_DIRECTORY = os.homedir();
+
+// written by ChatGPT4
+function getAbsolutePathFromHome(relativePath: string): string {
+  if (relativePath[0] == "/") {
+    // actually an absolute path.
+    return relativePath;
+  }
+  const absolutePath = path.resolve(HOME_DIRECTORY, relativePath);
+  return absolutePath;
 }

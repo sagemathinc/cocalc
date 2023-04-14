@@ -13,7 +13,13 @@ declare var require: {
   ) => void;
 };
 
-import { QuestionCircleOutlined } from "@ant-design/icons";
+import {
+  CaretRightOutlined,
+  LeftSquareOutlined,
+  MinusSquareOutlined,
+  PlusSquareOutlined,
+  QuestionCircleOutlined,
+} from "@ant-design/icons";
 import {
   Alert,
   Button,
@@ -26,12 +32,6 @@ import {
 } from "antd";
 import { debounce, isEmpty, merge, sortBy } from "lodash";
 
-import {
-  CaretRightOutlined,
-  LeftSquareOutlined,
-  MinusSquareOutlined,
-  PlusSquareOutlined,
-} from "@ant-design/icons";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   CSS,
@@ -43,21 +43,21 @@ import {
   useState,
   useStore,
 } from "@cocalc/frontend/app-framework";
+import { A, Loading } from "@cocalc/frontend/components";
+import { JupyterStore } from "@cocalc/frontend/jupyter/store";
+import { isMainConfiguration } from "@cocalc/frontend/project_configuration";
 import { COLORS } from "@cocalc/util/theme";
-import { A, Loading } from "../../../components";
-import { JupyterStore } from "../../../jupyter/store";
-import { isMainConfiguration } from "../../../project_configuration";
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "../cell-notebook/store";
 import { Copy, Highlight } from "./components";
 import { SnippetDoc, SnippetEntries, SnippetEntry, Snippets } from "./types";
 import {
   CUSTOM_SNIPPETS_TITLE,
+  GLOBAL_CUSTOM_DIR,
+  LOCAL_CUSTOM_DIR,
   filterSnippets,
   generateSetupCode,
-  GLOBAL_CUSTOM_DIR,
   loadCustomSnippets,
-  LOCAL_CUSTOM_DIR,
 } from "./utils";
 
 const URL = "https://github.com/sagemathinc/cocalc-snippets";

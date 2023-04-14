@@ -6,15 +6,7 @@
 import { useState } from "react";
 
 import { default_filename } from "@cocalc/frontend/account";
-import {
-  Alert,
-  Button,
-  ButtonToolbar,
-  Col,
-  FormControl,
-  FormGroup,
-  Row,
-} from "@cocalc/frontend/antd-bootstrap";
+import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   ProjectActions,
   useActions,
@@ -22,6 +14,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
+  A,
   ErrorDisplay,
   Icon,
   Loading,
@@ -38,7 +31,7 @@ import { FileTypeSelector } from "./file-type-selector";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
 import { COLORS } from "@cocalc/util/theme";
-import { Modal } from "antd";
+import { Button, Input, Modal, Space } from "antd";
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
 
 interface Props {
@@ -165,12 +158,12 @@ export default function NewFilePage(props: Props) {
           This will use a plain text editor. If you do not want this, click a
           button below to create the corresponding type of file.
         </Paragraph>
-        <ButtonToolbar style={{ marginTop: "10px" }}>
+        <Space>
           <Button
             onClick={(): void => {
               createFile();
             }}
-            bsStyle="success"
+            type="primary"
           >
             Yes, please create this file with no extension
           </Button>
@@ -178,11 +171,10 @@ export default function NewFilePage(props: Props) {
             onClick={(): void => {
               setExtensionWarning(false);
             }}
-            bsStyle="default"
           >
             Cancel
           </Button>
-        </ButtonToolbar>
+        </Space>
       </Alert>
     );
   }
@@ -193,8 +185,18 @@ export default function NewFilePage(props: Props) {
         <Row style={{ marginTop: "20px" }}>
           <Col sm={12}>
             <h4>
-              <Icon name="cloud-upload" /> Upload
+              <Icon name="cloud-upload" /> Upload Files Into Your Project
             </h4>
+          </Col>
+        </Row>
+        <Row>
+          <Col sm={24}>
+            <div style={{ color: "#666", fontSize: "12pt" }}>
+              You can drop one or more files here or on the Explorer file
+              listing. See{" "}
+              <A href="https://doc.cocalc.com/howto/upload.html">the docs</A>{" "}
+              for more ways to get your files into your project.
+            </div>
           </Col>
         </Row>
         <Row>
@@ -209,32 +211,6 @@ export default function NewFilePage(props: Props) {
               current_path={current_path}
               show_header={false}
             />
-          </Col>
-        </Row>
-        <Row>
-          <Col sm={9}>
-            <div style={{ color: "#666" }}>
-              <em>
-                Read about{" "}
-                <a
-                  href="https://doc.cocalc.com/howto/upload.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  other ways to upload files.
-                </a>{" "}
-                You can also drag & drop files on the file listing.
-              </em>
-            </div>
-          </Col>
-          <Col sm={3}>
-            <Row>
-              <Col sm={12}>
-                <Button onClick={showFiles} className={"pull-right"}>
-                  Close
-                </Button>
-              </Col>
-            </Row>
           </Col>
         </Row>
       </>
@@ -264,40 +240,14 @@ export default function NewFilePage(props: Props) {
         title={`Create ${desc}`}
         tip={`Create ${desc}.  You can also press return.`}
       >
-        <Button disabled={filename.trim() == ""} onClick={() => submit()}>
+        <Button
+          size="large"
+          disabled={filename.trim() == ""}
+          onClick={() => submit()}
+        >
           Create {desc}
         </Button>
       </Tip>
-    );
-  };
-
-  const renderFilenameForm = () => {
-    const onChange = (e): void => {
-      if (extensionWarning) {
-        setExtensionWarning(false);
-      } else {
-        setFilename(e.target.value);
-      }
-    };
-
-    return (
-      <form
-        onSubmit={(e): void => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <FormGroup>
-          <FormControl
-            autoFocus
-            value={filename}
-            type={"text"}
-            disabled={extensionWarning}
-            placeholder={"Name your file, folder, or a URL to download from..."}
-            onChange={onChange}
-          />
-        </FormGroup>
-      </form>
     );
   };
 
@@ -337,8 +287,8 @@ export default function NewFilePage(props: Props) {
               fontSize: "16px",
             }}
           >
-            Name your file, folder or paste in a link. End filename with / to
-            make a folder.
+            Name your file, folder or paste in a link. End name with / to make a
+            folder.
           </Paragraph>
           <div
             style={{
@@ -355,7 +305,23 @@ export default function NewFilePage(props: Props) {
                 minWidth: "20em",
               }}
             >
-              {renderFilenameForm()}
+              <Input
+                size="large"
+                autoFocus
+                value={filename}
+                disabled={extensionWarning}
+                placeholder={
+                  "Name your file, folder, or a URL to download from..."
+                }
+                onChange={(e) => {
+                  if (extensionWarning) {
+                    setExtensionWarning(false);
+                  } else {
+                    setFilename(e.target.value);
+                  }
+                }}
+                onPressEnter={() => submit()}
+              />
             </div>
             <div style={{ flex: "0 0 auto", marginRight: "10px" }}>
               {renderCreate()}
@@ -370,10 +336,15 @@ export default function NewFilePage(props: Props) {
             style={{
               color: COLORS.GRAY_M,
               fontSize: "16px",
+              marginTop: "15px",
             }}
           >
-            What would you like to create? All documents can be simultaneously
-            edited in realtime with your collaborators.
+            What would you like to create? Documents can be simultaneously
+            edited by multiple people, maintain a full{" "}
+            <A href="https://doc.cocalc.com/time-travel.html">
+              TimeTravel history
+            </A>{" "}
+            of edits, and support evaluation of code.
           </Paragraph>
           <FileTypeSelector
             create_file={submit}
@@ -384,11 +355,11 @@ export default function NewFilePage(props: Props) {
               title={"Download files from the Internet"}
               icon={"cloud"}
               placement={"bottom"}
-              tip={`Paste a URL into the box above, then click here to download a file from the internet. ${blocked()}`}
+              tip={`Paste a URL or GitHub repo in the input box above, then press enter or click here to download it into your project. ${blocked()}`}
             >
               <NewFileButton
                 icon={"cloud"}
-                name={`Download from Internet ${blocked()}`}
+                name={`Download from GitHub or the Internet ${blocked()}`}
                 on_click={() => createFile()}
                 loading={downloading_file}
               />

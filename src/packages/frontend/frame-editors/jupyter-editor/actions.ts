@@ -23,6 +23,7 @@ import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-sl
 import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
 import { JupyterActions } from "../../jupyter/browser-actions";
 import { NotebookFrameActions } from "./cell-notebook/actions";
+import { open_new_tab } from "../../misc";
 
 export interface JupyterEditorState extends CodeEditorState {
   slideshow?: {
@@ -134,6 +135,13 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     }
   }
 
+  public blur(id?: string): void {
+    const actions = this.get_frame_actions(id);
+    if (actions != null) {
+      actions.blur?.();
+    }
+  }
+
   public refresh(id: string): void {
     const actions = this.get_frame_actions(id);
     if (actions != null) {
@@ -212,7 +220,15 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   async format(id: string): Promise<void> {
     const actions = this.get_frame_actions(id);
-    actions != null ? await actions.format() : await super.format(id);
+    if (actions != null) {
+      try {
+        await actions.format();
+      } catch (err) {
+        this.setFormatError(`${err}`);
+      }
+    } else {
+      await super.format(id);
+    }
   }
 
   halt_jupyter(): void {
@@ -495,7 +511,17 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   chatgptExtraFileInfo(): string {
     const kernel =
       this.jupyter_actions.store.getIn(["kernel_info", "display_name"]) ?? "";
-    return `, which is a Jupyter notebook using the ${kernel} kernel`;
+    return `Jupyter notebook using the ${kernel} kernel`;
+  }
+
+  help(): void {
+    open_new_tab("https://doc.cocalc.com/jupyter.html");
+  }
+
+  chatgptCodeDescription(): string {
+    const kernel =
+      this.jupyter_actions.store.getIn(["kernel_info", "display_name"]) ?? "";
+    return `Jupyter notebook using the ${kernel} kernel`;
   }
 }
 

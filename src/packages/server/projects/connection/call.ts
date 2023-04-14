@@ -20,8 +20,8 @@ and they include:
 - write_text_file_to_project: write a text file, whose contents is in the message, to the project.
 - print_to_pdf: tells sage worksheet to print
 - send_signal: send a signal to a process
+- jupyter_execute: { input, history, kernel } ==> {output:object[]} or {error?:string}
 */
-
 
 import { callProjectMessage } from "./handle-message";
 import getConnection from "./connect";

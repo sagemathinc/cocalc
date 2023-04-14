@@ -3,10 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { delay } from "awaiting";
 import { Set } from "immutable";
 import { isEqual } from "lodash";
-
+import { delay } from "awaiting";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { move_selected_cells } from "@cocalc/frontend/jupyter/cell-utils";
 import {
@@ -45,7 +44,7 @@ export class NotebookFrameActions {
   private _is_closed: boolean = false;
   private frame_tree_actions: JupyterEditorActions;
   private jupyter_actions: JupyterActions;
-  private key_handler?: Function;
+  private key_handler?: (e: any) => void;
   private input_editors: { [id: string]: EditorFunctions } = {};
   private scroll_before_change?: number;
   private cur_id_before_change: string | undefined = undefined;
@@ -262,7 +261,9 @@ export class NotebookFrameActions {
         this.frame_tree_actions
       );
     }
-    this.frame_tree_actions.set_active_key_handler(this.key_handler);
+    if (this.key_handler != null) {
+      this.frame_tree_actions.set_active_key_handler(this.key_handler);
+    }
   }
 
   public disable_key_handler(): void {
@@ -299,6 +300,7 @@ export class NotebookFrameActions {
       this.move_cursor(1);
     }
   }
+  h;
 
   public run_selected_cells(v?: string[]): void {
     this.save_input_editor();
@@ -350,10 +352,11 @@ export class NotebookFrameActions {
     this.setState({ mode });
   }
 
-  public focus(wait?: boolean): void {
-    // TODO: wait is ignored!
-    wait = wait;
-    this.enable_key_handler();
+  public focus(_wait?: boolean): void {
+    // we always wait 1 ms.
+    setTimeout(() => {
+      this.enable_key_handler();
+    }, 1);
   }
 
   public blur(): void {
@@ -450,6 +453,20 @@ export class NotebookFrameActions {
     const cells = this.jupyter_actions.store.get("cells");
     if (cells == null) return;
     return cells.get(id);
+  }
+
+  getPreviousCodeCellID(id: string, delta = -1): string | undefined {
+    while (true) {
+      const prevID = this.jupyter_actions.store.get_cell_id(delta, id);
+      if (prevID == null) return;
+      const prevCell = this.get_cell_by_id(prevID);
+      if (prevCell == null) return;
+      if (prevCell.get("cell_type", "code") === "code") {
+        return prevID;
+      } else {
+        delta = delta - 1;
+      }
+    }
   }
 
   public switch_md_cell_to_edit(id: string): void {
@@ -712,6 +729,14 @@ export class NotebookFrameActions {
     this.jupyter_actions.set_cell_input(id, input1);
   }
 
+  public set_cell_input(id, input) {
+    this.validate({ id });
+    if (this.jupyter_actions.check_edit_protection(id)) {
+      return;
+    }
+    this.jupyter_actions.set_cell_input(id, input);
+  }
+
   // delta = -1 (above) or +1 (below)
   public insert_cell(delta: 1 | -1): string {
     const id = this.jupyter_actions.insert_cell_adjacent(
@@ -960,14 +985,30 @@ export class NotebookFrameActions {
 
   public async format_selected_cells(sync: boolean = true): Promise<void> {
     this.save_input_editor();
-    await this.jupyter_actions.format_cells(
-      this.store.get_selected_cell_ids_list(),
-      sync
-    );
+    this.frame_tree_actions.setFormatError("");
+    try {
+      this.frame_tree_actions.set_status("Formatting selected cells...");
+      await this.jupyter_actions.format_cells(
+        this.store.get_selected_cell_ids_list(),
+        sync
+      );
+    } catch (err) {
+      this.frame_tree_actions.setFormatError(`${err}`, err.formatInput);
+    } finally {
+      this.frame_tree_actions.set_status("");
+    }
   }
   public async format_all_cells(sync: boolean = true): Promise<void> {
     this.save_input_editor();
-    await this.jupyter_actions.format_all_cells(sync);
+    this.frame_tree_actions.setFormatError("");
+    try {
+      this.frame_tree_actions.set_status("Formatting selected cells...");
+      await this.jupyter_actions.format_all_cells(sync);
+    } catch (err) {
+      this.frame_tree_actions.setFormatError(`${err}`, err.formatInput);
+    } finally {
+      this.frame_tree_actions.set_status("");
+    }
   }
 
   public async format(): Promise<void> {

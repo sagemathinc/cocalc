@@ -7,6 +7,9 @@
 Actions specific to manipulating the student projects that students have in a course.
 */
 
+import { delay, map as awaitMap } from "awaiting";
+import { sortBy } from "lodash";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
@@ -14,9 +17,8 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 import { copy, days_ago, keys, len } from "@cocalc/util/misc";
 import { SITE_NAME } from "@cocalc/util/theme";
-import { delay, map as awaitMap } from "awaiting";
 import { CourseActions } from "../actions";
-import { CourseStore, DEFAULT_LICENSE_UPGRADE_HOST_PROJECT } from "../store";
+import { CourseStore } from "../store";
 import { UpgradeGoal } from "../types";
 import { Result, run_in_all_projects } from "./run-in-all-projects";
 
@@ -271,7 +273,7 @@ export class StudentProjectsActions {
 
   private async configure_project_license(
     student_project_id: string,
-    license_id?: string
+    license_id?: string // if not set, all known licenses
   ): Promise<void> {
     if (license_id != null) {
       await this.set_project_site_license(
@@ -698,35 +700,28 @@ export class StudentProjectsActions {
 
     const licenses = await store.getLicenses(force);
 
-    let licenseRunLimits: { [license_id: string]: number } | undefined =
-      undefined;
-
-    if (
-      store.getIn(["settings", "site_license_strategy"], "serial") ==
-        "serial" &&
-      len(licenses) > 1
-    ) {
-      const hasSharedProject = !!store.getIn(["settings", "shared_project_id"]);
-      const upgradeHostProject =
-        store.getIn(["settings", "license_upgrade_host_project"]) ??
-        DEFAULT_LICENSE_UPGRADE_HOST_PROJECT;
-      licenseRunLimits = {};
-      // get the run limit for each license, but subtract for course project (if upgraded)
-      // and shared project (if it exists).
-      for (const license_id in licenses) {
-        if (licenses[license_id].expired) {
-          // license is expired, so consider limit
-          // to be 0, since there is no point in trying
-          // to use it.
-          licenseRunLimits[license_id] = 0;
-        } else {
-          licenseRunLimits[license_id] =
-            licenses[license_id].runLimit -
-            (upgradeHostProject ? 1 : 0) -
-            (hasSharedProject ? 1 : 0);
-        }
+    // filter all expired licenses – no point in applying them –
+    // and repeat each license ID as many times as it has seats (run_limit).
+    // that way, licenses will be applied more often if they have more seats.
+    // In particular, we are interested in the case, where a course has way more students than license seats.
+    const allLicenseIDs: string[] = [];
+    // we want to start with the license with the highest run limit
+    const sortedLicenseIDs = sortBy(
+      Object.keys(licenses),
+      (l) => -licenses[l].runLimit
+    );
+    for (const license_id of sortedLicenseIDs) {
+      const license = licenses[license_id];
+      if (license.expired) continue;
+      for (let i = 0; i < license.runLimit; i++) {
+        allLicenseIDs.push(license_id);
       }
     }
+
+    // 2023-03-30: if "serial", then all student projects get exactly one license
+    // and hence all seats are shared between all student projects.
+    const isSerial =
+      store.getIn(["settings", "site_license_strategy"], "serial") == "serial";
 
     let id: number = -1;
     try {
@@ -763,6 +758,7 @@ export class StudentProjectsActions {
           changed = true;
         }
       }
+
       if (changed) {
         // wait hopefully long enough for info about licenses to be
         // available in the project_map.  This is not 100% bullet proof,
@@ -796,53 +792,25 @@ export class StudentProjectsActions {
         const id1: number = this.course_actions.set_activity({
           desc: `Configuring student project ${i} of ${ids.length}`,
         });
-        let license_id: string | undefined = undefined;
-        // if licenseRunLimits is set, we distribute the licenses in "serial" mode
-        if (licenseRunLimits != null) {
-          // licenses being allocated globally.
-          // What is there now for this project?
-          const student_project_id = store.getIn([
-            "students",
-            student_id,
-            "project_id",
-          ]);
-          const site_license = project_map?.getIn([
-            student_project_id,
-            "site_license",
-          ]);
-          let already_done: boolean = false;
-          // go through all licenses attached to the student project and only keep the first one that still has > 0 seats left.
-          for (const id in site_license) {
-            if (licenseRunLimits[id] != null) {
-              licenseRunLimits[id] -= 1;
-              if (licenseRunLimits[id] >= 0) {
-                already_done = true;
-                license_id = id; // we pick this license for this project
-                break;
-              }
-            }
-          }
-          if (!already_done) {
-            license_id = ""; // fallback, no license seat left
-            // choose an available license
-            for (const id in licenseRunLimits) {
-              if (licenseRunLimits[id] > 0) {
-                license_id = id;
-                licenseRunLimits[id] -= 1;
-                break;
-              }
-            }
-          }
-        }
+
+        // if isSerial is set, we distribute the licenses in "serial" mode:
+        // i.e. we allocate one license per student project in a round-robin fashion
+        // proportional to the number of seats of the license.
+        const license_id: string | undefined = isSerial
+          ? allLicenseIDs[i % allLicenseIDs.length]
+          : undefined;
+
         await this.configure_project({
           student_id,
           student_project_id: undefined,
           force_send_invite_by_email: force,
-          license_id, // if undefined, all known licenses will be applied to this student project
+          license_id, // if undefined (i.e. !isSerial), all known licenses will be applied to this student project
         });
         this.course_actions.set_activity({ id: id1 });
         await delay(0); // give UI, etc. a solid chance to render
-      } // always re-invite students on running this.
+      }
+
+      // always re-invite students on running this.
       await this.course_actions.shared_project.configure();
       await this.set_all_student_project_course_info();
     } catch (err) {

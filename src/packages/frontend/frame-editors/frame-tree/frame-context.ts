@@ -26,6 +26,7 @@ export interface IFrameContext<T = Actions> {
   isFocused: boolean; // true if this is the focused frame, i.e., active_id == id.
   isVisible: boolean; // true if the entire editor tab that contains this frame is visible.
   font_size: number;
+  redux?;
 }
 
 export const defaultFrameContext = {
