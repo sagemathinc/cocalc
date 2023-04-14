@@ -14,6 +14,7 @@ and it displays the file as an editor associated with that path in the project,
 or Loading... if the file is still being loaded.
 */
 
+import { useEffect, useMemo, useRef } from "react";
 import { Map } from "immutable";
 import Draggable from "react-draggable";
 import {
@@ -21,8 +22,6 @@ import {
   ReactDOM,
   redux,
   useForceUpdate,
-  useMemo,
-  useRef,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
@@ -101,6 +100,7 @@ interface TabContentProps {
 
 const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
   const { project_id, tab_name, is_visible } = props;
+
   const open_files =
     useTypedRedux({ project_id }, "open_files") ?? Map<string, any>();
   const fullscreen = useTypedRedux("page", "fullscreen");
@@ -113,6 +113,19 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
       return "";
     }
   }, [tab_name]);
+
+  const lastIsVisibleRef = useRef<boolean>(is_visible);
+  useEffect(() => {
+    if (!is_visible && lastIsVisibleRef.current) {
+      // a tab changed to not be visible, so let it know, so it can
+      // remove its keyboard handler.
+      if (tab_name.startsWith("editor-")) {
+        // if the actions are defined and there is a blur method, call it.
+        redux.getEditorActions(project_id, path)?.["blur"]?.();
+      }
+    }
+    lastIsVisibleRef.current = is_visible;
+  }, [is_visible]);
 
   // show the kiosk mode banner instead of anything besides a file editor
   if (fullscreen === "kiosk" && !tab_name.startsWith("editor-")) {
@@ -147,6 +160,14 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           noSanitize: true, // TODO: temporary for backward compat for now; will make it user-configurable on a per file basis later.
           MathComponent: KaTeXAndMathJaxV2,
           jupyterApiEnabled,
+          hasOpenAI: redux?.getStore("projects").hasOpenAI(project_id),
+          disableMarkdownCodebar: redux
+            ?.getStore("account")
+            .getIn(["other_settings", "disable_markdown_codebar"]),
+          disableExtraButtons: false,
+          project_id,
+          path,
+          is_visible,
         };
         return (
           <FileContext.Provider value={value}>

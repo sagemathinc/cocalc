@@ -4,7 +4,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 
 export default function CodeButton({ editor }) {
   return (
-    <Tooltip title="Convert selection to code block">
+    <Tooltip title="Create executable code block">
       <Button
         size="small"
         onClick={() => {

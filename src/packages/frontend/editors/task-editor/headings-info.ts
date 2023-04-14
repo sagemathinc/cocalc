@@ -5,11 +5,11 @@
 
 import { Headings, HeadingsDir } from "./types";
 
-export const HEADINGS: Headings[] = ["Custom Order", "Due", "Changed"];
+export const HEADINGS: Headings[] = ["Custom", "Due", "Changed"];
 export const HEADINGS_DIR: HeadingsDir[] = ["asc", "desc"];
 
 export const SORT_INFO = {
-  "Custom Order": {
+  Custom: {
     key: "position",
     reverse: false,
   },

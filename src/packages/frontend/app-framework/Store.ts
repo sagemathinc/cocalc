@@ -51,6 +51,13 @@ export class Store<State extends Record<string, any>> extends EventEmitter {
     this.setMaxListeners(1000);
   }
 
+  setState(obj): void {
+    if (this.redux?.getStore(this.name) == null) {
+      return; // No op
+    }
+    this.redux._set_state({ [this.name]: obj }, this.name);
+  }
+
   protected setup_selectors(): void {
     if (this.selectors) {
       // We barely -- if at all -- use selectors in cocalc now, since hooks are WAY better.

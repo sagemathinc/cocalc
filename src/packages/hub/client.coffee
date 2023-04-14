@@ -2098,8 +2098,9 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"not signed in")
             return
         try
-            output = await jupyter_execute(input:mesg.input, history:mesg.history, account_id:@account_id,  kernel:mesg.kernel, tag:mesg.tag)
-            @push_to_client(message.jupyter_execute_response(id:mesg.id, output:output))
+            resp = await jupyter_execute(mesg)
+            resp.id = mesg.id
+            @push_to_client(message.jupyter_execute_response(resp))
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")
@@ -2108,7 +2109,7 @@ class exports.Client extends EventEmitter
         dbg = @dbg("mesg_jupyter_kernels")
         dbg(mesg.text)
         try
-            @push_to_client(message.jupyter_kernels(id:mesg.id, kernels:await jupyter_kernels()))
+            @push_to_client(message.jupyter_kernels(id:mesg.id, kernels:await jupyter_kernels({project_id:mesg.project_id, account_id:@account_id})))
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")

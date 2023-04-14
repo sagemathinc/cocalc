@@ -34,6 +34,8 @@ export const VERSION = "5.3";
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
 import { EventEmitter } from "node:events";
+import os from "node:os";
+import path from "node:path";
 
 // NOTE: we choose to use node-cleanup instead of the much more
 // popular exit-hook, since node-cleanup actually works for us.
@@ -58,6 +60,7 @@ import { JUPYTER_MIMETYPES } from "@cocalc/frontend/jupyter/util";
 import { getLogger } from "@cocalc/project/logger";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { retry_until_success } from "@cocalc/util/async-utils";
+import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import { key_value_store } from "@cocalc/util/key-value-store";
 import {
   copy,
@@ -75,7 +78,7 @@ import { exists, unlink } from "./async-utils-node";
 import { nbconvert } from "./convert";
 import { CodeExecutionEmitter } from "./execute-code";
 import { get_blob_store } from "./jupyter-blobs-sqlite";
-import { get_kernel_data_by_name } from "./kernel-data";
+import { getLanguage, get_kernel_data_by_name } from "./kernel-data";
 import {
   LaunchJupyterOpts,
   launch_jupyter_kernel,
@@ -956,6 +959,27 @@ export class JupyterKernel
     // and the Frontend listens for them on the IOPub channel." -- docs
     this.channel?.next(message);
   }
+
+  async chdir(path: string): Promise<void> {
+    if (!this.name) return; // no kernel, no current directory
+    const dbg = this.dbg("chdir");
+    let lang;
+    try {
+      // using probably cached data, so likely very fast
+      lang = await getLanguage(this.name);
+    } catch (err) {
+      dbg("WARNING ", err);
+      const info = await this.kernel_info();
+      lang = info.language_info?.name ?? "";
+    }
+
+    const absPath = getAbsolutePathFromHome(path);
+    const code = createChdirCommand(lang, absPath);
+    if (code) {
+      // returns '' if no command needed, e.g., for sparql.
+      await this.execute_code_now({ code });
+    }
+  }
 }
 
 export function get_existing_kernel(path: string): JupyterKernel | undefined {
@@ -969,4 +993,16 @@ export function get_kernel_by_pid(pid: number): JupyterKernel | undefined {
     }
   }
   return;
+}
+
+const HOME_DIRECTORY = os.homedir();
+
+// written by ChatGPT4
+function getAbsolutePathFromHome(relativePath: string): string {
+  if (relativePath[0] == "/") {
+    // actually an absolute path.
+    return relativePath;
+  }
+  const absolutePath = path.resolve(HOME_DIRECTORY, relativePath);
+  return absolutePath;
 }

@@ -19,6 +19,10 @@ import { header_part } from "./desc-rendering";
 import { TaskMap } from "./types";
 import { TaskActions } from "./actions";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import {
+  CODE_FOCUSED_COLOR,
+  FOCUSED_COLOR,
+} from "@cocalc/frontend/editors/slate/util";
 
 interface Props {
   actions?: TaskActions;
@@ -53,13 +57,14 @@ export default function Task({
     margin: "2px 5px",
     paddingTop: "5px",
     background: "white",
+    borderRadius: "8px",
   } as CSSProperties;
-  if (is_current) {
-    style.border = "2px solid rgb(66, 165, 245)";
-    style.borderLeft = "10px solid rgb(66, 165, 245)";
+  if (editing_desc) {
+    style.border = `2px solid ${CODE_FOCUSED_COLOR}`;
+  } else if (is_current) {
+    style.border = `2px solid ${FOCUSED_COLOR}`;
   } else {
     style.border = "2px solid transparent";
-    style.borderLeft = "10px solid #ccc";
     style.borderTop = "2px solid #eeejj";
   }
   if (task.get("deleted")) {
@@ -94,14 +99,6 @@ export default function Task({
       onClick={() => actions?.set_current_task(task.get("task_id"))}
     >
       <Row>
-        <Col sm={1} style={{ textAlign: "center" }}>
-          <DoneCheckbox
-            actions={actions}
-            read_only={read_only}
-            done={!!task.get("done")}
-            task_id={task.get("task_id")}
-          />
-        </Col>
         <Col sm={1}>
           {actions != null && (
             <DragHandle sortable={sortable} id={task.get("task_id")} />
@@ -125,6 +122,7 @@ export default function Task({
             color={color}
             editing={editing_desc}
             is_current={is_current}
+            isDeleted={task.get("deleted")}
             font_size={font_size}
             read_only={read_only}
             selectedHashtags={selectedHashtags}
@@ -149,6 +147,14 @@ export default function Task({
           <span style={{ fontSize: "10pt", color: "#666" }}>
             <Changed last_edited={task.get("last_edited")} />
           </span>
+        </Col>
+        <Col sm={1} style={{ textAlign: "center" }}>
+          <DoneCheckbox
+            actions={actions}
+            read_only={read_only}
+            done={!!task.get("done")}
+            task_id={task.get("task_id")}
+          />
         </Col>
       </Row>
     </Grid>

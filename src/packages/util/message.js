@@ -3070,10 +3070,15 @@ API(
   message({
     event: "jupyter_execute",
     id: undefined,
-    kernel: required, // jupyter kernel
-    input: required, // input code to execute
+    hash: undefined, // give either hash *or* kernel, input, history, etc.
+    kernel: undefined, // jupyter kernel
+    input: undefined, // input code to execute
     history: undefined, // optional history of this conversation as a list of input strings.  Do not include output
+    project_id: undefined, // project it should run in.
+    path: undefined, // optional path where execution happens
     tag: undefined,
+    pool: undefined, // {size?: number; timeout_s?: number;}
+    limits: undefined, // see packages/project/nbgrader/jupyter-run.ts
   })
 );
 
@@ -3081,12 +3086,15 @@ message({
   event: "jupyter_execute_response",
   id: undefined,
   output: required, // the response
+  total_time_s: undefined,
+  time: undefined,
 });
 
 API(
   message({
     event: "jupyter_kernels",
     id: undefined,
+    project_id: undefined,
     kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
   })
 );
