@@ -13,5 +13,6 @@ export default async function launchJupyterKernel(
   name: string, // name of the kernel
   opts: LaunchJupyterOpts
 ): Promise<SpawnedKernel> {
+  console.log("launchJupyterKernel", name, opts);
   return await launchJupyterKernelNoPool(name, opts);
 }

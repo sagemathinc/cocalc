@@ -87,7 +87,6 @@ import { JupyterStore } from "@cocalc/frontend/jupyter/store";
 
 import { JupyterKernelInterface } from "@cocalc/frontend/jupyter/project-interface";
 
-//import launchJupyterKernel, { LaunchJupyterOpts, SpawnedKernel } from "./pool";
 import launchJupyterKernel, { LaunchJupyterOpts, SpawnedKernel } from "./pool";
 
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
@@ -298,10 +297,15 @@ export class JupyterKernel
     const dbg = this.dbg("spawn");
     dbg("spawning kernel...");
 
+    // ****
+    // CRITICAL: anything added to opts better not be specific
+    // to the kernel path or it will completely break using a
+    // pool, which makes things massively slower.
+    // ****
+
     const opts: LaunchJupyterOpts = {
-      detached: true,
       env: spawn_opts?.env ?? {},
-      ulimit: this.ulimit,
+      ...(this.ulimit != null ? { ulimit: this.ulimit } : undefined),
     };
 
     if (this.name.indexOf("sage") == 0) {
@@ -314,14 +318,7 @@ export class JupyterKernel
     // one for us.  See https://plot.ly/python/renderers/ and
     // https://github.com/sagemathinc/cocalc/issues/4259
     opts.env.PLOTLY_RENDERER = "colab";
-
-    // expose path of jupyter notebook -- https://github.com/sagemathinc/cocalc/issues/5165
-    opts.env.COCALC_JUPYTER_FILENAME = this._path;
     opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
-
-    if (this._directory !== "") {
-      opts.cwd = this._directory;
-    }
 
     try {
       dbg("launching kernel interface...");
@@ -334,6 +331,14 @@ export class JupyterKernel
       this._set_state("off");
       throw err;
     }
+
+    // NOW we do path-related customizations:
+    // TODO: we will set each of these after getting a kernel from the pool
+    // expose path of jupyter notebook -- https://github.com/sagemathinc/cocalc/issues/5165
+    //opts.env.COCALC_JUPYTER_FILENAME = this._path;
+    //     if (this._directory !== "") {
+    //       opts.cwd = this._directory;
+    //     }
   }
 
   get_spawned_kernel() {

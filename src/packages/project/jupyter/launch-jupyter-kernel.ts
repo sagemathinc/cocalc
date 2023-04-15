@@ -3,7 +3,7 @@
 //
 // Example:
 // import launchJupyterKernel from "./launch-jupyter-kernel";
-// const kernel = await launchJupyterKernel("python3", {detached: true, cwd: "/home/user"})
+// const kernel = await launchJupyterKernel("python3", {cwd: "/home/user"})
 //
 // * shell channel: `${kernel.config.ip}:${kernel.config.shell_port}`
 // * `kernel.spawn` holds the process and you have to close it when finished.
@@ -40,7 +40,6 @@ import { dynamicImport } from "tsimportlib";
 // https://nodejs.org/dist/latest-v6.x/docs/api/child_process.html#child_process_options_stdio
 type StdIO = "pipe" | "ignore" | "inherit" | undefined;
 export interface LaunchJupyterOpts {
-  detached: boolean;
   stdio?: StdIO | (StdIO | number)[];
   env: { [key: string]: string };
   cwd?: string;
@@ -143,7 +142,11 @@ async function launchKernelSpec(
     x.replace("{connection_file}", connectionFile)
   );
 
-  const full_spawn_options = { ...DEFAULT_SPAWN_OPTIONS, ...spawn_options };
+  const full_spawn_options = {
+    ...DEFAULT_SPAWN_OPTIONS,
+    ...spawn_options,
+    detached: true, // for cocalc we always assume this
+  };
 
   full_spawn_options.env = {
     ...process.env,
