@@ -32,7 +32,7 @@ if (DEBUG) {
 export const VERSION = "5.3";
 
 import { EventEmitter } from "events";
-import { exists, unlink } from "./async-utils-node";
+import { unlink } from "./async-utils-node";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { Channels, MessageType } from "@nteract/messaging";
 import {
@@ -87,7 +87,11 @@ import { JupyterStore } from "@cocalc/frontend/jupyter/store";
 
 import { JupyterKernelInterface } from "@cocalc/frontend/jupyter/project-interface";
 
-import launchJupyterKernel, { LaunchJupyterOpts, SpawnedKernel } from "./pool";
+import launchJupyterKernel, {
+  LaunchJupyterOpts,
+  SpawnedKernel,
+  killKernel,
+} from "./pool";
 
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 
@@ -543,25 +547,7 @@ export class JupyterKernel
     this.removeAllListeners();
     process.removeListener("exit", this.close);
     if (this._kernel != null) {
-      if (this._kernel.spawn != null) {
-        // Important to remove listeners before sending signals, since otherwise
-        // sending signals emits events that can lead to fork bombs going off.
-        this._kernel.spawn.removeAllListeners();
-        // OK, now tell kernel to terminate.
-        if (this._kernel.spawn.pid) {
-          try {
-            process.kill(-this._kernel.spawn.pid, "SIGTERM");
-          } catch (err) {}
-        }
-        this._kernel.spawn.close?.();
-      }
-      if (await exists(this._kernel.connectionFile)) {
-        try {
-          await unlink(this._kernel.connectionFile);
-        } catch {
-          // ignore
-        }
-      }
+      killKernel(this._kernel);
       delete this._kernel;
       delete this.channel;
     }
