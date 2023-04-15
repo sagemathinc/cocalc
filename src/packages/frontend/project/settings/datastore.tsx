@@ -142,8 +142,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
               <RestartProject
                 project_id={project_id}
                 text={"Restart…"}
-                bsStyle={"default"}
-                bsSize={"small"}
+                size={"small"}
               />
             </span>
           </div>
