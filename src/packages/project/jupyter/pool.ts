@@ -15,6 +15,7 @@ import { getLogger } from "@cocalc/project/logger";
 import { getLanguage } from "./kernel-data";
 import { getAbsolutePathFromHome } from "./util";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
+import createSetenvCommand from "@cocalc/util/jupyter-api/setenv-commands";
 import nodeCleanup from "node-cleanup";
 
 export type { LaunchJupyterOpts, SpawnedKernel };
@@ -32,8 +33,12 @@ const EXPIRE: { [key: string]: number } = {};
 // put this in a pool:
 //   - opts.cwd : current working directory
 function makeKey({ name, opts }) {
+  // Copy of opts but delete opts.cwd and opts.env.COCALC_JUPYTER_FILENAME.
+  // We don't change opts though!
   const opts0 = { ...opts };
   delete opts0.cwd;
+  opts0.env = { ...opts.env };
+  delete opts0.env.COCALC_JUPYTER_FILENAME;
   return json({ name, opts: opts0 });
 }
 
@@ -58,6 +63,20 @@ export default async function launchJupyterKernel(
       initCode.push(createChdirCommand(language, absPath));
     } catch (error) {
       log.error("Failed to get chdir command -- not using pool", error);
+      return await launchJupyterKernelNoPool(name, opts);
+    }
+  }
+  if (opts.env?.COCALC_JUPYTER_FILENAME) {
+    try {
+      initCode.push(
+        createSetenvCommand(
+          language,
+          "COCALC_JUPYTER_FILENAME",
+          opts.env.COCALC_JUPYTER_FILENAME
+        )
+      );
+    } catch (error) {
+      log.error("Failed to get setenv command -- not using pool", error);
       return await launchJupyterKernelNoPool(name, opts);
     }
   }

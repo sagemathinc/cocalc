@@ -327,9 +327,19 @@ export class JupyterKernel
     // https://github.com/sagemathinc/cocalc/issues/4259
     opts.env.PLOTLY_RENDERER = "colab";
     opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
-    if (this._directory !== "") {
+
+    // !!! WARNING: do NOT add anything new here that depends on that path!!!!
+    // Otherwise the pool will switch to fallling back to not being used, and
+    // cocalc would then be massively slower.
+    // Non-uniform customization.
+    // launchJupyterKernel is explicitly smart enough to deal with opts.cwd
+    if (this._directory) {
       opts.cwd = this._directory;
     }
+    // launchJupyterKernel is explicitly smart enough to deal with opts.env.COCALC_JUPYTER_FILENAME
+    opts.env.COCALC_JUPYTER_FILENAME = this._path;
+    // and launchJupyterKernel is NOT smart enough to deal with anything else!
+
     try {
       dbg("launching kernel interface...");
       this._kernel = await launchJupyterKernel(this.name, opts);
