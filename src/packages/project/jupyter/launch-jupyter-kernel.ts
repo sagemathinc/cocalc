@@ -63,6 +63,7 @@ export interface SpawnedKernel {
   connectionFile: string;
   config: ConnectionInfo;
   kernel_spec;
+  initCode?: string[];
 }
 
 interface ConnectionInfo {

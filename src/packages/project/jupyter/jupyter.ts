@@ -61,11 +61,7 @@ import { remove_redundant_reps } from "@cocalc/frontend/jupyter/import-from-ipyn
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
-import os from "os";
-import path from "path";
-
 import { nbconvert } from "./convert";
-
 import { getLanguage } from "./kernel-data";
 
 // NOTE: we choose to use node-cleanup instead of the much more
@@ -93,6 +89,7 @@ import launchJupyterKernel, {
   killKernel,
 } from "./pool";
 
+import { getAbsolutePathFromHome } from "./util";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 
 import { getLogger } from "@cocalc/project/logger";
@@ -203,7 +200,10 @@ nodeCleanup(() => {
   for (const kernelPath in _jupyter_kernels) {
     // We do NOT await the close since that's not really
     // supported or possible in general.
-    _jupyter_kernels[kernelPath].close();
+    const { _kernel } = _jupyter_kernels[kernelPath] as any;
+    if (_kernel) {
+      killKernel(_kernel);
+    }
   }
 });
 
@@ -263,7 +263,11 @@ export class JupyterKernel
     _jupyter_kernels[this._path] = this;
     const dbg = this.dbg("constructor");
     dbg();
-    process.on("exit", this.close.bind(this));
+    process.on("exit", () => {
+      if (this._kernel != null) {
+        killKernel(this._kernel);
+      }
+    });
     this.setMaxListeners(100);
   }
 
@@ -323,7 +327,9 @@ export class JupyterKernel
     // https://github.com/sagemathinc/cocalc/issues/4259
     opts.env.PLOTLY_RENDERER = "colab";
     opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
-
+    if (this._directory !== "") {
+      opts.cwd = this._directory;
+    }
     try {
       dbg("launching kernel interface...");
       this._kernel = await launchJupyterKernel(this.name, opts);
@@ -465,52 +471,6 @@ export class JupyterKernel
     }
   }
 
-  async _get_kernel_info(): Promise<void> {
-    const dbg = this.dbg("_get_kernel_info");
-    /*
-    The following is very ugly!  In practice, with testing,
-    I've found that some kernels simply
-    don't start immediately, and drop early messages.  The only reliable way to
-    get things going properly is to just keep trying something (we do the kernel_info
-    command) until it works. Only then do we declare the kernel ready for code
-    execution, etc.   Probably the jupyter devs never notice this race condition
-    bug in ZMQ/Jupyter kernels... or maybe the Python server has a sort of
-    accidental work around.
-
-    Update: a Jupyter dev has finally publicly noticed this bug:
-      https://github.com/jupyterlab/rtc/pull/73#issuecomment-705775279
-    */
-    const that = this;
-    async function f(): Promise<void> {
-      if (that._state == "closed") return;
-      dbg("calling kernel_info_request...", that._state);
-      await that.call("kernel_info_request");
-      dbg("called kernel_info_request", that._state);
-      if (that._state === "starting") {
-        throw Error("still starting");
-      }
-    }
-
-    dbg("getting kernel info to be certain kernel is fully usable...");
-    await retry_until_success({
-      start_delay: 500,
-      max_delay: 5000,
-      factor: 1.4,
-      max_time: 60000, // long in case of starting many at once --
-      // we don't want them to all fail and start
-      // again and fail ad infinitum!
-      f: f,
-      log: function (...args) {
-        dbg("retry_until_success", ...args);
-      },
-    });
-    if (this._state == "closed") {
-      throw Error("closed");
-    }
-
-    dbg("successfully got kernel info");
-  }
-
   // Signal should be a string like "SIGINT", "SIGKILL".
   // See https://nodejs.org/api/process.html#process_process_kill_pid_signal
   signal(signal: string): void {
@@ -597,15 +557,21 @@ export class JupyterKernel
     }
     dbg("spawning");
     await this.spawn();
+    if (this._kernel?.initCode != null) {
+      for (const code of this._kernel?.initCode ?? []) {
+        dbg("initCode ", code);
+        new CodeExecutionEmitter(this, { code }).go();
+      }
+    }
     if (!this.has_ensured_running) {
-      dbg("waiting for kernel info");
       this.has_ensured_running = true;
-      await this._get_kernel_info();
-      dbg("got kernel info");
     }
   }
 
-  execute_code(opts: ExecOpts): CodeExecutionEmitterInterface {
+  execute_code(
+    opts: ExecOpts,
+    skipToFront = false
+  ): CodeExecutionEmitterInterface {
     if (opts.halt_on_error === undefined) {
       // if not specified, default to true.
       opts.halt_on_error = true;
@@ -614,8 +580,12 @@ export class JupyterKernel
       throw Error("closed");
     }
     const code = new CodeExecutionEmitter(this, opts);
-    this._execute_code_queue.push(code);
-    if (this._execute_code_queue.length === 1) {
+    if (skipToFront) {
+      this._execute_code_queue.unshift(code);
+    } else {
+      this._execute_code_queue.push(code);
+    }
+    if (this._execute_code_queue.length == 1) {
       // start it going!
       this._process_execute_code_queue();
     }
@@ -671,7 +641,10 @@ export class JupyterKernel
       dbg("queue is empty");
       return;
     }
-    dbg(`queue has ${n} items; ensure kernel running`);
+    dbg(
+      `queue has ${n} items; ensure kernel running`,
+      this._execute_code_queue
+    );
     try {
       await this.ensure_running();
       this._execute_code_queue[0].go();
@@ -990,16 +963,4 @@ export function get_kernel_by_pid(pid: number): JupyterKernel | undefined {
     }
   }
   return;
-}
-
-const HOME_DIRECTORY = os.homedir();
-
-// written by ChatGPT4
-function getAbsolutePathFromHome(relativePath: string): string {
-  if (relativePath[0] == "/") {
-    // actually an absolute path.
-    return relativePath;
-  }
-  const absolutePath = path.resolve(HOME_DIRECTORY, relativePath);
-  return absolutePath;
 }

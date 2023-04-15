@@ -12,10 +12,14 @@ import launchJupyterKernelNoPool, {
 import { exists, unlink } from "./async-utils-node";
 import { unlinkSync } from "fs";
 import { getLogger } from "@cocalc/project/logger";
-
-const log = getLogger("jupyter:pool");
+import { getLanguage } from "./kernel-data";
+import { getAbsolutePathFromHome } from "./util";
+import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
+import nodeCleanup from "node-cleanup";
 
 export type { LaunchJupyterOpts, SpawnedKernel };
+
+const log = getLogger("jupyter:pool");
 
 const DEFAULT_POOL_SIZE = 1;
 const DEFAULT_POOL_TIMEOUT_S = 3600;
@@ -23,13 +27,42 @@ const DEFAULT_POOL_TIMEOUT_S = 3600;
 const POOL: { [key: string]: SpawnedKernel[] } = {};
 const EXPIRE: { [key: string]: number } = {};
 
+// Make key for cache that describes this kernel.  We explicitly omit
+// the parameters that aren't generic and would make it not possible to
+// put this in a pool:
+//   - opts.cwd : current working directory
+function makeKey({ name, opts }) {
+  const opts0 = { ...opts };
+  delete opts0.cwd;
+  return json({ name, opts: opts0 });
+}
+
 export default async function launchJupyterKernel(
   name: string, // name of the kernel
   opts: LaunchJupyterOpts,
   size: number = DEFAULT_POOL_SIZE, // min number of these in the pool
   timeout_s: number = DEFAULT_POOL_TIMEOUT_S
 ): Promise<SpawnedKernel> {
-  const key = json({ name, opts });
+  let language;
+  try {
+    language = await getLanguage(name);
+  } catch (error) {
+    log.error("Failed to get language of kernel -- not using pool", error);
+    return await launchJupyterKernelNoPool(name, opts);
+  }
+
+  let initCode: string[] = [];
+  if (opts.cwd) {
+    try {
+      const absPath = getAbsolutePathFromHome(opts.cwd);
+      initCode.push(createChdirCommand(language, absPath));
+    } catch (error) {
+      log.error("Failed to get chdir command -- not using pool", error);
+      return await launchJupyterKernelNoPool(name, opts);
+    }
+  }
+
+  const key = makeKey({ name, opts });
   log.debug("launchJupyterKernel", key);
   try {
     if (POOL[key] == null) {
@@ -38,12 +71,16 @@ export default async function launchJupyterKernel(
     if (POOL[key].length > 0) {
       const kernel = POOL[key].shift();
       replenishPool(key, size, timeout_s);
-      return kernel as SpawnedKernel;
+      return { ...(kernel as SpawnedKernel), initCode };
     }
     const kernel = await launchJupyterKernelNoPool(name, opts);
+
     // we don't start replenishing the pool until the kernel is initialized,
     // since we don't want to slow down creating the kernel itself!
     replenishPool(key, size, timeout_s);
+
+    // we do NOT include the initCode here; it's not needed since this kernel
+    // isn't from the pool.
     return kernel;
   } catch (error) {
     log.error("Failed to launch Jupyter kernel", error);
@@ -100,7 +137,7 @@ async function maintainPool() {
 
 setInterval(maintainPool, 30 * 1000);
 
-process.on("exit", () => {
+nodeCleanup(() => {
   for (const key in POOL) {
     for (const kernel of POOL[key]) {
       try {
