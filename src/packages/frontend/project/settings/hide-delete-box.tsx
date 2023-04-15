@@ -7,7 +7,8 @@ import React from "react";
 import { Project } from "./types";
 import { Icon, SettingBox } from "@cocalc/frontend/components";
 import { DeletedProjectWarning } from "../warnings/deleted";
-import { Button, Well, Alert, ButtonToolbar, Row, Col } from "react-bootstrap";
+import { Well, Row, Col } from "@cocalc/frontend/antd-bootstrap";
+import { Alert, Button, Space } from "antd";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import { webapp_client } from "../../webapp-client";
 import { HelpEmailLink } from "../../customize";
@@ -104,7 +105,7 @@ export class HideDeleteBox extends React.Component<Props, State> {
 
     return (
       <Button
-        bsStyle="danger"
+        danger
         style={{ float: "right" }}
         onClick={onClick}
         disabled={disabled}
@@ -126,27 +127,35 @@ export class HideDeleteBox extends React.Component<Props, State> {
     return (
       <Well style={{ textAlign: "center" }}>
         {has_upgrades ? (
-          <Alert bsStyle="info" style={{ padding: "8px" }}>
-            All of your upgrades from this project will be removed
-            automatically. Undeleting the project will not automatically restore
-            them. This will not affect upgrades other people have applied.
-          </Alert>
+          <Alert
+            showIcon
+            style={{ margin: "15px" }}
+            type="info"
+            description={
+              <>
+                All of your upgrades from this project will be removed
+                automatically. Undeleting the project will not automatically
+                restore them. This will not affect upgrades other people have
+                applied.
+              </>
+            }
+          />
         ) : undefined}
         {!has_upgrades ? (
           <div style={{ marginBottom: "5px" }}>
             Are you sure you want to delete this project?
           </div>
         ) : undefined}
-        <ButtonToolbar>
+        <Space>
+          <Button onClick={this.hide_delete_conf}>Cancel</Button>
           <Button
-            bsStyle="danger"
+            danger
             onClick={this.toggle_delete_project}
             cocalc-test="please-delete-project"
           >
             Yes, please delete this project
           </Button>
-          <Button onClick={this.hide_delete_conf}>Cancel</Button>
-        </ButtonToolbar>
+        </Space>
       </Well>
     );
   }
@@ -164,7 +173,6 @@ export class HideDeleteBox extends React.Component<Props, State> {
           <Col sm={8}>{this.hide_message()}</Col>
           <Col sm={4}>
             <Button
-              bsStyle="warning"
               onClick={this.toggle_hide_project}
               style={{ float: "right" }}
               cocalc-test={hidden ? "unhide-project" : "hide-project"}
