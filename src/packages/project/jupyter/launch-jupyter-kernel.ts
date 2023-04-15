@@ -2,8 +2,8 @@
 // You have to provide the kernel name and (optionally) launch options for execa [1].
 //
 // Example:
-// import {launch_jupyter_kernel} from "./launch_jupyter_kernel";
-// const kernel = await launch_jupyter_kernel("python3", {detached: true, cwd: "/home/user"})
+// import launchJupyterKernel from "./launch-jupyter-kernel";
+// const kernel = await launchJupyterKernel("python3", {detached: true, cwd: "/home/user"})
 //
 // * shell channel: `${kernel.config.ip}:${kernel.config.shell_port}`
 // * `kernel.spawn` holds the process and you have to close it when finished.
@@ -16,6 +16,7 @@
 // This is a port of https://github.com/nteract/spawnteract/ to TypeScript (with minor changes).
 // Original license: BSD-3-Clause and this file is also licensed under BSD-3-Clause!
 // Author: Harald Schilly <hsy@sagemath.com>
+// Author: William Stein <wstein@sagemath.com>
 
 import * as path from "path";
 import * as fs from "fs";
@@ -58,7 +59,27 @@ export interface LaunchJupyterOpts {
   ulimit?: string;
 }
 
-function connection_info(ports) {
+export interface SpawnedKernel {
+  spawn; // output of execa
+  connectionFile: string;
+  config: ConnectionInfo;
+  kernel_spec;
+}
+
+interface ConnectionInfo {
+  version: number;
+  key: string;
+  signature_scheme: "hmac-sha256";
+  transport: "tcp" | "ipc";
+  ip: string;
+  hb_port: number;
+  control_port: number;
+  shell_port: number;
+  stdin_port: number;
+  iopub_port: number;
+}
+
+function connectionInfo(ports): ConnectionInfo {
   return {
     version: 5,
     key: uuid.v4(),
@@ -76,7 +97,7 @@ function connection_info(ports) {
 const DEFAULT_PORT_OPTS = { port: 9000, host: "127.0.0.1" } as const;
 
 // gather the connection information for a kernel, write it to a json file, and return it
-async function write_connection_file(port_options?: {
+async function writeConnectionFile(port_options?: {
   port?: number;
   host?: string;
 }) {
@@ -88,11 +109,11 @@ async function write_connection_file(port_options?: {
   await mkdirp(runtimeDir);
 
   // Write the kernel connection file -- filename uses the UUID4 key
-  const config = connection_info(ports);
-  const connection_file = path.join(runtimeDir, `kernel-${config.key}.json`);
+  const config = connectionInfo(ports);
+  const connectionFile = path.join(runtimeDir, `kernel-${config.key}.json`);
 
-  await writeFile(connection_file, config);
-  return { config, connection_file };
+  await writeFile(connectionFile, config);
+  return { config, connectionFile };
 }
 
 // if spawn options' cleanupConnectionFile is true, the connection file is removed
@@ -112,14 +133,14 @@ const DEFAULT_SPAWN_OPTIONS = {
 // actually launch the kernel.
 // the returning object contains all the configuration information and in particular,
 // `spawn` is the running process started by "execa"
-async function launch_kernel_spec(
+async function launchKernelSpec(
   kernel_spec,
-  config,
-  connection_file: string,
+  config: ConnectionInfo,
+  connectionFile: string,
   spawn_options: LaunchJupyterOpts
-) {
+): Promise<SpawnedKernel> {
   const argv = kernel_spec.argv.map((x) =>
-    x.replace("{connection_file}", connection_file)
+    x.replace("{connection_file}", connectionFile)
   );
 
   const full_spawn_options = { ...DEFAULT_SPAWN_OPTIONS, ...spawn_options };
@@ -156,25 +177,23 @@ async function launch_kernel_spec(
   }
 
   if (full_spawn_options.cleanupConnectionFile !== false) {
-    running_kernel.on("exit", (_code, _signal) => cleanup(connection_file));
-    running_kernel.on("error", (_code, _signal) => cleanup(connection_file));
+    running_kernel.on("exit", (_code, _signal) => cleanup(connectionFile));
+    running_kernel.on("error", (_code, _signal) => cleanup(connectionFile));
   }
   return {
     spawn: running_kernel,
-    connection_file,
+    connectionFile,
     config,
     kernel_spec,
   };
 }
 
-// for a given kernel name and launch options: prepare the kernel file and launch the process
-// optionally, provide cached kernel specs to bypass `findAll()
-export async function launch_jupyter_kernel(
+// For a given kernel name and launch options: prepare the kernel file and launch the process
+export default async function launchJupyterKernel(
   name: string,
-  spawn_options: LaunchJupyterOpts,
-  cached_specs?: any
-) {
-  const specs = cached_specs ?? (await findAll());
+  spawn_options: LaunchJupyterOpts
+): Promise<SpawnedKernel> {
+  const specs = await findAll();
   const kernel_spec = specs[name];
   if (kernel_spec == null) {
     throw new Error(
@@ -183,11 +202,11 @@ export async function launch_jupyter_kernel(
       )}`
     );
   }
-  const launch_info = await write_connection_file();
-  return launch_kernel_spec(
+  const { config, connectionFile } = await writeConnectionFile();
+  return launchKernelSpec(
     kernel_spec.spec,
-    launch_info.config,
-    launch_info.connection_file,
+    config,
+    connectionFile,
     spawn_options
   );
 }

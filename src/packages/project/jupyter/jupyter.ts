@@ -87,10 +87,8 @@ import { JupyterStore } from "@cocalc/frontend/jupyter/store";
 
 import { JupyterKernelInterface } from "@cocalc/frontend/jupyter/project-interface";
 
-import {
-  launch_jupyter_kernel,
-  LaunchJupyterOpts,
-} from "./launch_jupyter_kernel";
+//import launchJupyterKernel, { LaunchJupyterOpts, SpawnedKernel } from "./pool";
+import launchJupyterKernel, { LaunchJupyterOpts, SpawnedKernel } from "./pool";
 
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 
@@ -225,8 +223,8 @@ export class JupyterKernel
   private _state: string;
   private _directory: string;
   private _filename: string;
-  private _kernel: any;
-  private _kernel_info: KernelInfo;
+  private _kernel?: SpawnedKernel;
+  private _kernel_info?: KernelInfo;
   _execute_code_queue: CodeExecutionEmitter[] = [];
   public channel?: Channels;
   private has_ensured_running: boolean = false;
@@ -327,7 +325,7 @@ export class JupyterKernel
 
     try {
       dbg("launching kernel interface...");
-      this._kernel = await launch_jupyter_kernel(this.name, opts);
+      this._kernel = await launchJupyterKernel(this.name, opts);
       await this.finish_spawn();
     } catch (err) {
       if (this._state === "closed") {
@@ -343,7 +341,7 @@ export class JupyterKernel
   }
 
   public get_connection_file(): string | undefined {
-    return this._kernel?.connection_file;
+    return this._kernel?.connectionFile;
   }
 
   private async finish_spawn(): Promise<void> {
@@ -354,6 +352,9 @@ export class JupyterKernel
       this.low_level_dbg();
     }
 
+    if (!this._kernel) {
+      throw Error("_kernel must be defined");
+    }
     this._kernel.spawn.on("error", (err) => {
       const error = `${err}\n${this.stderr}`;
       dbg("kernel error", error);
@@ -383,7 +384,7 @@ export class JupyterKernel
       // no data gets dropped.  See https://github.com/sagemathinc/cocalc/issues/5065
     });
 
-    dbg("create main channel...");
+    dbg("create main channel...", this._kernel.config);
     this.channel = await createMainChannel(
       this._kernel.config,
       "",
@@ -549,9 +550,9 @@ export class JupyterKernel
         }
         this._kernel.spawn.close?.();
       }
-      if (await exists(this._kernel.connection_file)) {
+      if (await exists(this._kernel.connectionFile)) {
         try {
-          await unlink(this._kernel.connection_file);
+          await unlink(this._kernel.connectionFile);
         } catch {
           // ignore
         }
@@ -570,6 +571,7 @@ export class JupyterKernel
   // public, since we do use it from some other places...
   dbg(f: string): Function {
     return (...args) => {
+      //console.log(
       winston.debug(
         `jupyter.Kernel('${this.name ?? "no kernel"}',path='${
           this._path
@@ -582,7 +584,11 @@ export class JupyterKernel
   low_level_dbg(): void {
     const dbg = this.dbg("low_level_debug");
     dbg("Enabling");
-    this._kernel.spawn.all?.on("data", (data) => dbg("STDIO", data.toString()));
+    if (this._kernel) {
+      this._kernel.spawn.all?.on("data", (data) =>
+        dbg("STDIO", data.toString())
+      );
+    }
     // for low level debugging only...
     this.channel?.subscribe((mesg) => {
       dbg(JSON.stringify(mesg));
