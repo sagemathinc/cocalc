@@ -75,7 +75,7 @@ function initTransports() {
   COCALC.log = (...args) => {
     if (!transports.file && !transports.console) return;
     if (firstLog && transports.file) {
-      console.error(
+      console.log(
         `***\n\nLogging to "${transports.file}"${
           transports.console ? " and console.log" : ""
         } via the debug module\nwith  DEBUG='${
