@@ -18,6 +18,9 @@ import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import createSetenvCommand from "@cocalc/util/jupyter-api/setenv-commands";
 import nodeCleanup from "node-cleanup";
 import { delay } from "awaiting";
+import { homedir } from "os";
+import { join } from "path";
+import { readFile, writeFile } from "fs/promises";
 
 export type { LaunchJupyterOpts, SpawnedKernel };
 
@@ -26,6 +29,24 @@ const log = getLogger("jupyter:pool");
 const DEFAULT_POOL_SIZE = 1;
 const DEFAULT_POOL_TIMEOUT_S = 3600;
 const DEFAULT_DELAY_MS = 7500;
+
+const CONFIG = join(homedir(), ".config", "cocalc-jupyter-pool");
+
+async function writeConfig(content: string): Promise<void> {
+  try {
+    await writeFile(CONFIG, content);
+  } catch (error) {
+    log.debug("Error writeConfig -- ", error);
+  }
+}
+
+async function readConfig(): Promise<string> {
+  try {
+    return (await readFile(CONFIG)).toString();
+  } catch (error) {
+    return "";
+  }
+}
 
 const POOL: { [key: string]: SpawnedKernel[] } = {};
 const EXPIRE: { [key: string]: number } = {};
@@ -112,7 +133,7 @@ export default async function launchJupyterKernel(
 // Don't replenish pool for same key twice at same time, or
 // pool could end up a little too big.
 const replenishPool = reuseInFlight(
-  async (key, size, timeout_s) => {
+  async (key, size = DEFAULT_POOL_SIZE, timeout_s = DEFAULT_POOL_TIMEOUT_S) => {
     log.debug("replenishPool", key, { size, timeout_s });
     try {
       if (POOL[key] == null) {
@@ -121,6 +142,7 @@ const replenishPool = reuseInFlight(
       const pool = POOL[key];
       while (pool.length < size) {
         log.debug("replenishPool - creating a kernel", key);
+        writeConfig(key);
         const { name, opts } = JSON.parse(key);
         await delay(DEFAULT_DELAY_MS);
         const kernel = await launchJupyterKernelNoPool(name, opts);
@@ -136,6 +158,26 @@ const replenishPool = reuseInFlight(
     createKey: (args) => args[0],
   }
 );
+
+/*
+If there is nothing in the pool, find the newest non-hidden ipynb files in
+the current directory or in any immediate subdirectory.  It is a JSON file,
+and we parse the
+
+*/
+async function fillWhenEmpty() {
+  for (const key in POOL) {
+    if (POOL[key].length > 0) {
+      // nothing to do
+      return;
+    }
+  }
+  // pool is empty, so possibly put something in it.
+  const key = await readConfig();
+  if (key) {
+    replenishPool(key);
+  }
+}
 
 async function maintainPool() {
   log.debug("maintainPool", { EXPIRE });
@@ -155,9 +197,11 @@ async function maintainPool() {
       }
     }
   }
+  fillWhenEmpty();
 }
 
 setInterval(maintainPool, 30 * 1000);
+maintainPool();
 
 nodeCleanup(() => {
   for (const key in POOL) {
