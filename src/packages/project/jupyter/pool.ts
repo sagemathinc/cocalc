@@ -17,6 +17,7 @@ import { getAbsolutePathFromHome } from "./util";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import createSetenvCommand from "@cocalc/util/jupyter-api/setenv-commands";
 import nodeCleanup from "node-cleanup";
+import { delay } from "awaiting";
 
 export type { LaunchJupyterOpts, SpawnedKernel };
 
@@ -24,6 +25,7 @@ const log = getLogger("jupyter:pool");
 
 const DEFAULT_POOL_SIZE = 1;
 const DEFAULT_POOL_TIMEOUT_S = 3600;
+const DEFAULT_DELAY_MS = 7500;
 
 const POOL: { [key: string]: SpawnedKernel[] } = {};
 const EXPIRE: { [key: string]: number } = {};
@@ -120,6 +122,7 @@ const replenishPool = reuseInFlight(
       while (pool.length < size) {
         log.debug("replenishPool - creating a kernel", key);
         const { name, opts } = JSON.parse(key);
+        await delay(DEFAULT_DELAY_MS);
         const kernel = await launchJupyterKernelNoPool(name, opts);
         pool.push(kernel);
         EXPIRE[key] = Math.max(EXPIRE[key] ?? 0, Date.now() + 1000 * timeout_s);
