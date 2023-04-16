@@ -108,6 +108,9 @@ export default function ChatGPTHelp({
                 marginLeft: "5px",
                 height: size == "large" ? "39px" : undefined,
               }}
+              onClick={() => {
+                chatgpt();
+              }}
             >
               <OpenAIAvatar
                 size={size == "large" ? 24 : 18}
