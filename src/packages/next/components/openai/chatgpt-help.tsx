@@ -73,7 +73,7 @@ export default function ChatGPTHelp({
 
   return (
     <FileContext.Provider value={{ jupyterApiEnabled }}>
-      <Row style={{ margin: "5px", ...style }}>
+      <Row style={{ margin: "5px 0", ...style }}>
         <Col
           xs={{ span: 24 }}
           md={{ span: 17 }}
@@ -109,11 +109,12 @@ export default function ChatGPTHelp({
           }}
         >
           <Button
-            disabled={!input?.trim()}
             size={size}
             type="primary"
             onClick={() => {
-              chatgpt();
+              if (input?.trim()) {
+                chatgpt();
+              }
             }}
           >
             <OpenAIAvatar
@@ -121,10 +122,10 @@ export default function ChatGPTHelp({
               backgroundColor="transparent"
               style={{ marginRight: "5px", marginTop: "-4px" }}
             />
-            Ask ChatGPT (Shift+Enter)
+            {input?.trim() && focus ? "Shift+Enter" : "ChatGPT"}
           </Button>
         </Col>
-        <Col xs={{ span: 24 }} md={{ span: 24 }} >
+        <Col xs={{ span: 24 }} md={{ span: 24 }}>
           {error && (
             <Alert
               style={{ margin: "15px 0" }}

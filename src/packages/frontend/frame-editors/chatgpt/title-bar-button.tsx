@@ -205,7 +205,7 @@ export default function ChatGPT({
         return (
           <Space
             direction="vertical"
-            style={{ width: "800px", maxWidth: "100%" }}
+            style={{ width: "800px", maxWidth: "90vw" }}
           >
             <div style={{ display: "flex", width: "100%", marginTop: "5px" }}>
               <Input.TextArea

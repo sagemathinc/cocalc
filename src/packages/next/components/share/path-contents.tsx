@@ -43,7 +43,7 @@ export default function PathContents({
     return (
       <div
         style={{
-          padding: "20px 15px",
+          padding: "20px 0",
         }}
       >
         <Truncated truncated={truncated} />
