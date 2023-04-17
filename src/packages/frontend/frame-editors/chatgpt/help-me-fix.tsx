@@ -9,7 +9,7 @@ import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { CSSProperties, useState } from "react";
 import { trunc, trunc_middle } from "@cocalc/util/misc";
-//import shortenError from "./shorten-error";
+import shortenError from "./shorten-error";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
