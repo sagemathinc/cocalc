@@ -5,18 +5,17 @@
 
 // The "Stop Project" button
 
-import { React, useActions } from "../../app-framework";
-import { Button } from "../../antd-bootstrap";
-import { Popconfirm } from "antd";
+import { useActions } from "@cocalc/frontend/app-framework";
+import { Button, Popconfirm } from "antd";
 import { StopOutlined } from "@ant-design/icons";
 
 interface Props {
   project_id: string;
   disabled?: boolean;
+  size?;
 }
 
-export const StopProject: React.FC<Props> = React.memo((props) => {
-  const { project_id, disabled } = props;
+export function StopProject({ project_id, disabled, size }: Props) {
   const actions = useActions("projects");
 
   const text = (
@@ -37,9 +36,9 @@ export const StopProject: React.FC<Props> = React.memo((props) => {
       okText="Yes, stop project"
       cancelText="Cancel"
     >
-      <Button bsStyle="warning" disabled={disabled || actions == null}>
+      <Button disabled={disabled || actions == null} size={size}>
         <StopOutlined /> Stop Project...
       </Button>
     </Popconfirm>
   );
-});
+}

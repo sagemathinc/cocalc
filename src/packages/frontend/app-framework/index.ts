@@ -37,6 +37,7 @@ import { bind_methods, keys, is_valid_uuid_string } from "@cocalc/util/misc";
 export { TypedMap, createTypedMap } from "./TypedMap";
 
 import { NAME_TYPE as ComputeImageStoreType } from "../custom-software/util";
+import { NEWS } from "@cocalc/frontend/notifications/news/init";
 
 import * as types from "./actions-and-stores";
 declare type ProjectStore = import("../project_store").ProjectStore;
@@ -177,6 +178,7 @@ export class AppRedux {
   getActions(name: "admin-site-licenses"): types.SiteLicensesActions;
   getActions(name: "mentions"): types.MentionsActions;
   getActions(name: "file_use"): types.FileUseActions;
+  getActions(name: typeof NEWS): types.NewsActions;
   getActions(name: { project_id: string }): ProjectActions;
   getActions<T, C extends Actions<T>>(name: string): C;
   getActions<T, C extends Actions<T>>(
@@ -246,6 +248,7 @@ export class AppRedux {
   getStore(name: "customize"): types.CustomizeStore;
   getStore(name: "users"): types.UsersStore;
   getStore(name: ComputeImageStoreType): types.ComputeImagesStore;
+  getStore(name: typeof NEWS): types.NewsStore;
 
   getStore<State extends Record<string, any>>(name: string): Store<State>;
   getStore<State extends Record<string, any>, C extends Store<State>>(

@@ -38,14 +38,11 @@ export default async function createChat({
     throw Error("bug");
   }
   // Truncate input (also this MUST lazy import):
-  const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(
+  const { truncateMessage, MAX_CHATGPT_TOKENS } = await import(
     "@cocalc/frontend/misc/openai"
   );
-  const n = numTokens(input);
   const maxTokens = MAX_CHATGPT_TOKENS - 1000; // 1000 tokens reserved for output and the prompt below.
-  if (n >= maxTokens) {
-    input = truncateMessage(input, maxTokens) + "\n...";
-  }
+  input = truncateMessage(input, maxTokens);
 
   const chatActions = await getChatActions(
     actions.redux,
