@@ -13,7 +13,7 @@ import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { User } from "@cocalc/frontend/users";
 import { COLORS } from "@cocalc/util/theme";
-import { MentionFilter, MentionInfo } from "./types";
+import { NotificationFilter, MentionInfo } from "./types";
 import { BOOKMARK_ICON_NAME } from "./util";
 
 const DESCRIPTION_STYLE: CSS = {
@@ -34,7 +34,7 @@ interface Props {
   id: string;
   mention: MentionInfo;
   user_map: any;
-  filter: MentionFilter;
+  filter: NotificationFilter;
 }
 
 export function MentionRow(props: Props) {

@@ -8,7 +8,6 @@ React component that describes the input of a cell
 */
 import { fromJS, Map } from "immutable";
 import { useCallback, useEffect, useRef, useState } from "react";
-
 import { Button, Tooltip } from "antd";
 import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -30,6 +29,7 @@ import { Complete } from "./complete";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
 import { delay } from "awaiting";
+import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -85,16 +85,18 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     const frameActions = useNotebookFrameActions();
     function render_input_prompt(type: string): Rendered {
       return (
-        <InputPrompt
-          type={type}
-          state={props.cell.get("state")}
-          exec_count={props.cell.get("exec_count")}
-          kernel={props.cell.get("kernel")}
-          start={props.cell.get("start")}
-          end={props.cell.get("end")}
-          actions={props.actions}
-          id={props.id}
-        />
+        <HiddenXS>
+          <InputPrompt
+            type={type}
+            state={props.cell.get("state")}
+            exec_count={props.cell.get("exec_count")}
+            kernel={props.cell.get("kernel")}
+            start={props.cell.get("start")}
+            end={props.cell.get("end")}
+            actions={props.actions}
+            id={props.id}
+          />
+        </HiddenXS>
       );
     }
 

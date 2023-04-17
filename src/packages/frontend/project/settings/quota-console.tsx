@@ -8,13 +8,8 @@
 
 import * as immutable from "immutable";
 import React, { useEffect, useState } from "react";
-const {
-  Checkbox,
-  Row,
-  Col,
-  ButtonToolbar,
-  Button,
-} = require("react-bootstrap");
+import { Checkbox, Row, Col } from "@cocalc/frontend/antd-bootstrap";
+import { Button } from "antd";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Rendered, usePrevious } from "@cocalc/frontend/app-framework";
@@ -289,16 +284,16 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
         return (
           <Row>
             <Col sm={6} smOffset={6}>
-              <ButtonToolbar style={{ float: "right" }}>
+              <Button.Group style={{ float: "right" }}>
                 <Button
                   onClick={save_admin_editing}
-                  bsStyle="warning"
+                  danger
                   disabled={!valid_admin_inputs()}
                 >
                   <Icon name="thumbs-up" /> Done
                 </Button>
                 <Button onClick={cancel_admin_editing}>Cancel</Button>
-              </ButtonToolbar>
+              </Button.Group>
             </Col>
           </Row>
         );
@@ -306,11 +301,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
         return (
           <Row>
             <Col sm={6} smOffset={6}>
-              <Button
-                onClick={start_admin_editing}
-                bsStyle="warning"
-                style={{ float: "right" }}
-              >
+              <Button onClick={start_admin_editing} style={{ float: "right" }}>
                 <Icon name="pencil" /> Admin Quotas...
               </Button>
             </Col>
@@ -348,7 +339,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
       return (
         <Checkbox
           key={label}
-          checked={quota_state[label]}
+          checked={!!quota_state[label]}
           style={{ marginLeft: 0 }}
           onChange={(e) =>
             setQuotaState({ ...quota_state, [label]: e.target.checked ? 1 : 0 })

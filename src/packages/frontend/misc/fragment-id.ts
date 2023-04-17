@@ -31,9 +31,13 @@ interface Page {
   page: string;
 }
 
+export function isPageFragment(x: any): x is Page {
+  return typeof x?.page === "string";
+}
+
 export type FragmentId = Line | Id | Page | Anchor;
 
-namespace FragmentId {
+namespace Fragment {
   // set is debounced so you can call it as frequently as you want...
   export const set = debounce((fragmentId: FragmentId | undefined) => {
     if (IS_EMBEDDED) return; // no op in embed mode.
@@ -85,4 +89,4 @@ namespace FragmentId {
   }
 }
 
-export default FragmentId;
+export default Fragment;

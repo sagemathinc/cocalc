@@ -22,11 +22,13 @@ fine, since this would only be a problem when they change the name
 of multiple projects.
 */
 
-import LRU from "lru-cache";
 import { reuseInFlight } from "async-await-utils/hof";
-import getPool from "./pool";
+import LRU from "lru-cache";
 import { Pool } from "pg";
+
 import getLogger from "@cocalc/backend/logger";
+import getPool from "./pool";
+
 const L = getLogger("db:pool:cached");
 
 const MAX_AGE_S = {
@@ -39,7 +41,7 @@ const MAX_AGE_S = {
 
 export type Length = keyof typeof MAX_AGE_S;
 
-const caches: Map<Length, LRU<string, any>> = new Map();
+const caches = new Map<Length, LRU<string, any>>();
 
 for (const length in MAX_AGE_S) {
   caches[length] = new LRU<string, any>({

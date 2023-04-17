@@ -28,6 +28,7 @@ import { Mode } from "./mode";
 import { AlertLevel, BackendState, NotebookMode, Usage } from "./types";
 import { ALERT_COLS } from "./usage";
 import ProgressEstimate from "../components/progress-estimate";
+import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 
 const KERNEL_STYLE: CSS = {
   float: "right",
@@ -151,9 +152,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         return;
       }
       return (
-        <div style={{ display: "flex" }} className="pull-right">
-          <Logo kernel={kernel} kernel_info_known={kernel_info != null} />
-        </div>
+        <HiddenXS>
+          <div style={{ display: "flex" }} className="pull-right">
+            <Logo kernel={kernel} kernel_info_known={kernel_info != null} />
+          </div>
+        </HiddenXS>
       );
     }
 
@@ -477,7 +480,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         return (
           <div style={{ ...usage_style, display: "flex" }}>
             <ProgressEstimate
-              style={{ ...pstyle, width: "200px", top: "-3px" }}
+              style={{ ...pstyle, width: "175px", top: "-3px" }}
               seconds={s}
             />
           </div>

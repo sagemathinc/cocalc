@@ -79,3 +79,4 @@ import "@uiw/react-textarea-code-editor/dist.css";
 
 // this must be last to overwrite things like antd
 import "../styles/globals.css";
+import "../styles/bootstrap-visible.css";

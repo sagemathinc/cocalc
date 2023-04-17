@@ -316,3 +316,57 @@ export function isAtEndOfBlock(
     return true;
   }
 }
+
+export function moveCursorToEndOfLine(editor: Editor) {
+  /*
+  Call the function Transforms.move(editor, {unit:'line'})
+  until the integer editor.selection.anchor[0] increases,
+  then call Transforms.setSelection(editor, ...) with second
+  argument the previous value of editor.selection.  Instead
+  of setting the selection back to the initial value, set it
+  to the value right before we exited the while loop, i.e.,
+  the last value before anchor[0] changed. Also, if the
+  entire selection doesn't change exist the while loop
+  to avoid an infinite loop.
+  */
+
+  let lastSelection = editor.selection;
+  if (lastSelection == null) return;
+  while (
+    editor.selection &&
+    editor.selection.anchor.path[0] === lastSelection.anchor.path[0]
+  ) {
+    if (lastSelection == null) return;
+    lastSelection = editor.selection;
+    Transforms.move(editor, { unit: "line" });
+    // Ensure we don't get stuck in an infinite loop
+    if (JSON.stringify(lastSelection) === JSON.stringify(editor.selection)) {
+      return;
+    }
+  }
+
+  if (lastSelection) {
+    Transforms.setSelection(editor, lastSelection);
+  }
+}
+
+export function moveCursorToBeginningOfLine(editor: Editor) {
+  let lastSelection = editor.selection;
+  if (lastSelection == null) return;
+  while (
+    editor.selection &&
+    editor.selection.anchor.path[0] === lastSelection.anchor.path[0]
+  ) {
+    if (lastSelection == null) return;
+    lastSelection = editor.selection;
+    Transforms.move(editor, { unit: "line", reverse: true });
+    // Ensure we don't get stuck in an infinite loop
+    if (JSON.stringify(lastSelection) === JSON.stringify(editor.selection)) {
+      return;
+    }
+  }
+
+  if (lastSelection) {
+    Transforms.setSelection(editor, lastSelection);
+  }
+}

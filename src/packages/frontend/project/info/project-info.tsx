@@ -355,14 +355,13 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     }
 
     function render_restart_project() {
-      const style = any_alerts() ? "danger" : "default";
       return (
         <Form.Item>
           <RestartProject
             project_id={project_id}
             text={"Restart…"}
-            bsStyle={style}
-            bsSize={"small"}
+            size={"small"}
+            danger={any_alerts()}
           />
         </Form.Item>
       );
