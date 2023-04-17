@@ -118,8 +118,7 @@ async function getHelp({
   if (error.length > 3000) {
     // 3000 is about 500 tokens
     // This uses structure:
-    //error = shortenError(error);
-    // for now JUST do this:
+    error = shortenError(error, language);
     if (error.length > 3000) {
       // this just puts ... in the middle.
       error = trunc_middle(error, 3000);
