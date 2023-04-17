@@ -18,7 +18,7 @@ export default function shortenError(error: string, language?: string): string {
 
 function shortenPythonStackTrace(error: string): string {
   const lines = error.split("\n");
-  const resultLines = [];
+  const resultLines: string[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
