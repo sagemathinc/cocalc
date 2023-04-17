@@ -248,11 +248,13 @@ class Client extends EventEmitter implements WebappClient {
     // start pinging -- not used/needed for primus,
     // but *is* needed for getting information about
     // server_time skew and showing ping time to user.
-    // Starting pinging a few seconds after connecting the first time,
-    // after things have settled down a little (to not throw off ping time).
     this.once("connected", async () => {
+      this.time_client.ping(true);
+      // Ping again a few seconds after connecting the first time,
+      // after things have settled down a little (to not throw off
+      // ping time).
       await delay(5000);
-      this.time_client.ping();
+      this.time_client.ping(); // this will ping periodically
     });
 
     this.init_prom_client();
