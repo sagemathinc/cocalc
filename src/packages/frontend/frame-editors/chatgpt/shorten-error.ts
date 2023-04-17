@@ -6,7 +6,6 @@ For motivation, see https://github.com/sagemathinc/cocalc/issues/6634
 */
 
 export default function shortenError(error: string, language?: string): string {
-  console.log("language = ", language);
   if (!language) {
     return error;
   }
