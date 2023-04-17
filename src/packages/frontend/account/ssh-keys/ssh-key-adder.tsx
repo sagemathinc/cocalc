@@ -4,14 +4,8 @@
  */
 
 // 3rd Party Libraries
-import {
-  Button,
-  ButtonToolbar,
-  FormControl,
-  FormGroup,
-  Panel,
-} from "../../antd-bootstrap";
-
+import { FormControl, FormGroup, Panel } from "../../antd-bootstrap";
+import { Button, Space } from "antd";
 import { useState } from "../../app-framework";
 import { ErrorDisplay, Icon } from "../../components";
 
@@ -159,18 +153,18 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
           </FormGroup>
         </form>
         <div>
-          <ButtonToolbar>
+          <Space>
+            {toggleable ? (
+              <Button onClick={cancel_and_close}>Cancel</Button>
+            ) : undefined}
             <Button
-              bsStyle="success"
+              type="primary"
               onClick={submit_form}
               disabled={key_value.length < 10}
             >
               Add SSH Key
             </Button>
-            {toggleable ? (
-              <Button onClick={cancel_and_close}>Cancel</Button>
-            ) : undefined}
-          </ButtonToolbar>
+          </Space>
           {error && (
             <ErrorDisplay
               error={error}
@@ -185,11 +179,7 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
 
   function render_open_button() {
     return (
-      <Button
-        bsStyle="success"
-        onClick={() => set_show_panel(true)}
-        style={style}
-      >
+      <Button type="primary" onClick={() => set_show_panel(true)} style={style}>
         <Icon name="terminal" /> Add SSH Key...
       </Button>
     );

@@ -1,9 +1,6 @@
-/* Goal languages:
-bash, gap, javascript, julia, octave, prolog, python, r, sparql, sagemath
-
-and some similar ones...
-
-TODO:  gap (I'm stumped)
+/*
+Code to change the working directory to a given directory in
+several different languages.
 */
 
 export default function createChdirCommand(lang: string, path: string): string {
@@ -30,6 +27,7 @@ export default function createChdirCommand(lang: string, path: string): string {
   } else if (lang == "c" || lang.startsWith("c++")) {
     return createCppChangeDirectoryCode(path);
   } else {
+    // e.g., "gap" -- I got stumped on that.
     throw Error(
       `unable to change directory: chdir for language ${lang} is not implemented.`
     );

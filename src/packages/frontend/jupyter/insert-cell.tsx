@@ -393,7 +393,7 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
           open={showChatGPT}
           content={
             <div
-              style={{ width: "400px" }}
+              style={{ width: "400px", maxWidth: "90vw" }}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();

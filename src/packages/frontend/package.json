@@ -32,6 +32,7 @@
     "mathematics"
   ],
   "dependencies": {
+    "@ant-design/colors": "^6.0.0",
     "@ant-design/compatible": "^5.1.1",
     "@ant-design/icons": "^4.8.0",
     "@cocalc/ansi-to-react": "^7.0.0",

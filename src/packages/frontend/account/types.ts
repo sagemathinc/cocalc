@@ -43,6 +43,7 @@ export interface AccountState {
     dark_mode_contrast: number;
     dark_mode_sepia: number;
     dark_mode_grayscale: number;
+    news_read_until: number; // JavaScript timestamp in milliseconds
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };

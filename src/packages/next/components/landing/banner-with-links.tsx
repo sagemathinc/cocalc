@@ -33,8 +33,8 @@ export default function BannerWithLinks() {
         <A href="/features/openai-chatgpt">
           features extensive ChatGPT integration
         </A>
-        . There are <A href="/share/public_paths/page/1">many other ways</A>{" "}
-        that <A href="/info/status">people use {siteName}...</A>
+        . Browse <A href="/share/public_paths/page/1">public files</A>{" "}
+        and <A href="/info/status">usage stats</A>.
       </Paragraph>
     </div>
   );

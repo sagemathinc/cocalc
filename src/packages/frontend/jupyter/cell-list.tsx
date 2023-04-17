@@ -20,6 +20,7 @@ import {
 } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { useDebounce } from "use-debounce";
+import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 
 import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
@@ -413,17 +414,19 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     return (
       <div key={id}>
         {actions?.store.is_cell_editable(id) && (
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <DragHandle
-              id={id}
-              style={{
-                position: "absolute",
-                left: 15,
-                top: 12.5,
-                color: "#aaa",
-              }}
-            />
-          </div>
+          <HiddenXS>
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <DragHandle
+                id={id}
+                style={{
+                  position: "absolute",
+                  left: 15,
+                  top: 12.5,
+                  color: "#aaa",
+                }}
+              />
+            </div>
+          </HiddenXS>
         )}
         <Cell
           id={id}

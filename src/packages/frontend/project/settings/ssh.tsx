@@ -5,7 +5,7 @@
 
 import { SSHKeyAdder } from "@cocalc/frontend/account/ssh-keys/ssh-key-adder";
 import { SSHKeyList } from "@cocalc/frontend/account/ssh-keys/ssh-key-list";
-import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { replace } from "lodash";
@@ -19,9 +19,7 @@ interface Props {
   account_id?: string;
 }
 
-export const SSHPanel: React.FC<Props> = React.memo((props: Props) => {
-  const { project } = props;
-
+export function SSHPanel({ project }: Props) {
   const ssh_gateway_dns = useTypedRedux("customize", "ssh_gateway_dns");
   const ssh_gateway_fingerprint = useTypedRedux(
     "customize",
@@ -111,4 +109,4 @@ export const SSHPanel: React.FC<Props> = React.memo((props: Props) => {
       {render_ssh_notice()}
     </SSHKeyList>
   );
-});
+}

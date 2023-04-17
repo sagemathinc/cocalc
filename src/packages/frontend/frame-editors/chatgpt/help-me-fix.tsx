@@ -8,7 +8,8 @@ import { Alert, Button, Tooltip } from "antd";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { CSSProperties, useState } from "react";
-import { trunc } from "@cocalc/util/misc";
+import { trunc, trunc_middle } from "@cocalc/util/misc";
+import shortenError from "./shorten-error";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
@@ -112,6 +113,17 @@ async function getHelp({
 
   if (task) {
     message += `\nI ${task}.\n`;
+  }
+
+  if (error.length > 3000) {
+    // 3000 is about 500 tokens
+    // This uses structure:
+    //error = shortenError(error);
+    // for now JUST do this:
+    if (error.length > 3000) {
+      // this just puts ... in the middle.
+      error = trunc_middle(error, 3000);
+    }
   }
 
   message += `\nI received the following error:\n\n`;
