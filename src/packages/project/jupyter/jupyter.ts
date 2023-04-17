@@ -55,7 +55,6 @@ import {
 } from "@cocalc/frontend/jupyter/project-interface";
 import { JupyterStore } from "@cocalc/frontend/jupyter/store";
 import { JUPYTER_MIMETYPES } from "@cocalc/frontend/jupyter/util";
-import { getLogger } from "@cocalc/project/logger";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
@@ -77,10 +76,14 @@ import { nbconvert } from "./convert";
 import { CodeExecutionEmitter } from "./execute-code";
 import { get_blob_store } from "./jupyter-blobs-sqlite";
 import { getLanguage, get_kernel_data_by_name } from "./kernel-data";
-import { LaunchJupyterOpts, SpawnedKernel, killKernel } from "./pool";
+import launchJupyterKernel, {
+  LaunchJupyterOpts,
+  SpawnedKernel,
+  killKernel,
+} from "./pool";
 import { getAbsolutePathFromHome } from "./util";
 
-import launchJupyterKernel from "./launch-jupyter-kernel";
+import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("jupyter");
 
 /*
