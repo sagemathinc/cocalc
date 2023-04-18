@@ -200,8 +200,12 @@ async function maintainPool() {
   fillWhenEmpty();
 }
 
-setInterval(maintainPool, 30 * 1000);
-maintainPool();
+// DO NOT create the pool if we're running under jest testing, since
+// then tests don't exit cleanly.
+if (process.env.NODE_ENV != "test") {
+  setInterval(maintainPool, 30 * 1000);
+  maintainPool();
+}
 
 nodeCleanup(() => {
   for (const key in POOL) {

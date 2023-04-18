@@ -51,7 +51,7 @@ function defaultTransports(): { console?: boolean; file?: string } {
 
 function initTransports() {
   if (!process.env.DEBUG) {
-    console.log("DEBUG is not set, so not setting up debug logging transport");
+    // console.log("DEBUG is not set, so not setting up debug logging transport");
     return;
   }
   const transports = defaultTransports();

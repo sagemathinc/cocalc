@@ -1,7 +1,7 @@
 import A from "./A";
 import renderer from "react-test-renderer";
 
-test("some basic properites of A are correct so will open a new tab at right url", () => {
+test("some basic properties of A are correct so will open a new tab at right url", () => {
   const component = renderer.create(<A href="https://cocalc.com">CoCalc</A>);
   let tree = component.toJSON();
   expect(tree.type).toBe("a");
