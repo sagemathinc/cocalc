@@ -336,8 +336,6 @@ async function main(): Promise<void> {
       "--next-server",
       "run the nextjs server (landing pages, share server, etc.)"
     )
-    .option("--noco-db", "run the NocoDB database server (for admins)")
-    /*.option("--https", "if specified will use (or create selfsigned) data/https/key.pem and data/https/cert.pem and serve https on the port specified by the PORT env variable. Do not combine this with --https-key/--htps-cert options below.")*/
     .option(
       "--https-key [string]",
       "serve over https.  argument should be a key filename (both https-key and https-cert must be specified)"
