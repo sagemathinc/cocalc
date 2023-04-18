@@ -24,22 +24,24 @@ import launchJupyterKernelNoPool, {
   LaunchJupyterOpts,
   SpawnedKernel,
 } from "./launch-jupyter-kernel";
-import { getParams } from "./pool-params";
+import {
+  getConfig,
+  getConfigDir,
+  getLaunchDelayMS,
+  getSize,
+  getTimeoutS,
+} from "./pool-params";
 import { getAbsolutePathFromHome } from "./util";
 
 export type { LaunchJupyterOpts, SpawnedKernel };
 
 const log = getLogger("jupyter:pool");
 
-const { CONFIG_DIR, CONFIG, SIZE, TIMEOUT_S, LAUNCH_DELAY_MS } = getParams();
-
-log.debug("params=", { CONFIG_DIR, CONFIG, SIZE, TIMEOUT_S, LAUNCH_DELAY_MS });
-
 async function writeConfig(content: string): Promise<void> {
   try {
     // harmless to call if dir already exists
-    await mkdir(CONFIG_DIR, { recursive: true });
-    await writeFile(CONFIG, content);
+    await mkdir(getConfigDir(), { recursive: true });
+    await writeFile(getConfig(), content);
   } catch (error) {
     log.debug("Error writeConfig -- ", error);
   }
@@ -47,7 +49,7 @@ async function writeConfig(content: string): Promise<void> {
 
 async function readConfig(): Promise<string> {
   try {
-    return (await readFile(CONFIG)).toString();
+    return (await readFile(getConfig())).toString();
   } catch (error) {
     return "";
   }
@@ -73,9 +75,11 @@ function makeKey({ name, opts }) {
 export default async function launchJupyterKernel(
   name: string, // name of the kernel
   opts: LaunchJupyterOpts,
-  size: number = SIZE, // min number of these in the pool
-  timeout_s: number = TIMEOUT_S
+  size_arg?: number, // min number of these in the pool
+  timeout_s_arg?: number
 ): Promise<SpawnedKernel> {
+  const size: number = size_arg ?? getSize();
+  const timeout_s: number = timeout_s_arg ?? getTimeoutS();
   let language;
   try {
     language = await getLanguage(name);
@@ -138,7 +142,9 @@ export default async function launchJupyterKernel(
 // Don't replenish pool for same key twice at same time, or
 // pool could end up a little too big.
 const replenishPool = reuseInFlight(
-  async (key, size = SIZE, timeout_s = TIMEOUT_S) => {
+  async (key: string, size_arg?: number, timeout_s_arg?: number) => {
+    const size: number = size_arg ?? getSize();
+    const timeout_s: number = timeout_s_arg ?? getTimeoutS();
     log.debug("replenishPool", key, { size, timeout_s });
     try {
       if (POOL[key] == null) {
@@ -149,7 +155,7 @@ const replenishPool = reuseInFlight(
         log.debug("replenishPool - creating a kernel", key);
         writeConfig(key);
         const { name, opts } = JSON.parse(key);
-        await delay(LAUNCH_DELAY_MS);
+        await delay(getLaunchDelayMS());
         const kernel = await launchJupyterKernelNoPool(name, opts);
         pool.push(kernel);
         EXPIRE[key] = Math.max(EXPIRE[key] ?? 0, Date.now() + 1000 * timeout_s);
@@ -205,11 +211,13 @@ async function maintainPool() {
   fillWhenEmpty();
 }
 
-// DO NOT create the pool if we're running under jest testing, since
-// then tests don't exit cleanly.
-if (process.env.NODE_ENV != "test") {
-  setInterval(maintainPool, 30 * 1000);
-  maintainPool();
+export function init() {
+  // DO NOT create the pool if we're running under jest testing, since
+  // then tests don't exit cleanly.
+  if (process.env.NODE_ENV != "test") {
+    setInterval(maintainPool, 30 * 1000);
+    maintainPool();
+  }
 }
 
 nodeCleanup(() => {

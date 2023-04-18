@@ -16,15 +16,18 @@ const L = getLogger("jupyter:pool-params").debug;
 // read env vars with that prefix
 const PREFIX = "COCALC_JUPYTER_POOL";
 
-// fallback defaults
+// the defaults
 const CONFIG_FN = "cocalc-jupyter-pool";
 const CONFIG_DIR = join(homedir(), ".config");
 const CONFIG = join(CONFIG_DIR, CONFIG_FN);
+const SIZE = 1; // size of pool, set to 0 to disable it
+const TIMEOUT_S = 3600; // after that time, clean up old kernels in the pool
+const LAUNCH_DELAY_MS = 7500; // additional delay before spawning an additional kernel
 
 const PARAMS = {
-  SIZE: 1,
-  TIMEOUT_S: 3600,
-  LAUNCH_DELAY_MS: 7500,
+  SIZE,
+  TIMEOUT_S,
+  LAUNCH_DELAY_MS,
   CONFIG_FN,
   CONFIG_DIR,
   CONFIG,
@@ -55,7 +58,22 @@ export function init() {
   PARAMS.CONFIG = join(PARAMS.CONFIG_DIR, PARAMS.CONFIG_FN);
 }
 
-export function getParams() {
-  // we make a copy, just to make sure pool.ts gets a consistent view of the params, no matter what
-  return { ...PARAMS } as const;
+export function getSize(): number {
+  return PARAMS.SIZE;
+}
+
+export function getTimeoutS(): number {
+  return PARAMS.TIMEOUT_S;
+}
+
+export function getLaunchDelayMS(): number {
+  return PARAMS.LAUNCH_DELAY_MS;
+}
+
+export function getConfig(): string {
+  return PARAMS.CONFIG;
+}
+
+export function getConfigDir(): string {
+  return PARAMS.CONFIG_DIR;
 }
