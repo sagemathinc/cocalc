@@ -7,10 +7,10 @@
 This configures the project hub based on an environment variable or other data.
 */
 
-import { existsSync } from "fs";
-import { setPriority } from "os";
-import { getLogger } from "@cocalc/project/logger";
+import { existsSync } from "node:fs";
+import { setPriority } from "node:os";
 
+import { getLogger } from "@cocalc/project/logger";
 const L = getLogger("project:project-setup");
 
 // 19 is the minimum, we keep it 1 above that.

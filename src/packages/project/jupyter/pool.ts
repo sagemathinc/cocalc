@@ -1,39 +1,44 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Launching and managing Jupyter kernels in a pool for
 performance.
 */
 
-import json from "json-stable-stringify";
 import { reuseInFlight } from "async-await-utils/hof";
+import { delay } from "awaiting";
+import json from "json-stable-stringify";
+import nodeCleanup from "node-cleanup";
+import { unlinkSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+
+import { getLogger } from "@cocalc/project/logger";
+import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
+import createSetenvCommand from "@cocalc/util/jupyter-api/setenv-commands";
+import { exists, unlink } from "./async-utils-node";
+import { getLanguage } from "./kernel-data";
 import launchJupyterKernelNoPool, {
   LaunchJupyterOpts,
   SpawnedKernel,
 } from "./launch-jupyter-kernel";
-import { exists, unlink } from "./async-utils-node";
-import { unlinkSync } from "fs";
-import { getLogger } from "@cocalc/project/logger";
-import { getLanguage } from "./kernel-data";
+import { getParams } from "./pool-params";
 import { getAbsolutePathFromHome } from "./util";
-import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
-import createSetenvCommand from "@cocalc/util/jupyter-api/setenv-commands";
-import nodeCleanup from "node-cleanup";
-import { delay } from "awaiting";
-import { homedir } from "os";
-import { join } from "path";
-import { readFile, writeFile } from "fs/promises";
 
 export type { LaunchJupyterOpts, SpawnedKernel };
 
 const log = getLogger("jupyter:pool");
 
-const DEFAULT_POOL_SIZE = 1;
-const DEFAULT_POOL_TIMEOUT_S = 3600;
-const DEFAULT_DELAY_MS = 7500;
+const { CONFIG_DIR, CONFIG, SIZE, TIMEOUT_S, LAUNCH_DELAY_MS } = getParams();
 
-const CONFIG = join(homedir(), ".config", "cocalc-jupyter-pool");
+log.debug("params=", { CONFIG_DIR, CONFIG, SIZE, TIMEOUT_S, LAUNCH_DELAY_MS });
 
 async function writeConfig(content: string): Promise<void> {
   try {
+    // harmless to call if dir already exists
+    await mkdir(CONFIG_DIR, { recursive: true });
     await writeFile(CONFIG, content);
   } catch (error) {
     log.debug("Error writeConfig -- ", error);
@@ -68,8 +73,8 @@ function makeKey({ name, opts }) {
 export default async function launchJupyterKernel(
   name: string, // name of the kernel
   opts: LaunchJupyterOpts,
-  size: number = DEFAULT_POOL_SIZE, // min number of these in the pool
-  timeout_s: number = DEFAULT_POOL_TIMEOUT_S
+  size: number = SIZE, // min number of these in the pool
+  timeout_s: number = TIMEOUT_S
 ): Promise<SpawnedKernel> {
   let language;
   try {
@@ -133,7 +138,7 @@ export default async function launchJupyterKernel(
 // Don't replenish pool for same key twice at same time, or
 // pool could end up a little too big.
 const replenishPool = reuseInFlight(
-  async (key, size = DEFAULT_POOL_SIZE, timeout_s = DEFAULT_POOL_TIMEOUT_S) => {
+  async (key, size = SIZE, timeout_s = TIMEOUT_S) => {
     log.debug("replenishPool", key, { size, timeout_s });
     try {
       if (POOL[key] == null) {
@@ -144,7 +149,7 @@ const replenishPool = reuseInFlight(
         log.debug("replenishPool - creating a kernel", key);
         writeConfig(key);
         const { name, opts } = JSON.parse(key);
-        await delay(DEFAULT_DELAY_MS);
+        await delay(LAUNCH_DELAY_MS);
         const kernel = await launchJupyterKernelNoPool(name, opts);
         pool.push(kernel);
         EXPIRE[key] = Math.max(EXPIRE[key] ?? 0, Date.now() + 1000 * timeout_s);
