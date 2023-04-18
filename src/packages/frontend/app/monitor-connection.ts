@@ -145,7 +145,7 @@ export function init_connection(): void {
           reconnect({
             type: "error",
             timeout: 10,
-            message: `Your connection is unstable or ${SiteName} is temporarily not available.`,
+            message: `Your connection is unstable or ${SiteName} is temporarily not available.  You may need to refresh your browser or completely quit and restart it (see https://github.com/sagemathinc/cocalc/issues/6642).`,
           });
         } else if (attempt >= 10) {
           actions.set_connection_quality("flaky");
