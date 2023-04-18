@@ -8,14 +8,16 @@
  * It's inspired by and – http://and.sourceforge.net/
  */
 
-import debug from "debug";
-const L = debug("project:autorenice");
-import { reverse, sortBy } from "lodash";
-import { setPriority } from "os";
 import { delay } from "awaiting";
+import { reverse, sortBy } from "lodash";
+import { setPriority } from "node:os";
+
+import { getLogger } from "./logger";
 import { ProjectInfoServer, get_ProjectInfoServer } from "./project-info";
-import { ProjectInfo, Processes, Process } from "./project-info/types";
-import { is_free_project, DEFAULT_FREE_PROCS_NICENESS } from "./project-setup";
+import { Process, Processes, ProjectInfo } from "./project-info/types";
+import { DEFAULT_FREE_PROCS_NICENESS, is_free_project } from "./project-setup";
+
+const L = getLogger("autorenice").debug;
 
 const INTERVAL_S = 10;
 

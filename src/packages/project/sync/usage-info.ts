@@ -6,13 +6,15 @@
 // usage info for a specific file path, derived from the more general project info,
 // which includes all processes and other stats
 
-import debug from "debug";
-const L = debug("project:sync:usage-info");
 import { once } from "@cocalc/util/async-utils";
 import { SyncTable, SyncTableState } from "@cocalc/sync/table";
 import { close, merge } from "@cocalc/util/misc";
 import { UsageInfoServer } from "../usage-info";
 import { UsageInfo, ImmutableUsageInfo } from "../usage-info/types";
+import { getLogger } from "../logger";
+
+const logger = getLogger("sync:usage-info");
+const L = logger.debug;
 
 class UsageInfoTable {
   private readonly table?: SyncTable; // might be removed by close()
@@ -22,7 +24,7 @@ class UsageInfoTable {
 
   constructor(table: SyncTable, project_id: string) {
     this.project_id = project_id;
-    this.log = L.extend("table");
+    this.log = logger.extend("table").debug;
     this.table = table;
     this.setup_watchers();
   }
@@ -92,7 +94,7 @@ class UsageInfoTable {
   public get(path: string): ImmutableUsageInfo | undefined {
     const x = this.get_table().get(JSON.stringify([this.project_id, path]));
     if (x == null) return x;
-    return (x as unknown) as ImmutableUsageInfo;
+    return x as unknown as ImmutableUsageInfo;
     // NOTE: That we have to use JSON.stringify above is an ugly shortcoming
     // of the get method in @cocalc/sync/table/synctable.ts
     // that could probably be relatively easily fixed.
