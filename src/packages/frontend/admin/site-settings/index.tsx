@@ -242,6 +242,7 @@ export default function SiteSettings({}) {
       console.warn(`Error saving json of ${name}`, err.message);
     }
     change();
+    update(); // without that, the "green save button" does not show up. this makes it consistent.
   }
 
   function Buttons() {

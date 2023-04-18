@@ -10,7 +10,7 @@ import React, { useState } from "react";
 import { CSS } from "@cocalc/frontend/app-framework";
 import { COLORS } from "@cocalc/util/theme";
 
-const { Text, Paragraph } = Typography;
+const { Paragraph } = Typography;
 
 // this is a simple json editor, basically a textarea that processes its content using jsonic
 
@@ -23,13 +23,7 @@ interface Props {
 }
 
 export const JsonEditor: React.FC<Props> = (props: Props) => {
-  const {
-    value,
-    onSave,
-    rows = 3,
-    savePosition = "top-bottom",
-    readonly = false,
-  } = props;
+  const { value, onSave, rows = 3, readonly = false } = props;
   const [error, setError] = useState<string>("");
   const [focused, setFocused] = useState<boolean>(false);
   const [editing, setEditing] = useState<string>(value);
@@ -74,17 +68,6 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
     if (readonly) return;
     setFormatted();
     setFocused(true);
-  }
-
-  function renderSaveNote() {
-    if (value == editing) return;
-    return (
-      <Text type="danger">
-        Use "Save"{" "}
-        {savePosition == "top-bottom" ? "at the top or bottom" : "at the top"}{" "}
-        to actually save changes.
-      </Text>
-    );
   }
 
   const style: CSS = {
@@ -138,7 +121,6 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
         <Button size="small" disabled={!focused} onClick={doCancel}>
           Cancel
         </Button>
-        {renderSaveNote()}
       </Space>
     );
   }
