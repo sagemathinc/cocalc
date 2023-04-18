@@ -87,6 +87,15 @@ export default function SiteSettings({}) {
     );
   }
 
+  function isModified(name: string) {
+    if (data == null || editedRef.current == null || savedRef.current == null)
+      return false;
+
+    const edited = editedRef.current[name];
+    const saved = savedRef.current[name];
+    return !isEqual(edited, saved);
+  }
+
   function getModifiedSettings() {
     if (data == null || editedRef.current == null || savedRef.current == null)
       return [];
@@ -95,7 +104,7 @@ export default function SiteSettings({}) {
     for (const name in editedRef.current) {
       const value = editedRef.current[name];
       if (isHeader[name]) continue;
-      if (!isEqual(value, savedRef.current[name])) {
+      if (isModified(name)) {
         ret.push({ name, value });
       }
     }
@@ -124,7 +133,7 @@ export default function SiteSettings({}) {
     setError("");
   }
 
-  async function save(): Promise<void> {
+  async function saveAll(): Promise<void> {
     // list the names of changed settings
     const content = (
       <Paragraph>
@@ -167,6 +176,27 @@ export default function SiteSettings({}) {
     });
   }
 
+  // this is the small grene button, there is no confirmation
+  async function saveSingleSetting(name: string): Promise<void> {
+    if (data == null || editedRef.current == null || savedRef.current == null)
+      return;
+    const value = editedRef.current[name];
+    setState("save");
+    try {
+      await query({
+        query: {
+          site_settings: { name, value },
+        },
+      });
+      savedRef.current[name] = value;
+      setState("edit");
+    } catch (err) {
+      setState("error");
+      setError(err);
+      return;
+    }
+  }
+
   function cancel(): void {
     setState("view");
     setData(deep_copy(savedRef.current));
@@ -184,7 +214,7 @@ export default function SiteSettings({}) {
     }
 
     return (
-      <Button type="primary" disabled={disabled} onClick={save}>
+      <Button type="primary" disabled={disabled} onClick={saveAll}>
         {state == "save" ? <Loading text="Saving" /> : "Save All"}
       </Button>
     );
@@ -361,32 +391,24 @@ export default function SiteSettings({}) {
   const editRows = useMemo(() => {
     return (
       <>
-        {keys(site_settings_conf).map((name) => (
-          <RenderRow
-            filter={filter}
-            key={name}
-            name={name}
-            conf={site_settings_conf[name]}
-            data={data}
-            update={update}
-            isReadonly={isReadonly}
-            onChangeEntry={onChangeEntry}
-            onJsonEntryChange={onJsonEntryChange}
-          />
-        ))}
-        {keys(EXTRAS).map((name) => (
-          <RenderRow
-            filter={filter}
-            key={name}
-            name={name}
-            conf={EXTRAS[name]}
-            data={data}
-            update={update}
-            isReadonly={isReadonly}
-            onChangeEntry={onChangeEntry}
-            onJsonEntryChange={onJsonEntryChange}
-          />
-        ))}
+        {[site_settings_conf, EXTRAS].map((configData) =>
+          keys(configData).map((name) => (
+            <RenderRow
+              filter={filter}
+              key={name}
+              name={name}
+              conf={configData[name]}
+              data={data}
+              update={update}
+              isReadonly={isReadonly}
+              onChangeEntry={onChangeEntry}
+              onJsonEntryChange={onJsonEntryChange}
+              isModified={isModified}
+              isHeader={isHeader(name)}
+              saveSingleSetting={saveSingleSetting}
+            />
+          ))
+        )}
       </>
     );
   }, [state, data, filter]);

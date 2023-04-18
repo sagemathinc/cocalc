@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Popover } from "antd";
+import { Button, Popover } from "antd";
 import { CSSProperties } from "react";
 
 import { Icon, LabeledRow, Markdown } from "@cocalc/frontend/components";
@@ -22,6 +22,9 @@ interface RenderRowProps {
   onChangeEntry: (name: string, value: string) => void;
   onJsonEntryChange: (name: string, value: string) => void;
   filter: string;
+  isModified: (name: string) => boolean;
+  isHeader: boolean;
+  saveSingleSetting: (name: string) => void;
 }
 
 export function RenderRow({
@@ -33,6 +36,9 @@ export function RenderRow({
   onChangeEntry,
   onJsonEntryChange,
   filter,
+  isModified,
+  isHeader,
+  saveSingleSetting,
 }: RenderRowProps) {
   if (data == null) return null;
   if (filter) {
@@ -85,8 +91,31 @@ export function RenderRow({
     } as CSSProperties;
   }
 
+  function renderRowExtra() {
+    if (isHeader) return null;
+    const modified = isModified(name);
+    return (
+      <Button
+        type={modified ? "primary" : "default"}
+        style={{
+          backgroundColor: modified ? COLORS.BS_GREEN_BGRND : undefined,
+        }}
+        disabled={!modified}
+        size="middle"
+        icon={<Icon name="save" />}
+        onClick={() => saveSingleSetting(name)}
+      />
+    );
+  }
+
   return (
-    <LabeledRow label={label} key={name} style={style} label_cols={6}>
+    <LabeledRow
+      label={label}
+      key={name}
+      style={style}
+      label_cols={6}
+      extra={renderRowExtra()}
+    >
       <RowEntry
         name={name}
         value={rawValue}

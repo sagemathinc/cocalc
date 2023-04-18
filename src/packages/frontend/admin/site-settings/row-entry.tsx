@@ -54,6 +54,7 @@ export function RowEntry({
   update,
 }: RowEntryProps) {
   if (isReadonly == null) return null; // typescript
+
   function ReadOnly({ readonly }) {
     if (readonly) {
       return (
@@ -69,6 +70,7 @@ export function RowEntry({
       return null;
     }
   }
+
   if (rowType == "header") {
     return <div />;
   } else {
