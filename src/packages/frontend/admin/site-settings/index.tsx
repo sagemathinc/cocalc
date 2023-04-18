@@ -3,50 +3,28 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Loading } from "@cocalc/frontend/components";
-import { CSSProperties, useMemo, useRef, useState } from "react";
-import { Alert, Button, Input, InputRef, Popover, Select } from "antd";
-import humanizeList from "humanize-list";
-import { isEqual } from "lodash";
+import { Alert, Button, Input, InputRef, Modal } from "antd";
 import { delay } from "awaiting";
+import { isEqual } from "lodash";
+import { useMemo, useRef, useState } from "react";
+
 import { alert_message } from "@cocalc/frontend/alerts";
-import { FormGroup, Well } from "@cocalc/frontend/antd-bootstrap";
+import { Well } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
+import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import {
-  CopyToClipBoard,
   Icon,
-  LabeledRow,
-  Markdown,
+  Loading,
+  Paragraph,
   Space,
   Title,
 } from "@cocalc/frontend/components";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
-import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
-import {
-  Config,
-  ConfigValid,
-  RowType,
-} from "@cocalc/util/db-schema/site-defaults";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { deep_copy, keys, unreachable } from "@cocalc/util/misc";
 import { site_settings_conf } from "@cocalc/util/schema";
-import { version } from "@cocalc/util/smc-version";
-import { COLORS } from "@cocalc/util/theme";
-import { ON_PREM_DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
-import { JsonEditor } from "./json-editor";
-import useCounter from "@cocalc/frontend/app-framework/counter-hook";
-
-const MAX_UPGRADES = upgrades.max_per_project;
-
-const FIELD_DEFAULTS = {
-  default_quotas: ON_PREM_DEFAULT_QUOTAS,
-  max_upgrades: MAX_UPGRADES,
-} as const;
-
-type State = "view" | "load" | "edit" | "save" | "error";
-
-type Data = { [name: string]: string };
+import { RenderRow } from "./render-row";
+import { Data, IsReadonly, State } from "./types";
 
 export default function SiteSettings({}) {
   const { inc: change } = useCounter();
@@ -58,9 +36,7 @@ export default function SiteSettings({}) {
   const [filter, setFilter] = useState<string>("");
   const editedRef = useRef<Data | null>(null);
   const savedRef = useRef<Data | null>(null);
-  const [isReadonly, setIsReadonly] = useState<{
-    [name: string]: boolean;
-  } | null>(null);
+  const [isReadonly, setIsReadonly] = useState<IsReadonly | null>(null);
   const update = () => {
     setData(deep_copy(editedRef.current));
   };
@@ -80,7 +56,7 @@ export default function SiteSettings({}) {
       return;
     }
     const data: { [name: string]: string } = {};
-    const isReadonly: { [name: string]: boolean } = {};
+    const isReadonly: IsReadonly = {};
     for (const x of result.query.site_settings) {
       data[x.name] = x.value;
       isReadonly[x.name] = !!x.readonly;
@@ -111,25 +87,37 @@ export default function SiteSettings({}) {
     );
   }
 
-  async function store(): Promise<void> {
+  function getModifiedSettings() {
     if (data == null || editedRef.current == null || savedRef.current == null)
-      return;
+      return [];
+
+    const ret: { name: string; value: string }[] = [];
     for (const name in editedRef.current) {
       const value = editedRef.current[name];
       if (isHeader[name]) continue;
       if (!isEqual(value, savedRef.current[name])) {
-        try {
-          await query({
-            query: {
-              site_settings: { name, value },
-            },
-          });
-          savedRef.current[name] = value;
-        } catch (err) {
-          setState("error");
-          setError(err);
-          return;
-        }
+        ret.push({ name, value });
+      }
+    }
+    ret.sort((a, b) => a.name.localeCompare(b.name));
+    return ret;
+  }
+
+  async function store(): Promise<void> {
+    if (data == null || editedRef.current == null || savedRef.current == null)
+      return;
+    for (const { name, value } of getModifiedSettings()) {
+      try {
+        await query({
+          query: {
+            site_settings: { name, value },
+          },
+        });
+        savedRef.current[name] = value;
+      } catch (err) {
+        setState("error");
+        setError(err);
+        return;
       }
     }
     // success save of everything, so clear error message
@@ -137,10 +125,46 @@ export default function SiteSettings({}) {
   }
 
   async function save(): Promise<void> {
+    // list the names of changed settings
+    const content = (
+      <Paragraph>
+        <ul>
+          {getModifiedSettings().map(({ name, value }) => {
+            const label =
+              (site_settings_conf[name] ?? EXTRAS[name]).name ?? name;
+            return (
+              <li key={name}>
+                <b>{label}</b>: <code>{value}</code>
+              </li>
+            );
+          })}
+        </ul>
+      </Paragraph>
+    );
+
     setState("save");
-    await store();
-    setState("view");
-    await load();
+
+    Modal.confirm({
+      title: "Confirm changing the following settings?",
+      icon: <Icon name="warning" />,
+      width: 700,
+      content,
+      onOk() {
+        return new Promise<void>(async (done, error) => {
+          try {
+            await store();
+            setState("view");
+            await load();
+            done();
+          } catch (err) {
+            error(err);
+          }
+        });
+      },
+      onCancel() {
+        setState("edit");
+      },
+    });
   }
 
   function cancel(): void {
@@ -161,7 +185,7 @@ export default function SiteSettings({}) {
 
     return (
       <Button type="primary" disabled={disabled} onClick={save}>
-        {state == "save" ? <Loading text="Saving" /> : "Save"}
+        {state == "save" ? <Loading text="Saving" /> : "Save All"}
       </Button>
     );
   }
@@ -170,7 +194,7 @@ export default function SiteSettings({}) {
     return <Button onClick={cancel}>Cancel</Button>;
   }
 
-  function onChangeEntry(name, val) {
+  function onChangeEntry(name: string, val: string) {
     if (editedRef.current == null) return;
     editedRef.current[name] = val;
     change();
@@ -440,355 +464,5 @@ export default function SiteSettings({}) {
         )}
       </Well>
     </div>
-  );
-}
-
-function rowEntryStyle(value, valid?: ConfigValid): CSSProperties {
-  if (
-    (Array.isArray(valid) && !valid.includes(value)) ||
-    (typeof valid == "function" && !valid(value))
-  ) {
-    return { border: "2px solid red" };
-  }
-  return {};
-}
-
-function RowEntryInner({
-  name,
-  value,
-  valid,
-  password,
-  multiline,
-  onChangeEntry,
-  isReadonly,
-  clearable,
-  update,
-}) {
-  if (isReadonly == null) return null; // typescript
-  const disabled = isReadonly[name] == true;
-
-  if (Array.isArray(valid)) {
-    return (
-      <Select
-        defaultValue={value}
-        disabled={disabled}
-        onChange={(value) => {
-          onChangeEntry(name, value);
-          update();
-        }}
-        style={{ width: "100%" }}
-        options={valid.map((e) => {
-          return { value: e, label: e };
-        })}
-      />
-    );
-  } else {
-    if (password) {
-      return (
-        <Input.Password
-          style={rowEntryStyle(value, valid)}
-          defaultValue={value}
-          visibilityToggle={true}
-          disabled={disabled}
-          onChange={(e) => onChangeEntry(name, e.target.value)}
-        />
-      );
-    } else {
-      if (multiline != null) {
-        const style = {
-          ...rowEntryStyle(value, valid),
-          fontFamily: "monospace",
-          fontSize: "80%",
-        } as CSSProperties;
-        return (
-          <Input.TextArea
-            rows={4}
-            style={style}
-            defaultValue={value}
-            disabled={disabled}
-            onChange={(e) => onChangeEntry(name, e.target.value)}
-          />
-        );
-      } else {
-        return (
-          <Input
-            style={rowEntryStyle(value, valid)}
-            defaultValue={value}
-            disabled={disabled}
-            onChange={(e) => onChangeEntry(name, e.target.value)}
-            allowClear={clearable}
-          />
-        );
-      }
-    }
-  }
-}
-
-function RowEntry({
-  name,
-  value,
-  password,
-  displayed_val,
-  valid,
-  hint,
-  rowType,
-  multiline,
-  isReadonly,
-  onJsonEntryChange,
-  onChangeEntry,
-  clearable,
-  update,
-}: {
-  name: string;
-  value: string;
-  password: boolean;
-  displayed_val?: string;
-  valid?: ConfigValid;
-  hint?;
-  rowType?: RowType;
-  multiline?: number;
-  isReadonly;
-  onJsonEntryChange;
-  onChangeEntry;
-  clearable;
-  update;
-}) {
-  if (isReadonly == null) return null; // typescript
-  function ReadOnly({ readonly }) {
-    if (readonly) {
-      return (
-        <>
-          Value controlled via{" "}
-          <code>
-            ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
-          </code>
-          .
-        </>
-      );
-    } else {
-      return null;
-    }
-  }
-  if (rowType == "header") {
-    return <div />;
-  } else {
-    switch (name) {
-      case "default_quotas":
-      case "max_upgrades":
-        const ro: boolean = isReadonly[name];
-        return (
-          <>
-            <JsonEntry
-              name={name}
-              data={value}
-              readonly={ro}
-              onJsonEntryChange={onJsonEntryChange}
-            />
-            {ro && (
-              <>
-                Value controlled via{" "}
-                <code>
-                  ${SERVER_SETTINGS_ENV_PREFIX}_{name.toUpperCase()}
-                </code>
-                .
-              </>
-            )}
-          </>
-        );
-      default:
-        return (
-          <FormGroup>
-            <RowEntryInner
-              name={name}
-              value={value}
-              valid={valid}
-              password={password}
-              multiline={multiline}
-              onChangeEntry={onChangeEntry}
-              isReadonly={isReadonly}
-              clearable={clearable}
-              update={update}
-            />
-            <div style={{ fontSize: "90%", display: "inlineBlock" }}>
-              {name == "version_recommended_browser" && (
-                <VersionHint value={value} />
-              )}
-              {hint}
-              <ReadOnly readonly={isReadonly[name]} />
-              {displayed_val != null && (
-                <span>
-                  {" "}
-                  Interpreted as <code>{displayed_val}</code>.{" "}
-                </span>
-              )}
-              {valid != null && Array.isArray(valid) && (
-                <span>Valid values: {humanizeList(valid)}.</span>
-              )}
-            </div>
-          </FormGroup>
-        );
-    }
-  }
-}
-
-function VersionHint({ value }: { value: string }) {
-  let error;
-  if (new Date(parseInt(value) * 1000) > new Date()) {
-    error = (
-      <div
-        style={{
-          background: "red",
-          color: "white",
-          margin: "15px",
-          padding: "15px",
-        }}
-      >
-        INVALID version - it is in the future!!
-      </div>
-    );
-  } else {
-    error = undefined;
-  }
-  return (
-    <div style={{ marginTop: "15px", color: "#666" }}>
-      Your browser version:{" "}
-      <CopyToClipBoard
-        style={{
-          display: "inline-block",
-          width: "50ex",
-          margin: 0,
-        }}
-        value={`${version}`}
-      />{" "}
-      {error}
-    </div>
-  );
-}
-
-// This is specific to on-premises kubernetes setups.
-// The production site works differently.
-// TODO: make this a more sophisticated data editor.
-function JsonEntry({ name, data, readonly, onJsonEntryChange }) {
-  const jval = JSON.parse(data ?? "{}") ?? {};
-  const dflt = FIELD_DEFAULTS[name];
-  const quotas = { ...dflt, ...jval };
-  const value = JSON.stringify(quotas);
-  return (
-    <JsonEditor
-      value={value}
-      readonly={readonly}
-      rows={10}
-      onSave={(value) => onJsonEntryChange(name, value)}
-    />
-  );
-}
-
-function RenderRow({
-  name,
-  conf,
-  data,
-  update,
-  isReadonly,
-  onChangeEntry,
-  onJsonEntryChange,
-  filter,
-}) {
-  if (data == null) return null;
-  if (filter) {
-    // dumb
-    if (!JSON.stringify(conf).toLowerCase().includes(filter.toLowerCase())) {
-      return null;
-    }
-  }
-  if (conf.cocalc_only) {
-    if (!document.location.host.endsWith("cocalc.com")) {
-      return null;
-    }
-  }
-  // don't show certain fields, i.e. where show evals to false
-  if (typeof conf.show == "function" && !conf.show(data)) {
-    return null;
-  }
-  const rawValue = data[name] ?? conf.default;
-  const rowType: RowType = conf.type ?? "setting";
-
-  // fallbacks: to_display? → to_val? → undefined
-  const parsed_value: string | undefined =
-    typeof conf.to_display == "function"
-      ? `${conf.to_display(rawValue)}`
-      : typeof conf.to_val == "function"
-      ? `${conf.to_val(rawValue, data)}`
-      : undefined;
-
-  // not currently supported.
-  // const clearable = conf.clearable ?? false;
-
-  const label = (
-    <div style={{ paddingRight: "15px" }}>
-      <strong>{conf.name}</strong> <RowHelp help={conf.help} />
-      <br />
-      <StaticMarkdown style={{ color: "#666" }} value={conf.desc} />
-    </div>
-  );
-
-  const hint = <RowHint conf={conf} rawValue={rawValue} />;
-
-  let style = { marginTop: "15px", paddingLeft: "10px" } as CSSProperties;
-  // indent optional fields
-  if (typeof conf.show == "function" && rowType == "setting") {
-    style = {
-      ...style,
-      borderLeft: `2px solid ${COLORS.GRAY}`,
-      marginLeft: "0px",
-      marginTop: "0px",
-    } as CSSProperties;
-  }
-
-  return (
-    <LabeledRow label={label} key={name} style={style} label_cols={6}>
-      <RowEntry
-        name={name}
-        value={rawValue}
-        password={conf.password ?? false}
-        displayed_val={parsed_value}
-        valid={conf.valid}
-        hint={hint}
-        rowType={rowType}
-        multiline={conf.multiline}
-        isReadonly={isReadonly}
-        onJsonEntryChange={onJsonEntryChange}
-        onChangeEntry={onChangeEntry}
-        clearable={conf.clearable}
-        update={update}
-      />
-    </LabeledRow>
-  );
-}
-
-function RowHint({ conf, rawValue }: { conf: Config; rawValue: string }) {
-  if (typeof conf.hint == "function") {
-    return <Markdown value={conf.hint(rawValue)} />;
-  } else {
-    return null;
-  }
-}
-
-function RowHelp({ help }: { help?: string }) {
-  if (typeof help !== "string") return null;
-  return (
-    <Popover
-      content={
-        <StaticMarkdown
-          className={"admin-site-setting-popover-help"}
-          style={{ fontSize: "90%" }}
-          value={help}
-        />
-      }
-      trigger={["hover", "click"]}
-      placement="right"
-      overlayStyle={{ maxWidth: "500px" }}
-    >
-      <Icon style={{ color: COLORS.GRAY }} name="question-circle" />
-    </Popover>
   );
 }
