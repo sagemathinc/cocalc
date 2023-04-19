@@ -621,8 +621,10 @@ export class Actions<
   // leaf with that id.  If ignore_if_missing is true, then don't write warning.
   // If a different frame is maximized, switch out of maximized mode.
   public set_active_id(active_id: string, ignore_if_missing?: boolean): void {
+    if (this._state === "closed" || this.store == null) return;
     // Set the active_id, if necessary.
     const local = this.store.get("local_view_state");
+    if (local == null) return;
     if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
       return;
