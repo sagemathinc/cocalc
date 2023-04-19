@@ -8,8 +8,9 @@
 // NOTE: If there are multiple errors/warnings/etc., on the SAME line, only the last
 // one gets a gutter mark, with pref to errors.  The main error log shows everything, so this should be OK.
 
+import { Popover } from "antd";
 import { capitalize } from "@cocalc/util/misc";
-import { Icon, Tip } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components";
 import { SPEC, SpecItem } from "./errors-and-warnings";
 import { IProcessedLatexLog, Error } from "./latex-log-parser";
 
@@ -48,22 +49,13 @@ function component(
   // NOTE/BUG: despite allow_touch true below, this still does NOT work on my iPad -- we see the icon, but nothing
   // happens when clicking on it; this may be a codemirror issue.
   return (
-    <Tip
+    <Popover
       title={message}
-      tip={content}
+      content={content}
       placement={"right"}
-      icon={spec.icon}
-      stable={true}
-      popover_style={{
-        padding: 0,
-        opacity: 0.9,
-        border: `2px solid ${spec.color}`,
-        borderRadius: "3px",
-      }}
-      delayShow={0}
-      allow_touch={true}
+      mouseEnterDelay={0}
     >
       <Icon name={spec.icon} style={{ color: spec.color, cursor: "pointer" }} />
-    </Tip>
+    </Popover>
   );
 }

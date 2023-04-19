@@ -3,10 +3,23 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// This is derived from https://github.com/sharelatex/latex-log-parser-sharelatex
-// commit: 7301857ac402ff5491cb219d9415ac41b19e7e43
-// incorporating fix for https://github.com/sharelatex/latex-log-parser-sharelatex/issues/5 by HSY
-// License: MIT
+/*
+License remarks:
+
+This is derived from https://github.com/sharelatex/latex-log-parser-sharelatex
+commit: 7301857ac402ff5491cb219d9415ac41b19e7e43
+incorporating fix for https://github.com/sharelatex/latex-log-parser-sharelatex/issues/5 by HSY
+License: MIT
+
+Note that overleaf bought sharelatex and copied this code to
+
+https://github.com/overleaf/overleaf/blob/main/services/web/frontend/js/ide/log-parser/latex-log-parser.js
+
+changed the license to AGPLv3, and fixed a bunch of bugs.
+Do NOT merging in their upstream changes due to the copyright/license issues.
+The issue is that though we also use AGPLv3, we need to keep copyright of all
+AGPLv3 so we can provide non-AGPL licenses to customers.
+*/
 
 import { normalize as path_normalize } from "path";
 
@@ -14,11 +27,11 @@ import { normalize as path_normalize } from "path";
 const LOG_WRAP_LIMIT = 79;
 const LATEX_WARNING_REGEX = /^LaTeX Warning: (.*)$/;
 const HBOX_WARNING_REGEX = /^(Over|Under)full \\(v|h)box/;
-const PACKAGE_WARNING_REGEX = /^(Package \b.+\b Warning:.*)$/;
+const PACKAGE_WARNING_REGEX = /^((?:Package|Class|Module) \b.+\b Warning:.*)$/;
 // This is used to parse the line number from common latex warnings
 const LINES_REGEX = /lines? ([0-9]+)/;
 // This is used to parse the package name from the package warnings
-const PACKAGE_REGEX = /^Package (\b.+\b) Warning/;
+const PACKAGE_REGEX = /^(?:Package|Class|Module) (\b.+\b) Warning/;
 
 class LogText {
   private lines: string[];
@@ -64,7 +77,7 @@ class LogText {
     return this.linesUpToNextMatchingLine(/^ *$/);
   }
 
-  linesUpToNextMatchingLine(match) {
+  linesUpToNextMatchingLine(match): string[] {
     const lines: string[] = [];
     let nextLine: string | null = this.nextLine();
     if (nextLine != null) {
@@ -176,7 +189,14 @@ export class LatexParser {
         } else {
           this.parseParensForFilenames();
         }
-      } else if (this.state === state.ERROR) {
+      } else if (this.state === state.DEPS) {
+        if (this.currentLineIsDependenciesListEnd()) {
+          this.state = state.NORMAL;
+        } else {
+          this.addDeps(this.currentLine);
+        }
+      }
+      if (this.state === state.ERROR) {
         this.currentError.content += this.log
           .linesUpToNextMatchingLine(/^l\.[0-9]+/)
           .join("\n");
@@ -188,12 +208,6 @@ export class LatexParser {
         }
         this.data.push(this.currentError);
         this.state = state.NORMAL;
-      } else if (this.state === state.DEPS) {
-        if (this.currentLineIsDependenciesListEnd()) {
-          this.state = state.NORMAL;
-        } else {
-          this.addDeps(this.currentLine);
-        }
       }
     }
     return this.postProcess(this.data).toJS();

@@ -923,6 +923,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (actions == null) {
       return; // file not open
     }
+
     (actions as BaseActions<LatexEditorState>).set_gutter_marker({
       line,
       component,
