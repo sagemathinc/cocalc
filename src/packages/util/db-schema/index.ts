@@ -48,6 +48,7 @@ import "./projects";
 import "./public-path-stars";
 import "./public-paths";
 import "./registration-tokens";
+import "./retention";
 import "./server-settings";
 import "./shopping-cart-items";
 import "./site-licenses";
