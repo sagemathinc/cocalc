@@ -341,6 +341,13 @@ export class LatexParser {
 
   // Check if we're entering or leaving a new file in this line
   parseParensForFilenames(): void {
+    if (this.currentLine.includes("\\")) {
+      // Unix filenames can't contain a backslash.  Also, there are
+      // many ways that there can be false positives for the test below,
+      // and this hopefully prevents them, since latex tends to use
+      // backslashes a lot.
+      return;
+    }
     const pos = this.currentLine.search(/\(|\)/);
     if (pos !== -1) {
       const token = this.currentLine[pos];
