@@ -85,7 +85,7 @@ function component(
                 }}
                 language={"latex"}
                 extraFileInfo={actions.chatgptExtraFileInfo()}
-                tag={"latex-error"}
+                tag={"latex-error-popover"}
                 prioritizeLastInput
               />
             </>
