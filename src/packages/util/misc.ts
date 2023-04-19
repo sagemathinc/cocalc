@@ -473,7 +473,7 @@ export function trunc_middle(s, max_length = 1024) {
 }
 
 // "foobar" --> "…bar"
-export function trunc_left(s, max_length = 1024): string | undefined {
+export function trunc_left(s, max_length = 1024) {
   if (s == null) {
     return s;
   }

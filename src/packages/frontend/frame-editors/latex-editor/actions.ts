@@ -905,6 +905,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     update_gutters({
       log: this.parsed_output_log,
       set_gutter: this.set_gutter,
+      actions: this,
     });
   }
 
@@ -1483,5 +1484,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     const id = this.show_focused_frame_of_type("cm");
     if (id == null) return;
     this.programmatical_goto_line(parseInt(entry.id), true, true, id);
+  }
+
+  chatgptExtraFileInfo() {
+    return "LaTeX";
   }
 }

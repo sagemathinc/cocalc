@@ -13,10 +13,12 @@ import { capitalize } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components";
 import { SPEC, SpecItem } from "./errors-and-warnings";
 import { IProcessedLatexLog, Error } from "./latex-log-parser";
+import HelpMeFix from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
 
 export function update_gutters(opts: {
   log: IProcessedLatexLog;
   set_gutter: Function;
+  actions;
 }): void {
   for (const group of ["typesetting", "warnings", "errors"]) {
     // errors last so always shown if multiple issues on a single line!
@@ -30,7 +32,14 @@ export function update_gutters(opts: {
       opts.set_gutter(
         item.file,
         item.line - 1,
-        component(item.level, item.message, item.content)
+        component(
+          item.level,
+          item.message,
+          item.content,
+          opts.actions,
+          group,
+          item.line
+        )
       );
     }
   }
@@ -39,7 +48,10 @@ export function update_gutters(opts: {
 function component(
   level: string,
   message: string,
-  content: string | undefined
+  content: string | undefined,
+  actions,
+  group: string,
+  line: number
 ) {
   const spec: SpecItem = SPEC[level];
   if (content === undefined) {
@@ -51,7 +63,35 @@ function component(
   return (
     <Popover
       title={message}
-      content={content}
+      content={
+        <div>
+          {content}
+          {group == "errors" && (
+            <>
+              <br />
+              <HelpMeFix
+                size="small"
+                style={{ marginTop: "5px" }}
+                task={"ran latex"}
+                error={content}
+                input={() => {
+                  const s = actions._syncstring.to_str();
+                  const v = s
+                    .split("\n")
+                    .slice(0, line + 1)
+                    .join("\n");
+                  //line+1 since lines are 1-based
+                  return v + `% this is line number ${line + 1}`;
+                }}
+                language={"latex"}
+                extraFileInfo={actions.chatgptExtraFileInfo()}
+                tag={"latex-error"}
+                prioritizeLastInput
+              />
+            </>
+          )}
+        </div>
+      }
       placement={"right"}
       mouseEnterDelay={0}
     >
