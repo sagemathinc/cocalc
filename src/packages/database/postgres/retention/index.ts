@@ -4,6 +4,7 @@ import getLogger from "@cocalc/backend/logger";
 const log = getLogger("database:retention");
 
 type Period =
+  | { seconds: number }
   | { hours: number }
   | { days: number }
   | { months: number }
@@ -55,6 +56,18 @@ export async function updateRetentionData({
     // nothing to do
     return;
   }
+  if (typeof start == "object" && start["="]) {
+    start = start["="];
+  }
+  if (typeof stop == "object" && stop["="]) {
+    stop = stop["="];
+  }
+  if (typeof model == "object" && model["="]) {
+    model = model["="];
+  }
+  if (typeof period == "object" && period["="]) {
+    period = period["="];
+  }
   const pool = getPool();
   const current = await pool.query(
     "SELECT last_start_time, NOW() - $4::interval - $4::interval AS required_last_start_time FROM crm_retention WHERE start=$1 AND stop=$2 AND model=$3 AND period=$4",
@@ -71,6 +84,17 @@ export async function updateRetentionData({
     return;
   }
   log.debug("need to compute data", JSON.stringify(current.rows?.[0]));
+
+  // We do a check to make sure the interval is not too short to avoid a massive
+  // computation.  This could easily happen, e.g., when playing around in the crm.
+  const { rows } = await pool.query(
+    "SELECT extract(epoch FROM $1::interval) AS seconds",
+    [period]
+  );
+  if (rows[0].seconds < 3600) {
+    throw Error("period must be at least one hour long");
+    // TODO: stronger constraint involving start?
+  }
 
   if (model == "file_access_log") {
     const query = `WITH
