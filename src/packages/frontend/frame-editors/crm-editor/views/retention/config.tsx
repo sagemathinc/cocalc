@@ -2,8 +2,17 @@ import type { Retention } from "../retention";
 import dayjs from "dayjs";
 import update from "./update";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Button, DatePicker, Form, Input, Select, Tooltip, Alert } from "antd";
-import { useState } from "react";
+import {
+  Button,
+  DatePicker,
+  Form,
+  Input,
+  Select,
+  Tooltip,
+  Alert,
+  Progress,
+} from "antd";
+import { useRef, useState } from "react";
 const { Item } = Form;
 
 interface Props {
@@ -18,16 +27,36 @@ enum PeriodOptions {
   OneMonth = "1 month",
 }
 
-const SUCCESS = "Update successful!";
+const ERROR = "ERROR: ";
 
 export default function RetentionConfig({
   retention,
-  setRetention,
+  setRetention: setRetention0,
   retentionDescription,
 }: Props) {
   const [form] = Form.useForm();
-  const [buttonDisabled, setButtonDisabled] = useState(false);
-  const [error, setError] = useState("");
+  const [updatingData, setUpdatingData] = useState(false);
+  const [info, setInfo] = useState("");
+  const [percentDone, setPercentDone] = useState(0);
+  const setCancelRef = useRef<() => void | null>(null);
+  const setRetention = (retention) => {
+    setRetention0(retention);
+    if (!retention.period) {
+      setInfo(ERROR + "set the period");
+    } else if (!retention.model) {
+      setInfo(ERROR + "set the model");
+    } else if (!retention.start) {
+      setInfo(ERROR + "set the cohort start");
+    } else if (!retention.stop) {
+      setInfo(ERROR + "set the cohort stop");
+    } else if (retention.start >= retention.stop) {
+      setInfo(ERROR + "cohort start must be before cohort stop");
+    } else if (retention.dataEnd && retention.dataEnd <= retention.stop) {
+      setInfo(ERROR + "cohort stop must be before cutoff");
+    } else {
+      setInfo("");
+    }
+  };
 
   if (retentionDescription == null) {
     return null;
@@ -39,15 +68,21 @@ export default function RetentionConfig({
   };
 
   const handleUpdate = async () => {
-    setButtonDisabled(true);
-    setError("");
+    setUpdatingData(true);
+    setInfo("");
     try {
-      await update(retention);
-      setError(SUCCESS);
+      await update(
+        retention,
+        setCancelRef,
+        (progress: string, percentDone: number) => {
+          setInfo(progress);
+          setPercentDone(percentDone);
+        }
+      );
     } catch (error) {
-      setError(error.message);
+      setInfo(`${ERROR}${error.message}`);
     } finally {
-      setButtonDisabled(false);
+      setUpdatingData(false);
     }
   };
 
@@ -81,12 +116,9 @@ export default function RetentionConfig({
               if (!start) {
                 start = dayjs(retention.stop).subtract(1, "day");
               }
-              setRetention({ ...retention, start });
+              setRetention({ ...retention, start: start?.toDate() });
             }}
-            disabledDate={(date) =>
-              disabledDate(date) ||
-              (retention.stop && date >= dayjs(retention.stop))
-            }
+            disabledDate={disabledDate}
           />
         </Item>
         <Item
@@ -102,12 +134,9 @@ export default function RetentionConfig({
               if (!stop) {
                 stop = dayjs(retention.start).add(1, "day");
               }
-              setRetention({ ...retention, stop });
+              setRetention({ ...retention, stop: stop?.toDate() });
             }}
-            disabledDate={(date) =>
-              disabledDate(date) ||
-              (retention.start && date <= dayjs(retention.start))
-            }
+            disabledDate={disabledDate}
           />
         </Item>
         <Item
@@ -152,11 +181,10 @@ export default function RetentionConfig({
         >
           <DatePicker
             value={dayjs(retention.dataEnd)}
-            onChange={(dataEnd) => setRetention({ ...retention, dataEnd })}
-            disabledDate={(date) =>
-              disabledDate(date) ||
-              (retention.start && date <= dayjs(retention.start))
+            onChange={(dataEnd) =>
+              setRetention({ ...retention, dataEnd: dataEnd?.toDate() })
             }
+            disabledDate={disabledDate}
           />
         </Item>
 
@@ -165,26 +193,43 @@ export default function RetentionConfig({
             onClick={handleUpdate}
             type="primary"
             disabled={
-              buttonDisabled ||
+              updatingData ||
               !retention.period ||
               !retention.model ||
               !retention.start ||
-              !retention.stop
+              !retention.stop ||
+              retention.start >= retention.stop ||
+              (retention.dataEnd && retention.dataEnd <= retention.stop)
             }
           >
-            <Icon name="database" />{" "}
-            {buttonDisabled ? "Updating data..." : "Update Data"}
+            <Icon name="refresh" spin={updatingData} />{" "}
+            {updatingData ? "Updating data..." : "Update Data"}
           </Button>
         </Tooltip>
       </Form>
-      {error && (
+      {updatingData && (
+        <div
+          style={{
+            maxWidth: "600px",
+            margin: "10px auto 0 auto",
+            display: "flex",
+          }}
+        >
+          <Progress
+            percent={percentDone}
+            strokeColor={{ "0%": "#108ee9", "100%": "#87d068" }}
+          />
+          <Button onClick={() => setCancelRef.current?.()}>Cancel</Button>
+        </div>
+      )}
+      {info && (
         <Alert
           showIcon
           style={{ maxWidth: "600px", margin: "5px auto" }}
-          message={error}
-          type={error == SUCCESS ? "info" : "error"}
+          message={info}
+          type={info.startsWith(ERROR) ? "error" : "info"}
           closable
-          onClose={() => setError("")}
+          onClose={() => setInfo("")}
         />
       )}
     </div>

@@ -5,7 +5,7 @@ register({
 
   title: "Retention",
 
-  icon: "users",
+  icon: "line-chart",
 
   query: {
     crm_retention: [
