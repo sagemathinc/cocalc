@@ -16,6 +16,7 @@ register({
         period: null,
         active: null,
         size: null,
+        last_start_time: null,
       },
     ],
   },

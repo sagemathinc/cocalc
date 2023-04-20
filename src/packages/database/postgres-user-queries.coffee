@@ -30,6 +30,7 @@ required = defaults.required
 {queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
 
 {file_use_times} = require('./postgres/file-use-times')
+{updateRetentionData} = require('./postgres/retention')
 
 { checkProjectName } = require("@cocalc/util/db-schema/name-rules");
 {callback2} = require('@cocalc/util/async-utils')
@@ -1726,6 +1727,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # ASYNC FUNCTION with no callback.
     file_use_times: (opts) =>  # for docs, see where this is imported from.
         return await file_use_times(@, opts)
+
+    updateRetentionData: (opts) =>
+        return await updateRetentionData(opts)
 
 _last_awaken_time = {}
 awaken_project = (db, project_id, cb) ->
