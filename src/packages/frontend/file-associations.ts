@@ -78,6 +78,7 @@ const codemirror_associations: { [ext: string]: string } = {
   mjs: "javascript",
   ml: "text/x-ocaml",
   mysql: "text/x-sql",
+  psql: "text/x-sql",
   patch: "text/x-diff",
   gp: "text/pari",
   go: "text/x-go",
