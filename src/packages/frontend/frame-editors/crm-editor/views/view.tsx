@@ -10,7 +10,7 @@ import Calendar from "./calendar";
 import Kanban from "./kanban";
 import type { ViewType } from "../types";
 import { Icon } from "@cocalc/frontend/components";
-import { getTableDescription } from "../tables";
+import { useTableDescription } from "../tables";
 import ViewMenu from "./view-menu";
 import { fieldToLabel } from "../util";
 import useFilterInput from "./filter-input";
@@ -50,7 +50,7 @@ export default function View({
     columns: allColumns,
     allowCreate,
     changes,
-  } = useMemo(() => getTableDescription(table), [table]);
+  } = useTableDescription(table);
   const [limit, setLimit] = useViewParam<number>({
     id,
     name: "limit",
@@ -275,6 +275,19 @@ export default function View({
       );
       break;
     case "grid":
+      body = (
+        <Grid
+          id={id}
+          recordHeight={recordHeight}
+          data={filteredData}
+          columns={columns}
+          sortFields={sortFields}
+          setSortField={setSortField}
+          primaryKey={primaryKey}
+        />
+      );
+      break;
+    case "retention":
       body = (
         <Grid
           id={id}

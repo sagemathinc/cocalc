@@ -23,6 +23,7 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import Handle from "../components/handle";
 import Draggable from "react-draggable";
+import { useTableDescription } from "../tables";
 
 import "./views.css";
 import { COLORS } from "@cocalc/util/theme";
@@ -32,6 +33,7 @@ export const TYPE_TO_ICON: { [type: string]: IconName } = {
   gallery: "address-card",
   calendar: "calendar",
   kanban: "hdd",
+  retention: "line-chart",
 };
 
 interface TabItem {
@@ -52,6 +54,7 @@ export default function Views({ table, style }: Props) {
   const { views, saveView, deleteView } = useViews(table);
   const { view, switchToView } = useViewControl(table, views?.[0]?.id);
   const [width, setWidth] = useViewsWidth(table);
+  const desc = useTableDescription(table);
 
   const getView = useCallback(
     (id: string) => {
@@ -153,6 +156,20 @@ export default function Views({ table, style }: Props) {
               />{" "}
               Calendar
             </Button>
+            {desc.retention != null && (
+              <Button
+                type="text"
+                style={{ fontSize: "14pt" }}
+                size="large"
+                onClick={() => createNewView("retention")}
+              >
+                <Icon
+                  name={TYPE_TO_ICON["retention"]}
+                  style={{ marginRight: "15px" }}
+                />{" "}
+                Retention
+              </Button>
+            )}
           </Space>
         </Card>
       ),

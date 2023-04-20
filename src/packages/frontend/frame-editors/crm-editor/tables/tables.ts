@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { antdColumn, ColumnsType } from "../fields";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import * as defaults from "./defaults";
@@ -31,6 +31,8 @@ import "./analytics";
 import "./jupyter-api";
 import "./retention";
 
+interface Retention {}
+
 interface TableDescription {
   name: string;
   title: ReactNode;
@@ -42,6 +44,7 @@ interface TableDescription {
   timeKey?: string;
   createDefaults?: object;
   updateDefaults?: object;
+  retention?: Retention;
   __templates?: boolean; // set after we fill in any templates.
 }
 
@@ -88,6 +91,10 @@ export function getTableDescription(name: string): TableDescription {
   }
   fillInTemplates(desc);
   return desc;
+}
+
+export function useTableDescription(name: string) {
+  return useMemo(() => getTableDescription(name), [name]);
 }
 
 export function getDBTableDescription(dbtable: string): TableDescription {
