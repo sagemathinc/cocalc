@@ -29,6 +29,7 @@ import "./vouchers";
 import "./openai";
 import "./analytics";
 import "./jupyter-api";
+import "./retention";
 
 interface TableDescription {
   name: string;
