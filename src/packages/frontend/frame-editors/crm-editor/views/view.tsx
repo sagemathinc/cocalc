@@ -23,6 +23,7 @@ import useSearch from "../syncdb/use-search";
 import { Loading } from "@cocalc/frontend/components";
 import { columnsToFieldMap } from "./view-menu/hide-fields";
 import createNewRecord from "./create-new-record";
+import RetentionView, { Retention, DEFAULT_RETENTION } from "./retention";
 
 export const DEFAULT_RECORD_HEIGHT = 300;
 export const DEFAULT_LIMIT = 100;
@@ -50,6 +51,7 @@ export default function View({
     columns: allColumns,
     allowCreate,
     changes,
+    retention: retentionDescription,
   } = useTableDescription(table);
   const [limit, setLimit] = useViewParam<number>({
     id,
@@ -94,6 +96,12 @@ export default function View({
     id,
     name: "record-height",
     defaultValue: DEFAULT_RECORD_HEIGHT,
+  });
+
+  const [retention, setRetention] = useViewParam<Retention>({
+    id,
+    name: "retention",
+    defaultValue: DEFAULT_RETENTION,
   });
 
   const dbtable: string = useMemo(() => {
@@ -289,7 +297,7 @@ export default function View({
       break;
     case "retention":
       body = (
-        <Grid
+        <RetentionView
           id={id}
           recordHeight={recordHeight}
           data={filteredData}
@@ -297,6 +305,9 @@ export default function View({
           sortFields={sortFields}
           setSortField={setSortField}
           primaryKey={primaryKey}
+          retention={retention}
+          setRetention={setRetention}
+          retentionDescription={retentionDescription}
         />
       );
       break;

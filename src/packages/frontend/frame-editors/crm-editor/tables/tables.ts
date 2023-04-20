@@ -31,7 +31,9 @@ import "./analytics";
 import "./jupyter-api";
 import "./retention";
 
-interface Retention {}
+interface Retention {
+  models: string[];
+}
 
 interface TableDescription {
   name: string;
