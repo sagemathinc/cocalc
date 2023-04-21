@@ -217,7 +217,7 @@ Table({
           editor_settings: {
             /* NOTE: there is a editor_settings.jupyter = { kernel...} that isn't documented here. */
             strip_trailing_whitespace: false,
-            show_trailing_whitespace: true,
+            show_trailing_whitespace: false,
             line_wrapping: true,
             line_numbers: true,
             jupyter_line_numbers: false,
