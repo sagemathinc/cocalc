@@ -1,6 +1,6 @@
 import type { Retention } from "../retention";
 import dayjs from "dayjs";
-import update from "./update";
+import update, { Data } from "./update";
 import { Icon } from "@cocalc/frontend/components/icon";
 import {
   Button,
@@ -12,13 +12,14 @@ import {
   Alert,
   Progress,
 } from "antd";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 const { Item } = Form;
-
+const { RangePicker } = DatePicker;
 interface Props {
   retention: Retention;
   setRetention: (retention) => void;
   retentionDescription;
+  setData: (data: Data[]) => void;
 }
 
 enum PeriodOptions {
@@ -33,12 +34,17 @@ export default function RetentionConfig({
   retention,
   setRetention: setRetention0,
   retentionDescription,
+  setData,
 }: Props) {
   const [form] = Form.useForm();
   const [updatingData, setUpdatingData] = useState(false);
   const [info, setInfo] = useState("");
   const [percentDone, setPercentDone] = useState(0);
   const setCancelRef = useRef<() => void | null>(null);
+  useEffect(() => {
+    handleUpdate();
+  }, []);
+
   const setRetention = (retention) => {
     setRetention0(retention);
     if (!retention.period) {
@@ -49,7 +55,7 @@ export default function RetentionConfig({
       setInfo(ERROR + "set the cohort start");
     } else if (!retention.stop) {
       setInfo(ERROR + "set the cohort stop");
-    } else if (retention.start >= retention.stop) {
+    } else if (retention.start > retention.stop) {
       setInfo(ERROR + "cohort start must be before cohort stop");
     } else if (retention.dataEnd && retention.dataEnd <= retention.stop) {
       setInfo(ERROR + "cohort stop must be before cutoff");
@@ -71,7 +77,7 @@ export default function RetentionConfig({
     setUpdatingData(true);
     setInfo("");
     try {
-      await update(
+      const data = await update(
         retention,
         setCancelRef,
         (progress: string, percentDone: number) => {
@@ -79,6 +85,8 @@ export default function RetentionConfig({
           setPercentDone(percentDone);
         }
       );
+      setData(data);
+      setInfo("");
     } catch (error) {
       setInfo(`${ERROR}${error.message}`);
     } finally {
@@ -105,36 +113,49 @@ export default function RetentionConfig({
         </Item>
         <Item
           label={
-            <Tooltip title="When the first cohort starts (UTC midnight)">
+            <Tooltip title="When the first cohort starts and stops (UTC midnight)">
               First Cohort
             </Tooltip>
           }
         >
-          <DatePicker
-            value={dayjs(retention.start)}
-            onChange={(start) => {
+          <RangePicker
+            presets={
+              [
+                {
+                  label: "Day",
+                  value: [dayjs(retention.start), dayjs(retention.start)],
+                },
+                {
+                  label: "Week",
+                  value: [
+                    dayjs(retention.start),
+                    dayjs(retention.start).add(1, "week").subtract(1, "day"),
+                  ],
+                },
+                {
+                  label: "Month",
+                  value: [
+                    dayjs(retention.start),
+                    dayjs(retention.start).add(1, "month").subtract(1, "day"),
+                  ],
+                },
+              ] as any
+            }
+            value={[dayjs(retention.start), dayjs(retention.stop)]}
+            onChange={(val) => {
+              let start = val?.[0];
+              let stop = val?.[1];
               if (!start) {
-                start = dayjs(retention.stop).subtract(1, "day");
+                start = stop;
               }
-              setRetention({ ...retention, start: start?.toDate() });
-            }}
-            disabledDate={disabledDate}
-          />
-        </Item>
-        <Item
-          label={
-            <Tooltip title="When the first cohort ends (UTC midnight). All cohorts up to the cutoff date will be considered.">
-              to
-            </Tooltip>
-          }
-        >
-          <DatePicker
-            value={dayjs(retention.stop)}
-            onChange={(stop) => {
               if (!stop) {
-                stop = dayjs(retention.start).add(1, "day");
+                stop = start;
               }
-              setRetention({ ...retention, stop: stop?.toDate() });
+              setRetention({
+                ...retention,
+                start: start?.toDate(),
+                stop: stop?.toDate(),
+              });
             }}
             disabledDate={disabledDate}
           />
@@ -199,7 +220,6 @@ export default function RetentionConfig({
               !retention.model ||
               !retention.start ||
               !retention.stop ||
-              retention.start >= retention.stop ||
               (retention.dataEnd && retention.dataEnd <= retention.stop)
             }
           >

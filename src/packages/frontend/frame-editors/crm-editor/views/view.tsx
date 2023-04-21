@@ -298,13 +298,7 @@ export default function View({
     case "retention":
       body = (
         <RetentionView
-          id={id}
           recordHeight={recordHeight}
-          data={filteredData}
-          columns={columns}
-          sortFields={sortFields}
-          setSortField={setSortField}
-          primaryKey={primaryKey}
           retention={retention}
           setRetention={setRetention}
           retentionDescription={retentionDescription}

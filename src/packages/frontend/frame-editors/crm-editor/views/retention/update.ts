@@ -12,14 +12,33 @@ and the second argument the percentage complete.
 import type { Retention } from "../retention";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { startOfDayUTC } from "./util";
+import dayjs from "dayjs";
+import LRU from "lru-cache";
+
+const cache = new LRU<string, Data[]>({ max: 50 });
+
+export interface Data {
+  start: Date;
+  stop: Date;
+  model: string;
+  period: object;
+  size: number;
+  active: number[];
+}
 
 export default async function update(
   { model, start, stop, period, dataEnd = new Date() }: Retention,
   setCancelRef,
   onProgress: (string, percentDone) => void
-): Promise<void> {
+): Promise<Data[]> {
+  const key = JSON.stringify({ model, start, stop, period, dataEnd });
+  if (cache.has(key)) {
+    return cache.get(key) as Data[];
+  }
+
+  const data: Data[] = [];
   start = startOfDayUTC(start);
-  stop = startOfDayUTC(stop);
+  stop = startOfDayUTC(dayjs(stop).add(1, "day"));
   dataEnd = startOfDayUTC(dataEnd);
   let cancel = false;
   setCancelRef.current = () => {
@@ -61,6 +80,7 @@ export default async function update(
       },
     });
     last = JSON.stringify(result.query.crm_retention);
+    data.push(result.query.crm_retention);
 
     // Update interval for next iteration
     n += 1;
@@ -69,7 +89,9 @@ export default async function update(
   }
   if (cancel) {
     onProgress("Canceled!", progress);
-    return;
+  } else {
+    onProgress("Complete", 100);
+    cache.set(key, data);
   }
-  onProgress("Complete", 100);
+  return data;
 }
