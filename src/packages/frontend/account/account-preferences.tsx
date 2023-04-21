@@ -117,11 +117,11 @@ export const AccountPreferences: React.FC = () => {
             </Form>
           </Tooltip>
         </div>
-        <h2>Quick Preferences</h2>
+        <h2>Account Preferences</h2>
         <div style={{ fontSize: "14pt" }}>
-          Quickly adjust key preferences below.{" "}
+          Adjust account preferences below.{" "}
           <A href={join(appBasePath, "config")}>
-            Visit your account configuration for more settings...
+            Visit your account configuration for more...
           </A>
         </div>
         <br />

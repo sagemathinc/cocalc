@@ -4,9 +4,10 @@
  */
 
 import React from "react";
+import { Popconfirm } from "antd";
 
 import { ProjectActions } from "@cocalc/frontend/project_actions";
-import { AppRedux } from "@cocalc/frontend/app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 
 import { Space } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
@@ -15,39 +16,35 @@ import { SiteName } from "@cocalc/frontend/customize";
 
 interface Props {
   actions: ProjectActions;
-  redux: AppRedux;
 }
 
 const row_style: React.CSSProperties = {
   textAlign: "center",
-  padding: "10px",
-  color: COLORS.GRAY_L,
-  position: "absolute",
+  padding: "5px",
+  color: "#666",
   bottom: 0,
   fontSize: "110%",
-};
-
-const link_style: React.CSSProperties = {
-  cursor: "pointer",
-  color: COLORS.GRAY,
+  background: "#fafafa",
+  borderTop: "1px solid #eee",
 };
 
 const library_comment_style: React.CSSProperties = {
   fontSize: "80%",
 };
 
-export class FirstSteps extends React.PureComponent<Props> {
+export default class FirstSteps extends React.PureComponent<Props> {
   get_first_steps = () => {
     this.props.actions.copy_from_library({ entry: "first_steps" });
   };
 
   dismiss_first_steps = () => {
-    this.props.redux
-      .getTable("account")
-      .set({ other_settings: { first_steps: false } });
+    redux.getTable("account").set({ other_settings: { first_steps: false } });
   };
 
   render() {
+    if (!redux.getStore("account").getIn(["other_settings", "first_steps"])) {
+      return null;
+    }
     return (
       <Col sm={12} style={row_style}>
         <Row>
@@ -56,22 +53,37 @@ export class FirstSteps extends React.PureComponent<Props> {
           </span>
           <Space />
           <span>
-            <a onClick={this.get_first_steps} style={link_style}>
-              Click to start the <strong>First Steps</strong> guide!
+            <a onClick={this.get_first_steps}>
+              Start the <strong>First Steps Guide!</strong>
             </a>
           </span>
           <Space />
           <span>or</span>
           <Space />
           <span>
-            <a onClick={this.dismiss_first_steps} style={link_style}>
-              dismiss this message
-            </a>
-            .
-          </span>
-          <br />
-          <span style={library_comment_style}>
-            You can also load it via "Library" → "First Steps in <SiteName />"
+            <Popconfirm
+              title="Don't Show First Steps Banner"
+              description={
+                <span>
+                  You can always re-enable First Steps via "Offer the First
+                  Steps guide" in{" "}
+                  <a
+                    onClick={() => {
+                      redux.getActions("page").set_active_tab("account");
+                      redux.getActions("account").set_active_tab("account");
+                    }}
+                  >
+                    Account Preferences
+                  </a>
+                  .
+                </span>
+              }
+              onConfirm={this.dismiss_first_steps}
+              okText="Dismiss message"
+              cancelText="No"
+            >
+              <a>dismiss this message</a>.
+            </Popconfirm>
           </span>
         </Row>
       </Col>
