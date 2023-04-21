@@ -11,15 +11,16 @@ and the second argument the percentage complete.
 
 import type { Retention } from "../retention";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { startOfDayUTC } from "./util";
 
 export default async function update(
   { model, start, stop, period, dataEnd = new Date() }: Retention,
   setCancelRef,
   onProgress: (string, percentDone) => void
 ): Promise<void> {
-  start = new Date(start);
-  stop = new Date(stop);
-  dataEnd = new Date(dataEnd);
+  start = startOfDayUTC(start);
+  stop = startOfDayUTC(stop);
+  dataEnd = startOfDayUTC(dataEnd);
   let cancel = false;
   setCancelRef.current = () => {
     cancel = true;

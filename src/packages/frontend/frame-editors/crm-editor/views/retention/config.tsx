@@ -105,7 +105,7 @@ export default function RetentionConfig({
         </Item>
         <Item
           label={
-            <Tooltip title="Date when the first cohort starts">
+            <Tooltip title="When the first cohort starts (UTC midnight)">
               First Cohort
             </Tooltip>
           }
@@ -123,7 +123,7 @@ export default function RetentionConfig({
         </Item>
         <Item
           label={
-            <Tooltip title="Date when the first cohort ends. All cohorts up to the cutoff date will be considered.">
+            <Tooltip title="When the first cohort ends (UTC midnight). All cohorts up to the cutoff date will be considered.">
               to
             </Tooltip>
           }
@@ -174,12 +174,13 @@ export default function RetentionConfig({
         </Item>
         <Item
           label={
-            <Tooltip title="We compute data about all cohorts up to this cutoff day.">
+            <Tooltip title="Consider all cohorts up to this cutoff (UTC midnight).">
               Cutoff
             </Tooltip>
           }
         >
           <DatePicker
+            showToday
             value={dayjs(retention.dataEnd)}
             onChange={(dataEnd) =>
               setRetention({ ...retention, dataEnd: dataEnd?.toDate() })

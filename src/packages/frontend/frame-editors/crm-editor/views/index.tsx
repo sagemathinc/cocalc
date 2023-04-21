@@ -180,6 +180,7 @@ export default function Views({ table, style }: Props) {
   function handleDragEnd(event) {
     if (views == null) return;
     const { active, over, delta } = event;
+    if (active == null || over == null) return;
     if (active.id !== over.id) {
       let activeIndex = 0;
       for (let j = 0; j < views.length; j++) {
