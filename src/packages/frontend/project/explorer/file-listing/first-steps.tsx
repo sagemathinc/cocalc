@@ -3,90 +3,87 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
+import { useState } from "react";
 import { Popconfirm } from "antd";
-
-import { ProjectActions } from "@cocalc/frontend/project_actions";
-import { redux } from "@cocalc/frontend/app-framework";
-
-import { Space } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
-const { Row, Col } = require("react-bootstrap");
+import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { SiteName } from "@cocalc/frontend/customize";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
-  actions: ProjectActions;
+  project_id: string;
 }
 
-const row_style: React.CSSProperties = {
-  textAlign: "center",
-  padding: "5px",
-  color: "#666",
-  bottom: 0,
-  fontSize: "110%",
-  background: "#fafafa",
-  borderTop: "1px solid #eee",
-};
-
-const library_comment_style: React.CSSProperties = {
-  fontSize: "80%",
-};
-
-export default class FirstSteps extends React.PureComponent<Props> {
-  get_first_steps = () => {
-    this.props.actions.copy_from_library({ entry: "first_steps" });
-  };
-
-  dismiss_first_steps = () => {
-    redux.getTable("account").set({ other_settings: { first_steps: false } });
-  };
-
-  render() {
-    if (!redux.getStore("account").getIn(["other_settings", "first_steps"])) {
-      return null;
-    }
-    return (
-      <Col sm={12} style={row_style}>
-        <Row>
-          <span>
-            Are you new to <SiteName />?
-          </span>
-          <Space />
-          <span>
-            <a onClick={this.get_first_steps}>
-              Start the <strong>First Steps Guide!</strong>
-            </a>
-          </span>
-          <Space />
-          <span>or</span>
-          <Space />
-          <span>
-            <Popconfirm
-              title="Don't Show First Steps Banner"
-              description={
-                <span>
-                  You can always re-enable First Steps via "Offer the First
-                  Steps guide" in{" "}
-                  <a
-                    onClick={() => {
-                      redux.getActions("page").set_active_tab("account");
-                      redux.getActions("account").set_active_tab("account");
-                    }}
-                  >
-                    Account Preferences
-                  </a>
-                  .
-                </span>
-              }
-              onConfirm={this.dismiss_first_steps}
-              okText="Dismiss message"
-              cancelText="No"
-            >
-              <a>dismiss this message</a>.
-            </Popconfirm>
-          </span>
-        </Row>
-      </Col>
-    );
-  }
+export default function FirstSteps({ project_id }: Props) {
+  const [starting, setStarting] = useState<boolean>(false);
+  const first_steps = useRedux(["account", "other_settings", "first_steps"]);
+  if (!first_steps) return null;
+  return (
+    <div
+      style={{
+        padding: "5px 15px",
+        color: "#666",
+        fontSize: "11pt",
+        background: "#fffbe6",
+      }}
+    >
+      <Icon
+        name={starting ? "cocalc-ring" : "cube"}
+        spin={starting}
+        style={{ marginRight: "15px" }}
+      />
+      <span>
+        Are you new to <SiteName />?
+      </span>{" "}
+      <span>
+        <a
+          onClick={async () => {
+            if (starting) return;
+            try {
+              setStarting(true);
+              await redux.getActions("projects").start_project(project_id);
+              await redux
+                .getProjectActions(project_id)
+                .copy_from_library({ entry: "first_steps" });
+            } catch (error) {
+              console.warn("error getting first steps", error);
+            } finally {
+              setStarting(false);
+            }
+          }}
+        >
+          Start the <strong>First Steps Guide!</strong>
+        </a>
+      </span>{" "}
+      <span>or</span>{" "}
+      <span>
+        <Popconfirm
+          title="Don't Show First Steps Banner"
+          description={
+            <span>
+              You can always re-enable First Steps via "Offer the First Steps
+              guide" in{" "}
+              <a
+                onClick={() => {
+                  redux.getActions("page").set_active_tab("account");
+                  redux.getActions("account").set_active_tab("account");
+                }}
+              >
+                Account Preferences
+              </a>
+              .
+            </span>
+          }
+          onConfirm={() => {
+            redux
+              .getTable("account")
+              .set({ other_settings: { first_steps: false } });
+          }}
+          okText="Dismiss message"
+          cancelText="No"
+        >
+          <a>dismiss this message</a>.
+        </Popconfirm>
+      </span>
+    </div>
+  );
 }

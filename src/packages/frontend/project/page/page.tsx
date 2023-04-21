@@ -151,7 +151,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 
   return (
     <div className="container-content" style={style}>
-      <FirstSteps actions={actions} />
+      <FirstSteps project_id={project_id} />
       <AnonymousName project_id={project_id} />
       <DiskSpaceWarning project_id={project_id} />
       <RamWarning project_id={project_id} />
