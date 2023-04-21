@@ -24,6 +24,7 @@ export interface Data {
   period: object;
   size: number;
   active: number[];
+  last_start_time: Date;
 }
 
 export default async function update(

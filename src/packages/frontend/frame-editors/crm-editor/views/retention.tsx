@@ -1,5 +1,5 @@
 import { Tooltip } from "antd";
-import { useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
 import { getTableDescription } from "../tables";
 import RetentionConfig from "./retention/config";
@@ -46,6 +46,26 @@ export default function RetentionView({
   const [retentionData, setRetentionData] = useState<RetentionData[] | null>(
     null
   );
+  const { size, period, startTimes } = useMemo(() => {
+    let size = 0;
+    for (const x of retentionData ?? []) {
+      size += x?.size ?? 0;
+    }
+    if (retentionData == null || retentionData.length == 0) {
+      return { size: 0, period: 0, startTimes: [] };
+    }
+    const { start, active, last_start_time } = retentionData[0];
+    const period =
+      (last_start_time.valueOf() - start.valueOf()) /
+      Math.max(1, active.length - 1);
+    const startTimes: [dayjs.Dayjs, number][] = [];
+    let t = dayjs(start);
+    for (let n = 0; n < active.length; n++) {
+      startTimes.push([t, n + 1]);
+      t = t.add(period, "milliseconds");
+    }
+    return { size, period, startTimes };
+  }, [retentionData]);
 
   return (
     <div className="smc-vfill" style={{ height: "100%" }}>
@@ -60,28 +80,19 @@ export default function RetentionView({
           overscan={500}
           style={{ height: "100%", overflow: "auto" }}
           totalCount={retentionData.length}
-          itemContent={(index) => <Row {...retentionData[index]} />}
-          fixedHeaderContent={() => <Header retentionData={retentionData} />}
+          itemContent={(index) => (
+            <Row {...retentionData[index]} period={period} />
+          )}
+          fixedHeaderContent={() => (
+            <Header size={size} period={period} startTimes={startTimes} />
+          )}
         />
       )}
     </div>
   );
 }
 
-function Header({ retentionData }) {
-  let size = 0;
-  for (const x of retentionData) {
-    size += x?.size ?? 0;
-  }
-  if (retentionData.length == 0) return null;
-  const { start, active, last_start_time } = retentionData[0];
-  const period = (last_start_time - start) / Math.max(1, active.length - 1);
-  const startTimes: dayjs.Dayjs[] = [];
-  let t = dayjs(start);
-  for (let n = 0; n < active.length; n++) {
-    startTimes.push(t);
-    t = t.add(period, "milliseconds");
-  }
+function Header({ size, period, startTimes }) {
   return (
     <tr style={{ background: "white" }}>
       <td
@@ -104,10 +115,11 @@ function Header({ retentionData }) {
         <Tooltip
           title={
             <>
-              {dayjs(t).format("MMM D, YYYY h:mm A")} -{" "}
-              {dayjs(t.add(period, "milliseconds")).format(
+              {dayjs(t[0]).format("MMM D, YYYY h:mm A")} -{" "}
+              {dayjs(t[0].add(period, "milliseconds")).format(
                 "MMM D, YYYY h:mm A"
-              )}
+              )}{" "}
+              for first cohort
             </>
           }
         >
@@ -119,7 +131,7 @@ function Header({ retentionData }) {
               textAlign: "center",
             }}
           >
-            {t.format("MMM D, YYYY")}
+            Period {t[1]}
           </td>
         </Tooltip>
       ))}
@@ -127,7 +139,32 @@ function Header({ retentionData }) {
   );
 }
 
-function Row({ start, stop, size, active }) {
+function Row({ start, stop, size, active, period }) {
+  const cols: ReactNode[] = [];
+  if (active != null) {
+    for (let i = 0; i < active.length; i++) {
+      const n = active[i] ?? 0;
+      cols.push(
+        <Active
+          n={n}
+          size={size}
+          tip={() => (
+            <>
+              {dayjs(start)
+                .add(i * period, "milliseconds")
+                .format("MMM D, YYYY h:mm A")}{" "}
+              -{" "}
+              {dayjs(start)
+                .add((i + 1) * period, "milliseconds")
+                .format("MMM D, YYYY h:mm A")}{" "}
+              <br />
+              {n} active {plural(n, "user")}
+            </>
+          )}
+        />
+      );
+    }
+  }
   return (
     <>
       <td
@@ -145,18 +182,20 @@ function Row({ start, stop, size, active }) {
         <br />
         <div style={{ color: "#888" }}>{size} users</div>
       </td>
-      {active?.map((n) => (
-        <Active n={n} size={size} />
-      ))}
+      {cols}
     </>
   );
 }
 
-function Active({ n, size }) {
+function Active({ n, size, tip }) {
   const s = n / Math.max(1, size);
   const p = (s * 100).toFixed(2);
   return (
-    <Tooltip title={`${n} active ${plural(n, "user")}`} mouseEnterDelay={0.5}>
+    <Tooltip
+      title={tip}
+      mouseEnterDelay={0.5}
+      overlayInnerStyle={{ width: "325px" }}
+    >
       <td
         style={{
           border: "1px solid #eee",
