@@ -8,6 +8,7 @@ import { Popconfirm } from "antd";
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { SiteName } from "@cocalc/frontend/customize";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props {
   project_id: string;
@@ -41,9 +42,25 @@ export default function FirstSteps({ project_id }: Props) {
             try {
               setStarting(true);
               await redux.getActions("projects").start_project(project_id);
-              await redux
-                .getProjectActions(project_id)
-                .copy_from_library({ entry: "first_steps" });
+              // try to run the new cc-first-steps script; if that fails (e.g. old already running project),
+              // try to copy from the library.
+              try {
+                await webapp_client.project_client.exec({
+                  command: "cc-first-steps",
+                  project_id,
+                });
+                await redux.getProjectActions(project_id).open_file({
+                  path: "first-steps/first-steps.tasks",
+                  foreground: true,
+                });
+              } catch (error) {
+                console.log(
+                  "cc-first-steps failed, so falling back to library"
+                );
+                await redux
+                  .getProjectActions(project_id)
+                  .copy_from_library({ entry: "first_steps" });
+              }
             } catch (error) {
               console.warn("error getting first steps", error);
             } finally {

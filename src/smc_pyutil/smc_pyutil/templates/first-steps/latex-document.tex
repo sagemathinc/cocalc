@@ -1,0 +1,114 @@
+\documentclass{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Hello, this is the start of a LaTeX document
+%
+% First rule: everything after a percent-sign is a comment.
+% It is ignored and does not show up in the final PDF document.
+%
+% Second rule: everything that starts with a backslash \ is a command.
+% This is used for everything!
+% * \begin{document} signals where the real meat of the file starts (after the preemble)
+% * \section and \subsection structure the document
+% * and much more ...
+%
+% Third rule: In between the commands, or inside the command's arguments in {...} you write text.
+% You can make arbitrary single linebreaks, which will not break apart a paragraph.
+% Two or more linebreaks signal the start of a new paragraph.
+%
+% Formulas: LaTeX is most famous for writing formulas. They're inside of $...$ or
+% \begin{equation}
+%  ...
+% \end{equation}
+% environments.
+%
+% Why? Well, this might seem overly complex, but in the end it is also very precise.
+% You can define exactly what each part of the document should be and LaTeX formats it for you.
+%
+% Got interested? Here is a link to an online LaTeX book explaining more about all this:
+% https://en.wikibooks.org/wiki/LaTeX
+%
+% Now, skim over the preemble and find the \begin{document} command
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% set font encoding for PDFLaTeX or XeLaTeX
+\usepackage{ifxetex}
+\ifxetex
+  \usepackage{fontspec}
+\else
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{lmodern}
+\fi
+
+% used in maketitle
+\title{My first \LaTeX{} document}
+\author{My Name}
+
+% Enable SageTeX to run SageMath code right inside this LaTeX file.
+% documentation: http://mirrors.ctan.org/macros/latex/contrib/sagetex/sagetexpackage.pdf
+\usepackage{sagetex}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\section{First Steps}
+
+This is a short introduction document to \LaTeX{}.
+You write the code on the left hand side of this editor,
+while compiled and rendered output shows up on the right hand side.
+
+Pay attention to any syntax errors!
+\LaTeX{} is a programming language and stops compiling and updating the document upon errors.
+Any command starts with a backslash.
+Watch out for the red "Errors" tab and inspect any problems.
+
+\subsection{Subsection}
+
+You can organize your document in sections,
+just like this one here is a subsection!
+
+\subsection{Another one ...}
+
+Here is \textit{another one},
+where the text ``another one'' is formatted italic.
+
+\textbf{Bold font} is also possible.
+
+\subsection{Formulas}
+
+Latex is famous for setting formulas.
+This is usually done between dollar signs.
+For example: $\int_{x=0}^{\infty} \frac{1}{2 + x^2}\;\mathrm{d}x$.
+
+\section{SageMath}
+
+You can also run a couple of computations with Sage and embed the output right here in the document.
+
+% this line here is an invisble comment
+% and the block below some sage code setting x and y but not producing any output.
+\begin{sagesilent}
+x = var('x')
+a = 1328782374
+b = 2394728347628374
+\end{sagesilent}
+
+% Here, we use x and y defined above:
+The product of $\sage{a}$ and $\sage{b}$  is \\
+$\sage{a*b}$
+and its prime factorization: $\sage{factor(a*b)}$.
+
+It is also possible to create a plot:
+
+\begin{center}
+\sageplot[width=.5\textwidth]{plot(sin(x) * cos(3*x), (x, -10, 10))}
+\end{center}
+
+% this is the last command of the document.
+\end{document}
+
+%  Do NOT edit past the last command!
+
