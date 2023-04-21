@@ -298,7 +298,6 @@ export default function View({
     case "retention":
       body = (
         <RetentionView
-          recordHeight={recordHeight}
           retention={retention}
           setRetention={setRetention}
           retentionDescription={retentionDescription}

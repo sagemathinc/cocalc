@@ -31,15 +31,15 @@ export default async function update(
   setCancelRef,
   onProgress: (string, percentDone) => void
 ): Promise<Data[]> {
+  start = startOfDayUTC(start);
+  stop = startOfDayUTC(dayjs(stop).add(1, "day"));
+  dataEnd = startOfDayUTC(dataEnd);
   const key = JSON.stringify({ model, start, stop, period, dataEnd });
   if (cache.has(key)) {
     return cache.get(key) as Data[];
   }
 
   const data: Data[] = [];
-  start = startOfDayUTC(start);
-  stop = startOfDayUTC(dayjs(stop).add(1, "day"));
-  dataEnd = startOfDayUTC(dataEnd);
   let cancel = false;
   setCancelRef.current = () => {
     cancel = true;
