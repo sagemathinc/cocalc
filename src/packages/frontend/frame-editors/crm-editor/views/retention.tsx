@@ -42,6 +42,7 @@ export default function RetentionView({
   const [retentionData, setRetentionData] = useState<RetentionData[] | null>(
     null
   );
+  console.log("recordHeight", recordHeight);
 
   return (
     <div className="smc-vfill" style={{ height: "100%" }}>
