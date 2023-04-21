@@ -145,7 +145,7 @@ function Row({ start, stop, size, active }) {
         <br />
         <div style={{ color: "#888" }}>{size} users</div>
       </td>
-      {active.map((n) => (
+      {active?.map((n) => (
         <Active n={n} size={size} />
       ))}
     </>
