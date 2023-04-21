@@ -48,10 +48,7 @@ export default function RetentionView({
   );
 
   return (
-    <div
-      className="smc-vfill"
-      style={{ height: "100%", paddingBottom: "30px" }}
-    >
+    <div className="smc-vfill" style={{ height: "100%" }}>
       <RetentionConfig
         retention={retention}
         setRetention={setRetention}
@@ -74,7 +71,7 @@ export default function RetentionView({
 function Header({ retentionData }) {
   let size = 0;
   for (const x of retentionData) {
-    size += x.size;
+    size += x?.size ?? 0;
   }
   if (retentionData.length == 0) return null;
   const { start, active, last_start_time } = retentionData[0];
@@ -86,7 +83,7 @@ function Header({ retentionData }) {
     t = t.add(period, "milliseconds");
   }
   return (
-    <tr>
+    <tr style={{ background: "white" }}>
       <td
         style={{
           padding: "5px 15px",
@@ -179,6 +176,7 @@ const COLORS = createColors([206, 221, 248], [26, 56, 168], 101);
 function getColorStyle(value) {
   if (value < 0) value = 0;
   if (value > 1) value = 1;
+  value = Math.min(1, 3 * value); // spread out since smaller values sadly all too common.
   const backgroundColor = rgbHex(COLORS[Math.round(value * 100)]);
   return { backgroundColor, color: avatar_fontcolor(backgroundColor) };
 }
