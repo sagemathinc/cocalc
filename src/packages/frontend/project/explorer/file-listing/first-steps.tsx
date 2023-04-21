@@ -24,7 +24,8 @@ export default function FirstSteps({ project_id }: Props) {
         padding: "5px 15px",
         color: "#666",
         fontSize: "11pt",
-        background: "#fffbe6",
+        background: "#fafafa",
+        borderBottom: "1px solid #eee",
       }}
     >
       <Icon
