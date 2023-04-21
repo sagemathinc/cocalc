@@ -113,7 +113,7 @@ async function getHelp({
   prioritizeLastInput,
 }) {
   let message =
-    '<span class="user-mention" account-id=chatgpt>@ChatGPT</span> help me fix my code.\n\n<details>\n\n';
+    '<span class="user-mention" account-id=chatgpt>@ChatGPT</span> help me fix my code.\n\n<details><summary>Context</summary>\n\n';
 
   if (task) {
     message += `\nI ${task}.\n`;

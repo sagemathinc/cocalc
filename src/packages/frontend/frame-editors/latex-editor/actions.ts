@@ -1489,4 +1489,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   chatgptExtraFileInfo() {
     return "LaTeX";
   }
+
+  chatgptCodeDescription(): string {
+    return "Put any LaTeX you generate in the answer in a fenced code block with info string 'tex'.";
+  }
 }
