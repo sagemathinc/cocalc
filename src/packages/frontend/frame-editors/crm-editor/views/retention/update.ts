@@ -76,6 +76,7 @@ export default async function update(
           period,
           size: null, // make it a get query -- this triggers updating the data
           active: null,
+          last_start_time: null,
         },
       },
     });

@@ -6,6 +6,8 @@ import RetentionConfig from "./retention/config";
 import type { Data as RetentionData } from "./retention/update";
 import { plural } from "@cocalc/util/misc";
 import dayjs from "dayjs";
+import { createColors, rgbHex } from "color-map";
+import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
 export interface Retention {
   model: string;
@@ -46,7 +48,10 @@ export default function RetentionView({
   );
 
   return (
-    <div className="smc-vfill" style={{ height: "100%" }}>
+    <div
+      className="smc-vfill"
+      style={{ height: "100%", paddingBottom: "30px" }}
+    >
       <RetentionConfig
         retention={retention}
         setRetention={setRetention}
@@ -59,9 +64,69 @@ export default function RetentionView({
           style={{ height: "100%", overflow: "auto" }}
           totalCount={retentionData.length}
           itemContent={(index) => <Row {...retentionData[index]} />}
+          fixedHeaderContent={() => <Header retentionData={retentionData} />}
         />
       )}
     </div>
+  );
+}
+
+function Header({ retentionData }) {
+  let size = 0;
+  for (const x of retentionData) {
+    size += x.size;
+  }
+  if (retentionData.length == 0) return null;
+  const { start, active, last_start_time } = retentionData[0];
+  const period = (last_start_time - start) / Math.max(1, active.length - 1);
+  const startTimes: dayjs.Dayjs[] = [];
+  let t = dayjs(start);
+  for (let n = 0; n < active.length; n++) {
+    startTimes.push(t);
+    t = t.add(period, "milliseconds");
+  }
+  return (
+    <tr>
+      <td
+        style={{
+          padding: "5px 15px",
+          border: "1px solid #eee",
+          minWidth: "250px",
+        }}
+      >
+        <b
+          style={{
+            fontSize: "15pt",
+          }}
+        >
+          User Retention
+        </b>
+        <div style={{ color: "#888" }}>{size} users</div>
+      </td>
+      {startTimes.map((t) => (
+        <Tooltip
+          title={
+            <>
+              {dayjs(t).format("MMM D, YYYY h:mm A")} -{" "}
+              {dayjs(t.add(period, "milliseconds")).format(
+                "MMM D, YYYY h:mm A"
+              )}
+            </>
+          }
+        >
+          <td
+            style={{
+              background: "#fafafa",
+              border: "1px solid #eee",
+              padding: "0 5px",
+              textAlign: "center",
+            }}
+          >
+            {t.format("MMM D, YYYY")}
+          </td>
+        </Tooltip>
+      ))}
+    </tr>
   );
 }
 
@@ -102,26 +167,18 @@ function Active({ n, size }) {
           height: "30px",
           minWidth: "75px",
           textAlign: "center",
-          backgroundColor: mapToPastelGreen(s),
+          ...getColorStyle(s),
         }}
       >{`${parseFloat(p)}%`}</td>
     </Tooltip>
   );
 }
 
-function mapToPastelGreen(value) {
-  if (value < 0 || value > 1) {
-    console.error("Value must be between 0 and 1.");
-    return "white";
-  }
+const COLORS = createColors([206, 221, 248], [26, 56, 168], 101);
 
-  const minGreen = 240; // Light shade
-  const maxGreen = 120; // Fairly dark shade
-  const greenRange = minGreen - maxGreen;
-
-  const red = Math.floor(150 + (100 - 150) * value);
-  const green = Math.floor(minGreen - greenRange * value);
-  const blue = Math.floor(150 + (50 - 150) * value);
-
-  return `rgb(${red},${green},${blue})`;
+function getColorStyle(value) {
+  if (value < 0) value = 0;
+  if (value > 1) value = 1;
+  const backgroundColor = rgbHex(COLORS[Math.round(value * 100)]);
+  return { backgroundColor, color: avatar_fontcolor(backgroundColor) };
 }
