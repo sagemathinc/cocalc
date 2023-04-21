@@ -147,8 +147,8 @@ function Row({ start, stop, size, active, period }) {
       cols.push(
         <Active
           n={n}
-          size={size}
-          tip={() => (
+          size={size} 
+         tip={() => (
             <>
               {dayjs(start)
                 .add(i * period, "milliseconds")

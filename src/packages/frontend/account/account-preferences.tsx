@@ -8,7 +8,7 @@ import { ProfileSettings } from "./profile-settings";
 import { TerminalSettings } from "./terminal-settings";
 import { KeyboardSettings } from "./keyboard-settings";
 import { AccountSettings } from "./settings/account-settings";
-import { Checkbox, Tooltip } from "antd";
+import { Form, Switch, Tooltip } from "antd";
 import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "@cocalc/frontend/customize";
 import { OtherSettings } from "./other-settings";
@@ -81,16 +81,40 @@ export const AccountPreferences: React.FC = () => {
       <>
         <div style={{ float: "right" }}>
           <Tooltip title="Enable dark mode across the entire user interface. See further dark mode configuration below.">
-            <Checkbox
-              checked={other_settings.get("dark_mode")}
-              onChange={(e) => {
-                redux
-                  .getActions("account")
-                  .set_other_settings("dark_mode", e.target.checked);
-              }}
-            >
-              Dark Mode
-            </Checkbox>
+            <Form>
+              <Form.Item
+                label={
+                  <div
+                    onClick={() => {
+                      redux
+                        .getActions("account")
+                        .set_other_settings(
+                          "dark_mode",
+                          !other_settings.get("dark_mode")
+                        );
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      color: "rgba(229, 224, 216)",
+                      backgroundColor: "rgb(36, 37, 37)",
+                      padding: "5px 10px",
+                      borderRadius: "3px",
+                    }}
+                  >
+                    Dark Mode
+                  </div>
+                }
+              >
+                <Switch
+                  checked={other_settings.get("dark_mode")}
+                  onChange={(checked) => {
+                    redux
+                      .getActions("account")
+                      .set_other_settings("dark_mode", checked);
+                  }}
+                />
+              </Form.Item>
+            </Form>
           </Tooltip>
         </div>
         <h2>Quick Preferences</h2>
