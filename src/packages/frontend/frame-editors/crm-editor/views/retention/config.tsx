@@ -14,7 +14,7 @@ import {
 } from "antd";
 import { useEffect, useRef, useState } from "react";
 const { Item } = Form;
-const { RangePicker } = DatePicker;
+//const { RangePicker } = DatePicker;
 interface Props {
   retention: Retention;
   setRetention: (retention) => void;
@@ -47,21 +47,7 @@ export default function RetentionConfig({
 
   const setRetention = (retention) => {
     setRetention0(retention);
-    if (!retention.period) {
-      setInfo(ERROR + "set the period");
-    } else if (!retention.model) {
-      setInfo(ERROR + "set the model");
-    } else if (!retention.start) {
-      setInfo(ERROR + "set the cohort start");
-    } else if (!retention.stop) {
-      setInfo(ERROR + "set the cohort stop");
-    } else if (retention.start > retention.stop) {
-      setInfo(ERROR + "cohort start must be before cohort stop");
-    } else if (retention.dataEnd && retention.dataEnd <= retention.stop) {
-      setInfo(ERROR + "cohort stop must be before cutoff");
-    } else {
-      setInfo("");
-    }
+    setInfo(validateRetention(retention));
   };
 
   if (retentionDescription == null) {
@@ -74,6 +60,11 @@ export default function RetentionConfig({
   };
 
   const handleUpdate = async () => {
+    const err = validateRetention(retention);
+    if (err) {
+      setInfo(err);
+      return;
+    }
     setUpdatingData(true);
     setInfo("");
     try {
@@ -113,53 +104,76 @@ export default function RetentionConfig({
         </Item>
         <Item
           label={
-            <Tooltip title="When the first cohort starts and stops (UTC midnight)">
+            <Tooltip title="When the first cohort starts (1 day long, starting at UTC midnight)">
               First Cohort
             </Tooltip>
           }
         >
-          <RangePicker
-            presets={
-              [
-                {
-                  label: "Day",
-                  value: [dayjs(retention.start), dayjs(retention.start)],
-                },
-                {
-                  label: "Week",
-                  value: [
-                    dayjs(retention.start),
-                    dayjs(retention.start).add(1, "week").subtract(1, "day"),
-                  ],
-                },
-                {
-                  label: "Month",
-                  value: [
-                    dayjs(retention.start),
-                    dayjs(retention.start).add(1, "month").subtract(1, "day"),
-                  ],
-                },
-              ] as any
-            }
-            value={[dayjs(retention.start), dayjs(retention.stop)]}
-            onChange={(val) => {
-              let start = val?.[0];
-              let stop = val?.[1];
-              if (!start) {
-                start = stop;
-              }
-              if (!stop) {
-                stop = start;
-              }
+          <DatePicker
+            value={retention.start ? dayjs(retention.start) : undefined}
+            onChange={(date) =>
               setRetention({
                 ...retention,
-                start: start?.toDate(),
-                stop: stop?.toDate(),
-              });
-            }}
+                start: date?.toDate(),
+                stop: date?.toDate(),
+              })
+            }
             disabledDate={disabledDate}
           />
         </Item>
+        {/* This UI for any length cohort is very hard to use. Also, the actual query in production data fails for
+            a week long cohort, so I'm commenting it out for now. The above code is solid to use for 1-day cohorts,
+            and those seem fine for our use case.
+          <Item
+            label={
+              <Tooltip title="When the first cohort starts and stops (UTC midnight)">
+                First Cohort
+              </Tooltip>
+            }
+          >
+            <RangePicker
+              presets={
+                [
+                  {
+                    label: "Day",
+                    value: [dayjs(retention.start), dayjs(retention.start)],
+                  },
+                  {
+                    label: "Week",
+                    value: [
+                      dayjs(retention.start),
+                      dayjs(retention.start).add(1, "week").subtract(1, "day"),
+                    ],
+                  },
+                  {
+                    label: "Month",
+                    value: [
+                      dayjs(retention.start),
+                      dayjs(retention.start).add(1, "month").subtract(1, "day"),
+                    ],
+                  },
+                ] as any
+              }
+              value={[dayjs(retention.start), dayjs(retention.stop)]}
+              onChange={(val) => {
+                let start = val?.[0];
+                let stop = val?.[1];
+                if (!start) {
+                  start = stop;
+                }
+                if (!stop) {
+                  stop = start;
+                }
+                setRetention({
+                  ...retention,
+                  start: start?.toDate(),
+                  stop: stop?.toDate(),
+                });
+              }}
+              disabledDate={disabledDate}
+            />
+          </Item>
+        )*/}
         <Item
           label={
             <Tooltip title="Length of each active period (a postgresql interval)">
@@ -214,14 +228,7 @@ export default function RetentionConfig({
           <Button
             onClick={handleUpdate}
             type="primary"
-            disabled={
-              updatingData ||
-              !retention.period ||
-              !retention.model ||
-              !retention.start ||
-              !retention.stop ||
-              (retention.dataEnd && retention.dataEnd <= retention.stop)
-            }
+            disabled={updatingData || !!validateRetention(retention)}
           >
             <Icon name="refresh" spin={updatingData} />{" "}
             {updatingData ? "Updating data..." : "Update Data"}
@@ -255,4 +262,24 @@ export default function RetentionConfig({
       )}
     </div>
   );
+}
+
+// Returns '' if is valid; otehrwise returns an error message
+// describing something that is wrong.
+export function validateRetention(retention: Retention): string {
+  if (!retention.period) {
+    return ERROR + "set the period";
+  } else if (!retention.model) {
+    return ERROR + "set the model";
+  } else if (!retention.start) {
+    return ERROR + "set the cohort start";
+  } else if (!retention.stop) {
+    return ERROR + "set the cohort stop";
+  } else if (retention.start > retention.stop) {
+    return ERROR + "cohort start must be before cohort stop";
+  } else if (retention.dataEnd && retention.dataEnd <= retention.stop) {
+    return ERROR + "cohort stop must be before cutoff";
+  } else {
+    return "";
+  }
 }
