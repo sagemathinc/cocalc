@@ -2845,9 +2845,9 @@ export class Actions<
   ): string {
     switch (scope) {
       case "selection":
-        return this._get_cm(frameId)?.getSelection()?.trim() ?? "";
+        return this._get_cm(frameId)?.getSelection() ?? "";
       default:
-        return this._get_cm(frameId)?.getValue()?.trim() ?? "";
+        return this._get_cm(frameId)?.getValue() ?? "";
     }
   }
 

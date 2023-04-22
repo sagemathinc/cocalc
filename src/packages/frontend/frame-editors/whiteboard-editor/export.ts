@@ -67,7 +67,7 @@ export function toMarkdown(elements: Element[]): string {
   return markdown;
 }
 
-function elementToMarkdown(element: Element): string {
+export function elementToMarkdown(element: Element): string {
   if (element.type == "code") {
     // todo -- what is the language mode?
     return "```\n" + element.str + "\n```";

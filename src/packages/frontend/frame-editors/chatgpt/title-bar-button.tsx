@@ -25,7 +25,9 @@ import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
-import { capitalize, filename_extension } from "@cocalc/util/misc";
+import { capitalize } from "@cocalc/util/misc";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { useInterval } from "react-interval-hook";
 
 interface Preset {
   command: string;
@@ -174,6 +176,10 @@ export default function ChatGPT({
   }, [actions]);
 
   const doUpdateInput = async () => {
+    if (!(visible && showChatGPT)) {
+      // don't waste time on update if it is not visible.
+      return;
+    }
     const { input, inputOrig } = await updateInput(actions, id, scope);
     setInput(input);
     setTruncated(
@@ -187,14 +193,19 @@ export default function ChatGPT({
 
   useEffect(() => {
     doUpdateInput();
-  }, [id, scope, visible, path]);
+  }, [id, scope, visible, path, showChatGPT]);
+
+  // This is lame -- it would be better to hook into a change event, but that's hard to
+  // in general.
+  useInterval(() => {
+    doUpdateInput();
+  }, 2500);
 
   const [description, setDescription] = useState<string>(
     showOptions ? "" : getCustomDescription(frameType)
   );
 
   const chatgpt = async (options) => {
-    // console.log("chatgpt", options);
     setError("");
     try {
       setQuerying(true);
@@ -249,7 +260,6 @@ export default function ChatGPT({
       content={() => {
         return (
           <Space
-            onClick={doUpdateInput}
             direction="vertical"
             style={{ width: "800px", maxWidth: "90vw" }}
           >
@@ -359,21 +369,7 @@ export default function ChatGPT({
                     <Icon name="refresh" /> Update
                   </Button>
                 </div>
-                {input && (
-                  <CodeMirrorStatic
-                    style={{
-                      overflowY: "auto",
-                      margin: "5px",
-                      padding: 0,
-                      width: undefined,
-                      fontSize: "10px",
-                    }}
-                    options={{
-                      mode: path ? infoToMode(filename_extension(path)) : "",
-                    }}
-                    value={input}
-                  />
-                )}
+                <Context value={input} info={actions.chatgptGetLanguage()} />
               </div>
             )}{" "}
             {description}
@@ -433,4 +429,37 @@ async function updateInput(
     input = truncateMessage(input, maxTokens);
   }
   return { input, inputOrig };
+}
+
+const contextStyle = {
+  overflowY: "auto",
+  margin: "5px",
+  padding: "5px",
+  width: undefined,
+} as const;
+
+function Context({ value, info }) {
+  if (!value) return null;
+  if (info == "md" || info == "markdown") {
+    return (
+      <StaticMarkdown
+        value={value}
+        style={{
+          ...contextStyle,
+          border: "1px solid #ddd",
+          borderRadius: "5px",
+        }}
+      />
+    );
+  } else {
+    return (
+      <CodeMirrorStatic
+        style={contextStyle}
+        options={{
+          mode: infoToMode(info),
+        }}
+        value={value}
+      />
+    );
+  }
 }
