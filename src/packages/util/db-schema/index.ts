@@ -11,6 +11,8 @@ export type {
   UserOrProjectQuery,
 } from "./types";
 export type { RenderSpec } from "./render-types";
+export type { RetentionModel } from "./retention";
+export { retentionModels } from "./retention";
 
 // The tables
 import "./account-creation-actions";

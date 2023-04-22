@@ -13,13 +13,14 @@ import {
   Progress,
 } from "antd";
 import { useEffect, useRef, useState } from "react";
+import { retentionModels } from "@cocalc/util/db-schema";
+
 const { Item } = Form;
 //const { RangePicker } = DatePicker;
 interface Props {
   retention: Retention;
   setRetention: (retention) => void;
-  retentionDescription;
-  setData: (data: Data[]) => void;
+  setData: (data: Data[] | null) => void;
 }
 
 enum PeriodOptions {
@@ -33,7 +34,6 @@ const WARNING = "WARNING: ";
 export default function RetentionConfig({
   retention,
   setRetention: setRetention0,
-  retentionDescription,
   setData,
 }: Props) {
   const [form] = Form.useForm();
@@ -41,26 +41,24 @@ export default function RetentionConfig({
   const [info, setInfo] = useState("");
   const [percentDone, setPercentDone] = useState(0);
   const setCancelRef = useRef<() => void | null>(null);
+  const retentionRef = useRef<Retention>(retention);
   useEffect(() => {
     handleUpdate();
   }, []);
 
   const setRetention = (retention) => {
+    retentionRef.current = retention;
     setRetention0(retention);
-    setInfo(validateRetention(retention));
+    handleUpdate(true);
   };
-
-  if (retentionDescription == null) {
-    return null;
-  }
 
   const disabledDate = (current) => {
     // Disable all dates after today
     return current >= dayjs().endOf("day");
   };
 
-  const handleUpdate = async () => {
-    const err = validateRetention(retention);
+  const handleUpdate = async (cacheOnly?: boolean) => {
+    const err = validateRetention(retentionRef.current);
     if (err) {
       setInfo(err);
       return;
@@ -69,17 +67,18 @@ export default function RetentionConfig({
     setInfo("");
     try {
       const data = await update(
-        retention,
+        retentionRef.current,
         setCancelRef,
         (progress: string, percentDone: number) => {
           setInfo(progress);
           setPercentDone(percentDone);
-        }
+        },
+        cacheOnly
       );
       setData(data);
       setInfo("");
     } catch (error) {
-      setInfo(`${WARNING}${error.message}`);
+      setInfo(`${error}`);
     } finally {
       setUpdatingData(false);
     }
@@ -88,28 +87,28 @@ export default function RetentionConfig({
   return (
     <div style={{ paddingBottom: "5px", borderBottom: "1px solid #ccc" }}>
       <Form form={form} layout="inline">
-        <Item
-          label={<Tooltip title="The active user model to use.">Model</Tooltip>}
-        >
-          <Select
-            style={{ width: "150px" }}
-            value={retention.model}
-            options={retentionDescription.models.map((option) => ({
-              label: option,
-              value: option,
-            }))}
-            onChange={(model) => setRetention({ ...retention, model })}
-            placeholder="Select model..."
-          />
-        </Item>
+        <Select
+          style={{ width: "275px", marginRight:'15px' }}
+          value={retention.model}
+          options={Object.keys(retentionModels).map((option) => ({
+            label: retentionModels[option].title,
+            value: option,
+          }))}
+          onChange={(model) => setRetention({ ...retention, model })}
+          placeholder="Select model..."
+        />
         <Item
           label={
-            <Tooltip title="When the first cohort starts (1 day long, starting at UTC midnight)">
+            <Tooltip
+              title="When the first cohort starts (1 day long, starting at UTC midnight)"
+              mouseEnterDelay={900}
+            >
               First Cohort
             </Tooltip>
           }
         >
           <DatePicker
+            showToday={false}
             value={retention.start ? dayjs(retention.start) : undefined}
             onChange={(date) =>
               setRetention({
@@ -176,7 +175,10 @@ export default function RetentionConfig({
         )*/}
         <Item
           label={
-            <Tooltip title="Length of each active period (a postgresql interval)">
+            <Tooltip
+              title="Length of each active period (a postgresql interval)"
+              mouseEnterDelay={900}
+            >
               Active Period
             </Tooltip>
           }
@@ -209,7 +211,10 @@ export default function RetentionConfig({
         </Item>
         <Item
           label={
-            <Tooltip title="Consider all cohorts up to this cutoff (UTC midnight).">
+            <Tooltip
+              title="Consider all cohorts up to this cutoff (UTC midnight)."
+              mouseEnterDelay={900}
+            >
               Cutoff
             </Tooltip>
           }
@@ -224,9 +229,12 @@ export default function RetentionConfig({
           />
         </Item>
 
-        <Tooltip title={"Compute retention data for all cohorts defined here."}>
+        <Tooltip
+          title={"Compute retention data for all cohorts defined here."}
+          mouseEnterDelay={900}
+        >
           <Button
-            onClick={handleUpdate}
+            onClick={() => handleUpdate()}
             type="primary"
             disabled={updatingData || !!validateRetention(retention)}
           >
@@ -250,7 +258,7 @@ export default function RetentionConfig({
             percent={percentDone}
             strokeColor={{ "0%": "#108ee9", "100%": "#87d068" }}
           />
-          <Button onClick={() => setCancelRef.current?.()}>Cancel</Button>
+          <Button onClick={() => setCancelRef.current?.()}>Stop</Button>
         </div>
       )}
       {info && (
@@ -258,7 +266,13 @@ export default function RetentionConfig({
           showIcon
           style={{ maxWidth: "600px", margin: "5px auto" }}
           message={info}
-          type={info.startsWith(WARNING) ? "warning" : "info"}
+          type={
+            info.includes("error")
+              ? "error"
+              : info.startsWith(WARNING)
+              ? "warning"
+              : "info"
+          }
           closable
           onClose={() => setInfo("")}
         />

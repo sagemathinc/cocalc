@@ -26,14 +26,13 @@ interface Props {
   recordHeight?: number;
   retention: Retention;
   setRetention: (retention) => void;
-  retentionDescription;
 }
 
-export default function RetentionView({
-  retention,
-  retentionDescription,
-  setRetention,
-}: Props) {
+export default function RetentionView({ retention, setRetention }: Props) {
+  const all = useMemo(
+    () => retention.model.endsWith(":all"),
+    [retention.model]
+  );
   const [retentionData, setRetentionData] = useState<RetentionData[] | null>(
     null
   );
@@ -63,7 +62,6 @@ export default function RetentionView({
       <RetentionConfig
         retention={retention}
         setRetention={setRetention}
-        retentionDescription={retentionDescription}
         setData={setRetentionData}
       />
       {retentionData && (
@@ -72,10 +70,15 @@ export default function RetentionView({
           style={{ height: "100%", overflow: "auto" }}
           totalCount={retentionData.length}
           itemContent={(index) => (
-            <Row {...retentionData[index]} period={period} />
+            <Row {...retentionData[index]} period={period} all={all} />
           )}
           fixedHeaderContent={() => (
-            <Header size={size} period={period} startTimes={startTimes} />
+            <Header
+              size={size}
+              period={period}
+              startTimes={startTimes}
+              all={all}
+            />
           )}
         />
       )}
@@ -83,7 +86,7 @@ export default function RetentionView({
   );
 }
 
-function Header({ size, period, startTimes }) {
+function Header({ size, period, startTimes, all }) {
   return (
     <tr style={{ background: "white" }}>
       <td
@@ -98,19 +101,22 @@ function Header({ size, period, startTimes }) {
             fontSize: "15pt",
           }}
         >
-          User Retention
+          {all ? "Active Users" : "Active Users in Cohort"}
         </b>
         <div style={{ color: "#888" }}>{size} users</div>
       </td>
       {startTimes.map((t) => (
         <Tooltip
+          overlayInnerStyle={{ width: "325px" }}
+          mouseEnterDelay={0.5}
+          key={t[0]}
           title={
             <>
-              {dayjs(t[0]).format("MMM D, YYYY h:mm A")} -{" "}
+              {dayjs(t[0]).format("dd MMM D, YYYY h:mm A")} -{" "}
               {dayjs(t[0].add(period, "milliseconds")).format(
-                "MMM D, YYYY h:mm A"
+                "dd MMM D, YYYY h:mm A"
               )}{" "}
-              for first cohort
+              {all ? "all active users" : "first cohort active users"}
             </>
           }
         >
@@ -123,6 +129,16 @@ function Header({ size, period, startTimes }) {
             }}
           >
             Period {t[1]}
+            {all && (
+              <>
+                <br />
+                {dayjs(t[0]).format("dd M-DD")}
+                <br />
+                to
+                <br />
+                {dayjs(t[1]).format("dd M-DD")}
+              </>
+            )}
           </td>
         </Tooltip>
       ))}
@@ -130,13 +146,14 @@ function Header({ size, period, startTimes }) {
   );
 }
 
-function Row({ start, stop, size, active, period }) {
+function Row({ start, stop, size, active, period, all }) {
   const cols: ReactNode[] = [];
   if (active != null) {
     for (let i = 0; i < active.length; i++) {
       const n = active[i] ?? 0;
       cols.push(
         <Active
+          all={all}
           key={i}
           n={n}
           size={size}
@@ -144,11 +161,11 @@ function Row({ start, stop, size, active, period }) {
             <>
               {dayjs(start)
                 .add(i * period, "milliseconds")
-                .format("MMM D, YYYY h:mm A")}{" "}
+                .format("dd MMM D, YYYY h:mm A")}{" "}
               -{" "}
               {dayjs(start)
                 .add((i + 1) * period, "milliseconds")
-                .format("MMM D, YYYY h:mm A")}{" "}
+                .format("dd MMM D, YYYY h:mm A")}{" "}
               <br />
               {n} active {plural(n, "user")}
             </>
@@ -167,21 +184,41 @@ function Row({ start, stop, size, active, period }) {
           minWidth: "250px",
         }}
       >
-        <b>
-          {dayjs(start).format("MMM D, YYYY")} -{" "}
-          {dayjs(stop).format("MMM D, YYYY")}
-        </b>
-        <br />
-        <div style={{ color: "#888" }}>{size} users</div>
+        {all ? (
+          <b>All Users</b>
+        ) : (
+          <>
+            <Tooltip
+              mouseEnterDelay={0.5}
+              title={
+                <>
+                  Cohort of users that created an account between{" "}
+                  {dayjs(start).format("ddd MMM D, YYYY h:mm A")} and{" "}
+                  {dayjs(stop).format("ddd MMM D, YYYY h:mm A")}
+                </>
+              }
+            >
+              <b>{dayjs(start).format("ddd MMM D, YYYY")}</b>
+              <br />
+              <div style={{ color: "#888" }}>{size} users</div>
+            </Tooltip>
+          </>
+        )}
       </td>
       {cols}
     </>
   );
 }
 
-function Active({ n, size, tip }) {
+function Active({ n, size, tip, all }) {
   const s = n / Math.max(1, size);
-  const p = (s * 100).toFixed(2);
+  let content;
+  if (all) {
+    content = n;
+  } else {
+    const p = (s * 100).toFixed(2);
+    content = `${parseFloat(p)}%`;
+  }
   return (
     <Tooltip
       title={tip}
@@ -197,7 +234,9 @@ function Active({ n, size, tip }) {
           textAlign: "center",
           ...getColorStyle(s),
         }}
-      >{`${parseFloat(p)}%`}</td>
+      >
+        {content}
+      </td>
     </Tooltip>
   );
 }

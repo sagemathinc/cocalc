@@ -30,14 +30,18 @@ export interface Data {
 export default async function update(
   { model, start, stop, period, dataEnd = new Date() }: Retention,
   setCancelRef,
-  onProgress: (string, percentDone) => void
-): Promise<Data[]> {
+  onProgress: (string, percentDone) => void,
+  cacheOnly?: boolean
+): Promise<Data[] | null> {
   start = startOfDayUTC(start);
   stop = startOfDayUTC(dayjs(stop).add(1, "day"));
   dataEnd = startOfDayUTC(dataEnd);
   const key = JSON.stringify({ model, start, stop, period, dataEnd });
   if (cache.has(key)) {
     return cache.get(key) as Data[];
+  }
+  if (cacheOnly) {
+    return null;
   }
 
   const data: Data[] = [];
@@ -88,6 +92,10 @@ export default async function update(
     n += 1;
     intervalStart = new Date(start.getTime() + n * cohortDuration);
     intervalStop = new Date(stop.getTime() + n * cohortDuration);
+    if (model.endsWith(":all")) {
+      // we only need to do it for one "cohort" since that cohort is all users.
+      break;
+    }
   }
   if (cancel) {
     onProgress("Canceled!", progress);

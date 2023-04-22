@@ -1,6 +1,8 @@
 import getPool from "../../pool";
 import getLogger from "@cocalc/backend/logger";
 import fileAccessLog from "./file-access-log";
+import fileAccessLogAll from "./file-access-log-all";
+import type { RetentionModel } from "@cocalc/util/db-schema";
 
 const log = getLogger("database:retention");
 
@@ -14,37 +16,9 @@ type Period =
 interface Options {
   start: Date;
   stop: Date;
-  model: string;
+  model: RetentionModel;
   period: Period;
 }
-
-/*
-This is particularly complicated and we use the period_counts CTE because we want to include 0's even when
-there are no matches on a given day, so we can just take the counts exactly and put them in the database.
-The actual query below that we really use is even more complicated because it also has to deal with
-both doing the original query and updating it as time progresses.
-
-WITH
-cohort AS (SELECT account_id FROM accounts WHERE created >= '2023-04-03'::timestamp AND created < '2023-04-03'::timestamp + interval '1 day'),
-periods AS (
-  SELECT '2023-04-03'::timestamp + (n * '1 day'::interval) AS period_start,
-         '2023-04-03'::timestamp + ((n + 1) * '1 day'::interval) AS period_end
-  FROM generate_series(0, floor(EXTRACT(EPOCH FROM (now() - '2023-04-03'::timestamp - '1 second'::interval)) / EXTRACT(EPOCH FROM '1 day'::interval))::integer) AS n
-  ),
-period_counts AS (
-  SELECT periods.period_start, COUNT(DISTINCT file_access_log.account_id) AS count
-  FROM periods
-  LEFT JOIN file_access_log ON file_access_log.time >= periods.period_start AND file_access_log.time < periods.period_end
-  JOIN cohort ON file_access_log.account_id = cohort.account_id
-  GROUP BY periods.period_start
-)
-SELECT periods.period_start, periods.period_end, COALESCE(period_counts.count, 0) AS count
-FROM periods
-LEFT JOIN period_counts ON periods.period_start = period_counts.period_start
-WHERE periods.period_end <= NOW()
-ORDER BY periods.period_start;
-
-*/
 
 export async function updateRetentionData({
   start,
@@ -99,7 +73,12 @@ export async function updateRetentionData({
   const last_start_time = current.rows[0]?.last_start_time;
 
   if (model == "file_access_log") {
+    // users from a given cohort that actively accessed a file for
+    // each period from start
     await fileAccessLog({ last_start_time, pool, start, stop, period });
+  } else if (model == "file_access_log:all") {
+    // users who actively accessed a file with the cohort being all accounts ever made.
+    await fileAccessLogAll({ last_start_time, pool, start, stop, period });
   } else {
     throw Error(`unsupported model: ${model}`);
   }

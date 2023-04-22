@@ -51,7 +51,6 @@ export default function View({
     columns: allColumns,
     allowCreate,
     changes,
-    retention: retentionDescription,
   } = useTableDescription(table);
   const [limit, setLimit] = useViewParam<number>({
     id,
@@ -300,7 +299,6 @@ export default function View({
         <RetentionView
           retention={retention}
           setRetention={setRetention}
-          retentionDescription={retentionDescription}
         />
       );
       break;

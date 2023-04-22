@@ -22,5 +22,4 @@ register({
   },
   allowCreate: false,
   changes: false,
-  retention: { models: ["file_access_log", "project_log"] },
 });
