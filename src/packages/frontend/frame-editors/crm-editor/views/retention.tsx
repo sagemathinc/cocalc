@@ -1,7 +1,6 @@
 import { Tooltip } from "antd";
 import { ReactNode, useMemo, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
-import { getTableDescription } from "../tables";
 import RetentionConfig from "./retention/config";
 import type { Data as RetentionData } from "./retention/update";
 import { plural } from "@cocalc/util/misc";
@@ -18,7 +17,7 @@ export interface Retention {
 }
 
 export const DEFAULT_RETENTION = {
-  model: getTableDescription("crm_retention").retention?.models[0] ?? "",
+  model: "file_access_log",
   period: "1 day",
 } as Retention;
 

@@ -156,7 +156,7 @@ export default function Views({ table, style }: Props) {
               />{" "}
               Calendar
             </Button>
-            {desc.retention != null && (
+            {desc.retention && (
               <Button
                 type="text"
                 style={{ fontSize: "14pt" }}

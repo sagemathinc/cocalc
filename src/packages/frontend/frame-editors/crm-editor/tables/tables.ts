@@ -31,10 +31,6 @@ import "./analytics";
 import "./jupyter-api";
 import "./retention";
 
-interface Retention {
-  models: string[];
-}
-
 interface TableDescription {
   name: string;
   title: ReactNode;
@@ -46,7 +42,7 @@ interface TableDescription {
   timeKey?: string;
   createDefaults?: object;
   updateDefaults?: object;
-  retention?: Retention;
+  retention?: boolean;
   __templates?: boolean; // set after we fill in any templates.
 }
 

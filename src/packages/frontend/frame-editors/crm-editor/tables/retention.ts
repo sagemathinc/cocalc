@@ -22,4 +22,5 @@ register({
   },
   allowCreate: false,
   changes: false,
+  retention: true,
 });
