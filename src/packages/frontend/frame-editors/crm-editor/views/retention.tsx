@@ -17,17 +17,8 @@ export interface Retention {
   dataEnd?: Date;
 }
 
-const oneMonthAgo = new Date();
-oneMonthAgo.setUTCMonth(oneMonthAgo.getUTCMonth() - 1);
-oneMonthAgo.setUTCHours(0, 0, 0, 0);
-
-const oneMonthAgoPlusDay = new Date(oneMonthAgo);
-oneMonthAgoPlusDay.setUTCDate(oneMonthAgo.getUTCDate() + 1);
-
 export const DEFAULT_RETENTION = {
   model: getTableDescription("crm_retention").retention?.models[0] ?? "",
-  start: oneMonthAgo,
-  stop: oneMonthAgoPlusDay,
   period: "1 day",
 } as Retention;
 
@@ -146,6 +137,7 @@ function Row({ start, stop, size, active, period }) {
       const n = active[i] ?? 0;
       cols.push(
         <Active
+          key={i}
           n={n}
           size={size}
           tip={() => (

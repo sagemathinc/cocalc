@@ -28,7 +28,7 @@ enum PeriodOptions {
   OneMonth = "1 month",
 }
 
-const ERROR = "ERROR: ";
+const WARNING = "WARNING: ";
 
 export default function RetentionConfig({
   retention,
@@ -79,7 +79,7 @@ export default function RetentionConfig({
       setData(data);
       setInfo("");
     } catch (error) {
-      setInfo(`${ERROR}${error.message}`);
+      setInfo(`${WARNING}${error.message}`);
     } finally {
       setUpdatingData(false);
     }
@@ -230,8 +230,11 @@ export default function RetentionConfig({
             type="primary"
             disabled={updatingData || !!validateRetention(retention)}
           >
-            <Icon name="refresh" spin={updatingData} />{" "}
-            {updatingData ? "Updating data..." : "Update Data"}
+            <Icon
+              name={updatingData ? "refresh" : "database"}
+              spin={updatingData}
+            />{" "}
+            {updatingData ? "Fetching data..." : "Fetch Data"}
           </Button>
         </Tooltip>
       </Form>
@@ -255,7 +258,7 @@ export default function RetentionConfig({
           showIcon
           style={{ maxWidth: "600px", margin: "5px auto" }}
           message={info}
-          type={info.startsWith(ERROR) ? "error" : "info"}
+          type={info.startsWith(WARNING) ? "warning" : "info"}
           closable
           onClose={() => setInfo("")}
         />
@@ -268,17 +271,17 @@ export default function RetentionConfig({
 // describing something that is wrong.
 export function validateRetention(retention: Retention): string {
   if (!retention.period) {
-    return ERROR + "set the period";
+    return WARNING + "set the period";
   } else if (!retention.model) {
-    return ERROR + "set the model";
+    return WARNING + "set the model";
   } else if (!retention.start) {
-    return ERROR + "set the cohort start";
+    return WARNING + "set the cohort start";
   } else if (!retention.stop) {
-    return ERROR + "set the cohort stop";
+    return WARNING + "set the cohort stop";
   } else if (retention.start > retention.stop) {
-    return ERROR + "cohort start must be before cohort stop";
+    return WARNING + "cohort start must be before cohort stop";
   } else if (retention.dataEnd && retention.dataEnd <= retention.stop) {
-    return ERROR + "cohort stop must be before cutoff";
+    return WARNING + "cohort stop must be before cutoff";
   } else {
     return "";
   }
