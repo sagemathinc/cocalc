@@ -11,6 +11,16 @@ export const retentionModels = {
     description:
       "Number of accounts with an entry in the file_access_log during each period.",
   },
+  openai_chatgpt_log: {
+    title: "Cohort Retention (of ChatGPT users)",
+    description:
+      "Number of accounts in the cohort that used chatgpt during period.",
+  },
+  "openai_chatgpt_log:all": {
+    title: "Active Users (of ChatGPT)",
+    description:
+      "Number of accounts with an entry in the openai_chatgpt_log during each period.",
+  },
 };
 
 export type RetentionModel = keyof typeof retentionModels;
