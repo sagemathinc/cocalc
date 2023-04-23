@@ -195,21 +195,30 @@ export default function RetentionConfig({
             {updatingData ? "Fetching data..." : "Fetch Data"}
           </Button>
         </Tooltip>
-        <Item style={{ marginLeft: "15px" }}>
-          <Radio.Group
-            value={retention.display}
-            optionType="button"
-            buttonStyle="solid"
-            onChange={(e) =>
-              setRetention({ ...retention, display: e.target.value })
-            }
-            options={[
-              { value: "table", label: "Table" },
-              { value: "line", label: "Line" },
-              { value: "bar", label: "Bar" },
-            ]}
-          />
-        </Item>
+        {retention.model?.endsWith(":all") && (
+          <Item style={{ marginLeft: "15px" }}>
+            <Radio.Group
+              value={retention.display}
+              optionType="button"
+              buttonStyle="solid"
+              onChange={(e) =>
+                setRetention({ ...retention, display: e.target.value })
+              }
+              options={
+                retention.model?.endsWith(":all")
+                  ? [
+                      { value: "table", label: "Table" },
+                      { value: "line", label: "Line" },
+                      { value: "bar", label: "Bar" },
+                    ]
+                  : [
+                      { value: "table", label: "Table" },
+                      { value: "line", label: "Lines" },
+                    ]
+              }
+            />
+          </Item>
+        )}
       </Form>
       {updatingData && (
         <div

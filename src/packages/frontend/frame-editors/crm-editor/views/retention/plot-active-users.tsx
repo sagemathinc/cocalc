@@ -8,7 +8,7 @@ interface Props {
   display;
 }
 
-export function PlotActiveUsers({ data, startTimes, display }: Props) {
+export default function PlotActiveUsers({ data, startTimes, display }: Props) {
   if (data == null || (display != "line" && display != "bar")) return null;
 
   const { active } = data;
@@ -41,7 +41,7 @@ function getPlotData(display, timestamps, active) {
         y: active,
         type: "scatter",
         mode: "markers",
-        marker: { color: "purple" },
+        marker: { color: "#1677ff" },
       },
     ];
   } else if (display == "bar") {
@@ -50,7 +50,7 @@ function getPlotData(display, timestamps, active) {
         x: timestamps,
         y: active,
         type: "bar",
-        marker: { color: "purple" },
+        marker: { color: "#1677ff" },
       },
     ];
   } else return [];
