@@ -7,6 +7,7 @@ import { plural } from "@cocalc/util/misc";
 import dayjs from "dayjs";
 import { createColors, rgbHex } from "color-map";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
+import { PlotActiveUsers } from "./retention/active-users";
 
 export interface Retention {
   model: string;
@@ -14,6 +15,7 @@ export interface Retention {
   stop: Date;
   period: string;
   dataEnd?: Date;
+  display?: "table" | "line" | "bar";
 }
 
 export const DEFAULT_RETENTION = {
@@ -56,6 +58,8 @@ export default function RetentionView({ retention, setRetention }: Props) {
     return { size, period, startTimes };
   }, [retentionData]);
 
+  const display = useMemo(() => retention.display ?? "table", [retention]);
+
   return (
     <div className="smc-vfill" style={{ height: "100%" }}>
       <RetentionConfig
@@ -63,10 +67,15 @@ export default function RetentionView({ retention, setRetention }: Props) {
         setRetention={setRetention}
         setData={setRetentionData}
       />
-      {retentionData && (
+      <PlotActiveUsers
+        data={retentionData?.[0]}
+        startTimes={startTimes}
+        display={display}
+      />
+      {retentionData && display == "table" && (
         <TableVirtuoso
           overscan={500}
-          style={{ height: "100%", overflow: "auto" }}
+          style={{ height: "100%", overflow: "auto", flex: 1 }}
           totalCount={retentionData.length}
           itemContent={(index) => (
             <Row {...retentionData[index]} period={period} all={all} />

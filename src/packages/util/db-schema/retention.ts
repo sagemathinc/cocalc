@@ -2,12 +2,12 @@ import { Table } from "./types";
 
 export const retentionModels = {
   file_access_log: {
-    title: "File Access Log (Users in Cohort)",
+    title: "Cohort Retention (File Access Log)",
     description:
       "Number of accounts in the cohort with an entry in the file_access_log during each period.",
   },
   "file_access_log:all": {
-    title: "File Access Log (All Users)",
+    title: "Active Users (File Access Log)",
     description:
       "Number of accounts with an entry in the file_access_log during each period.",
   },

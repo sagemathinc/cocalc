@@ -157,7 +157,6 @@ export default function ChatGPT({
     const scopes = actions.chatgptGetScopes();
     if (scopes.has("page")) return "page";
     if (scopes.has("cell")) return "cell";
-    if (scopes.has("selection")) return "selection";
     return "all";
   });
 

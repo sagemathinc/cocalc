@@ -7,6 +7,7 @@ import {
   DatePicker,
   Form,
   Input,
+  Radio,
   Select,
   Tooltip,
   Alert,
@@ -88,7 +89,7 @@ export default function RetentionConfig({
     <div style={{ paddingBottom: "5px", borderBottom: "1px solid #ccc" }}>
       <Form form={form} layout="inline">
         <Select
-          style={{ width: "275px", marginRight:'15px' }}
+          style={{ width: "275px", marginRight: "15px" }}
           value={retention.model}
           options={Object.keys(retentionModels).map((option) => ({
             label: retentionModels[option].title,
@@ -103,7 +104,7 @@ export default function RetentionConfig({
               title="When the first cohort starts (1 day long, starting at UTC midnight)"
               mouseEnterDelay={900}
             >
-              First Cohort
+              {retention.model?.endsWith(":all") ? "Start" : "First Cohort"}
             </Tooltip>
           }
         >
@@ -120,66 +121,15 @@ export default function RetentionConfig({
             disabledDate={disabledDate}
           />
         </Item>
-        {/* This UI for any length cohort is very hard to use. Also, the actual query in production data fails for
-            a week long cohort, so I'm commenting it out for now. The above code is solid to use for 1-day cohorts,
-            and those seem fine for our use case.
-          <Item
-            label={
-              <Tooltip title="When the first cohort starts and stops (UTC midnight)">
-                First Cohort
-              </Tooltip>
-            }
-          >
-            <RangePicker
-              presets={
-                [
-                  {
-                    label: "Day",
-                    value: [dayjs(retention.start), dayjs(retention.start)],
-                  },
-                  {
-                    label: "Week",
-                    value: [
-                      dayjs(retention.start),
-                      dayjs(retention.start).add(1, "week").subtract(1, "day"),
-                    ],
-                  },
-                  {
-                    label: "Month",
-                    value: [
-                      dayjs(retention.start),
-                      dayjs(retention.start).add(1, "month").subtract(1, "day"),
-                    ],
-                  },
-                ] as any
-              }
-              value={[dayjs(retention.start), dayjs(retention.stop)]}
-              onChange={(val) => {
-                let start = val?.[0];
-                let stop = val?.[1];
-                if (!start) {
-                  start = stop;
-                }
-                if (!stop) {
-                  stop = start;
-                }
-                setRetention({
-                  ...retention,
-                  start: start?.toDate(),
-                  stop: stop?.toDate(),
-                });
-              }}
-              disabledDate={disabledDate}
-            />
-          </Item>
-        )*/}
+
         <Item
           label={
             <Tooltip
               title="Length of each active period (a postgresql interval)"
               mouseEnterDelay={900}
             >
-              Active Period
+              {retention.model?.endsWith(":all") ? "Active" : "Retention"}{" "}
+              Period
             </Tooltip>
           }
           style={{ display: "flex" }}
@@ -212,10 +162,10 @@ export default function RetentionConfig({
         <Item
           label={
             <Tooltip
-              title="Consider all cohorts up to this cutoff (UTC midnight)."
+              title="Consider all cohorts up to this end (UTC midnight)."
               mouseEnterDelay={900}
             >
-              Cutoff
+              End Date
             </Tooltip>
           }
         >
@@ -245,6 +195,21 @@ export default function RetentionConfig({
             {updatingData ? "Fetching data..." : "Fetch Data"}
           </Button>
         </Tooltip>
+        <Item style={{ marginLeft: "15px" }}>
+          <Radio.Group
+            value={retention.display}
+            optionType="button"
+            buttonStyle="solid"
+            onChange={(e) =>
+              setRetention({ ...retention, display: e.target.value })
+            }
+            options={[
+              { value: "table", label: "Table" },
+              { value: "line", label: "Line" },
+              { value: "bar", label: "Bar" },
+            ]}
+          />
+        </Item>
       </Form>
       {updatingData && (
         <div
@@ -299,4 +264,60 @@ export function validateRetention(retention: Retention): string {
   } else {
     return "";
   }
+}
+
+{
+  /* This UI for any length cohort is very hard to use. Also, the actual query in production data fails for
+            a week long cohort, so I'm commenting it out for now. The above code is solid to use for 1-day cohorts,
+            and those seem fine for our use case.
+          <Item
+            label={
+              <Tooltip title="When the first cohort starts and stops (UTC midnight)">
+                First Cohort
+              </Tooltip>
+            }
+          >
+            <RangePicker
+              presets={
+                [
+                  {
+                    label: "Day",
+                    value: [dayjs(retention.start), dayjs(retention.start)],
+                  },
+                  {
+                    label: "Week",
+                    value: [
+                      dayjs(retention.start),
+                      dayjs(retention.start).add(1, "week").subtract(1, "day"),
+                    ],
+                  },
+                  {
+                    label: "Month",
+                    value: [
+                      dayjs(retention.start),
+                      dayjs(retention.start).add(1, "month").subtract(1, "day"),
+                    ],
+                  },
+                ] as any
+              }
+              value={[dayjs(retention.start), dayjs(retention.stop)]}
+              onChange={(val) => {
+                let start = val?.[0];
+                let stop = val?.[1];
+                if (!start) {
+                  start = stop;
+                }
+                if (!stop) {
+                  stop = start;
+                }
+                setRetention({
+                  ...retention,
+                  start: start?.toDate(),
+                  stop: stop?.toDate(),
+                });
+              }}
+              disabledDate={disabledDate}
+            />
+          </Item>
+        )*/
 }
