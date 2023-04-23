@@ -15,6 +15,8 @@ import { startOfDayUTC } from "./util";
 import dayjs from "dayjs";
 import LRU from "lru-cache";
 
+const FAKE_DATA = false;
+
 const cache = new LRU<string, Data[]>({ max: 50 });
 
 export interface Data {
@@ -86,6 +88,18 @@ export default async function update(
       },
     });
     last = JSON.stringify(result.query.crm_retention);
+    if (FAKE_DATA) {
+      const size = (result.query.crm_retention.size = Math.round(
+        Math.random() * 1000
+      ));
+      let n = size * Math.random();
+      result.query.crm_retention.active = result.query.crm_retention.active.map(
+        (_) => {
+          n = Math.min(size, Math.round(n * 1.3 * Math.random()));
+          return n;
+        }
+      );
+    }
     data.push(result.query.crm_retention);
 
     // Update interval for next iteration

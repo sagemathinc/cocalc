@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 import { createColors, rgbHex } from "color-map";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import PlotActiveUsers from "./retention/plot-active-users";
-//import PlotCohorts from "./retention/plot-cohorts";
+import PlotRetention from "./retention/plot-retention";
 
 export interface Retention {
   model: string;
@@ -68,13 +68,20 @@ export default function RetentionView({ retention, setRetention }: Props) {
         setRetention={setRetention}
         setData={setRetentionData}
       />
-      {retention.model.endsWith(":all") && display != "table" && (
-        <PlotActiveUsers
-          data={retentionData?.[0]}
-          startTimes={startTimes}
-          display={display}
-        />
-      )}{" "}
+      {retentionData &&
+        display != "table" &&
+        retention.model.endsWith(":all") && (
+          <PlotActiveUsers
+            data={retentionData?.[0]}
+            startTimes={startTimes}
+            display={display}
+          />
+        )}
+      {retentionData &&
+        display != "table" &&
+        !retention.model.endsWith(":all") && (
+          <PlotRetention retentionData={retentionData} period={period} />
+        )}
       {retentionData && display == "table" && (
         <TableVirtuoso
           overscan={500}

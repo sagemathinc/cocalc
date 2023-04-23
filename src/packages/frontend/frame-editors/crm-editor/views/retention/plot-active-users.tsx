@@ -23,7 +23,7 @@ export default function PlotActiveUsers({ data, startTimes, display }: Props) {
     yaxis: { title: "Active Users" },
   };
 
-  return <Plot data={plotData} layout={layout} />;
+  return <Plot style={{ height: "100%" }} data={plotData} layout={layout} />;
 }
 
 function getPlotData(display, timestamps, active) {
@@ -35,6 +35,7 @@ function getPlotData(display, timestamps, active) {
         type: "scatter",
         mode: "lines",
         marker: { color: "lightgrey" },
+        name: "Active Users",
       },
       {
         x: timestamps,
@@ -42,6 +43,7 @@ function getPlotData(display, timestamps, active) {
         type: "scatter",
         mode: "markers",
         marker: { color: "#1677ff" },
+        name: "Active Users",
       },
     ];
   } else if (display == "bar") {
@@ -51,6 +53,7 @@ function getPlotData(display, timestamps, active) {
         y: active,
         type: "bar",
         marker: { color: "#1677ff" },
+        name: "Active Users",
       },
     ];
   } else return [];
