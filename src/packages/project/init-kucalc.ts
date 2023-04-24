@@ -11,6 +11,8 @@ import * as dedicatedDisks from "./dedicated-disks";
 import * as sshd from "./sshd";
 import * as initScript from "./init-script";
 import { getLogger } from "./logger";
+import { init as initJupyterPoolParams } from "./jupyter/pool-params";
+import { init as initJupyterPool } from "./jupyter/pool";
 
 export default async function init() {
   const winston = getLogger("init kucalc");
@@ -38,7 +40,13 @@ export default async function init() {
     sshd.init(envVars);
   }
 
+  // this must come after projectSetup.set_extra_env !
+  initJupyterPoolParams();
+
   await dedicatedDisks.init();
 
   initScript.run();
+
+  // this has to come after setting env vars and intializing the pool params
+  initJupyterPool();
 }

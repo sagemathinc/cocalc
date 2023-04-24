@@ -6,26 +6,26 @@
 // The "Restart Project" button, which says "Start" like the one at the top if the project isn't running
 
 import { PlayCircleOutlined, SyncOutlined } from "@ant-design/icons";
-import { Popconfirm } from "antd";
+import { Button, Popconfirm } from "antd";
 
-import {
-  Button,
-  ButtonSize,
-  ButtonStyle,
-} from "@cocalc/frontend/antd-bootstrap";
-import { React, useActions } from "@cocalc/frontend/app-framework";
+import { useActions } from "@cocalc/frontend/app-framework";
 import { useProjectState } from "../page/project-state-hook";
 
 interface Props {
   project_id: string;
   disabled?: boolean;
   text?: string;
-  bsStyle?: ButtonStyle;
-  bsSize?: ButtonSize;
+  size?;
+  danger?: boolean;
 }
 
-export const RestartProject: React.FC<Props> = React.memo((props) => {
-  const { project_id, disabled, text, bsStyle, bsSize } = props;
+export function RestartProject({
+  project_id,
+  disabled,
+  text,
+  size,
+  danger,
+}: Props) {
   const actions = useActions("projects");
   const state = useProjectState(project_id);
   const is_running = state.get("state") === "running";
@@ -55,11 +55,11 @@ export const RestartProject: React.FC<Props> = React.memo((props) => {
     >
       <Button
         disabled={disabled || actions == null}
-        bsSize={bsSize}
-        bsStyle={bsStyle ?? "warning"}
+        size={size}
+        danger={danger}
       >
         {icon} {description}
       </Button>
     </Popconfirm>
   );
-});
+}

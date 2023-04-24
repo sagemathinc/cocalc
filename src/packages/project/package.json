@@ -83,6 +83,7 @@
     "@types/express": "^4.17.13",
     "@types/jquery": "^3.5.5",
     "@types/node": "^18.11.18",
+    "@types/node-cleanup": "^2.1.2",
     "coffeescript": "^2.5.1"
   },
   "scripts": {

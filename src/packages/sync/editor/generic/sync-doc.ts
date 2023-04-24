@@ -908,28 +908,37 @@ export class SyncDoc extends EventEmitter {
     options: any[],
     throttle_changes?: undefined | number
   ): Promise<SyncTable> {
+    const dbg = this.dbg("synctable");
     this.assert_not_closed("synctable");
     if (this.persistent && this.data_server == "project") {
       options = options.concat([{ persistent: true }]);
     }
+    let synctable;
     switch (this.data_server) {
       case "project":
-        return await this.client.synctable_project(
+        synctable = await this.client.synctable_project(
           this.project_id,
           query,
           options,
           throttle_changes,
           this.id
         );
+        break;
       case "database":
-        return await this.client.synctable_database(
+        synctable = await this.client.synctable_database(
           query,
           options,
           throttle_changes
         );
+        break;
       default:
         throw Error(`uknown server ${this.data_server}`);
     }
+    // We listen and log error events.  This is useful because in some settings, e.g.,
+    // in the project, an eventemitter with no listener for errors, which has an error,
+    // will crash the entire process.
+    synctable.on("error", (error) => dbg("ERROR", error));
+    return synctable;
   }
 
   private async init_syncstring_table(): Promise<void> {

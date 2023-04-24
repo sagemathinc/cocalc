@@ -19,7 +19,7 @@ import {
   usePrevious,
 } from "@cocalc/frontend/app-framework";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
-import { NoFiles } from "./no-files";
+import NoFiles from "./no-files";
 import { TerminalModeDisplay } from "./terminal-mode-display";
 import { ListingHeader } from "./listing-header";
 import { FileRow } from "./file-row";

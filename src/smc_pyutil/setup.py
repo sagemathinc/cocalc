@@ -8,14 +8,21 @@
 #   pip install --user --upgrade smc_pyutil/
 ###
 
-# CRITICAL: I don't know any other way to ensure the permissions are
-# right on the templates than this
 from __future__ import absolute_import
 import os
 from os.path import join
+from setuptools import findall
 
 path = os.path.dirname(os.path.realpath(__file__))
-os.system("chmod a+r -R %s" % join(path, "smc_pyutil", "templates"))
+
+TEMPLATES = join("smc_pyutil", "templates")
+# CRITICAL: I don't know any other way to ensure the permissions are
+# right on the templates than this.
+os.system("chmod a+r -R %s" % join(path, TEMPLATES))
+# Next, some of the templates don't get copied over during pip install
+# unless we explicitly set the data_files (as suggested by chatgpt):
+template_files = findall(TEMPLATES)
+template_data = [(f.split(TEMPLATES)[1], [f]) for f in template_files]
 
 
 def readme():
@@ -79,6 +86,7 @@ for prefix in ['smc', 'cc', 'cocalc']:
 
     # only cc and cocalc prefixes
     if prefix != 'smc':
+        add('%s-first-steps  = smc_pyutil.first_steps:main' % prefix)
         add('%s-ipynb-to-pdf = smc_pyutil.ipynb_to_pdf:main' % prefix)
         add('%s-close        = smc_pyutil.smc_close:main' % prefix)
         add('%s-jupyter-classic-open = smc_pyutil.jupyter_notebook:prepare_file_for_open'
@@ -86,7 +94,7 @@ for prefix in ['smc', 'cc', 'cocalc']:
 
 setup(
     name='smc_pyutil',
-    version='1.1',
+    version='1.2',
     description='CoCalc Python Utilities',
     long_description=readme(),
     url='https://github.com/sagemathinc/cocalc',
@@ -108,4 +116,6 @@ setup(
     ],
     entry_points={'console_scripts': cs},
     include_package_data=True,
+    package_data={'smc_pyutil': ['smc_pyutil/templates/*']},
+    data_files=template_data,
 )

@@ -4,12 +4,19 @@
  */
 
 import { Col, Row } from "antd";
-import React from "react";
+import React, { useEffect } from "react";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { A, Paragraph, Title } from "@cocalc/frontend/components";
+import {
+  A,
+  Icon,
+  Loading,
+  Paragraph,
+  Title,
+} from "@cocalc/frontend/components";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { COLORS } from "@cocalc/util/theme";
-import { MentionFilter } from "./mentions/types";
+import { NotificationFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
 import { NotificationNav } from "./notification-nav";
 
@@ -30,7 +37,7 @@ const INNER_STYLE: CSS = {
   flexDirection: "column",
   margin: "0px auto",
   padding: "0 10px",
-  maxWidth: "800px",
+  maxWidth: "1200px",
   overflow: "hidden",
 } as const;
 
@@ -40,6 +47,14 @@ const CONTENT_STYLE: CSS = {
   flexDirection: "row",
   height: "100%",
   overflow: "hidden",
+};
+
+const NAV_COL_STYLE: CSS = {
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  flex: "1 1 0",
+  overflow: "auto",
 };
 
 const NAV_STYLE: CSS = {
@@ -53,7 +68,8 @@ const LIST_CONTAINER_STYLE: CSS = {
   display: "flex",
   flexDirection: "column",
   height: "100%",
-  overflow: "hidden",
+  overflowX: "hidden",
+  overflowY: "auto",
 } as const;
 
 const LIST_STYLE: CSS = {
@@ -66,12 +82,13 @@ const LIST_STYLE: CSS = {
 export const NotificationPage: React.FC<{}> = () => {
   const account_id = useTypedRedux("account", "account_id");
   const mentions = useTypedRedux("mentions", "mentions");
+  const news = useTypedRedux("news", "news");
   const user_map = useTypedRedux("users", "user_map");
-  const filter: MentionFilter = useTypedRedux("mentions", "filter");
+  const filter: NotificationFilter = useTypedRedux("mentions", "filter");
 
-  if (filter == null || account_id == null) {
-    return <div />;
-  }
+  useEffect(() => {
+    Fragment.set({ page: filter });
+  }, [filter]);
 
   function renderExplanation() {
     return (
@@ -83,8 +100,8 @@ export const NotificationPage: React.FC<{}> = () => {
         }}
         style={{ color: COLORS.GRAY_D, flex: "0 0 auto" }}
       >
-        Someone used @your_name to explicitly mention you as a collaborator.
-        This could have happened in a{" "}
+        Global news or someone used @your_name to explicitly mention you as a
+        collaborator. This could have happened in a{" "}
         <A href="https://doc.cocalc.com/chat.html">Chatroom</A>, in the context
         of{" "}
         <A href="https://doc.cocalc.com/teaching-interactions.html#mention-collaborators-in-chat">
@@ -104,9 +121,13 @@ export const NotificationPage: React.FC<{}> = () => {
   }
 
   function renderContent() {
+    if (filter == null || account_id == null) {
+      return <Loading theme="medium" />;
+    }
+
     return (
       <Row style={CONTENT_STYLE} gutter={[20, 20]}>
-        <Col span={6}>
+        <Col span={6} style={NAV_COL_STYLE}>
           <NotificationNav
             filter={filter}
             on_click={redux.getActions("mentions").set_filter}
@@ -118,6 +139,7 @@ export const NotificationPage: React.FC<{}> = () => {
           <NotificationList
             account_id={account_id}
             mentions={mentions}
+            news={news}
             style={LIST_STYLE}
             user_map={user_map}
             filter={filter}
@@ -131,7 +153,7 @@ export const NotificationPage: React.FC<{}> = () => {
     <div style={OUTER_STYLE}>
       <div style={INNER_STYLE}>
         <Title level={2} style={{ textAlign: "center", flex: "0 0 auto" }}>
-          Mentions of You
+          <Icon name="mail" /> Notifications
         </Title>
         {renderExplanation()}
         {renderContent()}

@@ -315,7 +315,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     // set in syncdb, we wait for file to load,
     // looks for "% !TeX program =", and if so
     // sets up the build command based on that:
-    if (this._syncdb == null) throw Error("syncdb must be defined");
+    if (this._syncdb == null) {
+      throw Error("syncdb must be defined");
+    }
     if (this._syncdb.get_one({ key: "build_command" }) == null) {
       await this.init_build_directive();
       if (this._state == "closed") return;
@@ -861,6 +863,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     this.check_for_fatal_error();
     this.update_gutters();
+    this.update_gutters_soon();
 
     if (update_pdf) {
       this.update_pdf(time, force);
@@ -902,6 +905,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     update_gutters({
       log: this.parsed_output_log,
       set_gutter: this.set_gutter,
+      actions: this,
     });
   }
 
@@ -923,6 +927,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (actions == null) {
       return; // file not open
     }
+
     (actions as BaseActions<LatexEditorState>).set_gutter_marker({
       line,
       component,
@@ -1479,5 +1484,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     const id = this.show_focused_frame_of_type("cm");
     if (id == null) return;
     this.programmatical_goto_line(parseInt(entry.id), true, true, id);
+  }
+
+  chatgptExtraFileInfo() {
+    return "LaTeX";
+  }
+
+  chatgptCodeDescription(): string {
+    return "Put any LaTeX you generate in the answer in a fenced code block with info string 'tex'.";
   }
 }

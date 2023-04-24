@@ -28,8 +28,8 @@ export class TimeClient {
     this.closed = true;
   }
 
-  // Starts pinging going.
-  public async ping(): Promise<void> {
+  // Ping server and also use the ping to determine clock skew.
+  public async ping(noLoop: boolean = false): Promise<void> {
     if (this.closed) return;
     const start = (this.last_ping = new Date());
     let pong;
@@ -40,8 +40,10 @@ export class TimeClient {
         timeout: 10, // CRITICAL that this timeout be less than the @_ping_interval
       });
     } catch (err) {
-      // try again **sooner**
-      setTimeout(this.ping.bind(this), this.ping_interval_ms / 2);
+      if (!noLoop) {
+        // try again **sooner**
+        setTimeout(this.ping.bind(this), this.ping_interval_ms / 2);
+      }
       return;
     }
     const now = new Date();
@@ -53,22 +55,25 @@ export class TimeClient {
       now.valueOf() - this.last_ping.valueOf() <= 1000 * 15
     ) {
       if (pong.now == null) {
-        throw Error("png must have a now field");
+        console.warn("pong must have a now field");
+      } else {
+        this.last_pong = { server: pong.now, local: now };
+        // See the function server_time below; subtract this.clock_skew_ms from local
+        // time to get a better estimate for server time.
+        this.clock_skew_ms =
+          this.last_ping.valueOf() +
+          (this.last_pong.local.valueOf() - this.last_ping.valueOf()) / 2 -
+          this.last_pong.server.valueOf();
+        set_local_storage("clock_skew", `${this.clock_skew_ms}`);
       }
-      this.last_pong = { server: pong.now, local: now };
-      // See the function server_time below; subtract this.clock_skew_ms from local
-      // time to get a better estimate for server time.
-      this.clock_skew_ms =
-        this.last_ping.valueOf() +
-        (this.last_pong.local.valueOf() - this.last_ping.valueOf()) / 2 -
-        this.last_pong.server.valueOf();
-      set_local_storage("clock_skew", `${this.clock_skew_ms}`);
     }
 
     this.emit_latency(now.valueOf() - start.valueOf());
 
-    // try again later
-    setTimeout(this.ping.bind(this), this.ping_interval_ms);
+    if (!noLoop) {
+      // periodically ping the server, to ensure clocks stay in sync.
+      setTimeout(this.ping.bind(this), this.ping_interval_ms);
+    }
   }
 
   private emit_latency(latency: number) {
@@ -90,11 +95,16 @@ export class TimeClient {
 
   // Returns (approximate) time in ms since epoch on the server.
   // NOTE:
-  //     This is guaranteed to be an *increasing* function, with an arbitrary
+  //     Once the clock has synced ever with the server, this is guaranteed
+  //     to be an *increasing* function, with an arbitrary
   //     ms added on in case of multiple calls at once, to guarantee uniqueness.
   //     Also, if the user changes their clock back a little, this will still
-  //     increase... very slowly until things catch up.  This avoids any
-  //     possibility of weird random re-ordering of patches within a given session.
+  //     increase... very slowly until things catch up.  This avoids
+  //     weird random re-ordering of patches within a given session.
+  //     NOTE: we do not force this to be increasing until sync, since this
+  //     gets called immediately during startup, and forcing it to increase
+  //     would make cocalc-with-a-broken-clock be completely broken until
+  //     the user refreshes their browser.
   public server_time(): Date {
     let t = this.unskewed_server_time();
     const last = this.last_server_time;
@@ -102,7 +112,11 @@ export class TimeClient {
       // That's annoying -- time is not marching forward... let's fake it until it does.
       t = new Date(last.valueOf() + 1);
     }
-    this.last_server_time = t;
+    if (this.clock_skew_ms) {
+      // We have synced the clock once successfully, so we now ensure the time is increasing.
+      // This first sync should happen with ms of the user connecting.
+      this.last_server_time = t;
+    }
     return t;
   }
 

@@ -42,11 +42,13 @@ The URI schema handled by the single page app is as follows:
        https://cocalc.com/projects/project-id/port/<number>/.
 */
 
-import { redux } from "./app-framework";
 import { join } from "path";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
-import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
+import { getNotificationFilterFromFragment } from "./notifications/fragment";
 
 // Determine query params part of URL based on state of the project store.
 // This also leaves unchanged any *other* params already there (i.e., not
@@ -169,14 +171,12 @@ export function load_target(
       break;
 
     case "notifications":
-      if (!logged_in) {
-        return;
+      if (!logged_in) return;
+      const filter = getNotificationFilterFromFragment();
+      if (filter) {
+        redux.getActions("mentions").set_filter(filter);
       }
       redux.getActions("page").set_active_tab("notifications", change_history);
-
-      if (segments[1] === "mentions") {
-        redux.getActions("page").set_active_tab("mentions");
-      }
       break;
 
     case "file-use":

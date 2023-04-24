@@ -3,8 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { TypedMap } from "@cocalc/frontend/app-framework";
 import { Map } from "immutable";
+
+import { TypedMap } from "@cocalc/frontend/app-framework";
+import { NewsFilter, NEWS_CHANNELS } from "../news/types";
 
 export type MentionsMap = Map<string, MentionInfo>;
 
@@ -28,4 +30,11 @@ export type MentionInfo = TypedMap<{
   >;
 }>;
 
-export type MentionFilter = "read" | "unread" | "saved" | "all";
+const MENTIONS_FILTER = ["read", "unread", "saved", "all"] as const;
+
+export type MentionsFilter = typeof MENTIONS_FILTER[number];
+export type NotificationFilter = MentionsFilter | NewsFilter;
+
+export function isNotificationFilter(f: string): f is NotificationFilter {
+  return MENTIONS_FILTER.includes(f as any) || NEWS_CHANNELS.includes(f as any);
+}

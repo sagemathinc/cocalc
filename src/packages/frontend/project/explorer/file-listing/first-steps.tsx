@@ -3,78 +3,105 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
-
-import { ProjectActions } from "@cocalc/frontend/project_actions";
-import { AppRedux } from "@cocalc/frontend/app-framework";
-
-import { Space } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
-const { Row, Col } = require("react-bootstrap");
+import { useState } from "react";
+import { Popconfirm } from "antd";
+import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { SiteName } from "@cocalc/frontend/customize";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props {
-  actions: ProjectActions;
-  redux: AppRedux;
+  project_id: string;
 }
 
-const row_style: React.CSSProperties = {
-  textAlign: "center",
-  padding: "10px",
-  color: COLORS.GRAY_L,
-  position: "absolute",
-  bottom: 0,
-  fontSize: "110%",
-};
-
-const link_style: React.CSSProperties = {
-  cursor: "pointer",
-  color: COLORS.GRAY,
-};
-
-const library_comment_style: React.CSSProperties = {
-  fontSize: "80%",
-};
-
-export class FirstSteps extends React.PureComponent<Props> {
-  get_first_steps = () => {
-    this.props.actions.copy_from_library({ entry: "first_steps" });
-  };
-
-  dismiss_first_steps = () => {
-    this.props.redux
-      .getTable("account")
-      .set({ other_settings: { first_steps: false } });
-  };
-
-  render() {
-    return (
-      <Col sm={12} style={row_style}>
-        <Row>
-          <span>
-            Are you new to <SiteName />?
-          </span>
-          <Space />
-          <span>
-            <a onClick={this.get_first_steps} style={link_style}>
-              Click to start the <strong>First Steps</strong> guide!
-            </a>
-          </span>
-          <Space />
-          <span>or</span>
-          <Space />
-          <span>
-            <a onClick={this.dismiss_first_steps} style={link_style}>
-              dismiss this message
-            </a>
-            .
-          </span>
-          <br />
-          <span style={library_comment_style}>
-            You can also load it via "Library" → "First Steps in <SiteName />"
-          </span>
-        </Row>
-      </Col>
-    );
-  }
+export default function FirstSteps({ project_id }: Props) {
+  const [starting, setStarting] = useState<boolean>(false);
+  const first_steps = useRedux(["account", "other_settings", "first_steps"]);
+  if (!first_steps) return null;
+  return (
+    <div
+      style={{
+        padding: "5px 15px",
+        color: "#666",
+        fontSize: "11pt",
+        background: "#fafafa",
+        borderBottom: "1px solid #eee",
+      }}
+    >
+      <Icon
+        name={starting ? "cocalc-ring" : "cube"}
+        spin={starting}
+        style={{ marginRight: "15px" }}
+      />
+      <span>
+        Are you new to <SiteName />?
+      </span>{" "}
+      <span>
+        <a
+          onClick={async () => {
+            if (starting) return;
+            try {
+              setStarting(true);
+              await redux.getActions("projects").start_project(project_id);
+              // try to run the new cc-first-steps script; if that fails (e.g. old already running project),
+              // try to copy from the library.
+              try {
+                await webapp_client.project_client.exec({
+                  command: "cc-first-steps",
+                  project_id,
+                });
+                await redux.getProjectActions(project_id).open_file({
+                  path: "first-steps/first-steps.tasks",
+                  foreground: true,
+                });
+              } catch (error) {
+                console.log(
+                  "cc-first-steps failed, so falling back to library"
+                );
+                await redux
+                  .getProjectActions(project_id)
+                  .copy_from_library({ entry: "first_steps" });
+              }
+            } catch (error) {
+              console.warn("error getting first steps", error);
+            } finally {
+              setStarting(false);
+            }
+          }}
+        >
+          Start the <strong>First Steps Guide!</strong>
+        </a>
+      </span>{" "}
+      <span>or</span>{" "}
+      <span>
+        <Popconfirm
+          title="Don't Show First Steps Banner"
+          description={
+            <span>
+              You can always re-enable First Steps via "Offer the First Steps
+              guide" in{" "}
+              <a
+                onClick={() => {
+                  redux.getActions("page").set_active_tab("account");
+                  redux.getActions("account").set_active_tab("account");
+                }}
+              >
+                Account Preferences
+              </a>
+              .
+            </span>
+          }
+          onConfirm={() => {
+            redux
+              .getTable("account")
+              .set({ other_settings: { first_steps: false } });
+          }}
+          okText="Dismiss message"
+          cancelText="No"
+        >
+          <a>dismiss this message</a>.
+        </Popconfirm>
+      </span>
+    </div>
+  );
 }

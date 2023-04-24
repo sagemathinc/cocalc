@@ -374,11 +374,21 @@ export function cm_options(
 function tab_key(editor, spaces_instead_of_tabs?: boolean): void {
   if (editor.somethingSelected()) {
     (CodeMirror as any).commands.defaultTab(editor);
-  } else {
+    return;
+  }
+  const cursor = editor.getDoc().getCursor();
+  if (
+    cursor.ch === 0 ||
+    /\s/.test(editor.getDoc().getLine(cursor.line)[cursor.ch - 1])
+  ) {
+    // whitespace before cursor -- just do normal tab
     if (spaces_instead_of_tabs) {
       editor.tab_as_space();
     } else {
       (CodeMirror as any).commands.defaultTab(editor);
     }
+  } else {
+    // completion
+    editor.execCommand("autocomplete");
   }
 }

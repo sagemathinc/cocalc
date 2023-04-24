@@ -39,6 +39,9 @@ export function Complete({ actions, id, complete }: Props) {
     $(nodeRef.current).find("a:first").focus();
     return () => {
       $(window).off("keypress", keypress);
+      // No matter what, when the complete dialog goes away, restore focus
+      // and edit mode to the cell.
+      frameActions.current?.set_mode("edit");
     };
   }, []);
 
@@ -49,9 +52,6 @@ export function Complete({ actions, id, complete }: Props) {
 
     // Actually insert the completion:
     actions.select_complete(id, item);
-
-    // Start working on the cell:
-    frameActions.current?.set_mode("edit");
   }
 
   function renderItem(item: string) {
@@ -71,7 +71,6 @@ export function Complete({ actions, id, complete }: Props) {
   function key(e: any): void {
     if (e.keyCode === 27) {
       actions.clear_complete();
-      frameActions.current?.set_mode("edit");
     }
     if (e.keyCode !== 13) {
       return;
@@ -88,8 +87,8 @@ export function Complete({ actions, id, complete }: Props) {
     const gutter = complete.getIn(["offset", "gutter"], 0);
     return {
       cursor: "pointer",
-      top: top + "px",
-      left: left + gutter + "px",
+      top: top + 15 + "px",
+      left: left + 100 + gutter + "px",
       zIndex: 10,
       width: 0,
       height: 0,

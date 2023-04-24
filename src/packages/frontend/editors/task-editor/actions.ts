@@ -685,23 +685,15 @@ export class TaskActions extends Actions<TaskState> {
     this.enable_key_handler();
   }
 
-  chatgptGetText(scope: "selection" | "cell" | "all" = "all"): string {
+  chatgptGetText(scope: "cell" | "all", current_id?): string {
     if (scope == "all") {
       // TODO: it would be better to uniformly shorten long tasks, rather than just truncating at the end...
       return this.toMarkdown();
     } else if (scope == "cell") {
-      return ""; // for now, since no possible way to select cells in task editor
+      if (current_id == null) return "";
+      return this.store.getIn(["tasks", current_id, "desc"]) ?? "";
     } else {
-      return ""; // for now
-      /*
-      const local = this.getFrameData("local_task_state") ?? fromJS({});
-      for (const [id, state] of local) {
-        if (state.get("editing_desc")) {
-          // we don't have a way to get the selection in the editing task yet.
-          return this.store.getIn(["tasks", id, "desc"]) ?? "";
-        }
-      }
-      return "";*/
+      return "";
     }
   }
 

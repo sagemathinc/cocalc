@@ -64,6 +64,7 @@ import { open_new_tab } from "@cocalc/frontend/misc";
 import debug from "debug";
 import { moveCell } from "@cocalc/frontend/jupyter/cell-utils";
 import { migrateToNewPageNumbers } from "./migrate";
+import { toMarkdown, elementToMarkdown } from "./export";
 
 const log = debug("whiteboard:actions");
 
@@ -1531,6 +1532,47 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     if (page == null) return;
     this.deleteElements(Object.values(page.toJS()), false);
     this.delete(pageId, commit);
+  }
+
+  chatgptExtraFileInfo() {
+    return "Whiteboard/Markdown";
+  }
+
+  chatgptGetText(frameId: string, scope): string {
+    const elts = this.store.get("elements")?.toJS();
+    if (elts == null) {
+      return "";
+    }
+    const elements = Object.values(elts) as Element[];
+    if (scope == "all") {
+      return toMarkdown(elements);
+    }
+    const node = this._get_frame_node(frameId);
+    if (node == null) return "";
+    if (scope == "page") {
+      // get the page of frameId
+      const page = node.get("page");
+      const pageId = this.store.getIn(["sortedPageIds", page - 1]) ?? "";
+      return toMarkdown(
+        elements.filter(
+          (element) => element.page == pageId || element.type == "page"
+        )
+      );
+    } else if (scope == "selection") {
+      return node
+        .get("selection")
+        .map((id) => elementToMarkdown(elts[id]))
+        .join("\n");
+    }
+    return "";
+  }
+
+  chatgptGetScopes() {
+    return new Set<"selection" | "page">(["selection", "page"]);
+  }
+
+  chatgptGetLanguage() {
+    return "md";
   }
 }
 

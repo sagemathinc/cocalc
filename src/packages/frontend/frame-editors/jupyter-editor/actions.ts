@@ -523,6 +523,10 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       this.jupyter_actions.store.getIn(["kernel_info", "display_name"]) ?? "";
     return `Jupyter notebook using the ${kernel} kernel`;
   }
+
+  chatgptGetScopes() {
+    return new Set<"selection" | "cell">(["selection", "cell"]);
+  }
 }
 
 export { JupyterEditorActions as Actions };
