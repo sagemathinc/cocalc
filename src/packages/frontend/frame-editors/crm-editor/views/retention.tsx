@@ -154,7 +154,7 @@ function Header({ size, period, startTimes, all }) {
                 <br />
                 to
                 <br />
-                {dayjs(t[1]).format("dd M-DD")}
+                {dayjs(t[0]).add(period, "milliseconds").format("dd M-DD")}
               </>
             )}
           </td>

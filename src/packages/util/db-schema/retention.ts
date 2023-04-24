@@ -2,24 +2,54 @@ import { Table } from "./types";
 
 export const retentionModels = {
   file_access_log: {
-    title: "Cohort Retention (File Access Log)",
+    title: "File Access Log - Retention",
     description:
       "Number of accounts in the cohort with an entry in the file_access_log during each period.",
   },
   "file_access_log:all": {
-    title: "Active Users (File Access Log)",
+    title: "File Access Log - Active Users",
     description:
       "Number of accounts with an entry in the file_access_log during each period.",
   },
   openai_chatgpt_log: {
-    title: "Cohort Retention (of ChatGPT users)",
+    title: "ChatGPT - Retention",
     description:
       "Number of accounts in the cohort that used chatgpt during period.",
   },
   "openai_chatgpt_log:all": {
-    title: "Active Users (of ChatGPT)",
+    title: "ChatGPT - Active Users",
     description:
       "Number of accounts with an entry in the openai_chatgpt_log during each period.",
+  },
+  project_log: {
+    title: "Project Log - Retention",
+    description:
+      "Number of accounts in the cohort with an entry in the project log during each period.",
+  },
+  "project_log:all": {
+    title: "Project Log - Active Users",
+    description:
+      "Number of accounts with an entry in the project log during each period.",
+  },
+  user_tracking: {
+    title: "User Tracking - Retention",
+    description:
+      "Number of accounts in the cohort with an entry in the user tracking table during each period.",
+  },
+  "user_tracking:all": {
+    title: "User Tracking - Active Users",
+    description:
+      "Number of accounts with an entry in the user tracking table during each period.",
+  },
+  "client_error_log:all": {
+    title: "Client Error Log - Active Users",
+    description:
+      "Number of accounts with an entry in the client error log during each period.",
+  },
+  "webapp_errors:all": {
+    title: "Webapp Errors - Active Users",
+    description:
+      "Number of accounts with an entry in the webapp_errors log during each period.",
   },
 };
 

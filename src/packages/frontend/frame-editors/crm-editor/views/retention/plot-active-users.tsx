@@ -52,7 +52,7 @@ function getPlotData(display, timestamps, active) {
         x: timestamps,
         y: active,
         type: "bar",
-        marker: { color: "#1677ff" },
+        marker: { color: "#91caff" },
         name: "Active Users",
       },
     ];

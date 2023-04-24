@@ -1,9 +1,8 @@
 import getPool from "../../pool";
 import getLogger from "@cocalc/backend/logger";
-import fileAccessLog from "./file-access-log";
-import fileAccessLogAll from "./file-access-log-all";
-import chatGPTLogAll from "./chatgpt-log-all";
 import type { RetentionModel } from "@cocalc/util/db-schema";
+import activeUsers from "./active-users";
+import retainedUsers from "./retained-users";
 
 const log = getLogger("database:retention");
 
@@ -73,17 +72,27 @@ export async function updateRetentionData({
   }
   const last_start_time = current.rows[0]?.last_start_time;
 
-  if (model == "file_access_log") {
-    // users from a given cohort that actively accessed a file for
-    // each period from start
-    await fileAccessLog({ last_start_time, pool, start, stop, period });
-  } else if (model == "file_access_log:all") {
-    // users who actively accessed a file with the cohort being all accounts ever made.
-    await fileAccessLogAll({ last_start_time, pool, start, stop, period });
-  } else if (model == "openai_chatgpt_log:all") {
-    // users who actively used chatgpt
-    await chatGPTLogAll({ last_start_time, pool, start, stop, period });
+  const [table, isActiveUsers] = model.split(":");
+
+  if (isActiveUsers) {
+    await activeUsers({
+      table,
+      model,
+      last_start_time,
+      pool,
+      start,
+      stop,
+      period,
+    });
   } else {
-    throw Error(`unsupported model: ${model}`);
+    await retainedUsers({
+      table,
+      model,
+      last_start_time,
+      pool,
+      start,
+      stop,
+      period,
+    });
   }
 }

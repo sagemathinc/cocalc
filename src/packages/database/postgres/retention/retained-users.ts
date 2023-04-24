@@ -1,9 +1,9 @@
 import getLogger from "@cocalc/backend/logger";
-const log = getLogger("database:retention:file-access-log");
+const log = getLogger("database:retention:retained-users");
 
-const MODEL = "file_access_log";
-
-export default async function fileAccessLog({
+export default async function retainedUsers({
+  model,
+  table,
   last_start_time,
   pool,
   start,
@@ -21,10 +21,10 @@ periods AS (SELECT * FROM periods0 ${
     last_start_time == null ? "" : "WHERE period_start > $4"
   }),
 period_counts AS (
-  SELECT periods.period_start, COUNT(DISTINCT file_access_log.account_id) AS count
+  SELECT periods.period_start, COUNT(DISTINCT ${table}.account_id) AS count
   FROM periods
-  LEFT JOIN file_access_log ON file_access_log.time >= periods.period_start AND file_access_log.time < periods.period_end
-  JOIN cohort ON file_access_log.account_id = cohort.account_id
+  LEFT JOIN ${table} ON ${table}.time >= periods.period_start AND ${table}.time < periods.period_end
+  JOIN cohort ON ${table}.account_id = cohort.account_id
   GROUP BY periods.period_start
 )
 SELECT periods.period_start, periods.period_end, COALESCE(period_counts.count, 0) AS count
@@ -49,7 +49,7 @@ ORDER BY periods.period_start`;
     ).rows[0].size;
     await pool.query(
       "INSERT INTO crm_retention(start,stop,model,period,size,active,last_start_time) VALUES($1,$2,$3,$4,$5,$6,$7)",
-      [start, stop, MODEL, period, size, active, last_start_time]
+      [start, stop, model, period, size, active, last_start_time]
     );
   } else {
     log.debug("compute the missing data and put it into the database");
@@ -67,12 +67,10 @@ ORDER BY periods.period_start`;
     const new_last_start_time = rows[rows.length - 1].period_start;
     await pool.query(
       "UPDATE crm_retention SET last_start_time=$5::timestamp, active = array_cat(active, $6::integer[]) WHERE start=$1 AND stop=$2 AND model=$3 AND period=$4",
-      [start, stop, MODEL, period, new_last_start_time, active]
+      [start, stop, model, period, new_last_start_time, active]
     );
   }
 }
-
-
 
 /*
 NOTES on this query:
@@ -103,4 +101,3 @@ WHERE periods.period_end <= NOW()
 ORDER BY periods.period_start;
 
 */
-

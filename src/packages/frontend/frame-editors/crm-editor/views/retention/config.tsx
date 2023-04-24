@@ -38,19 +38,31 @@ export default function RetentionConfig({
   setData,
 }: Props) {
   const [form] = Form.useForm();
+
   const [updatingData, setUpdatingData] = useState(false);
+  const updatingDataRef = useRef<boolean>(false);
+
   const [info, setInfo] = useState("");
   const [percentDone, setPercentDone] = useState(0);
   const setCancelRef = useRef<() => void | null>(null);
   const retentionRef = useRef<Retention>(retention);
+
+  // compute data on load
   useEffect(() => {
     handleUpdate();
+  }, []);
+
+  // cancel any computation of data on unmount.
+  useEffect(() => {
+    return () => {
+      setCancelRef.current?.();
+    };
   }, []);
 
   const setRetention = (retention) => {
     retentionRef.current = retention;
     setRetention0(retention);
-    handleUpdate(true);
+    handleUpdate();
   };
 
   const disabledDate = (current) => {
@@ -65,12 +77,16 @@ export default function RetentionConfig({
       return;
     }
     setUpdatingData(true);
+    updatingDataRef.current = true;
     setInfo("");
     try {
       const data = await update(
         retentionRef.current,
         setCancelRef,
         (progress: string, percentDone: number) => {
+          if (!updatingDataRef.current) {
+            setCancelRef.current?.();
+          }
           setInfo(progress);
           setPercentDone(percentDone);
         },
@@ -82,6 +98,7 @@ export default function RetentionConfig({
       setInfo(`${error}`);
     } finally {
       setUpdatingData(false);
+      updatingDataRef.current = false;
     }
   };
 
@@ -223,14 +240,16 @@ export default function RetentionConfig({
           style={{
             maxWidth: "600px",
             margin: "10px auto 0 auto",
-            display: "flex",
+            textAlign: "center",
           }}
         >
           <Progress
             percent={percentDone}
             strokeColor={{ "0%": "#108ee9", "100%": "#87d068" }}
           />
-          <Button onClick={() => setCancelRef.current?.()}>Stop</Button>
+          <Button size="large" onClick={() => setCancelRef.current?.()}>
+            <Icon name="stop" /> Stop
+          </Button>
         </div>
       )}
       {info && (

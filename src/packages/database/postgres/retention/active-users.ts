@@ -1,9 +1,9 @@
 import getLogger from "@cocalc/backend/logger";
-const log = getLogger("database:retention:file-access-log:all");
+const log = getLogger("database:retention:active-users");
 
-const MODEL = "file_access_log:all";
-
-export default async function fileAccessLog({
+export default async function activeUsers({
+  model,
+  table,
   last_start_time,
   pool,
   start,
@@ -20,9 +20,9 @@ periods AS (SELECT * FROM periods0 ${
     last_start_time == null ? "" : "WHERE period_start > $3"
   }),
 period_counts AS (
-  SELECT periods.period_start, COUNT(DISTINCT file_access_log.account_id) AS count
+  SELECT periods.period_start, COUNT(DISTINCT ${table}.account_id) AS count
   FROM periods
-  LEFT JOIN file_access_log ON file_access_log.time >= periods.period_start AND file_access_log.time < periods.period_end
+  LEFT JOIN ${table} ON ${table}.time >= periods.period_start AND ${table}.time < periods.period_end
   GROUP BY periods.period_start
 )
 SELECT periods.period_start, periods.period_end, COALESCE(period_counts.count, 0) AS count
@@ -35,7 +35,7 @@ ORDER BY periods.period_start`;
     if (rows.length == 0) return 0;
     return (
       await pool.query(
-        "SELECT COUNT(DISTINCT(account_id)) as size FROM file_access_log WHERE time >= $1::timestamp AND time < $2::timestamp",
+        `SELECT COUNT(DISTINCT(account_id)) as size FROM ${table} WHERE time >= $1::timestamp AND time < $2::timestamp`,
         [start, rows[rows.length - 1].period_end]
       )
     ).rows[0].size;
@@ -52,7 +52,7 @@ ORDER BY periods.period_start`;
     const last_start_time = rows[rows.length - 1].period_start;
     await pool.query(
       "INSERT INTO crm_retention(start,stop,model,period,active,last_start_time,size) VALUES($1,$2,$3,$4,$5,$6,$7)",
-      [start, stop, MODEL, period, active, last_start_time, await getSize(rows)]
+      [start, stop, model, period, active, last_start_time, await getSize(rows)]
     );
   } else {
     log.debug("compute the missing data and put it into the database");
@@ -68,7 +68,7 @@ ORDER BY periods.period_start`;
       [
         start,
         stop,
-        MODEL,
+        model,
         period,
         new_last_start_time,
         active,
