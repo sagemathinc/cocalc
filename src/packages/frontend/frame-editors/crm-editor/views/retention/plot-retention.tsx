@@ -26,6 +26,9 @@ function getPlotData(retentionData, period) {
   const colors = createColors([255, 0, 0], [26, 56, 200], retentionData.length);
   let i = 0;
   for (const data of retentionData) {
+    if (data == null) { // happens in practice, despite typings (i.e., bug)
+      continue;
+    }
     const { active, size, start, stop } = data;
     const y = active.map((x) => (100 * x) / Math.max(1, size));
     v.push({
