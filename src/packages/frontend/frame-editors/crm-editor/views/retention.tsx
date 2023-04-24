@@ -80,7 +80,7 @@ export default function RetentionView({ retention, setRetention }: Props) {
       {retentionData &&
         display != "table" &&
         !retention.model.endsWith(":all") && (
-          <PlotRetention retentionData={retentionData} period={period} />
+          <PlotRetention retentionData={retentionData} />
         )}
       {retentionData && display == "table" && (
         <TableVirtuoso

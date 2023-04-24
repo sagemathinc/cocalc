@@ -5,13 +5,12 @@ import { createColors, rgbHex } from "color-map";
 
 interface Props {
   retentionData?: Data[];
-  period: number;
 }
 
-export default function PlotRetention({ retentionData, period }: Props) {
+export default function PlotRetention({ retentionData }: Props) {
   if (retentionData == null) return null;
 
-  const plotData = getPlotData(retentionData, period);
+  const plotData = getPlotData(retentionData);
 
   const layout = {
     xaxis: { title: "Period" },
@@ -21,12 +20,13 @@ export default function PlotRetention({ retentionData, period }: Props) {
   return <Plot style={{ height: "100%" }} data={plotData} layout={layout} />;
 }
 
-function getPlotData(retentionData, period) {
+function getPlotData(retentionData) {
   const v: object[] = [];
   const colors = createColors([255, 0, 0], [26, 56, 200], retentionData.length);
   let i = 0;
   for (const data of retentionData) {
-    if (data == null) { // happens in practice, despite typings (i.e., bug)
+    if (data == null) {
+      // happens in practice, despite typings (i.e., bug)
       continue;
     }
     const { active, size, start, stop } = data;
@@ -36,11 +36,9 @@ function getPlotData(retentionData, period) {
       type: "scatter",
       mode: "lines",
       marker: { color: rgbHex(colors[i]) },
-      name: `${dayjs(start)
-        .add(i * period, "milliseconds")
-        .format("dd MMM D, YYYY h:mm A")} to ${dayjs(stop)
-        .add(i * period, "milliseconds")
-        .format("dd MMM D, YYYY h:mm A")}`,
+      name: `${dayjs(start).format("dd MMM D, YYYY h:mm A")} to ${dayjs(
+        stop
+      ).format("dd MMM D, YYYY h:mm A")}`,
     });
     i += 1;
   }
