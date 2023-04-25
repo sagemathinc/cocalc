@@ -49,7 +49,7 @@ base_path = require('@cocalc/backend/base-path').default
 
 underscore = require('underscore')
 
-{callback} = require('awaiting')
+{callback, delay} = require('awaiting')
 {callback2} = require('@cocalc/util/async-utils')
 
 {record_user_tracking} = require('@cocalc/database/postgres/user-tracking')
@@ -954,7 +954,7 @@ class exports.Client extends EventEmitter
                     cb          : (err, _project_id) =>
                         project_id = _project_id; cb(err)
             (cb) =>
-                cb() # we don't need to wait for project to open before responding to user that project was created.
+                cb() # we don't need to wait for project to start running before responding to user that project was created.
                 dbg("open project...")
                 # We do the open/start below so that when user tries to open it in a moment it opens more quickly;
                 # also, in single dev mode, this ensures that project path is created, so can copy
@@ -964,6 +964,8 @@ class exports.Client extends EventEmitter
                     project = await @compute_server(project_id)
                     await project.state(force:true, update:true)
                     if mesg.start
+                        await project.start()
+                        await delay(5000) # just in case
                         await project.start()
                     else
                         dbg("not auto-starting the new project")
