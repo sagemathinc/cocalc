@@ -1,6 +1,7 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import create from "@cocalc/server/projects/create";
+import { maxAge } from "./get-project";
 
 const log = getLogger("server:new-project-pool:app-projects");
 
@@ -8,7 +9,7 @@ const log = getLogger("server:new-project-pool:app-projects");
 export async function getAllProjects(): Promise<string[]> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT project_id FROM projects WHERE users IS NULL AND deleted IS NULL"
+    `SELECT project_id FROM projects WHERE users IS NULL AND deleted IS NULL and last_edited >= NOW() - INTERVAL '${maxAge}'`
   );
   return rows.map((x) => x.project_id);
 }

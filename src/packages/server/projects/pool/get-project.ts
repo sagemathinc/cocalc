@@ -19,6 +19,8 @@ import getPool from "@cocalc/database/pool";
 import { maintainNewProjectPool } from "./maintain";
 import getLogger from "@cocalc/backend/logger";
 
+export const maxAge = "12 hours";
+
 const log = getLogger("server:new-project-pool:get-project");
 
 // input is a user and the output is a project_id
@@ -43,7 +45,7 @@ export default async function getFromPool({
   FROM projects
   WHERE users IS NULL
     AND deleted IS NULL ${image ? " AND compute_image=$2 " : ""}
-    AND last_edited >= NOW() - INTERVAL '12 hours'
+    AND last_edited >= NOW() - INTERVAL '${maxAge}'
   LIMIT 1
 ),
 updated_project AS (
@@ -66,7 +68,7 @@ FROM updated_project;`;
   }
   try {
     // just removed something from pool, so refresh pool:
-    await maintainNewProjectPool();
+    await maintainNewProjectPool(1);
   } catch (err) {
     log.warn("Error maintaining pool", err);
   }

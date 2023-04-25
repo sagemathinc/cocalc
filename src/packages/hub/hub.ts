@@ -277,8 +277,11 @@ async function startServer(): Promise<void> {
     console.log(msg);
   }
 
-  if (program.nextServer) {
-    // for now we just have the hub-next servers do the new project pool maintenance.
+  if (program.all || program.updateStats) {
+    // kucalc: for now we just have the hub-stats servers
+    // do the new project pool maintenance, since there is only
+    // one hub-stats.
+    // On non-cocalc it'll get done by *the* hub because of program.all.
     initNewProjectPoolMaintenanceLoop();
   }
 

@@ -21,6 +21,8 @@ import { getProject } from "@cocalc/server/projects/control";
 
 const log = getLogger("server:new-project-pool:maintain");
 
+const MAX_CREATE = 50; // never add more than this many projects at once to the pool.
+
 export default function loop(periodMs = 30000) {
   setInterval(async () => {
     try {
@@ -32,7 +34,7 @@ export default function loop(periodMs = 30000) {
 }
 
 let lastCall = Date.now();
-export async function maintainNewProjectPool() {
+export async function maintainNewProjectPool(maxCreate?: number) {
   const now = Date.now();
   if (now - lastCall <= 3000) {
     log.debug("skipping too frequent call to maintainNewProjectPool");
@@ -48,7 +50,9 @@ export async function maintainNewProjectPool() {
   const projects = await getAllProjects();
   const cur = projects.length;
   // Add projects to the pool if necessary
-  for (const project_id of await createProjects(new_project_pool - cur)) {
+  for (const project_id of await createProjects(
+    Math.min(new_project_pool - cur, maxCreate ?? MAX_CREATE)
+  )) {
     log.debug("adding ", project_id, "to the pool");
     projects.push(project_id);
   }
