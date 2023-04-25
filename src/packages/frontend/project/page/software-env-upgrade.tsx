@@ -39,12 +39,13 @@ const UPGRADE_STYLE: React.CSSProperties = {
 } as const;
 
 const DOC_UBUNTU_2004 = "https://doc.cocalc.com/news/ubuntu-2004.html";
-const DOC_UBUNTU_2204 = "https://doc.cocalc.com/news/ubuntu-2204.html";
+const DOC_UBUNTU_2204 =
+  "https://cocalc.com/news/ubuntu-22-04-default-software-environment-9";
 const DOC_CHANGE_SOFTWARE_IMAGE =
   "https://doc.cocalc.com/project-settings.html#software-environment";
 
 // we only upgrade from not-frozen 18.04 and 20.04 images to the new default.
-// do not bother about any other names, including ubuntu1804
+// do not bother about any other names, including ubuntu1804 and old
 const TO_UPGRADE = [
   FALLBACK_COMPUTE_IMAGE,
   "previous",
@@ -188,18 +189,25 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
 
     function render_main(): JSX.Element {
       return (
-        <Alert bsStyle={"info"} style={UPGRADE_STYLE}>
+        <Alert
+          bsStyle={"info"}
+          style={UPGRADE_STYLE}
+          banner
+          icon={<Icon name="exclamation-triangle" />}
+        >
           <div style={{ display: "flex" }}>
             <div style={{ flex: "1 1 auto" }}>
-              <Icon name="exclamation-triangle" />{" "}
               <strong>Software Update Available!</strong>{" "}
               <VisibleMDLG>
                 Update this project's software environment from {oldname} to{" "}
                 {render_update_to_2004()}
-                <A href={DOC_UBUNTU_2204}>{name2204}</A>, or keep it.
+                <strong>
+                  <A href={DOC_UBUNTU_2204}>{name2204}</A>
+                </strong>
+                , or keep it as it is.
                 <br />
                 <span style={{ color: COLORS.GRAY }}>
-                  You can also change it later in{" "}
+                  You can change this any time in{" "}
                   <A
                     style={{ color: COLORS.GRAY }}
                     href={DOC_CHANGE_SOFTWARE_IMAGE}

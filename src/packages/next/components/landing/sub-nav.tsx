@@ -9,17 +9,17 @@ import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { r_join } from "@cocalc/frontend/components/r_join";
+import {
+  SOFTWARE_ENV_DEFAULT,
+  SOFTWARE_ENV_NAMES,
+  SoftwareEnvNames,
+} from "@cocalc/util/consts/software-envs";
 import { COLORS } from "@cocalc/util/theme";
 import Logo from "components/logo";
 import { CSS } from "components/misc";
 import A from "components/misc/A";
 import { MAX_WIDTH_LANDING } from "lib/config";
 import { useCustomize } from "lib/customize";
-import {
-  SoftwareEnvNames,
-  SOFTWARE_ENV_DEFAULT,
-  SOFTWARE_ENV_NAMES,
-} from "lib/landing/consts";
 
 const BASE_STYLE: CSS = {
   backgroundColor: "white",

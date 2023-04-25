@@ -5,6 +5,7 @@
 
 import { Alert, Layout } from "antd";
 
+import { SoftwareEnvNames } from "@cocalc/util/consts/software-envs";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -13,7 +14,6 @@ import SoftwareLibraries from "components/landing/software-libraries";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize, CustomizeType } from "lib/customize";
-import { SoftwareEnvNames } from "lib/landing/consts";
 import { ExecutableDescription } from "lib/landing/render-envs";
 import { withCustomizedAndSoftwareSpec } from "lib/landing/software-specs";
 import {

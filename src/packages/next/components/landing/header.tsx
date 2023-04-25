@@ -9,16 +9,16 @@ import { join } from "path";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { SoftwareEnvNames } from "@cocalc/util/consts/software-envs";
 import { COLORS } from "@cocalc/util/theme";
 import AccountNavTab from "components/account/navtab";
 import Analytics from "components/analytics";
 import Logo from "components/logo";
 import A from "components/misc/A";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
-import { SoftwareEnvNames } from "lib/landing/consts";
 import SubNav, { Page, SubPage } from "./sub-nav";
-import ChatGPTHelp from "components/openai/chatgpt-help";
 
 const GAP = "4%";
 

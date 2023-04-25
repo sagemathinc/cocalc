@@ -24,7 +24,7 @@ const GROUPS = [
   "Ubuntu 16.04",
 ] as const;
 
-type Group = typeof GROUPS[number];
+type Group = (typeof GROUPS)[number];
 
 // names of old images, that won't trigger the "upgrade banner", pointing to the most recent end-of-life image of that series
 export const DISMISS_IMG_1804 = "ubuntu1804";
@@ -89,16 +89,16 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
   },
   [DISMISS_IMG_2004]: {
     order: 1,
-    title: "Ubuntu 20.04 (Latest)",
-    short: "Ubuntu 20.04 (Latest)",
-    descr: "Reached of life in December 2022",
+    title: "Ubuntu 20.04 (Deprecated)",
+    short: "Ubuntu 20.04 (Deprecated)",
+    descr: "Reached of life in May 2023",
     group: "Main",
   },
   [UBUNTU2004_DEPRECATED]: {
     order: 1,
-    title: "Ubuntu 20.04 (Latest)",
-    short: "Ubuntu 20.04 (Latest)",
-    descr: "Reached end of life in December 2022",
+    title: "Ubuntu 20.04 (Deprecated)",
+    short: "Ubuntu 20.04 (Deprecated)",
+    descr: "Reached end of life in May 2023",
     group: "Main",
     hidden: true, // any project that is set to "ubuntu2004" will be shown a banner → either update to ubuntu2204 or keep ubuntu2004-eol
   },
@@ -119,6 +119,12 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     title: "Ubuntu 22.04 (2023-01-09)",
     short: "2023-01-09",
     descr: "Frozen on 2023-01-09 and no longer updated",
+    group: "Ubuntu 22.04",
+  },
+  "ubuntu2204-2023-04-19": {
+    title: "Ubuntu 22.04 (2023-04-19)",
+    short: "2023-04-19",
+    descr: "Frozen on 2023-04-19 and no longer updated",
     group: "Ubuntu 22.04",
   },
   [UBUNTU2004_DEV]: {
