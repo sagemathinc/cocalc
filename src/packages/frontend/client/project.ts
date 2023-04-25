@@ -380,7 +380,7 @@ export class ProjectClient {
     const state = redux.getStore("projects")?.get_state(project_id);
     if (!(state == null && redux.getStore("account")?.get("is_admin"))) {
       // not trying to view project as admin so do some checks
-      if (!await allow_project_to_run(project_id)) return;
+      if (!(await allow_project_to_run(project_id))) return;
       if (!this.client.is_signed_in()) {
         // silently ignore if not signed in
         return;
@@ -447,6 +447,7 @@ export class ProjectClient {
     image?: string;
     start?: boolean;
     license?: string; // "license_id1,license_id2,..." -- if given, create project with these licenses applied
+    noPool?: boolean; // never use pool
   }): Promise<string> {
     const { project_id } = await this.client.async_call({
       allow_post: false, // since gets called for anonymous and cookie not yet set.
