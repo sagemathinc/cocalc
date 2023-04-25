@@ -32,6 +32,7 @@ import initHttpRedirect from "./servers/http-redirect";
 import initDatabase from "./servers/database";
 import initProjectControl from "@cocalc/server/projects/control";
 import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
+import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
 import initVersionServer from "./servers/version";
 import initPrimus from "./servers/primus";
 import { load_server_settings_from_env } from "@cocalc/server/settings/server-settings";
@@ -274,6 +275,11 @@ async function startServer(): Promise<void> {
     }\n\n-----------\n\n`;
     winston.info(msg);
     console.log(msg);
+  }
+
+  if (program.nextServer) {
+    // for now we just have the hub-next servers do the new project pool maintenance.
+    initNewProjectPoolMaintenanceLoop();
   }
 
   addErrorListeners(uncaught_exception_total);

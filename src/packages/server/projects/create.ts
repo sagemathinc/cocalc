@@ -11,7 +11,7 @@ import { v4 } from "uuid";
 import { associatedLicense } from "@cocalc/server/licenses/public-path";
 
 interface Options {
-  account_id: string;
+  account_id?: string;
   title?: string;
   description?: string;
   image?: string;
@@ -27,12 +27,15 @@ export default async function createProject({
   license,
   public_path_id,
 }: Options) {
-  if (!isValidUUID(account_id)) {
-    throw Error("account_id must be a valid uuid");
+  if (account_id != null) {
+    if (!isValidUUID(account_id)) {
+      throw Error("if account_id given, it must be a valid uuid v4");
+    }
   }
   const project_id = v4();
   const pool = getPool();
-  const users = { [account_id]: { group: "owner" } };
+  const users =
+    account_id == null ? null : { [account_id]: { group: "owner" } };
   let site_license;
   if (public_path_id) {
     const site_license_id = await associatedLicense(public_path_id);
@@ -59,8 +62,8 @@ export default async function createProject({
     "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW())",
     [
       project_id,
-      title,
-      description,
+      title ?? "No Title",
+      description ?? "",
       JSON.stringify(users),
       site_license != null ? JSON.stringify(site_license) : undefined,
       image ?? envs?.default ?? DEFAULT_COMPUTE_IMAGE,
