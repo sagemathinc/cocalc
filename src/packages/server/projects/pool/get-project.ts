@@ -21,11 +21,28 @@ import getLogger from "@cocalc/backend/logger";
 
 const log = getLogger("server:new-project-pool:get-project");
 
-const query = `WITH matching_row AS (
+// input is a user and the output is a project_id
+// of a running project that is set to have the account_id
+// as the sole owner.  Returns null if there is nothing currently
+// available in the pool.
+export default async function getFromPool({
+  account_id,
+  title,
+  description,
+  image,
+}: {
+  account_id: string;
+  title?: string;
+  description?: string;
+  image?: string;
+}): Promise<string | null> {
+  log.debug("getting a project from the pool for ", account_id);
+
+  const query = `WITH matching_row AS (
   SELECT project_id
   FROM projects
   WHERE users IS NULL
-    AND deleted IS NULL
+    AND deleted IS NULL ${image ? " AND compute_image=$2 " : ""}
     AND last_edited >= NOW() - INTERVAL '12 hours'
   LIMIT 1
 ),
@@ -38,28 +55,17 @@ updated_project AS (
 SELECT project_id, users
 FROM updated_project;`;
 
-// input is a user and the output is a project_id
-// of a running project that is set to have the account_id
-// as the sole owner.  Returns null if there is nothing currently
-// available in the pool.
-export default async function getFromPool({
-  account_id,
-  title,
-  description,
-}: {
-  account_id: string;
-  title?: string;
-  description?: string;
-}): Promise<string | null> {
-  log.debug("getting a project from the pool for ", account_id);
   const pool = getPool();
-  const { rows } = await pool.query(query, [account_id]);
+  const { rows } = await pool.query(
+    query,
+    image ? [account_id, image] : [account_id]
+  );
   if (rows.length == 0) {
     log.debug("pool is empty, so can't get anything from pool");
     return null;
   }
   try {
-    // just removed something from pool, so cause more to be added to pool:
+    // just removed something from pool, so refresh pool:
     await maintainNewProjectPool();
   } catch (err) {
     log.warn("Error maintaining pool", err);

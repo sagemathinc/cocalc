@@ -34,7 +34,7 @@ export default function loop(periodMs = 30000) {
 let lastCall = Date.now();
 export async function maintainNewProjectPool() {
   const now = Date.now();
-  if (now - lastCall <= 7500) {
+  if (now - lastCall <= 3000) {
     log.debug("skipping too frequent call to maintainNewProjectPool");
     // no matter what, never do maintenance more than once every few seconds.
     return;

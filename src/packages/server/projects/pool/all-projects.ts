@@ -1,4 +1,3 @@
-
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import create from "@cocalc/server/projects/create";
@@ -9,7 +8,7 @@ const log = getLogger("server:new-project-pool:app-projects");
 export async function getAllProjects(): Promise<string[]> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT project_id FROM projects WHERE users IS NULL AND NOT deleted"
+    "SELECT project_id FROM projects WHERE users IS NULL AND deleted IS NULL"
   );
   return rows.map((x) => x.project_id);
 }
@@ -22,7 +21,8 @@ export async function createProjects(n: number): Promise<string[]> {
     { length: n },
     () =>
       create({
-        title: "First Project",
+        noPool: true, // obviously don't use the pool to add projects to the pool!
+        title: "New Project",
         description: "",
       }) // create a promise for each project creation
   );
