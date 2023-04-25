@@ -9,8 +9,10 @@ import { promises } from "node:fs";
 import { basename } from "node:path";
 
 import { hours_ago } from "@cocalc/util/relative-time";
+import { NOT_FOUND } from "lib/config";
 import withCustomize from "lib/with-customize";
-import { SoftwareEnvNames, SOFTWARE_ENV_NAMES } from "./consts";
+import { GetServerSidePropsContext } from "next";
+import { SOFTWARE_ENV_NAMES, SoftwareEnvNames } from "./consts";
 import { SOFTWARE_FALLBACK, SOFTWARE_URLS } from "./software-data";
 import {
   ComputeComponents,
@@ -19,6 +21,7 @@ import {
   LanguageName,
   SoftwareSpec,
 } from "./types";
+import { NOTFOUND } from "node:dns";
 
 const { readFile } = promises;
 
@@ -166,18 +169,7 @@ function getLanguageExecutables({ lang, inventory }): string[] {
   });
 }
 
-// this is for the server side getServerSideProps function
-export async function withCustomizedAndSoftwareSpec(
-  context,
-  lang: LanguageName | "executables"
-) {
-  const { name } = context.params;
-
-  // if name is not in SOFTWARE_ENV_NAMES, return {notFound : true}
-  if (!SOFTWARE_ENV_NAMES.includes(name)) {
-    return { notFound: true };
-  }
-
+async function getSoftwareEnvData({ context, name, lang }) {
   const [customize, spec] = await Promise.all([
     withCustomize({ context }),
     getSoftwareSpec(name),
@@ -214,4 +206,46 @@ export async function withCustomizedAndSoftwareSpec(
   }
 
   return customize;
+}
+
+async function getSoftwarePackageInfo({ lang, context, pkgName }) {
+
+const data : {[name : SoftwareEnvNames]: any} = {}
+
+for (const name of SOFTWARE_ENV_NAMES) {
+  const env = await getSoftwareEnvData({ context, name, lang });
+  const info = await getSoftwareInfo(name);
+
+  if (lang === "executables") {
+    return NOT_FOUND;
+  } else {
+  const inventory: ComputeInventory[LanguageName] = info.inventory
+  const components: ComputeComponents[LanguageName] =
+    const pkg = inventory[lang]?.[name];
+    if (pkg == null) return NOT_FOUND;
+    const component = components[lang]?.[name];
+    if (component == null) return NOT_FOUND;
+    customize.props.component = component;
+    customize.props.pkg = pkg;
+    return customize;
+  }
+}
+}
+
+// this is for the server side getServerSideProps function
+export async function withCustomizedAndSoftwareSpec(
+  context: GetServerSidePropsContext,
+  lang: LanguageName | "executables"
+) {
+  const name = context.params?.name;
+
+  if (typeof name !== "string") return NOT_FOUND;
+
+  // check if this should list all the available packages
+  if (SOFTWARE_ENV_NAMES.includes(name as any)) {
+    return await getSoftwareEnvData({ context, name, lang });
+  }
+
+  // or just the info about a specific package
+  return await getSoftwarePackageInfo({ lang, context, pkgName: name });
 }
