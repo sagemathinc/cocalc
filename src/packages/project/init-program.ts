@@ -15,7 +15,10 @@ interface Options {
   daemon: boolean;
   sshd: boolean;
   init: string;
+  blobstore: "sqlite" | "disk";
 }
+
+const BLOBSTORE_DEFAULT = "sqlite";
 
 let options = {
   hubPort: 0,
@@ -26,6 +29,7 @@ let options = {
   daemon: false,
   sshd: false,
   init: "",
+  blobstore: BLOBSTORE_DEFAULT,
 } as Options;
 
 export { options };
@@ -62,6 +66,11 @@ program
   .option(
     "--test-firewall",
     "Abort and exit w/ code 99 if internal GCE information *is* accessible"
+  )
+  .option(
+    "--blobstore [string]",
+    "Blobstore type (sqlite or disk)",
+    BLOBSTORE_DEFAULT
   )
   .option("--daemon", "Run as a daemon")
   .parse(process.argv);

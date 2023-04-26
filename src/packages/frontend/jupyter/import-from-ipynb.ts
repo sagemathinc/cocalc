@@ -38,7 +38,7 @@ export class IPynbImporter {
   private _kernel: any;
   private _metadata: any;
   private _language_info: any;
-  import = (opts: any) => {
+  import = async (opts: any) => {
     opts = misc.defaults(opts, {
       ipynb: {},
       new_id: undefined, // function that returns an unused id given
@@ -58,7 +58,7 @@ export class IPynbImporter {
     this._sanity_improvements();
     this._import_settings();
     this._import_metadata();
-    this._read_in_cells();
+    await this._read_in_cells();
   };
   cells = () => {
     return this._cells;
@@ -182,7 +182,7 @@ export class IPynbImporter {
     }
   };
 
-  _read_in_cells = () => {
+  _read_in_cells = async () => {
     const ipynb = this._ipynb;
     this._cells = {};
     if ((ipynb != null ? ipynb.cells : undefined) == null) {
@@ -191,7 +191,7 @@ export class IPynbImporter {
     }
     let n = 0;
     for (let cell of ipynb.cells) {
-      cell = this._import_cell(cell, n);
+      cell = await this._import_cell(cell, n);
       this._cells[cell.id] = cell;
       n += 1;
     }
@@ -327,7 +327,7 @@ export class IPynbImporter {
     }
   }
 
-  _import_cell(cell: any, n: any) {
+  async _import_cell(cell: any, n: any) {
     const id =
       (this._existing_ids != null ? this._existing_ids[n] : undefined) != null
         ? this._existing_ids != null
@@ -390,7 +390,7 @@ export class IPynbImporter {
         for (const mime in val) {
           const base64 = val[mime];
           if (this._process_attachment != null) {
-            const sha1 = this._process_attachment(base64, mime);
+            const sha1 = await this._process_attachment(base64, mime);
             obj.attachments[name] = { type: "sha1", value: sha1 };
           } else {
             obj.attachments[name] = { type: "base64", value: base64 };

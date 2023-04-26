@@ -2154,7 +2154,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // to the contents of ipynb more efficient.   In case of a very slight change
     // on disk, this can be massively more efficient.
 
-    importer.import({
+    await importer.import({
       ipynb,
       existing_ids,
       new_id: this.new_id.bind(this),

@@ -74,7 +74,7 @@ import { callback } from "awaiting";
 import { unlink } from "./async-utils-node";
 import { nbconvert } from "./convert";
 import { CodeExecutionEmitter } from "./execute-code";
-import { get_blob_store } from "./jupyter-blobs-sqlite";
+import { get_blob_store } from "./jupyter-blobs-get";
 import { getLanguage, get_kernel_data_by_name } from "./kernel-data";
 import launchJupyterKernel, {
   LaunchJupyterOpts,
@@ -706,11 +706,11 @@ export class JupyterKernel
     return await new CodeExecutionEmitter(this, opts).go();
   }
 
-  get_blob_store() {
-    return get_blob_store();
+  async get_blob_store() {
+    return await get_blob_store();
   }
 
-  process_output(content: any): void {
+  async process_output(content: any): Promise<void> {
     if (this._state === "closed") {
       return;
     }
@@ -728,7 +728,13 @@ export class JupyterKernel
     for (type of JUPYTER_MIMETYPES) {
       if (content.data[type] != null) {
         if (type.split("/")[0] === "image" || type === "application/pdf") {
-          content.data[type] = get_blob_store()?.save(content.data[type], type);
+          const blob_store = await get_blob_store();
+          if (blob_store != null) {
+            content.data[type] = await blob_store.save(
+              content.data[type],
+              type
+            );
+          }
         } else if (
           type === "text/html" &&
           is_likely_iframe(content.data[type])
@@ -739,7 +745,7 @@ export class JupyterKernel
           //  {iframe: sha1 of srcdoc}
           content.data["iframe"] = iframe_process(
             content.data[type],
-            get_blob_store()
+            await get_blob_store()
           );
           delete content.data[type];
         }
@@ -876,9 +882,9 @@ export class JupyterKernel
       path = process.env.HOME + "/" + path;
     }
     async function f(): Promise<string> {
-      const bs = get_blob_store();
+      const bs = await get_blob_store();
       if (bs == null) throw new Error("BlobStore not available");
-      return bs.readFile(path, "base64");
+      return await bs.readFile(path, "base64");
     }
     try {
       return await retry_until_success({
@@ -891,8 +897,9 @@ export class JupyterKernel
     }
   }
 
-  process_attachment(base64, mime): string | undefined {
-    return get_blob_store()?.save(base64, mime);
+  async process_attachment(base64, mime): Promise<string | undefined> {
+    const blob_store = await get_blob_store();
+    return await blob_store.save(base64, mime);
   }
 
   process_comm_message_from_kernel(mesg): void {

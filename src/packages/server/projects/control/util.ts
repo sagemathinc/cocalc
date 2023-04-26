@@ -82,7 +82,14 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   winston.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
   const cmd = "pnpm";
-  const args = ["cocalc-project", "--daemon", "--init", "project_init.sh"];
+  const args = [
+    "cocalc-project",
+    "--daemon",
+    "--init",
+    "project_init.sh",
+    "--blobstore",
+    "disk" /* or sqlite */,
+  ];
   winston.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`
   );
@@ -145,16 +152,14 @@ export async function createUser(project_id: string): Promise<void> {
   );
 }
 
-
 export async function stopProjectProcesses(project_id: string): Promise<void> {
-    const uid = `${getUid(project_id)}`;
-    const scmd = `pkill -9 -u ${uid} | true `; // | true since pkill exit 1 if nothing killed.
-    await exec(scmd); 
+  const uid = `${getUid(project_id)}`;
+  const scmd = `pkill -9 -u ${uid} | true `; // | true since pkill exit 1 if nothing killed.
+  await exec(scmd);
 }
- 
 
 export async function deleteUser(project_id: string): Promise<void> {
-  await stopProjectProcesses(project_id);  
+  await stopProjectProcesses(project_id);
   const username = getUsername(project_id);
   try {
     await exec(`/usr/sbin/userdel ${username}`); // this also deletes the group
