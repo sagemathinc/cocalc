@@ -91,6 +91,7 @@ const codemirror_associations: { [ext: string]: string } = {
   python3: "python",
   pyx: "python",
   r: "r",
+  R: "r",
   rmd: "rmd",
   qmd: "rmd",
   rnw: "rnw",

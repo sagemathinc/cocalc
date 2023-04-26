@@ -143,7 +143,9 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
       } else {
-        onSuccess?.();
+        if (onSuccess != null) {
+          onSuccess();
+        }
       }
     } catch (err) {
       setIssues({ error: `${err}` });
@@ -215,7 +217,12 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
           />
         }
         {terms && !minimal && (
-          <Tags setTags={setTags} tags={tags} minTags={MIN_TAGS} />
+          <Tags
+            setTags={setTags}
+            tags={tags}
+            minTags={MIN_TAGS}
+            style={{ marginLeft: "-10px", width:'480px' }}
+          />
         )}
         <form>
           {issues.reCaptcha && (
@@ -300,7 +307,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
             requiredSSO == null &&
             password?.length >= 6 && (
               <div style={LINE}>
-                <p>First name</p>
+                <p>First name (Given name)</p>
                 <Input
                   style={{ fontSize: "12pt" }}
                   placeholder="First name"
@@ -317,7 +324,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
             requiredSSO == null &&
             firstName && (
               <div style={LINE}>
-                <p>Last name</p>
+                <p>Last name (Family name)</p>
                 <Input
                   style={{ fontSize: "12pt" }}
                   placeholder="Last name"
