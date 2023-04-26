@@ -8,7 +8,10 @@ import { useMemo } from "react";
 
 import { NewsItem } from "@cocalc/util/types/news";
 
-export function useDateStr(news: NewsItem, minutes = false): string {
+export function useDateStr(
+  news: Omit<NewsItem, "text">,
+  minutes = false
+): string {
   const f = minutes ? "YYYY-MM-DD HH:mm" : "YYYY-MM-DD";
   return useMemo(
     () =>
