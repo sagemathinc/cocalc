@@ -5,7 +5,7 @@
 
 import { delay } from "awaiting";
 
-import { options } from "@cocalc/project/init-program";
+import initProgram from "@cocalc/project/init-program";
 import { get_ProjectStatusServer } from "@cocalc/project/project-status/server";
 import { BlobStoreDisk } from "./jupyter-blobs-disk";
 import { BlobStoreSqlite } from "./jupyter-blobs-sqlite";
@@ -21,7 +21,8 @@ export const BASE64_TYPES = [
   "base64",
 ] as const;
 
-const BLOBSTORE = options.blobstore ?? "sqlite";
+// don't import "options", because when I did that, it wasn't initialized yet. This makes sure you get the actual data.
+const BLOBSTORE = initProgram().blobstore;
 
 let blob_store_sqlite: BlobStoreSqlite | undefined = undefined;
 let blob_store_disk: BlobStoreDisk | undefined = undefined;

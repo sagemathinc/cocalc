@@ -22,6 +22,9 @@ const stat = promisify(fs.stat);
 const copyFile = promisify(fs.copyFile);
 const rm = promisify(fs.rm);
 
+// set JUPYTER_BLOBS_IMPL for single-mode/development. In production, use the project's --blobstore switch
+const BLOBSTORE = process.env["JUPYTER_BLOBS_IMPL"] ?? "sqlite"; // or "disk"
+
 export async function chown(path: string, uid: number): Promise<void> {
   await promisify(fs.chown)(path, uid, uid);
 }
@@ -88,7 +91,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
     "--init",
     "project_init.sh",
     "--blobstore",
-    "disk" /* or sqlite */,
+    BLOBSTORE,
   ];
   winston.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`

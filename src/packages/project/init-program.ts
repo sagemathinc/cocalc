@@ -67,11 +67,7 @@ program
     "--test-firewall",
     "Abort and exit w/ code 99 if internal GCE information *is* accessible"
   )
-  .option(
-    "--blobstore [string]",
-    "Blobstore type (sqlite or disk)",
-    BLOBSTORE_DEFAULT
-  )
+  .option("--blobstore [string]", "Blobstore type (sqlite or disk)")
   .option("--daemon", "Run as a daemon")
   .parse(process.argv);
 
