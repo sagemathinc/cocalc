@@ -175,6 +175,11 @@ Table({
         editable: true,
       },
     },
+    tags: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc: "Tags expressing what this user is most interested in doing.",
+    },
   },
   rules: {
     desc: "All user accounts.",
@@ -294,6 +299,7 @@ Table({
           ssh_keys: {},
           created: null,
           unlisted: false,
+          tags: null,
         },
       },
       set: {
@@ -312,6 +318,7 @@ Table({
           ssh_keys: true,
           sign_up_usage_intent: true,
           unlisted: true,
+          tags: true,
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
           if (obj["name"] != null) {

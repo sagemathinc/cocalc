@@ -37,7 +37,7 @@ interface Issues {
 }
 
 export default async function signUp(req, res) {
-  let { terms, email, password, firstName, lastName, registrationToken } =
+  let { terms, email, password, firstName, lastName, registrationToken, tags } =
     getParams(req);
 
   password = (password ?? "").trim();
@@ -144,6 +144,7 @@ export default async function signUp(req, res) {
       firstName,
       lastName,
       account_id,
+      tags,
     });
 
     if (email) {

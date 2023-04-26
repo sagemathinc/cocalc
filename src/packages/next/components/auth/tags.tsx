@@ -38,7 +38,7 @@ export default function Tags({ tags, setTags, minTags }: Props) {
   return (
     <>
       <div>
-        What do you want to do right now? (Select at least {minTags})
+        What do you want to do right now (at least {minTags})?
         <div
           style={{
             marginTop: "5px",
@@ -50,7 +50,7 @@ export default function Tags({ tags, setTags, minTags }: Props) {
           {TAGS.map(({ label, ext }) => {
             return (
               <CheckableTag
-                style={{ fontSize: "14px" }}
+                style={{ fontSize: "14px", width:"100px"}}
                 key={ext}
                 checked={tags.has(ext)}
                 onChange={(checked) => {
