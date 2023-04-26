@@ -239,9 +239,9 @@ class TimeTravel extends Component<Props> {
     );
   }
 
-  private get_diff_values():
-    | { v0: string; v1: string; use_json: boolean }
-    | undefined {
+  private async get_diff_values(): Promise<
+    { v0: string; v1: string; use_json: boolean } | undefined
+  > {
     if (
       this.props.docpath == null ||
       this.props.desc == null ||
@@ -257,8 +257,8 @@ class TimeTravel extends Component<Props> {
       if (d0 == null) return;
       const d1 = this.props.versions.get(this.props.desc.get("version1"));
       if (d1 == null) return;
-      const v0 = json_stable(to_ipynb(syncdb, d0), { space: 1 });
-      const v1 = json_stable(to_ipynb(syncdb, d1), { space: 1 });
+      const v0 = json_stable(await to_ipynb(syncdb, d0), { space: 1 });
+      const v1 = json_stable(await to_ipynb(syncdb, d1), { space: 1 });
       return { v0, v1, use_json: true };
     }
 
@@ -274,7 +274,7 @@ class TimeTravel extends Component<Props> {
     return { v0, v1, use_json };
   }
 
-  private render_diff(): Rendered {
+  private async render_diff(): Promise<Rendered> {
     if (
       this.props.docpath == null ||
       this.props.desc == null ||
@@ -282,7 +282,7 @@ class TimeTravel extends Component<Props> {
     )
       return;
 
-    const x = this.get_diff_values();
+    const x = await this.get_diff_values();
     if (x == null) return this.render_loading();
     const { v0, v1, use_json } = x;
 

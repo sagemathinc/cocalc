@@ -120,7 +120,7 @@ class exports.HistoryEditor extends FileEditor
                     @element.find("a[href=\"#show-diff\"]").hide()
                 else
                     @_use_react = true
-                    @view_doc = jupyter_history_viewer_jquery_shim(@syncstring)
+                    @view_doc = await jupyter_history_viewer_jquery_shim(@syncstring)
                     @diff_doc = codemirror_session_editor(@project_id, @filename, opts)
             else
                 @view_doc = codemirror_session_editor(@project_id, @filename, opts)

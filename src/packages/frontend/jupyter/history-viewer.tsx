@@ -93,11 +93,11 @@ export const HistoryViewer: React.FC<HistoryViewerProps> = ({
 import { export_to_ipynb } from "./export-to-ipynb";
 import json_stable from "json-stable-stringify";
 
-export function to_ipynb(syncdb: SyncDB, version: Date): object {
-  return export_to_ipynb(get_cells(syncdb, version));
+export async function to_ipynb(syncdb: SyncDB, version: Date): Promise<object> {
+  return await export_to_ipynb(get_cells(syncdb, version));
 }
 
-export function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
+export async function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
   const elt = $("<div class='smc-vfill'></div>");
   const root = createRoot(elt[0]);
   return {
@@ -118,8 +118,8 @@ export function jupyter_history_viewer_jquery_shim(syncdb: SyncDB) {
         </Redux>
       );
     },
-    to_str(version) {
-      const ipynb = to_ipynb(syncdb, version);
+    async to_str(version) {
+      const ipynb = await to_ipynb(syncdb, version);
       return json_stable(ipynb, { space: 1 });
     },
   };

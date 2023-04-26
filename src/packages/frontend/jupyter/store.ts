@@ -239,7 +239,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
   };
 
   // Export the Jupyer notebook to an ipynb object.
-  get_ipynb = (blob_store?: any) => {
+  get_ipynb = async (blob_store?: any) => {
     if (this.get("cells") == null || this.get("cell_list") == null) {
       // not sufficiently loaded yet.
       return;
@@ -254,7 +254,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
       }
     }
 
-    return export_to_ipynb({
+    return await export_to_ipynb({
       cells: this.get("cells"),
       cell_list,
       metadata: this.get("metadata"), // custom metadata

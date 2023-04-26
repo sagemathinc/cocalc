@@ -2154,7 +2154,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // to the contents of ipynb more efficient.   In case of a very slight change
     // on disk, this can be massively more efficient.
 
-    await importer.import({
+    importer.import({
       ipynb,
       existing_ids,
       new_id: this.new_id.bind(this),
@@ -2484,14 +2484,14 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  public set_raw_ipynb(): void {
+  public async set_raw_ipynb(): Promise<void> {
     if (this._state != "ready") {
       // lies otherwise...
       return;
     }
 
     this.setState({
-      raw_ipynb: immutable.fromJS(this.store.get_ipynb()),
+      raw_ipynb: immutable.fromJS(await this.store.get_ipynb()),
     });
   }
 

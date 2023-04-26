@@ -38,7 +38,7 @@ export class IPynbImporter {
   private _kernel: any;
   private _metadata: any;
   private _language_info: any;
-  import = async (opts: any) => {
+  import = (opts: any) => {
     opts = misc.defaults(opts, {
       ipynb: {},
       new_id: undefined, // function that returns an unused id given
@@ -58,7 +58,7 @@ export class IPynbImporter {
     this._sanity_improvements();
     this._import_settings();
     this._import_metadata();
-    await this._read_in_cells();
+    this._read_in_cells();
   };
   cells = () => {
     return this._cells;
@@ -182,7 +182,7 @@ export class IPynbImporter {
     }
   };
 
-  _read_in_cells = async () => {
+  _read_in_cells = () => {
     const ipynb = this._ipynb;
     this._cells = {};
     if ((ipynb != null ? ipynb.cells : undefined) == null) {
@@ -191,7 +191,7 @@ export class IPynbImporter {
     }
     let n = 0;
     for (let cell of ipynb.cells) {
-      cell = await this._import_cell(cell, n);
+      cell = this._import_cell(cell, n);
       this._cells[cell.id] = cell;
       n += 1;
     }

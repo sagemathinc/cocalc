@@ -21,15 +21,30 @@ export const BASE64_TYPES = [
   "base64",
 ] as const;
 
+const BLOBSTORE = options.blobstore ?? "sqlite";
+
 let blob_store_sqlite: BlobStoreSqlite | undefined = undefined;
 let blob_store_disk: BlobStoreDisk | undefined = undefined;
 
+export function get_blob_store_sync():
+  | BlobStoreSqlite
+  | BlobStoreDisk
+  | undefined {
+  switch (BLOBSTORE) {
+    case "sqlite":
+      return blob_store_sqlite;
+    case "disk":
+      return blob_store_disk;
+    default:
+      throw Error(`unknown blobstore type ${BLOBSTORE}`);
+  }
+}
+
 export async function get_blob_store() {
-  const { blobstore } = options ?? "sqlite";
-  winston.info(`blobstore type: ${blobstore}`);
+  winston.info(`blobstore type: ${BLOBSTORE}`);
 
   while (true) {
-    if (blobstore === "sqlite") {
+    if (BLOBSTORE === "sqlite") {
       if (blob_store_sqlite != null) return blob_store_sqlite;
       try {
         blob_store_sqlite = new BlobStoreSqlite();
@@ -39,7 +54,7 @@ export async function get_blob_store() {
         get_ProjectStatusServer().setComponentAlert("BlobStore");
         winston.warn(`unable to instantiate BlobStore -- ${err}`);
       }
-    } else if (blobstore === "disk") {
+    } else if (BLOBSTORE === "disk") {
       if (blob_store_disk != null) return blob_store_disk;
       try {
         const disk = new BlobStoreDisk();
@@ -52,7 +67,7 @@ export async function get_blob_store() {
         winston.warn(`unable to instantiate BlobStore -- ${err}`);
       }
     } else {
-      const msg = `Unknown blobstore type: ${blobstore}`;
+      const msg = `Unknown blobstore type: ${BLOBSTORE}`;
       winston.error(msg);
       throw new Error(msg);
     }
