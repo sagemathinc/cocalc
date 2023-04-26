@@ -327,7 +327,7 @@ export class IPynbImporter {
     }
   }
 
-  async _import_cell(cell: any, n: any) {
+  _import_cell(cell: any, n: any) {
     const id =
       (this._existing_ids != null ? this._existing_ids[n] : undefined) != null
         ? this._existing_ids != null
@@ -390,7 +390,7 @@ export class IPynbImporter {
         for (const mime in val) {
           const base64 = val[mime];
           if (this._process_attachment != null) {
-            const sha1 = await this._process_attachment(base64, mime);
+            const sha1 = this._process_attachment(base64, mime);
             obj.attachments[name] = { type: "sha1", value: sha1 };
           } else {
             obj.attachments[name] = { type: "base64", value: base64 };
