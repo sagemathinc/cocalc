@@ -43,7 +43,6 @@ export default async function firstProject({
           welcome = "",
           jupyterExtra = "",
         } = TAGS_MAP[tag2] ?? {};
-        console.log({ tag2, language, welcome });
         if (language) {
           await createJupyterNotebookIfAvailable(
             kernels,

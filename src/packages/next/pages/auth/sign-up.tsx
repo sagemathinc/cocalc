@@ -40,7 +40,7 @@ export default function SignUpPage({ customize, requiresToken }) {
       // If you have at least one project, open the newest one.
       const { project_id } = await apiPost("/projects/get-one");
       if (project_id) {
-        const url = join(basePath, `/projects/${project_id}`);
+        const url = join(basePath, `/projects/${project_id}/files/welcome/`);
         window.location.href = url;
       }
       return;
