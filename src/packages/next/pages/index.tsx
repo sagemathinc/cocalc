@@ -7,8 +7,11 @@ import { Layout } from "antd";
 import { join } from "path";
 
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
+import { getMostRecentNews } from "@cocalc/database/postgres/news";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
+import { RecentHeadline } from "@cocalc/util/types/news";
 import CoCalcComFeatures, {
   Hero,
 } from "components/landing/cocalc-com-features";
@@ -16,27 +19,28 @@ import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
+import { NewsBanner } from "components/landing/news-banner";
 import Logo from "components/logo";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
 import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
-import BannerWithLinks from "components/landing/banner-with-links";
-import ChatGPTHelp from "components/openai/chatgpt-help";
 
 const topLinkStyle: CSS = { marginRight: "20px" };
 
 interface Props {
   customize: CustomizeType;
   publicPaths: PublicPathType[];
+  recentHeadline: RecentHeadline | null;
 }
 
 export default function Home(props: Props) {
-  const { customize, publicPaths } = props;
+  const { customize, publicPaths, recentHeadline } = props;
   const {
     shareServer,
     siteName,
@@ -201,7 +205,7 @@ export default function Home(props: Props) {
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
           {topAccountLinks()}
-          {shareServer && onCoCalcCom && <BannerWithLinks />}
+          {onCoCalcCom && <NewsBanner recentHeadline={recentHeadline} />}
           {openaiEnabled && (
             <div
               style={{ width: "900px", maxWidth: "100%", margin: "15px auto" }}
@@ -231,7 +235,7 @@ export default function Home(props: Props) {
 export async function getServerSideProps(context) {
   const isAuthenticated = (await getAccountId(context.req)) != null;
   const pool = getPool("long");
-  const { share_server } = await getServerSettings();
+  const { share_server, kucalc } = await getServerSettings();
   let publicPaths;
   if (share_server) {
     const { rows } = await pool.query(
@@ -249,8 +253,11 @@ export async function getServerSideProps(context) {
     publicPaths = null;
   }
 
+  const recentHeadline =
+    kucalc === KUCALC_COCALC_COM ? await getMostRecentNews() : null;
+
   return await withCustomize(
-    { context, props: { publicPaths } },
+    { context, props: { publicPaths, recentHeadline } },
     { name: true }
   );
 }
