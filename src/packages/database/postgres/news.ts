@@ -3,7 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { NewsItem, NewsPrevNext } from "@cocalc/util/types/news";
+import {
+  NewsItem,
+  NewsPrevNext,
+  RecentHeadline,
+} from "@cocalc/util/types/news";
 import { LRUQueryCache } from "./util";
 
 const C = new LRUQueryCache({ ttl_s: 10 * 60 });
@@ -105,4 +109,19 @@ export async function getIndex(
   offset: number
 ): Promise<NewsItem[]> {
   return await C.query<NewsItem>(Q_INDEX, [limit, offset]);
+}
+
+// get the most recent news item
+const Q_MOST_RECENT = `
+SELECT
+  id, channel, title, tags,
+  extract(epoch from date::timestamptz)::INTEGER as date
+FROM news
+WHERE date <= NOW()
+  AND hide IS NOT TRUE
+ORDER BY date DESC
+LIMIT 1`;
+
+export async function getMostRecentNews(): Promise<RecentHeadline | null> {
+  return await C.queryOne<NewsItem>(Q_MOST_RECENT);
 }
