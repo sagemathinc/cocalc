@@ -212,18 +212,18 @@ export default function Header(props: Props) {
         ) : (
           <>
             <A
-              style={page == "sign-in" ? SelectedStyle : LinkStyle}
-              href="/auth/sign-in"
-              title={`Sign in to ${siteName} or create an account.`}
-            >
-              Sign In
-            </A>
-            <A
               style={page == "sign-up" ? SelectedStyle : LinkStyle}
               href="/auth/sign-up"
               title={`Sign up for a ${siteName} account.`}
             >
               Sign Up
+            </A>
+            <A
+              style={page == "sign-in" ? SelectedStyle : LinkStyle}
+              href="/auth/sign-in"
+              title={`Sign in to ${siteName} or create an account.`}
+            >
+              Sign In
             </A>
           </>
         )}

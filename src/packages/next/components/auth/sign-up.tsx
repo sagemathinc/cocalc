@@ -180,6 +180,8 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
     );
   }
 
+  const needsTags = !minimal && tags.size < MIN_TAGS;
+
   return (
     <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
@@ -212,7 +214,9 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
             }}
           />
         }
-        {terms && <Tags setTags={setTags} tags={tags} minTags={MIN_TAGS} />}
+        {terms && !minimal && (
+          <Tags setTags={setTags} tags={tags} minTags={MIN_TAGS} />
+        )}
         <form>
           {issues.reCaptcha && (
             <Alert
@@ -238,7 +242,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
               }
             />
           )}
-          {tags.size >= MIN_TAGS && terms && requiresToken2 && (
+          {!needsTags && terms && requiresToken2 && (
             <div style={LINE}>
               <p>Registration Token</p>
               <Input
@@ -249,7 +253,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
               />
             </div>
           )}
-          {tags.size >= MIN_TAGS && terms && (
+          {!needsTags && terms && (
             <EmailOrSSO
               email={email}
               setEmail={setEmail}
@@ -274,7 +278,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
               }
             />
           )}
-          {tags.size >= MIN_TAGS && terms && email && requiredSSO == null && (
+          {!needsTags && terms && email && requiredSSO == null && (
             <div style={LINE}>
               <p>Password</p>
               <Input.Password
@@ -290,7 +294,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
           {issues.password && (
             <Alert style={LINE} type="error" showIcon message={issues.email} />
           )}
-          {tags.size >= MIN_TAGS &&
+          {!needsTags &&
             terms &&
             email &&
             requiredSSO == null &&
@@ -306,7 +310,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
                 />
               </div>
             )}
-          {tags.size >= MIN_TAGS &&
+          {!needsTags &&
             terms &&
             email &&
             password &&
@@ -333,7 +337,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
             style={{ width: "100%", marginTop: "15px" }}
             onClick={signUp}
           >
-            {tags.size < 2
+            {needsTags && tags.size < 2
               ? `Select what you want to do (at least ${MIN_TAGS})`
               : !terms
               ? "Agree to the terms"

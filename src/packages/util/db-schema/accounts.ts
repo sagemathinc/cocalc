@@ -473,3 +473,68 @@ Table({
   },
   fields: schema.accounts.fields,
 });
+
+interface Tag {
+  label: string;
+  tag: string;
+  icon?: any; // I'm not going to import the IconName type from @cocalc/frontend
+  welcome?: string; // a simple "welcome" of this type
+}
+
+export const TAGS: Tag[] = [
+  { label: "Jupyter", tag: "ipynb" },
+  {
+    label: "Python",
+    tag: "py",
+    welcome: 'print("Welcome to Python in CoCalc!")',
+  },
+  { label: "R Stats", tag: "r", welcome: 'print("Welcome to R in CoCalc!")' },
+  {
+    label: "SageMath",
+    tag: "sage",
+    welcome: "print('Welcome to Sage in CoCalc!', factor(2023))",
+  },
+  {
+    label: "Octave",
+    tag: "m",
+    welcome: `disp("Welcome to Octave in CoCalc!")`,
+  },
+  { label: "Linux", tag: "term" },
+  {
+    label: "LaTeX",
+    tag: "tex",
+    welcome: `\documentclass{article}
+\title{Welcome to \LaTeX{} in CoCalc!}
+\begin{document}
+\maketitle
+\end{document}`,
+  },
+  {
+    label: "C/C++",
+    tag: "c",
+    welcome: `
+#include <stdio.h>
+int main() {
+    printf("Welcome to C in CoCalc!\n");
+    return 0;
+}`,
+  },
+  {
+    label: "Julia",
+    tag: "jl",
+    welcome: 'println("Welcome to Julia in CoCalc!")',
+  },
+  { label: "Markdown", tag: "md", welcome: "# Welcome to Markdown in CoCalc!" },
+  {
+    label: "Whiteboard",
+    tag: "board",
+    welcome: `{"data":{"color":"#252937"},"h":96,"id":"1244fb1f","page":"b7cda7e9","str":"# Welcome to a Whiteboard in CoCalc!\n\n","type":"text","w":779,"x":-305,"y":-291,"z":1}
+{"data":{"pos":0},"id":"b7cda7e9","type":"page","z":0}`,
+  },
+  { label: "Teach", tag: "course" },
+  {
+    label: "Chat",
+    tag: "sage-chat",
+    welcome: `{"date":"2023-04-26T18:27:39.842Z","event":"chat","history":[{"content":"Welcome to Chat in CoCalc!","date":"2023-04-26T18:27:39.842Z"}]}`,
+  },
+];

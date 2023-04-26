@@ -1,6 +1,7 @@
 import { Tag } from "antd";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { TAGS } from "@cocalc/util/db-schema/accounts";
 
 const { CheckableTag } = Tag;
 
@@ -9,21 +10,6 @@ interface Props {
   setTags: (tags: Set<string>) => void;
   minTags: number;
 }
-
-const TAGS = [
-  { label: "Jupyter", ext: "ipynb" },
-  { label: "Python", ext: "py" },
-  { label: "R Stats", ext: "r" },
-  { label: "SageMath", ext: "sage" },
-  { label: "Linux", ext: "term" },
-  { label: "LaTeX", ext: "tex" },
-  { label: "C/C++", ext: "c" },
-  { label: "Julia", ext: "jl" },
-  { label: "Markdown", ext: "md" },
-  { label: "Whiteboard", ext: "board" },
-  { label: "Teach", ext: "course" },
-  { label: "Chat", ext: "sage-chat" },
-];
 
 export default function Tags({ tags, setTags, minTags }: Props) {
   const handleTagChange = (tag: string, checked: boolean) => {
@@ -47,20 +33,20 @@ export default function Tags({ tags, setTags, minTags }: Props) {
             padding: "10px",
           }}
         >
-          {TAGS.map(({ label, ext }) => {
+          {TAGS.map(({ label, tag, icon }) => {
+            const iconName = icon ?? file_associations[tag]?.icon;
             return (
               <CheckableTag
-                style={{ fontSize: "14px", width:"100px"}}
-                key={ext}
-                checked={tags.has(ext)}
+                style={{ fontSize: "14px", width: "100px" }}
+                key={tag}
+                checked={tags.has(tag)}
                 onChange={(checked) => {
-                  handleTagChange(ext, checked);
+                  handleTagChange(tag, checked);
                 }}
               >
-                <Icon
-                  name={file_associations[ext]?.icon}
-                  style={{ marginRight: "5px" }}
-                />
+                {iconName ?? (
+                  <Icon name={iconName} style={{ marginRight: "5px" }} />
+                )}
                 {label}
               </CheckableTag>
             );
