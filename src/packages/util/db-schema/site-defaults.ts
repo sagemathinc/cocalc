@@ -54,7 +54,8 @@ export type SiteSettingsKeys =
   | "anonymous_signup"
   | "share_server"
   | "landing_pages"
-  | "sandbox_project_id";
+  | "sandbox_project_id"
+  | "new_project_pool";
 
 type Mapping = { [key: string]: string | number | boolean };
 
@@ -518,6 +519,13 @@ export const site_settings_conf: SiteSettings = {
     name: "Sandbox Project ID",
     desc: "The `project_id` (a UUIDv4) of a sandbox project on your server for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
     default: "",
+  },
+  new_project_pool: {
+    name: "New Project Pool",
+    desc: "Number of new non-upgraded running projects to have at the ready to speed up the experience of creating new projects for users in interactive settings (where they are likely to immediately open the project).",
+    default: "0",
+    valid: only_nonneg_int,
+    show: () => true,
   },
   openai_enabled: {
     name: "OpenAI ChatGPT UI",

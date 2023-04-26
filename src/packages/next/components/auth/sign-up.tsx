@@ -185,6 +185,9 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
             priority={true}
           />
           <h1>Create a {siteName} Account</h1>
+          <h2 style={{ color: "#666", marginBottom:'35px' }}>
+            Sign up for free and get started with {siteName} today!
+          </h2>
           {accountCreationInstructions && (
             <Markdown value={accountCreationInstructions} />
           )}
