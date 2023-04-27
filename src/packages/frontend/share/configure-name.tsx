@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Alert, Button, Input } from "antd";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { client_db } from "@cocalc/util/schema";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   project_id: string;
@@ -35,7 +36,7 @@ export default function ConfigureName({ project_id, path }: Props) {
     }
   }
 
-    // if user presses the Esc key, we set choosingName to false and don't save
+  // if user presses the Esc key, we set choosingName to false and don't save
   async function keyup(e) {
     if (e.key === "Escape") {
       setChoosingName(false);
@@ -44,19 +45,16 @@ export default function ConfigureName({ project_id, path }: Props) {
 
   return (
     <div style={{ margin: "15px 0" }}>
-      <h4>Name{name ? `: ${name}` : ""}</h4>
-      <span>
+      <div style={{ float: "right" }}>
         {name
-          ? "This name will be used to provide a nicer URL."
-          : "Name this public path so that it has a much nicer memorable URL."}
-      </span>
+          ? "This name will be used to provide a nicer URL. "
+          : "Name this public path so that it has a memorable URL. "}
+      </div>
+      <h4>
+        <Icon name="global" /> Name{name ? `: ${name}` : " - optional"}
+      </h4>
       {!name && !choosingName ? (
-        <Button
-          style={{ marginLeft: "15px" }}
-          onClick={() => setChoosingName(true)}
-        >
-          Choose a name...
-        </Button>
+        <Button onClick={() => setChoosingName(true)}>Choose a name...</Button>
       ) : (
         <span>
           <Input
@@ -84,7 +82,7 @@ export default function ConfigureName({ project_id, path }: Props) {
           project name in Project Settings and{" "}
           <b>the project owner's name must be set in Account Preferences</b>.
         </span>
-      )}
+      )}{" "}
     </div>
   );
 }

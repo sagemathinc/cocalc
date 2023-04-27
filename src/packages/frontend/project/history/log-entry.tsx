@@ -140,6 +140,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
         to be {event.disabled ? "disabled" : "enabled"}
         {" and "}
         {event.unlisted ? "unlisted" : "listed"}
+        {event.site_license_id && ` and license id ...${event.site_license_id}`}
       </span>
     );
   }

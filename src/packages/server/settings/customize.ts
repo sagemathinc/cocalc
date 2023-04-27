@@ -92,6 +92,7 @@ export default async function getCustomize(): Promise<Customize> {
     sshGatewayDNS: settings.ssh_gateway_dns,
 
     anonymousSignup: settings.anonymous_signup,
+    anonymousSignupLicensedShares: settings.anonymous_signup_licensed_shares,
     emailSignup: settings.email_signup,
     accountCreationInstructions: settings.account_creation_email_instructions,
 

@@ -62,7 +62,7 @@ export default function CopyToClipBoard({
   // See https://ant.design/components/input for why using Input.Group is the
   // right way to do this.
   const input = (
-    <Input.Group compact>
+    <Input.Group compact style={{ display: "flex" }}>
       <Input
         style={{
           width: inputWidth ?? `${value.length + 8}ex`,
