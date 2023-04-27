@@ -11,10 +11,12 @@ import { join } from "node:path";
 import { brotliCompressSync, brotliDecompressSync } from "node:zlib";
 
 import Logger from "@cocalc/backend/logger";
-import { sha1 } from "@cocalc/backend/sha1";
+import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { touch } from "@cocalc/backend/misc/touch";
+import { sha1 } from "@cocalc/backend/sha1";
 import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
 import { days_ago } from "@cocalc/util/misc";
+import { BASE64_TYPES } from "./jupyter-blobs-get";
 
 const L = Logger("jupyter-blobs:disk").debug;
 
@@ -22,21 +24,14 @@ const L = Logger("jupyter-blobs:disk").debug;
 // in ~/.cache/cocalc/blobs. The path can be overwritten by setting the
 // environment variable JUPYTER_BLOBS_DB_DIR.
 
-// home directory
-
 const BLOB_DIR = join(
   homedir(),
   process.env["JUPYTER_BLOBS_DB_DIR"] ?? ".cache/cocalc/blobs"
 );
 
 // read the integer from JUPYTER_BLOBS_DB_DIR_PRUNE_SIZE_MB, or default to 200
-const PRUNE_SIZE_MB: number = parseInt(
-  process.env["JUPYTER_BLOBS_DB_DIR_PRUNE_SIZE_MB"] ?? "200"
-);
-
-const PRUNE_ENTRIES: number = parseInt(
-  process.env["JUPYTER_BLOBS_DB_DIR_PRUNE_ENTRIES"] ?? "1000"
-);
+const PRUNE_SIZE_MB = envToInt("JUPYTER_BLOBSTORE_DISK_PRUNE_SIZE_MB", 200);
+const PRUNE_ENTRIES = envToInt("JUPYTER_BLOBSTORE_DISK_PRUNE_ENTRIES", 1000);
 
 // The JSON-serizalized and compressed structure we store per entry.
 interface Data {
@@ -56,7 +51,7 @@ export class BlobStoreDisk implements BlobStoreInterface {
 
   public async init() {
     L(
-      `initializing blob store in ${BLOB_DIR} with prune size ${PRUNE_SIZE_MB}MB and ${PRUNE_ENTRIES} entries`
+      `initializing blob store in ${BLOB_DIR} with prune params: size=${PRUNE_SIZE_MB}MB and max entries=${PRUNE_ENTRIES}`
     );
     try {
       await mkdir(BLOB_DIR, { recursive: true });
@@ -84,6 +79,7 @@ export class BlobStoreDisk implements BlobStoreInterface {
 
   // NOTE: this is wrapped in a reuseInFlight, so it is only run once at a time
   private async prune(ageD = 100) {
+    L(`prune ageD=${ageD}`);
     if (ageD < 3) {
       await this.delete_all_blobs();
       return;
@@ -92,24 +88,31 @@ export class BlobStoreDisk implements BlobStoreInterface {
     const cutoff = days_ago(ageD);
     let totalSize = 0;
     let numFiles = 0;
+    let deletedFiles = 0;
     for (const file of await this.getAllFiles()) {
       numFiles += 1;
       const path = join(BLOB_DIR, file);
       const stats = await stat(path);
       if (stats.mtime < cutoff) {
         await unlink(path);
+        deletedFiles += 1;
       } else {
         // sum up to total size of files
         totalSize += stats.size;
         // to many entries? prune more recent files
         if (numFiles > PRUNE_ENTRIES) {
+          L(`prune: too many files`);
           await this.prune(Math.floor(ageD / 2));
+          return;
         }
       }
     }
 
-    // if the total size is larger than 200MB, delete files half the age
+    L(`prune: deleted ${deletedFiles} files`);
+
+    // if the total size is larger than $PRUNE_SIZE_MB, delete files half the age
     if (totalSize > PRUNE_SIZE_MB * 1024 * 1024) {
+      L(`prune: too much data`);
       await this.prune(Math.floor(ageD / 2));
     }
   }
@@ -121,13 +124,6 @@ export class BlobStoreDisk implements BlobStoreInterface {
   // TODO: this is synchroneous.
   // Changing it to async would be great, but needs a lot of additional work in the frontend.
   public save(data, type, ipynb?): string {
-    // this is in the sqlite variant, but we don't need it?!
-    // if (BASE64_TYPES.includes(type)) {
-    //   data = Buffer.from(data, "base64");
-    // } else {
-    //   data = Buffer.from(data);
-    // }
-
     const hash = sha1(data);
     const path = join(BLOB_DIR, hash);
 
@@ -142,6 +138,8 @@ export class BlobStoreDisk implements BlobStoreInterface {
     const stats = statSync(path);
     this.haveSavedMB += stats.size / 1024 / 1024;
 
+    L(`saved ${hash} successfully. haveSavedMB=${this.haveSavedMB}`);
+
     // prune, if we are at most 20% over
     if (this.haveSavedMB > PRUNE_SIZE_MB / 5) {
       this.prune();
@@ -151,13 +149,13 @@ export class BlobStoreDisk implements BlobStoreInterface {
     return hash;
   }
 
-  public getData(sha1: string): Data | undefined {
-    // read the file wiht the name sha1, decrompess it, and return it
+  private getData(sha1: string): Data | undefined {
+    // read the sha1 named file, decrompess it, and return it
     const path = join(BLOB_DIR, sha1);
     try {
-      const raw = brotliDecompressSync(readFileSync(path));
-      touch(path); // we don't wait for this to finish
-      return JSON.parse(raw.toString());
+      const buf = brotliDecompressSync(readFileSync(path));
+      touch(path, false); // we don't wait for this to finish
+      return JSON.parse(buf.toString());
     } catch (err) {
       L(`failed to get blob ${sha1}: ${err}`);
       return undefined;
@@ -165,16 +163,25 @@ export class BlobStoreDisk implements BlobStoreInterface {
   }
 
   public get(sha1: string): Buffer | undefined {
-    const data = this.getData(sha1)?.data;
-    if (data == null) return;
-    return Buffer.from(data, "base64");
+    const row = this.getData(sha1);
+    if (row?.data == null) return;
+    return this.encodeData(row.data, row.type);
   }
 
-  public async get_ipynb(sha1: string): Promise<any> {
-    const row = await this.getData(sha1);
+  public get_ipynb(sha1: string): any {
+    const row = this.getData(sha1);
+    L(`get_ipynb: ${sha1} ipynb=${row?.ipynb?.slice(0, 100)}`);
     if (row == null) return;
     if (row.ipynb != null) return row.ipynb;
     if (row.data != null) return row.data;
+  }
+
+  private encodeData(data: string, type?: string): Buffer {
+    if (typeof type === "string" && BASE64_TYPES.includes(type as any)) {
+      return Buffer.from(data, "base64");
+    } else {
+      return Buffer.from(data);
+    }
   }
 
   // Read a file from disk and save it in the database.

@@ -6,6 +6,8 @@
 // parses command line arguments -- https://github.com/visionmedia/commander.js/
 import { program } from "commander";
 
+import { BLOBSTORE } from "@cocalc/backend/data";
+
 interface Options {
   hubPort: number;
   browserPort: number;
@@ -15,10 +17,8 @@ interface Options {
   daemon: boolean;
   sshd: boolean;
   init: string;
-  blobstore: "sqlite" | "disk";
+  blobstore: typeof BLOBSTORE;
 }
-
-const BLOBSTORE_DEFAULT = "sqlite";
 
 let options = {
   hubPort: 0,
@@ -29,7 +29,7 @@ let options = {
   daemon: false,
   sshd: false,
   init: "",
-  blobstore: BLOBSTORE_DEFAULT,
+  blobstore: BLOBSTORE,
 } as Options;
 
 export { options };

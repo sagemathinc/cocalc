@@ -881,7 +881,7 @@ export class JupyterKernel
     async function f(): Promise<string> {
       const bs = get_blob_store_sync();
       if (bs == null) throw new Error("BlobStore not available");
-      return await bs.readFile(path, "base64");
+      return bs.readFile(path, "base64");
     }
     try {
       return await retry_until_success({

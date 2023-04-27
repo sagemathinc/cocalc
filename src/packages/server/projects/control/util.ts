@@ -4,7 +4,7 @@ import { exec as exec0, spawn } from "child_process";
 import spawnAsync from "await-spawn";
 import * as fs from "fs";
 
-import { projects, root } from "@cocalc/backend/data";
+import { projects, root, BLOBSTORE } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "@cocalc/backend/logger";
@@ -21,9 +21,6 @@ const readFile = promisify(fs.readFile);
 const stat = promisify(fs.stat);
 const copyFile = promisify(fs.copyFile);
 const rm = promisify(fs.rm);
-
-// set JUPYTER_BLOBS_IMPL for single-mode/development. In production, use the project's --blobstore switch
-const BLOBSTORE = process.env["JUPYTER_BLOBS_IMPL"] ?? "sqlite"; // or "disk"
 
 export async function chown(path: string, uid: number): Promise<void> {
   await promisify(fs.chown)(path, uid, uid);

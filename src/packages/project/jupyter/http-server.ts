@@ -14,6 +14,7 @@ import { Router } from "express";
 import * as os_path from "node:path";
 
 import Logger from "@cocalc/backend/logger";
+import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
 import { startswith, to_json } from "@cocalc/util/misc";
 import { exists } from "./async-utils-node";
 import { get_existing_kernel } from "./jupyter";
@@ -124,13 +125,26 @@ export default async function init(): Promise<Router> {
   const blob_store: BlobStoreSqlite | BlobStoreDisk = await get_blob_store();
 
   winston.debug("got blob store, setting up jupyter http server");
+  const router = Router();
 
   // Install handling for the blob store
-  const router = Router();
+  jupyter_blobstore_handler(router, blob_store);
+
+  // Handler for Jupyter kernel info
+  jupyter_kernel_info_handler(router);
+
+  return router;
+}
+
+function jupyter_blobstore_handler(
+  router: Router,
+  blob_store: BlobStoreInterface
+): void {
   const base = BASE + "blobs/";
 
   router.get(base, async (_, res) => {
-    res.send(to_json(await blob_store.keys()));
+    res.setHeader("Content-Type", "application/json");
+    res.end(to_json(await blob_store.keys()));
   });
 
   router.get(base + "*", async (req, res) => {
@@ -139,9 +153,4 @@ export default async function init(): Promise<Router> {
     res.type(filename);
     res.send(await blob_store.get(sha1));
   });
-
-  // Handler for Jupyter kernel info
-  jupyter_kernel_info_handler(router);
-
-  return router;
 }

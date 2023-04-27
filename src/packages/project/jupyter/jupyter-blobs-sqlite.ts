@@ -172,7 +172,7 @@ export class BlobStoreSqlite implements BlobStoreInterface {
   // Read a file from disk and save it in the database.
   // Returns the sha1 hash of the file.
   async readFile(path: string, type: string): Promise<string> {
-    return this.save(await readFile(path), type);
+    return await this.save(await readFile(path), type);
   }
 
   /*
@@ -189,7 +189,7 @@ export class BlobStoreSqlite implements BlobStoreInterface {
     }
   }
 
-  async get_ipynb(sha1: string): Promise<any> {
+  get_ipynb(sha1: string): any {
     const row = this.stmt_ipynb.get(sha1);
     if (row == null) {
       return;
