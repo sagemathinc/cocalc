@@ -72,6 +72,8 @@ export default function infoToMode(
   if (
     preferKernel &&
     (mode.startsWith("sage") ||
+      mode.startsWith("octave") ||
+      mode == "m" ||
       mode.startsWith("julia") ||
       mode == "jl" ||
       mode.startsWith("python"))
@@ -80,6 +82,13 @@ export default function infoToMode(
       // it's nice for users to be able to type "sage" to get sage mode (since it's .sage file),
       // but the language for the sage kernels is always "sagemath".
       return "sagemath";
+    }
+    if (mode == "jl") {
+      // similar remark about julia as for sage above
+      return "julia";
+    }
+    if (mode == "m") {
+      return "octave";
     }
     return mode;
   }

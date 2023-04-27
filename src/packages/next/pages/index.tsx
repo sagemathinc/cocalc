@@ -30,6 +30,7 @@ import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
+import DemoCell from "components/demo-cell";
 
 const topLinkStyle: CSS = { marginRight: "20px" };
 
@@ -52,6 +53,7 @@ export default function Home(props: Props) {
     sandboxProjectId,
     onCoCalcCom,
     openaiEnabled,
+    jupyterApiEnabled,
   } = customize;
 
   function contentDescription() {
@@ -213,6 +215,7 @@ export default function Home(props: Props) {
               <ChatGPTHelp size="large" tag={"index"} />
             </div>
           )}
+          {jupyterApiEnabled && onCoCalcCom && <DemoCell tag={"py"} />}
           <Content
             style={{ minHeight: "30vh" }}
             logo={logo()}
