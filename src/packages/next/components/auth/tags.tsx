@@ -23,8 +23,10 @@ export default function Tags({ tags, setTags, minTags, style }: Props) {
   };
 
   return (
-    <div style={{ minWidth: "475px", textAlign:'center', ...style }}>
-      What do you want to use right now (at least {minTags})?
+    <div style={{ minWidth: "475px", ...style }}>
+      <div style={{ textAlign: "center" }}>
+        What do you want to use right now (at least {minTags})?
+      </div>
       <div
         style={{
           marginTop: "5px",
