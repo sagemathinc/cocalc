@@ -9,3 +9,4 @@ export { sha1, uuidsha1 } from "./sha1";
 import abspath from "./misc/abspath";
 export { abspath };
 export { execute_code } from "./execute-code";
+export { touch } from "./misc/touch";

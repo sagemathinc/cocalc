@@ -10,15 +10,19 @@ useful, e.g., for big images, general info about all available
 kernels, sending signals, doing tab completions, and so on.
 */
 
-import * as os_path from "path";
-import { delay } from "awaiting";
 import { Router } from "express";
-import { exists } from "./async-utils-node";
-import { get_blob_store, BlobStore } from "./jupyter-blobs-sqlite";
-import { get_kernel_data } from "./kernel-data";
-import { get_existing_kernel } from "./jupyter";
-import { startswith } from "@cocalc/util/misc";
+import * as os_path from "node:path";
+
 import Logger from "@cocalc/backend/logger";
+import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
+import { startswith, to_json } from "@cocalc/util/misc";
+import { exists } from "./async-utils-node";
+import { get_existing_kernel } from "./jupyter";
+import { BlobStoreDisk } from "./jupyter-blobs-disk";
+import { get_blob_store } from "./jupyter-blobs-get";
+import { BlobStoreSqlite } from "./jupyter-blobs-sqlite";
+import { get_kernel_data } from "./kernel-data";
+
 const winston = Logger("jupyter-http-server");
 
 const BASE = "/.smc/jupyter/";
@@ -117,19 +121,36 @@ function jupyter_kernel_info_handler(router): void {
 }
 
 export default async function init(): Promise<Router> {
-  while (true) {
-    const blob_store: BlobStore | undefined = get_blob_store();
-    if (blob_store != null) {
-      // Install handling for the blob store
-      const router: Router = blob_store.express_router(BASE);
+  // this might take infinitely long, see get_blob_store() for details
+  const blob_store: BlobStoreSqlite | BlobStoreDisk = await get_blob_store();
 
-      // Handler for Jupyter kernel info
-      jupyter_kernel_info_handler(router);
+  winston.debug("got blob store, setting up jupyter http server");
+  const router = Router();
 
-      return router;
-    } else {
-      winston.warn("delaying setup, because BlobStore not available yet");
-      await delay(5000);
-    }
-  }
+  // Install handling for the blob store
+  jupyter_blobstore_handler(router, blob_store);
+
+  // Handler for Jupyter kernel info
+  jupyter_kernel_info_handler(router);
+
+  return router;
+}
+
+function jupyter_blobstore_handler(
+  router: Router,
+  blob_store: BlobStoreInterface
+): void {
+  const base = BASE + "blobs/";
+
+  router.get(base, async (_, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.end(to_json(await blob_store.keys()));
+  });
+
+  router.get(base + "*", async (req, res) => {
+    const filename: string = req.path.slice(base.length);
+    const sha1: string = `${req.query.sha1}`;
+    res.type(filename);
+    res.send(await blob_store.get(sha1));
+  });
 }

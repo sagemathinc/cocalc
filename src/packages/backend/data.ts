@@ -44,6 +44,13 @@ export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
 export const logs: string = process.env.LOGS ?? join(data, "logs");
+export const BLOBSTORE = getBlobstore();
+
+function getBlobstore(): "sqlite" | "disk" {
+  const env = process.env["COCALC_JUPYTER_BLOBSTORE_IMPL"];
+  if (env === "disk") return "disk";
+  return "sqlite";
+}
 
 function sanityChecks() {
   // Do a sanity check on projects:
