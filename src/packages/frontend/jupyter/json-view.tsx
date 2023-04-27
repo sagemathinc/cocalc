@@ -11,13 +11,9 @@ Provide nice JSON view of the ipynb
 // and using codemirror directly is better for *editing*.
 // react-json-view is very nice for viewing.
 import ReactJson from "@microlink/react-json-view";
-import {
-  React,
-  useAsyncEffect,
-  useState,
-} from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
+import { React } from "../app-framework";
 import { JupyterActions } from "./browser-actions";
+import { Loading } from "../components";
 
 interface JSONViewProps {
   actions: JupyterActions;
@@ -28,11 +24,7 @@ export const JSONView: React.FC<JSONViewProps> = ({
   actions,
   font_size,
 }: JSONViewProps) => {
-  const [data, setData] = useState<any>();
-
-  useAsyncEffect(async () => {
-    setData(await actions.store.get_ipynb());
-  }, []);
+  const data = actions.store.get_ipynb();
 
   if (data == null) {
     return <Loading />;

@@ -30,12 +30,12 @@ export interface EventEmitterInterface {
 }
 
 export interface BlobStoreInterface {
-  save(data, type, ipynb?): Promise<string>;
+  save(data, type, ipynb?): string;
   readFile(path: string, type: string): Promise<string>;
-  get(sha1: string): Promise<undefined | Buffer>;
-  get_ipynb(sha1: string): Promise<undefined | string>;
+  get(sha1: string): undefined | Buffer;
+  get_ipynb(sha1: string): any;
   keys(): Promise<string[]>;
-  delete_all_blobs(): Promise<void>;
+  delete_all_blobs(): void;
 }
 
 export interface MessageHeader {
@@ -136,7 +136,7 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   more_output(id: string): any[];
   nbconvert(args: string[], timeout?: number): Promise<void>;
   load_attachment(path: string): Promise<string>;
-  process_attachment(base64, mime): Promise<string | undefined>;
+  process_attachment(base64, mime): string | undefined;
   send_comm_message_to_kernel(msg_id: string, comm_id: string, data: any): void;
   get_connection_file(): string | undefined;
 }

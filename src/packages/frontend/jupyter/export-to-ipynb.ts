@@ -12,10 +12,10 @@ import * as misc from "@cocalc/util/misc";
 
 // In coffeescript still, so we at least say what we use of it here.
 interface BlobStore {
-  get_ipynb: (string) => Promise<string>;
+  get_ipynb: (string) => string;
 }
 
-export async function export_to_ipynb(opts: any) {
+export function export_to_ipynb(opts: any) {
   opts = misc.defaults(opts, {
     cell_list: misc.required,
     cells: misc.required,
@@ -27,11 +27,7 @@ export async function export_to_ipynb(opts: any) {
   }); // optional map id --> list of additional output messages to replace last output message.
 
   const ipynb = {
-    cells: await Promise.all(
-      opts.cell_list
-        .toJS()
-        .map(async (id: string) => await cell_to_ipynb(id, opts))
-    ),
+    cells: opts.cell_list.toJS().map((id: string) => cell_to_ipynb(id, opts)),
     metadata: opts.metadata ? opts.metadata.toJS() || {} : {},
     nbformat: 4,
     nbformat_minor: 4,
@@ -46,7 +42,7 @@ export async function export_to_ipynb(opts: any) {
 }
 
 // Return ipynb version of the given cell as object
-async function cell_to_ipynb(id: string, opts: any) {
+function cell_to_ipynb(id: string, opts: any) {
   let left, left1, left2;
   const cell = opts.cells.get(id);
   const metadata: any = {};
@@ -77,7 +73,7 @@ async function cell_to_ipynb(id: string, opts: any) {
   }
 
   process_slides(obj, cell.get("slide"));
-  await process_attachments(obj, cell.get("attachments"), opts.blob_store);
+  process_attachments(obj, cell.get("attachments"), opts.blob_store);
   process_tags(obj, cell.get("tags"));
 
   if (obj.cell_type !== "code") {
@@ -87,7 +83,7 @@ async function cell_to_ipynb(id: string, opts: any) {
 
   const output = cell.get("output");
   if ((output != null ? output.size : undefined) > 0) {
-    obj.outputs = await ipynb_outputs(
+    obj.outputs = ipynb_outputs(
       output,
       exec_count,
       opts.more_output != null ? opts.more_output[id] : undefined,
@@ -131,7 +127,7 @@ function process_other_metadata(obj: any, other_metadata: any) {
   }
 }
 
-async function process_attachments(
+function process_attachments(
   obj: any,
   attachments: any,
   blob_store: BlobStore | undefined
@@ -141,21 +137,21 @@ async function process_attachments(
     return;
   }
   obj.attachments = {};
-  for (const [name, val] of attachments) {
+  attachments.forEach((val: any, name: string) => {
     if (val.get("type") !== "sha1") {
       return; // didn't even upload
     }
     const sha1 = val.get("value");
-    const base64: string = await blob_store.get_ipynb(sha1);
+    const base64 = blob_store.get_ipynb(sha1);
     let ext = misc.filename_extension(name);
     if (ext === "jpg") {
       ext = "jpeg";
     }
     obj.attachments[name] = { [`image/${ext}`]: base64 }; // TODO -- other types?
-  }
+  });
 }
 
-async function ipynb_outputs(
+function ipynb_outputs(
   output: any,
   exec_count: any,
   more_output: any,
@@ -195,7 +191,7 @@ async function ipynb_outputs(
       const output_n =
         output.get(`${i}`) != null ? output.get(`${i}`).toJS() : undefined;
       if (output_n != null) {
-        await process_output_n(output_n, exec_count, blob_store);
+        process_output_n(output_n, exec_count, blob_store);
         outputs.push(output_n);
       }
     }
@@ -203,7 +199,7 @@ async function ipynb_outputs(
   return outputs;
 }
 
-async function process_output_n(
+function process_output_n(
   output_n: any,
   exec_count: any,
   blob_store: BlobStore | undefined
@@ -229,7 +225,7 @@ async function process_output_n(
         k === "iframe"
       ) {
         if (blob_store != null) {
-          const value = await blob_store.get_ipynb(v);
+          const value = blob_store.get_ipynb(v);
           if (value == null) {
             // The image is no longer known; this could happen if the user reverts in the history
             // browser and there is an image in the output that was not saved in the latest version.

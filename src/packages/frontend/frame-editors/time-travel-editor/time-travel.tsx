@@ -8,7 +8,6 @@
 import { Checkbox, Tooltip } from "antd";
 import { List, Map } from "immutable";
 import { ButtonGroup } from "react-bootstrap";
-import json_stable from "json-stable-stringify";
 
 import {
   Component,
@@ -16,8 +15,8 @@ import {
   rclass,
   rtypes,
   redux,
-} from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
+} from "../../app-framework";
+import { Loading } from "../../components";
 
 import { TimeTravelActions } from "./actions";
 import { Document } from "./document";
@@ -33,6 +32,7 @@ import { RevertFile } from "./revert-file";
 import { ChangesMode } from "./changes-mode";
 import { OpenSnapshots } from "./open-snapshots";
 import { Export } from "./export";
+import json_stable from "json-stable-stringify";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { TasksHistoryViewer } from "../../editors/task-editor/history-viewer";
 import {
@@ -73,13 +73,7 @@ interface Props {
   docext?: string;
 }
 
-type DiffValues = { v0: string; v1: string; use_json: boolean } | undefined;
-
-interface State {
-  diff_values?: DiffValues;
-}
-
-class TimeTravel extends Component<Props, State> {
+class TimeTravel extends Component<Props> {
   public static reduxProps({ name }) {
     return {
       [name]: {
@@ -90,14 +84,6 @@ class TimeTravel extends Component<Props, State> {
         docext: rtypes.string,
       },
     };
-  }
-
-  private async loadDiff() {
-    this.setState({ diff_values: await this.get_diff_values() });
-  }
-
-  componentDidMount(): void {
-    this.loadDiff();
   }
 
   private get_version(): Date | undefined {
@@ -253,7 +239,9 @@ class TimeTravel extends Component<Props, State> {
     );
   }
 
-  private async get_diff_values(): Promise<DiffValues> {
+  private get_diff_values():
+    | { v0: string; v1: string; use_json: boolean }
+    | undefined {
     if (
       this.props.docpath == null ||
       this.props.desc == null ||
@@ -269,8 +257,8 @@ class TimeTravel extends Component<Props, State> {
       if (d0 == null) return;
       const d1 = this.props.versions.get(this.props.desc.get("version1"));
       if (d1 == null) return;
-      const v0 = json_stable(await to_ipynb(syncdb, d0), { space: 1 });
-      const v1 = json_stable(await to_ipynb(syncdb, d1), { space: 1 });
+      const v0 = json_stable(to_ipynb(syncdb, d0), { space: 1 });
+      const v1 = json_stable(to_ipynb(syncdb, d1), { space: 1 });
       return { v0, v1, use_json: true };
     }
 
@@ -294,10 +282,9 @@ class TimeTravel extends Component<Props, State> {
     )
       return;
 
-    if (this.state.diff_values == null) {
-      return this.render_loading();
-    }
-    const { v0, v1, use_json } = this.state.diff_values;
+    const x = this.get_diff_values();
+    if (x == null) return this.render_loading();
+    const { v0, v1, use_json } = x;
 
     if (this.props.docext == "sagews") {
       return (

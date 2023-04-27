@@ -710,7 +710,7 @@ export class JupyterKernel
     return get_blob_store_sync();
   }
 
-  async process_output(content: any): Promise<void> {
+  process_output(content: any): void {
     if (this._state === "closed") {
       return;
     }
@@ -730,10 +730,7 @@ export class JupyterKernel
         if (type.split("/")[0] === "image" || type === "application/pdf") {
           const blob_store = this.get_blob_store();
           if (blob_store != null) {
-            content.data[type] = await blob_store.save(
-              content.data[type],
-              type
-            );
+            content.data[type] = blob_store.save(content.data[type], type);
           }
         } else if (
           type === "text/html" &&
@@ -897,9 +894,9 @@ export class JupyterKernel
     }
   }
 
-  async process_attachment(base64, mime): Promise<string | undefined> {
+  process_attachment(base64, mime): string | undefined {
     const blob_store = this.get_blob_store();
-    return await blob_store?.save(base64, mime);
+    return blob_store?.save(base64, mime);
   }
 
   process_comm_message_from_kernel(mesg): void {

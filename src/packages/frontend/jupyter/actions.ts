@@ -2484,14 +2484,14 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  public async set_raw_ipynb(): Promise<void> {
+  public set_raw_ipynb(): void {
     if (this._state != "ready") {
       // lies otherwise...
       return;
     }
 
     this.setState({
-      raw_ipynb: immutable.fromJS(await this.store.get_ipynb()),
+      raw_ipynb: immutable.fromJS(this.store.get_ipynb()),
     });
   }
 

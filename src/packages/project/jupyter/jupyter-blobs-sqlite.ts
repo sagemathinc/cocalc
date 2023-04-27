@@ -153,7 +153,7 @@ export class BlobStoreSqlite implements BlobStoreInterface {
   // ipynb = (optional) text that is also stored and will be
   //         returned when get_ipynb is called
   //         This is used for some iframe support code.
-  async save(data, type, ipynb?): Promise<string> {
+  save(data, type, ipynb?): string {
     if (BASE64_TYPES.includes(type)) {
       data = Buffer.from(data, "base64");
     } else {
@@ -172,7 +172,7 @@ export class BlobStoreSqlite implements BlobStoreInterface {
   // Read a file from disk and save it in the database.
   // Returns the sha1 hash of the file.
   async readFile(path: string, type: string): Promise<string> {
-    return await this.save(await readFile(path), type);
+    return this.save(await readFile(path), type);
   }
 
   /*
@@ -182,7 +182,7 @@ export class BlobStoreSqlite implements BlobStoreInterface {
   */
 
   // Return data with given sha1, or undefined if no such data.
-  async get(sha1: string): Promise<undefined | Buffer> {
+  get(sha1: string): undefined | Buffer {
     const x = this.stmt_data.get(sha1);
     if (x != null) {
       return x.data;
