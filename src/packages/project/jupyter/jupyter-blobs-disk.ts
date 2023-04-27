@@ -4,6 +4,7 @@
  */
 
 import { reuseInFlight } from "async-await-utils/hof";
+import LRU from "lru-cache";
 import { readFileSync, statSync, writeFileSync } from "node:fs";
 import { mkdir, readFile, readdir, stat, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -15,7 +16,6 @@ import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { touch } from "@cocalc/backend/misc/touch";
 import { sha1 } from "@cocalc/backend/sha1";
 import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
-import { days_ago } from "@cocalc/util/misc";
 import { BASE64_TYPES } from "./jupyter-blobs-get";
 
 const L = Logger("jupyter-blobs:disk").debug;
@@ -24,14 +24,29 @@ const L = Logger("jupyter-blobs:disk").debug;
 // in ~/.cache/cocalc/blobs. The path can be overwritten by setting the
 // environment variable JUPYTER_BLOBS_DB_DIR.
 
-const BLOB_DIR = join(
-  homedir(),
-  process.env["JUPYTER_BLOBS_DB_DIR"] ?? ".cache/cocalc/blobs"
-);
+const BLOB_DIR =
+  process.env["JUPYTER_BLOBS_DB_DIR"] ?? join(homedir(), ".cache/cocalc/blobs");
 
 // read the integer from JUPYTER_BLOBS_DB_DIR_PRUNE_SIZE_MB, or default to 200
 const PRUNE_SIZE_MB = envToInt("JUPYTER_BLOBSTORE_DISK_PRUNE_SIZE_MB", 200);
 const PRUNE_ENTRIES = envToInt("JUPYTER_BLOBSTORE_DISK_PRUNE_ENTRIES", 1000);
+
+interface FStat {
+  mtime: Date;
+  size: number;
+}
+
+const cache = new LRU<string, FStat>({
+  max: 2 * PRUNE_ENTRIES,
+});
+
+async function get_stat(path: string): Promise<FStat> {
+  const ret = cache.get(path);
+  if (ret != null) return ret;
+  const stats = await stat(path);
+  cache.set(path, { mtime: stats.mtime, size: stats.size });
+  return stats;
+}
 
 // The JSON-serizalized and compressed structure we store per entry.
 interface Data {
@@ -71,49 +86,78 @@ export class BlobStoreDisk implements BlobStoreInterface {
 
   public async delete_all_blobs() {
     for (const file of await this.getAllFiles()) {
-      // delete file
-      const path = join(BLOB_DIR, file);
-      await unlink(path);
+      try {
+        await unlink(join(BLOB_DIR, file));
+      } catch {}
     }
   }
 
-  // NOTE: this is wrapped in a reuseInFlight, so it is only run once at a time
-  private async prune(ageD = 100) {
-    L(`prune ageD=${ageD}`);
-    if (ageD < 3) {
+  // we compute the median of all mtimes and delete files older than that.
+  // @return the number of deleted files
+  private async deleteOldFiles(): Promise<number> {
+    const allFiles = await this.getAllFiles();
+    if (allFiles.length <= 5) {
       await this.delete_all_blobs();
-      return;
+      return allFiles.length;
     }
-
-    const cutoff = days_ago(ageD);
-    let totalSize = 0;
-    let numFiles = 0;
-    let deletedFiles = 0;
-    for (const file of await this.getAllFiles()) {
-      numFiles += 1;
+    const times: number[] = [];
+    for (const fn of allFiles) {
+      times.push((await get_stat(join(BLOB_DIR, fn))).mtime.getTime());
+    }
+    const sorted = times.sort();
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const filesToDelete = allFiles.filter(
+      (file) =>
+        (cache.get(join(BLOB_DIR, file))?.mtime.getTime() ?? median) < median
+    );
+    let filesDeleted = 0;
+    for (const file of filesToDelete) {
       const path = join(BLOB_DIR, file);
-      const stats = await stat(path);
-      if (stats.mtime < cutoff) {
+      try {
         await unlink(path);
-        deletedFiles += 1;
-      } else {
-        // sum up to total size of files
+        cache.delete(path);
+        filesDeleted += 1;
+      } catch {}
+    }
+    return filesDeleted;
+  }
+
+  // NOTE: this is wrapped in a reuseInFlight, so it is only run once at a time
+  private async prune() {
+    let deletedFiles = 0;
+    let numberGood = true;
+    let sizeGood = true;
+
+    // for up to 3 times we try to prune
+    for (let i = 0; i < 3; i++) {
+      const allFiles = await this.getAllFiles();
+      numberGood = allFiles.length < PRUNE_ENTRIES;
+      if (!numberGood) {
+        L(`prune: too many files`);
+        deletedFiles += await this.deleteOldFiles();
+        continue;
+      }
+
+      let totalSize = 0;
+      for (const fn of allFiles) {
+        const stats = await get_stat(join(BLOB_DIR, fn));
         totalSize += stats.size;
-        // to many entries? prune more recent files
-        if (numFiles > PRUNE_ENTRIES) {
-          L(`prune: too many files`);
-          await this.prune(Math.floor(ageD / 2));
-          return;
+        sizeGood = totalSize < PRUNE_SIZE_MB * 1024 * 1024;
+        if (!sizeGood) {
+          deletedFiles += await this.deleteOldFiles();
+          continue;
         }
+      }
+
+      if (sizeGood && numberGood) {
+        L(`prune: deleted ${deletedFiles} files`);
+        return;
       }
     }
 
-    L(`prune: deleted ${deletedFiles} files`);
-
-    // if the total size is larger than $PRUNE_SIZE_MB, delete files half the age
-    if (totalSize > PRUNE_SIZE_MB * 1024 * 1024) {
-      L(`prune: too much data`);
-      await this.prune(Math.floor(ageD / 2));
+    // not all good after three tries, so delete everything
+    if (!sizeGood || !numberGood) {
+      await this.delete_all_blobs();
     }
   }
 
@@ -158,6 +202,7 @@ export class BlobStoreDisk implements BlobStoreInterface {
       return JSON.parse(buf.toString());
     } catch (err) {
       L(`failed to get blob ${sha1}: ${err}`);
+      unlink(path);
       return undefined;
     }
   }
@@ -170,7 +215,6 @@ export class BlobStoreDisk implements BlobStoreInterface {
 
   public get_ipynb(sha1: string): any {
     const row = this.getData(sha1);
-    L(`get_ipynb: ${sha1} ipynb=${row?.ipynb?.slice(0, 100)}`);
     if (row == null) return;
     if (row.ipynb != null) return row.ipynb;
     if (row.data != null) return row.data;
