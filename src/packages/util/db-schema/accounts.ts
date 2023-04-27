@@ -175,6 +175,11 @@ Table({
         editable: true,
       },
     },
+    tags: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc: "Tags expressing what this user is most interested in doing.",
+    },
   },
   rules: {
     desc: "All user accounts.",
@@ -294,6 +299,7 @@ Table({
           ssh_keys: {},
           created: null,
           unlisted: false,
+          tags: null,
         },
       },
       set: {
@@ -312,6 +318,7 @@ Table({
           ssh_keys: true,
           sign_up_usage_intent: true,
           unlisted: true,
+          tags: true,
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
           if (obj["name"] != null) {
@@ -466,3 +473,103 @@ Table({
   },
   fields: schema.accounts.fields,
 });
+
+interface Tag {
+  label: string;
+  tag: string;
+  language?: string; // language of jupyter kernel
+  icon?: any; // I'm not going to import the IconName type from @cocalc/frontend
+  welcome?: string; // a simple "welcome" of this type
+  jupyterExtra?: string;
+  torun?: string; // how to run this in a terminal (e.g., for a .py file).
+}
+
+export const TAGS: Tag[] = [
+  { label: "Jupyter", tag: "ipynb" },
+  {
+    label: "Python",
+    tag: "py",
+    language: "python",
+    welcome: 'print("Welcome to CoCalc from Python!")',
+    torun: "# Click Terminal, then type 'python3 welcome.py'",
+  },
+  {
+    label: "R Stats",
+    tag: "R",
+    language: "r",
+    welcome: 'print("Welcome to CoCalc from R!")',
+    torun: "# Click Terminal, then type 'Rscript welcome.R'",
+  },
+  {
+    label: "SageMath",
+    tag: "sage",
+    language: "sagemath",
+    welcome: "print('Welcome to CoCalc from Sage!', factor(2023))",
+    torun: "# Click Terminal, then type 'sage welcome.sage'",
+  },
+  {
+    label: "Octave",
+    tag: "m",
+    language: "octave",
+    welcome: `disp("Welcome to CoCalc from Octave!")`,
+    torun: "% Click Terminal, then type 'octave --no-window-system welcome.m'",
+  },
+  {
+    label: "Linux",
+    tag: "term",
+    language: "bash",
+    welcome: "echo 'Welcome to CoCalc from Linux/BASH!'",
+  },
+  {
+    label: "LaTeX",
+    tag: "tex",
+    welcome: `\\documentclass{article}
+\\title{Welcome to CoCalc from \\LaTeX{}!}
+\\begin{document}
+\\maketitle
+\\end{document}`,
+  },
+  {
+    label: "C/C++",
+    tag: "c",
+    language: "C++17",
+    welcome: `
+#include <stdio.h>
+int main() {
+    printf("Welcome to CoCalc from C!\\n");
+    return 0;
+}`,
+    jupyterExtra: "\nmain();\n",
+    torun: "/* Click Terminal, then type 'gcc welcome.c && ./a.out' */",
+  },
+  {
+    label: "Julia",
+    language: "julia",
+    tag: "jl",
+    welcome: 'println("Welcome to CoCalc from Julia!")',
+    torun: "# Click Terminal, then type 'julia welcome.jl' */",
+  },
+  {
+    label: "Markdown",
+    tag: "md",
+    welcome:
+      "# Welcome to CoCalc from Markdown!\n\nYou can directly edit the rendered markdown -- try it!\n\nAnd run code:\n\n```py\n2+3\n```\n",
+  },
+  {
+    label: "Whiteboard",
+    tag: "board",
+    welcome: `{"data":{"color":"#252937"},"h":96,"id":"1244fb1f","page":"b7cda7e9","str":"# Welcome to CoCalc from a Whiteboard!\\n\\n","type":"text","w":779,"x":-305,"y":-291,"z":1}
+{"data":{"pos":0},"id":"b7cda7e9","type":"page","z":0}`,
+  },
+  { label: "Teaching", tag: "course" },
+  {
+    label: "Chat",
+    tag: "sage-chat",
+    welcome: `{"date":"2023-04-26T18:27:39.842Z","event":"chat","history":[{"content":"Welcome to CoCalc!","date":"2023-04-26T18:27:39.842Z"}]}`,
+  },
+];
+
+export const TAGS_MAP: { [key: string]: Tag } = {};
+for (const x of TAGS) {
+  TAGS_MAP[x.tag] = x;
+}

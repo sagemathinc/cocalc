@@ -13,6 +13,28 @@ it sets the jsonb field users equal to {[account_id]: {"group": "owner"}}.
 It also outputs the project_id of that row.  If it doesn't find that row
 it outputs no rows. (Trivial for chatgpt...)
 
+ORDER by created so that *oldest* project used first, since it is most
+likely to be started, e.g., newest project might still be starting.
+
+
+WITH matching_row AS (
+  SELECT project_id
+  FROM projects
+  WHERE users IS NULL
+    AND deleted IS NULL
+    AND last_edited >= NOW() - INTERVAL '12 hours'
+    ORDER BY created
+  LIMIT 1
+),
+updated_project AS (
+  UPDATE projects
+  SET users = {}
+  WHERE project_id IN (SELECT project_id FROM matching_row)
+  RETURNING project_id, users
+)
+SELECT project_id, users
+FROM updated_project;
+
 */
 
 import getPool from "@cocalc/database/pool";
@@ -46,6 +68,7 @@ export default async function getFromPool({
   WHERE users IS NULL
     AND deleted IS NULL ${image ? " AND compute_image=$2 " : ""}
     AND last_edited >= NOW() - INTERVAL '${maxAge}'
+    ORDER BY created asc
   LIMIT 1
 ),
 updated_project AS (

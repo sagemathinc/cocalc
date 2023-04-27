@@ -23,8 +23,11 @@ import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
 import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
+import Tags from "./tags";
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
+
+const MIN_TAGS = 2;
 
 interface Props {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
@@ -55,6 +58,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
     accountCreationInstructions,
     reCaptchaKey,
   } = useCustomize();
+  const [tags, setTags] = useState<Set<string>>(new Set());
   const [terms, setTerms] = useState<boolean>(false);
   const [email, setEmail] = useState<string>("");
   const [registrationToken, setRegistrationToken] = useState<string>("");
@@ -134,11 +138,14 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
         lastName,
         registrationToken,
         reCaptchaToken,
+        tags: Array.from(tags),
       });
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
       } else {
-        onSuccess?.();
+        if (onSuccess != null) {
+          onSuccess();
+        }
       }
     } catch (err) {
       setIssues({ error: `${err}` });
@@ -175,6 +182,8 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
     );
   }
 
+  const needsTags = !minimal && tags.size < MIN_TAGS;
+
   return (
     <div style={{ margin: "30px", minHeight: "50vh" }}>
       {!minimal && (
@@ -185,7 +194,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
             priority={true}
           />
           <h1>Create a {siteName} Account</h1>
-          <h2 style={{ color: "#666", marginBottom:'35px' }}>
+          <h2 style={{ color: "#666", marginBottom: "35px" }}>
             Sign up for free and get started with {siteName} today!
           </h2>
           {accountCreationInstructions && (
@@ -195,16 +204,26 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
       )}
 
       <div style={LOGIN_STYLE}>
-        <TermsCheckbox
-          onChange={setTerms}
-          checked={terms}
-          style={{
-            marginTop: "10px",
-            marginBottom: terms ? "10px" : undefined,
-            fontSize: "12pt",
-            color: "#666",
-          }}
-        />
+        {
+          <TermsCheckbox
+            onChange={setTerms}
+            checked={terms}
+            style={{
+              marginTop: "10px",
+              marginBottom: terms ? "10px" : undefined,
+              fontSize: "12pt",
+              color: "#666",
+            }}
+          />
+        }
+        {terms && !minimal && (
+          <Tags
+            setTags={setTags}
+            tags={tags}
+            minTags={MIN_TAGS}
+            style={{ marginLeft: "-10px", width:'480px' }}
+          />
+        )}
         <form>
           {issues.reCaptcha && (
             <Alert
@@ -230,7 +249,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
               }
             />
           )}
-          {terms && requiresToken2 && (
+          {!needsTags && terms && requiresToken2 && (
             <div style={LINE}>
               <p>Registration Token</p>
               <Input
@@ -241,7 +260,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
               />
             </div>
           )}
-          {terms && (
+          {!needsTags && terms && (
             <EmailOrSSO
               email={email}
               setEmail={setEmail}
@@ -266,7 +285,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
               }
             />
           )}
-          {terms && email && requiredSSO == null && (
+          {!needsTags && terms && email && requiredSSO == null && (
             <div style={LINE}>
               <p>Password</p>
               <Input.Password
@@ -282,30 +301,39 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
           {issues.password && (
             <Alert style={LINE} type="error" showIcon message={issues.email} />
           )}
-          {terms && email && requiredSSO == null && password?.length >= 6 && (
-            <div style={LINE}>
-              <p>First name</p>
-              <Input
-                style={{ fontSize: "12pt" }}
-                placeholder="First name"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                onPressEnter={signUp}
-              />
-            </div>
-          )}
-          {terms && email && password && requiredSSO == null && firstName && (
-            <div style={LINE}>
-              <p>Last name</p>
-              <Input
-                style={{ fontSize: "12pt" }}
-                placeholder="Last name"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                onPressEnter={signUp}
-              />
-            </div>
-          )}
+          {!needsTags &&
+            terms &&
+            email &&
+            requiredSSO == null &&
+            password?.length >= 6 && (
+              <div style={LINE}>
+                <p>First name (Given name)</p>
+                <Input
+                  style={{ fontSize: "12pt" }}
+                  placeholder="First name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  onPressEnter={signUp}
+                />
+              </div>
+            )}
+          {!needsTags &&
+            terms &&
+            email &&
+            password &&
+            requiredSSO == null &&
+            firstName && (
+              <div style={LINE}>
+                <p>Last name (Family name)</p>
+                <Input
+                  style={{ fontSize: "12pt" }}
+                  placeholder="Last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  onPressEnter={signUp}
+                />
+              </div>
+            )}
         </form>
         <div style={LINE}>
           <Button
@@ -316,7 +344,9 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
             style={{ width: "100%", marginTop: "15px" }}
             onClick={signUp}
           >
-            {!terms
+            {needsTags && tags.size < 2
+              ? `Select what you want to do (at least ${MIN_TAGS})`
+              : !terms
               ? "Agree to the terms"
               : requiresToken2 && !registrationToken
               ? "Enter the secret registration token"

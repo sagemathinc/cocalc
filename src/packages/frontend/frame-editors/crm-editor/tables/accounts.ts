@@ -19,6 +19,7 @@ register({
         banned: null,
         unlisted: null,
         groups: null,
+        tags: null,
       },
     ],
   },

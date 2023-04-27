@@ -33,13 +33,13 @@ export default function InPlaceSignInOrUp({
       <Divider>
         <Icon name="sign-in" style={{ marginRight: "10px" }} /> {title}
       </Divider>
-      <a onClick={() => setShow("sign-in")}>Sign In</a> or{" "}
-      <a onClick={() => setShow("sign-up")}>Sign Up</a>
+      <a onClick={() => setShow("sign-up")}>Sign Up</a> or{" "}
+      <a onClick={() => setShow("sign-in")}>Sign In</a>
       {why == null ? "." : <> {why}.</>}
       <br />
       <br />
-      {show == "sign-in" && (
-        <SignInAuth
+      {show == "sign-up" && (
+        <SignUpAuth
           minimal
           onSuccess={
             onSuccess ??
@@ -51,8 +51,8 @@ export default function InPlaceSignInOrUp({
           }
         />
       )}
-      {show == "sign-up" && (
-        <SignUpAuth
+      {show == "sign-in" && (
+        <SignInAuth
           minimal
           onSuccess={
             onSuccess ??

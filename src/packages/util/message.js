@@ -3102,3 +3102,12 @@ API(
     kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
   })
 );
+
+API(
+  message({
+    event: "jupyter_start_pool",
+    id: undefined,
+    project_id: undefined,
+    kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
+  })
+);

@@ -1,7 +1,7 @@
 import { CSSProperties } from "react";
 
 export const LOGIN_STYLE: CSSProperties = {
-  maxWidth: "400px",
+  maxWidth: "500px",
   margin: "auto",
   border: "1px solid lightgrey",
   borderRadius: "5px",

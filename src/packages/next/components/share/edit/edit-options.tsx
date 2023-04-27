@@ -56,7 +56,7 @@ export default function EditOptions({
           description={description}
         />
       )}
-      {account?.account_id == null && <NotSignedInOptions />}
+      {account?.account_id == null && <NotSignedInOptions path={path} />}
       <br />
     </Card>
   );
@@ -92,13 +92,15 @@ function SignedInOptions({
   );
 }
 
-function NotSignedInOptions() {
+function NotSignedInOptions({ path }) {
   const { anonymousSignup } = useCustomize();
   return (
     <div>
       <InPlaceSignInOrUp
         title="Choose Project"
-        why="to edit in one of your projects"
+        why={`to edit in one of your own projects using a full collaborative ${
+          path?.endsWith("ipynb") ? "Jupyter notebook" : "editor"
+        }`}
       />
       {anonymousSignup && <OpenAnonymously />}
     </div>
