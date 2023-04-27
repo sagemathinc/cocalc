@@ -7,9 +7,8 @@ import { Layout } from "antd";
 import { join } from "path";
 
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
-import { getMostRecentNews } from "@cocalc/database/postgres/news";
+import { getRecentNews } from "@cocalc/database/postgres/news";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
 import CoCalcComFeatures, {
@@ -36,11 +35,12 @@ const topLinkStyle: CSS = { marginRight: "20px" };
 interface Props {
   customize: CustomizeType;
   publicPaths: PublicPathType[];
-  recentHeadline: RecentHeadline | null;
+  recentHeadlines: RecentHeadline[] | null;
+  headlineIndex: number;
 }
 
 export default function Home(props: Props) {
-  const { customize, publicPaths, recentHeadline } = props;
+  const { customize, publicPaths, recentHeadlines, headlineIndex } = props;
   const {
     shareServer,
     siteName,
@@ -205,7 +205,12 @@ export default function Home(props: Props) {
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
           {topAccountLinks()}
-          {onCoCalcCom && <NewsBanner recentHeadline={recentHeadline} />}
+          {onCoCalcCom && (
+            <NewsBanner
+              recentHeadlines={recentHeadlines}
+              headlineIndex={headlineIndex}
+            />
+          )}
           {openaiEnabled && (
             <div
               style={{ width: "900px", maxWidth: "100%", margin: "15px auto" }}
@@ -235,7 +240,7 @@ export default function Home(props: Props) {
 export async function getServerSideProps(context) {
   const isAuthenticated = (await getAccountId(context.req)) != null;
   const pool = getPool("long");
-  const { share_server, kucalc } = await getServerSettings();
+  const { share_server } = await getServerSettings();
   let publicPaths;
   if (share_server) {
     const { rows } = await pool.query(
@@ -253,11 +258,16 @@ export async function getServerSideProps(context) {
     publicPaths = null;
   }
 
-  const recentHeadline =
-    kucalc === KUCALC_COCALC_COM ? await getMostRecentNews() : null;
+  // this changes about every 10 minutes, makes it less boring than just showing one item
+  const recentHeadlines = await getRecentNews(5);
+  // we want not always show the same at the start
+  const headlineIndex =
+    recentHeadlines != null
+      ? Math.floor(Date.now() % recentHeadlines.length)
+      : 0;
 
   return await withCustomize(
-    { context, props: { publicPaths, recentHeadline } },
+    { context, props: { publicPaths, recentHeadlines, headlineIndex } },
     { name: true }
   );
 }
