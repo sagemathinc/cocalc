@@ -38,7 +38,6 @@ import type { PathContents as PathContentsType } from "lib/share/get-contents";
 import Avatar from "components/share/proxy/avatar";
 import A from "components/misc/A";
 import { join } from "path";
-import GoogleSearch from "../share/google-search";
 import ChatGPTHelp from "components/openai/chatgpt-help";
 
 interface Props {
@@ -56,6 +55,7 @@ interface Props {
   error?: string;
   customize: CustomizeType;
   disabled?: boolean;
+  has_site_license?: boolean;
   unlisted?: boolean;
   authenticated?: boolean;
   stars?: number;
@@ -84,6 +84,7 @@ export default function PublicPath({
   error,
   customize,
   disabled,
+  has_site_license,
   unlisted,
   authenticated,
   stars = 0,
@@ -330,17 +331,17 @@ export default function PublicPath({
             style={{ float: "right", justifyContent: "flex-end" }}
             direction="vertical"
           >
-            {renderStar()}
-            <GoogleSearch style={{ width: "450px" }} size="large" />
             <ChatGPTHelp
-              size="large"
               tag={"share"}
               style={{ width: "450px" }}
               prompt={`I am using the file ${path}.`}
             />
+            <div style={{ float: "right" }}>{renderStar()}</div>
           </Space>
           {signingUp && (
             <Alert
+              closable
+              onClick={() => setSigningUp(false)}
               style={{ margin: "0 auto", maxWidth: "400px" }}
               type="warning"
               message={
@@ -398,6 +399,7 @@ export default function PublicPath({
             project_id={project_id}
             image={compute_image}
             description={description}
+            has_site_license={has_site_license}
           />
         </div>
         <Divider />

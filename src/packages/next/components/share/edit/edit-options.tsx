@@ -27,6 +27,7 @@ export default function EditOptions({
   image,
   onClose,
   description,
+  has_site_license,
 }: EditOptionsProps) {
   const { account } = useCustomize();
   return (
@@ -56,7 +57,13 @@ export default function EditOptions({
           description={description}
         />
       )}
-      {account?.account_id == null && <NotSignedInOptions path={path} />}
+      {account?.account_id == null && (
+        <NotSignedInOptions
+          path={path}
+          has_site_license={has_site_license}
+          id={id}
+        />
+      )}
       <br />
     </Card>
   );
@@ -92,17 +99,23 @@ function SignedInOptions({
   );
 }
 
-function NotSignedInOptions({ path }) {
-  const { anonymousSignup } = useCustomize();
+function NotSignedInOptions({ path, has_site_license, id }) {
+  const { anonymousSignup, anonymousSignupLicensedShares } = useCustomize();
   return (
     <div>
       <InPlaceSignInOrUp
         title="Choose Project"
-        why={`to edit in one of your own projects using a full collaborative ${
+        why={`to edit in one of your own ${
+          has_site_license ? "licensed" : ""
+        } projects using a full collaborative ${
           path?.endsWith("ipynb") ? "Jupyter notebook" : "editor"
         }`}
+        publicPathId={has_site_license ? id : undefined}
       />
       {anonymousSignup && <OpenAnonymously />}
+      {!anonymousSignup &&
+        anonymousSignupLicensedShares &&
+        has_site_license && <OpenAnonymously publicPathId={id} />}
     </div>
   );
 }

@@ -33,6 +33,8 @@ interface Props {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
   requiresToken?: boolean; // will be determined by API call if not given.
   onSuccess?: () => void; // if given, call after sign up *succeeds*.
+  has_site_license?: boolean;
+  publicPathId?: string;
 }
 
 export default function SignUp(props: Props) {
@@ -50,9 +52,16 @@ export default function SignUp(props: Props) {
   );
 }
 
-function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
+function SignUp0({
+  requiresToken,
+  minimal,
+  onSuccess,
+  has_site_license,
+  publicPathId,
+}: Props) {
   const {
     anonymousSignup,
+    anonymousSignupLicensedShares,
     siteName,
     emailSignup,
     accountCreationInstructions,
@@ -139,6 +148,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
         registrationToken,
         reCaptchaToken,
         tags: Array.from(tags),
+        publicPathId,
       });
       if (result.issues && len(result.issues) > 0) {
         setIssues(result.issues);
@@ -166,7 +176,8 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
             <b>
               There is no method enabled for creating an account on this server.
             </b>
-            {anonymousSignup && (
+            {(anonymousSignup ||
+              (anonymousSignupLicensedShares && has_site_license)) && (
               <>
                 <br />
                 <br />
@@ -221,7 +232,7 @@ function SignUp0({ requiresToken, minimal, onSuccess }: Props) {
             setTags={setTags}
             tags={tags}
             minTags={MIN_TAGS}
-            style={{ marginLeft: "-10px", width:'480px' }}
+            style={{ marginLeft: "-10px", width: "480px" }}
           />
         )}
         <form>

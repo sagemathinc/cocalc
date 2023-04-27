@@ -6,16 +6,20 @@
 import { useRouter } from "next/router";
 import { Divider } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import Anonymous from "components/auth/try";
+import Try from "components/auth/try";
 
-export default function OpenAnonymously() {
+export default function OpenAnonymously({
+  publicPathId,
+}: {
+  publicPathId?: string;
+}) {
   const router = useRouter();
   return (
     <div>
       <Divider>
         <Icon name="mask" style={{ marginRight: "10px" }} /> Anonymously
       </Divider>
-      <Anonymous
+      <Try
         minimal
         onSuccess={() =>
           router.push({
@@ -23,6 +27,7 @@ export default function OpenAnonymously() {
             query: { edit: "true" },
           })
         }
+        publicPathId={publicPathId}
       />
     </div>
   );

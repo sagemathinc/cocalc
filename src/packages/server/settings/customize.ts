@@ -35,6 +35,7 @@ export interface Customize {
   siteURL?: string;
   googleAnalytics?: string;
   anonymousSignup?: boolean;
+  anonymousSignupLicensedShares?: boolean;
   emailSignup?: boolean;
   accountCreationInstructions?: string;
   zendesk?: boolean; // true if zendesk support is configured.

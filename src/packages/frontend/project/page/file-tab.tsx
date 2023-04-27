@@ -79,19 +79,19 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: SERVERS_TITLE,
     icon: "server",
     tooltip: ServersPopover,
-    noAnonymous: true,
+    noAnonymous: false,
   },
   info: {
     label: PROJECT_INFO_TITLE,
     icon: "microchip",
     tooltip: "Running processes, resource usage, …",
-    noAnonymous: true,
+    noAnonymous: false,
   },
   settings: {
     label: "Settings",
     icon: "wrench",
     tooltip: SettingsPopover,
-    noAnonymous: true,
+    noAnonymous: false,
   },
 } as const;
 
@@ -312,10 +312,7 @@ function LogPopover({ project_id }) {
     <div>
       Project Activity Log (click for more...)
       <hr />
-      <HomeRecentFiles
-        project_id={project_id}
-        style={{ maxHeight: "125px" }}
-      />
+      <HomeRecentFiles project_id={project_id} style={{ maxHeight: "125px" }} />
     </div>
   );
 }
