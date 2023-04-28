@@ -207,12 +207,12 @@ export default function Home(props: Props) {
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
           {topAccountLinks()}
-          {onCoCalcCom && (
+          {recentHeadlines != null ? (
             <NewsBanner
               recentHeadlines={recentHeadlines}
               headlineIndex={headlineIndex}
             />
-          )}
+          ) : null}
           {openaiEnabled && (
             <div
               style={{ width: "900px", maxWidth: "100%", margin: "15px auto" }}
