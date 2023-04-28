@@ -38,8 +38,11 @@ export const VERSION = "5.3";
 import nodeCleanup from "node-cleanup";
 
 import { Channels, MessageType } from "@nteract/messaging";
+import { reuseInFlight } from "async-await-utils/hof";
+import { callback } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
+import { unlink } from "./async-utils-node";
 
 import {
   process as iframe_process,
@@ -67,11 +70,9 @@ import {
   merge,
   original_path,
   path_split,
+  trunc,
   uuid,
 } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
-import { callback } from "awaiting";
-import { unlink } from "./async-utils-node";
 import { nbconvert } from "./convert";
 import { CodeExecutionEmitter } from "./execute-code";
 import { get_blob_store_sync } from "./jupyter-blobs-get";
@@ -715,7 +716,8 @@ export class JupyterKernel
       return;
     }
     const dbg = this.dbg("process_output");
-    dbg(JSON.stringify(content));
+    // https://github.com/sagemathinc/cocalc/issues/6665
+    dbg(trunc(JSON.stringify(content), 300));
     if (content.data == null) {
       // todo: FOR now -- later may remove large stdout, stderr, etc...
       dbg("no data, so nothing to do");
