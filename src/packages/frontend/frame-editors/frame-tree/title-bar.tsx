@@ -12,9 +12,9 @@ import {
   Input,
   InputNumber,
   Popconfirm,
-  Popover,
   Tooltip,
 } from "antd";
+import Popover from "@cocalc/frontend/components/draggable-popover";
 import { List } from "immutable";
 import { debounce } from "lodash";
 import { ReactNode, useMemo } from "react";
