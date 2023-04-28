@@ -17,7 +17,7 @@ import {
 } from "antd";
 import { List } from "immutable";
 import { debounce } from "lodash";
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import {
   Button as AntdBootstrapButton,
   ButtonGroup,
@@ -55,6 +55,7 @@ import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
 import ChatGPT from "../chatgpt/title-bar-button";
+import userTracking from "@cocalc/frontend/user-tracking";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -165,6 +166,12 @@ interface Props {
 }
 
 export const FrameTitleBar: React.FC<Props> = (props: Props) => {
+  const track = useMemo(() => {
+    const { project_id, path } = props;
+    return (action: string) => {
+      userTracking("frame-tree", { project_id, path, action });
+    };
+  }, [props.project_id, props.path]);
   const buttons_ref = useRef<
     { [button_name: string]: true } | null | undefined
   >(null);
@@ -401,7 +408,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           title={"Show all frames"}
           key={"compress"}
           bsSize={button_size()}
-          onClick={() => props.actions.unset_frame_full()}
+          onClick={() => {
+            track("unset-full");
+            props.actions.unset_frame_full();
+          }}
           bsStyle={"warning"}
         >
           <Icon name={"compress"} />
@@ -414,7 +424,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           key={"expand"}
           title={"Show only this frame"}
           bsSize={button_size()}
-          onClick={() => props.actions.set_frame_full(props.id)}
+          onClick={() => {
+            track("set-full");
+            props.actions.set_frame_full(props.id);
+          }}
         >
           <Icon name={"expand"} />
         </StyledButton>
@@ -431,8 +444,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={(e) => {
           e.stopPropagation();
           if (props.is_full) {
+            track("unset-full");
             return props.actions.unset_frame_full();
           } else {
+            track("split-row");
             return props.actions.split_frame("row", props.id);
           }
         }}
@@ -451,8 +466,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={(e) => {
           e.stopPropagation();
           if (props.is_full) {
+            track("unset-full");
             return props.actions.unset_frame_full();
           } else {
+            track("split-col");
             return props.actions.split_frame("col", props.id);
           }
         }}

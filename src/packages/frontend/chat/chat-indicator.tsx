@@ -17,6 +17,7 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { HiddenXS } from "@cocalc/frontend/components";
+import track from "@cocalc/frontend/user-tracking";
 
 export type ChatState =
   | "" // not opened (also undefined counts as not open)
@@ -63,8 +64,10 @@ function ChatButton({ project_id, path, chatState }) {
     () => {
       const actions = redux.getProjectActions(project_id);
       if (chatState) {
+        track("close-chat", { project_id, path, how: "chat-button" });
         actions.close_chat({ path });
       } else {
+        track("open-chat", { project_id, path, how: "chat-button" });
         actions.open_chat({ path });
       }
     },

@@ -19,6 +19,7 @@ import { encode_path } from "@cocalc/util/misc";
 import { show_announce_end, show_announce_start } from "./dates";
 import { AccountState } from "./types";
 import { AccountStore } from "./store";
+import track from "@cocalc/frontend/user-tracking";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
@@ -276,6 +277,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
   }
 
   public set_active_tab(tab: string): void {
+    track("settings", { tab });
     this.setState({ active_page: tab });
     this.push_state("/" + tab);
   }

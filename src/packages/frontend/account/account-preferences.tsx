@@ -17,6 +17,7 @@ import { A, Loading } from "../components";
 import TableError from "./table-error";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import track from "@cocalc/frontend/user-tracking";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
@@ -111,6 +112,7 @@ export const AccountPreferences: React.FC = () => {
                     redux
                       .getActions("account")
                       .set_other_settings("dark_mode", checked);
+                    track("dark-mode", { how: "settings page", checked });
                   }}
                 />
               </Form.Item>
