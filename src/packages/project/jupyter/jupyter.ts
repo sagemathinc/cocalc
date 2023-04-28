@@ -85,7 +85,7 @@ import launchJupyterKernel, {
 import { getAbsolutePathFromHome } from "./util";
 
 import { getLogger } from "@cocalc/project/logger";
-const winston = getLogger("jupyter");
+const log = getLogger("jupyter");
 
 /*
 We set a few extra user-specific options for the environment in which
@@ -536,7 +536,7 @@ export class JupyterKernel
   dbg(f: string): Function {
     return (...args) => {
       //console.log(
-      winston.debug(
+      log.debug(
         `jupyter.Kernel('${this.name ?? "no kernel"}',path='${
           this._path
         }').${f}`,
@@ -546,7 +546,7 @@ export class JupyterKernel
   }
 
   low_level_dbg(): void {
-    const dbg = this.dbg("low_level_debug");
+    const dbg = (...args) => log.silly("low_level_debug", ...args);
     dbg("Enabling");
     if (this._kernel) {
       this._kernel.spawn.all?.on("data", (data) =>
@@ -555,7 +555,7 @@ export class JupyterKernel
     }
     // for low level debugging only...
     this.channel?.subscribe((mesg) => {
-      dbg(JSON.stringify(mesg));
+      dbg(mesg);
     });
   }
 
@@ -942,7 +942,7 @@ export class JupyterKernel
       },
     };
 
-    dbg("sending ", JSON.stringify(message));
+    dbg(message);
     // "The Kernel listens for these messages on the Shell channel,
     // and the Frontend listens for them on the IOPub channel." -- docs
     this.channel?.next(message);

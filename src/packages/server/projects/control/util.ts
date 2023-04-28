@@ -233,7 +233,7 @@ export async function getEnvironment(
       BASE_PATH: base_path,
       DATA,
       LOGS: join(DATA, "logs"),
-      DEBUG: "*", // so interesting stuff gets logged.
+      DEBUG: "cocalc:*,-cocalc:silly:*", // so interesting stuff gets logged, but not too much unless we really need it.
       // important to reset the COCALC_ vars since server env has own in a project
       COCALC_PROJECT_ID: project_id,
       COCALC_USERNAME: USER,
