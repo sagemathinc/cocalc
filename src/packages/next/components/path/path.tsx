@@ -333,7 +333,7 @@ export default function PublicPath({
           >
             <ChatGPTHelp
               tag={"share"}
-              style={{ width: "450px" }}
+              style={{ width: "450px", maxWidth: "50vw" }}
               prompt={`I am using the file ${path}.`}
             />
             <div style={{ float: "right" }}>{renderStar()}</div>
