@@ -31,9 +31,13 @@ import {
 
 type State = "init" | "closed" | "running";
 
+// this is only for logging -- https://github.com/sagemathinc/cocalc/issues/6665
+const toJSONtrunc = (x) => trunc(JSON.stringify(x), 300);
+
 export class CodeExecutionEmitter
   extends EventEmitter
-  implements CodeExecutionEmitterInterface {
+  implements CodeExecutionEmitterInterface
+{
   readonly kernel: JupyterKernel;
   readonly code: string;
   readonly id?: string;
@@ -120,7 +124,7 @@ export class CodeExecutionEmitter
     if (!this.stdin) {
       throw Error("BUG -- stdin handling not supported");
     }
-    dbg(`STDIN kernel --> server: ${JSON.stringify(mesg)}`);
+    dbg(`STDIN kernel --> server: ${toJSONtrunc(mesg)}`);
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       dbg(
         `STDIN msg_id mismatch: ${mesg.parent_header.msg_id}!=${this._message.header.msg_id}`
@@ -137,7 +141,7 @@ export class CodeExecutionEmitter
     } catch (err) {
       response = `ERROR -- ${err}`;
     }
-    dbg(`STDIN client --> server ${JSON.stringify(response)}`);
+    dbg(`STDIN client --> server ${toJSONtrunc(response)}`);
     const m = {
       channel: "stdin",
       parent_header: this._message.header,
@@ -154,7 +158,7 @@ export class CodeExecutionEmitter
         value: response,
       },
     };
-    dbg(`STDIN server --> kernel: ${JSON.stringify(m)}`);
+    dbg(`STDIN server --> kernel: ${toJSONtrunc(m)}`);
     this.kernel.channel?.next(m);
   }
 
@@ -163,7 +167,7 @@ export class CodeExecutionEmitter
       return;
     }
     const dbg = this.kernel.dbg("_handle_shell");
-    dbg(`got SHELL message -- ${JSON.stringify(mesg)}`);
+    dbg(`got SHELL message -- ${toJSONtrunc(mesg)}`);
     if (mesg.content?.status == "error" || mesg.content?.status == "abort") {
       // NOTE: I'm adding support for "abort" status, since I was just reading
       // the kernel docs and it exists but is deprecated.  Some old kernels
@@ -199,7 +203,7 @@ export class CodeExecutionEmitter
       return;
     }
     const dbg = this.kernel.dbg("_handle_iopub");
-    dbg(`got IOPUB message -- ${JSON.stringify(mesg)}`);
+    dbg(`got IOPUB message -- ${toJSONtrunc(mesg)}`);
 
     if (mesg.content?.comm_id != null) {
       // A comm message that is a result of execution of this code.
