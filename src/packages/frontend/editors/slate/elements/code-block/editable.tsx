@@ -34,7 +34,9 @@ function Element({ attributes, children, element }: RenderElementProps) {
   const setElement = useSetElement(editor, element);
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   const { change } = useChange();
-  const [history, setHistory] = useState<string[]>(getHistory(editor, element) ?? []);
+  const [history, setHistory] = useState<string[]>(
+    getHistory(editor, element) ?? []
+  );
   const [codeSibling, setCodeSibling] = useState<boolean>(
     isPreviousSiblingCodeBlock(editor, element)
   );
@@ -48,7 +50,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
       // upstream change
       setInfo(element.info);
     }
-  }, [change]);
+  }, [change, element]);
 
   return (
     <div {...attributes}>
@@ -133,6 +135,9 @@ function Element({ attributes, children, element }: RenderElementProps) {
                   output={output}
                   info={info}
                   runRef={runRef}
+                  setInfo={(info) => {
+                    setElement({ info });
+                  }}
                 />
               )}
             </div>

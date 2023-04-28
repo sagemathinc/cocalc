@@ -57,3 +57,19 @@ export function kernelDisplayName(
   }
   return capitalize(name);
 }
+
+export function kernelLanguage(
+  name: string,
+  project_id: string | undefined
+): string {
+  const kernelInfo = getKernelInfoCacheOnly(project_id);
+  if (kernelInfo == null) {
+    return name;
+  }
+  for (const k of kernelInfo) {
+    if (k.name == name) {
+      return k.language;
+    }
+  }
+  return name;
+}
