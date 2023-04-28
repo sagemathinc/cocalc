@@ -112,7 +112,9 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
         );
 
       case "notifications":
-        const wiggle = count > 0 || news_unread > 0;
+        // only wiggle, if there are unread news – because they clear out automatically.
+        // mentions can be more long term, i.e. keep them unread until you mark them done.
+        const wiggle = news_unread > 0;
         return (
           <Badge
             color={count == 0 ? COLORS.GRAY : undefined}

@@ -5,6 +5,7 @@
 
 import { Button, Card, List, Space, Tag } from "antd";
 import React, { useMemo, useRef } from "react";
+import { delay } from "awaiting";
 
 import {
   useActions,
@@ -39,11 +40,12 @@ export function NewsPanel(props: NewsPanelProps) {
     account_other?.get("news_read_until");
   const didClickUnread = useRef<boolean>(false);
 
-  // after 3 seconds, we mark all news as read
-  // even if they didn't read them, they saw there is something and
-  // new items will show up as (1) annotations
+  // after showing news briefly (short), we mark them as read.
+  // even if they didn't read them, the user saw there is something and
+  // in the future, new news items will show up as (1) annotations
+  // (more visible than changing the number)
   useAsyncEffect(async (isMounted) => {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await delay(1500);
     if (!isMounted()) return;
     // we block this in case the user did click "unread" in the meantime, just silly otherwise
     if (didClickUnread.current) return;
