@@ -7,7 +7,7 @@ import { Layout } from "antd";
 import { join } from "path";
 
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
-import { getRecentNews } from "@cocalc/database/postgres/news";
+import { getRecentHeadlines } from "@cocalc/database/postgres/news";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
@@ -261,8 +261,8 @@ export async function getServerSideProps(context) {
     publicPaths = null;
   }
 
-  // this changes about every 10 minutes, makes it less boring than just showing one item
-  const recentHeadlines = await getRecentNews(5);
+  // get most recent headlines
+  const recentHeadlines = await getRecentHeadlines(5);
   // we want not always show the same at the start
   const headlineIndex =
     recentHeadlines != null
