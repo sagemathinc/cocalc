@@ -215,7 +215,7 @@ export default function Home(props: Props) {
               <ChatGPTHelp size="large" tag={"index"} />
             </div>
           )}
-          {jupyterApiEnabled && onCoCalcCom && <DemoCell tag={"py"} />}
+          {jupyterApiEnabled && onCoCalcCom && <DemoCell tag={"sage"} />}
           <Content
             style={{ minHeight: "30vh" }}
             logo={logo()}
