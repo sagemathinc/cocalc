@@ -229,7 +229,7 @@ export const Page: React.FC = () => {
           {mesg}
         </Button>
       );
-      style = { marginTop: "-8px" }; // compensate for using a button
+      style = { marginTop: "-1px" }; // compensate for using a button
       /* We only actually show the button if it is still there a few
         seconds later.  This avoids flickering it for a moment during
         normal sign in.  This feels like a hack, but was super

@@ -412,8 +412,8 @@ export class AccountSettings extends Component<Props, State> {
       <div>
         <Alert bsStyle="warning" style={{ marginTop: "10px" }}>
           <h4>Sign up</h4>
-          Signing up is free, avoids losing your work, you get added to projects
-          you were invited to, and you unlock{" "}
+          Signing up is free, avoids losing access to your work, you get added
+          to projects you were invited to, and you unlock{" "}
           <A href="https://doc.cocalc.com/">many additional features</A>!
           <br />
           <br />

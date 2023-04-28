@@ -87,9 +87,7 @@ export default function ChatGPTHelp({
             disabled={state == "wait"}
             onFocus={() => setFocus(true)}
             onBlur={() => setFocus(false)}
-            placeholder={
-              placeholder ?? `What do you want to do on ${siteName}?`
-            }
+            placeholder={placeholder ?? `How can I do this on ${siteName}...`}
             allowClear
             onPressEnter={(e) => {
               if (e.shiftKey) {
@@ -122,7 +120,11 @@ export default function ChatGPTHelp({
               backgroundColor="transparent"
               style={{ marginRight: "5px", marginTop: "-4px" }}
             />
-            {input?.trim() && focus ? "Shift+Enter" : "ChatGPT"}
+            {input?.trim() && focus
+              ? "Shift+Enter"
+              : size == "large"
+              ? "Ask ChatGPT"
+              : "ChatGPT"}
           </Button>
         </Col>
         <Col xs={{ span: 24 }} md={{ span: 24 }}>

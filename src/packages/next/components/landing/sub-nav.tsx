@@ -47,10 +47,9 @@ const FLOAT_STYLE: CSS = {
 
 const INNER_STYLE: CSS = {
   maxWidth: MAX_WIDTH_LANDING,
-  marginTop: "0",
-  marginBottom: "0",
-  marginLeft: "auto",
-  marginRight: "auto",
+  margin: "0 auto",
+  overflow: "auto",
+  whiteSpace: "nowrap",
 };
 
 const software = {

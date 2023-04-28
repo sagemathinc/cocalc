@@ -336,7 +336,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           />
         )}
       </Col>
-      <Col sm={1} xs={1}>
+      <Col sm={1} xs={1} style={{ textAlign: "center" }}>
         {render_public_file_info()}
       </Col>
       <Col sm={1} xs={3} onClick={handle_click}>

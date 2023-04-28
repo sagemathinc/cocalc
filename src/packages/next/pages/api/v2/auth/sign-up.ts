@@ -29,6 +29,7 @@ import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getParams from "lib/api/get-params";
 import reCaptcha from "@cocalc/server/auth/recaptcha";
+import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
 
 interface Issues {
   terms?: string;
@@ -37,8 +38,16 @@ interface Issues {
 }
 
 export default async function signUp(req, res) {
-  let { terms, email, password, firstName, lastName, registrationToken, tags } =
-    getParams(req);
+  let {
+    terms,
+    email,
+    password,
+    firstName,
+    lastName,
+    registrationToken,
+    tags,
+    publicPathId,
+  } = getParams(req);
 
   password = (password ?? "").trim();
   email = (email ?? "").toLowerCase().trim();
@@ -74,7 +83,8 @@ export default async function signUp(req, res) {
   // The UI doesn't let users try to make an account via signUp if
   // email isn't enabled.  However, they might try to directly POST
   // to the API, so we check here as well.
-  const { email_signup, anonymous_signup } = await getServerSettings();
+  const { email_signup, anonymous_signup, anonymous_signup_licensed_shares } =
+    await getServerSettings();
 
   try {
     await reCaptcha(req);
@@ -90,12 +100,20 @@ export default async function signUp(req, res) {
   if (isAnonymous) {
     // Check anonymous sign up conditions.
     if (!anonymous_signup) {
-      res.json({
-        issues: {
-          email: "Anonymous account creation is disabled.",
-        },
-      });
-      return;
+      if (
+        anonymous_signup_licensed_shares &&
+        publicPathId &&
+        (await hasSiteLicenseId(publicPathId))
+      ) {
+        // an unlisted public path with a license when anonymous_signup_licensed_shares is set is allowed
+      } else {
+        res.json({
+          issues: {
+            email: "Anonymous account creation is disabled.",
+          },
+        });
+        return;
+      }
     }
   } else {
     // Check the email sign up conditions.
@@ -176,4 +194,8 @@ function checkObviousConditions({ terms, email, password }): Issues {
     issues.password = "Your password must not be trivial to guess.";
   }
   return issues;
+}
+
+async function hasSiteLicenseId(id: string): Promise<boolean> {
+  return !!(await getSiteLicenseId(id));
 }

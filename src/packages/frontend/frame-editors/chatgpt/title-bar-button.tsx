@@ -40,14 +40,14 @@ interface Preset {
 
 const PRESETS: Preset[] = [
   {
-    command: "Complete",
+    command: "Create a fun exercise for me. Please include a brief problem statement, an example input, expected output, and any additional hints or explanations that would help me better understand this",
     codegen: true,
-    tag: "complete",
-    icon: "pen",
-    label: "Autocomplete",
-    description:
-      "Finish writing the contents of the selection. ChatGPT can automatically write code, finish a poem, and much more.  The output is in chat so your file isn't directly modified.",
+    tag: "fun-exercise",
+    icon: "graduation-cap",
+    label: "A Fun Exercise!",
+    description: "Create a fun exercise involving the selected content.",
   },
+
   {
     command: "fix all errors in",
     codegen: true,
@@ -100,6 +100,15 @@ const PRESETS: Preset[] = [
     label: "Quality Review",
     description:
       "Review the selected text or code for correctness and quality and suggest improvements.",
+  },
+  {
+    command: "Complete",
+    codegen: true,
+    tag: "complete",
+    icon: "pen",
+    label: "Autocomplete",
+    description:
+      "Finish writing the contents of the selection. ChatGPT can automatically write code, finish a poem, and much more.  The output is in chat so your file isn't directly modified.",
   },
 ];
 

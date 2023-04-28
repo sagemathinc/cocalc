@@ -21,6 +21,7 @@ interface Props {
   project_id: string;
   image?: string;
   description?: string;
+  has_site_license?: boolean;
 }
 
 export default function PathActions({
@@ -33,6 +34,7 @@ export default function PathActions({
   project_id,
   image,
   description,
+  has_site_license,
 }: Props) {
   const include = (action: string) => !exclude?.has(action);
   const v: JSX.Element[] = [];
@@ -85,6 +87,7 @@ export default function PathActions({
           image={image}
           project_id={project_id}
           description={description}
+          has_site_license={has_site_license}
         />
       );
     }

@@ -21,7 +21,7 @@ importers:
         version: 3.6.3
       url-loader:
         specifier: ^4.1.1
-        version: 4.1.1(webpack@5.81.0)
+        version: 4.1.1(webpack@5.80.0)
     devDependencies:
       '@cocalc/backend':
         specifier: workspace:*
@@ -566,7 +566,7 @@ importers:
         specifier: ^4.0.4
         version: 4.0.4
       use-async-effect:
-        specifier: ^2.2.7
+        specifier: ^2.2.2
         version: 2.2.7(react@18.2.0)
       use-debounce:
         specifier: ^7.0.1
@@ -871,7 +871,7 @@ importers:
         version: 13.7.0
       webpack-dev-middleware:
         specifier: ^6.0.1
-        version: 6.0.1(webpack@5.81.0)
+        version: 6.0.1(webpack@5.80.0)
       webpack-hot-middleware:
         specifier: ^2.25.3
         version: 2.25.3
@@ -992,7 +992,7 @@ importers:
         version: 13.2.3(@babel/core@7.21.4)(react-dom@18.2.0)(react@18.2.0)
       next-remove-imports:
         specifier: ^1.0.11
-        version: 1.0.11(webpack@5.81.0)
+        version: 1.0.11(webpack@5.80.0)
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -1026,9 +1026,6 @@ importers:
       tslib:
         specifier: ^2.3.1
         version: 2.4.1
-      use-async-effect:
-        specifier: 2.2.7
-        version: 2.2.7(react@18.2.0)
       uuid:
         specifier: ^8.3.2
         version: 8.3.2
@@ -1079,8 +1076,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       better-sqlite3:
-        specifier: ^7.6.2
-        version: 7.6.2
+        specifier: ^8.3.0
+        version: 8.3.0
       body-parser:
         specifier: ^1.19.0
         version: 1.20.1
@@ -1221,8 +1218,8 @@ importers:
         version: 5.3.1
     devDependencies:
       '@types/better-sqlite3':
-        specifier: ^7.6.0
-        version: 7.6.3
+        specifier: ^7.6.4
+        version: 7.6.4
       '@types/body-parser':
         specifier: ^1.19.0
         version: 1.19.2
@@ -3948,7 +3945,7 @@ packages:
       '@lumino/coreutils': 1.12.1(crypto@1.0.1)
       '@lumino/disposable': 1.10.3
       '@lumino/signaling': 1.11.0
-      minimist: 1.2.7
+      minimist: 1.2.8
       moment: 2.29.4
       path-browserify: 1.0.1
       url-parse: 1.5.10
@@ -4137,7 +4134,7 @@ packages:
     hasBin: true
     dependencies:
       get-stream: 6.0.1
-      minimist: 1.2.7
+      minimist: 1.2.8
     dev: false
 
   /@mapbox/geojson-types@1.0.2:
@@ -4168,7 +4165,7 @@ packages:
       nopt: 5.0.0
       npmlog: 5.0.1
       rimraf: 3.0.2
-      semver: 7.3.8
+      semver: 7.5.0
       tar: 6.1.13
     transitivePeerDependencies:
       - encoding
@@ -4951,8 +4948,8 @@ packages:
       '@types/underscore': 1.11.4
     dev: false
 
-  /@types/better-sqlite3@7.6.3:
-    resolution: {integrity: sha512-YS64N9SNDT/NAvou3QNdzAu3E2om/W/0dhORimtPGLef+zSK5l1vDzfsWb4xgXOgfhtOI5ZDTRxnvRPb22AIVQ==}
+  /@types/better-sqlite3@7.6.4:
+    resolution: {integrity: sha512-dzrRZCYPXIXfSR1/surNbJ/grU3scTaygS0OMzjlGf71i9sc2fGyHPXXiXmEvNIoE0cGwsanEFMVJxPXmco9Eg==}
     dependencies:
       '@types/node': 18.11.18
     dev: true
@@ -5420,7 +5417,7 @@ packages:
       debug: 4.3.4(supports-color@8.1.1)
       globby: 11.1.0
       is-glob: 4.0.3
-      semver: 7.3.8
+      semver: 7.5.0
       tsutils: 3.21.0(typescript@5.0.4)
       typescript: 5.0.4
     transitivePeerDependencies:
@@ -6060,7 +6057,7 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       delegates: 1.0.0
-      readable-stream: 3.6.0
+      readable-stream: 3.6.2
     optional: true
 
   /argh@0.1.4:
@@ -6344,7 +6341,7 @@ packages:
       - supports-color
     dev: true
 
-  /babel-loader@9.1.2(@babel/core@7.21.4)(webpack@5.81.0):
+  /babel-loader@9.1.2(@babel/core@7.21.4)(webpack@5.80.0):
     resolution: {integrity: sha512-mN14niXW43tddohGl8HPu5yfQq70iUThvFL/4QzESA7GcZoC0eVOhvWdQ8+3UlSjaDE9MVtsW9mxDY07W7VpVA==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -6354,7 +6351,7 @@ packages:
       '@babel/core': 7.21.4(supports-color@9.3.1)
       find-cache-dir: 3.3.2
       schema-utils: 4.0.0
-      webpack: 5.81.0(uglify-js@3.17.4)
+      webpack: 5.80.0(uglify-js@3.17.4)
     dev: false
 
   /babel-plugin-dynamic-import-node@2.3.3:
@@ -6521,8 +6518,8 @@ packages:
     resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
     dev: false
 
-  /better-sqlite3@7.6.2:
-    resolution: {integrity: sha512-S5zIU1Hink2AH4xPsN0W43T1/AJ5jrPh7Oy07ocuW/AKYYY02GWzz9NH0nbSMn/gw6fDZ5jZ1QsHt1BXAwJ6Lg==}
+  /better-sqlite3@8.3.0:
+    resolution: {integrity: sha512-JTmvBZL/JLTc+3Msbvq6gK6elbU9/wVMqiudplHrVJpr7sVMR9KJrNhZAbW+RhXKlpMcuEhYkdcHa3TXKNXQ1w==}
     requiresBuild: true
     dependencies:
       bindings: 1.5.0
@@ -6565,7 +6562,7 @@ packages:
   /bl@2.2.1:
     resolution: {integrity: sha512-6Pesp1w0DEX1N550i/uGV/TqucVL4AM/pgThFSN/Qq9si1/DF9aIHs1BxD8V/QU0HoeHO6cQRTAuYnLPKq1e4g==}
     dependencies:
-      readable-stream: 2.3.7
+      readable-stream: 2.3.8
       safe-buffer: 5.2.1
     dev: false
 
@@ -6574,7 +6571,7 @@ packages:
     dependencies:
       buffer: 5.7.1
       inherits: 2.0.4
-      readable-stream: 3.6.0
+      readable-stream: 3.6.2
     dev: false
 
   /blocked@1.3.0:
@@ -6704,7 +6701,7 @@ packages:
       elliptic: 6.5.4
       inherits: 2.0.4
       parse-asn1: 5.1.6
-      readable-stream: 3.6.0
+      readable-stream: 3.6.2
       safe-buffer: 5.2.1
     dev: true
 
@@ -7402,7 +7399,7 @@ packages:
     dependencies:
       buffer-from: 1.1.2
       inherits: 2.0.4
-      readable-stream: 2.3.7
+      readable-stream: 2.3.8
       typedarray: 0.0.6
     dev: false
 
@@ -8320,7 +8317,7 @@ packages:
     dependencies:
       end-of-stream: 1.4.4
       inherits: 2.0.4
-      readable-stream: 2.3.7
+      readable-stream: 2.3.8
       stream-shift: 1.0.1
     dev: false
 
@@ -9346,7 +9343,7 @@ packages:
     resolution: {integrity: sha512-OMcX/4IC/uqEPVgGeyfN22LJk6AZrMkRZHxcHBMBvHScDGgwTm2GT2Wkgtocyd3JfZffjj2kYUDXXII0Fk9W0g==}
     dependencies:
       inherits: 2.0.4
-      readable-stream: 2.3.7
+      readable-stream: 2.3.8
     dev: false
 
   /fromentries@1.3.2:
@@ -9723,7 +9720,7 @@ packages:
       glsl-token-whitespace-trim: 1.0.0
       glslify-bundle: 5.1.1
       glslify-deps: 1.3.2
-      minimist: 1.2.7
+      minimist: 1.2.8
       resolve: 1.22.1
       stack-trace: 0.0.9
       static-eval: 2.1.0
@@ -9872,7 +9869,7 @@ packages:
     engines: {node: '>=4'}
     dependencies:
       inherits: 2.0.4
-      readable-stream: 3.6.0
+      readable-stream: 3.6.2
       safe-buffer: 5.2.1
     dev: true
 
@@ -10125,7 +10122,7 @@ packages:
       domutils: 1.7.0
       entities: 1.1.2
       inherits: 2.0.4
-      readable-stream: 2.3.7
+      readable-stream: 2.3.8
     dev: true
 
   /htmlparser2@6.1.0:
@@ -11206,7 +11203,7 @@ packages:
       jest-util: 29.5.0
       natural-compare: 1.4.0
       pretty-format: 29.5.0
-      semver: 7.3.8
+      semver: 7.5.0
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -11513,7 +11510,7 @@ packages:
     resolution: {integrity: sha512-g1MWMLBiz8FKi1e4w0UyVL3w+iJceWAFBAaBnnGKOpNa5f8TLktkbre1+s6oICydWAm+HRUGTmI+//xv2hvXYA==}
     hasBin: true
     dependencies:
-      minimist: 1.2.7
+      minimist: 1.2.8
     dev: true
 
   /json5@2.2.3:
@@ -12069,7 +12066,7 @@ packages:
       geojson-vt: 3.2.1
       gl-matrix: 3.4.3
       grid-index: 1.1.0
-      minimist: 1.2.7
+      minimist: 1.2.8
       murmurhash-js: 1.0.0
       pbf: 3.2.1
       potpack: 1.0.2
@@ -12317,6 +12314,9 @@ packages:
 
   /minimist@1.2.7:
     resolution: {integrity: sha512-bzfL1YUZsP41gmu/qjrEk0Q6i2ix/cVeAhbCbqH9u3zYutS1cLg00qhrD0M2MVdCcx4Sc0UpP2eBWo9rotpq6g==}
+
+  /minimist@1.2.8:
+    resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
 
   /minimize@1.8.1:
     resolution: {integrity: sha512-vMXaO5/HgxKi06udiQ4MibwOb0mwxzcpX4DDf6G9k2h6fKNoY1xt8Wrzp82qBm4oZ5aQRP2ry1NzbwEuWBx9Ig==}
@@ -12566,11 +12566,11 @@ packages:
   /neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
-  /next-remove-imports@1.0.11(webpack@5.81.0):
+  /next-remove-imports@1.0.11(webpack@5.80.0):
     resolution: {integrity: sha512-i+L8kcP1hM3nOCNv8NWhtJGWwkEDtej0BaRlCzcZDQeXCT3cwaJo4VyD9x4449sbJwj9xt/wmqlH8fg5g8RaYg==}
     dependencies:
       '@babel/core': 7.21.4(supports-color@9.3.1)
-      babel-loader: 9.1.2(@babel/core@7.21.4)(webpack@5.81.0)
+      babel-loader: 9.1.2(@babel/core@7.21.4)(webpack@5.80.0)
       babel-plugin-transform-remove-imports: 1.7.0(@babel/core@7.21.4)
     transitivePeerDependencies:
       - supports-color
@@ -12648,11 +12648,11 @@ packages:
       tslib: 2.4.1
     dev: true
 
-  /node-abi@3.30.0:
-    resolution: {integrity: sha512-qWO5l3SCqbwQavymOmtTVuCWZE23++S+rxyoHjXqUmPyzRcaoI4lA2gO55/drddGnedAyjA7sk76SfQ5lfUMnw==}
+  /node-abi@3.40.0:
+    resolution: {integrity: sha512-zNy02qivjjRosswoYmPi8hIKJRr8MpQyeKT6qlcq/OnOgA3Rhoae+IYOqsM9V5+JnHWmxKnWOT2GxvtqdtOCXA==}
     engines: {node: '>=10'}
     dependencies:
-      semver: 7.3.8
+      semver: 7.5.0
     dev: false
 
   /node-addon-api@5.0.0:
@@ -12770,7 +12770,7 @@ packages:
     dependencies:
       hosted-git-info: 4.1.0
       is-core-module: 2.11.0
-      semver: 7.3.8
+      semver: 7.5.0
       validate-npm-package-license: 3.0.4
     dev: true
 
@@ -13748,10 +13748,10 @@ packages:
       detect-libc: 2.0.1
       expand-template: 2.0.3
       github-from-package: 0.0.0
-      minimist: 1.2.7
+      minimist: 1.2.8
       mkdirp-classic: 0.5.3
       napi-build-utils: 1.0.2
-      node-abi: 3.30.0
+      node-abi: 3.40.0
       pump: 3.0.0
       rc: 1.2.8
       simple-get: 4.0.1
@@ -14703,7 +14703,7 @@ packages:
     dependencies:
       deep-extend: 0.6.0
       ini: 1.3.8
-      minimist: 1.2.7
+      minimist: 1.2.8
       strip-json-comments: 2.0.1
     dev: false
 
@@ -15104,8 +15104,8 @@ packages:
       string_decoder: 0.10.31
     dev: false
 
-  /readable-stream@2.3.7:
-    resolution: {integrity: sha512-Ebho8K4jIbHAxnuxi7o42OrZgF/ZTNcsZj6nRKyUmkhLFq8CHItp/fy6hQZuZmP/n3yZ9VBUbp4zz/mX8hmYPw==}
+  /readable-stream@2.3.8:
+    resolution: {integrity: sha512-8p0AUk4XODgIewSi0l8Epjs+EVnWiK7NoDIEGU0HhE7+ZyY8D1IMY7odu5lRrFXGg71L15KG8QrPmum45RTtdA==}
     dependencies:
       core-util-is: 1.0.2
       inherits: 2.0.4
@@ -15117,6 +15117,15 @@ packages:
 
   /readable-stream@3.6.0:
     resolution: {integrity: sha512-BViHy7LKeTz4oNnkcLJ+lVSL6vpiFeX6/d3oSH8zCW7UxP2onchk+vTGB143xuFjHS3deTgkKoXXymXqymiIdA==}
+    engines: {node: '>= 6'}
+    dependencies:
+      inherits: 2.0.4
+      string_decoder: 1.3.0
+      util-deprecate: 1.0.2
+    dev: true
+
+  /readable-stream@3.6.2:
+    resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
     engines: {node: '>= 6'}
     dependencies:
       inherits: 2.0.4
@@ -15673,6 +15682,13 @@ packages:
 
   /semver@7.3.8:
     resolution: {integrity: sha512-NB1ctGL5rlHrPJtFDVIVzTyQylMLu9N9VICA6HSFJo8MCGVTMW6gfpicwKmmK/dAjTOrqu5l63JJOpDSrAis3A==}
+    engines: {node: '>=10'}
+    hasBin: true
+    dependencies:
+      lru-cache: 6.0.0
+
+  /semver@7.5.0:
+    resolution: {integrity: sha512-+XC0AD/R7Q2mPSRuy2Id0+CGTZ98+8f+KvwirxOKIEyid+XSx6HbC63p+O4IndTHuX5Z+JxQ0TghCkO5Cg/2HA==}
     engines: {node: '>=10'}
     hasBin: true
     dependencies:
@@ -16403,7 +16419,7 @@ packages:
       end-of-stream: 1.4.4
       fs-constants: 1.0.0
       inherits: 2.0.4
-      readable-stream: 3.6.0
+      readable-stream: 3.6.2
     dev: false
 
   /tar@6.1.13:
@@ -16457,7 +16473,7 @@ packages:
       webpack: 5.75.0(@swc/core@1.3.3)(webpack-cli@5.0.1)
     dev: true
 
-  /terser-webpack-plugin@5.3.7(uglify-js@3.17.4)(webpack@5.81.0):
+  /terser-webpack-plugin@5.3.7(uglify-js@3.17.4)(webpack@5.80.0):
     resolution: {integrity: sha512-AfKwIktyP7Cu50xNjXF/6Qb5lBNzYaWpU6YfoX3uZicTx0zTy0stDDCsvjDapKsSDvOeWo5MEq4TmdBy2cNoHw==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
@@ -16479,7 +16495,7 @@ packages:
       serialize-javascript: 6.0.1
       terser: 5.17.1
       uglify-js: 3.17.4
-      webpack: 5.81.0(uglify-js@3.17.4)
+      webpack: 5.80.0(uglify-js@3.17.4)
     dev: false
 
   /terser@4.8.1:
@@ -16566,7 +16582,7 @@ packages:
   /through2@2.0.5:
     resolution: {integrity: sha512-/mrRod8xqpA+IHSLyGCQ2s8SPHiCDEeQJSep1jqLYeEUClOFG2Qsh+4FU6G9VeqpZnGW/Su8LQGc4YKni5rYSQ==}
     dependencies:
-      readable-stream: 2.3.7
+      readable-stream: 2.3.8
       xtend: 4.0.2
     dev: false
 
@@ -17103,7 +17119,7 @@ packages:
     dependencies:
       punycode: 2.1.1
 
-  /url-loader@4.1.1(webpack@5.81.0):
+  /url-loader@4.1.1(webpack@5.80.0):
     resolution: {integrity: sha512-3BTV812+AVHHOJQO8O5MkWgZ5aosP7GnROJwvzLS9hWDj00lZ6Z0wNak423Lp9PBZN05N+Jk/N5Si8jRAlGyWA==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
@@ -17116,7 +17132,7 @@ packages:
       loader-utils: 2.0.4
       mime-types: 2.1.35
       schema-utils: 3.1.1
-      webpack: 5.81.0(uglify-js@3.17.4)
+      webpack: 5.80.0(uglify-js@3.17.4)
     dev: false
 
   /url-parse@1.5.10:
@@ -17578,7 +17594,7 @@ packages:
       webpack-merge: 5.8.0
     dev: true
 
-  /webpack-dev-middleware@6.0.1(webpack@5.81.0):
+  /webpack-dev-middleware@6.0.1(webpack@5.80.0):
     resolution: {integrity: sha512-PZPZ6jFinmqVPJZbisfggDiC+2EeGZ1ZByyMP5sOFJcPPWSexalISz+cvm+j+oYPT7FIJyxT76esjnw9DhE5sw==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -17589,7 +17605,7 @@ packages:
       mime-types: 2.1.35
       range-parser: 1.2.1
       schema-utils: 4.0.0
-      webpack: 5.81.0(uglify-js@3.17.4)
+      webpack: 5.80.0(uglify-js@3.17.4)
     dev: false
 
   /webpack-hot-middleware@2.25.3:
@@ -17658,8 +17674,8 @@ packages:
       - uglify-js
     dev: true
 
-  /webpack@5.81.0(uglify-js@3.17.4):
-    resolution: {integrity: sha512-AAjaJ9S4hYCVODKLQTgG5p5e11hiMawBwV2v8MYLE0C/6UAGLuAF4n1qa9GOwdxnicaP+5k6M5HrLmD4+gIB8Q==}
+  /webpack@5.80.0(uglify-js@3.17.4):
+    resolution: {integrity: sha512-OIMiq37XK1rWO8mH9ssfFKZsXg4n6klTEDL7S8/HqbAOBBaiy8ABvXvz0dDCXeEF9gqwxSvVk611zFPjS8hJxA==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     peerDependencies:
@@ -17689,7 +17705,7 @@ packages:
       neo-async: 2.6.2
       schema-utils: 3.1.2
       tapable: 2.2.1
-      terser-webpack-plugin: 5.3.7(uglify-js@3.17.4)(webpack@5.81.0)
+      terser-webpack-plugin: 5.3.7(uglify-js@3.17.4)(webpack@5.80.0)
       watchpack: 2.4.0
       webpack-sources: 3.2.3
     transitivePeerDependencies:

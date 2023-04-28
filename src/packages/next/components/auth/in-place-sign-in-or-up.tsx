@@ -17,6 +17,8 @@ interface Props {
   why?: ReactNode;
   onSuccess?: () => void;
   style?: CSSProperties;
+  has_site_license?: boolean;
+  publicPathId?: string;
 }
 
 export default function InPlaceSignInOrUp({
@@ -24,6 +26,8 @@ export default function InPlaceSignInOrUp({
   why,
   onSuccess,
   style,
+  has_site_license,
+  publicPathId,
 }: Props) {
   const router = useRouter();
   const [show, setShow] = useState<"sign-in" | "sign-up" | "">("");
@@ -41,6 +45,8 @@ export default function InPlaceSignInOrUp({
       {show == "sign-up" && (
         <SignUpAuth
           minimal
+          has_site_license={has_site_license}
+          publicPathId={publicPathId}
           onSuccess={
             onSuccess ??
             (() =>

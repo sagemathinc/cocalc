@@ -1085,7 +1085,8 @@ export class JupyterActions extends JupyterActions0 {
       }
     }
     dbg("going to try to save");
-    const ipynb = this.store.get_ipynb(this.jupyter_kernel.get_blob_store());
+    const blob_store = this.jupyter_kernel.get_blob_store(); // this calls the non-blocking "sync" variant, which might not return an instance
+    const ipynb = await this.store.get_ipynb(blob_store);
     // We use json_stable (and indent 1) to be more diff friendly to user,
     // and more consistent with official Jupyter.
     const data = json_stable(ipynb, { space: 1 });

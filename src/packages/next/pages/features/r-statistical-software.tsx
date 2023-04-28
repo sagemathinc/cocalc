@@ -40,7 +40,11 @@ export default function R({ customize }) {
     <Customize value={customize}>
       <Head title={"R Statistical Software"} />
       <Layout>
-        <Header page="features" subPage="r-statistical-software" />
+        <Header
+          page="features"
+          subPage="r-statistical-software"
+          runnableTag="R"
+        />
         <Layout.Content>
           <Content
             landing

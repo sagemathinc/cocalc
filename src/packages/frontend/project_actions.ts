@@ -98,6 +98,7 @@ export const QUERIES = {
       last_saved: null,
       counter: null,
       compute_image: null,
+      site_license_id: null,
     },
   },
 };
@@ -2229,8 +2230,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           type: "error",
           message,
         });
+        return true;
       }
-      return true;
     }
     return false;
   }
@@ -2539,6 +2540,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       license?: string;
       disabled?: boolean;
       authenticated?: boolean;
+      site_license_id?: string | null;
     }
   ) {
     if (
@@ -2546,11 +2548,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         "Publishing files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left."
       )
     ) {
+      console.warn("set_public_path: sandbox");
       return;
     }
 
     const store = this.get_store();
     if (!store) {
+      console.warn("set_public_path: no store");
       return;
     }
 
@@ -2580,7 +2584,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         compute_image,
       });
     }
-    if (obj == null) return; // make typescript happy
+    if (obj == null) {
+      // make typescript happy
+      console.warn("set_public_path: BUG -- obj can't be null");
+      return;
+    }
 
     // not allowed to write these back
     obj = obj.delete("last_saved");
@@ -2590,7 +2598,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     obj = obj.set("compute_image", compute_image);
 
     for (const k in opts) {
-      if (opts[k] != null) {
+      if (opts[k] !== undefined) {
         const will_change = opts[k] != obj.get(k);
         if (!log) {
           if (k === "disabled" && will_change) {
@@ -2600,6 +2608,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             // changing unlisted state
             log = true;
           } else if (k === "authenticated" && will_change) {
+            log = true;
+          } else if (k === "site_license_id" && will_change) {
             log = true;
           }
         }
@@ -2614,12 +2624,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     table.set(obj);
 
     if (log) {
+      // can't just change always since we frequently update last_edited to get the share to get copied over.
       this.log({
         event: "public_path",
         path: path + ((await this.isdir(path)) ? "/" : ""),
         disabled: !!obj.get("disabled"),
         unlisted: !!obj.get("unlisted"),
         authenticated: !!obj.get("authenticated"),
+        site_license_id: obj.get("site_license_id")?.slice(-8),
       });
     }
   }
