@@ -13,6 +13,7 @@ import {
   InputNumber,
   Popconfirm,
   Popover,
+  Tooltip,
 } from "antd";
 import { List } from "immutable";
 import { debounce } from "lodash";
@@ -1742,22 +1743,23 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
 
     return (
-      <div
-        title={title}
-        style={{
-          ...TITLE_STYLE,
-          ...(is_active
-            ? {
-                background: COL_BAR_BACKGROUND,
-                minWidth: "3em",
-                maxWidth: "10em",
-              }
-            : { flex: 1 }),
-        }}
-      >
-        {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
-        {title}
-      </div>
+      <Tooltip title={title}>
+        <div
+          style={{
+            ...TITLE_STYLE,
+            ...(is_active
+              ? {
+                  background: COL_BAR_BACKGROUND,
+                  minWidth: "3em",
+                  maxWidth: "10em",
+                }
+              : { flex: 1 }),
+          }}
+        >
+          {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
+          {title}
+        </div>
+      </Tooltip>
     );
   }
 
