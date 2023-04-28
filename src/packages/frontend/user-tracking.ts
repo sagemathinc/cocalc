@@ -46,7 +46,7 @@ export default async function track(
   // Replace all dashes with underscores in the event argument for consistency
   event = event.replace(/-/g, "_");
 
-  console.log("user_tracking", event, value);
+  // console.log("user_tracking", event, value);
   try {
     await webapp_client.tracking_client.user_tracking(event, value);
   } catch (err) {

@@ -8,6 +8,7 @@ import { Button, Switch, Tooltip } from "antd";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
+import track from "@cocalc/frontend/user-tracking";
 
 const WIDTH = "57px";
 
@@ -27,6 +28,7 @@ export default function HomePageButton({ project_id, active }) {
         <Tooltip title="Show the action bar" placement="right">
           <Switch
             onChange={() => {
+              track("action-bar", { action: "hide" });
               actions?.toggleActionButtons();
             }}
           />
