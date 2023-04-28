@@ -84,12 +84,12 @@ export class BlobStoreDisk implements BlobStoreInterface {
     return files.filter((file) => file.length === this.hashLength);
   }
 
-  public async delete_all_blobs() {
+  public async delete_all_blobs(): Promise<number> {
+    let deletedFiles = 0;
     for (const file of await this.getAllFiles()) {
-      try {
-        await unlink(join(BLOB_DIR, file));
-      } catch {}
+      deletedFiles += await this.delete(join(BLOB_DIR, file));
     }
+    return deletedFiles;
   }
 
   // we compute the median of all mtimes and delete files older than that.
@@ -97,8 +97,7 @@ export class BlobStoreDisk implements BlobStoreInterface {
   private async deleteOldFiles(): Promise<number> {
     const allFiles = await this.getAllFiles();
     if (allFiles.length <= 5) {
-      await this.delete_all_blobs();
-      return allFiles.length;
+      return await this.delete_all_blobs();
     }
     const times: number[] = [];
     for (const fn of allFiles) {
@@ -113,11 +112,7 @@ export class BlobStoreDisk implements BlobStoreInterface {
     let filesDeleted = 0;
     for (const file of filesToDelete) {
       const path = join(BLOB_DIR, file);
-      try {
-        await unlink(path);
-        cache.delete(path);
-        filesDeleted += 1;
-      } catch {}
+      filesDeleted += await this.delete(path);
     }
     return filesDeleted;
   }
@@ -157,7 +152,8 @@ export class BlobStoreDisk implements BlobStoreInterface {
 
     // not all good after three tries, so delete everything
     if (!sizeGood || !numberGood) {
-      await this.delete_all_blobs();
+      deletedFiles += await this.delete_all_blobs();
+      L(`prune/everything: deleted ${deletedFiles} files`);
     }
   }
 
@@ -202,9 +198,18 @@ export class BlobStoreDisk implements BlobStoreInterface {
       return JSON.parse(buf.toString());
     } catch (err) {
       L(`failed to get blob ${sha1}: ${err}`);
-      unlink(path);
+      this.delete(path);
       return undefined;
     }
+  }
+
+  private async delete(path: string): Promise<0 | 1> {
+    try {
+      await unlink(path);
+      cache.delete(path);
+      return 1;
+    } catch {}
+    return 0;
   }
 
   public get(sha1: string): Buffer | undefined {
