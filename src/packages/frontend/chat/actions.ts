@@ -5,7 +5,7 @@
 
 import { fromJS, Map as immutableMap } from "immutable";
 import { SyncDB } from "@cocalc/sync/editor/db";
-import { user_tracking } from "@cocalc/frontend/user-tracking";
+import track from "@cocalc/frontend/user-tracking";
 import { Actions } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ChatState, ChatStore } from "./store";
@@ -190,7 +190,7 @@ export class ChatActions extends Actions<ChatState> {
         action: "chat",
         ttl: 10000,
       });
-      user_tracking("send_chat", { project_id, path });
+      track("send_chat", { project_id, path });
     }
     this.save_to_disk();
     await this.processChatGPT(fromJS(message), reply_to, tag);

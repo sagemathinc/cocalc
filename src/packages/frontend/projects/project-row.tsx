@@ -30,7 +30,7 @@ import {
   compute_image2basename,
   CUSTOM_IMG_PREFIX,
 } from "@cocalc/frontend/custom-software/util";
-import { user_tracking } from "@cocalc/frontend/user-tracking";
+import track from "@cocalc/frontend/user-tracking";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
@@ -160,7 +160,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
       switch_to: !(e?.which === 2 || e?.ctrlKey || e?.metaKey),
     });
     e?.preventDefault();
-    user_tracking("open_project", { how: "projects_page", project_id });
+    track("open_project", { how: "projects_page", project_id });
   }
 
   function open_project_settings(e): void {
