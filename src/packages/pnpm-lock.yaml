@@ -1027,7 +1027,7 @@ importers:
         specifier: ^2.3.1
         version: 2.4.1
       use-async-effect:
-        specifier: 2.2.7
+        specifier: ^2.2.7
         version: 2.2.7(react@18.2.0)
       uuid:
         specifier: ^8.3.2
