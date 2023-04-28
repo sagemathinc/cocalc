@@ -80,8 +80,12 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
       case "notifications":
         page_actions.set_active_tab("notifications");
 
-        if (count === 0 && news_unread > 0) {
-          // guide user towards seeing the news, if there are no mentions
+        // the idea of the following is to make sure the user sees immediately the most important notifications
+        if (count > 0) {
+          // mentions are more important, and this makes them shown to the user
+          redux.getActions("mentions").set_filter("unread");
+        } else if (news_unread > 0) {
+          // similar to the above, guide user towards seeing the news (if there are no mentions)
           redux.getActions("mentions").set_filter("allNews");
         }
 
@@ -108,6 +112,7 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
         );
 
       case "notifications":
+        const wiggle = count > 0 || news_unread > 0;
         return (
           <Badge
             color={count == 0 ? COLORS.GRAY : undefined}
@@ -121,7 +126,11 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
               size="small"
               offset={[newsBadgeOffset, 0]}
             >
-              <Icon style={{ fontSize: fontSizeIcons }} name="mail" />{" "}
+              <Icon
+                style={{ fontSize: fontSizeIcons }}
+                className={wiggle ? "smc-bell-notification" : ""}
+                name="mail"
+              />{" "}
             </Badge>
           </Badge>
         );
