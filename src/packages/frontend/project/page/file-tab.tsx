@@ -9,7 +9,7 @@ A single tab in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
 
-import { Popover, Space } from "antd";
+import { Button, Popover, Space } from "antd";
 import { CSSProperties, ReactNode } from "react";
 
 import {
@@ -338,10 +338,10 @@ function SettingsPopover({ project_id }) {
     <div>
       Project settings and controls (click for more...)
       <hr />
-      <Space>
+      <Button.Group>
         <RestartProject project_id={project_id} />
         <StopProject project_id={project_id} />
-      </Space>
+      </Button.Group>
     </div>
   );
 }

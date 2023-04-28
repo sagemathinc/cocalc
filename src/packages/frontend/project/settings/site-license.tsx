@@ -178,7 +178,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
     return (
       <Popover
         content={LICENSE_INFORMATION}
-        trigger={["click", "hover"]}
+        trigger={["click"]}
         placement="rightTop"
         title="License information"
       >
