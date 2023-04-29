@@ -9,15 +9,7 @@ for several text and code related function.  This calls the chatgpt actions
 to do the work.
 */
 
-import {
-  Alert,
-  Button,
-  Input,
-  Radio,
-  Select,
-  Space,
-  Tooltip,
-} from "antd";
+import { Alert, Button, Input, Radio, Select, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
@@ -163,7 +155,9 @@ export default function ChatGPT({
   const showOptions = frameType != "terminal";
   const [input, setInput] = useState<string>("");
   const [truncated, setTruncated] = useState<number>(0);
-  const [scope, setScope] = useState<Scope>(() => getScope(id, actions));
+  const [scope, setScope] = useState<Scope | "all">(() =>
+    showChatGPT ? getScope(id, actions) : "all"
+  );
   useEffect(() => {
     if (showChatGPT) {
       setScope(getScope(id, actions));
