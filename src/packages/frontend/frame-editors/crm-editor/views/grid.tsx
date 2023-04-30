@@ -158,8 +158,7 @@ function GridRow({
         maskTransitionName=""
         style={{
           maxHeight: "90vh",
-          maxWidth: "90vw",
-          minWidth: "800px",
+          minWidth: "90vw",
           padding: "10px 0",
         }}
         open={open}
