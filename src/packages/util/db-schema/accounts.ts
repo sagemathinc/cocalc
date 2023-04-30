@@ -180,6 +180,7 @@ Table({
       type: "array",
       pg_type: "TEXT[]",
       desc: "Tags expressing what this user is most interested in doing.",
+      render: { type: "string-tags", editable: true },
     },
     notes: NOTES,
   },

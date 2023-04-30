@@ -1,6 +1,6 @@
 import { ReactNode, useMemo, useState } from "react";
 import { TableVirtuoso } from "react-virtuoso";
-import { Divider, Modal } from "antd";
+import { Button, Divider, Modal } from "antd";
 import type { ColumnsType } from "../fields";
 import { ViewOnly } from "../fields/context";
 import { Icon } from "@cocalc/frontend/components";
@@ -83,32 +83,44 @@ function GridRow({
   primaryKey,
   selection,
 }) {
+  const [open, setOpen] = useState<boolean>(false);
   const background = rowBackground({
     index,
     checked: selection.has(data[primaryKey]),
   });
-  const v: ReactNode[] = primaryKey
-    ? [
-        <td
-          key="index"
-          style={{
-            cursor: "pointer",
-            border: "1px solid #eee",
-            padding: "0 5px",
-            color: "#666",
-            textAlign: "center",
-            background,
-          }}
-        >
-          <SelectableIndex
-            index={index}
-            primaryKey={data[primaryKey]}
-            selection={selection}
-          />
-        </td>,
-      ]
-    : [];
-  const [open, setOpen] = useState<boolean>(false);
+  const v: ReactNode[] = [];
+  v.push(
+    <td key="expand" style={{ border: "1px solid #eee", background }}>
+      <Button
+        style={{ fontSize: "13pt", height: "100%", color: "#666" }}
+        onClick={() => setOpen(true)}
+        type="text"
+      >
+        <Icon name="expand-arrows" />
+      </Button>
+    </td>
+  );
+  if (primaryKey) {
+    v.push([
+      <td
+        key="index"
+        style={{
+          cursor: "pointer",
+          border: "1px solid #eee",
+          padding: "0 5px",
+          color: "#666",
+          textAlign: "center",
+          background,
+        }}
+      >
+        <SelectableIndex
+          index={index}
+          primaryKey={data[primaryKey]}
+          selection={selection}
+        />
+      </td>,
+    ]);
+  }
   for (const column of columns) {
     const text = data?.[column.dataIndex];
     const content = column.render != null ? column.render(text, data) : text;
@@ -117,7 +129,6 @@ function GridRow({
     const col = (
       <td
         key={column.key}
-        onClick={() => setOpen(true)}
         style={{
           cursor: "pointer",
           width,
@@ -152,16 +163,12 @@ function GridRow({
           padding: "10px 0",
         }}
         open={open}
-        title={
-          <>
-            <Icon name="pencil" style={{ marginRight: "15px" }} /> Edit
-          </>
-        }
+        title={<Data elt={data} columns={columns.slice(0, 1)} />}
         onOk={() => setOpen(false)}
         onCancel={() => setOpen(false)}
       >
         <div style={{ overflow: "auto" }}>
-          <Data elt={data} columns={columns} />
+          <Data elt={data} columns={columns.slice(1)} />
           <Divider>Raw Data</Divider>
           <Json obj={data} />
         </div>
@@ -186,6 +193,7 @@ function Header({
 
   return (
     <tr style={{ position: "relative" }}>
+      <ColumnHeading width={30} title={""} />
       {primaryKey && (
         <ColumnHeading width={30} title={<SelectAll selection={selection} />} />
       )}

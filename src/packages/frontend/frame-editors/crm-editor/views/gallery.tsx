@@ -170,12 +170,20 @@ export function Data({
       <div
         key={column.key}
         style={{
-          margin: "5px 0",
+          padding: "5px 0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          borderBottom: "1px solid #eef",
           ...style,
         }}
       >
-        {!noTitle && <span style={{ color: "#888" }}>{column.title}: </span>}
-        {content}
+        {!noTitle && (
+          <div style={{ color: "#888", width: "125px", overflow: "auto" }}>
+            {column.title}{" "}
+          </div>
+        )}
+        <div style={{ flex: 1 }}>{content}</div>
       </div>
     );
   }

@@ -24,6 +24,7 @@ import "./project-link";
 import "./purchased";
 import "./select";
 import "./tags";
+import "./string-tags";
 import "./text";
 import "./timestamp";
 import "./usersmap";
