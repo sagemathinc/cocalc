@@ -4,20 +4,14 @@ import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { useState } from "react";
 import { field_cmp, len, plural } from "@cocalc/util/misc";
 import { redux } from "@cocalc/frontend/app-framework";
-import { Icon, TimeAgo } from "@cocalc/frontend/components";
+import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 
 export default function Projects({ account_id }) {
   const [recentProjects, setRecentProjects] = useState<any>(null);
   const [allProjects, setAllProjects] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   return (
-    <div
-      style={{
-        border: "1px solid #eee",
-        padding: "5px 10px",
-        borderRadius: "5px",
-      }}
-    >
+    <div>
       <Button.Group>
         <Button
           disabled={loading}
@@ -69,39 +63,73 @@ export default function Projects({ account_id }) {
         </Button>
       </Button.Group>
       {recentProjects && (
-        <div style={{ margin: "15px 5px 0" }}>
+        <div
+          style={{
+            margin: "15px 5px 0 0",
+            borderLeft: "5px solid #eee",
+            paddingLeft: "10px",
+          }}
+        >
           {recentProjects.map((project) => (
-            <div>
+            <div key={project.project_id}>
               <Project {...project} />
             </div>
           ))}
+          {recentProjects.length == 0 && <>NO RECENT PROJECTS</>}
         </div>
       )}{" "}
       {allProjects && (
-        <div style={{ margin: "15px 5px 0" }}>
+        <div
+          style={{
+            margin: "15px 5px 0 0",
+            borderLeft: "5px solid #eee",
+            paddingLeft: "10px",
+          }}
+        >
           {allProjects.map((project) => (
-            <div>
+            <div key={project.project_id}>
               <Project {...project} />
             </div>
           ))}
+          {allProjects.length == 0 && <>NO PROJECTS</>}
         </div>
       )}
+      {loading && <Loading theme="medium" />}
     </div>
   );
 }
 
-function Project({ project_id, title, last_edited, created, users }) {
+function Project({
+  project_id,
+  title,
+  last_edited,
+  created,
+  users,
+  site_license,
+}) {
   return (
-    <div style={{ display: "flex" }}>
-      <a
-        style={{ flex: 1 }}
-        onClick={() => {
-          const actions = redux.getActions("projects");
-          actions.open_project({ project_id, switch_to: true });
-        }}
-      >
-        {title}
-      </a>
+    <div
+      style={{
+        display: "flex",
+        borderBottom: "1px solid #eee",
+        padding: "5px 0",
+      }}
+    >
+      <div style={{ flex: 1, overflow: "auto" }}>
+        <a
+          onClick={() => {
+            const actions = redux.getActions("projects");
+            actions.open_project({ project_id, switch_to: true });
+          }}
+        >
+          {title}
+        </a>
+        {site_license != null && len(site_license) > 0 && (
+          <div>
+            Licensed: <pre>{JSON.stringify(site_license, undefined, 2)}</pre>
+          </div>
+        )}
+      </div>
       <div style={{ flex: 1, color: "#666" }}>
         active <TimeAgo date={last_edited} />, created{" "}
         <TimeAgo date={created} />,{" "}
@@ -131,6 +159,7 @@ async function getRecentProjects(account_id: string) {
             last_active: null,
             last_edited: null,
             created: null,
+            site_license: null,
           },
         ],
       },
@@ -162,6 +191,7 @@ async function getAllProjects(account_id: string) {
             last_active: null,
             last_edited: null,
             created: null,
+            site_license: null,
           },
         ],
       },

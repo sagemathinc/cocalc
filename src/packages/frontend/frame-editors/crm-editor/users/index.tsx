@@ -1,17 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
-import { Input } from "antd";
+import { Alert, Input } from "antd";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import search from "./search";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import User from "./user";
+import { plural } from "@cocalc/util/misc";
 
 export default function Account() {
   const isMountedRef = useIsMountedRef();
   const { id, actions, desc } = useFrameContext();
   const [users, setUsers] = useState<any>(null);
+  const [query, setQuery] = useState<string>("");
 
   const doSearch = useCallback(async (query) => {
-    query = query.trim();
+    query = query?.trim() ?? "";
+    setQuery(query);
     if (!query) {
       setUsers(null);
       return;
@@ -36,6 +39,29 @@ export default function Account() {
         onSearch={doSearch}
         enterButton
       />
+      {users && (
+        <>
+          {users.length == 0 ? (
+            <Alert
+              type="warning"
+              message={`No Matches for ${query}`}
+              style={{ margin: "5px" }}
+            />
+          ) : (
+            <Alert
+              type="info"
+              message={`${users.length} ${plural(
+                users.length,
+                "Match",
+                "Matches"
+              )} for ${query} ${
+                users.length >= 100 ? "(search limit is 100)" : ""
+              }`}
+              style={{ margin: "5px" }}
+            />
+          )}
+        </>
+      )}
       {users && (
         <div className="smc-vfill" style={{ overflow: "auto" }}>
           {users.map((user) => (
