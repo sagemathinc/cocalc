@@ -1,6 +1,7 @@
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { Card, Space } from "antd";
+import { Tag, Card, Space } from "antd";
 import { CopyToClipBoard, TimeAgo } from "@cocalc/frontend/components";
+import Projects from "./projects";
 
 export default function User({
   account_id,
@@ -18,15 +19,15 @@ export default function User({
       title={
         <>
           {banned && (
-            <Button danger style={{ float: "right" }}>
-              Banned
-            </Button>
+            <Tag style={{ float: "right", margin: "0 15px" }} color="error">
+              banned
+            </Tag>
           )}
           <div style={{ float: "right", fontSize: "11pt", fontWeight: 250 }}>
             {email_address}
           </div>
           <Avatar account_id={account_id} style={{ marginRight: "15px" }} />
-          {first_name} {last_name}
+          {first_name} {last_name} {name ? `(name: ${name})` : ""}
         </>
       }
     >
@@ -36,12 +37,14 @@ export default function User({
         </Space>
         <div>
           Last Active: {last_active ? <TimeAgo date={last_active} /> : "never"}
+          {created && (
+            <span>
+              {" "}
+              (Created: <TimeAgo date={created} />)
+            </span>
+          )}
         </div>
-        {created && (
-          <div>
-            Created: <TimeAgo date={created} />
-          </div>
-        )}
+        <Projects account_id={account_id} />
       </Space>
     </Card>
   );
