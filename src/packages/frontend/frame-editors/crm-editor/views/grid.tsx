@@ -163,7 +163,13 @@ function GridRow({
           padding: "10px 0",
         }}
         open={open}
-        title={<Data elt={data} columns={columns.slice(0, 1)} />}
+        title={
+          <Data
+            elt={data}
+            columns={columns.slice(0, 1)}
+            style={{ padding: "0 15px 5px 0" }}
+          />
+        }
         onOk={() => setOpen(false)}
         onCancel={() => setOpen(false)}
       >
