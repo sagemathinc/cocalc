@@ -6,6 +6,7 @@
 import { Table } from "./types";
 import { checkAccountName } from "./name-rules";
 import { SCHEMA as schema } from "./index";
+import { NOTES } from "./crm";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -180,6 +181,7 @@ Table({
       pg_type: "TEXT[]",
       desc: "Tags expressing what this user is most interested in doing.",
     },
+    notes: NOTES,
   },
   rules: {
     desc: "All user accounts.",
@@ -436,6 +438,7 @@ Table({
           ...schema.accounts.user_query?.get?.fields,
           banned: null,
           groups: null,
+          notes: null,
         },
       },
       set: {
@@ -449,6 +452,7 @@ Table({
           font_size: true,
           banned: true,
           unlisted: true,
+          notes: true,
         },
       },
     },

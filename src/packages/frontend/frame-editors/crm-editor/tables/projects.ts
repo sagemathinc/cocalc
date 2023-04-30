@@ -19,6 +19,7 @@ register({
         created: null,
         users: null,
         deleted: null,
+        notes: null,
       },
     ],
   },
