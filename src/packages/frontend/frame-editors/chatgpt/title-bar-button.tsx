@@ -9,7 +9,16 @@ for several text and code related function.  This calls the chatgpt actions
 to do the work.
 */
 
-import { Alert, Button, Input, Radio, Select, Space, Tooltip } from "antd";
+import {
+  Alert,
+  Button,
+  Input,
+  Popover,
+  Radio,
+  Select,
+  Space,
+  Tooltip,
+} from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
@@ -19,7 +28,6 @@ import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-
 import { capitalize } from "@cocalc/util/misc";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useInterval } from "react-interval-hook";
-import DraggablePopover from "@cocalc/frontend/components/draggable-popover";
 
 interface Preset {
   command: string;
@@ -240,7 +248,7 @@ export default function ChatGPT({
   };
 
   return (
-    <DraggablePopover
+    <Popover
       placement="rightBottom"
       title={
         <div style={{ fontSize: "18px" }}>
@@ -409,7 +417,7 @@ export default function ChatGPT({
         </Tooltip>
         <VisibleMDLG>{labels ? "ChatGPT..." : undefined}</VisibleMDLG>
       </ButtonComponent>
-    </DraggablePopover>
+    </Popover>
   );
 }
 
