@@ -21,7 +21,7 @@ export function DeleteAllStudents({ delete_all_students }: Props) {
     <Card
       title={
         <>
-          <Icon name="trash" /> Delete all students
+          <Icon name="trash" /> Delete all Students
         </>
       }
     >

@@ -181,7 +181,7 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
       <Card
         title={
           <>
-            <Icon name="lock" /> Restrict student projects
+            <Icon name="lock" /> Restrict Student Projects
           </>
         }
       >

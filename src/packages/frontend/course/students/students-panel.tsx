@@ -40,6 +40,7 @@ import {
 } from "../store";
 import * as util from "../util";
 import { Student, StudentNameDescription } from "./students-panel-student";
+import { HelpBox } from "../configuration/help-box";
 
 interface StudentsPanelReactProps {
   frame_id?: string; // used for state caching
@@ -740,21 +741,32 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
 
     function render_no_students(): Rendered {
       return (
-        <Alert
-          type="info"
-          style={{
-            margin: "auto",
-            fontSize: "12pt",
-            maxWidth: "800px",
-          }}
-          message={
-            <div>
-              <h3>Add Students to your Course</h3>
-              Add some students to your course by entering their email addresses
-              in the box in the upper right, then click on Search.
-            </div>
-          }
-        />
+        <div>
+          <div
+            style={{
+              margin: "30px auto",
+              fontSize: "12pt",
+              maxWidth: "800px",
+            }}
+          >
+            <HelpBox />
+          </div>
+          <Alert
+            type="info"
+            style={{
+              margin: "auto",
+              fontSize: "12pt",
+              maxWidth: "800px",
+            }}
+            message={
+              <div>
+                <h3>Add Students to your Course</h3>
+                Add some students to your course by entering their email
+                addresses in the box in the upper right, then click on Search.
+              </div>
+            }
+          />
+        </div>
       );
     }
 
