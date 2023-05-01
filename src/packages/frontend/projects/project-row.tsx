@@ -66,7 +66,13 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
     if (!add_collab) {
       return;
     }
-    return <AddCollaborators project_id={project_id} autoFocus />;
+    return (
+      <AddCollaborators
+        project_id={project_id}
+        autoFocus
+        where="projects-list"
+      />
+    );
   }
 
   function render_collab(): JSX.Element {

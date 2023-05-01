@@ -943,6 +943,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         style={button_style()}
         bsSize={button_size()}
         onClick={(event) => {
+          track("time-travel");
           if (props.actions.name != props.editor_actions.name) {
             // a subframe editor -- always open time travel in a name tab.
             props.editor_actions.time_travel({ frame: false });
@@ -1146,7 +1147,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <Button
         key={"contents"}
         bsSize={button_size()}
-        onClick={() => props.actions.show_table_of_contents?.(props.id)}
+        onClick={() => {
+          track("table-of-contents");
+          props.actions.show_table_of_contents?.(props.id);
+        }}
         title={"Show the Table of Contents"}
       >
         <Icon name={"align-right"} />{" "}
