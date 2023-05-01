@@ -21,10 +21,11 @@ interface Props {
   children?;
   size?: "small" | undefined; // antd button size
   loadingText?: string;
+  onClick?: () => void;
 }
 
-const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
-  const { href, size, mode = "link", children } = props;
+const LinkRetry: React.FC<Props> = (props: Props) => {
+  const { href, size, mode = "link", children, onClick } = props;
   const isMountedRef = useIsMountedRef();
   const [working, setWorking] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -42,6 +43,7 @@ const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
   }
 
   async function start(): Promise<void> {
+    onClick?.();
     setLoading(true);
     setError(false);
     const f = async (): Promise<void> => {
@@ -127,4 +129,4 @@ const LinkRetryUntilSuccess: React.FC<Props> = (props: Props) => {
   }
 };
 
-export default LinkRetryUntilSuccess;
+export default LinkRetry;
