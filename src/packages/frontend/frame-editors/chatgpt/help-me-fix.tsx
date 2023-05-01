@@ -100,7 +100,7 @@ export default function HelpMeFix({
 
 const CUTOFF = 3000;
 
-async function getHelp({
+export async function getHelp({
   project_id,
   path,
   tag,

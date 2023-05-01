@@ -34,6 +34,7 @@ require('./interact')
 templates           = $("#webapp-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
+chatgpt = require('./chatgpt')
 
 log = (s) -> console.log(s)
 
@@ -843,6 +844,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                     mark.element = output
                     mark.type = 'output'
                     mark.uuid = uuid
+                    mark.element.data('uuid',mark.uuid)
                     mark.rendered = ''
                     marks.push(mark)
 
@@ -908,6 +910,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             return
         if s.slice(0, mark.rendered.length) != mark.rendered
             mark.element.empty()
+            mark.element.data('stderr','')
             mark.rendered = ''
         for m in s.slice(mark.rendered.length).split(MARKERS.output)
             if m.length == 0
@@ -1250,11 +1253,30 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         output = opts.element
         # mesg = object
         # output = jQuery wrapped element
+        window.opts = opts
 
         if mesg.stdout?
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
 
         if mesg.stderr?
+            # This is entirely for the ChatGPT help button:
+            # TODO: don't show if chatgpt disabled.
+            if chatgpt.isEnabled()
+                cur = output.data('stderr')
+                if not cur
+                    button = $("<div><span title='@ChatGPT, help fix this...' style='font-family:sans-serif;' class='btn btn-default'>Help me fix this...</span></div>")
+                    button.click () =>
+                        chatgpt.helpMeFix
+                            codemirror : @focused_codemirror()
+                            stderr     : output.data('stderr')
+                            uuid       : output.data('uuid')
+                            project_id : @project_id
+                            path       : @filename
+                    output.append(button);
+                    output.data('stderr', mesg.stderr)
+                else
+                    output.data('stderr', cur + mesg.stderr)
+
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.error?
@@ -1478,12 +1500,13 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         # NOTE: Right now the "state object" is a just a list of messages in the output of a cell.
         # It's viewed as something that should get rendered in order, with no dependence between them.
-        # Instead alll thoose messages should get fed into one single state object, which then gets
+        # Instead all thoose messages should get fed into one single state object, which then gets
         # rendered each time it changes. React makes that approach easy and efficient. Without react
         # (or something similar) it is basically impossible.  When sage worksheets are rewritten
         # using react, this will change.
         if mesg.clear
             output.empty()
+            output.data('stderr','')
 
         if mesg.delete_last
             output.find(":last-child").remove()
@@ -1620,6 +1643,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         mark.processed = 38
         mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
         mark.type = MARKERS.output
+        mark.element.data('uuid',mark.uuid)
 
         if not @readonly
             output.click (e) =>
