@@ -10,6 +10,7 @@ TODO:
 import { delay } from "awaiting";
 import { Alert, Button, Input, Modal, Select } from "antd";
 import { CSSProperties, useState, useEffect } from "react";
+
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import {
@@ -454,7 +455,7 @@ export function ChatGPTGenerateNotebookButton({
       </Button>
       <Modal
         title="Generate Jupyter Notebook"
-        visible={show}
+        open={show}
         onOk={handleOk}
         onCancel={handleCancel}
       >
