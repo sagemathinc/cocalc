@@ -123,5 +123,24 @@ ORDER BY date DESC
 LIMIT 1`;
 
 export async function getMostRecentNews(): Promise<RecentHeadline | null> {
-  return await C.queryOne<NewsItem>(Q_MOST_RECENT);
+  return await C.queryOne<RecentHeadline>(Q_MOST_RECENT);
+}
+
+const Q_RECENT = `
+SELECT
+  id, channel, title, tags,
+  extract(epoch from date::timestamptz)::INTEGER as date
+FROM news
+WHERE date <= NOW()
+  AND hide IS NOT TRUE
+ORDER BY date DESC
+LIMIT $1`;
+
+// of the last n picked by Q_RECENT, select one deterministically different every 10 minutes
+export async function getRecentHeadlines(
+  n: number
+): Promise<RecentHeadline[] | null> {
+  const headlines = await C.query<RecentHeadline>(Q_RECENT, [n]);
+  if (headlines.length === 0) return null;
+  return headlines;
 }

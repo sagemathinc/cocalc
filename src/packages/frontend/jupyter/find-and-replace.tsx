@@ -7,18 +7,24 @@
 The find and replace modal dialog
 */
 
-import { React, Rendered, useState, useRef } from "../app-framework";
+import { Modal } from "antd";
+import * as immutable from "immutable";
+
 import {
   Button,
   FormControl,
   FormGroup,
   InputGroup,
 } from "@cocalc/frontend/antd-bootstrap";
-import { Modal } from "antd";
-import * as immutable from "immutable";
-import { ErrorDisplay, Icon } from "../components";
-import { find_matches } from "./find";
+import {
+  React,
+  Rendered,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { ErrorDisplay, Icon } from "@cocalc/frontend/components";
 import { JupyterActions } from "./browser-actions";
+import { find_matches } from "./find";
 
 interface FindAndReplaceProps {
   actions: JupyterActions;
@@ -402,7 +408,7 @@ export const FindAndReplace: React.FC<FindAndReplaceProps> = React.memo(
 
     return (
       <Modal
-        visible={find_and_replace}
+        open={find_and_replace}
         width={900}
         onCancel={close}
         title={

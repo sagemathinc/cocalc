@@ -42,6 +42,7 @@ export const AccountPreferences: React.FC = () => {
   const unlisted = useTypedRedux("account", "unlisted");
   const email_enabled = useTypedRedux("customize", "email_enabled");
   const verify_emails = useTypedRedux("customize", "verify_emails");
+  const kucalc = useTypedRedux("customize", "kucalc");
 
   function render_account_settings(): JSX.Element {
     return (
@@ -73,6 +74,7 @@ export const AccountPreferences: React.FC = () => {
         is_stripe_customer={
           !!stripe_customer?.getIn(["subscriptions", "total_count"])
         }
+        kucalc={kucalc}
       />
     );
   }
