@@ -97,7 +97,7 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
     if (delayShow == null || delayHide == null) return null;
 
     const props: { [key: string]: any } = {
-      arrowPointAtCenter: true,
+      arrow: { pointAtCenter: true },
       placement: placement,
       trigger: trigger ?? "hover",
       mouseEnterDelay: delayShow / 1000,

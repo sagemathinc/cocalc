@@ -115,8 +115,8 @@ export default function TitleBarTour({
             onChange={(e) => {
               const actions = redux.getActions("account");
               if (e.target.checked) {
-                setOpen(false);
                 actions.setTourDone(NAME);
+                setOpen(false);
               } else {
                 actions.setTourNotDone(NAME);
               }
@@ -146,7 +146,6 @@ export default function TitleBarTour({
         zIndex={10001}
         open={open}
         onClose={() => {
-          console.log("clicked on close");
           setOpen(false);
         }}
         steps={steps.filter((x) => x.target !== null)}

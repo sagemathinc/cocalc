@@ -17,6 +17,7 @@ import { join } from "path";
 import React from "react";
 import { serverURL, SPEC } from "../named-server-panel";
 import track from "@cocalc/frontend/user-tracking";
+import TourButton from "./tour/button";
 
 interface Props {
   actions: ProjectActions;
@@ -178,6 +179,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       className="pull-right"
     >
       <ButtonGroup>
+        <TourButton project_id={project_id} />
         {render_library_button()}
         {render_upload_button()}
         {render_jupyterlab_button()}

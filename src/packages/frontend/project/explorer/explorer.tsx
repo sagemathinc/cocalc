@@ -54,6 +54,8 @@ import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import { ListingItem } from "./types";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import ExplorerTour from "./tour/tour";
+
 const STUDENT_COURSE_PRICE = require("@cocalc/util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
 
@@ -126,6 +128,7 @@ interface ReduxProps {
   available_features?: Available;
   file_listing_scroll_top?: number;
   show_custom_software_reset?: boolean;
+  explorerTour?: boolean;
 }
 
 interface State {
@@ -147,6 +150,13 @@ export function Explorer({ project_id }) {
 // add a shouldComponentUpdate!!
 const Explorer0 = rclass(
   class Explorer extends React.Component<ReactProps & ReduxProps, State> {
+    newFileRef = React.createRef<any>();
+    searchBarRef = React.createRef<any>();
+    fileListingRef = React.createRef<any>();
+    currentDirectoryRef = React.createRef<any>();
+    miscButtonsRef = React.createRef<any>();
+    miniterminalRef = React.createRef<any>();
+
     static reduxProps = ({ name }) => {
       return {
         projects: {
@@ -198,6 +208,7 @@ const Explorer0 = rclass(
           available_features: rtypes.object,
           file_listing_scroll_top: rtypes.number,
           show_custom_software_reset: rtypes.bool,
+          explorerTour: rtypes.bool,
         },
       };
     };
@@ -398,15 +409,17 @@ const Explorer0 = rclass(
 
     render_new_file() {
       return (
-        <NewButton
-          file_search={this.props.file_search}
-          current_path={this.props.current_path}
-          actions={this.props.actions}
-          create_file={this.create_file}
-          create_folder={this.create_folder}
-          configuration={this.props.configuration}
-          disabled={!!this.props.ext_selection}
-        />
+        <div ref={this.newFileRef}>
+          <NewButton
+            file_search={this.props.file_search}
+            current_path={this.props.current_path}
+            actions={this.props.actions}
+            create_file={this.create_file}
+            create_folder={this.create_folder}
+            configuration={this.props.configuration}
+            disabled={!!this.props.ext_selection}
+          />
+        </div>
       );
     }
 
@@ -597,6 +610,7 @@ const Explorer0 = rclass(
         >
           {!IS_MOBILE && (
             <div
+              ref={this.searchBarRef}
               style={{ flex: "1 0 20%", marginRight: "10px", minWidth: "20em" }}
             >
               <SearchBar
@@ -632,7 +646,10 @@ const Explorer0 = rclass(
           >
             {this.render_new_file()}
           </div>
-          <div className="cc-project-files-path-nav">
+          <div
+            ref={this.currentDirectoryRef}
+            className="cc-project-files-path-nav"
+          >
             <PathNavigator project_id={this.props.project_id} />
           </div>
           <>
@@ -646,7 +663,10 @@ const Explorer0 = rclass(
               <UsersViewing project_id={this.props.project_id} />
             </div>
             <VisibleMDLG>
-              <div style={{ flex: "1 0 auto", marginBottom: "15px" }}>
+              <div
+                ref={this.miniterminalRef}
+                style={{ flex: "1 0 auto", marginBottom: "15px" }}
+              >
                 <MiniTerminal
                   current_path={this.props.current_path}
                   project_id={this.props.project_id}
@@ -663,6 +683,7 @@ const Explorer0 = rclass(
     render_project_files_buttons(): JSX.Element {
       return (
         <div
+          ref={this.miscButtonsRef}
           style={{ flex: "1 0 auto", marginBottom: "15px", textAlign: "right" }}
         >
           <MiscSideButtons
@@ -810,6 +831,7 @@ const Explorer0 = rclass(
             ) : undefined}
           </div>
           <div
+            ref={this.fileListingRef}
             className="smc-vfill"
             style={{
               flex: "1 0 auto",
@@ -829,6 +851,16 @@ const Explorer0 = rclass(
                 )
               : undefined}
           </div>
+          <ExplorerTour
+            open={this.props.explorerTour}
+            project_id={this.props.project_id}
+            newFileRef={this.newFileRef}
+            searchBarRef={this.searchBarRef}
+            fileListingRef={this.fileListingRef}
+            currentDirectoryRef={this.currentDirectoryRef}
+            miscButtonsRef={this.miscButtonsRef}
+            miniterminalRef={this.miniterminalRef}
+          />
         </div>
       );
     }

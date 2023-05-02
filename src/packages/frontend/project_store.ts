@@ -160,6 +160,9 @@ export interface ProjectStoreState {
 
   // whether to hide the action buttons.
   hideActionButtons?: boolean;
+
+  // if true, show the explorer tour
+  explorerTour?: boolean;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
