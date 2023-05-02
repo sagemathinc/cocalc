@@ -32,6 +32,7 @@ import initHttpRedirect from "./servers/http-redirect";
 import initDatabase from "./servers/database";
 import initProjectControl from "@cocalc/server/projects/control";
 import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
+import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
 import initVersionServer from "./servers/version";
 import initPrimus from "./servers/primus";
 import { load_server_settings_from_env } from "@cocalc/server/settings/server-settings";
@@ -276,6 +277,14 @@ async function startServer(): Promise<void> {
     console.log(msg);
   }
 
+  if (program.all || program.mentions) {
+    // kucalc: for now we just have the hub-mentions servers
+    // do the new project pool maintenance, since there is only
+    // one hub-stats.
+    // On non-cocalc it'll get done by *the* hub because of program.all.
+    initNewProjectPoolMaintenanceLoop();
+  }
+
   addErrorListeners(uncaught_exception_total);
 }
 
@@ -336,8 +345,6 @@ async function main(): Promise<void> {
       "--next-server",
       "run the nextjs server (landing pages, share server, etc.)"
     )
-    .option("--noco-db", "run the NocoDB database server (for admins)")
-    /*.option("--https", "if specified will use (or create selfsigned) data/https/key.pem and data/https/cert.pem and serve https on the port specified by the PORT env variable. Do not combine this with --https-key/--htps-cert options below.")*/
     .option(
       "--https-key [string]",
       "serve over https.  argument should be a key filename (both https-key and https-cert must be specified)"
@@ -393,7 +400,10 @@ async function main(): Promise<void> {
       "Do blob-related maintenance (dump to tarballs, offload to gcloud)",
       "yes"
     )
-    .option("--mentions", "if given, periodically handle mentions")
+    .option(
+      "--mentions",
+      "if given, periodically handle mentions; on kucalc there is only one of these.  It also managed the new project pool.  Maybe this should be renamed --singleton!"
+    )
     .option(
       "--test",
       "terminate after setting up the hub -- used to test if it starts up properly"

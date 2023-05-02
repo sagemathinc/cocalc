@@ -10,7 +10,7 @@ import Calendar from "./calendar";
 import Kanban from "./kanban";
 import type { ViewType } from "../types";
 import { Icon } from "@cocalc/frontend/components";
-import { getTableDescription } from "../tables";
+import { useTableDescription } from "../tables";
 import ViewMenu from "./view-menu";
 import { fieldToLabel } from "../util";
 import useFilterInput from "./filter-input";
@@ -23,6 +23,7 @@ import useSearch from "../syncdb/use-search";
 import { Loading } from "@cocalc/frontend/components";
 import { columnsToFieldMap } from "./view-menu/hide-fields";
 import createNewRecord from "./create-new-record";
+import RetentionView, { Retention, DEFAULT_RETENTION } from "./retention";
 
 export const DEFAULT_RECORD_HEIGHT = 300;
 export const DEFAULT_LIMIT = 100;
@@ -50,7 +51,7 @@ export default function View({
     columns: allColumns,
     allowCreate,
     changes,
-  } = useMemo(() => getTableDescription(table), [table]);
+  } = useTableDescription(table);
   const [limit, setLimit] = useViewParam<number>({
     id,
     name: "limit",
@@ -94,6 +95,12 @@ export default function View({
     id,
     name: "record-height",
     defaultValue: DEFAULT_RECORD_HEIGHT,
+  });
+
+  const [retention, setRetention] = useViewParam<Retention>({
+    id,
+    name: "retention",
+    defaultValue: DEFAULT_RETENTION,
   });
 
   const dbtable: string = useMemo(() => {
@@ -284,6 +291,14 @@ export default function View({
           sortFields={sortFields}
           setSortField={setSortField}
           primaryKey={primaryKey}
+        />
+      );
+      break;
+    case "retention":
+      body = (
+        <RetentionView
+          retention={retention}
+          setRetention={setRetention}
         />
       );
       break;

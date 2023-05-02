@@ -260,7 +260,7 @@ export default function NewFilePage(props: Props) {
     <SettingBox
       show_header
       icon={"plus-circle"}
-      title={"Create new file or directory"}
+      title={"Create or upload new file or directory"}
       subtitle={
         <PathNavigator
           project_id={project_id}
@@ -359,7 +359,7 @@ export default function NewFilePage(props: Props) {
             >
               <NewFileButton
                 icon={"cloud"}
-                name={`Download from GitHub or the Internet ${blocked()}`}
+                name={`Download from Internet URL ${blocked()}`}
                 on_click={() => createFile()}
                 loading={downloading_file}
               />

@@ -21,6 +21,7 @@ import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
+import Tours from "./tours";
 
 interface Props {
   other_settings: Map<string, any>;
@@ -42,13 +43,12 @@ export class OtherSettings extends Component<Props> {
   }
 
   private render_first_steps(): Rendered {
-    return; // this is disabled elsewhere anyways...
     return (
       <Checkbox
         checked={!!this.props.other_settings.get("first_steps")}
         onChange={(e) => this.on_change("first_steps", e.target.checked)}
       >
-        Offer to setup the "First Steps" guide (if available).
+        Offer the First Steps guide
       </Checkbox>
     );
   }
@@ -71,7 +71,7 @@ export class OtherSettings extends Component<Props> {
         onChange={(e) => this.on_change("time_ago_absolute", e.target.checked)}
       >
         Display timestamps as absolute points in time instead of relative to the
-        current time.
+        current time
       </Checkbox>
     );
   }
@@ -201,7 +201,7 @@ export class OtherSettings extends Component<Props> {
           checked={checked}
           onChange={(e) => this.on_change("dark_mode", e.target.checked)}
           style={{
-            color: "rgba(229, 224, 216, 0.65)",
+            color: "rgba(229, 224, 216)",
             backgroundColor: "rgb(36, 37, 37)",
             marginLeft: "-5px",
             padding: "5px",
@@ -297,6 +297,7 @@ export class OtherSettings extends Component<Props> {
           hides the extra run, copy, and explain buttons in fenced code blocks.
         </Checkbox>
         {this.render_first_steps()}
+        <Tours />
         {this.render_new_filenames()}
         {this.render_default_file_sort()}
         {this.render_page_size()}

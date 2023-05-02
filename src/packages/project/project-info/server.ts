@@ -9,11 +9,11 @@ about what's going on in a project.
 */
 
 import { delay } from "awaiting";
+import { check as df } from "diskusage";
 import { EventEmitter } from "node:events";
 import { readdir, readFile, readlink } from "node:fs/promises";
 import { join } from "node:path";
 
-import { check as df } from "diskusage";
 import { options } from "../init-program";
 import { get_kernel_by_pid } from "../jupyter/jupyter";
 import { pid2path as terminal_pid2path } from "../terminal/server";

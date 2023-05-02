@@ -39,7 +39,7 @@ export default function Octave({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header page="features" subPage="python" />
+        <Header page="features" subPage="python" runnableTag="py" />
         <Layout.Content>
           <Content
             landing

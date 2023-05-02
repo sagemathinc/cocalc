@@ -8,7 +8,7 @@ import { ProfileSettings } from "./profile-settings";
 import { TerminalSettings } from "./terminal-settings";
 import { KeyboardSettings } from "./keyboard-settings";
 import { AccountSettings } from "./settings/account-settings";
-import { Checkbox, Tooltip } from "antd";
+import { Form, Switch, Tooltip } from "antd";
 import { Row, Col } from "../antd-bootstrap";
 import { Footer } from "@cocalc/frontend/customize";
 import { OtherSettings } from "./other-settings";
@@ -17,6 +17,7 @@ import { A, Loading } from "../components";
 import TableError from "./table-error";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import track from "@cocalc/frontend/user-tracking";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
@@ -81,23 +82,48 @@ export const AccountPreferences: React.FC = () => {
       <>
         <div style={{ float: "right" }}>
           <Tooltip title="Enable dark mode across the entire user interface. See further dark mode configuration below.">
-            <Checkbox
-              checked={other_settings.get("dark_mode")}
-              onChange={(e) => {
-                redux
-                  .getActions("account")
-                  .set_other_settings("dark_mode", e.target.checked);
-              }}
-            >
-              Dark Mode
-            </Checkbox>
+            <Form>
+              <Form.Item
+                label={
+                  <div
+                    onClick={() => {
+                      redux
+                        .getActions("account")
+                        .set_other_settings(
+                          "dark_mode",
+                          !other_settings.get("dark_mode")
+                        );
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      color: "rgba(229, 224, 216)",
+                      backgroundColor: "rgb(36, 37, 37)",
+                      padding: "5px 10px",
+                      borderRadius: "3px",
+                    }}
+                  >
+                    Dark Mode
+                  </div>
+                }
+              >
+                <Switch
+                  checked={other_settings.get("dark_mode")}
+                  onChange={(checked) => {
+                    redux
+                      .getActions("account")
+                      .set_other_settings("dark_mode", checked);
+                    track("dark-mode", { how: "settings page", checked });
+                  }}
+                />
+              </Form.Item>
+            </Form>
           </Tooltip>
         </div>
-        <h2>Quick Preferences</h2>
+        <h2>Account Preferences</h2>
         <div style={{ fontSize: "14pt" }}>
-          Quickly adjust key preferences below.{" "}
+          Adjust account preferences below.{" "}
           <A href={join(appBasePath, "config")}>
-            Visit your account configuration for more settings...
+            Visit your account configuration for more...
           </A>
         </div>
         <br />

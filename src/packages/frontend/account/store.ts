@@ -125,6 +125,12 @@ export class AccountStore extends Store<AccountState> {
   get_page_size(): number {
     return this.getIn(["other_settings", "page_size"], 500);
   }
+
+  isTourDone(tour: string): boolean {
+    const tours = this.get("tours");
+    if (!tours) return false;
+    return tours.includes(tour) || tours.includes("all");
+  }
 }
 
 // A user is anonymous if they have not provided a way to sign

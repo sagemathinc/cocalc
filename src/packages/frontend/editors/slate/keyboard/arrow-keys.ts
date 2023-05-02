@@ -16,14 +16,30 @@ import {
   moveCursorUp,
   moveCursorDown,
   moveCursorToBeginningOfBlock,
+  moveCursorToBeginningOfLine,
+  moveCursorToEndOfLine,
   isAtBeginningOfBlock,
   isAtEndOfBlock,
 } from "../control";
 import { SlateEditor } from "../types";
 import { ReactEditor } from "../slate-react";
+import { Transforms } from "slate";
 
 const down = ({ editor }: { editor: SlateEditor }) => {
+  const { selection } = editor;
+  setTimeout(() => {
+    // We have to do this via a timeout, because we don't control the cursor.
+    // Instead the selection in contenteditable changes via the browser and
+    // we react to that. Thus this is the only way with our current "sync with
+    // contenteditable approach".  Here we just ensure that a move happens, rather
+    // than having the cursor be totally stuck, which is super annoying..
+    if (editor.selection === selection) {
+      Transforms.move(editor, { unit: "line" });
+    }
+  }, 1);
+
   const cur = editor.selection?.focus;
+
   if (
     cur != null &&
     editor.onCursorBottom != null &&
@@ -76,6 +92,17 @@ const down = ({ editor }: { editor: SlateEditor }) => {
 register({ key: "ArrowDown" }, down);
 
 const up = ({ editor }: { editor: SlateEditor }) => {
+  const { selection } = editor;
+  setTimeout(() => {
+    // We have to do this via a timeout, because we don't control the cursor.
+    // Instead the selection in contenteditable changes via the browser and
+    // we react to that. Thus this is the only way with our current "sync with
+    // contenteditable approach".
+    if (editor.selection === selection) {
+      Transforms.move(editor, { unit: "line", reverse: true });
+    }
+  }, 1);
+
   const cur = editor.selection?.focus;
   if (
     cur != null &&
@@ -166,3 +193,38 @@ register({ key: "ArrowUp", meta: true }, beginningOfDoc); // mac
 register({ key: "Home", ctrl: true }, beginningOfDoc); // windows
 register({ key: "ArrowDown", meta: true }, endOfDoc); // mac
 register({ key: "End", ctrl: true }, endOfDoc); // windows
+
+function endOfLine({ editor }) {
+  const { selection } = editor;
+  setTimeout(() => {
+    // We have to do this via a timeout, because we don't control the cursor.
+    // Instead the selection in contenteditable changes via the browser and
+    // we react to that. Thus this is the only way with our current "sync with
+    // contenteditable approach".
+    if (editor.selection === selection) {
+      // stuck!
+      moveCursorToEndOfLine(editor);
+    }
+  }, 1);
+  return false;
+}
+
+function beginningOfLine({ editor }) {
+  const { selection } = editor;
+  setTimeout(() => {
+    // We have to do this via a timeout, because we don't control the cursor.
+    // Instead the selection in contenteditable changes via the browser and
+    // we react to that. Thus this is the only way with our current "sync with
+    // contenteditable approach".
+    if (editor.selection === selection) {
+      // stuck!
+      moveCursorToBeginningOfLine(editor);
+    }
+  }, 1);
+  return false;
+}
+
+register({ key: "ArrowRight", meta: true }, endOfLine);
+register({ key: "ArrowRight", ctrl: true }, endOfLine);
+register({ key: "ArrowLeft", meta: true }, beginningOfLine);
+register({ key: "ArrowLeft", ctrl: true }, beginningOfLine);

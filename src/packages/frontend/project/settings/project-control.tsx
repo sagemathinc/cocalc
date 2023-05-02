@@ -33,8 +33,7 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Space } from "antd";
-import { Button, ButtonToolbar } from "react-bootstrap";
+import { Button } from "antd";
 import { ComputeImageSelector } from "./compute-image-selector";
 import { RestartProject } from "./restart-project";
 import { SoftwareImageDisplay } from "./software-image-display";
@@ -105,25 +104,21 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
 
   function render_stop_button(commands): Rendered {
     return (
-      <Space>
-        {" "}
-        <StopProject
-          project_id={project.get("project_id")}
-          disabled={!commands.includes("stop")}
-        />
-      </Space>
+      <StopProject
+        size="large"
+        project_id={project.get("project_id")}
+        disabled={!commands.includes("stop")}
+      />
     );
   }
 
   function render_restart_button(commands): Rendered {
     return (
-      <Space>
-        {" "}
-        <RestartProject
-          project_id={project.get("project_id")}
-          disabled={!commands.includes("start") && !commands.includes("stop")}
-        />{" "}
-      </Space>
+      <RestartProject
+        size="large"
+        project_id={project.get("project_id")}
+        disabled={!commands.includes("start") && !commands.includes("stop")}
+      />
     );
   }
 
@@ -134,10 +129,10 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       COMPUTE_STATES[state] &&
       COMPUTE_STATES[state].commands) || ["save", "stop", "start"];
     return (
-      <ButtonToolbar style={{ marginTop: "10px", marginBottom: "10px" }}>
+      <Button.Group style={{ marginTop: "10px", marginBottom: "10px" }}>
         {render_restart_button(commands)}
         {render_stop_button(commands)}
-      </ButtonToolbar>
+      </Button.Group>
     );
   }
 
@@ -232,18 +227,15 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       return;
     }
     return (
-      <>
-        <hr />
-        <div>
-          <LabeledRow
-            key="cpu-usage"
-            label="Software Environment"
-            style={rowstyle(true)}
-          >
-            {render_select_compute_image()}
-          </LabeledRow>
-        </div>
-      </>
+      <div style={{ marginTop: "10px" }}>
+        <LabeledRow
+          key="cpu-usage"
+          label="Software Environment"
+          style={rowstyle(true)}
+        >
+          {render_select_compute_image()}
+        </LabeledRow>
+      </div>
     );
   }
 
@@ -310,10 +302,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
 
         {selected_image !== current_image ? (
           <div style={{ marginTop: "10px" }}>
-            <Button
-              onClick={() => save_compute_image(current_image)}
-              bsStyle="warning"
-            >
+            <Button onClick={() => save_compute_image(current_image)} danger>
               Save and Restart
             </Button>
             &nbsp;
@@ -337,19 +326,20 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
 
   return (
     <SettingBox title="Project control" icon="gears">
+      <LabeledRow key="action" label="Actions">
+        {render_action_buttons()}
+      </LabeledRow>
       <LabeledRow key="state" label="State" style={rowstyle(true)}>
         {render_state()}
       </LabeledRow>
       {render_idle_timeout_row()}
       {render_uptime()}
       {render_cpu_usage()}
-      <LabeledRow key="action" label="Actions">
-        {render_action_buttons()}
-      </LabeledRow>
       <LabeledRow key="project_id" label="Project id">
         <CopyToClipBoard
+          inputWidth={"330px"}
           value={project.get("project_id")}
-          style={{ display: "inline-block", width: "50ex", margin: 0 }}
+          style={{ display: "inline-block", width: "100%", margin: 0 }}
         />
       </LabeledRow>
       {render_select_compute_image_row()}

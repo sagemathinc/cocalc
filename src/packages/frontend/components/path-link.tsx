@@ -22,20 +22,20 @@ interface Props {
   trunc?: number; // truncate longer names and show a tooltip with the full name
   style?: React.CSSProperties;
   link?: boolean; // set to false to make it not be a link
+  onOpen?: () => void; // called if link is clicked on to open it.
 }
 
 // Component to attempt opening a cocalc path in a project
-export const PathLink: React.FC<Props> = (props: Props) => {
-  const {
-    path,
-    project_id,
-    full = false,
-    trunc,
-    display_name,
-    style = {},
-    link = true,
-  } = props;
-
+export const PathLink: React.FC<Props> = ({
+  path,
+  project_id,
+  full = false,
+  trunc,
+  display_name,
+  style = {},
+  link = true,
+  onOpen,
+}: Props) => {
   function render_link(text): JSX.Element {
     let s;
     if (!endswith(text, "/")) {
@@ -56,7 +56,10 @@ export const PathLink: React.FC<Props> = (props: Props) => {
     if (link) {
       return (
         <a
-          onClick={(e) => handle_log_click(e, path, project_id)}
+          onClick={(e) => {
+            onOpen?.();
+            handle_log_click(e, path, project_id);
+          }}
           style={{ color: COLORS.GRAY_D, fontWeight: "bold", ...style }}
         >
           {s}

@@ -9,15 +9,25 @@ for several text and code related function.  This calls the chatgpt actions
 to do the work.
 */
 
-import { Alert, Button, Input, Popover, Select, Space, Tooltip } from "antd";
-import { useEffect, useState } from "react";
-
+import {
+  Alert,
+  Button,
+  Input,
+  Popover,
+  Radio,
+  Select,
+  Space,
+  Tooltip,
+} from "antd";
+import { useEffect, useMemo, useState } from "react";
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
-import { filename_extension } from "@cocalc/util/misc";
+import { capitalize } from "@cocalc/util/misc";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { useInterval } from "react-interval-hook";
 
 interface Preset {
   command: string;
@@ -30,14 +40,15 @@ interface Preset {
 
 const PRESETS: Preset[] = [
   {
-    command: "Complete",
+    command:
+      "Create a fun exercise for me. Please include a brief problem statement, an example input, expected output, and any additional hints or explanations that would help me better understand this",
     codegen: true,
-    tag: "complete",
-    icon: "pen",
-    label: "Autocomplete",
-    description:
-      "Finish writing the contents of the selection. ChatGPT can automatically write code, finish a poem, and much more.  The output is in chat so your file isn't directly modified.",
+    tag: "fun-exercise",
+    icon: "graduation-cap",
+    label: "A Fun Exercise!",
+    description: "Create a fun exercise involving the selected content.",
   },
+
   {
     command: "fix all errors in",
     codegen: true,
@@ -91,6 +102,15 @@ const PRESETS: Preset[] = [
     description:
       "Review the selected text or code for correctness and quality and suggest improvements.",
   },
+  {
+    command: "Complete",
+    codegen: true,
+    tag: "complete",
+    icon: "pen",
+    label: "Autocomplete",
+    description:
+      "Finish writing the contents of the selection. ChatGPT can automatically write code, finish a poem, and much more.  The output is in chat so your file isn't directly modified.",
+  },
 ];
 
 const CUSTOM_DESCRIPTIONS = {
@@ -122,6 +142,8 @@ interface Props {
   path: string;
 }
 
+import type { Scope } from "./types";
+
 export default function ChatGPT({
   id,
   actions,
@@ -140,17 +162,61 @@ export default function ChatGPT({
   const [tag, setTag] = useState<string>("");
   const showOptions = frameType != "terminal";
   const [input, setInput] = useState<string>("");
+  const [truncated, setTruncated] = useState<number>(0);
+  const [scope, setScope] = useState<Scope | "all">(() =>
+    showChatGPT ? getScope(id, actions) : "all"
+  );
+  useEffect(() => {
+    if (showChatGPT) {
+      setScope(getScope(id, actions));
+    }
+  }, [showChatGPT]);
+
+  const scopeOptions = useMemo(() => {
+    const options: { label: string; value: Scope }[] = [];
+    const available = actions.chatgptGetScopes();
+    for (const value of available) {
+      options.push({ label: capitalize(value), value });
+    }
+    options.push({ label: "All", value: "all" });
+    options.push({ label: "None", value: "none" });
+    if (scope != "all" && scope != "none" && !available.has(scope)) {
+      setScope("all");
+    }
+    return options;
+  }, [actions]);
+
+  const doUpdateInput = async () => {
+    if (!(visible && showChatGPT)) {
+      // don't waste time on update if it is not visible.
+      return;
+    }
+    const { input, inputOrig } = await updateInput(actions, id, scope);
+    setInput(input);
+    setTruncated(
+      Math.round(
+        100 *
+          (1 -
+            (inputOrig.length - input.length) / Math.max(1, inputOrig.length))
+      )
+    );
+  };
 
   useEffect(() => {
-    updateInput(actions, id, setInput);
-  }, [id]);
+    doUpdateInput();
+  }, [id, scope, visible, path, showChatGPT]);
+
+  // This is lame -- it would be better to hook into a change event, but that's hard to
+  // in general.
+  useInterval(() => {
+    doUpdateInput();
+  }, 2500);
 
   const [description, setDescription] = useState<string>(
     showOptions ? "" : getCustomDescription(frameType)
   );
 
   const chatgpt = async (options) => {
-    // console.log("chatgpt", options);
     setError("");
     try {
       setQuerying(true);
@@ -186,7 +252,7 @@ export default function ChatGPT({
       placement="rightBottom"
       title={
         <div style={{ fontSize: "18px" }}>
-          <OpenAIAvatar size={24} style={{ marginRight: "5px" }} /> ChatGPT:
+          <OpenAIAvatar size={24} style={{ marginRight: "5px" }} />
           What would you like to do?
           <Button
             onClick={() => {
@@ -206,7 +272,7 @@ export default function ChatGPT({
         return (
           <Space
             direction="vertical"
-            style={{ width: "800px", maxWidth: "100%" }}
+            style={{ width: "800px", maxWidth: "90vw" }}
           >
             <div style={{ display: "flex", width: "100%", marginTop: "5px" }}>
               <Input.TextArea
@@ -280,31 +346,41 @@ export default function ChatGPT({
                 </>
               )}
             </div>
-            {showOptions && input && (
+            {showOptions && (
               <div
                 style={{
                   marginTop: "5px",
                   color: "#444",
+                  maxHeight: "40vh",
+                  display: "flex",
+                  flexDirection: "column",
                 }}
               >
-                ChatGPT will see the following context, taken from your current
-                selection, code cell or the first few thousand words of your
-                file. To change this, close this dialog, select part of your
-                file, then open the dialog again.
-                <div style={{ height: "5px" }} />
-                <CodeMirrorStatic
-                  style={{
-                    maxHeight: "100px",
-                    overflowY: "auto",
-                    margin: "5px",
-                    padding: 0,
-                    width: undefined,
-                  }}
-                  options={{
-                    mode: path ? infoToMode(filename_extension(path)) : "",
-                  }}
-                  value={input}
-                />
+                <h5 style={{ marginTop: 0 }}>Context From {actions.path}</h5>
+                <div style={{ marginBottom: "5px" }}>
+                  {truncated < 100 && (
+                    <div style={{ float: "right" }}>
+                      Truncated ({truncated}% remains)
+                    </div>
+                  )}
+                  ChatGPT will see:
+                  <Radio.Group
+                    size="small"
+                    style={{ margin: "0 10px" }}
+                    value={scope}
+                    onChange={(e) => {
+                      const scope = e.target.value;
+                      setScope(scope);
+                    }}
+                    options={scopeOptions}
+                    optionType="button"
+                    buttonStyle="solid"
+                  />
+                  <Button size="small" type="text" onClick={doUpdateInput}>
+                    <Icon name="refresh" /> Update
+                  </Button>
+                </div>
+                <Context value={input} info={actions.chatgptGetLanguage()} />
               </div>
             )}{" "}
             {description}
@@ -333,7 +409,6 @@ export default function ChatGPT({
         onClick={() => {
           setError("");
           setShowChatGPT(!showChatGPT);
-          updateInput(actions, id, setInput);
           actions.blur();
         }}
       >
@@ -346,18 +421,71 @@ export default function ChatGPT({
   );
 }
 
-async function updateInput(actions, id, setInput) {
-  let input = actions.chatgptGetContext(id);
+async function updateInput(
+  actions,
+  id,
+  scope
+): Promise<{ input: string; inputOrig: string }> {
+  if (scope == "none") {
+    return { input: "", inputOrig: "" };
+  }
+  let input = actions.chatgptGetContext(id, scope);
+  const inputOrig = input;
   if (input.length > 2000) {
-    // Truncate input (also this MUST lazy import):
-    const { truncateMessage, numTokens, MAX_CHATGPT_TOKENS } = await import(
+    // Truncate input (also this MUST be a lazy import):
+    const { truncateMessage, MAX_CHATGPT_TOKENS } = await import(
       "@cocalc/frontend/misc/openai"
     );
-    const n = numTokens(input);
     const maxTokens = MAX_CHATGPT_TOKENS - 1000; // 1000 tokens reserved for output and the prompt below.
-    if (n >= maxTokens) {
-      input = truncateMessage(input, maxTokens) + "\n...";
-    }
+    input = truncateMessage(input, maxTokens);
   }
-  setInput(input);
+  return { input, inputOrig };
+}
+
+const contextStyle = {
+  overflowY: "auto",
+  margin: "5px",
+  padding: "5px",
+  width: undefined,
+} as const;
+
+function Context({ value, info }) {
+  if (!value) return null;
+  if (info == "md" || info == "markdown") {
+    return (
+      <StaticMarkdown
+        value={value}
+        style={{
+          ...contextStyle,
+          border: "1px solid #ddd",
+          borderRadius: "5px",
+        }}
+      />
+    );
+  } else {
+    return (
+      <CodeMirrorStatic
+        style={contextStyle}
+        options={{
+          mode: infoToMode(info),
+        }}
+        value={value}
+      />
+    );
+  }
+}
+
+function getScope(id, actions): Scope {
+  const scopes = actions.chatgptGetScopes();
+  // don't know: selection if something is selected; otherwise,
+  // ballback below.
+  if (
+    scopes.has("selection") &&
+    actions.chatgptGetContext(id, "selection")?.trim()
+  ) {
+    return "selection";
+  }
+  if (scopes.has("page")) return "page";
+  if (scopes.has("cell")) return "cell";
+  return "all";
 }

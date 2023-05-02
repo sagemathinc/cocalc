@@ -7,6 +7,8 @@ import { activate as initAutorenice } from "./autorenice";
 import * as dedicatedDisks from "./dedicated-disks";
 import { options } from "./init-program";
 import * as initScript from "./init-script";
+import { init as initJupyterPool } from "./jupyter/pool";
+import { init as initJupyterPoolParams } from "./jupyter/pool-params";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
 import * as projectSetup from "./project-setup";
@@ -38,7 +40,13 @@ export default async function init() {
     sshd.init(envVars);
   }
 
+  // this must come after projectSetup.set_extra_env !
+  initJupyterPoolParams();
+
   await dedicatedDisks.init();
 
   initScript.run();
+
+  // this has to come after setting env vars and intializing the pool params
+  initJupyterPool();
 }

@@ -1185,6 +1185,10 @@ API(
         init: false,
         desc: "start running the moment the project is created -- uses more resources, but possibly better user experience",
       },
+      noPool: {
+        init: false,
+        desc: "if true, never get project from pool, e.g., useful when creating hundreds of projects for students in a class, since they aren't immediately going to use their project",
+      },
     },
     desc: `\
 Example:
@@ -3093,6 +3097,15 @@ message({
 API(
   message({
     event: "jupyter_kernels",
+    id: undefined,
+    project_id: undefined,
+    kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
+  })
+);
+
+API(
+  message({
+    event: "jupyter_start_pool",
     id: undefined,
     project_id: undefined,
     kernels: undefined, // response is same message but with this filled in with array of data giving available kernels

@@ -6,6 +6,8 @@
 // parses command line arguments -- https://github.com/visionmedia/commander.js/
 import { program } from "commander";
 
+import { BLOBSTORE } from "@cocalc/backend/data";
+
 interface Options {
   hubPort: number;
   browserPort: number;
@@ -15,6 +17,7 @@ interface Options {
   daemon: boolean;
   sshd: boolean;
   init: string;
+  blobstore: typeof BLOBSTORE;
 }
 
 const options: Options = {
@@ -26,7 +29,8 @@ const options: Options = {
   daemon: false,
   sshd: false,
   init: "",
-};
+  blobstore: BLOBSTORE,
+} as Options;
 
 export { options };
 
@@ -63,6 +67,7 @@ program
     "--test-firewall",
     "Abort and exit w/ code 99 if internal GCE information *is* accessible"
   )
+  .option("--blobstore [string]", "Blobstore type (sqlite or disk)")
   .option("--daemon", "Run as a daemon")
   .parse(process.argv);
 

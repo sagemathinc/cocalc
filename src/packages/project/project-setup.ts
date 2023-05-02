@@ -11,7 +11,7 @@ import { existsSync } from "node:fs";
 import { setPriority } from "node:os";
 
 import { getLogger } from "@cocalc/project/logger";
-const L = getLogger("project-setup").debug;
+const L = getLogger("project:project-setup").debug;
 
 // 19 is the minimum, we keep it 1 above that.
 export const DEFAULT_FREE_PROCS_NICENESS = 18;
@@ -95,7 +95,7 @@ export function set_extra_env(): { [key: string]: string } | undefined {
 
 // this should happen before set_extra_env
 export function cleanup(): void {
-  // clean environment to get rid of nvm and other variables
+  // clean/sanitize environment to get rid of nvm and other variables
   if (process.env.PATH == null) return;
   process.env.PATH = process.env.PATH.split(":")
     .filter((x) => !x.startsWith("/cocalc/nvm"))
@@ -103,8 +103,9 @@ export function cleanup(): void {
   // don't delete NODE_ENV below, since it's potentially confusing to have the value of NODE_ENV change
   // during a running program.
   // Also, don't delete DEBUG, since doing that in some cases breaks the debug library actually working,
-  // not surprisingly.  All this cleanup should instead be moved to wherever we spawn subprocesses,
-  // and then NODE_ENV and DEBUG could be added back to being removed.
+  // not surprisingly.  Some additional cleanup is done wherever we spawn subprocesses,
+  // and then NODE_ENV and DEBUG are added back to being removed. See envForSpawn in
+  // @cocalc/backend/misc.
   const envrm = [
     "DATA",
     "BASE_PATH",
@@ -115,6 +116,7 @@ export function cleanup(): void {
     "NVM_BIN",
     "PATH_COCALC",
     "COCALC_ROOT",
+    "DEBUG_CONSOLE",
   ];
   envrm.forEach((name) => delete process.env[name]);
 

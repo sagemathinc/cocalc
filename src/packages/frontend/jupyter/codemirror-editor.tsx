@@ -36,7 +36,7 @@ const STYLE: React.CSSProperties = {
   width: "100%",
   overflow: "hidden",
   border: "1px solid #cfcfcf",
-  borderRadius: "2px",
+  borderRadius: "5px",
   padding: "10px 5px 10px 5px",
   lineHeight: "1.21429em",
 } as const;
@@ -656,36 +656,24 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     // replace undo/redo by our sync aware versions
     cm.current.undo = cm_undo;
     cm.current.redo = cm_redo;
-
+    const editor = {
+      focus: focus_cm,
+      save: cm_save,
+      set_cursor: cm_set_cursor,
+      tab_key: tab_key,
+      shift_tab_key: shift_tab_key,
+      refresh: cm_refresh,
+      get_cursor: () => cm.current.getCursor(),
+      get_cursor_xy: () => {
+        const pos = cm.current.getCursor();
+        return { x: pos.ch, y: pos.line };
+      },
+      getSelection: () => cm.current.getSelection(),
+    };
     if (registerEditor != null) {
-      registerEditor({
-        save: cm_save,
-        set_cursor: cm_set_cursor,
-        tab_key: tab_key,
-        shift_tab_key: shift_tab_key,
-        refresh: cm_refresh,
-        get_cursor: () => cm.current.getCursor(),
-        get_cursor_xy: () => {
-          const pos = cm.current.getCursor();
-          return { x: pos.ch, y: pos.line };
-        },
-        getSelection: () => cm.current.getSelection(),
-      });
+      registerEditor(editor);
     }
     if (frameActions.current) {
-      const editor = {
-        save: cm_save,
-        set_cursor: cm_set_cursor,
-        tab_key: tab_key,
-        shift_tab_key: shift_tab_key,
-        refresh: cm_refresh,
-        get_cursor: () => cm.current.getCursor(),
-        get_cursor_xy: () => {
-          const pos = cm.current.getCursor();
-          return { x: pos.ch, y: pos.line };
-        },
-        getSelection: () => cm.current.getSelection(),
-      };
       frameActions.current?.register_input_editor(id, editor);
     }
 
@@ -710,11 +698,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }
 
   function render_complete() {
-    if (
-      complete != null &&
-      complete.get("matches") &&
-      complete.get("matches").size > 0
-    ) {
+    if (complete?.get("matches") && complete.get("matches").size > 0) {
       return <Complete complete={complete} actions={actions} id={id} />;
     }
   }

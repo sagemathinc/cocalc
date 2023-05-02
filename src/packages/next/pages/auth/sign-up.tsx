@@ -14,6 +14,8 @@ import basePath from "lib/base-path";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import { useRouter } from "next/router";
+import { join } from "path";
+import apiPost from "lib/api/post";
 
 export default function SignUpPage({ customize, requiresToken }) {
   const { siteName, isCommercial } = customize;
@@ -23,9 +25,8 @@ export default function SignUpPage({ customize, requiresToken }) {
     router.push("/");
   }
 
-  function onSuccess() {
+  async function onSuccess() {
     if (isCommercial) {
-      setTimeout(openRoot, 2000); // make sure to open root after 2 secs, even if there is an error
       try {
         (window as any).gtag?.("event", "conversion", {
           send_to: `${gtag_id}/${sign_up_id}`,
@@ -34,9 +35,19 @@ export default function SignUpPage({ customize, requiresToken }) {
       } catch (err) {
         console.warn("error sending gtag event", err);
       }
-    } else {
-      openRoot();
     }
+    try {
+      // If you have at least one project, open the newest one.
+      const { project_id } = await apiPost("/projects/get-one");
+      if (project_id) {
+        const url = join(basePath, `/projects/${project_id}`);
+        window.location.href = url;
+      }
+      return;
+    } catch (_err) {
+      // no problem -- many situation where wouldn't have a project
+    }
+    openRoot();
   }
 
   return (

@@ -52,9 +52,11 @@ export type SiteSettingsKeys =
   | "verify_emails"
   | "email_signup"
   | "anonymous_signup"
+  | "anonymous_signup_licensed_shares"
   | "share_server"
   | "landing_pages"
-  | "sandbox_project_id";
+  | "sandbox_project_id"
+  | "new_project_pool";
 
 type Mapping = { [key: string]: string | number | boolean };
 
@@ -498,6 +500,13 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     to_val: to_bool,
   },
+  anonymous_signup_licensed_shares: {
+    name: "Allow anonymous signup for licensed shared files",
+    desc: "Users can create a temporary account with no email, password or single sign on when editing a copy of content shared on the share server that has a corresponding license.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
   share_server: {
     name: "Allow public file sharing",
     desc: "Users are allowed to publicly share files on the public share server (`https://yourserver/share`).  If this is disabled, then the share server will not run and users will not be allowed to share files from their projects.",
@@ -518,6 +527,13 @@ export const site_settings_conf: SiteSettings = {
     name: "Sandbox Project ID",
     desc: "The `project_id` (a UUIDv4) of a sandbox project on your server for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
     default: "",
+  },
+  new_project_pool: {
+    name: "New Project Pool",
+    desc: "Number of new non-upgraded running projects to have at the ready to speed up the experience of creating new projects for users in interactive settings (where they are likely to immediately open the project).",
+    default: "0",
+    valid: only_nonneg_int,
+    show: () => true,
   },
   openai_enabled: {
     name: "OpenAI ChatGPT UI",

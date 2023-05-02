@@ -61,3 +61,12 @@ export function process_env_int(name: string, fallback: number): number {
     return fallback;
   }
 }
+
+export function envForSpawn() {
+  const env = { ...process.env };
+  for (const name of ["DEBUG", "DEBUG_CONSOLE", "NODE_ENV"]) {
+    delete env[name];
+  }
+  return env;
+}
+

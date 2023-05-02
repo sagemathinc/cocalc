@@ -30,6 +30,7 @@ import {
 import * as styles from "../styles";
 import * as util from "../util";
 import { Assignment } from "./assignment";
+import { HelpBox } from "../configuration/help-box";
 
 interface Props {
   frame_id?: string;
@@ -227,11 +228,22 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     );
 
     return (
-      <Alert
-        type="info"
-        style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
-        message={message}
-      />
+      <div>
+        <div
+          style={{
+            margin: "30px auto",
+            fontSize: "12pt",
+            maxWidth: "800px",
+          }}
+        >
+          <HelpBox />
+        </div>
+        <Alert
+          type="info"
+          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
+          message={message}
+        />
+      </div>
     );
   }
 

@@ -233,6 +233,10 @@ export async function create_account(
       return { other: "Signing up via email/password is disabled." };
     }
 
+    if (!settings.anonymous_signup && !opts.mesg.email_address) {
+      return { other: "Anonymous sign up is disabled." };
+    }
+
     // issues_with_create_account also does check is_valid_password!
     const issues = issues_with_create_account(opts.mesg);
 

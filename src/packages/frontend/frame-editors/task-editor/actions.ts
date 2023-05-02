@@ -212,13 +212,24 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     }
   }
 
-  protected chatgptGetText(
-    frameId: string,
-    scope: "selection" | "cell" | "all" = "all"
-  ): string {
+  protected chatgptGetText(frameId: string, scope): string {
     if (this._get_frame_type(frameId) == "tasks") {
-      return this.getTaskActions(frameId)?.chatgptGetText(scope) ?? "";
+      const node = this._get_frame_node(frameId);
+      return (
+        this.getTaskActions(frameId)?.chatgptGetText(
+          scope,
+          node?.get("data-current_task_id")
+        ) ?? ""
+      );
     }
     return super.chatgptGetText(frameId, scope);
+  }
+
+  chatgptGetScopes() {
+    return new Set<"cell">(["cell"]);
+  }
+
+  chatgptGetLanguage() {
+    return "md";
   }
 }

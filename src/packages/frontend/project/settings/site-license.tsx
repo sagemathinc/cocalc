@@ -27,6 +27,7 @@ import {
 } from "@cocalc/util/upgrades/quota";
 import { isBoostLicense } from "@cocalc/util/upgrades/utils";
 import { SiteLicense as SiteLicenseT } from "./types";
+import track from "@cocalc/frontend/user-tracking";
 
 interface Props {
   project_id: string;
@@ -137,6 +138,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
           exclude={site_license?.keySeq().toJS()}
           onSave={(license_id) => {
             set_show_site_license(false);
+            track("apply-license", { project_id, license_id, how: "settings" });
             applyLicense({ project_id, license_id });
           }}
           onCancel={() => set_show_site_license(false)}
@@ -176,7 +178,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
     return (
       <Popover
         content={LICENSE_INFORMATION}
-        trigger={["click", "hover"]}
+        trigger={["click"]}
         placement="rightTop"
         title="License information"
       >

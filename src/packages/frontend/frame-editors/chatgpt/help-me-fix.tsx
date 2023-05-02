@@ -8,7 +8,8 @@ import { Alert, Button, Tooltip } from "antd";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { CSSProperties, useState } from "react";
-import { trunc } from "@cocalc/util/misc";
+import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
+import shortenError from "./shorten-error";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
@@ -19,6 +20,7 @@ interface Props {
   extraFileInfo?: string;
   style?: CSSProperties;
   size?;
+  prioritizeLastInput?: boolean; // if true, when truncating input we keep the end rather than truncating the end.
 }
 
 function get(f: undefined | string | (() => string)): string {
@@ -36,6 +38,7 @@ export default function HelpMeFix({
   extraFileInfo,
   style,
   size,
+  prioritizeLastInput,
 }: Props) {
   const { redux, project_id, path } = useFrameContext();
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
@@ -64,6 +67,7 @@ export default function HelpMeFix({
                 language,
                 extraFileInfo,
                 redux,
+                prioritizeLastInput,
               });
             } catch (err) {
               setErrorGettingHelp(`${err}`);
@@ -96,7 +100,7 @@ export default function HelpMeFix({
 
 const CUTOFF = 3000;
 
-async function getHelp({
+export async function getHelp({
   project_id,
   path,
   tag,
@@ -106,12 +110,23 @@ async function getHelp({
   language = "",
   extraFileInfo = "",
   redux,
+  prioritizeLastInput,
 }) {
   let message =
-    '<span class="user-mention" account-id=chatgpt>@ChatGPT</span> help me fix my code.\n\n<details>\n\n';
+    '<span class="user-mention" account-id=chatgpt>@ChatGPT</span> help me fix my code.\n\n<details><summary>Context</summary>\n\n';
 
   if (task) {
     message += `\nI ${task}.\n`;
+  }
+
+  if (error.length > 3000) {
+    // 3000 is about 500 tokens
+    // This uses structure:
+    error = shortenError(error, language);
+    if (error.length > 3000) {
+      // this just puts ... in the middle.
+      error = trunc_middle(error, 3000);
+    }
   }
 
   message += `\nI received the following error:\n\n`;
@@ -123,7 +138,11 @@ async function getHelp({
     if (input.length < CUTOFF) {
       message += `\nMy ${extraFileInfo ?? ""} contains:\n\n`;
     } else {
-      input = trunc(input, CUTOFF);
+      if (prioritizeLastInput) {
+        input = trunc_left(input, CUTOFF);
+      } else {
+        input = trunc(input, CUTOFF);
+      }
       message += `\nMy ${
         extraFileInfo ?? ""
       } code starts as follows, but is too long to fully include here:\n\n`;

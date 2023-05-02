@@ -14,9 +14,9 @@ declare var fetch;
 
 const THRESH = 0.25;
 
-export default async function reCaptcha(req): Promise<void> {
+export default async function reCaptcha(req): Promise<string | null> {
   const { re_captcha_v3_secret_key } = await getServerSettings();
-  if (!re_captcha_v3_secret_key) return;
+  if (!re_captcha_v3_secret_key) return null;
 
   const { reCaptchaToken } = req.body;
 
@@ -39,4 +39,6 @@ export default async function reCaptcha(req): Promise<void> {
       `Only humans are allowed to use this feature. Your score is ${result.score}, which is below the human threshold of ${THRESH}.  Please move your mouse around, type like a human, etc., and try again.`
     );
   }
+
+  return reCaptchaToken;
 }

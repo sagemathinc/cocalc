@@ -47,10 +47,9 @@ const FLOAT_STYLE: CSS = {
 
 const INNER_STYLE: CSS = {
   maxWidth: MAX_WIDTH_LANDING,
-  marginTop: "0",
-  marginBottom: "0",
-  marginLeft: "auto",
-  marginRight: "auto",
+  margin: "0 auto",
+  overflow: "auto",
+  whiteSpace: "nowrap",
 };
 
 const software = {
@@ -126,6 +125,10 @@ const support = {
   chatgpt: { label: "ChatGPT", hide: (customize) => !customize.openaiEnabled },
 } as const;
 
+const news = {
+  index: {},
+};
+
 const PAGES = {
   features,
   software,
@@ -137,6 +140,7 @@ const PAGES = {
   "sign-in": sign_in,
   try: {},
   support,
+  news,
   store: {},
 } as const;
 

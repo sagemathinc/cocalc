@@ -19,6 +19,7 @@ import { useCustomize } from "lib/customize";
 import { SoftwareEnvNames } from "lib/landing/consts";
 import SubNav, { Page, SubPage } from "./sub-nav";
 import ChatGPTHelp from "components/openai/chatgpt-help";
+import DemoCell from "components/demo-cell";
 
 const GAP = "4%";
 
@@ -40,11 +41,12 @@ const SelectedStyle: React.CSSProperties = {
 interface Props {
   page?: Page;
   subPage?: SubPage;
+  runnableTag?: string; // if on cocalc.com and have jupyter api use this tag for a little runable editable demo Jupyter cell.
   softwareEnv?: SoftwareEnvNames;
 }
 
 export default function Header(props: Props) {
-  const { page, subPage, softwareEnv } = props;
+  const { page, subPage, softwareEnv, runnableTag } = props;
   const {
     isCommercial,
     anonymousSignup,
@@ -55,6 +57,7 @@ export default function Header(props: Props) {
     account,
     onCoCalcCom,
     openaiEnabled,
+    jupyterApiEnabled,
   } = useCustomize();
 
   if (basePath == null) return null;
@@ -198,6 +201,13 @@ export default function Header(props: Props) {
         >
           Support
         </A>{" "}
+        <A
+          style={page == "news" ? SelectedStyle : LinkStyle}
+          href="/news"
+          title={`News about ${siteName}`}
+        >
+          News
+        </A>{" "}
         {account ? (
           <AccountNavTab
             style={page == "account" ? SelectedStyle : LinkStyle}
@@ -205,18 +215,18 @@ export default function Header(props: Props) {
         ) : (
           <>
             <A
-              style={page == "sign-in" ? SelectedStyle : LinkStyle}
-              href="/auth/sign-in"
-              title={`Sign in to ${siteName} or create an account.`}
-            >
-              Sign In
-            </A>
-            <A
               style={page == "sign-up" ? SelectedStyle : LinkStyle}
               href="/auth/sign-up"
               title={`Sign up for a ${siteName} account.`}
             >
               Sign Up
+            </A>
+            <A
+              style={page == "sign-in" ? SelectedStyle : LinkStyle}
+              href="/auth/sign-in"
+              title={`Sign in to ${siteName} or create an account.`}
+            >
+              Sign In
             </A>
           </>
         )}
@@ -239,6 +249,9 @@ export default function Header(props: Props) {
             tag={`features-${subPage}`}
           />
         </div>
+      )}
+      {jupyterApiEnabled && onCoCalcCom && runnableTag && (
+        <DemoCell tag={runnableTag} />
       )}
     </>
   );

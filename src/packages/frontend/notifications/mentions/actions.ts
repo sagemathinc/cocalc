@@ -7,7 +7,7 @@ import { Actions } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { once } from "@cocalc/util/async-utils";
 import { MentionsState } from "./store";
-import { MentionFilter, MentionInfo } from "./types";
+import { NotificationFilter, MentionInfo } from "./types";
 
 export class MentionsActions extends Actions<MentionsState> {
   public update_state(mentions): void {
@@ -19,7 +19,7 @@ export class MentionsActions extends Actions<MentionsState> {
     this.setState({ mentions: sorted_mentions });
   }
 
-  public set_filter(filter: MentionFilter) {
+  public set_filter(filter: NotificationFilter) {
     this.setState({ filter });
   }
 

@@ -883,16 +883,19 @@ export class JupyterActions extends JupyterActions0 {
       debounce: 1500,
     });
 
-    this._file_watcher.on("change", () => {
+    this._file_watcher.on("change", async () => {
       dbg("change");
       if (new Date().getTime() - this._last_save_ipynb_file <= 10000) {
         // Guard against reacting to saving file to disk, which would
         // be inefficient and could lead to corruption.
         return;
       }
-      this.load_ipynb_file();
+      try {
+        await this.load_ipynb_file();
+      } catch (err) {
+        dbg("failed to load on change", err);
+      }
     });
-    //@_sync_file_mode()
 
     return this._file_watcher.on("delete", () => {
       return dbg("delete");
@@ -974,7 +977,11 @@ export class JupyterActions extends JupyterActions0 {
     const file_changed = stats.ctime.getTime() !== last_ipynb_save;
     if (file_changed) {
       dbg(".ipynb disk file changed since last load, so loading");
-      await this.load_ipynb_file();
+      try {
+        await this.load_ipynb_file();
+      } catch (err) {
+        dbg("failed to load on change", err);
+      }
     } else {
       dbg(".ipynb disk file NOT changed since last load, so NOT loading");
     }
@@ -1078,7 +1085,8 @@ export class JupyterActions extends JupyterActions0 {
       }
     }
     dbg("going to try to save");
-    const ipynb = this.store.get_ipynb(this.jupyter_kernel.get_blob_store());
+    const blob_store = this.jupyter_kernel.get_blob_store(); // this calls the non-blocking "sync" variant, which might not return an instance
+    const ipynb = await this.store.get_ipynb(blob_store);
     // We use json_stable (and indent 1) to be more diff friendly to user,
     // and more consistent with official Jupyter.
     const data = json_stable(ipynb, { space: 1 });

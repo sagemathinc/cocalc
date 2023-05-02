@@ -12,11 +12,11 @@ import { delay } from "awaiting";
 import { reverse, sortBy } from "lodash";
 import { setPriority } from "node:os";
 
+import { getLogger } from "./logger";
 import { get_ProjectInfoServer, ProjectInfoServer } from "./project-info";
 import { Process, Processes, ProjectInfo } from "./project-info/types";
 import { DEFAULT_FREE_PROCS_NICENESS, is_free_project } from "./project-setup";
 
-import { getLogger } from "./logger";
 const L = getLogger("autorenice").debug;
 
 const INTERVAL_S = 10;

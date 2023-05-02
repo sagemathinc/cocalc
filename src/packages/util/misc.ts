@@ -331,7 +331,7 @@ export function len(obj: object | undefined | null): number {
 // Specific, easy to read: describe amount of time before right now
 // Use negative input for after now (i.e., in the future).
 export function milliseconds_ago(ms: number): Date {
-  return new Date(new Date().valueOf() - ms);
+  return new Date(Date.now() - ms);
 }
 export function seconds_ago(s: number) {
   return milliseconds_ago(1000 * s);
@@ -355,7 +355,7 @@ export function months_ago(m: number) {
 // Here, we want to know how long ago a certain timestamp was
 export function how_long_ago_ms(ts: Date | number): number {
   const ts_ms = typeof ts === "number" ? ts : ts.getTime();
-  return new Date().getTime() - ts_ms;
+  return Date.now() - ts_ms;
 }
 export function how_long_ago_s(ts: Date | number): number {
   return how_long_ago_ms(ts) / 1000;
@@ -366,7 +366,7 @@ export function how_long_ago_m(ts: Date | number): number {
 
 // Current time in milliseconds since epoch or t.
 export function mswalltime(t?: number): number {
-  return new Date().getTime() - (t ?? 0);
+  return Date.now() - (t ?? 0);
 }
 
 // Current time in seconds since epoch, as a floating point
@@ -473,7 +473,7 @@ export function trunc_middle(s, max_length = 1024) {
 }
 
 // "foobar" --> "…bar"
-export function trunc_left(s, max_length = 1024): string | undefined {
+export function trunc_left(s, max_length = 1024) {
   if (s == null) {
     return s;
   }
@@ -1388,7 +1388,7 @@ export function retry_until_success(opts: {
       if (opts.max_time != null) {
         opts.log(
           `retry_until_success(${opts.name}) -- try ${tries} (started ${
-            new Date().valueOf() - start_time
+            Date.now() - start_time
           }ms ago; will stop before ${opts.max_time}ms max time)`
         );
       }
@@ -1427,7 +1427,7 @@ export function retry_until_success(opts: {
         );
         if (
           opts.max_time != null &&
-          new Date().valueOf() - start_time + delta > opts.max_time
+          Date.now() - start_time + delta > opts.max_time
         ) {
           opts.cb?.(
             `maximum time (=${
@@ -2381,4 +2381,24 @@ export function rowBackground({
 export function firstLetterUppercase(str: string | undefined) {
   if (str == null) return "";
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * For a given string s, return a random bright color, but not too bright.
+ * Use a hash to make this random, but deterministic.
+ */
+export function getRandomColor(
+  s: string,
+  opts?: { min: number; max: number }
+): string {
+  const { min = 120, max = 220 } = opts ?? {};
+  const mod = max - min;
+
+  const hash = sha1(s)
+    .split("")
+    .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
+  const r = (((hash >> 0) & 0xff) % mod) + min;
+  const g = (((hash >> 8) & 0xff) % mod) + min;
+  const b = (((hash >> 16) & 0xff) % mod) + min;
+  return `rgb(${r}, ${g}, ${b})`;
 }

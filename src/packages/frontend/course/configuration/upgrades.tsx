@@ -793,12 +793,12 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
 
   function render_title(): React.ReactNode {
     if (is_onprem) {
-      return <div style={style}>Upgrade student projects</div>;
+      return <div style={style}>Upgrade Student Projects</div>;
     } else {
       return (
         <div style={style}>
-          <Icon name="dashboard" /> Upgrade all student projects (institute
-          pays)
+          <Icon name="dashboard" /> Upgrade all Student Projects (Institute
+          Pays)
         </div>
       );
     }

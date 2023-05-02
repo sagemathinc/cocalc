@@ -64,7 +64,7 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
         <a onClick={() => redux.getActions("page").set_active_tab("account")}>
           sign up
         </a>{" "}
-        to avoid losing your work.
+        to avoid losing access to your work.
       </div>
     );
   } else {

@@ -16,6 +16,7 @@ import { ProjectActions } from "@cocalc/frontend/project_store";
 import { join } from "path";
 import React from "react";
 import { serverURL, SPEC } from "../named-server-panel";
+import track from "@cocalc/frontend/user-tracking";
 
 interface Props {
   actions: ProjectActions;
@@ -58,6 +59,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   const handle_backup = (e: React.MouseEvent): void => {
     e.preventDefault();
     actions.open_directory(".snapshots");
+    track("snapshots", { action: "open", where: "explorer" });
   };
 
   function render_hidden_toggle(): JSX.Element {
@@ -105,6 +107,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   }
 
   const handle_library_click = (_e: React.MouseEvent): void => {
+    track("library", { action: "open" });
     actions.toggle_library();
   };
 

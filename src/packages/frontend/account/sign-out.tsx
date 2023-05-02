@@ -6,6 +6,7 @@
 import { React, Rendered, redux } from "../app-framework";
 import { Button, Popconfirm } from "antd";
 import { LogoutOutlined } from "@ant-design/icons";
+import track from "@cocalc/frontend/user-tracking";
 
 interface Props {
   everywhere?: boolean;
@@ -20,6 +21,7 @@ export const SignOut: React.FC<Props> = (props: Props) => {
   function sign_out(): void {
     const account = redux.getActions("account");
     if (account != null) {
+      track("sign-out", { how: "settings-page", everywhere, sign_in });
       account.sign_out(!!everywhere, !!sign_in);
     }
   }

@@ -8,26 +8,22 @@ Jupyter's blob store (based on sqlite), which hooks into the raw http server.
 */
 
 import Database from "better-sqlite3";
-import { Router } from "express";
-import * as fs from "fs";
-
-import { sha1 as misc_node_sha1 } from "@cocalc/backend/misc_node";
-import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
-import { get_ProjectStatusServer } from "@cocalc/project/project-status/server";
-import { months_ago, to_json } from "@cocalc/util/misc";
-import { readFile } from "./async-utils-node";
+import * as fs from "node:fs";
 
 import Logger from "@cocalc/backend/logger";
-const winston = Logger("jupyter-blobs-sqlite");
+import { sha1 as misc_node_sha1 } from "@cocalc/backend/misc_node";
+import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
+import { months_ago } from "@cocalc/util/misc";
+import { readFile } from "./async-utils-node";
+import { BASE64_TYPES } from "./jupyter-blobs-get";
+
+const winston = Logger("jupyter-blobs:sqlite");
 
 const JUPYTER_BLOBS_DB_FILE: string =
   process.env.JUPYTER_BLOBS_DB_FILE ??
   `${process.env.SMC_LOCAL_HUB_HOME ?? process.env.HOME}/.jupyter-blobs-v0.db`;
 
-// TODO: are these the only base64 encoded types that jupyter kernels return?
-const BASE64_TYPES = ["image/png", "image/jpeg", "application/pdf", "base64"];
-
-export class BlobStore implements BlobStoreInterface {
+export class BlobStoreSqlite implements BlobStoreInterface {
   private db: Database.Database;
   private stmt_insert;
   private stmt_update;
@@ -126,7 +122,9 @@ export class BlobStore implements BlobStoreInterface {
       const stats = fs.statSync(JUPYTER_BLOBS_DB_FILE);
       const size_mb = stats.size / (1024 * 1024);
       if (size_mb > 128) {
-        const cnt = this.db.prepare("SELECT COUNT(*) as cnt FROM blobs").get();
+        const cnt = this.db
+          .prepare("SELECT COUNT(*) as cnt FROM blobs")
+          .get() as { cnt: number } | undefined;
         if (cnt?.cnt == null) return;
         const n = Math.floor(cnt.cnt / 2);
         winston.debug(
@@ -135,7 +133,7 @@ export class BlobStore implements BlobStoreInterface {
         if (n == 0) return;
         const when = this.db
           .prepare("SELECT time FROM blobs ORDER BY time ASC LIMIT 1 OFFSET ?")
-          .get(n);
+          .get(n) as { time?: number } | undefined;
         if (when?.time == null) return;
         winston.debug(`jupyter BlobStore: delete starting from ${when.time}`);
         this.db.prepare("DELETE FROM blobs WHERE time <= ?").run(when.time);
@@ -146,7 +144,7 @@ export class BlobStore implements BlobStoreInterface {
   }
 
   // used in testing
-  delete_all_blobs(): void {
+  async delete_all_blobs(): Promise<void> {
     this.db.prepare("DELETE FROM blobs").run();
   }
 
@@ -206,38 +204,7 @@ export class BlobStore implements BlobStoreInterface {
     }
   }
 
-  keys(): string[] {
+  async keys(): Promise<string[]> {
     return this.stmt_keys.all().map((x) => x.sha1);
-  }
-
-  express_router(base): Router {
-    const router = Router();
-    base += "blobs/";
-
-    router.get(base, (_, res) => {
-      res.send(to_json(this.keys()));
-    });
-
-    router.get(base + "*", (req, res) => {
-      const filename: string = req.path.slice(base.length);
-      const sha1: string = `${req.query.sha1}`;
-      res.type(filename);
-      res.send(this.get(sha1));
-    });
-    return router;
-  }
-}
-
-let blob_store: BlobStore | undefined = undefined;
-
-export function get_blob_store() {
-  if (blob_store != null) return blob_store;
-  try {
-    blob_store = new BlobStore();
-    get_ProjectStatusServer().clearComponentAlert("BlobStore");
-    return blob_store;
-  } catch (err) {
-    get_ProjectStatusServer().setComponentAlert("BlobStore");
-    winston.warn(`unable to instantiate BlobStore -- ${err}`);
   }
 }

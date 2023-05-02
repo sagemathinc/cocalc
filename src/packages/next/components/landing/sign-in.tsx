@@ -58,18 +58,18 @@ export default function SignIn({ startup, hideFree, style }: Props) {
       <Button
         size="large"
         style={{ margin: "10px" }}
-        title={"Either create a new account or sign into an existing account."}
-        onClick={() => router.push("/auth/sign-in")}
-      >
-        Sign In
-      </Button>
-      <Button
-        size="large"
-        style={{ margin: "10px" }}
         title={"Create a new account."}
         onClick={() => router.push("/auth/sign-up")}
       >
         Sign Up
+      </Button>
+      <Button
+        size="large"
+        style={{ margin: "10px" }}
+        title={"Either create a new account or sign into an existing account."}
+        onClick={() => router.push("/auth/sign-in")}
+      >
+        Sign In
       </Button>
       {!hideFree && (
         <div style={{ padding: "15px 0 0 0" }}>

@@ -11,7 +11,6 @@ import {
   Col,
   Descriptions,
   Popover,
-  Radio,
   Row,
   Typography,
 } from "antd";
@@ -31,6 +30,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { Kernel as KernelType } from "./util";
 import Logo from "./logo";
+import track from "@cocalc/frontend/user-tracking";
 
 const MAIN_STYLE: CSS = {
   padding: "20px 10px",
@@ -115,13 +115,25 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     function render_kernel_button(name: string): Rendered {
       const lang = kernel_attr(name, "language");
       return (
-        <Radio.Button
+        <Button
           key={`kernel-${lang}-${name}`}
-          onClick={() => actions.select_kernel(name)}
+          onClick={() => {
+            actions.select_kernel(name);
+            track("jupyter", {
+              action: "select-kernel",
+              kernel: name,
+              how: "click-button-in-dialog",
+            });
+          }}
           style={{ marginBottom: "5px", height: "35px" }}
         >
-          <Logo kernel={name} size={30} /> {kernel_name(name) || name}
-        </Radio.Button>
+          <Logo
+            kernel={name}
+            size={30}
+            style={{ marginTop: "-2.5px", marginRight: "5px" }}
+          />{" "}
+          {kernel_name(name) || name}
+        </Button>
       );
     }
 
@@ -188,7 +200,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     function render_no_kernels(): Rendered[] {
       return [
         <Descriptions.Item key="no_kernels" label={<Icon name="ban" />}>
-          <Radio.Group buttonStyle={"solid"} defaultValue={null}>
+          <Button.Group>
             <Paragraph>
               There are no kernels available. <SiteName /> searches the standard
               paths of Jupyter{" "}
@@ -213,7 +225,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
               </a>
               .
             </Paragraph>
-          </Radio.Group>
+          </Button.Group>
         </Descriptions.Item>,
       ];
     }
@@ -231,9 +243,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
         all.push(
           <Descriptions.Item key={lang} label={label}>
-            <Radio.Group buttonStyle={"solid"} defaultValue={null}>
+            <Button.Group style={{ display: "flex", flexWrap: "wrap" }}>
               {kernels}
-            </Radio.Group>
+            </Button.Group>
           </Descriptions.Item>
         );
         return true;
@@ -279,7 +291,13 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           <Descriptions.Item label={"Make default"}>
             <Checkbox
               checked={!ask_jupyter_kernel}
-              onChange={(e) => dont_ask_again_click(e.target.checked)}
+              onChange={(e) => {
+                track("jupyter", {
+                  action: "dont_ask_kernel",
+                  dont_ask: e.target.checked,
+                });
+                dont_ask_again_click(e.target.checked);
+              }}
             >
               Do not ask again. Instead, default to your most recent selection.
             </Checkbox>

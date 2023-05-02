@@ -675,7 +675,8 @@ export class Client extends EventEmitter {
     return execute_code(opts);
   }
 
-  // return new sage session
+  // return new sage session -- the code that actually calls this is in the @cocalc/sync package
+  // in "packages/sync/editor/generic/evaluator.ts"
   public sage_session(opts) {
     opts = defaults(opts, { path: required });
     return sage_session.sage_session({ path: opts.path, client: this });

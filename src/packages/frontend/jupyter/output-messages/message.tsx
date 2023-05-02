@@ -19,6 +19,7 @@ import { InputDone } from "./input-done";
 import { Data } from "./mime-types/data";
 import { Traceback } from "./traceback";
 import { NotImplemented } from "./not-implemented";
+import Anser from "anser";
 
 function messageComponent(message: Map<string, any>): any {
   if (message.get("more_output") != null) {
@@ -117,11 +118,13 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     // very unlikely to be what you want.
     let hasIframes: boolean = false;
     let hasError: boolean = false;
+    let traceback: string = "";
     for (const n of numericallyOrderedKeys(obj)) {
       const mesg = obj[n];
       if (mesg != null) {
         if (mesg.get("traceback")) {
           hasError = true;
+          traceback += mesg.get("traceback").join("\n") + "\n";
         }
         if (scrolled && !hasIframes && mesg.getIn(["data", "iframe"])) {
           hasIframes = true;
@@ -144,8 +147,8 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
       hasError && id && actions && chatgpt ? (
         <chatgpt.ChatGPTError
           style={{ margin: "5px 0" }}
-          actions={actions}
-          id={id}
+          input={actions.store.getIn(["cells", id, "input"]) ?? ""}
+          traceback={Anser.ansiToText(traceback.trim())}
         />
       ) : undefined;
 

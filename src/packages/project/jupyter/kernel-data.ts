@@ -6,18 +6,19 @@
 /*
 Use nteracts kernelspecs module to get data about all installed Jupyter kernels.
 
-The result is cached for 5s to avoid wasted effort in case of a flurry of calls.
+The result is cached for 10s to avoid wasted effort in case of a flurry of calls.
 
 Specs: https://jupyter-client.readthedocs.io/en/stable/kernels.html#kernel-specs
 */
 
 import { findAll } from "kernelspecs";
-import { field_cmp } from "@cocalc/util/misc";
 import LRU from "lru-cache";
+
 import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
+import { field_cmp } from "@cocalc/util/misc";
 
 const cache = new LRU<"kernel_data", KernelSpec[]>({
-  ttl: 5000,
+  ttl: 10 * 1000,
   max: 5 /* silly since only one possible key */,
 });
 
@@ -43,6 +44,7 @@ export async function get_kernel_data(): Promise<KernelSpec[]> {
       // See https://github.com/nteract/kernelspecs/issues/25
       // @ts-ignore
       resource_dir: value.resource_dir ?? value.resources_dir,
+      argv: value.spec.argv,
     });
   }
   v.sort(field_cmp("display_name"));
@@ -51,10 +53,21 @@ export async function get_kernel_data(): Promise<KernelSpec[]> {
 }
 
 export async function getLanguage(kernelName: string): Promise<string> {
-  for (const kernelSpec of await get_kernel_data()) {
-    if (kernelSpec.name == kernelName) {
-      return kernelSpec.language;
-    }
+  const kernelSpec = await get_kernel_data_by_name(kernelName);
+  if (kernelSpec != null) {
+    return kernelSpec.language;
   }
   throw Error(`unknown kernel ${kernelName}`);
+}
+
+export async function get_kernel_data_by_name(
+  name: string
+): Promise<KernelSpec> {
+  const kernel_data = await get_kernel_data();
+  for (const kernel of kernel_data) {
+    if (kernel.name == name) {
+      return kernel;
+    }
+  }
+  throw Error(`no such kernel '${name}'`);
 }

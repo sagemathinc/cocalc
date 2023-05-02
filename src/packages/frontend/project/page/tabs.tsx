@@ -18,6 +18,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { FileTab, FixedTab, FIXED_PROJECT_TABS } from "./file-tab";
 import FileTabs from "./file-tabs";
 import { ShareIndicator } from "./share-indicator";
+import track from "@cocalc/frontend/user-tracking";
 
 const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
@@ -188,6 +189,7 @@ export function VerticalFixedTabs(props: FVTProps) {
             checked
             onChange={() => {
               actions?.toggleActionButtons();
+              track("action-bar", { action: "hide" });
             }}
           />
         </Tooltip>

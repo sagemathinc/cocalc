@@ -229,7 +229,7 @@ export const Page: React.FC = () => {
           {mesg}
         </Button>
       );
-      style = { marginTop: "-8px" }; // compensate for using a button
+      style = { marginTop: "-1px" }; // compensate for using a button
       /* We only actually show the button if it is still there a few
         seconds later.  This avoids flickering it for a moment during
         normal sign in.  This feels like a hack, but was super
@@ -328,11 +328,11 @@ export const Page: React.FC = () => {
     );
   }
 
-  function render_mentions(): JSX.Element | undefined {
+  function render_notification(): JSX.Element | undefined {
     if (!is_logged_in || is_anonymous) return;
     return (
       <Notification
-        type="mentions"
+        type="notifications"
         active={show_mentions}
         pageStyle={pageStyle}
       />
@@ -362,7 +362,7 @@ export const Page: React.FC = () => {
         {render_sign_in_tab()}
         {render_support()}
         {is_logged_in && render_account_tab()}
-        {render_mentions()}
+        {render_notification()}
         {render_bell()}
         {!is_anonymous && (
           <ConnectionIndicator
