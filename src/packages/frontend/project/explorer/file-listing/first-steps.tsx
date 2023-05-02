@@ -3,12 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useState } from "react";
 import { Popconfirm } from "antd";
-import { redux, useRedux } from "@cocalc/frontend/app-framework";
-import { SiteName } from "@cocalc/frontend/customize";
+import { useState } from "react";
+
+import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { SiteName } from "@cocalc/frontend/customize";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 interface Props {
   project_id: string;
@@ -16,8 +18,11 @@ interface Props {
 
 export default function FirstSteps({ project_id }: Props) {
   const [starting, setStarting] = useState<boolean>(false);
+  const kucalc = useTypedRedux("customize", "kucalc");
   const first_steps = useRedux(["account", "other_settings", "first_steps"]);
   if (!first_steps) return null;
+  // we only show this on the main SaaS site
+  if (kucalc !== KUCALC_COCALC_COM) return null;
   return (
     <div
       style={{

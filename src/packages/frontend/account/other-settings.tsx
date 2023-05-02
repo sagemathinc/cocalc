@@ -7,7 +7,7 @@ import { Card, InputNumber } from "antd";
 import { Map } from "immutable";
 
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
-import { Component, redux, Rendered } from "@cocalc/frontend/app-framework";
+import { Component, Rendered, redux } from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
@@ -20,12 +20,14 @@ import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
 
 interface Props {
   other_settings: Map<string, any>;
   is_stripe_customer: boolean;
+  kucalc: string;
 }
 
 export class OtherSettings extends Component<Props> {
@@ -43,6 +45,7 @@ export class OtherSettings extends Component<Props> {
   }
 
   private render_first_steps(): Rendered {
+    if (this.props.kucalc !== KUCALC_COCALC_COM) return;
     return (
       <Checkbox
         checked={!!this.props.other_settings.get("first_steps")}
