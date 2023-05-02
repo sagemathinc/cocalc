@@ -212,7 +212,6 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
         <Col xs={24}>
           <Button
             cocalc-test={"create-project"}
-            type="primary"
             size="large"
             disabled={state !== "view"}
             onClick={toggle_editing}

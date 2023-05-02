@@ -326,4 +326,26 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // by default, it's not showing up
     this.setState({ show_purchase_form: show });
   }
+
+  setTourDone(tour: string) {
+    const table = this.redux.getTable("account");
+    if (!table) return;
+    const store = this.redux.getStore("account");
+    if (!store) return;
+    const tours: string[] = store.get("tours")?.toJS() ?? [];
+    if (!tours?.includes(tour)) {
+      tours.push(tour);
+      table.set({ tours });
+    }
+  }
+  setTourNotDone(tour: string) {
+    const table = this.redux.getTable("account");
+    if (!table) return;
+    const store = this.redux.getStore("account");
+    if (!store) return;
+    const tours: string[] = store.get("tours")?.toJS() ?? [];
+    if (tours?.includes(tour)) {
+      table.set({ tours: tours.map((x) => x != tour) });
+    }
+  }
 }

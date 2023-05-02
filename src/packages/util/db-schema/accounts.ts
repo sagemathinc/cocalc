@@ -182,6 +182,12 @@ Table({
       desc: "Tags expressing what this user is most interested in doing.",
       render: { type: "string-tags", editable: true },
     },
+    tours: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc: "Tours that user has seen, so once they are here they are hidden from the UI.  The special tour 'all' means to disable all tour buttons.",
+      render: { type: "string-tags" },
+    },
     notes: NOTES,
   },
   rules: {
@@ -303,6 +309,7 @@ Table({
           created: null,
           unlisted: false,
           tags: null,
+          tours: null,
         },
       },
       set: {
@@ -322,6 +329,7 @@ Table({
           sign_up_usage_intent: true,
           unlisted: true,
           tags: true,
+          tours: true,
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
           if (obj["name"] != null) {
