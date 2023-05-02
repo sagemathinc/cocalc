@@ -139,6 +139,11 @@ interface Tags {
   editable?: boolean;
 }
 
+interface StringTags {
+  type: "string-tags";
+  editable?: boolean;
+}
+
 interface Timestamp {
   type: "timestamp";
   editable?: boolean;
@@ -178,6 +183,7 @@ export type RenderSpec =
   | Purchased
   | ProjectLink
   | Select
+  | StringTags
   | Tags
   | Text
   | TextEllipsis

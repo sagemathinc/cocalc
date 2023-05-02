@@ -96,7 +96,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     function render_title_desc_header() {
       return (
         <>
-          <Icon name="header" /> Title and description
+          <Icon name="header" /> Title and Description
         </>
       );
     }
@@ -141,7 +141,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     function render_grades_header() {
       return (
         <>
-          <Icon name="table" /> Export grades
+          <Icon name="table" /> Export Grades
         </>
       );
     }
@@ -224,7 +224,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         <Card
           title={
             <>
-              <Icon name="envelope" /> Email invitation
+              <Icon name="envelope" /> Email Invitation
             </>
           }
         >
@@ -262,7 +262,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         <Card
           title={
             <>
-              <Icon name="envelope" /> Reconfigure all projects
+              <Icon name="envelope" /> Reconfigure all Projects
             </>
           }
         >
@@ -279,7 +279,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             {configuring_projects ? (
               <Icon name="cocalc-ring" spin />
             ) : undefined}{" "}
-            Reconfigure all projects
+            Reconfigure all Projects
           </Button>
         </Card>
       );
@@ -290,7 +290,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         <Card
           title={
             <>
-              <Icon name="envelope" /> Resend outstanding email invites
+              <Icon name="envelope" /> Resend Outstanding Email Invites
             </>
           }
         >
@@ -316,7 +316,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         <Card
           title={
             <>
-              <Icon name="share-square" /> Copy missing handouts and assignments
+              <Icon name="share-square" /> Copy Missing Handouts and Assignments
             </>
           }
         >
@@ -329,7 +329,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               actions.configuration.push_missing_handouts_and_assignments();
             }}
           >
-            <Icon name="share-square" /> Copy missing handouts and assignments
+            <Icon name="share-square" /> Copy Missing Handouts and Assignments
           </Button>
         </Card>
       );
@@ -498,7 +498,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
           message={
             <div>
               <h3>
-                <Icon name="arrow-circle-up" /> Require students to upgrade
+                <Icon name="arrow-circle-up" /> Require Students to Upgrade
               </h3>
               <hr />
               <span>

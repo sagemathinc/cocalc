@@ -1767,18 +1767,22 @@ export class SyncDoc extends EventEmitter {
         }
       }
       if (!success) {
-        throw Error(
-          "unable to confirm that snapshot was saved to the database"
-        );
+        // We make this non-fatal to not crash the entire project
+        //         throw Error(
+        //           "unable to confirm that snapshot was saved to the database"
+        //         );
 
-        /* Should this be non-fatal?
-        // We make this non-fatal, because throwing an exception could break
-        // other things.
+        // We make this non-fatal, because throwing an exception here WOULD
+        // DEFINITELY break other things.  Everything is saved to a filesystem
+        // after all, so there's no major data loss potential at present.
         console.warn(
-          "WARNING: unable to confirm that snapshot was saved to the database"
+          "ERROR: (nonfatal) unable to confirm that snapshot was saved to the database"
+        );
+        const dbg = this.dbg("snapshot");
+        dbg(
+          "ERROR: (nonfatal) unable to confirm that snapshot was saved to the database"
         );
         return;
-        */
       }
     }
 

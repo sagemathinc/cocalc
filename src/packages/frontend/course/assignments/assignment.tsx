@@ -307,7 +307,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
         marginBottom: "15px",
       };
       v.push(
-        <Row key="header3" style={bottom}>
+        <Row key="header3" style={{ ...bottom, marginTop: "15px" }}>
           <Col md={4}>{render_open_button()}</Col>
           <Col md={20}>
             <Row>

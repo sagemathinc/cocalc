@@ -7,6 +7,7 @@ import { join } from "path";
 
 import { path_split, search_match, search_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import track from "@cocalc/frontend/user-tracking";
 
 declare var $: any;
 
@@ -117,6 +118,11 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
     doc = library_selected;
     if (doc == null || actions == null) return;
     actions.set_library_is_copying(true);
+    track("library", {
+      action: "copy",
+      id: doc.get("id"),
+      title: doc.get("title"),
+    });
     actions.copy_from_library({
       src: doc.get("src"),
       target: target_path(),

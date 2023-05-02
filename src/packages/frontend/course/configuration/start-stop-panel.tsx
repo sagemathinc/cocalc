@@ -133,7 +133,7 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
     <Card
       title={
         <>
-          <Icon name="bolt" /> Start or stop all student projects
+          <Icon name="bolt" /> Start or Stop all Student Projects
         </>
       }
     >

@@ -184,7 +184,7 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
     function render_header(): Rendered {
       return (
         <>
-          <Icon name="terminal" /> Run Terminal command in all student projects
+          <Icon name="terminal" /> Run Terminal Command in all Student Projects
         </>
       );
     }

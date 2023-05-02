@@ -6,6 +6,7 @@
 import { Table } from "./types";
 import { checkAccountName } from "./name-rules";
 import { SCHEMA as schema } from "./index";
+import { NOTES } from "./crm";
 
 import {
   DEFAULT_FONT_SIZE,
@@ -179,7 +180,15 @@ Table({
       type: "array",
       pg_type: "TEXT[]",
       desc: "Tags expressing what this user is most interested in doing.",
+      render: { type: "string-tags", editable: true },
     },
+    tours: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc: "Tours that user has seen, so once they are here they are hidden from the UI.  The special tour 'all' means to disable all tour buttons.",
+      render: { type: "string-tags" },
+    },
+    notes: NOTES,
   },
   rules: {
     desc: "All user accounts.",
@@ -260,7 +269,7 @@ Table({
             mask_files: true,
             page_size: 500,
             standby_timeout_m: 5,
-            default_file_sort: "time",
+            default_file_sort: "name",
             [NEW_FILENAMES]: DEFAULT_NEW_FILENAMES,
             show_global_info2: null,
             first_steps: true,
@@ -300,6 +309,7 @@ Table({
           created: null,
           unlisted: false,
           tags: null,
+          tours: null,
         },
       },
       set: {
@@ -319,6 +329,7 @@ Table({
           sign_up_usage_intent: true,
           unlisted: true,
           tags: true,
+          tours: true,
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
           if (obj["name"] != null) {
@@ -436,6 +447,7 @@ Table({
           ...schema.accounts.user_query?.get?.fields,
           banned: null,
           groups: null,
+          notes: null,
         },
       },
       set: {
@@ -449,6 +461,7 @@ Table({
           font_size: true,
           banned: true,
           unlisted: true,
+          notes: true,
         },
       },
     },

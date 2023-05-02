@@ -9,6 +9,7 @@ import { set } from "@cocalc/util/misc";
 import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
 
 import TableEditor from "./table-editor";
+import Users from "./users";
 
 const EDITOR_SPEC = {
   tables: {
@@ -17,6 +18,12 @@ const EDITOR_SPEC = {
     icon: "database",
     component: TableEditor,
     buttons: set(["save", "undo", "redo"]),
+  },
+  account: {
+    short: "Users",
+    name: "User Search",
+    icon: "users",
+    component: Users,
   },
   time_travel,
 } as { [name: string]: EditorDescription };

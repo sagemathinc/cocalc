@@ -21,6 +21,7 @@ import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
+import Tours from "./tours";
 
 interface Props {
   other_settings: Map<string, any>;
@@ -296,6 +297,7 @@ export class OtherSettings extends Component<Props> {
           hides the extra run, copy, and explain buttons in fenced code blocks.
         </Checkbox>
         {this.render_first_steps()}
+        <Tours />
         {this.render_new_filenames()}
         {this.render_default_file_sort()}
         {this.render_page_size()}
