@@ -15,6 +15,7 @@ import shellEscape from "shell-escape";
 import { aggregate } from "@cocalc/util/aggregate";
 import { to_json, trunc, walltime } from "@cocalc/util/misc";
 import { callback_opts } from "@cocalc/util/async-utils";
+import { envForSpawn } from "./misc";
 
 const log = getLogger("execute-code");
 
@@ -163,7 +164,7 @@ function doSpawn(opts, cb) {
     ...(opts.uid ? { uid: opts.uid } : undefined),
     ...(opts.gid ? { uid: opts.gid } : undefined),
     env: {
-      ...process.env,
+      ...envForSpawn(),
       ...opts.env,
       ...(opts.uid != null && opts.home ? { HOME: opts.home } : undefined),
     },

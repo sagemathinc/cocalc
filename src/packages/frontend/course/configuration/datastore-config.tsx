@@ -83,7 +83,7 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
       <Card
         title={
           <>
-            <Icon name="database" /> Cloud storage & remote file systems
+            <Icon name="database" /> Cloud Storage & Remote File Systems
           </>
         }
       >

@@ -4,7 +4,7 @@
  */
 
 import { Card } from "antd";
-import { SITE_NAME, LIVE_DEMO_REQUEST } from "@cocalc/util/theme";
+import { LIVE_DEMO_REQUEST } from "@cocalc/util/theme";
 import { Icon, A } from "@cocalc/frontend/components";
 
 export function HelpBox() {
@@ -18,23 +18,15 @@ export function HelpBox() {
     >
       <span style={{ color: "#666", fontSize: "11pt" }}>
         <ul>
+          <li style={{ marginBottom: "10px" }}>
+            <A href={"https://doc.cocalc.com/teaching-instructors.html"}>
+              <Icon name="graduation-cap" /> Instructor Guide
+            </A>
+          </li>
           <li>
             <A href={LIVE_DEMO_REQUEST}>
-              Request a live demo <Icon name="external-link" />
+              <Icon name="slides" /> Request a live demo
             </A>{" "}
-            (with a {SITE_NAME} specialist)
-          </li>
-          <li>
-            <A href={"https://doc.cocalc.com/teaching-instructors.html"}>
-              Instructor Guide for using CoCalc for teaching{" "}
-              <Icon name="external-link" />
-            </A>
-          </li>
-          <li>
-            <A href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/">
-              Course management and collaborative Jupyter Notebooks{" "}
-              (2015, but still relevant) <Icon name="external-link" /> 
-            </A>
           </li>
         </ul>
       </span>

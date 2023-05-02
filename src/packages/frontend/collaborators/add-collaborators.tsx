@@ -38,6 +38,7 @@ import { ProjectInviteTokens } from "./project-invite-tokens";
 import { alert_message } from "../alerts";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import Sandbox from "./sandbox";
+import track from "@cocalc/frontend/user-tracking";
 
 interface RegisteredUser {
   sort?: string;
@@ -72,6 +73,7 @@ type User = RegisteredUser | NonregisteredUser;
 interface Props {
   project_id: string;
   autoFocus?: boolean;
+  where: string; // used for tracking only right now, so we know from where people add collaborators.
 }
 
 type State = "input" | "searching" | "searched" | "invited" | "invited_errors";
@@ -79,6 +81,7 @@ type State = "input" | "searching" | "searched" | "invited" | "invited_errors";
 export const AddCollaborators: React.FC<Props> = ({
   autoFocus,
   project_id,
+  where,
 }) => {
   const student = useStudentProjectFunctionality(project_id);
   const user_map = useTypedRedux("users", "user_map");
@@ -280,6 +283,13 @@ export const AddCollaborators: React.FC<Props> = ({
     if (project == null) return;
     const { subject, replyto, replyto_name } = sender_info();
 
+    track("invite-collaborator", {
+      where,
+      project_id,
+      account_id,
+      subject,
+      email_body,
+    });
     await project_actions.invite_collaborator(
       project_id,
       account_id,

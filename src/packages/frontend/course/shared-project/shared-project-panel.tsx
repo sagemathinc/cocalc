@@ -11,7 +11,7 @@ import {
   useActions,
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { Button, Popconfirm } from "antd";
+import { Button, Card, Popconfirm } from "antd";
 import { CourseActions } from "../actions";
 import { CourseSettingsRecord } from "../store";
 import { DeleteSharedProjectPanel } from "./delete-shared-project";
@@ -73,9 +73,11 @@ export const SharedProjectPanel: React.FC<SharedProjectPanelProps> = React.memo(
             </p>
           </div>
           <br />
-          <Button onClick={open_project} size={"large"} type={"primary"}>
-            Open shared project...
-          </Button>
+          <div style={{ textAlign: "center" }}>
+            <Button onClick={open_project} size={"large"} type={"primary"}>
+              Open shared project
+            </Button>
+          </div>
           <hr />
           <DeleteSharedProjectPanel
             delete={() => actions.shared_project.delete()}
@@ -134,20 +136,17 @@ export const SharedProjectPanel: React.FC<SharedProjectPanelProps> = React.memo(
     }
 
     return (
-      <div
-        className="smc-vfill"
-        style={{
-          padding: "15px",
-          margin: "15px auto",
-          border: "1px solid #ccc",
-          maxWidth: "800px",
-          overflowY: "auto",
-        }}
-      >
-        <h4>
-          <Icon name="users" /> {panel_header_text()}{" "}
-        </h4>
-        {render_content()}
+      <div className="smc-vfill" style={{ overflow: "auto" }}>
+        <Card
+          style={{ maxWidth: "800px", margin: "auto" }}
+          title={
+            <>
+              <Icon name="users" /> {panel_header_text()}
+            </>
+          }
+        >
+          {render_content()}
+        </Card>
       </div>
     );
   },

@@ -13,10 +13,11 @@ import {
   InputNumber,
   Popconfirm,
   Popover,
+  Tooltip,
 } from "antd";
 import { List } from "immutable";
 import { debounce } from "lodash";
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import {
   Button as AntdBootstrapButton,
   ButtonGroup,
@@ -54,6 +55,7 @@ import { SaveButton } from "./save-button";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
 import ChatGPT from "../chatgpt/title-bar-button";
+import userTracking from "@cocalc/frontend/user-tracking";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -164,6 +166,12 @@ interface Props {
 }
 
 export const FrameTitleBar: React.FC<Props> = (props: Props) => {
+  const track = useMemo(() => {
+    const { project_id, path } = props;
+    return (action: string) => {
+      userTracking("frame-tree", { project_id, path, action });
+    };
+  }, [props.project_id, props.path]);
   const buttons_ref = useRef<
     { [button_name: string]: true } | null | undefined
   >(null);
@@ -400,7 +408,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           title={"Show all frames"}
           key={"compress"}
           bsSize={button_size()}
-          onClick={() => props.actions.unset_frame_full()}
+          onClick={() => {
+            track("unset-full");
+            props.actions.unset_frame_full();
+          }}
           bsStyle={"warning"}
         >
           <Icon name={"compress"} />
@@ -413,7 +424,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           key={"expand"}
           title={"Show only this frame"}
           bsSize={button_size()}
-          onClick={() => props.actions.set_frame_full(props.id)}
+          onClick={() => {
+            track("set-full");
+            props.actions.set_frame_full(props.id);
+          }}
         >
           <Icon name={"expand"} />
         </StyledButton>
@@ -430,8 +444,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={(e) => {
           e.stopPropagation();
           if (props.is_full) {
+            track("unset-full");
             return props.actions.unset_frame_full();
           } else {
+            track("split-row");
             return props.actions.split_frame("row", props.id);
           }
         }}
@@ -450,8 +466,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         onClick={(e) => {
           e.stopPropagation();
           if (props.is_full) {
+            track("unset-full");
             return props.actions.unset_frame_full();
           } else {
+            track("split-col");
             return props.actions.split_frame("col", props.id);
           }
         }}
@@ -925,6 +943,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         style={button_style()}
         bsSize={button_size()}
         onClick={(event) => {
+          track("time-travel");
           if (props.actions.name != props.editor_actions.name) {
             // a subframe editor -- always open time travel in a name tab.
             props.editor_actions.time_travel({ frame: false });
@@ -1128,7 +1147,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <Button
         key={"contents"}
         bsSize={button_size()}
-        onClick={() => props.actions.show_table_of_contents?.(props.id)}
+        onClick={() => {
+          track("table-of-contents");
+          props.actions.show_table_of_contents?.(props.id);
+        }}
         title={"Show the Table of Contents"}
       >
         <Icon name={"align-right"} />{" "}
@@ -1742,22 +1764,23 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
 
     return (
-      <div
-        title={title}
-        style={{
-          ...TITLE_STYLE,
-          ...(is_active
-            ? {
-                background: COL_BAR_BACKGROUND,
-                minWidth: "3em",
-                maxWidth: "10em",
-              }
-            : { flex: 1 }),
-        }}
-      >
-        {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
-        {title}
-      </div>
+      <Tooltip title={title}>
+        <div
+          style={{
+            ...TITLE_STYLE,
+            ...(is_active
+              ? {
+                  background: COL_BAR_BACKGROUND,
+                  minWidth: "3em",
+                  maxWidth: "10em",
+                }
+              : { flex: 1 }),
+          }}
+        >
+          {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
+          {title}
+        </div>
+      </Tooltip>
     );
   }
 

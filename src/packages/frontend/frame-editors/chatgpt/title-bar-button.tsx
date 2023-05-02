@@ -40,7 +40,8 @@ interface Preset {
 
 const PRESETS: Preset[] = [
   {
-    command: "Create a fun exercise for me. Please include a brief problem statement, an example input, expected output, and any additional hints or explanations that would help me better understand this",
+    command:
+      "Create a fun exercise for me. Please include a brief problem statement, an example input, expected output, and any additional hints or explanations that would help me better understand this",
     codegen: true,
     tag: "fun-exercise",
     icon: "graduation-cap",
@@ -162,12 +163,14 @@ export default function ChatGPT({
   const showOptions = frameType != "terminal";
   const [input, setInput] = useState<string>("");
   const [truncated, setTruncated] = useState<number>(0);
-  const [scope, setScope] = useState<Scope>(() => {
-    const scopes = actions.chatgptGetScopes();
-    if (scopes.has("page")) return "page";
-    if (scopes.has("cell")) return "cell";
-    return "all";
-  });
+  const [scope, setScope] = useState<Scope | "all">(() =>
+    showChatGPT ? getScope(id, actions) : "all"
+  );
+  useEffect(() => {
+    if (showChatGPT) {
+      setScope(getScope(id, actions));
+    }
+  }, [showChatGPT]);
 
   const scopeOptions = useMemo(() => {
     const options: { label: string; value: Scope }[] = [];
@@ -470,4 +473,19 @@ function Context({ value, info }) {
       />
     );
   }
+}
+
+function getScope(id, actions): Scope {
+  const scopes = actions.chatgptGetScopes();
+  // don't know: selection if something is selected; otherwise,
+  // ballback below.
+  if (
+    scopes.has("selection") &&
+    actions.chatgptGetContext(id, "selection")?.trim()
+  ) {
+    return "selection";
+  }
+  if (scopes.has("page")) return "page";
+  if (scopes.has("cell")) return "cell";
+  return "all";
 }

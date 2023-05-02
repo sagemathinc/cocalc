@@ -20,7 +20,7 @@ import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 //import { file_associations } from "@cocalc/frontend/file-associations";
 //import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { getFromCache, saveToCache } from "./cache";
-import { kernelDisplayName } from "./kernel-info";
+import { kernelDisplayName, kernelLanguage } from "./kernel-info";
 import api from "./api";
 import SelectKernel from "./select-kernel";
 import getKernel from "./get-kernel";
@@ -42,6 +42,8 @@ export interface Props {
   // automatically check for known output in database on initial load, e.g.,
   // yes for markdown, but not for a jupyter notebook on the share server.
   auto?: boolean;
+
+  setInfo?: (info: string) => void;
 }
 
 // definitely never show run buttons for text formats that can't possibly be run.
@@ -71,6 +73,7 @@ export default function RunButton({
   tag,
   size,
   auto,
+  setInfo,
 }: Props) {
   const mode = infoToMode(info);
   const noRun = NO_RUN.has(mode);
@@ -272,7 +275,7 @@ export default function RunButton({
         title={
           !kernelName
             ? "Select a kernel if you want to run this code."
-            : "Run this code and anything it depends on."
+            : "Run this and anything above in this markdown with the same info string."
         }
       >
         <Button
@@ -360,6 +363,9 @@ export default function RunButton({
                 onSelect={(name) => {
                   setKernelName(name);
                   setShowPopover(false);
+                  setInfo?.(
+                    `${kernelLanguage(name, project_id)} {kernel="${name}"}`
+                  );
                 }}
                 kernel={kernelName}
                 project_id={project_id}

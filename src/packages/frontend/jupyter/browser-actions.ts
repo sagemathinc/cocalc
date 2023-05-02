@@ -27,6 +27,7 @@ import { Syntax } from "@cocalc/util/code-formatter";
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import * as awaiting from "awaiting";
 import { cm_options } from "./cm_options";
+import track from "@cocalc/frontend/user-tracking";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -67,7 +68,14 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.on("change", this.activity);
 
     // Load kernel (once ipynb file loads).
-    this.set_kernel_after_load();
+    (async () => {
+      await this.set_kernel_after_load();
+      track("jupyter", {
+        kernel: this.store.get("kernel"),
+        project_id: this.project_id,
+        path: this.path,
+      });
+    })();
 
     // Setup dedicated websocket to project
     // TODO: might be replaced by an ephemeral table which broadcasts cpu

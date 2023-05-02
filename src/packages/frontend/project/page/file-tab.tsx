@@ -9,7 +9,7 @@ A single tab in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
 
-import { Popover, Space } from "antd";
+import { Button, Popover, Space } from "antd";
 import { CSSProperties, ReactNode } from "react";
 
 import {
@@ -29,6 +29,7 @@ import { StopProject } from "../settings/stop-project";
 import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
 import { HomeRecentFiles } from "./home-page/recent-files";
 import { ChatGPTGenerateNotebookButton } from "./home-page/chatgpt-generate-jupyter";
+import track from "@cocalc/frontend/user-tracking";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -143,11 +144,26 @@ export function FileTab(props: Props) {
           path,
           new_browser_window: true,
         });
+        track("open-file-in-new-window", {
+          path,
+          project_id,
+          how: "shift-ctrl-meta-click-on-tab",
+        });
       } else {
         actions.set_active_tab(path_to_tab(path));
+        track("switch-to-file-tab", {
+          project_id,
+          path,
+          how: "click-on-tab",
+        });
       }
     } else if (name != null) {
       actions.set_active_tab(name);
+      track("switch-to-fixed-tab", {
+        project_id,
+        name,
+        how: "click-on-tab",
+      });
     }
   }
 
@@ -322,10 +338,10 @@ function SettingsPopover({ project_id }) {
     <div>
       Project settings and controls (click for more...)
       <hr />
-      <Space>
+      <Button.Group>
         <RestartProject project_id={project_id} />
         <StopProject project_id={project_id} />
-      </Space>
+      </Button.Group>
     </div>
   );
 }

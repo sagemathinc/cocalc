@@ -1559,10 +1559,11 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         )
       );
     } else if (scope == "selection") {
-      return node
-        .get("selection")
-        .map((id) => elementToMarkdown(elts[id]))
-        .join("\n");
+      const selection = node.get("selection");
+      if (selection == null) {
+        return "";
+      }
+      return selection.map((id) => elementToMarkdown(elts[id])).join("\n");
     }
     return "";
   }

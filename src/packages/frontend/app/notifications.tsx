@@ -17,7 +17,7 @@ import {
 import { Icon } from "@cocalc/frontend/components";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { user_tracking } from "@cocalc/frontend/user-tracking";
+import track from "@cocalc/frontend/user-tracking";
 import { PageStyle, TOP_BAR_ELEMENT_CLASS } from "./top-nav-consts";
 import { blur_active_element } from "./util";
 
@@ -73,7 +73,7 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
         page_actions.toggle_show_file_use();
         blur_active_element();
         if (!active) {
-          user_tracking("top_nav", { name: "file_use" });
+          track("top_nav", { name: "file_use" });
         }
         break;
 
@@ -90,7 +90,7 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
         }
 
         if (!active) {
-          user_tracking("top_nav", { name: "mentions" });
+          track("top_nav", { name: "mentions" });
         }
         break;
 

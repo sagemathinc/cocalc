@@ -428,7 +428,9 @@ export class Evaluator {
     }
 
     f(x.input, (output) => {
-      this.assert_not_closed();
+      if (this.state == "closed") {
+        return;
+      }
 
       dbg(`got output='${to_json(output)}'; id=${to_json(id)}`);
       hook(output);
@@ -492,14 +494,19 @@ export class Evaluator {
         "ensure sage session is running, so we can actually execute the code"
       );
     }
-    await this.ensure_sage_session_exists();
-    if (input.event === "execute_code") {
-      // We only need to actually create the socket, which makes a running process,
-      // if we are going to execute code.  The other events, e.g., 'status' don't
-      // need a running sage session.
-      if (!this.sage_session.is_running()) {
-        await callback(this.sage_session.init_socket);
+    try {
+      await this.ensure_sage_session_exists();
+      if (input.event === "execute_code") {
+        // We only need to actually create the socket, which makes a running process,
+        // if we are going to execute code.  The other events, e.g., 'status' don't
+        // need a running sage session.
+        if (!this.sage_session.is_running()) {
+          await callback(this.sage_session.init_socket);
+        }
       }
+    } catch (error) {
+      cb({ error, done: true });
+      return;
     }
     dbg("send call to backend sage session manager", to_json(input));
     this.sage_session.call({ input, cb });

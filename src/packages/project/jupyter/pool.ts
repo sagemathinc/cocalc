@@ -48,11 +48,7 @@ async function writeConfig(content: string): Promise<void> {
 }
 
 async function readConfig(): Promise<string> {
-  try {
-    return (await readFile(getConfig())).toString();
-  } catch (error) {
-    return "";
-  }
+  return (await readFile(getConfig())).toString();
 }
 
 const POOL: { [key: string]: SpawnedKernel[] } = {};
@@ -184,9 +180,16 @@ async function fillWhenEmpty() {
     }
   }
   // pool is empty, so possibly put something in it.
-  const key = await readConfig();
-  if (key) {
-    replenishPool(key);
+  try {
+    // this can throw, e.g., a corrupt file
+    const key = await readConfig();
+    if (key) {
+      // this can definitely throw, e.g., change image and then available kernels change.  No need to crash the entire project in that case!
+      await replenishPool(key);
+    }
+  } catch (error) {
+    console.log("fillWhenEmpty -- A non-fatal error occurred:", error);
+    log.error("fillWhenEmpty -- A non-fatal error occurred:", error);
   }
 }
 

@@ -204,7 +204,10 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
           />
           {!student.disableCollaborators && (
             <SettingBox title="Add new collaborators" icon="UserAddOutlined">
-              <AddCollaborators project_id={project.get("project_id")} />
+              <AddCollaborators
+                project_id={project.get("project_id")}
+                where="project-settings"
+              />
             </SettingBox>
           )}
           <ProjectControl key="control" project={project} />

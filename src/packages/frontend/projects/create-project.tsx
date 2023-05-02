@@ -7,15 +7,10 @@
 Create a new project
 */
 
-import { Card, Col, Form, Input, Row } from "antd";
+import { Button, Card, Col, Form, Input, Row } from "antd";
 import { delay } from "awaiting";
 
-import {
-  Alert,
-  Button,
-  ButtonToolbar,
-  Well,
-} from "@cocalc/frontend/antd-bootstrap";
+import { Alert, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   React,
@@ -40,6 +35,7 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import track from "@cocalc/frontend/user-tracking";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
 const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
@@ -131,12 +127,13 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
     set_state("saving");
     const actions = redux.getActions("projects");
     let project_id: string;
+    const opts = {
+      title: title_text,
+      image: await derive_project_img_name(custom_software),
+      start: true, // used to not start, due to apply_default_upgrades, but upgrades are  deprecated
+    };
     try {
-      project_id = await actions.create_project({
-        title: title_text,
-        image: await derive_project_img_name(custom_software),
-        start: false, // do NOT want to start, due to apply_default_upgrades
-      });
+      project_id = await actions.create_project(opts);
     } catch (err) {
       if (!is_mounted_ref.current) return;
       set_state("edit");
@@ -146,6 +143,12 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
     if (isValidUUID(license_id)) {
       await actions.add_site_license_to_project(project_id, license_id);
     }
+    track("create-project", {
+      how: "projects-page",
+      project_id,
+      license_id,
+      ...opts,
+    });
     // We also update the customer billing information so apply_default_upgrades works.
     const billing_actions = redux.getActions("billing");
     if (billing_actions != null) {
@@ -195,9 +198,9 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
       // anonymous users can't create projects...
       return (
         <Button
+          type="primary"
+          size="large"
           onClick={show_account_tab}
-          bsStyle={"success"}
-          bsSize={"large"}
           style={{ width: "100%", margin: "30px 0" }}
         >
           Sign up now so you can create more projects and not lose your work!
@@ -209,8 +212,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
         <Col xs={24}>
           <Button
             cocalc-test={"create-project"}
-            bsStyle={"success"}
-            bsSize={"large"}
+            size="large"
             disabled={state !== "view"}
             onClick={toggle_editing}
             style={{ width: "100%" }}
@@ -305,7 +307,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
       <div style={TOGGLE_STYLE}>
         <Button
           onClick={() => set_show_advanced(true)}
-          bsStyle="link"
+          type="link"
           style={TOGGLE_BUTTON_STYLE}
         >
           <Icon name="plus" /> Customize the software environment...
@@ -321,7 +323,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
       <div style={TOGGLE_STYLE}>
         <Button
           onClick={() => set_show_add_license(true)}
-          bsStyle="link"
+          type="link"
           style={TOGGLE_BUTTON_STYLE}
         >
           <Icon name="plus" /> Add a license key...
@@ -396,19 +398,19 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
         {render_license()}
         <Row>
           <Col sm={24} style={{ marginTop: "10px" }}>
-            <ButtonToolbar>
+            <Button.Group>
               <Button disabled={state === "saving"} onClick={cancel_editing}>
                 Cancel
               </Button>
               <Button
                 disabled={create_disabled()}
                 onClick={() => create_project()}
-                bsStyle="success"
+                type="primary"
               >
                 Create Project
                 {create_disabled() ? " (enter a title above!)" : ""}
               </Button>
-            </ButtonToolbar>
+            </Button.Group>
           </Col>
         </Row>
         <Row>
