@@ -47,6 +47,8 @@ export const ProjectsPage: React.FC = () => {
   const searchRef = useRef<any>(null);
   const filtersRef = useRef<any>(null);
   const createNewRef = useRef<any>(null);
+  const projectListRef = useRef<any>(null);
+
   const actions = useActions("projects");
   const [clear_and_focus_search, set_clear_and_focus_search] =
     useState<number>(0);
@@ -143,6 +145,7 @@ export const ProjectsPage: React.FC = () => {
           searchRef={searchRef}
           filtersRef={filtersRef}
           createNewRef={createNewRef}
+          projectListRef={projectListRef}
         />
       </div>
       <Col
@@ -209,7 +212,9 @@ export const ProjectsPage: React.FC = () => {
         </Row>
         <Row className="smc-vfill">
           <Col sm={12} className="smc-vfill">
-            <ProjectList visible_projects={visible_projects} />
+            <div className="smc-vfill" ref={projectListRef}>
+              <ProjectList visible_projects={visible_projects} />
+            </div>
           </Col>
         </Row>
         <Footer />

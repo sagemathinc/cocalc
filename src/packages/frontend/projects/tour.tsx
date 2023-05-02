@@ -1,12 +1,18 @@
 import { useState } from "react";
-import { Button, Tour } from "antd";
+import { Button, Checkbox, Tour } from "antd";
 import type { TourProps } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useRedux } from "@cocalc/frontend/app-framework";
+import { redux, useRedux } from "@cocalc/frontend/app-framework";
+import projectsImage from "./tour-projects.png";
+import infoImage from "./tour-info.png";
+import collabsImage from "./tour-collabs.png";
+import track from "@cocalc/frontend/user-tracking";
+import { SiteName } from "@cocalc/frontend/customize";
 
 export default function ProjectsPageTour({
   searchRef,
   filtersRef,
+  projectListRef,
   createNewRef,
   style,
 }) {
@@ -19,31 +25,31 @@ export default function ProjectsPageTour({
     {
       title: (
         <>
-          <Icon name="edit" /> The Projects Page"
+          <Icon name="edit" /> The Projects Page
         </>
       ),
+      cover: <img src={projectsImage} />,
       description: (
         <div>
-          The projects page is the central hub for organizing, creating, and
-          managing your projects. A project is an separate collaborative
-          workspace containing files and folders. On the projects page, you can
-          view the list of all projects you collaborate on, along with their
-          title, description, and last modified date.
+          Welcome to <SiteName />
+          's Projects Page! On this page, you'll find several key elements that
+          help you manage and organize your computational work, collaborate with
+          others, and maximize your productivity. Let's take a tour and
+          highlight these elements.
         </div>
       ),
     },
     {
       title: (
         <>
-          <Icon name="plus-circle" /> Creating New Projects
+          <Icon name="plus-circle" /> Create New Projects
         </>
       ),
       description: (
         <div>
-          You can easily create a new project by clicking the "Create Project"
-          button, which lets you enter a title, and customize the image and
-          license. You can freely create as many projects as you want at any
-          time.
+          To start your work on <SiteName />, click the "Create New Project"
+          button. You can specify the project's title, and customize the image
+          and license. Create as many projects as you want!
         </div>
       ),
       target: () => createNewRef.current,
@@ -51,23 +57,122 @@ export default function ProjectsPageTour({
     {
       title: (
         <>
-          <Icon name="search" /> Search for projects
+          <Icon name="edit" /> Project List
         </>
       ),
-      description:
-        "Search through all projects here.  You can search by title, description, #tags, and collaborator names. You can use regular expressions in your search. Try typing something in the box above and the list of projects will immediately shrink to show only matches.  Also, buttons appear that let you remove yourself, delete and hide projects, and stop and start the matching projects.",
+      cover: <img src={infoImage} />,
+      description: (
+        <div>
+          <p>
+            The core of the projects page is the list of your projects. Each
+            project is a separate folder containing files, data, and settings
+            specific to that project. By organizing your work into projects, you
+            can easily collaborate with others, manage your files, and maintain
+            different environments for various projects.
+          </p>
+          <p>
+            At a glance, you can view important information about each project
+            like a short description, the last time it was edited, and the
+            collaborators involved. This allows you to quickly understand the
+            project's purpose and gauge its progress.
+          </p>
+        </div>
+      ),
+      target: () => projectListRef.current,
+    },
+
+    {
+      title: (
+        <>
+          <Icon name="search" /> Search
+        </>
+      ),
+      description: (
+        <div>
+          <p>
+            When you're working on multiple projects, the search functionality
+            helps in locating projects on your list quickly. By utilizing
+            hashtags in project titles or descriptions, you can quickly locate
+            and filter through projects. The search box above allows you to use
+            regular expressions and negation to further narrow down your search
+            results. This allows you to easily identify and remove unnecessary
+            projects, as well as start and stop matching projects with ease.
+          </p>
+        </div>
+      ),
       target: () => searchRef.current,
     },
     {
-      title: "Deleted or Hidden projects",
-      description: "",
+      title: (
+        <>
+          <Icon name="users" /> Collaborators & Sharing
+        </>
+      ),
+      cover: <img src={collabsImage} />,
+      description: (
+        <div>
+          Working together is at the heart of <SiteName />. Easily add
+          collaborators to your projects by clicking on the collaborator toggle
+          to the right of each project's description. Collaborators can view,
+          edit, and run calculations in realtime inside the project.
+        </div>
+      ),
+    },
+    {
+      title: "Hidden and Deleted projects",
+      description: (
+        <>
+          <p>
+            Hidden and deleted projects in CoCalc allow you to maintain an
+            organized and efficient workspace by selectively displaying relevant
+            projects and removing outdated ones. Utilize hidden projects to
+            declutter your project list, while deleted projects help manage
+            storage capacity and prioritize essential work.
+          </p>
+          <p>
+            Clicking the checkbox shows only deleted projects. When you delete a
+            project, it is only permanently deleted after 30 days so you have a
+            chance to undelete it here.
+          </p>
+        </>
+      ),
       target: () => filtersRef.current,
+    },
+    {
+      title: "Thanks!",
+      description: (
+        <>
+          The <SiteName /> projects page offers an easy-to-use interface that
+          simplifies project management, collaboration, and organization.
+          <br />
+          <br />
+          <Checkbox
+            onChange={(e) => {
+              const actions = redux.getActions("account");
+              if (e.target.checked) {
+                actions.setTourDone("projects");
+              } else {
+                actions.setTourNotDone("projects");
+              }
+            }}
+          >
+            You Completed the Projects Tour! (You can always re-enable tours in
+            your account prefs page.)
+          </Checkbox>
+        </>
+      ),
     },
   ];
   return (
     <div>
       <Button.Group style={style}>
-        <Button type="primary" onClick={() => setOpen(true)}>
+        <Button
+          type="primary"
+          onClick={() => {
+            setOpen(true);
+            track("tour", { name: "projects" });
+          }}
+        >
           <Icon name="map" /> Tour
         </Button>
       </Button.Group>
