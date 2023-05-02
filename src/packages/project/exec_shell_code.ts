@@ -19,7 +19,8 @@ export function exec_shell_code(socket: CoCalcSocket, mesg) {
     );
     return;
   }
-  return execute_code({
+
+  execute_code({
     command: mesg.command,
     args: mesg.args,
     path: abspath(mesg.path != null ? mesg.path : ""),
@@ -42,10 +43,10 @@ export function exec_shell_code(socket: CoCalcSocket, mesg) {
           id: mesg.id,
           error,
         });
-        return socket.write_mesg("json", err_mesg);
+        socket.write_mesg("json", err_mesg);
       } else {
         //winston.debug(json(out))
-        return socket.write_mesg(
+        socket.write_mesg(
           "json",
           message.project_exec_output({
             id: mesg.id,

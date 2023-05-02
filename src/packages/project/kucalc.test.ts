@@ -2,6 +2,7 @@ import * as kucalc from "./kucalc";
 
 test("compute status is doing something", async () => {
   const status = await kucalc.test_compute_status();
+  //console.log(JSON.stringify(status, null, 2))
   expect(new Set(Object.keys(status))).toEqual(
     new Set([
       "cpu",
