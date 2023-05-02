@@ -18,7 +18,7 @@ import bodyParser from "body-parser";
 import { join } from "path";
 import { writeFile } from "fs";
 import { once } from "@cocalc/util/async-utils";
-import { options } from "@cocalc/project/init-program";
+import { getOptions } from "@cocalc/project/init-program";
 import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/project/logger";
 import { browserPortFile, project_id } from "@cocalc/project/data";
@@ -89,6 +89,7 @@ export default async function init(): Promise<void> {
   winston.info("initializing static server");
   initStaticServer(app, base);
 
+  const options = getOptions();
   server.listen(options.browserPort, options.hostname);
   await once(server, "listening");
   const address = server.address();

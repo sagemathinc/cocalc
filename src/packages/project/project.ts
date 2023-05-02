@@ -3,7 +3,7 @@ import daemonizeProcess from "daemonize-process";
 import { init as initBugCounter } from "./bug-counter";
 import initInfoJson from "./info-json";
 import initKucalc from "./init-kucalc";
-import initProgram from "./init-program";
+import { getOptions } from "./init-program";
 import { getLogger } from "./logger";
 import { cleanup as cleanupEnvironmentVariables } from "./project-setup";
 import initPublicPaths from "./public-paths";
@@ -26,7 +26,7 @@ export async function main() {
   // that SMC is defined still.
   process.env.SMC = process.env.DATA;
 
-  const options = initProgram(); // must run before anything else.
+  const options = getOptions();
   if (options.daemon) {
     winston.info("daemonize the process");
     daemonizeProcess();
