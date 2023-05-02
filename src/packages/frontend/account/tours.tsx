@@ -19,6 +19,21 @@ export default function Tours() {
       >
         Projects
       </Checkbox>
+      <Checkbox
+        checked={
+          tours?.includes("chatgpt-title-bar-button") || tours?.includes("all")
+        }
+        onChange={(e) => {
+          const actions = redux.getActions("account");
+          if (e.target.checked) {
+            actions.setTourDone("chatgpt-title-bar-button");
+          } else {
+            actions.setTourNotDone("chatgpt-title-bar-button");
+          }
+        }}
+      >
+        ChatGPT Button
+      </Checkbox>
     </Space>
   );
 }

@@ -181,7 +181,6 @@ export default function ProjectsPageTour({
       <Tour
         open={open}
         onClose={() => {
-          console.log("clicked on close");
           setOpen(false);
         }}
         steps={steps}

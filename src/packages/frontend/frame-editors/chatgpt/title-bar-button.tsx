@@ -9,16 +9,8 @@ for several text and code related function.  This calls the chatgpt actions
 to do the work.
 */
 
-import {
-  Alert,
-  Button,
-  Input,
-  Popover,
-  Radio,
-  Space,
-  Tooltip,
-} from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
@@ -27,6 +19,7 @@ import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-
 import { capitalize } from "@cocalc/util/misc";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useInterval } from "react-interval-hook";
+import TitleBarButtonTour from "./title-bar-button-tour";
 
 interface Preset {
   command: string;
@@ -145,6 +138,12 @@ export default function ChatGPT({
   const [scope, setScope] = useState<Scope | "all">(() =>
     showChatGPT ? getScope(id, actions) : "all"
   );
+  const describeRef = useRef<any>(null);
+  const buttonsRef = useRef<any>(null);
+  const scopeRef = useRef<any>(null);
+  const contextRef = useRef<any>(null);
+  const submitRef = useRef<any>(null);
+
   useEffect(() => {
     if (showChatGPT) {
       setScope(getScope(id, actions));
@@ -228,7 +227,6 @@ export default function ChatGPT({
 
   return (
     <Popover
-      placement="rightBottom"
       title={
         <div style={{ fontSize: "18px" }}>
           <OpenAIAvatar size={24} style={{ marginRight: "5px" }} />
@@ -244,6 +242,15 @@ export default function ChatGPT({
           >
             <Icon name="times" />
           </Button>
+          <div style={{ float: "right" }}>
+            <TitleBarButtonTour
+              describeRef={describeRef}
+              buttonsRef={buttonsRef}
+              scopeRef={scopeRef}
+              contextRef={contextRef}
+              submitRef={submitRef}
+            />
+          </div>
         </div>
       }
       open={visible && showChatGPT}
