@@ -185,7 +185,7 @@ export default function ExplorerTour({
   ];
   return (
     <Tour
-      open={open}
+      open={!!open}
       steps={steps}
       onClose={() => {
         redux.getProjectActions(project_id).setState({ explorerTour: false });
