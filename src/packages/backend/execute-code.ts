@@ -47,7 +47,9 @@ export interface ExecuteCodeOptionsWithCallback extends ExecuteCodeOptions {
   cb?: (err: undefined | Error, output?: ExecuteCodeOutput) => void;
 }
 
-type ExecuteCodeFunctionWithCallback = (opts: ExecuteCodeOptions) => void;
+type ExecuteCodeFunctionWithCallback = (
+  opts: ExecuteCodeOptionsWithCallback
+) => void;
 
 // Async/await interface to executing code.
 export async function executeCode(

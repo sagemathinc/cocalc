@@ -3,9 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { writeFile, readFile, unlink } from "fs";
-import * as tmp from "tmp";
 import { callback } from "awaiting";
+import { readFile, unlink, writeFile } from "node:fs";
+import * as tmp from "tmp";
+
 import { executeCode } from "@cocalc/backend/execute-code";
 
 interface ParserOptions {

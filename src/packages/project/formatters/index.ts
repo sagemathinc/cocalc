@@ -15,23 +15,23 @@ something that is not supported on the frontend anyway.
 
 declare let require: any;
 
-const { math_escape, math_unescape } = require("@cocalc/util/markdown-utils");
+import { make_patch } from "@cocalc/sync/editor/generic/util";
+import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
+import { filename_extension } from "@cocalc/util/misc";
+import { bib_format } from "./bib-format";
+import { clang_format } from "./clang-format";
+import genericFormat from "./generic-format";
+import { gofmt } from "./gofmt";
 import { latex_format } from "./latex-format";
 import { python_format } from "./python-format";
-import { xml_format } from "./xml-format";
-import { bib_format } from "./bib-format";
 import { r_format } from "./r-format";
-import genericFormat from "./generic-format";
-import { clang_format } from "./clang-format";
-import { gofmt } from "./gofmt";
 import { rust_format } from "./rust-format";
-import { filename_extension } from "@cocalc/util/misc";
-import { make_patch } from "@cocalc/sync/editor/generic/util";
+import { xml_format } from "./xml-format";
 // mathjax-utils is from upstream project Jupyter
-import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
-import { get_prettier } from "./prettier-lib";
 import { once } from "@cocalc/util/async-utils";
 import { Syntax as FormatterSyntax } from "@cocalc/util/code-formatter";
+import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
+import { get_prettier } from "./prettier-lib";
 
 export interface Config {
   syntax: FormatterSyntax;

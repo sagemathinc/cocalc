@@ -3,10 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-const { writeFile, readFile, unlink } = require("fs");
-const tmp = require("tmp");
-const { callback } = require("awaiting");
-const { spawn } = require("child_process");
+import { callback } from "awaiting";
+import { spawn } from "child_process";
+import { readFile, unlink, writeFile } from "node:fs";
+import * as tmp from "tmp";
+
 import { Options } from "./index";
 
 function close(proc, cb): void {

@@ -20,7 +20,7 @@ interface Options {
   blobstore: typeof BLOBSTORE;
 }
 
-let options = {
+const options: Options = {
   hubPort: 0,
   browserPort: 0,
   hostname: "127.0.0.1",
@@ -30,7 +30,7 @@ let options = {
   sshd: false,
   init: "",
   blobstore: BLOBSTORE,
-} as Options;
+};
 
 export { options };
 

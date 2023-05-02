@@ -2,6 +2,7 @@ import { createConnection } from "net";
 import type { Socket } from "net";
 import { callback } from "awaiting";
 import getLogger from "@cocalc/backend/logger";
+import { CoCalcSocket } from "./enable-messaging-protocol";
 
 const log = getLogger("locked-socket");
 
@@ -71,10 +72,10 @@ export async function connectToLockedSocket({
   timeout = 5, // in seconds (not milliseconds)
 }: {
   port: number;
-  host: string;
+  host?: string;
   token: string;
   timeout?: number;
-}): Promise<Socket> {
+}): Promise<CoCalcSocket> {
   if (port <= 0 || port >= 65536) {
     // little consistency check
     throw Error(`RangeError: port should be > 0 and < 65536: ${port}`);

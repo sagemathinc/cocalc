@@ -1,6 +1,7 @@
+import { constants as fsc } from "node:fs";
+import { access, mkdir } from "node:fs/promises";
+
 import { path_split } from "@cocalc/util/misc";
-import { constants as fsc } from "fs";
-import { access, mkdir } from "fs/promises";
 import abspath from "./abspath";
 
 // Make sure that that the directory containing the file indicated by
