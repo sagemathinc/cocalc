@@ -158,8 +158,7 @@ export default function ProjectsPageTour({
               }
             }}
           >
-            You Completed the Projects Tour! (You can always re-enable tours in
-            your account prefs page.)
+            Hide tour
           </Checkbox>
         </>
       ),

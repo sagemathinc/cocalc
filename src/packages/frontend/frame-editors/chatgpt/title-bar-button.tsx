@@ -260,31 +260,36 @@ export default function ChatGPT({
             direction="vertical"
             style={{ width: "800px", maxWidth: "90vw" }}
           >
-            <Input.TextArea
-              allowClear
-              autoFocus
-              style={{ flex: 1 }}
-              placeholder="Describe what you want ChatGPT to do..."
-              value={custom}
-              onChange={(e) => {
-                setCustom(e.target.value);
-                setTag("");
-                if (e.target.value) {
-                  setDescription(getCustomDescription(frameType));
-                } else {
-                  setDescription("");
-                }
-              }}
-              onPressEnter={(e) => {
-                if (e.shiftKey) {
-                  doIt();
-                }
-              }}
-              autoSize={{ minRows: 2, maxRows: 10 }}
-            />
+            <div ref={describeRef}>
+              <Input.TextArea
+                allowClear
+                autoFocus
+                style={{ flex: 1 }}
+                placeholder="Describe what you want ChatGPT to do..."
+                value={custom}
+                onChange={(e) => {
+                  setCustom(e.target.value);
+                  setTag("");
+                  if (e.target.value) {
+                    setDescription(getCustomDescription(frameType));
+                  } else {
+                    setDescription("");
+                  }
+                }}
+                onPressEnter={(e) => {
+                  if (e.shiftKey) {
+                    doIt();
+                  }
+                }}
+                autoSize={{ minRows: 2, maxRows: 10 }}
+              />
+            </div>
             {showOptions && (
               <>
-                <div style={{ overflowX: "auto", textAlign: "center" }}>
+                <div
+                  ref={buttonsRef}
+                  style={{ overflowX: "auto", textAlign: "center" }}
+                >
                   or{" "}
                   <Button.Group style={{ marginLeft: "5px" }}>
                     {PRESETS.map((preset) => (
@@ -316,7 +321,7 @@ export default function ChatGPT({
                   flexDirection: "column",
                 }}
               >
-                <div style={{ marginBottom: "5px" }}>
+                <div style={{ marginBottom: "5px" }} ref={scopeRef}>
                   {truncated < 100 && (
                     <div style={{ float: "right" }}>
                       Truncated ({truncated}% remains)
@@ -339,11 +344,13 @@ export default function ChatGPT({
                     <Icon name="refresh" /> Update
                   </Button>
                 </div>
-                <Context value={input} info={actions.chatgptGetLanguage()} />
+                <div ref={contextRef} style={{ overflowY: "auto" }}>
+                  <Context value={input} info={actions.chatgptGetLanguage()} />
+                </div>
               </div>
             )}{" "}
             {description}
-            <div style={{ textAlign: "center" }}>
+            <div style={{ textAlign: "center" }} ref={submitRef}>
               <Button
                 disabled={querying || (!tag && !custom.trim())}
                 type="primary"
