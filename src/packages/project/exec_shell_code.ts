@@ -9,6 +9,9 @@
 import { abspath, execute_code } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import * as message from "@cocalc/util/message";
+import { getLogger } from "./logger";
+
+const { debug: D } = getLogger("exec_shell_code");
 
 export function exec_shell_code(socket: CoCalcSocket, mesg) {
   //winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")
@@ -19,6 +22,10 @@ export function exec_shell_code(socket: CoCalcSocket, mesg) {
     );
     return;
   }
+
+  D(
+    `exec_shell_code: command=${mesg.command} args=${mesg.args} path=${mesg.path}`
+  );
 
   execute_code({
     command: mesg.command,
