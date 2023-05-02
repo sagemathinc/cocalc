@@ -7,24 +7,21 @@
 Top-level react component for task list
 */
 
-import { React, useEditorRedux } from "../../app-framework";
-
 import { Button } from "antd";
-import { Row, Col } from "../../antd-bootstrap";
-import { Loading } from "../../components";
-import TaskList from "./list";
-import { Find } from "./find";
-import { DescVisible } from "./desc-visible";
-import { HashtagBar } from "./hashtag-bar";
-import { is_sortable } from "./headings-info";
-import { Headings } from "./headings";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { HEADINGS } from "./headings-info";
-
-import { TaskActions } from "./actions";
-import { TaskState } from "./types";
-
 import { fromJS } from "immutable";
+
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import { React, useEditorRedux } from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { TaskActions } from "./actions";
+import { DescVisible } from "./desc-visible";
+import { Find } from "./find";
+import { HashtagBar } from "./hashtag-bar";
+import { Headings } from "./headings";
+import { HEADINGS, is_sortable } from "./headings-info";
+import TaskList from "./list";
+import { TaskState } from "./types";
 
 interface Props {
   actions: TaskActions;
