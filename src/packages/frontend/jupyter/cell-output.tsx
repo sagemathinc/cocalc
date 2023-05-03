@@ -14,6 +14,7 @@ import { OutputPrompt } from "./prompt/output";
 import { OutputToggle, CollapsedOutput } from "./cell-output-toggle";
 import { CellHiddenPart } from "./cell-hidden-part";
 import type { JupyterActions } from "./browser-actions";
+import { Alert } from "antd";
 
 interface CellOutputProps {
   actions?: JupyterActions;
@@ -147,13 +148,24 @@ function ControlColumn({ actions, cell, id }) {
   let exec_count = cell.get("exec_count");
   const output = cell.get("output");
   if (output != null) {
-    output.forEach((x) => {
-      if (x?.has("exec_count")) {
-        // NOTE: The ? -- I hit a case where x was undefined **in production**, so it can happen.
-        exec_count = x.get("exec_count");
-        return false;
+    for (const [, x] of output) {
+      try {
+        if (x.has("exec_count")) {
+          exec_count = x.get("exec_count");
+          break;
+        }
+      } catch (err) {
+        return (
+          <Alert
+            style={{ margin: "5px" }}
+            message="Malformed Output"
+            description={`Notebook contains malformed output, i.e., the ipynb file is corrupt -- ${err}`}
+            type="error"
+            showIcon
+          />
+        );
       }
-    });
+    }
   }
   const prompt = (
     <OutputPrompt
