@@ -29,7 +29,7 @@ import HomePageButton from "./home-page/button";
 import { useProjectStatus } from "./project-status-hook";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import Tabs, { VerticalFixedTabs } from "./tabs";
-import FirstSteps from "@cocalc/frontend/project/explorer/file-listing/first-steps";
+//import FirstSteps from "@cocalc/frontend/project/explorer/file-listing/first-steps";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
@@ -151,7 +151,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 
   return (
     <div className="container-content" style={style}>
-      <FirstSteps project_id={project_id} />
       <AnonymousName project_id={project_id} />
       <DiskSpaceWarning project_id={project_id} />
       <RamWarning project_id={project_id} />
