@@ -8,6 +8,7 @@ import infoImage from "./tour-info.png";
 import collabsImage from "./tour-collabs.png";
 import track from "@cocalc/frontend/user-tracking";
 import { SiteName } from "@cocalc/frontend/customize";
+import { A } from "@cocalc/frontend/components/A";
 
 export default function ProjectsPageTour({
   searchRef,
@@ -25,7 +26,8 @@ export default function ProjectsPageTour({
     {
       title: (
         <>
-          <Icon name="edit" /> The Projects Page
+          <Icon name="edit" /> The Projects Page{" "}
+          <A href="https://doc.cocalc.com/project-list.html">(docs)</A>
         </>
       ),
       cover: <img src={projectsImage} />,
@@ -156,8 +158,7 @@ export default function ProjectsPageTour({
               }
             }}
           >
-            You Completed the Projects Tour! (You can always re-enable tours in
-            your account prefs page.)
+            Hide tour
           </Checkbox>
         </>
       ),
@@ -179,7 +180,6 @@ export default function ProjectsPageTour({
       <Tour
         open={open}
         onClose={() => {
-          console.log("clicked on close");
           setOpen(false);
         }}
         steps={steps}

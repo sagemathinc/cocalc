@@ -7,7 +7,6 @@ export default function DemoCell({ tag }) {
   if (x == null) return null;
   const { language, welcome } = x;
   const value = "```" + language + "\n" + (welcome ?? "2+3") + "\n```\n";
-  console.log(value);
   return (
     <FileContext.Provider value={{ jupyterApiEnabled: true }}>
       <Markdown value={value} style={{ maxWidth: "800px", margin: "auto" }} />
