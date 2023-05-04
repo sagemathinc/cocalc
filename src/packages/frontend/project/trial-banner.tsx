@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Button } from "antd";
+import { Alert, Tag } from "antd";
 import humanizeList from "humanize-list";
 import { join } from "path";
 
@@ -229,18 +229,12 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         closable={closable}
         closeText={
           closable ? (
-            <div style={{ paddingTop: "10px" }}>
-              <Button
-                size="small"
-                type="default"
-                icon={<Icon name="times" />}
-                style={{
-                  fontSize: style.fontSize,
-                }}
-              >
-                Dismiss
-              </Button>
-            </div>
+            <Tag
+              style={{ marginTop: "10px", fontSize: style.fontSize }}
+              color="#faad14"
+            >
+              <Icon name="times" /> Dismiss
+            </Tag>
           ) : undefined
         }
         style={style}
