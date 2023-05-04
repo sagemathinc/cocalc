@@ -24,6 +24,7 @@ import {
 } from "@cocalc/frontend/components";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { open_new_tab } from "@cocalc/frontend/misc";
+import { cmp } from "@cocalc/util/misc";
 import { user_activity } from "@cocalc/frontend/tracker";
 import {
   all_fields_equal,
@@ -328,7 +329,8 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       user_activity("cocal_jupyter", "change kernel", kernel_name);
     }
 
-    function render_kernel_item(kernel: any): MenuItems[0] {
+    function render_kernel_item(kernel: any): MenuItems[0] | string {
+      if (kernel == null) return "";
       const style: React.CSSProperties = { marginLeft: "4ex" };
       if (kernel.name === kernel) {
         style.color = "#2196F3";
@@ -352,11 +354,30 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       };
     }
 
-    function render_kernel_items(): MenuItems[0][] | undefined {
+    function render_kernel_items(): (MenuItems[0] | string)[] | undefined {
       if (kernels == null) {
         return;
       }
       const kernels_js = kernels.toJS();
+      kernels_js.sort((a, b) => {
+        const c = -cmp(
+          a.metadata?.cocalc?.priority ?? 0,
+          b.metadata?.cocalc?.priority ?? 0
+        );
+        if (c != 0) return c;
+        return cmp(a.display_name, b.display_name);
+      });
+      let i = 0;
+      while (
+        i < kernels_js.length &&
+        (kernels_js[i].metadata?.cocalc?.priority ?? 0) >= 10
+      ) {
+        i += 1;
+      }
+      if (i < kernels_js.length) {
+        kernels_js.splice(i, 0, null);
+      }
+
       return kernels_js.map((kernel) => render_kernel_item(kernel));
     }
 

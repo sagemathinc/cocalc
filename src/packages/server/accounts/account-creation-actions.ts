@@ -5,6 +5,8 @@ import getPool from "@cocalc/database/pool";
 import addUserToProject from "@cocalc/server/projects/add-user-to-project";
 import firstProject from "./first-project";
 import { getLogger } from "@cocalc/backend/logger";
+import getOneProject from "@cocalc/server/projects/get-one";
+import { getProject } from "@cocalc/server/projects/control";
 
 const log = getLogger("server:accounts:creation-actions");
 
@@ -13,7 +15,7 @@ export default async function accountCreationActions(
   account_id: string,
   tags?: string[]
 ): Promise<void> {
-  log.debug(account_id);
+  log.debug({ account_id, email_address, tags });
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT action FROM account_creation_actions WHERE email_address=$1 AND expire > NOW()",
@@ -46,8 +48,19 @@ export default async function accountCreationActions(
       try {
         await firstProject({ account_id, tags });
       } catch (err) {
-        log.error("problem configuring first project", account_id, err);
         // non-fatal; they can make their own project
+        log.error("problem configuring first project", account_id, err);
+      }
+    })();
+  } else if (numProjects > 0) {
+    // Make sure project is running so they have a good first experience.
+    (async () => {
+      try {
+        const { project_id } = await getOneProject(account_id);
+        const project = getProject(project_id);
+        await project.start();
+      } catch (err) {
+        log.error("failed to start newest project invited to", err, account_id);
       }
     })();
   }

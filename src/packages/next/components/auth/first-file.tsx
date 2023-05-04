@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import {  useMemo } from "react";
 import { FileTypeSelector } from "@cocalc/frontend/project/new/file-type-selector";
 import { Input } from "antd";
 import { filename_extension } from "@cocalc/util/misc";
@@ -37,6 +37,7 @@ export default function FirstFile({ path, setPath, style, tags }: Props) {
       },
     };
   }, [tags]);
+
 
   return (
     <div

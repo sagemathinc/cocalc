@@ -58,7 +58,7 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
   const {
     placement = "right",
     delayShow = 500, // [ms]
-    delayHide = 100, // [ms] this was 0 before switching to Antd – which has 100ms as its default, though.
+    delayHide = 50, // [ms] this was 0 before switching to Antd – which has 100ms as its default, though.
     // rootClose = false,
     popover_style = { zIndex: 1000 },
     allow_touch = false,

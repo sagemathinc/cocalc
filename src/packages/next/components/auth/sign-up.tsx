@@ -25,6 +25,7 @@ import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 import Tags from "./tags";
 import FirstFile from "./first-file";
+import { filename_extension } from "@cocalc/util/misc";
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
@@ -33,7 +34,7 @@ const MIN_TAGS = 1;
 interface Props {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
   requiresToken?: boolean; // will be determined by API call if not given.
-  onSuccess?: () => void; // if given, call after sign up *succeeds*.
+  onSuccess?: (opts: { firstFile: string }) => void; // if given, call after sign up *succeeds*.
   has_site_license?: boolean;
   publicPathId?: string;
 }
@@ -155,7 +156,35 @@ function SignUp0({
         setIssues(result.issues);
       } else {
         if (onSuccess != null) {
-          onSuccess();
+          let path = firstFile;
+          if (!filename_extension(path)) {
+            // try to come up with one based on tags
+            for (const tag of [
+              "ipynb",
+              "py",
+              "sage",
+              "R",
+              "tex",
+              "jl",
+              "m",
+              "term",
+              "c",
+            ]) {
+              if (tags.has(tag)) {
+                path += "." + tag.toLowerCase();
+                break;
+              }
+            }
+          }
+
+          if (path.endsWith(".ipynb")) {
+            // maybe set default kernel for user based on tags
+            for (const tag of ["py", "sage", "R", "jl", "m", "c", "term"]) {
+              if (tags.has(tag)) {
+              }
+            }
+          }
+          onSuccess({ firstFile: path });
         }
       }
     } catch (err) {

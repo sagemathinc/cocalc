@@ -21,6 +21,8 @@ interface Props {
   children?: React.ReactNode;
 }
 
+const delayShow = 1500;
+
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.
 export function FileTypeSelector({
@@ -62,6 +64,7 @@ export function FileTypeSelector({
         {availableFeatures.jupyter_notebook && (
           <Col sm={sm} md={md}>
             <Tip
+              delayShow={delayShow}
               icon="jupyter"
               title="Jupyter Notebook"
               tip="Create an interactive notebook for using Python, Sage, R, Octave and more."
@@ -80,6 +83,7 @@ export function FileTypeSelector({
         {availableFeatures.sage && (
           <Col sm={sm} md={md}>
             <Tip
+              delayShow={delayShow}
               icon="sagemath-bold"
               title="SageMath Worksheet"
               tip="Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
@@ -97,6 +101,7 @@ export function FileTypeSelector({
         {availableFeatures.latex && (
           <Col sm={sm} md={md}>
             <Tip
+              delayShow={delayShow}
               title="LaTeX Document"
               icon="tex-file"
               tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
@@ -114,6 +119,7 @@ export function FileTypeSelector({
         {availableFeatures.rmd && (
           <Col sm={sm} md={md}>
             <Tip
+              delayShow={delayShow}
               title="RMarkdown File"
               icon="r"
               tip="RMarkdown document with real-time preview."
@@ -138,6 +144,7 @@ export function FileTypeSelector({
           <Row gutter={gutter} style={newRowStyle}>
             <Col sm={sm} md={md}>
               <Tip
+                delayShow={delayShow}
                 title="Linux Terminal"
                 icon="terminal"
                 tip="Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more."
@@ -153,6 +160,7 @@ export function FileTypeSelector({
             {availableFeatures.x11 && (
               <Col sm={sm} md={md}>
                 <Tip
+                  delayShow={delayShow}
                   title="Graphical X11 Desktop"
                   icon="window-restore"
                   tip="Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser."
@@ -178,6 +186,7 @@ export function FileTypeSelector({
           <Row gutter={gutter} style={newRowStyle}>
             <Col sm={sm} md={md}>
               <Tip
+                delayShow={delayShow}
                 title="Computational Markdown Document"
                 icon="markdown"
                 tip="Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code."
@@ -207,6 +216,7 @@ export function FileTypeSelector({
 
             <Col sm={sm} md={md}>
               <Tip
+                delayShow={delayShow}
                 icon="slides"
                 title="Slides"
                 tip="Create a slideshow presentation with mathematical formulas, lists, headings, images and code cells."
@@ -222,6 +232,7 @@ export function FileTypeSelector({
 
             <Col sm={sm} md={md}>
               <Tip
+                delayShow={delayShow}
                 title="Task List"
                 icon="tasks"
                 tip="Create a task list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.  Run code."
@@ -248,6 +259,7 @@ export function FileTypeSelector({
             {!disabledFeatures?.chat && (
               <Col sm={sm} md={md}>
                 <Tip
+                  delayShow={delayShow}
                   title="Create a Chatroom"
                   placement="bottom"
                   icon="comment"
@@ -271,6 +283,7 @@ export function FileTypeSelector({
             {!disabledFeatures?.course && (
               <Col sm={sm} md={md}>
                 <Tip
+                  delayShow={delayShow}
                   title="Manage a Course"
                   placement="bottom"
                   icon="graduation-cap"
@@ -300,6 +313,7 @@ export function FileTypeSelector({
             {!disabledFeatures?.timers && (
               <Col sm={sm} md={md}>
                 <Tip
+                  delayShow={delayShow}
                   title="Stopwatches and Timers"
                   icon="stopwatch"
                   tip="A handy little utility to create collaborative stopwatches and timers to track your use of time."
@@ -327,6 +341,7 @@ export function FileTypeSelector({
             {create_folder != null && (
               <Col sm={sm} md={md}>
                 <Tip
+                  delayShow={delayShow}
                   title={"Create New Folder"}
                   placement="left"
                   icon={"folder-open"}
