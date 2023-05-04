@@ -14,7 +14,7 @@ import { EventEmitter } from "node:events";
 import { readFile, readdir, readlink } from "node:fs/promises";
 import { join } from "node:path";
 
-import { options } from "../init-program";
+import { getOptions } from "../init-program";
 import { get_kernel_by_pid } from "../jupyter/jupyter";
 import { pid2path as terminal_pid2path } from "../terminal/server";
 import { get_path_for_pid as x11_pid2path } from "../x11/server";
@@ -209,7 +209,7 @@ export class ProjectInfoServer extends EventEmitter {
   // you what the whole system is doing, all your processes,…
   // NOTE: most of this replaces kucalc.coffee
   private async cgroup({ timestamp }): Promise<CGroup | undefined> {
-    if (!is_in_dev_project() && !options.kucalc && !this.testing) return;
+    if (!is_in_dev_project() && !getOptions().kucalc && !this.testing) return;
     const [mem_stat_raw, cpu_raw, oom_raw, cfs_quota_raw, cfs_period_raw] =
       await Promise.all([
         readFile("/sys/fs/cgroup/memory/memory.stat", "utf8"),

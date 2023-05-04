@@ -109,12 +109,11 @@ _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
     async.series([
         (cb) =>
             winston.debug("get sage server port")
-            port_manager.get_port 'sage', (err, _port) =>
-                if err
-                    cb(err); return
-                else
-                    port = _port
-                    cb()
+            try
+                port = await port_manager.get_port('sage')
+                cb()
+            catch err
+                cb(err)
         (cb) =>
             winston.debug("get and unlock socket")
             try
