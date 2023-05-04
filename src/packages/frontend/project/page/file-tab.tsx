@@ -46,10 +46,13 @@ type FixedTabs = {
   [name in FixedTab]: {
     label: string;
     icon: IconName;
-    tooltip: string | ((props: { project_id: string }) => ReactNode);
+    tooltip?: string | ((props: { project_id: string }) => ReactNode);
     noAnonymous?: boolean;
   };
 };
+
+// TODO/NOTE: for better or worse I just can't stand the tooltips on the sidebar!
+// Disabling them.  If anyone complaints or likes them, I can make them an option.
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
   files: {
@@ -229,7 +232,7 @@ export function FileTab(props: Props) {
     </div>
   );
 
-  if (props.noPopover || IS_MOBILE) {
+  if (props.noPopover || IS_MOBILE || isFixedTab) {
     return body;
   }
   // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
@@ -256,7 +259,7 @@ export function FileTab(props: Props) {
           </span>
         ) : undefined
       }
-      mouseEnterDelay={0.9}
+      mouseEnterDelay={1}
       placement={props.placement ?? "bottom"}
     >
       {body}
