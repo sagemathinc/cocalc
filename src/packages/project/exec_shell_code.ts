@@ -23,9 +23,7 @@ export function exec_shell_code(socket: CoCalcSocket, mesg) {
     return;
   }
 
-  D(
-    `exec_shell_code: command=${mesg.command} args=${mesg.args} path=${mesg.path}`
-  );
+  D(`command=${mesg.command} args=${mesg.args} path=${mesg.path}`);
 
   execute_code({
     command: mesg.command,
@@ -52,7 +50,6 @@ export function exec_shell_code(socket: CoCalcSocket, mesg) {
         });
         socket.write_mesg("json", err_mesg);
       } else {
-        //winston.debug(json(out))
         socket.write_mesg(
           "json",
           message.project_exec_output({

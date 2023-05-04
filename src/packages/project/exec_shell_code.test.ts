@@ -1,4 +1,4 @@
-// jest test if calling "date" works
+// jest test if calling something in bash works
 
 import { exec_shell_code } from "@cocalc/project/exec_shell_code";
 
@@ -6,7 +6,7 @@ test("exec_shell_code", (done) => {
   const mesg = {
     id: "abf3b9ca-47e3-4d77-a0f7-eec04952c684",
     event: "project_exec",
-    command: "echo '2 * 21' | bc",
+    command: "echo $(( 2 * 21 ))",
     bash: true,
   };
 
