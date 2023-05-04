@@ -492,10 +492,11 @@ export default function Message(props: Props) {
       return;
     }
     return (
-      <div>
+      <div style={{ marginLeft: "30px" }}>
         <ChatInput
           autoFocus
           style={{
+            borderRadius: "8px",
             height: "auto" /* for some reason the default 100% breaks things */,
           }}
           cacheId={`${props.path}${props.project_id}${props.message
