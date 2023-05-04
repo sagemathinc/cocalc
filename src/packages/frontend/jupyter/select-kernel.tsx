@@ -145,10 +145,10 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
       kernel_selection
         .sort((a, b) => {
-          // try to find the display name, otherwise fallback to kernel ID
-          const name_a = kernel_name(a) || a;
-          const name_b = kernel_name(b) || b;
-          return name_a.localeCompare(name_b);
+          return -misc.cmp(
+            kbn.getIn([a, "metadata", "cocalc", "priority"], 0),
+            kbn.getIn([b, "metadata", "cocalc", "priority"], 0)
+          );
         })
         .map((name, lang) => {
           const cocalc: ImmutableMap<string, any> = kbn.getIn(
