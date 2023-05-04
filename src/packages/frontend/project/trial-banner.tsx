@@ -3,25 +3,29 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert } from "antd";
+import { Alert, Button } from "antd";
 import humanizeList from "humanize-list";
 import { join } from "path";
 
-import { CSS, React, useState } from "@cocalc/frontend/app-framework";
-import { A, Icon } from "@cocalc/frontend/components";
+import { CSS, React, useMemo, useState } from "@cocalc/frontend/app-framework";
+import { A, Icon, Paragraph } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { server_time } from "@cocalc/frontend/frame-editors/generic/client";
 import {
   SiteLicenseInput,
   useManagedLicenses,
 } from "@cocalc/frontend/site-licenses/input";
-import { LICENSE_MIN_PRICE } from "@cocalc/util/consts/billing";
+import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
+import {
+  BANNER_NON_DISMISSABLE_DAYS,
+  EVALUATION_PERIOD_DAYS,
+  LICENSE_MIN_PRICE,
+} from "@cocalc/util/consts/billing";
+import { server_time } from "@cocalc/util/relative-time";
+import { COLORS, DOC_URL } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { applyLicense } from "./settings/site-license";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
-
-const ELEVATED_DAYS = 10;
 
 // explains implications for having no internet and/or no member hosting
 export const A_STYLE: CSS = {
@@ -35,17 +39,26 @@ const A_STYLE_ELEVATED: CSS = {
 } as const;
 
 export const ALERT_STYLE: CSS = {
-  padding: "5px 10px",
+  paddingTop: "0px",
+  paddingLeft: "10px",
+  paddingRight: "5px",
+  paddingBottom: "5px",
   marginBottom: 0,
-  fontSize: "10pt",
+  fontSize: "9pt",
   borderRadius: 0,
+  lineHeight: "80%",
 } as const;
 
 const ALERT_STYLE_ELEVATED: CSS = {
   ...ALERT_STYLE,
   color: "white",
-  background: "red",
-  fontSize: "12pt",
+  background: COLORS.ORANGE_WARN,
+  fontSize: "11pt",
+} as const;
+
+const ALERT_STYLE_EXPIRED: CSS = {
+  ...ALERT_STYLE_ELEVATED,
+  background: COLORS.ANTD_RED,
 } as const;
 
 interface BannerProps {
@@ -53,8 +66,8 @@ interface BannerProps {
   projectSiteLicenses: string[];
   host: boolean;
   internet: boolean;
-  proj_created: number; // timestamp when project started
   projectIsRunning: boolean;
+  projectCreatedTS?: Date;
 }
 
 // string and URLs
@@ -74,7 +87,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       host,
       internet,
       project_id,
-      proj_created,
+      projectCreatedTS,
       projectSiteLicenses,
       projectIsRunning,
     } = props;
@@ -83,8 +96,12 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     const managedLicenses = useManagedLicenses();
     const allow_run = useAllowedFreeProjectToRun(project_id);
 
-    const age_ms: number = server_time().getTime() - proj_created;
-    const ageDays = age_ms / (24 * 60 * 60 * 1000);
+    const projectAgeDays = useMemo(() => {
+      // timestamp, when this project was created. won't change over time.
+      const projCreatedTS = projectCreatedTS ?? new Date(0);
+      const age_ms: number = server_time().getTime() - projCreatedTS.getTime();
+      return age_ms / (24 * 60 * 60 * 1000);
+    }, [projectCreatedTS]);
 
     // when to show the more intimidating red banner:
     // after $ELEVATED_DAYS days
@@ -92,19 +109,21 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     // or if user manages at least one license
     const no_licenses =
       projectSiteLicenses.length === 0 && managedLicenses?.size === 0;
-    const elevated = ageDays >= ELEVATED_DAYS && no_licenses;
+    const elevated = projectAgeDays >= EVALUATION_PERIOD_DAYS && no_licenses;
+    const expired =
+      projectAgeDays >= BANNER_NON_DISMISSABLE_DAYS && no_licenses;
 
-    const style = elevated ? ALERT_STYLE_ELEVATED : ALERT_STYLE;
+    const style = expired
+      ? ALERT_STYLE_EXPIRED
+      : elevated
+      ? ALERT_STYLE_ELEVATED
+      : ALERT_STYLE;
     const a_style = elevated ? A_STYLE_ELEVATED : A_STYLE;
 
-    // If user has any licenses or there is a license applied to the project (even when expired), we no longer call this a "Trial"
-    //       <strong>
-    //         <A href={DOC_TRIAL} style={a_style}>
-    //           Free Trial (Day {Math.floor(ageDays)})
-    //         </A>
-    //       </strong>
     const trial_project = no_licenses ? (
-      "Welcome!"
+      <A href={DOC_URL} style={{ ...a_style, paddingRight: ".5em" }}>
+        Hello <Icon name="hand" />
+      </A>
     ) : (
       <strong>No upgrades</strong>
     );
@@ -112,10 +131,14 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     function renderMessage(): JSX.Element | undefined {
       const buy_and_upgrade = (
         <>
-          <A style={a_style} href={BUY_A_LICENSE_URL}>
-            you can buy a license
-          </A>{" "}
-          (starting at {LICENSE_MIN_PRICE}) and then{" "}
+          <BuyLicenseForProject
+            project_id={project_id}
+            text={"with a license"}
+            showVoucherButton={false}
+            asLink={true}
+            style={{ padding: 0, fontSize: style.fontSize, ...a_style }}
+          />
+          . Price starts at {LICENSE_MIN_PRICE}. Then,{" "}
           <a style={a_style} onClick={() => setShowAddLicense(true)}>
             apply it to this project
           </a>
@@ -125,8 +148,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       if (allow_run === false) {
         return (
           <span>
-            {trial_project} - There are too many free trial projects running
-            right now.
+            There are too many free trial projects running right now.
             <br />
             Try again later or {buy_and_upgrade}.
           </span>
@@ -136,7 +158,8 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       if (host && internet) {
         return (
           <span>
-            {trial_project} – {buy_and_upgrade}.
+            {trial_project} You can improve hosting quality and get internet
+            access {buy_and_upgrade}.
             <br />
             Otherwise, {humanizeList([...NO_HOST, NO_INTERNET])}
             {"."}
@@ -186,7 +209,11 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     }
 
     // allow users to close the banner, if there is either internet or host upgrade – or if user has licenses (past customer, upgrades by someone else, etc.)
-    const closable = !host || !internet || !no_licenses;
+    const closable =
+      !host ||
+      !internet ||
+      !no_licenses ||
+      projectAgeDays < BANNER_NON_DISMISSABLE_DAYS;
 
     // don't show the banner if project is not running.
     // https://github.com/sagemathinc/cocalc/issues/6496
@@ -200,14 +227,46 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       <Alert
         type="warning"
         closable={closable}
+        closeText={
+          closable ? (
+            <div style={{ paddingTop: "10px" }}>
+              <Button
+                size="small"
+                type="default"
+                icon={<Icon name="times" />}
+                style={{
+                  backgroundColor: COLORS.YELL_L,
+                  fontSize: style.fontSize,
+                }}
+              >
+                Dismiss
+              </Button>
+            </div>
+          ) : undefined
+        }
         style={style}
         banner={true}
         showIcon={!closable || (internet && host)}
-        icon={<Icon name="exclamation-triangle" style={{ marginTop: "7px" }} />}
+        icon={
+          <Icon
+            name="exclamation-triangle"
+            style={{
+              marginTop: "12px",
+              color: expired ? "white" : elevated ? "black" : undefined,
+            }}
+          />
+        }
         description={
           <>
-            <span style={{ fontSize: style.fontSize }}>{renderMessage()}</span>{" "}
-            {renderLearnMore(style.color)}
+            <Paragraph
+              style={{
+                ...style,
+                margin: 0,
+                padding: 0,
+              }}
+            >
+              {renderMessage()} {renderLearnMore(style.color)}
+            </Paragraph>
             {showAddLicense && (
               <BannerApplySiteLicense
                 project_id={project_id}
