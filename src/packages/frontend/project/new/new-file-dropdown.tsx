@@ -4,12 +4,14 @@
  */
 
 import { Button } from "antd";
-
 import { React } from "@cocalc/frontend/app-framework";
-import { DropdownMenu, Icon } from "@cocalc/frontend/components";
-import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
+import { Icon } from "@cocalc/frontend/components/icon";
+import {
+  DropdownMenu,
+  MenuItems,
+} from "@cocalc/frontend/components/dropdown-menu";
 import { file_associations } from "@cocalc/frontend/file-associations";
-import * as misc from "@cocalc/util/misc";
+import { keys } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -19,12 +21,10 @@ interface Props {
   create_file: (ext?: string) => void;
 }
 
-export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
-  const { create_file } = props;
-
+export function NewFileDropdown({ create_file }: Props) {
   // TODO maybe filter by configuration.get("main", {disabled_ext: undefined}) ?
   const items = React.useMemo((): MenuItems => {
-    const list = misc.keys(file_associations).sort();
+    const list = keys(file_associations).sort();
     const extensions: string[] = [];
     const file_types_so_far = {};
     for (const ext of list) {
@@ -37,7 +37,7 @@ export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
       }
     }
     return extensions.map(dropdown_item);
-  }, misc.keys(file_associations));
+  }, keys(file_associations));
 
   function dropdown_item(ext: string) {
     const data = file_options("x." + ext);
@@ -71,4 +71,4 @@ export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
       </Button.Group>
     </span>
   );
-});
+}

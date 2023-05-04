@@ -23,10 +23,8 @@ export default function Tags({ tags, setTags, minTags, style }: Props) {
   };
 
   return (
-    <div style={{ minWidth: "475px", ...style }}>
-      <div style={{ textAlign: "center" }}>
-        What do you want to use right now (at least {minTags})?
-      </div>
+    <div style={style}>
+      <div style={{ textAlign: "center" }}>Select at least {minTags}</div>
       <div
         style={{
           marginTop: "5px",
@@ -54,6 +52,7 @@ export default function Tags({ tags, setTags, minTags, style }: Props) {
           );
         })}
         <Button
+          type={tags.size == TAGS.length ? "link" : undefined}
           style={{ float: "right", marginRight: "10px", marginTop: "5px" }}
           size="small"
           onClick={() => {
@@ -65,7 +64,7 @@ export default function Tags({ tags, setTags, minTags, style }: Props) {
           }}
         >
           <Icon name="atom" />
-          Everything!
+          {tags.size == TAGS.length ? "Clear" : "Everything!"}
         </Button>
       </div>
     </div>
