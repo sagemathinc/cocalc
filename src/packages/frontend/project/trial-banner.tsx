@@ -235,7 +235,6 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
                 type="default"
                 icon={<Icon name="times" />}
                 style={{
-                  backgroundColor: COLORS.YELL_L,
                   fontSize: style.fontSize,
                 }}
               >

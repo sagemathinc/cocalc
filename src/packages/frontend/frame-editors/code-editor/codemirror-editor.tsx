@@ -57,7 +57,7 @@ interface Props {
   read_only: boolean;
   is_current: boolean;
   is_public: boolean;
-  value?: string; // if defined and is_public, use this static value and editor is read-only
+  value?: string; // if defined and is_public, use this static value and editor is read-only  (TODO: public was deprecated years ago)
   misspelled_words: Set<string> | string; // **or** show these words as not spelled correctly
   resize: number;
   gutters: string[];

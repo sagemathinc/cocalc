@@ -1469,6 +1469,8 @@ export class Actions<
     this.set_syncstring(cm.getValue(), do_not_exit_undo_mode);
   }
 
+  // Do NOT call this outside of this class to set the value - instead call
+  // the public set_value method!
   private set_syncstring(value: string, do_not_exit_undo_mode?: boolean): void {
     // note -- we don't try to set the syncstring if actions are closed
     // or the syncstring isn't initialized yet.  The latter case happens when
