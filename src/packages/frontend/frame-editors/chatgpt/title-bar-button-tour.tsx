@@ -5,6 +5,7 @@ import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { useState } from "react";
 import { A } from "@cocalc/frontend/components/A";
 import track from "@cocalc/frontend/user-tracking";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 
 const NAME = "chatgpt-title-bar-button";
 
@@ -17,7 +18,7 @@ export default function TitleBarTour({
 }) {
   const tours = useRedux("account", "tours");
   const [open, setOpen] = useState<boolean>(false);
-  if (tours?.includes("all") || tours?.includes(NAME)) {
+  if (IS_MOBILE || tours?.includes("all") || tours?.includes(NAME)) {
     return (
       <A
         href="https://doc.cocalc.com/chatgpt.html"

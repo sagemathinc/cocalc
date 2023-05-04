@@ -60,7 +60,7 @@ interface BannerProps {
 // string and URLs
 export const NO_INTERNET =
   "you can't install packages, clone from GitHub, or download datasets";
-const NO_HOST = ["expect VERY bad performance (up to several times slower!)"];
+const NO_HOST = ["expect slower performance"];
 const INET_QUOTA =
   "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
 const MEMBER_QUOTA =
@@ -98,12 +98,13 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     const a_style = elevated ? A_STYLE_ELEVATED : A_STYLE;
 
     // If user has any licenses or there is a license applied to the project (even when expired), we no longer call this a "Trial"
+    //       <strong>
+    //         <A href={DOC_TRIAL} style={a_style}>
+    //           Free Trial (Day {Math.floor(ageDays)})
+    //         </A>
+    //       </strong>
     const trial_project = no_licenses ? (
-      <strong>
-        <A href={DOC_TRIAL} style={a_style}>
-          Free Trial (Day {Math.floor(ageDays)})
-        </A>
-      </strong>
+      "Welcome!"
     ) : (
       <strong>No upgrades</strong>
     );
@@ -112,11 +113,11 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       const buy_and_upgrade = (
         <>
           <A style={a_style} href={BUY_A_LICENSE_URL}>
-            <u>buy a license</u>
+            you can buy a license
           </A>{" "}
           (starting at {LICENSE_MIN_PRICE}) and then{" "}
           <a style={a_style} onClick={() => setShowAddLicense(true)}>
-            <u>apply it to this project</u>
+            apply it to this project
           </a>
         </>
       );
@@ -146,7 +147,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
           <span>
             <strong>Low-grade hosting</strong> - upgrade to{" "}
             <A href={MEMBER_QUOTA} style={a_style}>
-              <u>Member Hosting</u>
+              Member Hosting
             </A>{" "}
             or {humanizeList(NO_HOST)}
             {"."}
@@ -157,7 +158,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
           <span>
             <strong>No internet access</strong> – upgrade{" "}
             <A href={INET_QUOTA} style={a_style}>
-              <u>Internet Access</u>
+              Internet Access
             </A>{" "}
             or {NO_INTERNET}
             {"."}
@@ -176,7 +177,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
           {" – "}
           <span style={{ fontSize: style.fontSize }}>
             <A href={DOC_TRIAL} style={a_style_more}>
-              <u>more info</u>
+              more info
             </A>
             {"..."}
           </span>
