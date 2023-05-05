@@ -24,6 +24,7 @@ import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
 import { JupyterActions } from "../../jupyter/browser-actions";
 import { NotebookFrameActions } from "./cell-notebook/actions";
 import { open_new_tab } from "../../misc";
+import getTour from "./tour";
 
 export interface JupyterEditorState extends CodeEditorState {
   slideshow?: {
@@ -526,6 +527,10 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   chatgptGetScopes() {
     return new Set<"selection" | "cell">(["selection", "cell"]);
+  }
+
+  tour(_id, refs) {
+    return getTour(refs);
   }
 }
 
