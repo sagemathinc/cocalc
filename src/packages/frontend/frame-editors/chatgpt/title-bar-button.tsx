@@ -10,7 +10,7 @@ to do the work.
 */
 
 import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
@@ -111,11 +111,12 @@ interface Props {
   labels?: boolean;
   visible?: boolean;
   path: string;
+  buttonRef;
 }
 
 import type { Scope } from "./types";
 
-export default function ChatGPT({
+const ChatGPT = forwardRef(function ({
   id,
   actions,
   buttonSize,
@@ -123,6 +124,7 @@ export default function ChatGPT({
   labels,
   visible,
   path,
+  buttonRef,
 }: Props) {
   const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -376,14 +378,18 @@ export default function ChatGPT({
           actions.blur();
         }}
       >
-        <Tooltip title="Get assistance from ChatGPT">
-          <OpenAIAvatar size={20} style={{ marginTop: "-5px" }} />{" "}
-        </Tooltip>
-        <VisibleMDLG>{labels ? "ChatGPT..." : undefined}</VisibleMDLG>
+        <span ref={buttonRef}>
+          <Tooltip title="Get assistance from ChatGPT">
+            <OpenAIAvatar size={20} style={{ marginTop: "-5px" }} />{" "}
+          </Tooltip>
+          <VisibleMDLG>{labels ? "ChatGPT..." : undefined}</VisibleMDLG>
+        </span>
       </Button>
     </Popover>
   );
-}
+});
+
+export default ChatGPT;
 
 async function updateInput(
   actions,

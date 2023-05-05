@@ -9,7 +9,7 @@ import { IS_MOBILE } from "@cocalc/frontend/feature";
 
 const NAME = "chatgpt-title-bar-button";
 
-export default function TitleBarTour({
+export default function TitleBarButtonTour({
   describeRef,
   buttonsRef,
   scopeRef,

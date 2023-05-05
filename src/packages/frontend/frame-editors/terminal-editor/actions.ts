@@ -10,6 +10,7 @@ import { delay } from "awaiting";
 import { Actions } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { open_new_tab } from "../../misc";
+import getTour from "./tour";
 
 const HELP_URL = "https://doc.cocalc.com/terminal.html";
 
@@ -51,9 +52,8 @@ export class TerminalActions extends Actions {
   // the extra options slightly modify what it does – check the interface for the explanation
   public run_command(cmd: string, opts: CmdOpts): void {
     const { run = true, cleanup = true, userarg = false, special } = opts;
-    const last_terminal_id = this._get_most_recent_active_frame_id_of_type(
-      "terminal"
-    );
+    const last_terminal_id =
+      this._get_most_recent_active_frame_id_of_type("terminal");
     if (last_terminal_id != null) {
       // De-maximize if in full screen mode.
       this.unset_frame_full();
@@ -108,8 +108,8 @@ export class TerminalActions extends Actions {
     this.set_active_id(id, true);
   }
 
-  tour(id: string) {
-    console.log("take tour...", id);
+  tour(_id, refs) {
+    return getTour(refs);
   }
 }
 

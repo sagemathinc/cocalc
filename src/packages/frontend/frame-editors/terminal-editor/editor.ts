@@ -19,6 +19,7 @@ export const terminal = {
   icon: "terminal",
   component: TerminalFrame,
   buttons: set([
+    "-actions", // none of this makes much sense for a terminal!
     /*"print", */
     "decrease_font_size",
     "increase_font_size",

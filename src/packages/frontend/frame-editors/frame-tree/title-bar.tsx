@@ -17,7 +17,7 @@ import {
 } from "antd";
 import { List } from "immutable";
 import { debounce } from "lodash";
-import { ReactNode, useMemo } from "react";
+import { ReactNode, useEffect, useMemo, useRef } from "react";
 import {
   Button as AntdBootstrapButton,
   ButtonGroup,
@@ -28,10 +28,8 @@ import {
   React,
   redux,
   Rendered,
-  useEffect,
   useForceUpdate,
   useRedux,
-  useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
 import {
@@ -56,6 +54,8 @@ import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 import { undo as chatUndo, redo as chatRedo } from "../generic/chat";
 import ChatGPT from "../chatgpt/title-bar-button";
 import userTracking from "@cocalc/frontend/user-tracking";
+import TitleBarTour from "./title-bar-tour";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -169,7 +169,12 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   const track = useMemo(() => {
     const { project_id, path } = props;
     return (action: string) => {
-      userTracking("frame-tree", { project_id, path, action });
+      userTracking("frame-tree", {
+        project_id,
+        path,
+        action,
+        type: props.type,
+      });
     };
   }, [props.project_id, props.path]);
   const buttons_ref = useRef<
@@ -227,6 +232,21 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     "page",
     "fullscreen"
   );
+
+  const tourRefs = useRef<any>({
+    title: { current: null },
+    chatgpt: { current: null },
+  });
+  const tours = useRedux(["account", "tours"]);
+  const hasTour = useMemo(() => {
+    if (IS_MOBILE || !is_visible("tour", true)) {
+      return false;
+    }
+    if (tours?.includes("all") || tours?.includes(`frame-${props.type}`)) {
+      return false;
+    }
+    return true;
+  }, [tours, props.type]);
 
   // comes from actions's store:
   const switch_to_files: List<string> = useRedux([
@@ -973,6 +993,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
     return (
       <ChatGPT
+        buttonRef={tourRefs.current.chatgpt}
         key={"chatgpt"}
         id={props.id}
         actions={props.actions}
@@ -990,7 +1011,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_tour(labels): Rendered {
-    if (!is_visible("tour", true)) {
+    if (!hasTour) {
       return;
     }
     return (
@@ -999,7 +1020,17 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         key={"tour"}
         title={"Take the tour!"}
         size={button_size()}
-        onClick={() => props.actions.tour(props.id)}
+        onClick={() => {
+          track("tour");
+          props.actions.set_frame_full(props.id);
+          // we have to wait until the frame renders before
+          // setting the tour; otherwise, the references won't
+          // be defined and it won't work.
+          setTimeout(
+            () => props.actions.set_frame_tree({ id: props.id, tour: true }),
+            1
+          );
+        }}
         style={{ border: "1px solid rgb(217, 217, 217)", ...button_style() }}
       >
         <Icon name="map" />
@@ -1784,6 +1815,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return (
       <Tooltip title={title}>
         <div
+          ref={tourRefs.current.title}
           style={{
             ...TITLE_STYLE,
             ...(is_active
@@ -2016,6 +2048,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         {render_control()}
       </div>
       {render_confirm_bar()}
+      {hasTour && props.is_visible && props.tab_is_visible && (
+        <TitleBarTour refs={tourRefs} />
+      )}
     </>
   );
 };

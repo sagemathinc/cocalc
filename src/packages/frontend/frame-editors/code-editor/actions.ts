@@ -84,6 +84,7 @@ import type { TimeTravelActions } from "../time-travel-editor/actions";
 import chatgptCreatechat from "../chatgpt/create-chat";
 import type { Scope as ChatGPTScope } from "../chatgpt/types";
 import type { PageActions } from "@cocalc/frontend/app/actions";
+import type { TourProps } from "antd";
 
 interface gutterMarkerParams {
   line: number;
@@ -2889,7 +2890,7 @@ export class Actions<
     await chatgptCreatechat({ actions: this, frameId, options, input });
   }
 
-  tour(id: string) {
-    console.log("take tour...", id);
+  tour(_id: string, _refs: any): TourProps["steps"] {
+    return [];
   }
 }
