@@ -26,6 +26,7 @@ import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 import Tags from "./tags";
 import FirstFile from "./first-file";
 import { filename_extension } from "@cocalc/util/misc";
+const FIRST_FILE = false;
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
@@ -90,7 +91,9 @@ function SignUp0({
   const submittable = useRef<boolean>(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
   const { strategies } = useCustomize();
-  const [firstFile, setFirstFile] = useState<string>("Untitled");
+  const [firstFile, setFirstFile] = useState<string>(
+    FIRST_FILE ? "Untitled" : ""
+  );
 
   // Sometimes the user if this component knows requiresToken and sometimes they don't.
   // If they don't, we have to make an API call to figure it out.
@@ -157,30 +160,32 @@ function SignUp0({
       } else {
         if (onSuccess != null) {
           let path = firstFile;
-          if (!filename_extension(path)) {
-            // try to come up with one based on tags
-            for (const tag of [
-              "ipynb",
-              "py",
-              "sage",
-              "R",
-              "tex",
-              "jl",
-              "m",
-              "term",
-              "c",
-            ]) {
-              if (tags.has(tag)) {
-                path += "." + tag.toLowerCase();
-                break;
+          if (FIRST_FILE) {
+            if (!filename_extension(path)) {
+              // try to come up with one based on tags
+              for (const tag of [
+                "ipynb",
+                "py",
+                "sage",
+                "R",
+                "tex",
+                "jl",
+                "m",
+                "term",
+                "c",
+              ]) {
+                if (tags.has(tag)) {
+                  path += "." + tag.toLowerCase();
+                  break;
+                }
               }
             }
-          }
 
-          if (path.endsWith(".ipynb")) {
-            // maybe set default kernel for user based on tags
-            for (const tag of ["py", "sage", "R", "jl", "m", "c", "term"]) {
-              if (tags.has(tag)) {
+            if (path.endsWith(".ipynb")) {
+              // maybe set default kernel for user based on tags
+              for (const tag of ["py", "sage", "R", "jl", "m", "c", "term"]) {
+                if (tags.has(tag)) {
+                }
               }
             }
           }
@@ -265,7 +270,7 @@ function SignUp0({
             style={{ width: "880px", maxWidth: "100%" }}
           />
         )}
-        {terms && !minimal && !needsTags && onCoCalcCom && (
+        {FIRST_FILE && terms && !minimal && !needsTags && onCoCalcCom && (
           <FirstFile
             style={{ width: "880px", maxWidth: "100%" }}
             tags={tags}
