@@ -28,14 +28,15 @@ export default function getTour(refs) {
               <b>
                 The <code>ls</code> command
               </b>{" "}
-              is used to list files and directories in the current directory.
-              Try typing <code>ls -a</code> in the terminal right now.
+              is used to list files and directories in the current directory,
+              <code>cd path</code> to change directories.
             </li>
             <li>
               <b>
-                The <code>cd</code> command
+                The <code>open</code> command
               </b>{" "}
-              is used to change the current directory.
+              lets you create or open a file from the terminal. Try typing this:{" "}
+              <code>open a.c</code>
             </li>
             <li>
               <b>Use tab completion</b> to quickly and easily enter directory
