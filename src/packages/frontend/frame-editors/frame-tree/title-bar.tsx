@@ -387,6 +387,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     // to workaround that this is still in a bootstrap button group.
     return (
       <DropdownMenu
+        key="types"
         cocalc-test={"types-dropdown"}
         button={true}
         style={{
@@ -395,7 +396,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           marginBottom: "5px",
           marginRight: "3px",
         }}
-        key={"types"}
         title={title}
         items={items}
       />
@@ -411,7 +411,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       float: "right",
     };
     return (
-      <div style={{ overflow: "hidden" }}>
+      <div
+        key="control"
+        style={{ overflow: "hidden" }}
+        ref={getTourRef("control")}
+      >
         <ButtonGroup style={style} key={"close"}>
           {is_active && !props.is_full ? render_split_row() : undefined}
           {is_active && !props.is_full ? render_split_col() : undefined}
@@ -1030,7 +1034,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         title={"Take the tour!"}
         size={button_size()}
         onClick={() => {
-          console.log(tourRefs);
           track("tour");
           props.actions.set_frame_full(props.id);
           // we have to wait until the frame renders before
@@ -1071,19 +1074,20 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
-        key={"help"}
-        title={"Show documentation for working with this editor"}
-        bsSize={button_size()}
-        onClick={() =>
-          typeof props.actions.help === "function"
-            ? props.actions.help(props.type)
-            : undefined
-        }
-      >
-        <Icon name="question-circle" />{" "}
-        <VisibleMDLG>{labels ? "Docs…" : undefined}</VisibleMDLG>
-      </Button>
+      <div key="help" ref={getTourRef("help")}>
+        <Button
+          title={"Show documentation for working with this editor"}
+          bsSize={button_size()}
+          onClick={() =>
+            typeof props.actions.help === "function"
+              ? props.actions.help(props.type)
+              : undefined
+          }
+        >
+          <Icon name="question-circle" />{" "}
+          <VisibleMDLG>{labels ? "Docs…" : undefined}</VisibleMDLG>
+        </Button>
+      </div>
     );
   }
 
@@ -1100,19 +1104,21 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       ...props.editor_spec[props.type].guide_info,
     };
     return (
-      <Button
-        key={"guide"}
-        title={descr}
-        bsSize={button_size()}
-        onClick={() =>
-          typeof props.actions.help === "function"
-            ? props.actions.guide(props.id, props.type)
-            : undefined
-        }
-      >
-        <Icon name={icon} />{" "}
-        <VisibleMDLG>{labels ? title : undefined}</VisibleMDLG>
-      </Button>
+      <div key="guide" ref={getTourRef("guide")}>
+        <Button
+          title={descr}
+          bsSize={button_size()}
+          onClick={() => {
+            if (typeof props.actions.help === "function") {
+              props.actions.guide(props.id, props.type);
+              track("guide");
+            }
+          }}
+        >
+          <Icon name={icon} />{" "}
+          <VisibleMDLG>{labels ? title : undefined}</VisibleMDLG>
+        </Button>
+      </div>
     );
   }
 
@@ -1381,14 +1387,18 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
+      <div
         key={"kick_other_users_out"}
-        bsSize={button_size()}
-        onClick={() => props.actions.kick_other_users_out(props.id)}
-        title={"Kick all other users out"}
+        ref={getTourRef("kick_other_users_out")}
       >
-        <Icon name={"skull-crossbones"} />
-      </Button>
+        <Button
+          bsSize={button_size()}
+          onClick={() => props.actions.kick_other_users_out(props.id)}
+          title={"Kick all other users out"}
+        >
+          <Icon name={"skull-crossbones"} />
+        </Button>
+      </div>
     );
   }
 
@@ -1552,7 +1562,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <Button
         key={"terminal"}
         bsSize={button_size()}
-        onClick={() => props.actions.terminal(props.id)}
+        onClick={() => {
+          props.actions.terminal(props.id);
+          track("terminal");
+        }}
         title={button_title("terminal", "Open a command line terminal")}
       >
         <Icon name={"terminal"} />{" "}
@@ -1765,16 +1778,18 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           );
         }}
       >
-        <AntdButton
-          type="text"
-          style={{
-            margin: "0 3px",
-            height: props.is_only || props.is_full ? "34px" : "30px",
-          }}
-          onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
-        >
-          <Icon name="ellipsis" />
-        </AntdButton>
+        <div key="all-buttons" ref={getTourRef("all-buttons")}>
+          <AntdButton
+            type="text"
+            style={{
+              margin: "0 3px",
+              height: props.is_only || props.is_full ? "34px" : "30px",
+            }}
+            onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
+          >
+            <Icon name="ellipsis" />
+          </AntdButton>
+        </div>
       </Popover>
     );
   }

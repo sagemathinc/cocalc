@@ -23,7 +23,6 @@ export default function TitleBarTour({ refs }) {
 
   return (
     <Tour
-      zIndex={10001}
       open={open}
       onClose={() => {
         actions.set_frame_tree({ id, tour: false });
