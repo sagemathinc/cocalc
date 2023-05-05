@@ -205,6 +205,11 @@ export default function TermsOfService({ customize }) {
                   temporarily or permanently, your access to the API (or any
                   part thereof) with or without notice.{" "}
                 </li>
+                <li>
+                  Unauthorized access to the API is not allowed from third party
+                  software. You must create your own account and provision an
+                  API key in order to use the API.
+                </li>
               </ul>
               <h1>Payment, Refunds, Upgrading and Downgrading Accounts</h1>
               <p>
