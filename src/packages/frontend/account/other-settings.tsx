@@ -43,17 +43,17 @@ export class OtherSettings extends Component<Props> {
     }
   }
 
-//   private render_first_steps(): Rendered {
-//     if (this.props.kucalc !== KUCALC_COCALC_COM) return;
-//     return (
-//       <Checkbox
-//         checked={!!this.props.other_settings.get("first_steps")}
-//         onChange={(e) => this.on_change("first_steps", e.target.checked)}
-//       >
-//         Offer the First Steps guide
-//       </Checkbox>
-//     );
-//   }
+  //   private render_first_steps(): Rendered {
+  //     if (this.props.kucalc !== KUCALC_COCALC_COM) return;
+  //     return (
+  //       <Checkbox
+  //         checked={!!this.props.other_settings.get("first_steps")}
+  //         onChange={(e) => this.on_change("first_steps", e.target.checked)}
+  //       >
+  //         Offer the First Steps guide
+  //       </Checkbox>
+  //     );
+  //   }
 
   private render_global_banner(): Rendered {
     return (
@@ -298,11 +298,12 @@ export class OtherSettings extends Component<Props> {
           Disable the markdown code bar in all markdown documents. Checking this
           hides the extra run, copy, and explain buttons in fenced code blocks.
         </Checkbox>
-        <Tours />
         {this.render_new_filenames()}
         {this.render_default_file_sort()}
         {this.render_page_size()}
         {this.render_standby_timeout()}
+        <div style={{ height: "10px" }} />
+        <Tours />
       </Panel>
     );
   }

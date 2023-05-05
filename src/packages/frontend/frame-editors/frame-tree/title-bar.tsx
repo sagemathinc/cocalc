@@ -236,6 +236,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   const tourRefs = useRef<any>({
     title: { current: null },
     chatgpt: { current: null },
+    zoom: { current: null },
   });
   const tours = useRedux(["account", "tours"]);
   const hasTour = useMemo(() => {
@@ -812,11 +813,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function render_zoom_group(): Rendered {
     return (
-      <ButtonGroup key={"zoom"}>
-        {render_set_zoom()}
-        {render_zoom_out()}
-        {render_zoom_in()}
-      </ButtonGroup>
+      <div style={{ display: "inline-block" }} ref={tourRefs.current.zoom}>
+        <AntdButton.Group key={"zoom"}>
+          {render_set_zoom()}
+          {render_zoom_out()}
+          {render_zoom_in()}
+        </AntdButton.Group>
+      </div>
     );
   }
 

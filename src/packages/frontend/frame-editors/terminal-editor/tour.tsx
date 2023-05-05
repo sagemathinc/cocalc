@@ -1,23 +1,26 @@
 import type { TourProps } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { A } from "@cocalc/frontend/components/A";
 
 export default function getTour(refs) {
   const v: TourProps["steps"] = [
     {
-      title: "Welcome to the CoCalc terminal!",
+      title: (
+        <div>
+          Welcome to the CoCalc terminal!{" "}
+          <A href="https://doc.cocalc.com/terminal.html">(docs)</A>
+        </div>
+      ),
       description: (
         <div>
           The terminal is a powerful tool for using the Linux operating system.
-          In this user tour, we'll highlight key features and commands to help
-          you get started. Some key commands are:
+          In this user tour, we'll highlight key features and commands.
           <ol>
             <li>
               <b>
                 The <code>ls</code> command
               </b>{" "}
               is used to list files and directories in the current directory.
-              Try typing <code>ls /</code> in your terminal right now, and press
-              Enter to see a list of files and directories.
             </li>
             <li>
               <b>
@@ -27,8 +30,7 @@ export default function getTour(refs) {
             </li>
             <li>
               <b>Use tab completion</b> to quickly and easily enter directory
-              and file names. Start typing the name of the file or directory and
-              then press Tab to autofill the rest.
+              and file names.
             </li>
             <li>There are thousands of other commands!!</li>
           </ol>
@@ -78,6 +80,20 @@ export default function getTour(refs) {
         </>
       ),
       target: refs.chatgpt.current,
+    });
+  }
+
+  if (refs.zoom.current) {
+    v.push({
+      title: <>Font Size</>,
+      description: (
+        <>
+          Click these buttons to decrease or increase the size of the font in
+          the current terminal. You can also use the keyboard shortcuts
+          {"control+<, and control+>"} to adjust the font size.
+        </>
+      ),
+      target: refs.zoom.current,
     });
   }
 

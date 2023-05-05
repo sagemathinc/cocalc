@@ -6,6 +6,7 @@ const names = {
   projects: "Projects",
   "chatgpt-title-bar-button": "ChatGPT Button",
   explorer: "File Explorer",
+  "frame-terminal": "Linux Terminal",
 };
 
 export default function Tours() {
