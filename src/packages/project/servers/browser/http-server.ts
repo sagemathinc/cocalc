@@ -21,15 +21,15 @@ import basePath from "@cocalc/backend/base-path";
 import initWebsocket from "@cocalc/project/browser-websocket/server";
 import { browserPortFile, project_id } from "@cocalc/project/data";
 import initDirectoryListing from "@cocalc/project/directory-listing";
-import { options } from "@cocalc/project/init-program";
+import { getOptions } from "@cocalc/project/init-program";
 import initJupyter from "@cocalc/project/jupyter/http-server";
 import * as kucalc from "@cocalc/project/kucalc";
+import { getLogger } from "@cocalc/project/logger";
 import initUpload from "@cocalc/project/upload";
 import { once } from "@cocalc/util/async-utils";
 import initRootSymbolicLink from "./root-symlink";
 import initStaticServer from "./static";
 
-import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("browser-http-server");
 
 export default async function init(): Promise<void> {
@@ -55,7 +55,7 @@ export default async function init(): Promise<void> {
   const base = join(basePath, project_id, "raw") + "/";
 
   if (kucalc.IN_KUCALC) {
-    // Add a /health handler, which is used as a health check for Kubernetes.
+    // Add /health (used as a health check for Kubernetes) and /metrics (Prometheus)
     winston.info("initializing KuCalc only health metrics server");
     kucalc.init_health_metrics(app, project_id);
   }
@@ -89,6 +89,7 @@ export default async function init(): Promise<void> {
   winston.info("initializing static server");
   initStaticServer(app, base);
 
+  const options = getOptions();
   server.listen(options.browserPort, options.hostname);
   await once(server, "listening");
   const address = server.address();

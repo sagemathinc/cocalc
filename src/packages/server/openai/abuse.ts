@@ -7,8 +7,7 @@ import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 We initially just implement some very simple rate limitations to prevent very
 blatant abuse.
 
-- at most $10^4$ tokens per non-signed in user per hour \(that's \$0.02\); that's still a lot.
-- at most $10^5$ tokens per signed in user per hour \(that's \$0.20\); that allows for major usage...
+- at most $5*10^4$ tokens per signed in user per hour \(that's \$0.10\); that allows for major usage...
   but if somebody tried to do something really abusive, it would stop it.  Nobody
   would hit this in practice unless they are really trying to abuse cocalc.
 - at most $10^6$ tokens per hour across all users \-\- that's \$2/hour. That would
@@ -28,8 +27,8 @@ where they limit per minute, not per hour (like below):
 */
 
 const QUOTAS = {
-  noAccount: 10 ** 4,
-  account: 10 ** 5,
+  noAccount: 0,
+  account: 5 * 10 ** 4,
   global: 10 ** 6,
 };
 
@@ -51,6 +50,11 @@ export async function checkForAbuse({
   analytics_cookie?: string;
   model?: Model;
 }): Promise<void> {
+  if (!account_id) {
+    // Due to assholes like gpt4free, which is why "we can't have nice things".
+    // https://github.com/xtekky/gpt4free/tree/main/gpt4free/cocalc
+    throw Error("You must create an account.");
+  }
   if (!isValidUUID(account_id) && !isValidUUID(analytics_cookie)) {
     // at least some amount of tracking.
     throw Error("at least one of account_id or analytics_cookie must be set");
@@ -112,8 +116,16 @@ async function recentUsage({
   // Recommendation: "short"
   cache?: "short" | "medium" | "long";
 }): Promise<number> {
+  const pool = getPool(cache);
   let query, args;
   if (account_id) {
+    const { rows } = await pool.query(
+      "SELECT COUNT(*) FROM accounts WHERE account_id=$1",
+      [account_id]
+    );
+    if (rows.length == 0) {
+      throw Error(`invalid account_id ${account_id}`);
+    }
     query = `SELECT SUM(total_tokens) AS usage FROM openai_chatgpt_log WHERE account_id=$1 AND time >= NOW() - INTERVAL '${period}'`;
     args = [account_id];
   } else if (analytics_cookie) {
@@ -123,7 +135,6 @@ async function recentUsage({
     query = `SELECT SUM(total_tokens) AS usage FROM openai_chatgpt_log WHERE time >= NOW() - INTERVAL '${period}'`;
     args = [];
   }
-  const pool = getPool(cache);
   const { rows } = await pool.query(query, args);
   // console.log("rows = ", rows);
   return parseInt(rows[0]?.["usage"] ?? 0); // undefined = no results in above select,

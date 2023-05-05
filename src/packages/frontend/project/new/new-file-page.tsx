@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-
+import { useAvailableFeatures } from "../use-available-features";
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -33,6 +33,7 @@ import { NewFileDropdown } from "./new-file-dropdown";
 import { COLORS } from "@cocalc/util/theme";
 import { Button, Input, Modal, Space } from "antd";
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
+import { ChatGPTGenerateNotebookButton } from "../page/home-page/chatgpt-generate-jupyter";
 
 interface Props {
   project_id: string;
@@ -41,6 +42,7 @@ interface Props {
 export default function NewFilePage(props: Props) {
   const { project_id } = props;
   const actions = useActions({ project_id });
+  const availableFeatures = useAvailableFeatures(project_id);
   const [extensionWarning, setExtensionWarning] = useState<boolean>(false);
   const current_path = useTypedRedux({ project_id }, "current_path");
   const filename0 = useTypedRedux({ project_id }, "default_filename");
@@ -349,7 +351,14 @@ export default function NewFilePage(props: Props) {
           <FileTypeSelector
             create_file={submit}
             create_folder={createFolder}
-            project_id={project_id}
+            projectActions={actions}
+            availableFeatures={availableFeatures}
+            chatgptNotebook={
+              <ChatGPTGenerateNotebookButton
+                project_id={project_id}
+                style={{ width: "100%" }}
+              />
+            }
           >
             <Tip
               title={"Download files from the Internet"}

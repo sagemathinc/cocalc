@@ -91,7 +91,7 @@ export async function test_compute_status() {
 
 async function compute_status(): Promise<Status> {
   const status: Status = {
-    time: new Date().getTime(),
+    time: Date.now(),
     memory: { rss: 0 },
     disk_MB: 0,
     cpu: {},
@@ -110,7 +110,7 @@ async function compute_status(): Promise<Status> {
 }
 
 async function compute_status_disk(status) {
-  const x = disk_usage("$HOME");
+  const x: number = await disk_usage("$HOME");
   status.disk_MB = x;
 }
 
@@ -145,7 +145,7 @@ async function processes_info(status): Promise<void> {
 // NOTE: we use tmpfs for /tmp, so RAM usage is the **sum** of /tmp and what
 // processes use.
 async function compute_status_tmp(status) {
-  const x = await disk_usage("/tmp");
+  const x: number = await disk_usage("/tmp");
   status.memory.rss += 1000 * x;
 }
 
@@ -204,11 +204,8 @@ async function cgroup_stats(status) {
   }
 
   try {
-    const [memory, cpu, oom] = await Promise.all([
-      getMemory(),
-      getCPU(),
-      getOOM(),
-    ]);
+    const [memory, cpu, oom]: [{ [key: string]: number }, number, number] =
+      await Promise.all([getMemory(), getCPU(), getOOM()]);
 
     const kib = 1024; // convert to kibibyte
     // total_rss includes total_rss_huge

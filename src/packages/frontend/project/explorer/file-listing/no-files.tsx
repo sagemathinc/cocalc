@@ -6,14 +6,13 @@
 import { useMemo } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
-
 import { HelpAlert } from "./help-alert";
 import { full_path_text } from "./utils";
-
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import { Button } from "antd";
-
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
+import { useAvailableFeatures } from "../../use-available-features";
+import { ChatGPTGenerateNotebookButton } from "../../page/home-page/chatgpt-generate-jupyter";
 
 interface Props {
   name: string;
@@ -34,6 +33,7 @@ export default function NoFiles({
   project_id,
   configuration_main,
 }: Props) {
+  const availableFeatures = useAvailableFeatures(project_id);
   const { buttonText, actualNewFilename } = useMemo(() => {
     const actualNewFilename =
       file_search.length === 0
@@ -89,9 +89,16 @@ export default function NoFiles({
         <div style={{ marginTop: "15px" }}>
           <h4 style={{ color: "#666" }}>Or select a file type</h4>
           <FileTypeSelector
-            project_id={project_id}
             create_file={create_file}
             create_folder={create_folder}
+            projectActions={actions}
+            availableFeatures={availableFeatures}
+            chatgptNotebook={
+              <ChatGPTGenerateNotebookButton
+                project_id={project_id}
+                style={{ width: "100%" }}
+              />
+            }
           />
         </div>
       )}

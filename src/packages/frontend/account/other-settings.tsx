@@ -7,7 +7,7 @@ import { Card, InputNumber } from "antd";
 import { Map } from "immutable";
 
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
-import { Component, redux, Rendered } from "@cocalc/frontend/app-framework";
+import { Component, Rendered, redux } from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
@@ -26,6 +26,7 @@ import Tours from "./tours";
 interface Props {
   other_settings: Map<string, any>;
   is_stripe_customer: boolean;
+  kucalc: string;
 }
 
 export class OtherSettings extends Component<Props> {
@@ -42,16 +43,17 @@ export class OtherSettings extends Component<Props> {
     }
   }
 
-  private render_first_steps(): Rendered {
-    return (
-      <Checkbox
-        checked={!!this.props.other_settings.get("first_steps")}
-        onChange={(e) => this.on_change("first_steps", e.target.checked)}
-      >
-        Offer the First Steps guide
-      </Checkbox>
-    );
-  }
+//   private render_first_steps(): Rendered {
+//     if (this.props.kucalc !== KUCALC_COCALC_COM) return;
+//     return (
+//       <Checkbox
+//         checked={!!this.props.other_settings.get("first_steps")}
+//         onChange={(e) => this.on_change("first_steps", e.target.checked)}
+//       >
+//         Offer the First Steps guide
+//       </Checkbox>
+//     );
+//   }
 
   private render_global_banner(): Rendered {
     return (
@@ -296,7 +298,6 @@ export class OtherSettings extends Component<Props> {
           Disable the markdown code bar in all markdown documents. Checking this
           hides the extra run, copy, and explain buttons in fenced code blocks.
         </Checkbox>
-        {this.render_first_steps()}
         <Tours />
         {this.render_new_filenames()}
         {this.render_default_file_sort()}

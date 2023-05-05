@@ -24,15 +24,18 @@ import useCustomize from "lib/use-customize";
 import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
 import Tags from "./tags";
+import FirstFile from "./first-file";
+import { filename_extension } from "@cocalc/util/misc";
+const FIRST_FILE = false;
 
 const LINE: CSSProperties = { margin: "15px 0" } as const;
 
-const MIN_TAGS = 2;
+const MIN_TAGS = 1;
 
 interface Props {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
   requiresToken?: boolean; // will be determined by API call if not given.
-  onSuccess?: () => void; // if given, call after sign up *succeeds*.
+  onSuccess?: (opts: { firstFile: string }) => void; // if given, call after sign up *succeeds*.
   has_site_license?: boolean;
   publicPathId?: string;
 }
@@ -66,6 +69,7 @@ function SignUp0({
     emailSignup,
     accountCreationInstructions,
     reCaptchaKey,
+    onCoCalcCom,
   } = useCustomize();
   const [tags, setTags] = useState<Set<string>>(new Set());
   const [terms, setTerms] = useState<boolean>(false);
@@ -85,10 +89,11 @@ function SignUp0({
   }>({});
 
   const submittable = useRef<boolean>(false);
-
   const { executeRecaptcha } = useGoogleReCaptcha();
-
   const { strategies } = useCustomize();
+  const [firstFile, setFirstFile] = useState<string>(
+    FIRST_FILE ? "Untitled" : ""
+  );
 
   // Sometimes the user if this component knows requiresToken and sometimes they don't.
   // If they don't, we have to make an API call to figure it out.
@@ -154,7 +159,37 @@ function SignUp0({
         setIssues(result.issues);
       } else {
         if (onSuccess != null) {
-          onSuccess();
+          let path = firstFile;
+          if (FIRST_FILE) {
+            if (!filename_extension(path)) {
+              // try to come up with one based on tags
+              for (const tag of [
+                "ipynb",
+                "py",
+                "sage",
+                "R",
+                "tex",
+                "jl",
+                "m",
+                "term",
+                "c",
+              ]) {
+                if (tags.has(tag)) {
+                  path += "." + tag.toLowerCase();
+                  break;
+                }
+              }
+            }
+
+            if (path.endsWith(".ipynb")) {
+              // maybe set default kernel for user based on tags
+              for (const tag of ["py", "sage", "R", "jl", "m", "c", "term"]) {
+                if (tags.has(tag)) {
+                }
+              }
+            }
+          }
+          onSuccess({ firstFile: path });
         }
       }
     } catch (err) {
@@ -214,7 +249,7 @@ function SignUp0({
         </div>
       )}
 
-      <div style={LOGIN_STYLE}>
+      <div style={{ ...LOGIN_STYLE, maxWidth: "890px" }}>
         {
           <TermsCheckbox
             onChange={setTerms}
@@ -232,7 +267,15 @@ function SignUp0({
             setTags={setTags}
             tags={tags}
             minTags={MIN_TAGS}
-            style={{ marginLeft: "-10px", width: "480px" }}
+            style={{ width: "880px", maxWidth: "100%" }}
+          />
+        )}
+        {FIRST_FILE && terms && !minimal && !needsTags && onCoCalcCom && (
+          <FirstFile
+            style={{ width: "880px", maxWidth: "100%" }}
+            tags={tags}
+            setPath={setFirstFile}
+            path={firstFile}
           />
         )}
         <form>
@@ -356,7 +399,7 @@ function SignUp0({
             onClick={signUp}
           >
             {needsTags && tags.size < 2
-              ? `Select what you want to do (at least ${MIN_TAGS})`
+              ? `Select at least ${MIN_TAGS}`
               : !terms
               ? "Agree to the terms"
               : requiresToken2 && !registrationToken
@@ -446,15 +489,17 @@ function EmailOrSSO(props: EmailOrSSOProps) {
 
   return (
     <div>
-      <p>
-        {hideSSO
-          ? "Sign up using your single sign-on provider"
-          : strategies.length > 0 && emailSignup
-          ? "Sign up using either your email address or a single sign-on provider."
-          : emailSignup
-          ? "Enter the email address you will use to sign in."
-          : "Sign up using a single sign-on provider."}
-      </p>
+      <div style={{ textAlign: "center" }}>
+        <p style={{ color: "#444", marginTop: "20px" }}>
+          {hideSSO
+            ? "Sign up using your single sign-on provider"
+            : strategies.length > 0 && emailSignup
+            ? "Sign up using either your email address or a single sign-on provider."
+            : emailSignup
+            ? "Enter the email address you will use to sign in."
+            : "Sign up using a single sign-on provider."}
+        </p>
+      </div>
       {renderSSO()}
       {emailSignup && (
         <p>

@@ -7,10 +7,11 @@
 Confirmation dialog, for explicitly confirming dangerous actions.
 */
 
-import { Map } from "immutable";
-import { Icon, IconName, Markdown } from "@cocalc/frontend/components";
 import { Modal } from "antd";
+import { Map } from "immutable";
+
 import { Button, ButtonStyle } from "@cocalc/frontend/antd-bootstrap";
+import { Icon, IconName, Markdown } from "@cocalc/frontend/components";
 import { JupyterActions } from "./browser-actions";
 
 // This defines what data should be put in the confirm_dialog prop,
@@ -77,7 +78,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = (
   return (
     <Modal
       width={700}
-      visible={confirm_dialog.get("choice") == null}
+      open={confirm_dialog.get("choice") == null}
       onCancel={close}
       title={
         <>

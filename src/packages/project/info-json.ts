@@ -10,7 +10,7 @@ import { networkInterfaces } from "node:os";
 
 import basePath from "@cocalc/backend/base-path";
 import { infoJson, project_id, username } from "./data";
-import { options } from "./init-program";
+import { getOptions } from "./init-program";
 import { getLogger } from "./logger";
 
 let INFO: {
@@ -28,7 +28,7 @@ export default async function init() {
   let host: string;
   if (process.env.HOST != null) {
     host = process.env.HOST;
-  } else if (options.kucalc) {
+  } else if (getOptions().kucalc) {
     // what we want for the Google Compute engine deployment
     // earlier, there was eth0, but newer Ubuntu's on GCP have ens4
     const nics = networkInterfaces();

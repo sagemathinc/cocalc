@@ -15,7 +15,7 @@ import enableMessagingProtocol, {
 import { unlockSocket } from "@cocalc/backend/tcp/locked-socket";
 import * as client from "@cocalc/project/client";
 import { hubPortFile } from "@cocalc/project/data";
-import { options } from "@cocalc/project/init-program";
+import { getOptions } from "@cocalc/project/init-program";
 import { secretToken } from "@cocalc/project/servers/secret-token";
 import { once } from "@cocalc/util/async-utils";
 import handleMessage from "./handle-message";
@@ -32,6 +32,7 @@ export default async function init(): Promise<void> {
 
   winston.info("starting tcp server: project <--> hub...");
   const server = createServer(handleConnection);
+  const options = getOptions();
   server.listen(options.hubPort, options.hostname);
   await once(server, "listening");
   const address = server.address();

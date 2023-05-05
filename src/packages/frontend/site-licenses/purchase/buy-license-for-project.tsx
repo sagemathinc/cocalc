@@ -3,21 +3,30 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button, Space } from "antd";
+import { join } from "path";
+
+import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
-import { Button, Space } from "antd";
-import { join } from "path";
-import { useTypedRedux } from "../../app-framework";
 
 interface Props {
   project_id?: string;
+  text?: string;
+  asLink?: boolean;
+  showVoucherButton?: boolean;
+  style?: CSS;
 }
 
-export const BuyLicenseForProject: React.FC<Props> = (props: Props) => {
-  const { project_id } = props;
-
+export const BuyLicenseForProject: React.FC<Props> = ({
+  project_id,
+  text = "Buy a license",
+  asLink = false,
+  showVoucherButton = true,
+  style,
+}: Props) => {
   const commercial = useTypedRedux("customize", "commercial");
 
   function url(path): string {
@@ -32,19 +41,29 @@ export const BuyLicenseForProject: React.FC<Props> = (props: Props) => {
   if (!commercial) {
     return null;
   }
-  return (
-    <Space>
+
+  function renderBuyButton() {
+    return (
       <Button
-        size="large"
-        icon={<Icon name="shopping-cart" />}
+        size={asLink ? undefined : "large"}
+        type={asLink ? "link" : "default"}
+        icon={asLink ? undefined : <Icon name="shopping-cart" />}
+        style={style}
         onClick={() => {
           open_new_tab(url("store/site-license"));
         }}
       >
-        Buy a license
+        {text}
       </Button>
+    );
+  }
+
+  function renderVoucherButton() {
+    return (
       <Button
-        size="large"
+        size={asLink ? undefined : "large"}
+        type={asLink ? "link" : "default"}
+        style={style}
         icon={<Icon name="gift2" />}
         onClick={() => {
           open_new_tab(url("redeem"));
@@ -52,6 +71,17 @@ export const BuyLicenseForProject: React.FC<Props> = (props: Props) => {
       >
         Redeem a voucher
       </Button>
-    </Space>
-  );
+    );
+  }
+
+  if (showVoucherButton === false) {
+    return renderBuyButton();
+  } else {
+    return (
+      <Space>
+        {renderBuyButton()}
+        {renderVoucherButton()}
+      </Space>
+    );
+  }
 };

@@ -188,11 +188,13 @@ function ipynb_outputs(
   const outputs: any[] = [];
   if (output && output.size > 0) {
     for (let i = 0; i < output.size + 1; i++) {
-      const output_n =
-        output.get(`${i}`) != null ? output.get(`${i}`).toJS() : undefined;
-      if (output_n != null) {
-        process_output_n(output_n, exec_count, blob_store);
-        outputs.push(output_n);
+      const x = output?.get(`${i}`);
+      if (x != null && typeof x.toJS == "function") {
+        const output_n = x.toJS();
+        if (output_n != null) {
+          process_output_n(output_n, exec_count, blob_store);
+          outputs.push(output_n);
+        }
       }
     }
   }

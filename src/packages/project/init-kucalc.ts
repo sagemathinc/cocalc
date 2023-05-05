@@ -5,7 +5,7 @@
 
 import { activate as initAutorenice } from "./autorenice";
 import * as dedicatedDisks from "./dedicated-disks";
-import { options } from "./init-program";
+import { getOptions } from "./init-program";
 import * as initScript from "./init-script";
 import { init as initJupyterPool } from "./jupyter/pool";
 import { init as initJupyterPoolParams } from "./jupyter/pool-params";
@@ -16,6 +16,7 @@ import * as sshd from "./sshd";
 
 export default async function init() {
   const winston = getLogger("init kucalc");
+  const options = getOptions();
   winston.info("initializing state related to KuCalc");
   if (options.kucalc) {
     winston.info("running in kucalc");
