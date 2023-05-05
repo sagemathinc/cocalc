@@ -58,7 +58,7 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
   const {
     placement = "right",
     delayShow = 500, // [ms]
-    delayHide = 100, // [ms] this was 0 before switching to Antd – which has 100ms as its default, though.
+    delayHide = 50, // [ms] this was 0 before switching to Antd – which has 100ms as its default, though.
     // rootClose = false,
     popover_style = { zIndex: 1000 },
     allow_touch = false,
@@ -97,7 +97,7 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
     if (delayShow == null || delayHide == null) return null;
 
     const props: { [key: string]: any } = {
-      arrowPointAtCenter: true,
+      arrow: { pointAtCenter: true },
       placement: placement,
       trigger: trigger ?? "hover",
       mouseEnterDelay: delayShow / 1000,

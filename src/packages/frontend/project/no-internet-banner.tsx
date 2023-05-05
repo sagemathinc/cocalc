@@ -13,7 +13,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, Icon, VisibleMDLG } from "@cocalc/frontend/components";
+import { A, Icon, Text, VisibleMDLG } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import {
   ALERT_STYLE,
@@ -65,10 +65,10 @@ export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
     function renderDescription(): JSX.Element {
       return (
         <div style={{ display: "flex", flexDirection: "row" }}>
-          <div style={{ flex: "1 1 auto" }}>
-            <span style={{ fontSize: ALERT_STYLE.fontSize }}>
+          <div style={{ flex: "1 1 auto", marginTop: "4px" }}>
+            <Text style={{ fontSize: ALERT_STYLE.fontSize }}>
               {renderMessage()}
-            </span>
+            </Text>
           </div>
           <div>
             <Button

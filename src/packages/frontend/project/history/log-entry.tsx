@@ -40,6 +40,7 @@ import {
   UpgradeEvent,
   X11Event,
 } from "./types";
+import track from "@cocalc/frontend/user-tracking";
 
 const TRUNC = 90;
 
@@ -119,6 +120,14 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
           style={cursor ? selected_item : undefined}
           trunc={TRUNC}
           project_id={project_id}
+          onOpen={() =>
+            track("open-file", {
+              how: "project-log",
+              type: "open_file",
+              path: event.filename,
+              project_id,
+            })
+          }
         />{" "}
         <TookTime ms={event.time} />
       </span>
@@ -140,6 +149,7 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
         to be {event.disabled ? "disabled" : "enabled"}
         {" and "}
         {event.unlisted ? "unlisted" : "listed"}
+        {event.site_license_id && ` and license id ...${event.site_license_id}`}
       </span>
     );
   }
@@ -216,6 +226,14 @@ export const LogEntry: React.FC<Props> = React.memo((props) => {
         trunc={TRUNC}
         link={link}
         project_id={project_id != null ? project_id : props.project_id}
+        onOpen={() =>
+          track("open-file", {
+            how: "project-log",
+            type: "file_link",
+            path,
+            project_id,
+          })
+        }
       />
     );
   }

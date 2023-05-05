@@ -52,7 +52,6 @@ export function News(props: Props) {
   const { id, url, tags, title, date, channel, text, future, hide } = news;
   const dateStr = useDateStr(news, historyMode);
   const permalink = slugURL(news);
-  const router = useRouter();
   const { kucalc, dns } = useCustomize();
   const isCoCalcCom = kucalc === KUCALC_COCALC_COM;
   const showShareLinks = typeof dns === "string" && isCoCalcCom;
@@ -196,26 +195,8 @@ export function News(props: Props) {
     }
   }
 
-  function onTagClickStandalone(tag: string) {
-    router.push(`/news?tag=${tag}`);
-  }
-
   function renderTags() {
-    if (tags == null || !Array.isArray(tags) || tags.length === 0) return;
-    return (
-      <Space size={[0, 4]} wrap>
-        {tags.sort().map((tag) => (
-          <Tag
-            color={getRandomColor(tag)}
-            key={tag}
-            style={{ cursor: "pointer" }}
-            onClick={() => (onTagClick ?? onTagClickStandalone)(tag)}
-          >
-            {tag}
-          </Tag>
-        ))}
-      </Space>
-    );
+    return <NewsTags tags={tags} onTagClick={onTagClick} />;
   }
 
   function extra() {
@@ -337,4 +318,36 @@ export function News(props: Props) {
       </>
     );
   }
+}
+
+interface NewsTagsProps {
+  tags?: string[];
+  onTagClick?: (tag: string) => void;
+  style?: CSS;
+  styleTag?: CSS;
+}
+
+export function NewsTags({ tags, onTagClick, style, styleTag }: NewsTagsProps) {
+  if (tags == null || !Array.isArray(tags) || tags.length === 0) return null;
+
+  const router = useRouter();
+
+  function onTagClickStandalone(tag: string) {
+    router.push(`/news?tag=${tag}`);
+  }
+
+  return (
+    <Space size={[0, 4]} wrap style={style}>
+      {tags.sort().map((tag) => (
+        <Tag
+          color={getRandomColor(tag)}
+          key={tag}
+          style={{ cursor: "pointer", ...styleTag }}
+          onClick={() => (onTagClick ?? onTagClickStandalone)(tag)}
+        >
+          {tag}
+        </Tag>
+      ))}
+    </Space>
+  );
 }

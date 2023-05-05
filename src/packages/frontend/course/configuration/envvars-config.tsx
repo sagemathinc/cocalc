@@ -83,7 +83,7 @@ export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
     <Card
       title={
         <>
-          <Icon name={ENV_VARS_ICON} /> Inherit environment variables
+          <Icon name={ENV_VARS_ICON} /> Inherit Environment Variables
         </>
       }
     >

@@ -169,6 +169,7 @@ export type PublicPathEvent = {
   unlisted?: boolean;
   disabled?: boolean;
   authenticated?: boolean;
+  site_license_id?: string;
 };
 
 export type SystemEvent = { event: ""; by: string };

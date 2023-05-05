@@ -450,7 +450,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           return (
             <Modal
               title="Project's SSH Daemon"
-              visible={modal === "ssh"}
+              open={modal === "ssh"}
               footer={render_modal_footer()}
               onCancel={() => set_modal(undefined)}
             >
@@ -466,7 +466,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           return (
             <Modal
               title="Project's process"
-              visible={modal === "project"}
+              open={modal === "project"}
               footer={render_modal_footer()}
               onCancel={() => set_modal(undefined)}
             >

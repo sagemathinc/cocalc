@@ -15,6 +15,7 @@ import shellEscape from "shell-escape";
 import { aggregate } from "@cocalc/util/aggregate";
 import { to_json, trunc, walltime } from "@cocalc/util/misc";
 import { callback_opts } from "@cocalc/util/async-utils";
+import { envForSpawn } from "./misc";
 
 const log = getLogger("execute-code");
 
@@ -46,7 +47,9 @@ export interface ExecuteCodeOptionsWithCallback extends ExecuteCodeOptions {
   cb?: (err: undefined | Error, output?: ExecuteCodeOutput) => void;
 }
 
-type ExecuteCodeFunctionWithCallback = (opts: ExecuteCodeOptions) => void;
+type ExecuteCodeFunctionWithCallback = (
+  opts: ExecuteCodeOptionsWithCallback
+) => void;
 
 // Async/await interface to executing code.
 export async function executeCode(
@@ -163,7 +166,7 @@ function doSpawn(opts, cb) {
     ...(opts.uid ? { uid: opts.uid } : undefined),
     ...(opts.gid ? { uid: opts.gid } : undefined),
     env: {
-      ...process.env,
+      ...envForSpawn(),
       ...opts.env,
       ...(opts.uid != null && opts.home ? { HOME: opts.home } : undefined),
     },

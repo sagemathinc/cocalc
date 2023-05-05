@@ -23,7 +23,7 @@ between them.
 const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 
 import { useState } from "react";
-import { Alert, Button, Row, Col, Input, Radio, Space } from "antd";
+import { Alert, Button, Row, Col, Input, Popconfirm, Radio } from "antd";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   CopyToClipBoard,
@@ -43,6 +43,9 @@ import {
   SHARE_FLAGS,
 } from "@cocalc/util/consts/ui";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import SelectLicense from "@cocalc/frontend/site-licenses/select-license";
+import { useManagedLicenses } from "@cocalc/frontend/site-licenses/input";
+import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 
 // https://ant.design/components/grid/
 const GUTTER: [number, number] = [16, 24];
@@ -57,6 +60,7 @@ interface PublicInfo {
   authenticated?: boolean;
   license?: string;
   name?: string;
+  site_license_id?: string;
 }
 
 interface Props {
@@ -69,12 +73,14 @@ interface Props {
   public?: PublicInfo;
   close: (event: any) => void;
   action_key: (event: any) => void;
+  site_license_id?: string;
   set_public_path: (options: {
     description?: string;
     unlisted?: boolean;
     license?: string;
     disabled?: boolean;
     authenticated?: boolean;
+    site_license_id?: string | null;
   }) => void;
   has_network_access?: boolean;
 }
@@ -99,6 +105,9 @@ export default function Configure(props: Props) {
     return "private";
   });
 
+  const [licenseId, setLicenseId] = useState<string | null | undefined>(
+    props.public?.site_license_id
+  );
   const kucalc = useTypedRedux("customize", "kucalc");
   const shareServer = useTypedRedux("customize", "share_server");
 
@@ -182,7 +191,7 @@ export default function Configure(props: Props) {
 
   return (
     <div>
-      <h2 style={{ color: "#666", textAlign: "center" }}>
+      <h3 style={{ color: "#666", textAlign: "center", marginTop: "-5px" }}>
         <a
           onClick={() => {
             redux
@@ -192,7 +201,7 @@ export default function Configure(props: Props) {
         >
           {trunc_middle(props.path, 128)}
         </a>
-      </h2>
+      </h3>
       <Row gutter={GUTTER}>
         <Col span={12}>
           <VisibleMDLG>
@@ -213,44 +222,41 @@ export default function Configure(props: Props) {
       <Row gutter={GUTTER}>
         <Col span={12}>
           {!parent_is_public && (
-            <div style={{ fontSize: "12pt", marginTop: "15px" }}>
+            <div style={{ fontSize: "12pt" }}>
               <Radio.Group
                 value={sharingOptionsState}
                 onChange={handleSharingOptionsChange}
               >
-                <Space direction="vertical">
-                  <Radio name="sharing_options" value="public_listed">
-                    <Icon name="eye" style={{ marginRight: "5px" }} />
-                    <i>Published (listed)</i> - on the{" "}
-                    <A href={shareServerUrl()}>
-                      public search engine indexed server
-                    </A>
-                    .
-                  </Radio>
-                  <Radio name="sharing_options" value="public_unlisted">
-                    <Icon name="eye-slash" style={{ marginRight: "5px" }} />
-                    <i>Published (unlisted)</i> - only people with the link can
-                    view this.
-                  </Radio>
-                  {kucalc != KUCALC_COCALC_COM && (
-                    <>
-                      <Radio name="sharing_options" value="authenticated">
-                        <Icon
-                          name={SHARE_AUTHENTICATED_ICON}
-                          style={{ marginRight: "5px" }}
-                        />
-                        <i>Authenticated</i> - {SHARE_AUTHENTICATED_EXPLANATION}
-                        .
-                      </Radio>
-                    </>
-                  )}
+                <Radio name="sharing_options" value="public_listed">
+                  <Icon name="eye" style={{ marginRight: "5px" }} />
+                  <i>Published (listed)</i> - on the{" "}
+                  <A href={shareServerUrl()}>
+                    public search engine indexed server
+                  </A>
+                  .
+                </Radio>
+                <Radio name="sharing_options" value="public_unlisted">
+                  <Icon name="eye-slash" style={{ marginRight: "5px" }} />
+                  <i>Published (unlisted)</i> - only people with the link can
+                  view this.
+                </Radio>
+                {kucalc != KUCALC_COCALC_COM && (
+                  <>
+                    <Radio name="sharing_options" value="authenticated">
+                      <Icon
+                        name={SHARE_AUTHENTICATED_ICON}
+                        style={{ marginRight: "5px" }}
+                      />
+                      <i>Authenticated</i> - {SHARE_AUTHENTICATED_EXPLANATION}.
+                    </Radio>
+                  </>
+                )}
 
-                  <Radio name="sharing_options" value="private">
-                    <Icon name="lock" style={{ marginRight: "5px" }} />
-                    <i>Private</i> - only collaborators on this project can view
-                    this.
-                  </Radio>
-                </Space>
+                <Radio name="sharing_options" value="private">
+                  <Icon name="lock" style={{ marginRight: "5px" }} />
+                  <i>Private</i> - only collaborators on this project can view
+                  this.
+                </Radio>
               </Radio.Group>
             </div>
           )}
@@ -280,21 +286,18 @@ export default function Configure(props: Props) {
             </A>{" "}
             either indexed by search engines (listed), or only visible with the
             link (unlisted). Files are automatically copied to the public server
-            within <b>about 30 seconds</b> after you explicitly edit them. See{" "}
+            within <b>about 30 seconds</b> after you explicitly edit them.
+            Opening this dialog also causes an immediate update. See{" "}
             <A href={SHARE_HELP_URL}>the docs</A> for more details.
           </div>
         </Col>
       </Row>
       {sharingOptionsState != "private" && (
-        <Row gutter={GUTTER} style={{ paddingTop: "12px" }}>
+        <Row gutter={GUTTER}>
           <Col span={12} style={{ color: "#666" }}>
             <h4>
               <Icon name="pencil" style={{ marginRight: "5px" }} /> Description
-              {description ? "" : " (optional)"}
             </h4>
-            Use relevant keywords, inspire curiosity by providing just enough
-            information to explain what this is about, and keep your description
-            to about two lines. Use Markdown and LaTeX.
             <Input.TextArea
               autoFocus
               style={{ paddingTop: "5px", margin: "15px 0" }}
@@ -308,19 +311,45 @@ export default function Configure(props: Props) {
               }}
             />
             <h4>
-              <Icon name="key" style={{ marginRight: "5px" }} /> Choose a
-              license {license ? "" : " (optional)"}
+              <Icon name="users" style={{ marginRight: "5px" }} /> Copyright
+              {license ? "" : " - optional"}{" "}
+              <A href="https://choosealicense.com/">(about...)</A>
             </h4>
             <div style={{ marginBottom: "5px" }}>
-              <A href="https://choosealicense.com/">About licenses...</A>
+              <License
+                disabled={parent_is_public}
+                license={license}
+                set_license={(license) => props.set_public_path({ license })}
+              />
             </div>
-            <License
-              disabled={parent_is_public}
-              license={license}
-              set_license={(license) => props.set_public_path({ license })}
-            />
+            {sharingOptionsState == "public_unlisted" && (
+              <>
+                <h4>
+                  <Icon name="key" style={{ marginRight: "5px" }} />
+                  License Code - optional
+                </h4>
+                <div>
+                  <EnterLicenseCode
+                    licenseId={licenseId}
+                    setLicenseId={(licenseId) => {
+                      setLicenseId(licenseId);
+                      props.set_public_path({ site_license_id: licenseId });
+                    }}
+                  />
+                  <div style={{ marginTop: "5px" }}>
+                    When people edit a copy of your shared document in a new
+                    project, their project will get upgraded using{" "}
+                    <b>
+                      <i>your</i>
+                    </b>{" "}
+                    license. You can thus provide a high quality experience to
+                    the people you share this link with.
+                  </div>
+                </div>
+              </>
+            )}
           </Col>
-          <Col span={12} style={{ color: "#666" }}>
+          <Col span={12}>
             <>
               <h4>
                 <A href={url}>
@@ -329,7 +358,7 @@ export default function Configure(props: Props) {
                 </A>
               </h4>
               <div style={{ paddingBottom: "5px" }}>
-                <A href={url}>Your share will appear here</A>:
+                <A href={url}>Your share will appear here</A>
               </div>
               <CopyToClipBoard value={url} />
             </>
@@ -340,14 +369,58 @@ export default function Configure(props: Props) {
           </Col>
         </Row>
       )}
-
-      <Row gutter={GUTTER}>
-        <Col span={24} style={{ textAlign: "center" }}>
-          <Button onClick={props.close} type="primary" size="large">
-            Close
-          </Button>
-        </Col>
-      </Row>
+      <div style={{ float: "right" }}>
+        <Button onClick={props.close} type="primary">
+          <Icon name="check" /> Finished
+        </Button>
+      </div>
     </div>
+  );
+}
+
+function EnterLicenseCode({ licenseId, setLicenseId }) {
+  const managed = useManagedLicenses();
+  const [adding, setAdding] = useState<boolean>(false);
+  if (!adding) {
+    if (licenseId) {
+      return (
+        <div>
+          <Button.Group>
+            <Button
+              onClick={() => setAdding(true)}
+              style={{ marginBottom: "5px" }}
+            >
+              Change License...
+            </Button>
+            <Popconfirm
+              title="Are you sure you want to remove the license?"
+              onConfirm={() => setLicenseId(null)}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Button style={{ marginBottom: "5px" }}>Remove License</Button>
+            </Popconfirm>
+          </Button.Group>
+          <SiteLicensePublicInfo license_id={licenseId} />
+        </div>
+      );
+    }
+    return (
+      <Button onClick={() => setAdding(true)}>Enter License Code...</Button>
+    );
+  }
+  return (
+    <SelectLicense
+      onSave={(licenseId) => {
+        setLicenseId(licenseId);
+        setAdding(false);
+      }}
+      onCancel={() => {
+        setAdding(false);
+      }}
+      onChange={setLicenseId}
+      managedLicenses={managed?.toJS() as any}
+      confirmLabel={"Use this license"}
+    />
   );
 }

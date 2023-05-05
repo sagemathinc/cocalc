@@ -7,6 +7,14 @@
 LaTeX Editor Actions.
 */
 
+const MINIMAL = `\\documentclass{article}
+\\title{Title}
+\\author{Author}
+\\begin{document}
+\\maketitle
+\\end{document}
+`;
+
 const HELP_URL = "https://doc.cocalc.com/latex.html";
 
 const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build"] as const;
@@ -140,6 +148,20 @@ export class Actions extends BaseActions<LatexEditorState> {
         "change",
         debounce(this.updateTableOfContents.bind(this), 1500)
       );
+      this._syncstring.on(
+        "change",
+        debounce(this.ensureNonempty.bind(this), 1500)
+      );
+    }
+  }
+
+  // similar to jupyter, where an empty document is really
+  // confusing, with latex we at least do something to
+  // prevent having a truly empty document.
+  private ensureNonempty() {
+    if (this.store && !this.store.get("value")?.trim()) {
+      this.set_value(MINIMAL);
+      this.build();
     }
   }
 

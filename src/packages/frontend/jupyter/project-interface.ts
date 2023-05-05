@@ -34,8 +34,7 @@ export interface BlobStoreInterface {
   readFile(path: string, type: string): Promise<string>;
   get(sha1: string): undefined | Buffer;
   get_ipynb(sha1: string): any;
-  keys(): string[];
-  express_router(base, express);
+  keys(): Promise<string[]>;
   delete_all_blobs(): void;
 }
 

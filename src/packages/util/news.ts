@@ -8,7 +8,8 @@ import { NewsItem } from "./types/news";
 // Slug URL, based on the title and with "-[id]" at the end.
 // https://www.semrush.com/blog/what-is-a-url-slug/
 // The main point here is to have a URL that contains unique information and is human readable.
-export function slugURL(news: Pick<NewsItem, "id" | "title">): string {
+export function slugURL(news?: Pick<NewsItem, "id" | "title">): string {
+  if (!news) return "/news";
   const { title, id } = news;
   const shortTitle = title
     .toLowerCase()

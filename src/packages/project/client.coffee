@@ -493,7 +493,8 @@ class exports.Client extends EventEmitter
     shell: (opts) =>
         misc_node.execute_code(opts)
 
-    # return new sage session
+    # return new sage session -- the code that actually calls this is in the @cocalc/sync package
+    # in "packages/sync/editor/generic/evaluator.ts"
     sage_session: (opts) =>
         opts = defaults opts,
             path : required

@@ -8,6 +8,7 @@ import { Button, Switch, Tooltip } from "antd";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
+import track from "@cocalc/frontend/user-tracking";
 
 const WIDTH = "57px";
 
@@ -27,6 +28,7 @@ export default function HomePageButton({ project_id, active }) {
         <Tooltip title="Show the action bar" placement="right">
           <Switch
             onChange={() => {
+              track("action-bar", { action: "show" });
               actions?.toggleActionButtons();
             }}
           />
@@ -45,6 +47,11 @@ export default function HomePageButton({ project_id, active }) {
       }}
       onClick={() => {
         actions?.set_active_tab("home");
+        track("switch_to_fixed_tab", {
+          how: "click-on-tab",
+          name: "home",
+          project_id,
+        });
       }}
     >
       <Icon name="home" style={{ verticalAlign: "5px" }} />

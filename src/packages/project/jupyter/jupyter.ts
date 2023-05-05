@@ -38,8 +38,11 @@ export const VERSION = "5.3";
 import nodeCleanup from "node-cleanup";
 
 import { Channels, MessageType } from "@nteract/messaging";
+import { reuseInFlight } from "async-await-utils/hof";
+import { callback } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
+import { unlink } from "./async-utils-node";
 
 import {
   process as iframe_process,
@@ -67,14 +70,12 @@ import {
   merge,
   original_path,
   path_split,
+  trunc,
   uuid,
 } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
-import { callback } from "awaiting";
-import { unlink } from "./async-utils-node";
 import { nbconvert } from "./convert";
 import { CodeExecutionEmitter } from "./execute-code";
-import { get_blob_store } from "./jupyter-blobs-sqlite";
+import { get_blob_store_sync } from "./jupyter-blobs-get";
 import { getLanguage, get_kernel_data_by_name } from "./kernel-data";
 import launchJupyterKernel, {
   LaunchJupyterOpts,
@@ -84,7 +85,7 @@ import launchJupyterKernel, {
 import { getAbsolutePathFromHome } from "./util";
 
 import { getLogger } from "@cocalc/project/logger";
-const winston = getLogger("jupyter");
+const log = getLogger("jupyter");
 
 /*
 We set a few extra user-specific options for the environment in which
@@ -535,7 +536,7 @@ export class JupyterKernel
   dbg(f: string): Function {
     return (...args) => {
       //console.log(
-      winston.debug(
+      log.debug(
         `jupyter.Kernel('${this.name ?? "no kernel"}',path='${
           this._path
         }').${f}`,
@@ -545,7 +546,7 @@ export class JupyterKernel
   }
 
   low_level_dbg(): void {
-    const dbg = this.dbg("low_level_debug");
+    const dbg = (...args) => log.silly("low_level_debug", ...args);
     dbg("Enabling");
     if (this._kernel) {
       this._kernel.spawn.all?.on("data", (data) =>
@@ -554,7 +555,7 @@ export class JupyterKernel
     }
     // for low level debugging only...
     this.channel?.subscribe((mesg) => {
-      dbg(JSON.stringify(mesg));
+      dbg(mesg);
     });
   }
 
@@ -707,7 +708,7 @@ export class JupyterKernel
   }
 
   get_blob_store() {
-    return get_blob_store();
+    return get_blob_store_sync();
   }
 
   process_output(content: any): void {
@@ -715,7 +716,8 @@ export class JupyterKernel
       return;
     }
     const dbg = this.dbg("process_output");
-    dbg(JSON.stringify(content));
+    // https://github.com/sagemathinc/cocalc/issues/6665
+    dbg(trunc(JSON.stringify(content), 300));
     if (content.data == null) {
       // todo: FOR now -- later may remove large stdout, stderr, etc...
       dbg("no data, so nothing to do");
@@ -728,7 +730,10 @@ export class JupyterKernel
     for (type of JUPYTER_MIMETYPES) {
       if (content.data[type] != null) {
         if (type.split("/")[0] === "image" || type === "application/pdf") {
-          content.data[type] = get_blob_store()?.save(content.data[type], type);
+          const blob_store = this.get_blob_store();
+          if (blob_store != null) {
+            content.data[type] = blob_store.save(content.data[type], type);
+          }
         } else if (
           type === "text/html" &&
           is_likely_iframe(content.data[type])
@@ -739,7 +744,7 @@ export class JupyterKernel
           //  {iframe: sha1 of srcdoc}
           content.data["iframe"] = iframe_process(
             content.data[type],
-            get_blob_store()
+            this.get_blob_store()
           );
           delete content.data[type];
         }
@@ -876,7 +881,7 @@ export class JupyterKernel
       path = process.env.HOME + "/" + path;
     }
     async function f(): Promise<string> {
-      const bs = get_blob_store();
+      const bs = get_blob_store_sync();
       if (bs == null) throw new Error("BlobStore not available");
       return bs.readFile(path, "base64");
     }
@@ -892,7 +897,8 @@ export class JupyterKernel
   }
 
   process_attachment(base64, mime): string | undefined {
-    return get_blob_store()?.save(base64, mime);
+    const blob_store = this.get_blob_store();
+    return blob_store?.save(base64, mime);
   }
 
   process_comm_message_from_kernel(mesg): void {
@@ -936,7 +942,7 @@ export class JupyterKernel
       },
     };
 
-    dbg("sending ", JSON.stringify(message));
+    dbg(message);
     // "The Kernel listens for these messages on the Shell channel,
     // and the Frontend listens for them on the IOPub channel." -- docs
     this.channel?.next(message);

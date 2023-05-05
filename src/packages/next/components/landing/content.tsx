@@ -79,7 +79,7 @@ export default function Content(props: Props) {
     if (!imageAlternative) return;
     if (typeof imageAlternative === "string") {
       return (
-        <Col xs={20}>
+        <Col xs={24}>
           <SanitizedMarkdown
             value={imageAlternative}
             style={{ padding: "20xp" }}
@@ -87,7 +87,7 @@ export default function Content(props: Props) {
         </Col>
       );
     } else {
-      return <Col xs={20}>{imageAlternative}</Col>;
+      return <Col xs={24}>{imageAlternative}</Col>;
     }
   }
 

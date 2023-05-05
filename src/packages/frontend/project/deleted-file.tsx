@@ -3,11 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useEffect, useCallback, useState } from "react";
 import { Modal } from "antd";
+import { useCallback, useEffect, useState } from "react";
+
 import { redux } from "@cocalc/frontend/app-framework";
-import { path_split } from "@cocalc/util/misc";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import { path_split } from "@cocalc/util/misc";
 
 interface Props {
   project_id: string;
@@ -42,7 +43,7 @@ export default function DeletedFile({ project_id, path, onOpen }: Props) {
   return (
     <div className="smc-vfill" style={{ background: "#aaa" }}>
       <Modal
-        visible={open}
+        open={open}
         title={`Open previously deleted file "${filename}"?`}
         onOk={openFile}
         onCancel={() => {

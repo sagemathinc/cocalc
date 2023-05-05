@@ -8,7 +8,7 @@ import { getLogger } from "@cocalc/project/logger";
 import { hubPortFile } from "@cocalc/project/data";
 import { unlockSocket } from "@cocalc/backend/tcp/locked-socket";
 import enableMessagingProtocol from "@cocalc/backend/tcp/enable-messaging-protocol";
-import { options } from "@cocalc/project/init-program";
+import { getOptions } from "@cocalc/project/init-program";
 import { secretToken } from "@cocalc/project/servers/secret-token";
 const client = require("@cocalc/project/client");
 import * as uuid from "uuid";
@@ -25,6 +25,7 @@ export default async function init(): Promise<void> {
 
   winston.info("starting tcp server: project <--> hub...");
   const server = createServer(handleConnection);
+  const options = getOptions();
   server.listen(options.hubPort, options.hostname);
   await once(server, "listening");
   const address = server.address();

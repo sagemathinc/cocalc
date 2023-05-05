@@ -3,30 +3,31 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { options } from "./init-program";
-const kucalc = require("./kucalc");
-import * as projectSetup from "./project-setup";
 import { activate as initAutorenice } from "./autorenice";
 import * as dedicatedDisks from "./dedicated-disks";
-import * as sshd from "./sshd";
+import { getOptions } from "./init-program";
 import * as initScript from "./init-script";
-import { getLogger } from "./logger";
-import { init as initJupyterPoolParams } from "./jupyter/pool-params";
 import { init as initJupyterPool } from "./jupyter/pool";
+import { init as initJupyterPoolParams } from "./jupyter/pool-params";
+import * as kucalc from "./kucalc";
+import { getLogger } from "./logger";
+import * as projectSetup from "./project-setup";
+import * as sshd from "./sshd";
 
 export default async function init() {
   const winston = getLogger("init kucalc");
+  const options = getOptions();
   winston.info("initializing state related to KuCalc");
   if (options.kucalc) {
     winston.info("running in kucalc");
-    kucalc.IN_KUCALC = true;
+    kucalc.setInKucalc(true);
 
     if (options.testFirewall) {
       kucalc.init_gce_firewall_test(winston);
     }
   } else {
     winston.info("NOT running in kucalc");
-    kucalc.IN_KUCALC = false;
+    kucalc.setInKucalc(false);
   }
 
   if (process.env.COCALC_PROJECT_AUTORENICE != null || options.kucalc) {

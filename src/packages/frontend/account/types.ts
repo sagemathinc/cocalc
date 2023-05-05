@@ -82,4 +82,6 @@ export interface AccountState {
   autosave?: number;
   show_purchase_form?: boolean;
   tableError?: TypedMap<{ error: string; query: any }>;
+  tags?: string[];
+  tours?: string[];
 }

@@ -8,7 +8,7 @@ import { getLogger } from "@cocalc/project/logger";
 import { Message } from "./types";
 import * as message from "@cocalc/util/message";
 import handleNamedServer from "@cocalc/project/named-servers";
-const { exec_shell_code } = require("@cocalc/project/exec_shell_code");
+import { exec_shell_code } from "@cocalc/project/exec_shell_code";
 // Reading and writing files to/from project and sending over socket
 const {
   read_file_from_project,

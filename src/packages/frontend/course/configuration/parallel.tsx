@@ -39,7 +39,7 @@ export const Parallel: React.FC<Props> = ({ name }) => {
       title={
         <>
           {" "}
-          <Icon name="users" /> Parallel limit: copy {parallel} assignments at a
+          <Icon name="users" /> Parallel Limit: copy {parallel} assignments at a
           time
         </>
       }

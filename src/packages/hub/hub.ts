@@ -277,8 +277,8 @@ async function startServer(): Promise<void> {
     console.log(msg);
   }
 
-  if (program.all || program.updateStats) {
-    // kucalc: for now we just have the hub-stats servers
+  if (program.all || program.mentions) {
+    // kucalc: for now we just have the hub-mentions servers
     // do the new project pool maintenance, since there is only
     // one hub-stats.
     // On non-cocalc it'll get done by *the* hub because of program.all.
@@ -400,7 +400,10 @@ async function main(): Promise<void> {
       "Do blob-related maintenance (dump to tarballs, offload to gcloud)",
       "yes"
     )
-    .option("--mentions", "if given, periodically handle mentions")
+    .option(
+      "--mentions",
+      "if given, periodically handle mentions; on kucalc there is only one of these.  It also managed the new project pool.  Maybe this should be renamed --singleton!"
+    )
     .option(
       "--test",
       "terminate after setting up the hub -- used to test if it starts up properly"

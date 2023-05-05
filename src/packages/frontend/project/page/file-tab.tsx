@@ -9,7 +9,7 @@ A single tab in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
 
-import { Popover, Space } from "antd";
+import { Button, Popover, Space } from "antd";
 import { CSSProperties, ReactNode } from "react";
 
 import {
@@ -29,6 +29,7 @@ import { StopProject } from "../settings/stop-project";
 import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
 import { HomeRecentFiles } from "./home-page/recent-files";
 import { ChatGPTGenerateNotebookButton } from "./home-page/chatgpt-generate-jupyter";
+import track from "@cocalc/frontend/user-tracking";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -45,10 +46,13 @@ type FixedTabs = {
   [name in FixedTab]: {
     label: string;
     icon: IconName;
-    tooltip: string | ((props: { project_id: string }) => ReactNode);
+    tooltip?: string | ((props: { project_id: string }) => ReactNode);
     noAnonymous?: boolean;
   };
 };
+
+// TODO/NOTE: for better or worse I just can't stand the tooltips on the sidebar!
+// Disabling them.  If anyone complaints or likes them, I can make them an option.
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
   files: {
@@ -79,19 +83,19 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: SERVERS_TITLE,
     icon: "server",
     tooltip: ServersPopover,
-    noAnonymous: true,
+    noAnonymous: false,
   },
   info: {
     label: PROJECT_INFO_TITLE,
     icon: "microchip",
     tooltip: "Running processes, resource usage, …",
-    noAnonymous: true,
+    noAnonymous: false,
   },
   settings: {
     label: "Settings",
     icon: "wrench",
     tooltip: SettingsPopover,
-    noAnonymous: true,
+    noAnonymous: false,
   },
 } as const;
 
@@ -143,11 +147,26 @@ export function FileTab(props: Props) {
           path,
           new_browser_window: true,
         });
+        track("open-file-in-new-window", {
+          path,
+          project_id,
+          how: "shift-ctrl-meta-click-on-tab",
+        });
       } else {
         actions.set_active_tab(path_to_tab(path));
+        track("switch-to-file-tab", {
+          project_id,
+          path,
+          how: "click-on-tab",
+        });
       }
     } else if (name != null) {
       actions.set_active_tab(name);
+      track("switch-to-fixed-tab", {
+        project_id,
+        name,
+        how: "click-on-tab",
+      });
     }
   }
 
@@ -213,7 +232,7 @@ export function FileTab(props: Props) {
     </div>
   );
 
-  if (props.noPopover || IS_MOBILE) {
+  if (props.noPopover || IS_MOBILE || isFixedTab) {
     return body;
   }
   // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
@@ -240,7 +259,7 @@ export function FileTab(props: Props) {
           </span>
         ) : undefined
       }
-      mouseEnterDelay={0.9}
+      mouseEnterDelay={1}
       placement={props.placement ?? "bottom"}
     >
       {body}
@@ -312,10 +331,7 @@ function LogPopover({ project_id }) {
     <div>
       Project Activity Log (click for more...)
       <hr />
-      <HomeRecentFiles
-        project_id={project_id}
-        style={{ maxHeight: "125px" }}
-      />
+      <HomeRecentFiles project_id={project_id} style={{ maxHeight: "125px" }} />
     </div>
   );
 }
@@ -325,10 +341,10 @@ function SettingsPopover({ project_id }) {
     <div>
       Project settings and controls (click for more...)
       <hr />
-      <Space>
+      <Button.Group>
         <RestartProject project_id={project_id} />
         <StopProject project_id={project_id} />
-      </Space>
+      </Button.Group>
     </div>
   );
 }

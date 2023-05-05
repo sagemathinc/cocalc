@@ -23,6 +23,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { NamedServerName } from "@cocalc/util/types/servers";
+import track from "@cocalc/frontend/user-tracking";
 
 interface Server {
   longName: string;
@@ -126,6 +127,9 @@ export const NamedServerPanel: React.FC<Props> = ({
           <LinkRetry
             href={serverURL(project_id, name)}
             loadingText="Launching server..."
+            onClick={() => {
+              track("launch-server", { name, project_id });
+            }}
           >
             <Icon name={icon} /> {longName} Server...
           </LinkRetry>
@@ -164,6 +168,9 @@ export function ServerLink({
     <LinkRetry
       href={serverURL(project_id, name)}
       loadingText="Launching server..."
+      onClick={() => {
+        track("launch-server", { name, project_id });
+      }}
     >
       <Icon name={icon} /> {longName} Server...
     </LinkRetry>

@@ -20,7 +20,7 @@ export function DeleteAllStudentProjects({ delete_projects }: Props) {
     <Card
       title={
         <>
-          <Icon name="trash" /> Delete all student projects
+          <Icon name="trash" /> Delete all Student Projects
         </>
       }
     >

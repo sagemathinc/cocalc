@@ -17,6 +17,7 @@ import { A, Loading } from "../components";
 import TableError from "./table-error";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import track from "@cocalc/frontend/user-tracking";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
@@ -41,6 +42,7 @@ export const AccountPreferences: React.FC = () => {
   const unlisted = useTypedRedux("account", "unlisted");
   const email_enabled = useTypedRedux("customize", "email_enabled");
   const verify_emails = useTypedRedux("customize", "verify_emails");
+  const kucalc = useTypedRedux("customize", "kucalc");
 
   function render_account_settings(): JSX.Element {
     return (
@@ -72,6 +74,7 @@ export const AccountPreferences: React.FC = () => {
         is_stripe_customer={
           !!stripe_customer?.getIn(["subscriptions", "total_count"])
         }
+        kucalc={kucalc}
       />
     );
   }
@@ -111,6 +114,7 @@ export const AccountPreferences: React.FC = () => {
                     redux
                       .getActions("account")
                       .set_other_settings("dark_mode", checked);
+                    track("dark-mode", { how: "settings page", checked });
                   }}
                 />
               </Form.Item>

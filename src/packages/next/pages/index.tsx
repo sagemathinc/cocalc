@@ -7,8 +7,10 @@ import { Layout } from "antd";
 import { join } from "path";
 
 import getPool, { timeInSeconds } from "@cocalc/database/pool";
+import { getRecentHeadlines } from "@cocalc/database/postgres/news";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { COLORS } from "@cocalc/util/theme";
+import { RecentHeadline } from "@cocalc/util/types/news";
 import CoCalcComFeatures, {
   Hero,
 } from "components/landing/cocalc-com-features";
@@ -16,27 +18,30 @@ import Content from "components/landing/content";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
+import { NewsBanner } from "components/landing/news-banner";
 import Logo from "components/logo";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
+import ChatGPTHelp from "components/openai/chatgpt-help";
 import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
 import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
-import BannerWithLinks from "components/landing/banner-with-links";
-import ChatGPTHelp from "components/openai/chatgpt-help";
+import DemoCell from "components/demo-cell";
 
 const topLinkStyle: CSS = { marginRight: "20px" };
 
 interface Props {
   customize: CustomizeType;
   publicPaths: PublicPathType[];
+  recentHeadlines: RecentHeadline[] | null;
+  headlineIndex: number;
 }
 
 export default function Home(props: Props) {
-  const { customize, publicPaths } = props;
+  const { customize, publicPaths, recentHeadlines, headlineIndex } = props;
   const {
     shareServer,
     siteName,
@@ -48,6 +53,7 @@ export default function Home(props: Props) {
     sandboxProjectId,
     onCoCalcCom,
     openaiEnabled,
+    jupyterApiEnabled,
   } = customize;
 
   function contentDescription() {
@@ -201,7 +207,12 @@ export default function Home(props: Props) {
         <Header />
         <Layout.Content style={{ backgroundColor: "white" }}>
           {topAccountLinks()}
-          {shareServer && onCoCalcCom && <BannerWithLinks />}
+          {recentHeadlines != null ? (
+            <NewsBanner
+              recentHeadlines={recentHeadlines}
+              headlineIndex={headlineIndex}
+            />
+          ) : null}
           {openaiEnabled && (
             <div
               style={{ width: "900px", maxWidth: "100%", margin: "15px auto" }}
@@ -219,6 +230,7 @@ export default function Home(props: Props) {
             alt={"Screenshot showing CoCalc in action!"}
             imageAlternative={imageAlternative()}
           />
+          {jupyterApiEnabled && onCoCalcCom && <DemoCell tag={"sage"} />}
           <Hero />
           {renderCoCalcComFeatures()}
           <Footer />
@@ -249,8 +261,16 @@ export async function getServerSideProps(context) {
     publicPaths = null;
   }
 
+  // get most recent headlines
+  const recentHeadlines = await getRecentHeadlines(5);
+  // we want not always show the same at the start
+  const headlineIndex =
+    recentHeadlines != null
+      ? Math.floor(Date.now() % recentHeadlines.length)
+      : 0;
+
   return await withCustomize(
-    { context, props: { publicPaths } },
+    { context, props: { publicPaths, recentHeadlines, headlineIndex } },
     { name: true }
   );
 }

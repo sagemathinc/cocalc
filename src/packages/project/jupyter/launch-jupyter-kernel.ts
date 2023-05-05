@@ -29,6 +29,7 @@ import getPorts from "./get-ports";
 import { writeFile } from "jsonfile";
 import mkdirp from "mkdirp";
 import shellEscape from "shell-escape";
+import { envForSpawn } from "@cocalc/backend/misc";
 
 // This is temporary hack to import the latest execa, which is only
 // available as an ES Module now.  We will of course eventually switch
@@ -150,7 +151,7 @@ async function launchKernelSpec(
   };
 
   full_spawn_options.env = {
-    ...process.env,
+    ...envForSpawn(),
     ...kernel_spec.env,
     ...spawn_options.env,
   };

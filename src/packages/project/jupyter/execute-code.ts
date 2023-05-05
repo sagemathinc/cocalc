@@ -15,25 +15,23 @@ import { EventEmitter } from "events";
 import { JupyterKernel, VERSION } from "./jupyter";
 import { MessageType } from "@nteract/messaging";
 
-import {
-  bind_methods,
-  copy_with,
-  deep_copy,
-  uuid,
-  trunc,
-} from "@cocalc/util/misc";
+import { bind_methods, copy_with, deep_copy, uuid } from "@cocalc/util/misc";
 
 import {
   CodeExecutionEmitterInterface,
   ExecOpts,
   StdinFunction,
 } from "@cocalc/frontend/jupyter/project-interface";
+import { getLogger } from "@cocalc/project/logger";
+
+const log = getLogger("jupyter:execute-code");
 
 type State = "init" | "closed" | "running";
 
 export class CodeExecutionEmitter
   extends EventEmitter
-  implements CodeExecutionEmitterInterface {
+  implements CodeExecutionEmitterInterface
+{
   readonly kernel: JupyterKernel;
   readonly code: string;
   readonly id?: string;
@@ -116,14 +114,15 @@ export class CodeExecutionEmitter
   }
 
   async _handle_stdin(mesg: any): Promise<void> {
-    const dbg = this.kernel.dbg("_handle_stdin");
     if (!this.stdin) {
       throw Error("BUG -- stdin handling not supported");
     }
-    dbg(`STDIN kernel --> server: ${JSON.stringify(mesg)}`);
+    log.silly("_handle_stdin: STDIN kernel --> server: ", mesg);
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
-      dbg(
-        `STDIN msg_id mismatch: ${mesg.parent_header.msg_id}!=${this._message.header.msg_id}`
+      log.warn(
+        "_handle_stdin: STDIN msg_id mismatch:",
+        mesg.parent_header.msg_id,
+        this._message.header.msg_id
       );
       return;
     }
@@ -137,7 +136,7 @@ export class CodeExecutionEmitter
     } catch (err) {
       response = `ERROR -- ${err}`;
     }
-    dbg(`STDIN client --> server ${JSON.stringify(response)}`);
+    log.silly("_handle_stdin: STDIN client --> server", response);
     const m = {
       channel: "stdin",
       parent_header: this._message.header,
@@ -154,7 +153,7 @@ export class CodeExecutionEmitter
         value: response,
       },
     };
-    dbg(`STDIN server --> kernel: ${JSON.stringify(m)}`);
+    log.silly("_handle_stdin: STDIN server --> kernel:", m);
     this.kernel.channel?.next(m);
   }
 
@@ -162,8 +161,7 @@ export class CodeExecutionEmitter
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
       return;
     }
-    const dbg = this.kernel.dbg("_handle_shell");
-    dbg(`got SHELL message -- ${JSON.stringify(mesg)}`);
+    log.silly("_handle_shell: got SHELL message -- ", mesg);
     if (mesg.content?.status == "error" || mesg.content?.status == "abort") {
       // NOTE: I'm adding support for "abort" status, since I was just reading
       // the kernel docs and it exists but is deprecated.  Some old kernels
@@ -198,8 +196,7 @@ export class CodeExecutionEmitter
       // iopub message for a different execute request so ignore it.
       return;
     }
-    const dbg = this.kernel.dbg("_handle_iopub");
-    dbg(`got IOPUB message -- ${JSON.stringify(mesg)}`);
+    log.silly("_handle_iopub: got IOPUB message -- ", mesg);
 
     if (mesg.content?.comm_id != null) {
       // A comm message that is a result of execution of this code.
@@ -218,8 +215,7 @@ export class CodeExecutionEmitter
 
   // Called if the kernel is closed for some reason, e.g., crashing.
   private handle_closed(): void {
-    const dbg = this.kernel.dbg("CodeExecutionEmitter.handle_closed");
-    dbg("kernel closed");
+    log.debug("CodeExecutionEmitter.handle_closed: kernel closed");
     this.killing = "kernel crashed";
     this._finish();
   }
@@ -256,15 +252,12 @@ export class CodeExecutionEmitter
     // it's **silently** immutable, which
     // is pretty annoying for our use. For now, we
     // just copy it, which is a waste.
-    // const dbg = this.kernel.dbg(`_execute_code('${trunc(this.code, 15)}')`);
-    // dbg("push_mesg", mesg);
     const header = mesg.header;
     mesg = copy_with(mesg, ["metadata", "content", "buffers", "done"]);
     mesg = deep_copy(mesg);
     if (header !== undefined) {
       mesg.msg_type = header.msg_type;
     }
-    // dbg("push_mesg after copying msg_type", mesg);
     this.emit_output(mesg);
   }
 
@@ -279,8 +272,7 @@ export class CodeExecutionEmitter
       return;
     }
     this.state = "running";
-    const dbg = this.kernel.dbg(`_execute_code('${trunc(this.code, 15)}')`);
-    dbg(`code='${this.code}'`);
+    log.silly("_execute_code", this.code);
     if (this.kernel.get_state() === "closed") {
       this.close();
       cb("closed");
@@ -295,7 +287,7 @@ export class CodeExecutionEmitter
     this.kernel.on("shell", this._handle_shell);
     this.kernel.on("iopub", this._handle_iopub);
 
-    dbg("send the message to get things rolling");
+    log.debug("_execute_code: send the message to get things rolling");
     this.kernel.channel?.next(this._message);
 
     this.kernel.on("closed", this.handle_closed);
@@ -307,9 +299,10 @@ export class CodeExecutionEmitter
   }
 
   private async timeout(): Promise<void> {
-    const dbg = this.kernel.dbg("CodeExecutionEmitter.timeout");
     if (this.state == "closed") {
-      dbg("already finished, so nothing to worry about");
+      log.debug(
+        "CodeExecutionEmitter.timeout: already finished, so nothing to worry about"
+      );
       return;
     }
     this.killing =
@@ -319,7 +312,9 @@ export class CodeExecutionEmitter
     let tries = 3;
     let d = 1000;
     while (this.state != ("closed" as State) && tries > 0) {
-      dbg("code still running, so try to interrupt it");
+      log.debug(
+        "CodeExecutionEmitter.timeout: code still running, so try to interrupt it"
+      );
       // Code still running but timeout reached.
       // Keep sending interrupt signal, which will hopefully do something to
       // stop running code (there is no guarantee, of course).  We
@@ -330,7 +325,9 @@ export class CodeExecutionEmitter
       tries -= 1;
     }
     if (this.state != ("closed" as State)) {
-      dbg("now try SIGKILL, which should kill things for sure.");
+      log.debug(
+        "CodeExecutionEmitter.timeout: now try SIGKILL, which should kill things for sure."
+      );
       this.kernel.signal("SIGKILL");
       this._finish();
     }

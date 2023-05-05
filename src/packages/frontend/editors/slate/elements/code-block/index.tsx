@@ -28,6 +28,10 @@ const StaticElement: React.FC<RenderElementProps> = ({
   attributes,
   element,
 }) => {
+  if (element.type != "code_block") {
+    throw Error("bug");
+  }
+
   const { disableMarkdownCodebar } = useFileContext();
 
   // we need both a ref and state, because editing is used both for the UI
@@ -56,6 +60,11 @@ const StaticElement: React.FC<RenderElementProps> = ({
     }
   }, [change]);
 
+  const [temporaryInfo, setTemporaryInfo] = useState<string | null>(null);
+  useEffect(() => {
+    setTemporaryInfo(null);
+  }, [element.info]);
+
   const save = (value: string | null, run: boolean) => {
     setEditing(false);
     if (value != null && setEditor != null && editor != null) {
@@ -78,10 +87,8 @@ const StaticElement: React.FC<RenderElementProps> = ({
     }, 1);
   };
 
-  if (element.type != "code_block") {
-    throw Error("bug");
-  }
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
+  // editable since even CodeMirrorStatic is editable, but meant to be *ephemeral* editing.
   return (
     <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
       <CodeMirrorStatic
@@ -146,7 +153,10 @@ const StaticElement: React.FC<RenderElementProps> = ({
                 history={history}
                 setOutput={setOutput}
                 output={output}
-                info={element.info}
+                info={temporaryInfo ?? element.info}
+                setInfo={(info) => {
+                  setTemporaryInfo(info);
+                }}
               />
             </div>
           )
@@ -158,7 +168,11 @@ const StaticElement: React.FC<RenderElementProps> = ({
           borderLeft: `10px solid ${DARK_GREY_BORDER}`,
           borderRadius: 0,
         }}
-        options={{ mode: infoToMode(element.info, { value: element.value }) }}
+        options={{
+          mode: infoToMode(temporaryInfo ?? element.info, {
+            value: element.value,
+          }),
+        }}
         addonAfter={
           disableMarkdownCodebar || output == null ? null : (
             <div

@@ -4,13 +4,10 @@
  */
 
 import { Button } from "antd";
-import React from "react";
-
-import { CSS } from "@cocalc/frontend/app-framework";
-import { Icon, IconName } from "@cocalc/frontend/components";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
 
-const STYLE: CSS = {
+const STYLE = {
   marginRight: "5px",
   marginBottom: "5px",
   width: "100%",
@@ -19,7 +16,7 @@ const STYLE: CSS = {
   padding: "10px",
 } as const;
 
-const ICON_STYLE: CSS = {
+const ICON_STYLE = {
   fontSize: "200%",
   color: COLORS.FILE_ICON,
 } as const;
@@ -35,25 +32,23 @@ interface Props {
   active?: boolean;
 }
 
-export const NewFileButton = React.memo((props: Props) => {
-  const {
-    name,
-    icon,
-    on_click,
-    ext,
-    className,
-    disabled,
-    loading,
-    active = false,
-  } = props;
-
+export function NewFileButton({
+  name,
+  icon,
+  on_click,
+  ext,
+  className,
+  disabled,
+  loading,
+  active = false,
+}: Props) {
   const displayed_icon = loading ? (
     <Icon style={ICON_STYLE} name="cocalc-ring" spin />
   ) : (
     <Icon style={ICON_STYLE} name={icon} />
   );
 
-  const style: CSS = {
+  const style = {
     ...STYLE,
     ...(active
       ? {
@@ -80,4 +75,4 @@ export const NewFileButton = React.memo((props: Props) => {
       </div>
     </Button>
   );
-});
+}
