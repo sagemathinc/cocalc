@@ -9,6 +9,14 @@ import callProject from "@cocalc/server/projects/call";
 import getKernels from "@cocalc/server/jupyter/kernels";
 import { isValidUUID } from "@cocalc/util/misc";
 
+// If true, create welcome files based on tags.
+// disabled because based on data with users, it doesn't help.
+// Or maybe the files just aren't good enough (?).  In practice,
+// people get confused, then finally figure out what to really do,
+// and do it in the welcome/ directory, which just means
+// a cluttered experience.
+const WELCOME_FILES = false;
+
 const log = getLogger("server:accounts:first-project");
 
 export default async function firstProject({
@@ -29,7 +37,7 @@ export default async function firstProject({
   log.debug("created new project", project_id);
   const project = getProject(project_id);
   await project.start();
-  if (tags == null || tags.length == 0) {
+  if (!WELCOME_FILES || tags == null || tags.length == 0) {
     return project_id;
   }
   for (const tag of tags) {
