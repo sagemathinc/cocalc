@@ -936,12 +936,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
+      <AntdButton
         key={"timetravel"}
         title={"Show edit history"}
-        bsStyle={"info"}
-        style={button_style()}
-        bsSize={button_size()}
+        style={{ ...button_style(), color: "white", background: "#5bc0de" }}
+        size={button_size()}
         onClick={(event) => {
           track("time-travel");
           if (props.actions.name != props.editor_actions.name) {
@@ -961,7 +960,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       >
         <Icon name="history" />{" "}
         <VisibleMDLG>{labels ? "TimeTravel" : undefined}</VisibleMDLG>
-      </Button>
+      </AntdButton>
     );
   }
 
@@ -978,7 +977,6 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         id={props.id}
         actions={props.actions}
         path={props.path}
-        ButtonComponent={Button}
         buttonSize={button_size()}
         buttonStyle={{
           ...button_style(),
@@ -988,6 +986,25 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         labels={labels}
         visible={props.tab_is_visible && props.is_visible}
       />
+    );
+  }
+
+  function render_tour(labels): Rendered {
+    if (!is_visible("tour", true)) {
+      return;
+    }
+    return (
+      <AntdButton
+        type="primary"
+        key={"tour"}
+        title={"Take the tour!"}
+        size={button_size()}
+        onClick={() => props.actions.tour(props.id)}
+        style={{ border: "1px solid rgb(217, 217, 217)", ...button_style() }}
+      >
+        <Icon name="map" />
+        <VisibleMDLG>{labels ? " Tour" : undefined}</VisibleMDLG>
+      </AntdButton>
     );
   }
 
@@ -1106,6 +1123,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function render_save_timetravel_group(labels): Rendered {
     const v: Rendered[] = [];
     let x: Rendered;
+    if ((x = render_tour(labels))) v.push(x);
     if ((x = render_save(labels))) v.push(x);
     if (!is_public) {
       if ((x = render_timetravel(labels))) v.push(x);
@@ -1591,9 +1609,9 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     const labels: boolean = forceLabels ?? show_labels();
 
     const v: Rendered[] = [];
-    v.push(render_actions_dropdown(labels));
     v.push(renderPage(true));
     v.push(render_save_timetravel_group(labels));
+    v.push(render_actions_dropdown(labels));
     v.push(render_build());
     v.push(render_force_build());
     v.push(render_edit());

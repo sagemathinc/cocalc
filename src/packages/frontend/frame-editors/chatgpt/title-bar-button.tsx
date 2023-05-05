@@ -106,7 +106,6 @@ function getCustomDescription(frameType) {
 interface Props {
   id: string;
   actions;
-  ButtonComponent;
   buttonSize;
   buttonStyle;
   labels?: boolean;
@@ -119,7 +118,6 @@ import type { Scope } from "./types";
 export default function ChatGPT({
   id,
   actions,
-  ButtonComponent,
   buttonSize,
   buttonStyle,
   labels,
@@ -369,9 +367,9 @@ export default function ChatGPT({
         );
       }}
     >
-      <ButtonComponent
+      <Button
         style={buttonStyle}
-        bsSize={buttonSize}
+        size={buttonSize}
         onClick={() => {
           setError("");
           setShowChatGPT(!showChatGPT);
@@ -382,7 +380,7 @@ export default function ChatGPT({
           <OpenAIAvatar size={20} style={{ marginTop: "-5px" }} />{" "}
         </Tooltip>
         <VisibleMDLG>{labels ? "ChatGPT..." : undefined}</VisibleMDLG>
-      </ButtonComponent>
+      </Button>
     </Popover>
   );
 }

@@ -2888,4 +2888,8 @@ export class Actions<
   async chatgpt(frameId: string, options, input: string) {
     await chatgptCreatechat({ actions: this, frameId, options, input });
   }
+
+  tour(id: string) {
+    console.log("take tour...", id);
+  }
 }

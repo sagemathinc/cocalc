@@ -107,6 +107,10 @@ export class TerminalActions extends Actions {
     if (this._state === "closed") return;
     this.set_active_id(id, true);
   }
+
+  tour(id: string) {
+    console.log("take tour...", id);
+  }
 }
 
 // Also useful to import as just "Actions" for our editor reg system

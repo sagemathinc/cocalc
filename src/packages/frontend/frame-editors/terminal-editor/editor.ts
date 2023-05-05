@@ -33,6 +33,7 @@ export const terminal = {
     "connection_status",
     "guide",
     "chatgpt",
+    "tour",
     /*"reload" */
   ]),
   hide_public: true, // never show this editor option for public view
