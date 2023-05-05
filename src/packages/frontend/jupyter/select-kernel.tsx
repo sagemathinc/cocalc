@@ -73,7 +73,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       actions.name,
       "kernel_info",
     ]);
-    const kernel_selection: undefined | ImmutableMap<string, any> = useRedux([
+    const kernel_selection: undefined | ImmutableMap<string, string> = useRedux([
       actions.name,
       "kernel_selection",
     ]);
