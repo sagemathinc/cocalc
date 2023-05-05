@@ -337,7 +337,7 @@ export function NewsTags({ tags, onTagClick, style, styleTag }: NewsTagsProps) {
   }
 
   return (
-    <Space size={[0, 4]} wrap style={style}>
+    <Space size={[0, 4]} wrap={false} style={style}>
       {tags.sort().map((tag) => (
         <Tag
           color={getRandomColor(tag)}

@@ -7,7 +7,7 @@ import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { slugURL } from "@cocalc/util/news";
 import { COLORS } from "@cocalc/util/theme";
 import { CHANNELS_ICONS, RecentHeadline } from "@cocalc/util/types/news";
-import { Paragraph, Text } from "components/misc";
+import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import { NewsTags } from "components/news/news";
 import { useDateStr } from "components/news/useDateStr";
@@ -51,7 +51,7 @@ export function NewsBanner({
 
 function NewsHeader({ item }: { item: RecentHeadline }) {
   const [first, setFirst] = useState(true);
-  const textRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
   const [cur, setCur] = useState<RecentHeadline>(item);
   const [top, setTop] = useState(0);
   const [opacity, setOpacity] = useState(1);
@@ -90,11 +90,22 @@ function NewsHeader({ item }: { item: RecentHeadline }) {
     if (cur == null) return null;
     const { channel, title, tags } = cur;
     return (
-      <span style={{ paddingLeft: PADDING }}>
-        <Icon name={CHANNELS_ICONS[channel] as IconName} /> {dateStr}{" "}
+      <>
+        <div style={{ paddingRight: ".5em" }}>
+          <Icon name={CHANNELS_ICONS[channel] as IconName} />
+        </div>
+        {dateStr}{" "}
         <A
           href={permalink}
-          style={{ paddingLeft: PADDING, fontWeight: "bold" }}
+          style={{
+            paddingLeft: PADDING,
+            fontWeight: "bold",
+            // https://github.com/sagemathinc/cocalc/issues/6684
+            maxWidth: "800px",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+          }}
         >
           {title}
         </A>{" "}
@@ -103,33 +114,37 @@ function NewsHeader({ item }: { item: RecentHeadline }) {
           style={{ paddingLeft: PADDING }}
           styleTag={{ fontSize: FONT_SIZE }}
         />
-      </span>
+      </>
     );
   }
 
   return (
-    <Paragraph
+    <div
       ref={textRef}
       style={{
-        margin: "0 auto",
         padding: "10px",
         textAlign: "center",
-        maxWidth: MAX_WIDTH,
+        whiteSpace: "nowrap",
       }}
     >
-      <Text
+      <Paragraph
         style={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "center",
+          margin: "0 auto",
           position: "relative",
           top,
           opacity,
           fontSize: FONT_SIZE,
+          maxWidth: MAX_WIDTH,
         }}
       >
         {renderHeadline()}
         <span style={{ paddingLeft: PADDING }}>
           <A href={"/news"}>All news...</A>
         </span>
-      </Text>
-    </Paragraph>
+      </Paragraph>
+    </div>
   );
 }
