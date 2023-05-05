@@ -149,6 +149,47 @@ export default function getTour(refs) {
   });
 
   step({
+    title: (
+      <>
+        <Icon name={"rocket"} /> Edit init script
+      </>
+    ),
+    description: (
+      <>
+        <p>
+          Run a script every time this terminal starts. You can set environment
+          variables, connect to a remote host, start python running, or anything
+          else.
+        </p>
+
+        <p>
+          If you hit control+d or click the skull, the terminal will quit, then
+          start again. Also if you restart your project or leave your project
+          until it stops, when you open this ".term" file, then the terminal
+          will start.
+        </p>
+      </>
+    ),
+    target: "edit_init_script",
+  });
+
+  step({
+    title: (
+      <>
+        <Icon unicode={0x2620} /> Kill and restart this terminal session
+      </>
+    ),
+    description: (
+      <>
+        If things gets all messed up or stuck for some reason, you can click
+        this button to reset everything in this terminal. This terminates a
+        running program, respawns the shell, and cleans up the display buffer.
+      </>
+    ),
+    target: "clear",
+  });
+
+  step({
     title: "Congratulation, you completed the terminal tour!",
     description: (
       <div>

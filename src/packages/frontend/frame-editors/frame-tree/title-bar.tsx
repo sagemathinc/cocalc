@@ -1431,14 +1431,15 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <Button
-        key={"edit_init_script"}
-        bsSize={button_size()}
-        onClick={() => props.actions.edit_init_script(props.id)}
-        title={"Edit initialization script"}
-      >
-        <Icon name={"rocket"} />{" "}
-      </Button>
+      <div key="edit_init_script" ref={getTourRef("edit_init_script")}>
+        <Button
+          bsSize={button_size()}
+          onClick={() => props.actions.edit_init_script(props.id)}
+          title={"Edit initialization script"}
+        >
+          <Icon name={"rocket"} />{" "}
+        </Button>
+      </div>
     );
   }
 
@@ -1462,9 +1463,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         okText={info.confirm}
         cancelText={"Cancel"}
       >
-        <Button bsSize={button_size()} title={"Clear"}>
-          {icon}{" "}
-        </Button>
+        <div ref={getTourRef("clear")}>
+          <Button bsSize={button_size()} title={"Clear"}>
+            {icon}{" "}
+          </Button>
+        </div>
       </Popconfirm>
     );
   }
