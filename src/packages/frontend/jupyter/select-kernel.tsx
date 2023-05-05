@@ -14,7 +14,7 @@ import {
   Row,
   Typography,
 } from "antd";
-import { List, Map as ImmutableMap, OrderedMap } from "immutable";
+import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 
 import {
   CSS,
@@ -25,12 +25,12 @@ import {
 } from "@cocalc/frontend//app-framework";
 import { Icon, Loading, Paragraph, Text } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
+import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
-import { Kernel as KernelType } from "./util";
 import Logo from "./logo";
-import track from "@cocalc/frontend/user-tracking";
+import { Kernel as KernelType } from "./util";
 
 const MAIN_STYLE: CSS = {
   padding: "20px 10px",

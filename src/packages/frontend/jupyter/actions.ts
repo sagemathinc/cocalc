@@ -284,6 +284,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // know the kernels (e.g., maybe it changed or is now known but wasn't before).
     const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
     this.setState({ kernel_info });
+    await this.update_select_kernel_data(); // e.g. "kernel_selection" is drived from "kernels"
+    this.check_select_kernel();
   };
 
   set_jupyter_kernels = async () => {
