@@ -233,11 +233,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     "fullscreen"
   );
 
-  const tourRefs = useRef<any>({
-    title: { current: null },
-    chatgpt: { current: null },
-    zoom: { current: null },
-  });
+  const tourRefs = useRef<{ [name: string]: { current: any } }>({});
+  const getTourRef = (name: string) => {
+    if (tourRefs.current[name] == null) {
+      tourRefs.current[name] = { current: null };
+    }
+    return tourRefs.current[name];
+  };
   const tours = useRedux(["account", "tours"]);
   const hasTour = useMemo(() => {
     if (IS_MOBILE || !is_visible("tour", true)) {
@@ -807,14 +809,18 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       }
     }
     if (v.length > 0) {
-      return <ButtonGroup key={"copy"}>{v}</ButtonGroup>;
+      return (
+        <div key="copy" ref={getTourRef("copy")}>
+          <ButtonGroup>{v}</ButtonGroup>
+        </div>
+      );
     }
   }
 
   function render_zoom_group(): Rendered {
     return (
-      <div style={{ display: "inline-block" }} ref={tourRefs.current.zoom}>
-        <AntdButton.Group key={"zoom"}>
+      <div key="zoom" ref={getTourRef("zoom")}>
+        <AntdButton.Group>
           {render_set_zoom()}
           {render_zoom_out()}
           {render_zoom_in()}
@@ -996,7 +1002,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
     return (
       <ChatGPT
-        buttonRef={tourRefs.current.chatgpt}
+        buttonRef={getTourRef("chatgpt")}
         key={"chatgpt"}
         id={props.id}
         actions={props.actions}
@@ -1024,6 +1030,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         title={"Take the tour!"}
         size={button_size()}
         onClick={() => {
+          console.log(tourRefs);
           track("tour");
           props.actions.set_frame_full(props.id);
           // we have to wait until the frame renders before
@@ -1399,22 +1406,23 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       title = "Pause";
     }
     return (
-      <Button
-        key={"pause"}
-        bsSize={button_size()}
-        bsStyle={style}
-        onClick={() => {
-          if (props.is_paused) {
-            props.actions.unpause(props.id);
-          } else {
-            props.actions.pause(props.id);
-          }
-        }}
-        title={title}
-      >
-        <Icon name={icon} />
-        <VisibleMDLG>{labels ? " " + title : undefined}</VisibleMDLG>
-      </Button>
+      <div key="pause" ref={getTourRef("pause")}>
+        <Button
+          bsSize={button_size()}
+          bsStyle={style}
+          onClick={() => {
+            if (props.is_paused) {
+              props.actions.unpause(props.id);
+            } else {
+              props.actions.pause(props.id);
+            }
+          }}
+          title={title}
+        >
+          <Icon name={icon} />
+          <VisibleMDLG>{labels ? " " + title : undefined}</VisibleMDLG>
+        </Button>
+      </div>
     );
   }
 
@@ -1629,11 +1637,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
       style = {
+        display: "flex",
         maxHeight: "30px",
         ...style,
       };
     } else {
       style = {
+        display: "flex",
         maxHeight: "34px",
         marginLeft: "2px",
         ...style,
@@ -1818,7 +1828,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return (
       <Tooltip title={title}>
         <div
-          ref={tourRefs.current.title}
+          ref={getTourRef("title")}
           style={{
             ...TITLE_STYLE,
             ...(is_active

@@ -10,7 +10,7 @@ to do the work.
 */
 
 import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
-import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
@@ -116,7 +116,7 @@ interface Props {
 
 import type { Scope } from "./types";
 
-const ChatGPT = forwardRef(function ({
+export default function ChatGPT({
   id,
   actions,
   buttonSize,
@@ -387,9 +387,7 @@ const ChatGPT = forwardRef(function ({
       </Button>
     </Popover>
   );
-});
-
-export default ChatGPT;
+}
 
 async function updateInput(
   actions,
