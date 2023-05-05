@@ -6,10 +6,13 @@ import { Checkbox } from "antd";
 import terminalImage from "./terminal.png";
 import splitImage from "./split-terminals.png";
 
+// The any for the images is because nextjs also ingests this for some reason and
+// it has contradictory typescript defs for png.
+
 export default function getTour(refs) {
   const v: TourProps["steps"] = [
     {
-      cover: <img src={terminalImage} />,
+      cover: <img src={terminalImage as any} />,
       title: (
         <div>
           Welcome to the CoCalc Terminal!{" "}
@@ -60,7 +63,12 @@ export default function getTour(refs) {
       return;
     }
     if (v == null) throw Error("bug");
-    v.push({ title, description, cover, target: refs[target]?.current });
+    v.push({
+      title,
+      description,
+      cover: cover != null ? <img src={cover as any} /> : undefined,
+      target: refs[target]?.current,
+    });
   }
 
   step({
@@ -242,7 +250,7 @@ export default function getTour(refs) {
   step({
     target: "control",
     title: "Frame Control",
-    cover: <img src={splitImage} />,
+    cover: splitImage,
     description:
       "Use these buttons to split the terminal horizontally or vertically to create multiple distinct side-by-side terminals.  You can  maximize one terminal to focus on a task, and you can independently adjust the font size in each terminal.",
   });
