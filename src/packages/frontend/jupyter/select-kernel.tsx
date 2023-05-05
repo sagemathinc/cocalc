@@ -36,7 +36,7 @@ const MAIN_STYLE: CSS = {
   padding: "20px 10px",
   overflowY: "auto",
   overflowX: "hidden",
-  background: "#eee",
+  background: COLORS.GRAY_LL,
 } as const;
 
 const SELECTION_STYLE: CSS = {
