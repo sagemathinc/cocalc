@@ -132,6 +132,58 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
+  private render_hide_action_popovers(): Rendered {
+    return (
+      <Checkbox
+        checked={!!this.props.other_settings.get("hide_action_popovers")}
+        onChange={(e) =>
+          this.on_change("hide_action_popovers", e.target.checked)
+        }
+      >
+        Hide Action Button Popovers: do not show the popovers over the action
+        buttons (Explorer, New, Log, etc.)
+      </Checkbox>
+    );
+  }
+
+  private render_hide_project_popovers(): Rendered {
+    return (
+      <Checkbox
+        checked={!!this.props.other_settings.get("hide_project_popovers")}
+        onChange={(e) =>
+          this.on_change("hide_project_popovers", e.target.checked)
+        }
+      >
+        Hide Project Tab Popovers: do not show the popovers over the project
+        tabs
+      </Checkbox>
+    );
+  }
+
+  private render_hide_file_popovers(): Rendered {
+    return (
+      <Checkbox
+        checked={!!this.props.other_settings.get("hide_file_popovers")}
+        onChange={(e) => this.on_change("hide_file_popovers", e.target.checked)}
+      >
+        Hide File Tab Popovers: do not show the popovers over file tabs
+      </Checkbox>
+    );
+  }
+
+  private render_hide_button_tooltips(): Rendered {
+    return (
+      <Checkbox
+        checked={!!this.props.other_settings.get("hide_button_tooltips")}
+        onChange={(e) =>
+          this.on_change("hide_button_tooltips", e.target.checked)
+        }
+      >
+        Hide Button Tooltips: hides some button tooltips (this is only partial)
+      </Checkbox>
+    );
+  }
+
   private render_default_file_sort(): Rendered {
     return (
       <LabeledRow label="Default file sort">
@@ -276,6 +328,10 @@ export class OtherSettings extends Component<Props> {
         {this.render_time_ago_absolute()}
         {this.render_global_banner()}
         {this.render_mask_files()}
+        {this.render_hide_action_popovers()}
+        {this.render_hide_project_popovers()}
+        {this.render_hide_file_popovers()}
+        {this.render_hide_button_tooltips()}
         {this.render_no_free_warnings()}
         {redux.getStore("customize").get("openai_enabled") && (
           <Checkbox

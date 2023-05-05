@@ -233,6 +233,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     "fullscreen"
   );
 
+  const hideButtonTooltips = useRedux(["account", "other_settings"]).get(
+    "hide_button_tooltips"
+  );
+
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
   const getTourRef = (name: string) => {
     if (tourRefs.current[name] == null) {
@@ -268,7 +272,14 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     };
   }
 
-  function StyledButton(props) {
+  function StyledButton(props0) {
+    let props;
+    if (hideButtonTooltips) {
+      props = { ...props0 };
+      delete props.title;
+    } else {
+      props = props0;
+    }
     return (
       <AntdBootstrapButton {...props} style={button_style(props.style)}>
         {props.children}

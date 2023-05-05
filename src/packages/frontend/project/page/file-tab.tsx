@@ -126,6 +126,7 @@ export function FileTab(props: Props) {
   const project_status = useTypedRedux({ project_id }, "status");
   const status_alert =
     name === "info" && project_status?.get("alerts")?.size > 0;
+  const other_settings = useTypedRedux("account", "other_settings");
 
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
@@ -232,7 +233,12 @@ export function FileTab(props: Props) {
     </div>
   );
 
-  if (props.noPopover || IS_MOBILE || isFixedTab) {
+  if (
+    props.noPopover ||
+    IS_MOBILE ||
+    (isFixedTab && other_settings.get("hide_action_popovers")) ||
+    (!isFixedTab && other_settings.get("hide_file_popovers"))
+  ) {
     return body;
   }
   // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
