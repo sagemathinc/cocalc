@@ -29,7 +29,7 @@ export function StopProject({ project_id, disabled, size }: Props) {
   return (
     <Popconfirm
       placement={"bottom"}
-      arrowPointAtCenter={true}
+      arrow={{ pointAtCenter: true }}
       title={text}
       icon={<StopOutlined />}
       onConfirm={() => actions.stop_project(project_id)}

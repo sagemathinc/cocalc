@@ -10,44 +10,7 @@ import splitImage from "./split-terminals.png";
 // it has contradictory typescript defs for png.
 
 export default function getTour(refs) {
-  const v: TourProps["steps"] = [
-    {
-      cover: <img src={terminalImage as any} />,
-      title: (
-        <div>
-          Welcome to the CoCalc Terminal!{" "}
-          <A href="https://doc.cocalc.com/terminal.html">(docs)</A>
-        </div>
-      ),
-      description: (
-        <div>
-          The terminal is a powerful tool for using the Linux operating system.
-          In this user tour, we'll highlight key features and commands.
-          <ol>
-            <li>
-              <b>
-                The <code>ls</code> command
-              </b>{" "}
-              is used to list files and directories in the current directory,
-              <code>cd path</code> to change directories.
-            </li>
-            <li>
-              <b>
-                The <code>open</code> command
-              </b>{" "}
-              lets you create or open a file from the terminal. Try typing this:{" "}
-              <code>open a.c</code>
-            </li>
-            <li>
-              <b>Use tab completion</b> to quickly and easily enter directory
-              and file names. Try typing <code>l[tab][tab]</code> right now.
-            </li>
-            <li>There are thousands of other commands!!</li>
-          </ol>
-        </div>
-      ),
-    },
-  ];
+  const v: TourProps["steps"] = [];
 
   function step({
     target,
@@ -71,6 +34,44 @@ export default function getTour(refs) {
       target: refs[target]?.current,
     });
   }
+
+  step({
+    target: "tour",
+    cover: terminalImage,
+    title: (
+      <div>
+        Welcome to the CoCalc Terminal Tour!{" "}
+        <A href="https://doc.cocalc.com/terminal.html">(docs)</A>
+      </div>
+    ),
+    description: (
+      <div>
+        The terminal is a powerful tool for using the Linux operating system. In
+        this user tour, we'll highlight key features and commands.
+        <ol>
+          <li>
+            <b>
+              The <code>ls</code> command
+            </b>{" "}
+            is used to list files and directories in the current directory,
+            <code>cd path</code> to change directories.
+          </li>
+          <li>
+            <b>
+              The <code>open</code> command
+            </b>{" "}
+            lets you create or open a file from the terminal. Try typing this:{" "}
+            <code>open a.c</code>
+          </li>
+          <li>
+            <b>Use tab completion</b> to quickly and easily enter directory and
+            file names. Try typing <code>l[tab][tab]</code> right now.
+          </li>
+          <li>There are thousands of other commands!!</li>
+        </ol>
+      </div>
+    ),
+  });
 
   step({
     target: "title",

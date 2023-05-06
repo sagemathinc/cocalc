@@ -47,7 +47,7 @@ export function RestartProject({
   return (
     <Popconfirm
       placement={"bottom"}
-      arrowPointAtCenter={true}
+      arrow={{ pointAtCenter: true }}
       title={explanation}
       icon={icon}
       onConfirm={() => actions?.restart_project(project_id)}

@@ -1058,8 +1058,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }}
         style={{ border: "1px solid rgb(217, 217, 217)", ...button_style() }}
       >
-        <Icon name="map" />
-        <VisibleMDLG>{labels ? " Tour" : undefined}</VisibleMDLG>
+        <div ref={getTourRef("tour")}>
+          <Icon name="map" />
+          <VisibleMDLG>{labels ? " Tour" : undefined}</VisibleMDLG>
+        </div>
       </AntdButton>
     );
   }
