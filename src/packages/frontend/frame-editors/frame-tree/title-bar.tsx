@@ -1046,6 +1046,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         size={button_size()}
         onClick={() => {
           track("tour");
+          userTracking("tour", { name: `frame-${props.type}` });
           props.actions.set_frame_full(props.id);
           // we have to wait until the frame renders before
           // setting the tour; otherwise, the references won't
