@@ -488,6 +488,13 @@ export class ChatActions extends Actions<ChatState> {
     const path = store.get("path");
 
     // submit question to chatgpt
+    track("chatgpt", {
+      project_id,
+      path,
+      type: "chat",
+      is_reply: !!reply_to,
+      tag,
+    });
     let resp;
     try {
       resp = await webapp_client.openai_client.chatgpt({
