@@ -55,6 +55,7 @@ export const cm = {
       "undo",
       "redo",
       "terminal",
+      //"tour"
     ]);
     const ext = filename_extension(path);
     // type casting to circumvent TS2345

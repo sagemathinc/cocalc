@@ -106,12 +106,12 @@ function getCustomDescription(frameType) {
 interface Props {
   id: string;
   actions;
-  ButtonComponent;
   buttonSize;
   buttonStyle;
   labels?: boolean;
   visible?: boolean;
   path: string;
+  buttonRef;
 }
 
 import type { Scope } from "./types";
@@ -119,12 +119,12 @@ import type { Scope } from "./types";
 export default function ChatGPT({
   id,
   actions,
-  ButtonComponent,
   buttonSize,
   buttonStyle,
   labels,
   visible,
   path,
+  buttonRef,
 }: Props) {
   const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -369,20 +369,22 @@ export default function ChatGPT({
         );
       }}
     >
-      <ButtonComponent
+      <Button
         style={buttonStyle}
-        bsSize={buttonSize}
+        size={buttonSize}
         onClick={() => {
           setError("");
           setShowChatGPT(!showChatGPT);
           actions.blur();
         }}
       >
-        <Tooltip title="Get assistance from ChatGPT">
-          <OpenAIAvatar size={20} style={{ marginTop: "-5px" }} />{" "}
-        </Tooltip>
-        <VisibleMDLG>{labels ? "ChatGPT..." : undefined}</VisibleMDLG>
-      </ButtonComponent>
+        <span ref={buttonRef}>
+          <Tooltip title="Get assistance from ChatGPT">
+            <OpenAIAvatar size={20} style={{ marginTop: "-5px" }} />{" "}
+          </Tooltip>
+          <VisibleMDLG>{labels ? "ChatGPT..." : undefined}</VisibleMDLG>
+        </span>
+      </Button>
     </Popover>
   );
 }

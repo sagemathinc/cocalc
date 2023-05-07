@@ -30,6 +30,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
+import track from "@cocalc/frontend/user-tracking";
 
 type TinyButtonType = "code" | "markdown" | "paste" | "chatgpt";
 
@@ -270,12 +271,14 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
 
       try {
         setQuerying(true);
+        const tag = "generate-jupyter-cell";
+        track("chatgpt", { project_id, path, tag, type: "generate" });
         const raw = await webapp_client.openai_client.chatgpt({
           input,
           project_id,
           path,
           system: `Return a single block in the language "${lang}" enclosed in triple backticks.`,
-          tag: "generate-jupyter-cell",
+          tag,
         });
         //console.log("raw\n", raw);
         const { content, type } = extractCode(raw);
