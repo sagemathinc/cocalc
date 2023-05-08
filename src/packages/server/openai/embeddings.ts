@@ -26,6 +26,7 @@ waste a lot of space. Also, we very likely do want to the text to be in Qdrant, 
 we can filter on it too (e.g., to add in keyword search if we want?).  I'm not sure.
 */
 
+import { sha1 } from "@cocalc/backend/sha1";
 import getClient from "./client";
 //import getPool from "@cocalc/database/pool";
 

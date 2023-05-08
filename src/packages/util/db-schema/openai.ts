@@ -167,6 +167,7 @@ Table({
     sha1: {
       title: "Sha1 hash of input",
       type: "string",
+      pg_type: "CHAR(40)",
       desc: "The sha1 has of the input to the embeddings model.",
     },
     total_tokens: {
