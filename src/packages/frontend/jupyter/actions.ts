@@ -30,6 +30,7 @@ import {
   JupyterStoreState,
   JupyterStore,
   show_kernel_selector_reasons,
+  get_kernels_by_name_or_language,
 } from "./store";
 import * as cell_utils from "./cell-utils";
 
@@ -2530,7 +2531,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (kernels == null) return;
     const kernel_selection = this.store.get_kernel_selection(kernels);
     const [kernels_by_name, kernels_by_language] =
-      this.store.get_kernels_by_name_or_language(kernels);
+      get_kernels_by_name_or_language(kernels);
     const default_kernel = this.store.get_default_kernel();
     // do we have a similar kernel?
     let closestKernel: Kernel | undefined = undefined;
