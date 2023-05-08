@@ -1265,6 +1265,9 @@ importers:
       '@passport-next/passport-oauth2':
         specifier: ^2.1.4
         version: 2.1.4
+      '@qdrant/js-client-rest':
+        specifier: ^1.1.5
+        version: 1.1.5(typescript@5.0.4)
       '@sendgrid/mail':
         specifier: ^7.5.0
         version: 7.7.0
@@ -1310,6 +1313,9 @@ importers:
       lru-cache:
         specifier: ^7.14.1
         version: 7.14.1
+      node-fetch:
+        specifier: 2.6.7
+        version: 2.6.7
       node-zendesk:
         specifier: ^2.2.0
         version: 2.2.0
@@ -4645,6 +4651,17 @@ packages:
     resolution: {integrity: sha512-a5Sab1C4/icpTZVzZc5Ghpz88yQtGOyNqYXcZgOssB2uuAr+wF/MvN6bgtW32q7HHrvBki+BsZ0OuNv6EV3K9g==}
     dev: true
 
+  /@qdrant/js-client-rest@1.1.5(typescript@5.0.4):
+    resolution: {integrity: sha512-GwC+aNKHZbDgDCWOnWaZJ0TzkzA49SkGPZkq6gNp+aOhjW1BjiieOtMkNYtO+HpykmtkArBzSWLnvm1HyqYYNg==}
+    engines: {node: '>=18.0.0', pnpm: '>=8'}
+    peerDependencies:
+      typescript: '>=4.1'
+    dependencies:
+      '@sevinf/maybe': 0.5.0
+      openapi-typescript-fetch: github.com/Rendez/openapi-typescript-fetch/c114c381602b9b3891f0ec45dbc5409816743dad
+      typescript: 5.0.4
+    dev: false
+
   /@rc-component/context@1.3.0(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-6QdaCJ7Wn5UZLJs15IEfqy4Ru3OaL5ctqpQYWd5rlfV9wwzrzdt6+kgAQZV/qdB0MUPN4nhyBfRembQCIvBf+w==}
     peerDependencies:
@@ -4786,6 +4803,10 @@ packages:
       '@sendgrid/helpers': 7.7.0
     transitivePeerDependencies:
       - debug
+    dev: false
+
+  /@sevinf/maybe@0.5.0:
+    resolution: {integrity: sha512-ARhyoYDnY1LES3vYI0fiG6e9esWfTNcXcO6+MPJJXcnyMV3bim4lnFt45VXouV7y82F4x3YH8nOQ6VztuvUiWg==}
     dev: false
 
   /@sinclair/typebox@0.24.51:
@@ -17152,7 +17173,6 @@ packages:
     resolution: {integrity: sha512-cW9T5W9xY37cc+jfEnaUvX91foxtHkza3Nw3wkoF4sSlKn0MONdkdEndig/qPBWXNkmplh3NzayQzCiHM4/hqw==}
     engines: {node: '>=12.20'}
     hasBin: true
-    dev: true
 
   /ua-parser-js@0.7.32:
     resolution: {integrity: sha512-f9BESNVhzlhEFf2CHMSj40NWOjYPl1YKYbrvIr/hFTDEmLq7SRbWvm7FcdcpCYT95zrOhC7gZSxjdnnTpBcwVw==}
@@ -18336,6 +18356,15 @@ packages:
 
   /zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
+    dev: false
+
+  github.com/Rendez/openapi-typescript-fetch/c114c381602b9b3891f0ec45dbc5409816743dad:
+    resolution: {tarball: https://codeload.github.com/Rendez/openapi-typescript-fetch/tar.gz/c114c381602b9b3891f0ec45dbc5409816743dad}
+    name: openapi-typescript-fetch
+    version: 1.1.3
+    engines: {node: '>= 12.0.0', npm: '>= 6.0.0'}
+    prepare: true
+    requiresBuild: true
     dev: false
 
   github.com/STRML/primus-multiplex/4851df5fa6d77f92b390d53c614c18f91916dbe8:
