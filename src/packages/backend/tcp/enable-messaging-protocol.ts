@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 
 Enable two new functions write_mesg and recv_mesg on a TCP socket.
 
@@ -112,14 +117,14 @@ export default function enable(socket: CoCalcSocket, desc: string = "") {
     type: Type,
     data: Message,
     cb?: (err?: string | Error) => void
-  ) => {
+  ): void => {
     if (data == null) {
       // uncomment this to get a traceback to see what might be causing this...
       //throw Error(`write_mesg(type='${type}': data must be defined`);
       cb?.(`write_mesg(type='${type}': data must be defined`);
       return;
     }
-    const send = function (s: string | Buffer) {
+    const send = function (s: string | Buffer): void {
       const buf = Buffer.alloc(4);
       // This line was 4 hours of work.  It is absolutely
       // *critical* to change the (possibly a string) s into a
@@ -146,7 +151,8 @@ export default function enable(socket: CoCalcSocket, desc: string = "") {
 
     switch (type) {
       case "json":
-        return send("j" + to_json_socket(data));
+        send("j" + to_json_socket(data));
+        return;
       case "blob":
         if (data.uuid == null) {
           cb?.("data object *must* have a uuid attribute");
@@ -156,30 +162,32 @@ export default function enable(socket: CoCalcSocket, desc: string = "") {
           cb?.("data object *must* have a blob attribute");
           return;
         }
-        return send(
+        send(
           Buffer.concat([
             Buffer.from("b"),
             Buffer.from(data.uuid),
             Buffer.from(data.blob),
           ])
         );
+        return;
       default:
-        return cb?.(`unknown message type '${type}'`);
+        cb?.(`unknown message type '${type}'`);
+        return;
     }
   };
 
   // Wait until we receive exactly *one* message of the given type
   // with the given id, then call the callback with that message.
   // (If the type is 'blob', with the given uuid.)
-  socket.recv_mesg = (opts: RecvMesgOpts) => {
-    const { type, id, cb, timeout } = opts;
+  socket.recv_mesg = ({ type, id, cb, timeout }: RecvMesgOpts): void => {
     let done: boolean = false;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const f = (mesgType: Type, mesg: Message) => {
+
+    const f = (mesgType: Type, mesg: Readonly<Message>) => {
       if (
         type === mesgType &&
         ((type === "json" && mesg.id === id) ||
-          (type === "blob" && (mesg.uuid = id)))
+          (type === "blob" && mesg.uuid === id))
       ) {
         if (done) return;
         socket.removeListener("mesg", f);
@@ -190,6 +198,7 @@ export default function enable(socket: CoCalcSocket, desc: string = "") {
         cb(mesg);
       }
     };
+
     socket.on("mesg", f);
 
     if (timeout != null) {
