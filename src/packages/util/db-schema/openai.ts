@@ -158,3 +158,37 @@ Table({
   },
   fields: schema.openai_chatgpt_log.fields,
 });
+
+Table({
+  name: "openai_embedding_log",
+  fields: {
+    id: ID,
+    time: { type: "timestamp", desc: "When this embedding was computed." },
+    sha1: {
+      title: "Sha1 hash of input",
+      type: "string",
+      desc: "The sha1 has of the input to the embeddings model.",
+    },
+    total_tokens: {
+      type: "integer",
+      desc: "The total number of tokens involved in this API call.",
+    },
+    total_time_s: {
+      type: "number",
+      desc: "Total amount of time the API call took in seconds.",
+    },
+    model: {
+      type: "string",
+      desc: "The model that was used; if left blank it is assumed to be text-embedding-ada-002.",
+    },
+    tag: {
+      type: "string",
+      desc: "A string that the client can include that is useful for analytics later",
+    },
+  },
+  rules: {
+    desc: "OpenAI Vector Embedding Log",
+    primary_key: "id",
+    pg_indexes: ["sha1"],
+  },
+});
