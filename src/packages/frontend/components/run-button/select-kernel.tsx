@@ -8,11 +8,12 @@ import { fromJS } from "immutable";
 import { sortBy } from "lodash";
 import { useEffect, useState } from "react";
 
-import { CSS } from "@cocalc/frontend/app-framework";
 import Logo from "@cocalc/frontend/jupyter/logo";
 import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import { get_kernels_by_name_or_language } from "@cocalc/frontend/jupyter/util";
 import { capitalize } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { Icon } from "../icon";
 import { getKernelInfo } from "./kernel-info";
 
 export default function SelectKernel({
@@ -35,7 +36,7 @@ export default function SelectKernel({
   allowClear?: boolean;
   placeholder?: string;
   size?: "large" | "middle" | "small";
-  style?: CSS;
+  style?: React.CSSProperties;
   kernelSpecs?: KernelSpec[];
 }) {
   const [error, setError] = useState<string>("");
@@ -65,6 +66,7 @@ export default function SelectKernel({
         ? `Language "${lang}" via kernel "${display_name}"`
         : `Kernel "${display_name}" interpreting language "${lang}"`;
     const key = `${prefix}-${name}`;
+    const priority = spec?.metadata?.cocalc?.priority ?? 0;
     return {
       key,
       display_name,
@@ -80,6 +82,12 @@ export default function SelectKernel({
             />
           )}{" "}
           {display_name}
+          {priority >= 10 ? (
+            <>
+              {" "}
+              <Icon name="star-filled" style={{ color: COLORS.YELL_L }} />
+            </>
+          ) : null}
         </Tooltip>
       ),
       value: name,
