@@ -7,7 +7,7 @@
 The Store
 */
 
-import { fromJS, List, Map, OrderedMap, Set } from "immutable";
+import { List, Map, OrderedMap, Set } from "immutable";
 
 import { Store } from "@cocalc/frontend/app-framework";
 import {
@@ -517,42 +517,4 @@ export class JupyterStore extends Store<JupyterStoreState> {
     // console.log("jupyter store / jupyter_kernel_key", key);
     return key;
   }
-}
-
-export function get_kernels_by_name_or_language(
-  kernels: Kernels
-): [OrderedMap<string, Map<string, string>>, OrderedMap<string, List<string>>] {
-  const data_name: any = {};
-  let data_lang: any = {};
-  const add_lang = (lang, entry) => {
-    if (data_lang[lang] == null) data_lang[lang] = [];
-    data_lang[lang].push(entry);
-  };
-  kernels.map((entry) => {
-    const name = entry.get("name");
-    const lang = entry.get("language");
-    if (name != null) data_name[name] = entry;
-    if (lang == null) {
-      // we collect all kernels without a language under "misc"
-      add_lang("misc", entry);
-    } else {
-      add_lang(lang, entry);
-    }
-  });
-  const by_name = OrderedMap<string, Map<string, string>>(data_name).sortBy(
-    (v, k) => {
-      return v.get("display_name", v.get("name", k)).toLowerCase();
-    }
-  );
-  // data_lang, we're only interested in the kernel names, not the entry itself
-  data_lang = fromJS(data_lang).map((v, k) => {
-    v = v
-      .sortBy((v) => v.get("display_name", v.get("name", k)).toLowerCase())
-      .map((v) => v.get("name"));
-    return v;
-  });
-  const by_lang = OrderedMap<string, List<string>>(data_lang).sortBy((_v, k) =>
-    k.toLowerCase()
-  );
-  return [by_name, by_lang];
 }

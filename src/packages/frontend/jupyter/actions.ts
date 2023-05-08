@@ -25,14 +25,14 @@ import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import * as awaiting from "awaiting";
-import { Cell, KernelInfo } from "./types";
-import {
-  JupyterStoreState,
-  JupyterStore,
-  show_kernel_selector_reasons,
-  get_kernels_by_name_or_language,
-} from "./store";
 import * as cell_utils from "./cell-utils";
+import {
+  JupyterStore,
+  JupyterStoreState,
+  show_kernel_selector_reasons,
+} from "./store";
+import { Cell, KernelInfo } from "./types";
+import { get_kernels_by_name_or_language } from "./util";
 
 const { close, required, defaults } = misc;
 

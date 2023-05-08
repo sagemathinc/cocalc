@@ -94,3 +94,46 @@ export function char_idx_to_js_idx(char_idx: number, text: string): number {
   }
   return js_idx;
 }
+
+// Transforms the KernelSpec list into two useful datastructures.
+// Was part of jupyter/store, but now used in several places.
+export function get_kernels_by_name_or_language(
+  kernels: Kernels
+): [
+  immutable.OrderedMap<string, immutable.Map<string, string>>,
+  immutable.OrderedMap<string, immutable.List<string>>
+] {
+  const data_name: any = {};
+  let data_lang: any = {};
+  const add_lang = (lang, entry) => {
+    if (data_lang[lang] == null) data_lang[lang] = [];
+    data_lang[lang].push(entry);
+  };
+  kernels.map((entry) => {
+    const name = entry.get("name");
+    const lang = entry.get("language");
+    if (name != null) data_name[name] = entry;
+    if (lang == null) {
+      // we collect all kernels without a language under "misc"
+      add_lang("misc", entry);
+    } else {
+      add_lang(lang, entry);
+    }
+  });
+  const by_name = immutable
+    .OrderedMap<string, immutable.Map<string, string>>(data_name)
+    .sortBy((v, k) => {
+      return v.get("display_name", v.get("name", k)).toLowerCase();
+    });
+  // data_lang, we're only interested in the kernel names, not the entry itself
+  data_lang = immutable.fromJS(data_lang).map((v, k) => {
+    v = v
+      .sortBy((v) => v.get("display_name", v.get("name", k)).toLowerCase())
+      .map((v) => v.get("name"));
+    return v;
+  });
+  const by_lang = immutable
+    .OrderedMap<string, immutable.List<string>>(data_lang)
+    .sortBy((_v, k) => k.toLowerCase());
+  return [by_name, by_lang];
+}

@@ -10,8 +10,8 @@ import { useEffect, useState } from "react";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import Logo from "@cocalc/frontend/jupyter/logo";
-import { get_kernels_by_name_or_language } from "@cocalc/frontend/jupyter/store";
 import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
+import { get_kernels_by_name_or_language } from "@cocalc/frontend/jupyter/util";
 import { capitalize } from "@cocalc/util/misc";
 import { getKernelInfo } from "./kernel-info";
 
