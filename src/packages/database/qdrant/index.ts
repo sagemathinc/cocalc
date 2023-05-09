@@ -87,7 +87,10 @@ export async function search({
   });
 }
 
-export async function getPoints(opts) {
+export async function getPoints(opts): Promise<any> {
   const client = await getClient();
-  return await client.points(COLLECTION_NAME, opts);
+  const result = await client
+    .api("points")
+    .getPoints({ collection_name: COLLECTION_NAME, ...opts });
+  return result.data.result;
 }
