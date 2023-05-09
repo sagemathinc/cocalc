@@ -44,6 +44,15 @@ async function init(client) {
       size: SIZE,
       distance: "Cosine", // pretty standard to use cosine
     },
+    // Use quantization to massively reduce memory and space requirements, as explained here:
+    // see https://qdrant.tech/documentation/quantization/#setting-up-scalar-quantization
+    quantization_config: {
+      scalar: {
+        type: "int8",
+        quantile: 0.99,
+        always_ram: true,
+      },
+    },
   });
 
   // todo: indexes would go here, etc.,  BUT we should use db-schema and make this

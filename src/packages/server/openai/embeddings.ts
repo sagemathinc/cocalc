@@ -97,7 +97,7 @@ export async function save(data: Data[]): Promise<string[]> {
         }
       }
       // store these as new records in postgresql
-      // [ ] TODO: add info about size
+      // [ ] TODO: add info about tokens
       // [ ] TODO: ensure inputs aren't too long
       await saveEmbeddingsInPostgres(db, newPoints);
     }
