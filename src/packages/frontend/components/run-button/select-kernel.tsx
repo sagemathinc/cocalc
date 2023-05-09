@@ -67,10 +67,13 @@ export default function SelectKernel({
   ): Omit<OptionProps, "children"> {
     const { name, display_name } = spec;
     const lang = spec.language ? capitalize(spec.language) : "unknown";
+    const desc = spec?.metadata?.cocalc?.description;
+    const descTxt = desc ? ` (${desc})` : "";
+    const kernelTxt = `"${display_name}"${descTxt}`;
     const title =
       prefix === "lang"
-        ? `Language "${lang}" via kernel "${display_name}"`
-        : `Kernel "${display_name}" interpreting language "${lang}"`;
+        ? `Language "${lang}" via kernel ${kernelTxt}`
+        : `Kernel ${kernelTxt} interpreting language "${lang}"`;
     const key = `${prefix}-${name}`;
     const priority = spec?.metadata?.cocalc?.priority ?? 0;
     return {
