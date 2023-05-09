@@ -7,6 +7,7 @@
 // File, Edit, etc....
 
 import * as immutable from "immutable";
+import { sortBy } from "lodash";
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -22,6 +23,7 @@ import {
   MenuItems,
   r_join,
 } from "@cocalc/frontend/components";
+import { KernelStar } from "@cocalc/frontend/components/run-button/kernel-star";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { user_activity } from "@cocalc/frontend/tracker";
@@ -32,12 +34,10 @@ import {
   endswith,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { sortBy } from "lodash";
 import { JupyterActions } from "./browser-actions";
 import { get_help_links } from "./help-links";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 import Logo from "./logo";
-import { Popover } from "antd";
 
 type MenuItemName = string | { name: string; display?: string; style?: object };
 
@@ -355,15 +355,8 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       let label = (
         <span style={style}>
           <Logo kernel={kernel.name} size={20} style={{ marginTop: "-2px" }} />{" "}
-          {kernel.display_name}{" "}
-          {priority >= 10 ? (
-            <Popover
-              title="Recommended kernel for this language"
-              trigger="hover"
-            >
-              <Icon name="star-filled" style={{ color: COLORS.YELL_L }} />
-            </Popover>
-          ) : null}
+          {kernel.display_name}
+          <KernelStar priority={priority} />
         </span>
       );
       if (kernel_info?.get("name") == kernel.name) {

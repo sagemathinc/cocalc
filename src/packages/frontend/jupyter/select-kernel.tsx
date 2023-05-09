@@ -31,6 +31,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
 import { Kernel as KernelType } from "./util";
+import { KernelStar } from "../components/run-button/kernel-star";
 
 const MAIN_STYLE: CSS = {
   padding: "20px 10px",
@@ -73,10 +74,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       actions.name,
       "kernel_info",
     ]);
-    const kernel_selection: undefined | ImmutableMap<string, string> = useRedux([
-      actions.name,
-      "kernel_selection",
-    ]);
+    const kernel_selection: undefined | ImmutableMap<string, string> = useRedux(
+      [actions.name, "kernel_selection"]
+    );
     const kernels_by_name:
       | undefined
       | OrderedMap<string, ImmutableMap<string, string>> = useRedux([
@@ -114,6 +114,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_kernel_button(name: string): Rendered {
       const lang = kernel_attr(name, "language");
+      const priority: number = kernels_by_name
+        ?.get(name)
+        ?.getIn(["metadata", "cocalc", "priority"]);
       return (
         <Button
           key={`kernel-${lang}-${name}`}
@@ -133,6 +136,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
             style={{ marginTop: "-2.5px", marginRight: "5px" }}
           />{" "}
           {kernel_name(name) || name}
+          <KernelStar priority={priority} />
         </Button>
       );
     }

@@ -12,9 +12,8 @@ import Logo from "@cocalc/frontend/jupyter/logo";
 import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import { get_kernels_by_name_or_language } from "@cocalc/frontend/jupyter/util";
 import { capitalize } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
-import { Icon } from "../icon";
 import { getKernelInfo } from "./kernel-info";
+import { KernelStar } from "./kernel-star";
 
 export default function SelectKernel({
   //code,
@@ -82,12 +81,7 @@ export default function SelectKernel({
             />
           )}{" "}
           {display_name}
-          {priority >= 10 ? (
-            <>
-              {" "}
-              <Icon name="star-filled" style={{ color: COLORS.YELL_L }} />
-            </>
-          ) : null}
+          <KernelStar priority={priority} />
         </Tooltip>
       ),
       value: name,
