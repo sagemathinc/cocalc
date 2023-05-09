@@ -246,7 +246,11 @@ export default function RunButton({
           tag,
         });
       } catch (err) {
-        setOutput({ error: resp.error });
+        if (resp?.error != null) {
+          setOutput({ error: resp.error });
+        } else {
+          setOutput({ error: `Timeout or communication problem` });
+        }
         return;
       }
       if (resp.output != null) {
