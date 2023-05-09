@@ -7,7 +7,7 @@ const COLLECTION_NAME = "cocalc";
 const SIZE = 1536; // that's for the openai embeddings api
 
 let _client: null | QdrantClient = null;
-async function getClient(): Promise<QdrantClient> {
+export async function getClient(): Promise<QdrantClient> {
   if (_client != null) {
     return _client;
   }
@@ -50,17 +50,19 @@ async function init(client) {
   // all nicely declarative, since that's worked very well for us with postgres, etc.
 }
 
-interface Data {
+export type Payload =
+  | { [key: string]: unknown }
+  | Record<string, unknown>
+  | null
+  | undefined;
+
+export interface Point {
   id: string | number;
   vector: number[];
-  payload?:
-    | { [key: string]: unknown }
-    | Record<string, unknown>
-    | null
-    | undefined;
+  payload?: Payload;
 }
 
-export async function upsert(data: Data[]) {
+export async function upsert(data: Point[]) {
   const client = await getClient();
   await client.upsert(COLLECTION_NAME, {
     wait: true,
@@ -83,4 +85,9 @@ export async function search({
     limit,
     filter,
   });
+}
+
+export async function getPoints(opts) {
+  const client = await getClient();
+  return await client.points(COLLECTION_NAME, opts);
 }

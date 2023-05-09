@@ -162,21 +162,19 @@ Table({
 Table({
   name: "openai_embedding_log",
   fields: {
-    id: ID,
-    time: { type: "timestamp", desc: "When this embedding was computed." },
-    sha1: {
+    input_sha1: {
       title: "Sha1 hash of input",
       type: "string",
-      pg_type: "CHAR(40)",
-      desc: "The sha1 has of the input to the embeddings model.",
     },
+    time: { type: "timestamp", desc: "When this embedding was computed." },
     total_tokens: {
       type: "integer",
-      desc: "The total number of tokens involved in this API call.",
+      desc: "The total number of tokens of the input string.",
     },
-    total_time_s: {
-      type: "number",
-      desc: "Total amount of time the API call took in seconds.",
+    points: {
+      type: "array",
+      pg_type: "UUID[]",
+      desc: "The uuid's of points in the vector database with this embedding.",
     },
     model: {
       type: "string",
@@ -189,7 +187,6 @@ Table({
   },
   rules: {
     desc: "OpenAI Vector Embedding Log",
-    primary_key: "id",
-    pg_indexes: ["sha1"],
+    primary_key: "input_sha1",
   },
 });
