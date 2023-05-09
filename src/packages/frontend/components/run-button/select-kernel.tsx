@@ -10,10 +10,14 @@ import { useEffect, useState } from "react";
 
 import Logo from "@cocalc/frontend/jupyter/logo";
 import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
-import { get_kernels_by_name_or_language } from "@cocalc/frontend/jupyter/util";
+import {
+  KERNEL_POPULAR_THRESHOLD,
+  get_kernels_by_name_or_language,
+} from "@cocalc/frontend/jupyter/util";
 import { capitalize } from "@cocalc/util/misc";
 import { getKernelInfo } from "./kernel-info";
 import { KernelStar } from "./kernel-star";
+import { OptionProps } from "antd/es/select";
 
 export default function SelectKernel({
   //code,
@@ -57,7 +61,10 @@ export default function SelectKernel({
     })();
   }, []);
 
-  function entry(spec, prefix: "lang" | "kernel") {
+  function entry(
+    spec,
+    prefix: "lang" | "kernel"
+  ): Omit<OptionProps, "children"> {
     const { name, display_name } = spec;
     const lang = spec.language ? capitalize(spec.language) : "unknown";
     const title =
@@ -94,26 +101,29 @@ export default function SelectKernel({
       fromJS(kernelSpecs)
     );
 
-    // for each language, we keep the top priority kernel (or first in the list)
-    const langs = byLang
-      .map((names) => {
-        let kernels = names
+    const langs: Omit<OptionProps, "children">[] = [];
+    const popular: Omit<OptionProps, "children">[] = [];
+
+    byLang.forEach((names) => {
+      const top = sortBy(
+        names
           .map((name) => {
             const spec = byName.get(name)?.toJS() as KernelSpec;
             return { spec, priority: spec?.metadata?.cocalc?.priority ?? 0 };
           })
-          .toJS();
-        const kernels2 = sortBy(kernels, "priority");
-        return kernels2.pop();
-      })
-      .filter((top) => top != null)
-      .map((top) => {
-        const spec: KernelSpec = top.spec;
-        const display_name = capitalize(spec.language ?? spec.name);
-        return entry({ ...spec, display_name }, "lang");
-      })
-      .valueSeq()
-      .toJS();
+          .toJS(),
+        "priority"
+      ).pop();
+      if (!top) return;
+      const { spec, priority } = top;
+      const display_name = capitalize(spec.language ?? spec.name);
+      const item = entry({ ...spec, display_name }, "lang");
+      if (priority >= KERNEL_POPULAR_THRESHOLD) {
+        popular.push(item);
+      } else {
+        langs.push(item);
+      }
+    });
 
     // below, we list all kernels by name
     const all = kernelSpecs
@@ -121,6 +131,7 @@ export default function SelectKernel({
       .map((spec) => entry(spec, "kernel"));
 
     return [
+      { label: "Popular", options: popular },
       { label: "Languages", options: langs },
       { label: "All Kernels", options: all },
     ];

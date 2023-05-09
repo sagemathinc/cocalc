@@ -3,12 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { KERNEL_POPULAR_THRESHOLD } from "@cocalc/frontend/jupyter/util";
 import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "../icon";
 
 // unify when a star is rendered with a kernel
 export function KernelStar({ priority = 0 }: { priority?: number }) {
-  if (priority < 10) return null;
+  if (priority < KERNEL_POPULAR_THRESHOLD) return null;
 
   return (
     <>

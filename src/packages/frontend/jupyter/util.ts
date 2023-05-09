@@ -30,6 +30,9 @@ export const JUPYTER_MIMETYPES = [
   "text/plain",
 ] as const;
 
+// with metadata.cocalc.priority >= this the kernel will be "emphasized" or "suggested" in the UI
+export const KERNEL_POPULAR_THRESHOLD = 10;
+
 export type Kernel = immutable.Map<string, string>;
 export type Kernels = immutable.List<Kernel>;
 
