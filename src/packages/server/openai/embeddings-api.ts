@@ -1,9 +1,10 @@
 import * as embeddings from "./embeddings";
 import { isValidUUID, is_array } from "@cocalc/util/misc";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 const MAX_SEARCH_INPUT = 2000;
 const MAX_SEARCH_LIMIT = 100;
-export function validateSearchParams({ input, filter, limit }) {
+function validateSearchParams({ input, filter, limit }) {
   if (typeof input != "string") {
     throw Error("input must be a string");
   }
@@ -36,6 +37,8 @@ export async function search({
   limit: number;
   filter?: object;
 }): Promise<embeddings.Result[]> {
+  // [ ] TODO: Get n most recent non-hidden/non-deleted projects for this account, and add
+  // a filter to only get results matching them.
   if (!isValidUUID(account_id)) {
     throw Error("account_id must be a valid uuid");
   }
@@ -43,13 +46,16 @@ export async function search({
   return await embeddings.search({ input, limit, filter });
 }
 
-export function validateData(data) {
+async function validateData(data: embeddings.Data[], account_id: string) {
   if (!is_array(data)) {
     throw Error("data must be an array");
   }
-  for (const datum of data) {
-    const { payload, field } = datum;
-    if (typeof payload != "object") {
+  // checks that account_id is collab on project_id
+  const data2: embeddings.Data[] = [];
+  const knownProjects = new Set<string>();
+  for (const x of data) {
+    const { payload, field } = x;
+    if (payload == null || typeof payload != "object") {
       throw Error("each datum must have a payload object");
     }
     if (typeof field != "string") {
@@ -58,7 +64,26 @@ export function validateData(data) {
     if (typeof payload[field] != "string" || !payload[field]) {
       throw Error("each datum must payload[field] a nontrivial string");
     }
+
+    const { project_id } = payload as any;
+    if (!knownProjects.has(project_id)) {
+      if (!(await isCollaborator({ project_id, account_id }))) {
+        throw Error(
+          "project_id must be specified and user must be a collab on that project"
+        );
+      } else {
+        knownProjects.add(project_id);
+      }
+    }
+    data2.push({ ...x, point_id: toPointId(x.payload as any) });
   }
+  return data2;
+}
+
+function toPointId({ project_id, path, fragment_id }): string {
+  return embeddings.getPointId(
+    `/projects/${project_id}/files/${path}#${fragment_id}`
+  );
 }
 
 export async function save({
@@ -67,10 +92,25 @@ export async function save({
 }: {
   account_id: string;
   data: embeddings.Data[];
-}) : Promise<string[]> {
-  if (!isValidUUID(account_id)) {
-    throw Error("account_id must be a valid uuid");
+}): Promise<string[]> {
+  if (data.length == 0) {
+    // easy
+    return [];
   }
-  validateData(data);
-  return await embeddings.save(data);
+  // [ ] todo: record in database effort accrued due to account_id.
+
+  const data2 = await validateData(data, account_id);
+
+  return await embeddings.save(data2);
+}
+
+export async function remove({
+  account_id,
+  data,
+}: {
+  account_id: string;
+  data: embeddings.Data[];
+}): Promise<string[]> {
+  const data2 = await validateData(data, account_id);
+  return await embeddings.remove(data2);
 }

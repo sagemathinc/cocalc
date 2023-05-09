@@ -1,5 +1,4 @@
 import { sha1, uuidsha1 } from "@cocalc/backend/sha1";
-import jsonStable from "json-stable-stringify";
 import getClient from "./client";
 import * as qdrant from "@cocalc/database/qdrant";
 import { getClient as getDB } from "@cocalc/database/pool";
@@ -7,6 +6,13 @@ import { getClient as getDB } from "@cocalc/database/pool";
 export interface Data {
   payload: qdrant.Payload;
   field: string; // payload[field] is the text we encode as a vector
+  point_id: string; // a uuid v4
+}
+
+export async function remove(data: Data[]): Promise<string[]> {
+  const points = data.map(({ point_id }) => point_id);
+  await qdrant.deletePoints({ points });
+  return points;
 }
 
 export async function save(data: Data[]): Promise<string[]> {
@@ -14,10 +20,9 @@ export async function save(data: Data[]): Promise<string[]> {
   // to the given data.
   const points: Partial<qdrant.Point>[] = [];
   const point_ids: string[] = [];
-  for (const { payload } of data) {
-    const id = uuidsha1(jsonStable(payload));
-    point_ids.push(id);
-    points.push({ id, payload });
+  for (const { payload, point_id } of data) {
+    point_ids.push(point_id);
+    points.push({ id: point_id, payload });
   }
 
   // Now we need the vector component of each of these points.
@@ -150,6 +155,11 @@ export async function save(data: Data[]): Promise<string[]> {
   }
 }
 
+// a url, but with no special encoding.
+export function getPointId(url: string) {
+  return uuidsha1(url);
+}
+
 export interface Result {
   id: string | number;
   payload?: qdrant.Payload;
@@ -165,7 +175,13 @@ export async function search({
   filter?: object;
   limit: number;
 }): Promise<Result[]> {
-  const [id] = await save([{ payload: { input }, field: "input" }]);
+  const [id] = await save([
+    {
+      payload: { input },
+      field: "input",
+      point_id: getPointId(`/search/${input}`),
+    },
+  ]);
   return await qdrant.search({ id, filter, limit });
 }
 

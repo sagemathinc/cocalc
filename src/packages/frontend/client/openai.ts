@@ -110,7 +110,18 @@ export class OpenAIClient {
     const resp = await this.async_call({
       message: message.openai_embeddings_save({ data }),
     });
-    console.log(resp);
+    return resp.ids;
+  }
+
+  public async embeddings_remove(
+    data: { payload: object; field: string }[]
+  ): Promise<string[]> {
+    if (!redux.getStore("projects").hasOpenAI()) {
+      throw Error("OpenAI support is not currently enabled on this server");
+    }
+    const resp = await this.async_call({
+      message: message.openai_embeddings_remove({ data }),
+    });
     return resp.ids;
   }
 }

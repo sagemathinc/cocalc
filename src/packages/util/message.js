@@ -3102,6 +3102,20 @@ message({
 
 API(
   message({
+    event: "openai_embeddings_remove",
+    id: undefined,
+    data: required,
+  })
+);
+
+message({
+  event: "openai_embeddings_remove_response",
+  id: undefined,
+  ids: required, // uuid's of removed data
+});
+
+API(
+  message({
     event: "jupyter_execute",
     id: undefined,
     hash: undefined, // give either hash *or* kernel, input, history, etc.

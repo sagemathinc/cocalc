@@ -745,7 +745,13 @@ export class TaskActions extends Actions<TaskState> {
     const data: { payload: any; field: "desc" }[] = [];
     for (const obj of this.syncdb.get().toJS()) {
       if ((obj.last_indexed ?? 0) < obj.last_edited && obj.desc?.trim()) {
-        data.push({ payload: { project_id, path, ...obj }, field: "desc" });
+        const payload = {
+          ...obj,
+          project_id,
+          path,
+          fragment_id: obj.task_id,
+        };
+        data.push({ payload, field: "desc" });
       }
     }
     if (data.length == 0) return 0;

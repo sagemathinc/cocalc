@@ -2121,6 +2121,19 @@ class exports.Client extends EventEmitter
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")
 
+    mesg_openai_embeddings_remove: (mesg) =>
+        dbg = @dbg("mesg_openai_embeddings_remove")
+        dbg()
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"not signed in")
+            return
+        try
+            ids = await embeddings_api.remove(account_id:@account_id, data:mesg.data)
+            @push_to_client(message.openai_embeddings_remove_response(id:mesg.id, ids:ids))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
     mesg_jupyter_execute: (mesg) =>
         dbg = @dbg("mesg_jupyter_execute")
         dbg(mesg.text)
