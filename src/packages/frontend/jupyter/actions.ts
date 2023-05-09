@@ -2580,8 +2580,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({
       show_kernel_selector_reason: undefined,
       show_kernel_selector: false,
-      kernel_selection: undefined,
-      kernels_by_name: undefined,
     });
   };
 

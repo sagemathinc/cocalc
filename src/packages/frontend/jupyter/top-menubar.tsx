@@ -38,6 +38,7 @@ import { JupyterActions } from "./browser-actions";
 import { get_help_links } from "./help-links";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 import Logo from "./logo";
+import { KernelSpec } from "./types";
 
 type MenuItemName = string | { name: string; display?: string; style?: object };
 
@@ -49,7 +50,7 @@ const TITLE_STYLE: React.CSSProperties = {
 } as const;
 
 const SELECTED_STYLE: React.CSSProperties = {
-  color: "#2196F3",
+  color: COLORS.BS_BLUE_TEXT,
   fontWeight: "bold",
 } as const;
 
@@ -342,29 +343,36 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
     }
 
     function render_kernel_item(
-      kernel: any,
+      kernel: KernelSpec,
       prefix = ""
     ): MenuItems[0] | string {
       if (kernel == null) return "";
-      const style: React.CSSProperties = { marginLeft: "4ex" };
-      if (kernel.name === kernel) {
-        style.color = "#2196F3";
-        style.fontWeight = "bold";
-      }
+      const current = kernel.name === current_kernel;
+      const style: React.CSSProperties = {
+        marginLeft: "4ex",
+        ...(current ? SELECTED_STYLE : undefined),
+      };
       const priority = (kernel as any).metadata?.cocalc?.priority ?? 0;
-      let label = (
-        <span style={style}>
-          <Logo kernel={kernel.name} size={20} style={{ marginTop: "-2px" }} />{" "}
-          {kernel.display_name}
-          <KernelStar priority={priority} />
+      const arrow = current ? (
+        <span style={{ float: "left", position: "absolute" }}>
+          <Icon
+            name="arrow-right"
+            style={{ position: "relative", left: "-4ex" }}
+          />
         </span>
+      ) : undefined;
+      const logo = (
+        <Logo kernel={kernel.name} size={20} style={{ marginTop: "-2px" }} />
       );
-      if (kernel_info?.get("name") == kernel.name) {
-        label = <b>{label}</b>;
-      }
       return {
         key: `${prefix}-${kernel.name}`,
-        label,
+        label: (
+          <div style={style}>
+            {arrow}
+            {logo} {kernel.display_name}
+            <KernelStar priority={priority} />
+          </div>
+        ),
         onClick: () => {
           handle_kernel_select(kernel.name);
         },
@@ -405,7 +413,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
           if (byPrio.length > 1) {
             entries.push(`<Change ${capitalize(currentLang)} kernel ...`);
             for (const name of byPrio) {
-              const kernel = kernels_by_name.get(name)?.toJS();
+              const kernel = kernels_by_name.get(name)?.toJS() as KernelSpec;
               if (kernel == null) continue;
               entries.push(render_kernel_item(kernel, "current"));
             }
@@ -428,7 +436,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       for (const lang of langSorted) {
         entries.push(`~${capitalize(lang)}...`);
         for (const name of getKernelOfLanguageByPriority(lang)) {
-          const kernel = kernels_by_name.get(name)?.toJS();
+          const kernel = kernels_by_name.get(name)?.toJS() as KernelSpec;
           const e = render_kernel_item(kernel, "all");
           if (typeof e === "string") continue;
           entries.push(e);
