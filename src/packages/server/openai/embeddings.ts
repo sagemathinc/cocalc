@@ -1,8 +1,8 @@
 import { sha1, uuidsha1 } from "@cocalc/backend/sha1";
 import jsonStable from "json-stable-stringify";
 import getClient from "./client";
-import getPool from "@cocalc/database/pool";
 import * as qdrant from "@cocalc/database/qdrant";
+import { getClient as getDB } from "@cocalc/database/pool";
 
 interface Data {
   payload: qdrant.Payload;
@@ -13,13 +13,9 @@ export async function save(data: Data[]): Promise<string[]> {
   // Define the Qdrant points that we will be inserting corresponding
   // to the given data.
   const points: Partial<qdrant.Point>[] = [];
-  const id_to_index: { [id: string]: number } = {};
-  let i = 0;
   for (const { payload } of data) {
     const id = uuidsha1(jsonStable(payload));
     points.push({ id, payload });
-    id_to_index[id] = i;
-    i += 1;
   }
 
   // Now we need the vector component of each of these points.
@@ -28,6 +24,8 @@ export async function save(data: Data[]): Promise<string[]> {
 
   const input_sha1s: string[] = [];
   const sha1_to_input: { [sha1: string]: string } = {};
+  const sha1_to_index: { [id: string]: number } = {};
+  let i = 0;
   for (const { field, payload } of data) {
     if (payload == null) {
       throw Error("all payloads must be defined");
@@ -39,69 +37,80 @@ export async function save(data: Data[]): Promise<string[]> {
     const s = sha1(val);
     input_sha1s.push(s);
     sha1_to_input[s] = val;
+    sha1_to_index[s] = i;
+    i += 1;
   }
   // Query database for known embedding vectors.  We don't have to do this,
   // but the idea is to never call openai again once we compute the embedding
   // for a string.
-  const pool = getPool("medium");
-  const { rows } = await pool.query(
-    "SELECT input_sha1, points[1] AS point_id FROM openai_embedding_log WHERE input_sha1 = ANY ($1)",
-    [input_sha1s]
-  );
-  console.log({ input_sha1s, rows });
-  const point_ids: { [sha1: string]: string } = {};
-  const known = new Set<string>([]);
-  for (const { input_sha1, point_id } of rows) {
-    known.add(input_sha1);
-    point_ids[input_sha1] = point_id;
-  }
+  const db = getDB();
+  try {
+    await db.connect();
+    const { rows } = await db.query(
+      "SELECT input_sha1, points[1] AS point_id FROM openai_embedding_log WHERE input_sha1 = ANY ($1)",
+      [input_sha1s]
+    );
+    const point_ids: { [sha1: string]: string } = {};
+    const known = new Set<string>([]);
+    for (const { input_sha1, point_id } of rows) {
+      known.add(input_sha1);
+      point_ids[input_sha1] = point_id;
+    }
 
-  if (known.size < data.length) {
-    const unknown = input_sha1s.filter((x) => !known.has(x));
-    const inputs = unknown.map((x) => sha1_to_input[x]);
-    const vectors = await createEmbeddings(inputs);
-    // record these in our points array
-    const newPoints: { input_sha1: string; id: string }[] = [];
-    let j = 0;
-    for (let i = 0; i < points.length; i++) {
-      if (!known.has(input_sha1s[i])) {
-        points[i].vector = vectors[j];
-        const { id } = points[i];
-        if (typeof id != "string") {
-          throw Error("bug");
+    if (known.size < data.length) {
+      const unknown = input_sha1s.filter((x) => !known.has(x));
+      const inputs = unknown.map((x) => sha1_to_input[x]);
+      const vectors = await createEmbeddings(inputs);
+      // record these in our points array
+      const newPoints: { input_sha1: string; id: string }[] = [];
+      let j = 0;
+      for (let i = 0; i < points.length; i++) {
+        if (!known.has(input_sha1s[i])) {
+          points[i].vector = vectors[j];
+          const { id } = points[i];
+          if (typeof id != "string") {
+            throw Error("bug");
+          }
+          newPoints.push({ input_sha1: input_sha1s[i], id });
+          j += 1;
         }
-        newPoints.push({ input_sha1: input_sha1s[i], id });
-        j += 1;
+      }
+      // store these as new records in postgresql
+      // [ ] TODO: add info about size
+      // [ ] TODO: ensure inputs aren't too long
+      await saveEmbeddingsInPostgres(db, newPoints);
+    }
+
+    if (known.size > 0) {
+      // retrieve already known vectors from qdrant
+      const ids = rows.map(({ point_id }) => point_id);
+      const knownPoints = await qdrant.getPoints({
+        ids,
+        with_payload: false,
+        with_vector: true,
+      });
+      const idToVec: { [id: string]: number[] } = {};
+      for (const { id, vector } of knownPoints) {
+        idToVec[id] = vector;
+      }
+      let i = 0;
+      for (const id of ids) {
+        points[sha1_to_index[rows[i].input_sha1]].vector = idToVec[id];
+        i += 1;
       }
     }
-    // store these as new records in postgresql
-    // [ ] TODO: add info about size
-    // [ ] TODO: ensure inputs aren't too long
-    await saveEmbeddingsInPostgres(pool, newPoints);
+
+    await qdrant.upsert(points as qdrant.Point[]);
+
+    return points.map(({ id }) => id) as string[];
+  } finally {
+    db.end();
   }
-
-  if (known.size > 0) {
-    // retrieve already known vectors from qdrant
-    const knownPoints = await qdrant.getPoints({
-      ids: rows.map(({ point_id }) => point_id),
-      with_payload: false,
-      with_vector: true,
-    });
-    for (const { id, vector } of knownPoints) {
-      points[id_to_index[id]].vector = vector;
-    }
-  }
-
-  await qdrant.upsert(points as qdrant.Point[]);
-
-  return points.map(({ id }) => id) as string[];
 }
 
 interface Result {
-  data: {
-    id: number;
-    payload: qdrant.Payload;
-  };
+  id: string | number;
+  payload?: qdrant.Payload;
   score: number;
 }
 
@@ -114,8 +123,8 @@ export async function search({
   filter?;
   limit: number;
 }): Promise<Result[]> {
-  console.log("search", { input, filter, limit });
-  return [];
+  const [id] = await save([{ payload: { input }, field: "input" }]);
+  return await qdrant.search({ id, filter, limit });
 }
 
 async function createEmbeddings(input: string[]): Promise<number[][]> {
@@ -128,7 +137,7 @@ async function createEmbeddings(input: string[]): Promise<number[][]> {
 }
 
 async function saveEmbeddingsInPostgres(
-  pool,
+  db,
   newPoints: { input_sha1: string; id: string }[]
 ) {
   // We don't have to worry about sql injection because all the inputs
@@ -146,5 +155,5 @@ async function saveEmbeddingsInPostgres(
       VALUES ${values};
     `;
 
-  await pool.query(query);
+  await db.query(query);
 }

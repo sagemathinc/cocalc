@@ -71,20 +71,32 @@ export async function upsert(data: Point[]) {
 }
 
 export async function search({
+  id,
   vector,
   limit,
   filter,
 }: {
-  vector: number[];
+  vector?: number[];
+  id?: string | number;
   limit: number;
   filter?: object;
 }) {
   const client = await getClient();
-  return await client.search(COLLECTION_NAME, {
-    vector,
-    limit,
-    filter,
-  });
+  if (id) {
+    return await client.recommend(COLLECTION_NAME, {
+      positive: [id],
+      limit,
+      filter,
+    });
+  } else if (vector) {
+    return await client.search(COLLECTION_NAME, {
+      vector,
+      limit,
+      filter,
+    });
+  } else {
+    throw Error("id or vector must be specified");
+  }
 }
 
 export async function getPoints(opts): Promise<any> {
