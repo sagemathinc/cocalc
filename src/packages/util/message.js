@@ -3116,6 +3116,21 @@ message({
 
 API(
   message({
+    event: "openai_embeddings_get",
+    id: undefined,
+    data: required,
+    selector: undefined,
+  })
+);
+
+message({
+  event: "openai_embeddings_get_response",
+  id: undefined,
+  points: required, // points and their payloads (but not vectors)
+});
+
+API(
+  message({
     event: "jupyter_execute",
     id: undefined,
     hash: undefined, // give either hash *or* kernel, input, history, etc.

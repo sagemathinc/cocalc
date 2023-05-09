@@ -40,6 +40,8 @@ import { TaskStore } from "./store";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { webapp_client } from "../../webapp-client";
 import type { Actions as TaskFrameActions } from "@cocalc/frontend/frame-editors/task-editor/actions";
+import jsonStable from "json-stable-stringify";
+import sha1 from "sha1";
 
 export class TaskActions extends Actions<TaskState> {
   public syncdb: SyncDB;
@@ -745,11 +747,21 @@ export class TaskActions extends Actions<TaskState> {
     const data: { payload: any; field: "desc" }[] = [];
     for (const obj of this.syncdb.get().toJS()) {
       if ((obj.last_indexed ?? 0) < obj.last_edited && obj.desc?.trim()) {
+        // we include hash, so we can
+        // tell later if we need to update this, i.e., if part of payload
+        // we care about has changed.
         const payload = {
           ...obj,
           project_id,
           path,
           fragment_id: obj.task_id,
+          hash: sha1(
+            jsonStable({
+              desc: obj.desc,
+              due_date: obj.due_date,
+              done: obj.done,
+            })
+          ),
         };
         data.push({ payload, field: "desc" });
       }

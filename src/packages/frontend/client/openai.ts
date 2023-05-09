@@ -114,7 +114,7 @@ export class OpenAIClient {
   }
 
   public async embeddings_remove(
-    data: { payload: object; field: string }[]
+    data: { payload: object }[]
   ): Promise<string[]> {
     if (!redux.getStore("projects").hasOpenAI()) {
       throw Error("OpenAI support is not currently enabled on this server");
@@ -123,5 +123,18 @@ export class OpenAIClient {
       message: message.openai_embeddings_remove({ data }),
     });
     return resp.ids;
+  }
+
+  public async embeddings_get(
+    data: { payload: object }[],
+    selector?: { include?: string[]; exclude?: string[] }
+  ): Promise<{ id: string | number; payload: object }[]> {
+    if (!redux.getStore("projects").hasOpenAI()) {
+      throw Error("OpenAI support is not currently enabled on this server");
+    }
+    const resp = await this.async_call({
+      message: message.openai_embeddings_get({ data, selector }),
+    });
+    return resp.points;
   }
 }

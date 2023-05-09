@@ -46,7 +46,11 @@ export async function search({
   return await embeddings.search({ input, limit, filter });
 }
 
-async function validateData(data: embeddings.Data[], account_id: string) {
+async function validateData(
+  data: embeddings.Data[],
+  account_id: string,
+  needsField: boolean
+) {
   if (!is_array(data)) {
     throw Error("data must be an array");
   }
@@ -58,11 +62,13 @@ async function validateData(data: embeddings.Data[], account_id: string) {
     if (payload == null || typeof payload != "object") {
       throw Error("each datum must have a payload object");
     }
-    if (typeof field != "string") {
-      throw Error("each datum must have a field string");
-    }
-    if (typeof payload[field] != "string" || !payload[field]) {
-      throw Error("each datum must payload[field] a nontrivial string");
+    if (needsField) {
+      if (typeof field != "string") {
+        throw Error("each datum must have a field string");
+      }
+      if (typeof payload[field] != "string" || !payload[field]) {
+        throw Error("each datum must payload[field] a nontrivial string");
+      }
     }
 
     const { project_id } = payload as any;
@@ -99,11 +105,12 @@ export async function save({
   }
   // [ ] todo: record in database effort accrued due to account_id.
 
-  const data2 = await validateData(data, account_id);
+  const data2 = await validateData(data, account_id, true);
 
   return await embeddings.save(data2);
 }
 
+// Remove points from vector store that match
 export async function remove({
   account_id,
   data,
@@ -111,6 +118,23 @@ export async function remove({
   account_id: string;
   data: embeddings.Data[];
 }): Promise<string[]> {
-  const data2 = await validateData(data, account_id);
+  const data2 = await validateData(data, account_id, false);
   return await embeddings.remove(data2);
+}
+
+// get payload of points from vector store that match
+export async function get({
+  account_id,
+  data,
+  selector,
+}: {
+  account_id: string;
+  data: embeddings.Data[];
+  selector?: { include?: string[]; exclude?: string[] };
+}): Promise<{ id: string | number; payload: object }[]> {
+  const data2 = await validateData(data, account_id, false);
+  return await embeddings.getPayloads(
+    data2.map(({ point_id }) => point_id),
+    selector
+  );
 }
