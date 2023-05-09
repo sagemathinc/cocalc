@@ -1,9 +1,14 @@
-import { getKernelInfo } from "./kernel-info";
-import { guesslang } from "@cocalc/frontend/misc/detect-language";
-import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
-import { closest_kernel_match } from "@cocalc/util/misc";
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { fromJS } from "immutable";
-import { field_cmp } from "@cocalc/util/misc";
+
+import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
+import { guesslang } from "@cocalc/frontend/misc/detect-language";
+import { closest_kernel_match, field_cmp } from "@cocalc/util/misc";
+import { getKernelInfo } from "./kernel-info";
 
 export default async function getKernel({
   input,

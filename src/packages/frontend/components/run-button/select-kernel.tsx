@@ -4,6 +4,7 @@
  */
 
 import { Alert, Select, Tooltip } from "antd";
+import { OptionProps } from "antd/es/select";
 import { fromJS } from "immutable";
 import { sortBy } from "lodash";
 import { useEffect, useState } from "react";
@@ -17,30 +18,29 @@ import {
 import { capitalize } from "@cocalc/util/misc";
 import { getKernelInfo } from "./kernel-info";
 import { KernelStar } from "./kernel-star";
-import { OptionProps } from "antd/es/select";
 
 export default function SelectKernel({
   //code,
-  kernel,
-  onSelect,
-  disabled,
-  project_id,
   allowClear,
+  disabled,
+  kernel,
+  kernelSpecs: kernelSpecsProp,
+  onSelect,
   placeholder = "Kernel...",
+  project_id,
   size,
   style = { flex: 1 },
-  kernelSpecs: kernelSpecsProp,
 }: {
   //code?: string;
-  kernel?: string;
-  onSelect: (name: string) => void;
-  disabled?: boolean;
-  project_id?: string;
   allowClear?: boolean;
+  disabled?: boolean;
+  kernel?: string;
+  kernelSpecs?: KernelSpec[];
+  onSelect: (name: string) => void;
   placeholder?: string;
+  project_id?: string;
   size?: "large" | "middle" | "small";
   style?: React.CSSProperties;
-  kernelSpecs?: KernelSpec[];
 }) {
   const [error, setError] = useState<string>("");
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null>(
@@ -104,8 +104,9 @@ export default function SelectKernel({
       fromJS(kernelSpecs)
     );
 
+    // langs: all kenrels by language, then the popular ones by priority
     const langs: Omit<OptionProps, "children">[] = [];
-    const popular: Omit<OptionProps, "children">[] = [];
+    const popular: [Omit<OptionProps, "children">, number][] = [];
 
     byLang.forEach((names) => {
       const top = sortBy(
@@ -122,19 +123,22 @@ export default function SelectKernel({
       const display_name = capitalize(spec.language ?? spec.name);
       const item = entry({ ...spec, display_name }, "lang");
       if (priority >= KERNEL_POPULAR_THRESHOLD) {
-        popular.push(item);
+        popular.push([item, priority]);
       } else {
         langs.push(item);
       }
     });
 
-    // below, we list all kernels by name
+    // below the above, we list all kernels by name
     const all = kernelSpecs
       .filter((spec) => !spec?.metadata?.cocalc?.disabled)
       .map((spec) => entry(spec, "kernel"));
 
     return [
-      { label: "Popular", options: popular },
+      {
+        label: "Popular",
+        options: sortBy(popular, ([, p]) => -p).map(([item]) => item),
+      },
       { label: "Languages", options: langs },
       { label: "All Kernels", options: all },
     ];

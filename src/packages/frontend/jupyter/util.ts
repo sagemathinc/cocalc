@@ -112,17 +112,19 @@ export function get_kernels_by_name_or_language(
     if (data_lang[lang] == null) data_lang[lang] = [];
     data_lang[lang].push(entry);
   };
-  kernels.map((entry) => {
-    const name = entry.get("name");
-    const lang = entry.get("language");
-    if (name != null) data_name[name] = entry;
-    if (lang == null) {
-      // we collect all kernels without a language under "misc"
-      add_lang("misc", entry);
-    } else {
-      add_lang(lang, entry);
-    }
-  });
+  kernels
+    .filter((entry) => entry.getIn(["metadata", "cocalc", "disabled"]) !== true)
+    .map((entry) => {
+      const name = entry.get("name");
+      const lang = entry.get("language");
+      if (name != null) data_name[name] = entry;
+      if (lang == null) {
+        // we collect all kernels without a language under "misc"
+        add_lang("misc", entry);
+      } else {
+        add_lang(lang, entry);
+      }
+    });
   const by_name = immutable
     .OrderedMap<string, immutable.Map<string, string>>(data_name)
     .sortBy((v, k) => {
