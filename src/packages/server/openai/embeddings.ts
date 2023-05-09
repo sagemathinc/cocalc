@@ -13,8 +13,10 @@ export async function save(data: Data[]): Promise<string[]> {
   // Define the Qdrant points that we will be inserting corresponding
   // to the given data.
   const points: Partial<qdrant.Point>[] = [];
+  const point_ids: string[] = [];
   for (const { payload } of data) {
     const id = uuidsha1(jsonStable(payload));
+    point_ids.push(id);
     points.push({ id, payload });
   }
 
@@ -44,17 +46,36 @@ export async function save(data: Data[]): Promise<string[]> {
   // but the idea is to never call openai again once we compute the embedding
   // for a string.
   const db = getDB();
+  const alreadyStored = new Set<string>([]); // data that is already stored.
   try {
     await db.connect();
     const { rows } = await db.query(
-      "SELECT input_sha1, points[1] AS point_id FROM openai_embedding_log WHERE input_sha1 = ANY ($1)",
-      [input_sha1s]
+      `
+        SELECT
+          input_sha1,
+          points[1] AS point_id,
+          ARRAY(
+            SELECT unnested_points
+            FROM unnest(points) AS unnested_points
+            WHERE unnested_points = ANY ($2)
+          ) AS intersected_points
+        FROM
+          openai_embedding_log
+        WHERE
+          input_sha1 = ANY ($1)
+`,
+      [input_sha1s, point_ids]
     );
-    const point_ids: { [sha1: string]: string } = {};
     const known = new Set<string>([]);
-    for (const { input_sha1, point_id } of rows) {
+    for (const { input_sha1, intersected_points } of rows) {
+      if (intersected_points.length > 0) {
+        for (const id of intersected_points) {
+          alreadyStored.add(id);
+          known.add(id);
+        }
+        continue;
+      }
       known.add(input_sha1);
-      point_ids[input_sha1] = point_id;
     }
 
     if (known.size < data.length) {
@@ -83,24 +104,33 @@ export async function save(data: Data[]): Promise<string[]> {
 
     if (known.size > 0) {
       // retrieve already known vectors from qdrant
-      const ids = rows.map(({ point_id }) => point_id);
-      const knownPoints = await qdrant.getPoints({
-        ids,
-        with_payload: false,
-        with_vector: true,
-      });
-      const idToVec: { [id: string]: number[] } = {};
-      for (const { id, vector } of knownPoints) {
-        idToVec[id] = vector;
-      }
-      let i = 0;
-      for (const id of ids) {
-        points[sha1_to_index[rows[i].input_sha1]].vector = idToVec[id];
-        i += 1;
+      const ids = rows
+        .map(({ point_id }) => point_id)
+        .filter((id) => !alreadyStored.has(id));
+      if (ids.length > 0) {
+        const knownPoints = await qdrant.getPoints({
+          ids,
+          with_payload: false,
+          with_vector: true,
+        });
+        const idToVec: { [id: string]: number[] } = {};
+        for (const { id, vector } of knownPoints) {
+          idToVec[id] = vector;
+        }
+        let i = 0;
+        for (const id of ids) {
+          points[sha1_to_index[rows[i].input_sha1]].vector = idToVec[id];
+          i += 1;
+        }
       }
     }
 
-    await qdrant.upsert(points as qdrant.Point[]);
+    const pointsToStore = points.filter(
+      (point) => !alreadyStored.has(point.id as string)
+    );
+    if (pointsToStore.length > 0) {
+      await qdrant.upsert(pointsToStore as qdrant.Point[]);
+    }
 
     return points.map(({ id }) => id) as string[];
   } finally {
