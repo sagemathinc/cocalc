@@ -18,9 +18,13 @@ export async function getClient(): Promise<QdrantClient> {
   }
   // don't necessarily require apiKey to be nontrivial, e.g., not needed locally for dev purposes.
   // We polyfill fetch so cocalc still works with node 16.  With node 18 this isn't needed.
-  const { default: fetch, Headers } = await import("node-fetch");
-  global.Headers = Headers;
-  global.fetch = fetch;
+  try {
+    const { default: fetch, Headers } = await import("node-fetch");
+    global.Headers = Headers;
+    global.fetch = fetch;
+  } catch (err) {
+    console.warn("Unable to polyfill node-fetch");
+  }
   const client = new QdrantClient({
     url,
     ...(apiKey ? { apiKey } : undefined),

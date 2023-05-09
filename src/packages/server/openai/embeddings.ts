@@ -4,9 +4,9 @@ import getClient from "./client";
 import * as qdrant from "@cocalc/database/qdrant";
 import { getClient as getDB } from "@cocalc/database/pool";
 
-interface Data {
+export interface Data {
   payload: qdrant.Payload;
-  field: string; // payload[field] is the text we encode.
+  field: string; // payload[field] is the text we encode as a vector
 }
 
 export async function save(data: Data[]): Promise<string[]> {
@@ -104,6 +104,8 @@ export async function save(data: Data[]): Promise<string[]> {
 
     if (known.size > 0) {
       // retrieve already known vectors from qdrant
+      // [ ] TODO: if for some reason there's no vector, fall back to explicit call to createEmbeddings
+      //     This should never happen, but will avoid pain down the line "just in case".
       const ids = rows
         .map(({ point_id }) => point_id)
         .filter((id) => !alreadyStored.has(id));
@@ -148,7 +150,7 @@ export async function save(data: Data[]): Promise<string[]> {
   }
 }
 
-interface Result {
+export interface Result {
   id: string | number;
   payload?: qdrant.Payload;
   score: number;
@@ -160,7 +162,7 @@ export async function search({
   limit,
 }: {
   input: string;
-  filter?;
+  filter?: object;
   limit: number;
 }): Promise<Result[]> {
   const [id] = await save([{ payload: { input }, field: "input" }]);

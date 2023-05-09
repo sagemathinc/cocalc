@@ -3072,6 +3072,36 @@ message({
 
 API(
   message({
+    event: "openai_embeddings_search",
+    id: undefined,
+    input: required,
+    filter: undefined,
+    limit: required,
+  })
+);
+
+message({
+  event: "openai_embeddings_search_response",
+  id: undefined,
+  matches: required, // matching points
+});
+
+API(
+  message({
+    event: "openai_embeddings_save",
+    id: undefined,
+    data: required,
+  })
+);
+
+message({
+  event: "openai_embeddings_save_response",
+  id: undefined,
+  ids: required, // uuid's of saved data
+});
+
+API(
+  message({
     event: "jupyter_execute",
     id: undefined,
     hash: undefined, // give either hash *or* kernel, input, history, etc.

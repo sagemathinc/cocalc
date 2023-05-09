@@ -81,4 +81,36 @@ export class OpenAIClient {
     });
     return resp.text;
   }
+
+  public async embeddings_search({
+    input,
+    filter,
+    limit,
+  }: {
+    input: string;
+    limit: number;
+    filter?: object;
+  }): Promise<string> {
+    if (!redux.getStore("projects").hasOpenAI()) {
+      throw Error("OpenAI support is not currently enabled on this server");
+    }
+    input = input.trim();
+    const resp = await this.async_call({
+      message: message.openai_embeddings_search({ input, filter, limit }),
+    });
+    return resp.matches;
+  }
+
+  public async embeddings_save(
+    data: { payload: object; field: string }[]
+  ): Promise<string[]> {
+    if (!redux.getStore("projects").hasOpenAI()) {
+      throw Error("OpenAI support is not currently enabled on this server");
+    }
+    const resp = await this.async_call({
+      message: message.openai_embeddings_save({ data }),
+    });
+    console.log(resp);
+    return resp.ids;
+  }
 }
