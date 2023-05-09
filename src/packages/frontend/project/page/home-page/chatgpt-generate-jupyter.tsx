@@ -35,6 +35,9 @@ import { StartButton } from "@cocalc/frontend/project/start-button";
 import Logo from "@cocalc/frontend/jupyter/logo";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
+import track from "@cocalc/frontend/user-tracking";
+
+const tag = "generate-jupyter";
 
 const PLACEHOLDER = "Describe your notebook in detail...";
 
@@ -141,7 +144,7 @@ export default function ChatGPTGenerateJupyterNotebook({
         input,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
-        tag: "generate-jupyter",
+        tag,
       });
       await writeNotebook(raw);
       onSuccess?.();
@@ -245,6 +248,7 @@ export default function ChatGPTGenerateJupyterNotebook({
       cells: splitCells(text),
       metadata: { kernelspec: spec },
     };
+    track("chatgpt", { project_id, path, tag, type: "generate" });
 
     // we don't check if the file exists, because the prompt+timestamp should be unique enough
     await webapp_client.project_client.write_text_file({
