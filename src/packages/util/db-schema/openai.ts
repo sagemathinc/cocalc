@@ -165,6 +165,7 @@ Table({
     input_sha1: {
       title: "Sha1 hash of input",
       type: "string",
+      pg_type: "char(40)",
     },
     time: { type: "timestamp", desc: "When this embedding was computed." },
     total_tokens: {

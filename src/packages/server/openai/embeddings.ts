@@ -118,10 +118,20 @@ export async function save(data: Data[]): Promise<string[]> {
           idToVec[id] = vector;
         }
         let i = 0;
+        const additionalPoints: { input_sha1: string; id: string }[] = [];
         for (const id of ids) {
-          points[sha1_to_index[rows[i].input_sha1]].vector = idToVec[id];
+          const pnt = points[sha1_to_index[rows[i].input_sha1]];
+          if (!alreadyStored.has(pnt.id as string)) {
+            additionalPoints.push({
+              input_sha1: rows[i].input_sha1,
+              id: pnt.id as string,
+            });
+          }
+          pnt.vector = idToVec[id];
+
           i += 1;
         }
+        await saveAdditionalPointsInPostgres(db, additionalPoints);
       }
     }
 
@@ -170,6 +180,7 @@ async function saveEmbeddingsInPostgres(
   db,
   newPoints: { input_sha1: string; id: string }[]
 ) {
+  if (newPoints.length == 0) return;
   // We don't have to worry about sql injection because all the inputs
   // are sha1 hashes and uuid's that we computed.
   // Construct the values string for the query
@@ -186,4 +197,19 @@ async function saveEmbeddingsInPostgres(
     `;
 
   await db.query(query);
+}
+
+// This is relatively rare so we just do it in a fairly dumb way
+// instead of trying to do it all in one query.
+async function saveAdditionalPointsInPostgres(
+  db,
+  additionalPoints: { input_sha1: string; id: string }[]
+) {
+  if (additionalPoints.length == 0) return;
+  for (const { input_sha1, id } of additionalPoints) {
+    await db.query(
+      "UPDATE openai_embedding_log SET points=points||$1::UUID WHERE input_sha1=$2",
+      [id, input_sha1]
+    );
+  }
 }
