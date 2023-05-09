@@ -18,6 +18,7 @@ import { TaskStore } from "@cocalc/frontend/editors/task-editor/store";
 import { redux_name } from "../../app-framework";
 import { aux_file, cmp } from "@cocalc/util/misc";
 import { Map } from "immutable";
+import { debounce } from "lodash";
 
 interface TaskEditorState extends CodeEditorState {
   // nothing yet
@@ -40,6 +41,22 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     const syncdb = this._syncstring;
     syncdb.on("change", this.syncdbChange);
     syncdb.once("change", this.ensurePositionsAreUnique);
+    this.initUpdateEmbeddings(syncdb);
+  }
+
+  private initUpdateEmbeddings(syncdb) {
+    const update = async () => {
+      if (!this.redux.getStore("projects").hasOpenAI(this.project_id)) {
+        return;
+      }
+      try {
+        const n = await this.updateEmbeddings();
+        console.log("updated ", n, "embeddings");
+      } catch (err) {
+        console.warn("issue updating embeddings", err);
+      }
+    };
+    syncdb.on("change", debounce(update, 10000));
   }
 
   private syncdbChange(changes) {
@@ -131,7 +148,8 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
       this.project_id,
       this.auxPath,
       this._syncstring,
-      this.taskStore
+      this.taskStore,
+      this.path
     );
     actions._init_frame(frameId, this);
     this.taskActions[frameId] = actions;
@@ -231,5 +249,10 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
 
   chatgptGetLanguage() {
     return "md";
+  }
+
+  async updateEmbeddings(): Promise<number> {
+    if (this._syncstring == null) return 0;
+    return (await this.getTaskActions()?.updateEmbeddings()) ?? 0;
   }
 }

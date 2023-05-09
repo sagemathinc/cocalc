@@ -45,6 +45,7 @@ export class TaskActions extends Actions<TaskState> {
   public syncdb: SyncDB;
   private project_id: string;
   private path: string;
+  private truePath: string;
   private store: TaskStore;
   _update_visible: Function;
   private is_closed: boolean = false;
@@ -57,11 +58,13 @@ export class TaskActions extends Actions<TaskState> {
     project_id: string,
     path: string,
     syncdb: SyncDB,
-    store: TaskStore
+    store: TaskStore,
+    truePath: string // because above path is auxpath for each frame.
   ): void {
     this._update_visible = throttle(this.__update_visible, 500);
     this.project_id = project_id;
     this.path = path;
+    this.truePath = truePath;
     this.syncdb = syncdb;
     this.store = store;
   }
@@ -725,7 +728,7 @@ export class TaskActions extends Actions<TaskState> {
   // Exports the currently visible tasks to a markdown file and opens it.
   public async export_to_markdown(): Promise<void> {
     const content = this.toMarkdown();
-    const path = this.path + ".md";
+    const path = this.truePath + ".md";
     await webapp_client.project_client.write_text_file({
       project_id: this.project_id,
       path,
@@ -734,6 +737,25 @@ export class TaskActions extends Actions<TaskState> {
     this.redux
       .getProjectActions(this.project_id)
       .open_file({ path, foreground: true });
+  }
+
+  async updateEmbeddings(): Promise<number> {
+    const project_id = this.project_id;
+    const path = this.truePath;
+    const data: { payload: any; field: "desc" }[] = [];
+    for (const obj of this.syncdb.get().toJS()) {
+      if ((obj.last_indexed ?? 0) < obj.last_edited && obj.desc?.trim()) {
+        data.push({ payload: { project_id, path, ...obj }, field: "desc" });
+      }
+    }
+    if (data.length == 0) return 0;
+    await webapp_client.openai_client.embeddings_save(data);
+    const last_indexed = Date.now();
+    for (const { payload } of data) {
+      this.set_task(payload.task_id, { last_indexed }, false, false);
+    }
+    this.commit();
+    return data.length;
   }
 }
 
