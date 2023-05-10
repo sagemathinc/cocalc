@@ -159,6 +159,13 @@ Table({
   fields: schema.openai_chatgpt_log.fields,
 });
 
+export interface EmbeddingData {
+  id: string;
+  text?: string;
+  meta?: object;
+  hash?: string;
+}
+
 Table({
   name: "openai_embedding_log",
   fields: {
@@ -195,4 +202,3 @@ Table({
     pg_indexes: ["((vector IS NOT NULL))"],
   },
 });
-

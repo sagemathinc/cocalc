@@ -1,6 +1,7 @@
 import * as embeddings from "./embeddings";
 import { isValidUUID, is_array } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import type { EmbeddingData } from "@cocalc/util/db-schema/openai";
 
 const MAX_SEARCH_TEXT = 4000; // *technical* it would be 8K tokens...
 const MAX_SEARCH_LIMIT = 500;
@@ -146,7 +147,7 @@ async function prepareData(
   account_id: string,
   project_id: string,
   path: string,
-  data: Data[],
+  data: EmbeddingData[],
   needsText: boolean
 ): Promise<embeddings.Data[]> {
   if (!is_array(data)) {
@@ -186,13 +187,6 @@ function toURL({ project_id, path }) {
   return `\\projects/${project_id}/files/${path}`;
 }
 
-interface Data {
-  id: string;
-  text?: string;
-  meta?: object;
-  hash?: string;
-}
-
 export async function save({
   account_id,
   project_id,
@@ -202,7 +196,7 @@ export async function save({
   account_id: string;
   project_id: string;
   path: string;
-  data: Data[];
+  data: EmbeddingData[];
 }): Promise<string[]> {
   if (data.length == 0) {
     // easy
@@ -230,7 +224,7 @@ export async function remove({
   account_id: string;
   project_id: string;
   path: string;
-  data: Data[];
+  data: EmbeddingData[];
 }): Promise<string[]> {
   if (data.length == 0) {
     // easy
@@ -252,7 +246,7 @@ export async function get({
   account_id: string;
   project_id: string;
   path: string;
-  data: Data[];
+  data: EmbeddingData[];
   selector?: { include?: string[]; exclude?: string[] };
 }): Promise<{ id: string | number; payload: object }[]> {
   if (data.length == 0) {

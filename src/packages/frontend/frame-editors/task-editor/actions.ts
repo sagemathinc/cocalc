@@ -18,7 +18,7 @@ import { TaskStore } from "@cocalc/frontend/editors/task-editor/store";
 import { redux_name } from "../../app-framework";
 import { aux_file, cmp } from "@cocalc/util/misc";
 import { Map } from "immutable";
-import { debounce } from "lodash";
+import Embeddings from "./embeddings";
 
 interface TaskEditorState extends CodeEditorState {
   // nothing yet
@@ -31,6 +31,7 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
   taskActions: { [frameId: string]: TaskActions } = {};
   taskStore: TaskStore;
   auxPath: string;
+  embeddings?: Embeddings;
 
   _init2(): void {
     this.auxPath = aux_file(this.path, "tasks");
@@ -41,25 +42,22 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     const syncdb = this._syncstring;
     syncdb.on("change", this.syncdbChange);
     syncdb.once("change", this.ensurePositionsAreUnique);
-    this.initUpdateEmbeddings(syncdb);
+    this.initEmbeddings(syncdb);
   }
 
-  private initUpdateEmbeddings(syncdb) {
-    const update = async () => {
-      if (!this.redux.getStore("projects").hasOpenAI(this.project_id)) {
-        return;
-      }
-      try {
-        const n = await this.updateEmbeddings();
-        console.log("updated ", n, "embeddings");
-      } catch (err) {
-        console.warn("issue updating embeddings", err);
-      }
-    };
-    syncdb.on(
-      "change",
-      debounce(update, 5000)
-    );
+  private initEmbeddings(syncdb) {
+    if (!this.redux.getStore("projects").hasOpenAI(this.project_id)) {
+      return;
+    }
+    this.embeddings = new Embeddings({
+      project_id: this.project_id,
+      path: this.path,
+      syncdb,
+    });
+    syncdb.on("closed", () => {
+      this.embeddings?.close();
+      delete this.embeddings;
+    });
   }
 
   private syncdbChange(changes) {
@@ -254,8 +252,8 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     return "md";
   }
 
-  async updateEmbeddings(): Promise<number> {
-    if (this._syncstring == null) return 0;
-    return (await this.getTaskActions()?.updateEmbeddings()) ?? 0;
-  }
+  //   async updateEmbeddings(): Promise<number> {
+  //     if (this._syncstring == null) return 0;
+  //     return (await this.getTaskActions()?.updateEmbeddings()) ?? 0;
+  //   }
 }
