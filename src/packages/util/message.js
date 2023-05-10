@@ -3073,6 +3073,7 @@ message({
 API(
   message({
     event: "openai_embeddings_search",
+    scope: required,
     id: undefined,
     input: undefined, // at least one of input or filter must be specified; if input given, does vector search
     filter: undefined,
@@ -3091,8 +3092,10 @@ message({
 API(
   message({
     event: "openai_embeddings_save",
-    id: undefined,
+    project_id: required,
+    path: required,
     data: required,
+    id: undefined,
   })
 );
 
@@ -3106,6 +3109,8 @@ API(
   message({
     event: "openai_embeddings_remove",
     id: undefined,
+    project_id: required,
+    path: required,
     data: required,
   })
 );
@@ -3120,6 +3125,8 @@ API(
   message({
     event: "openai_embeddings_get",
     id: undefined,
+    project_id: required,
+    path: required,
     data: required,
     selector: undefined,
   })

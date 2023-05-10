@@ -11,21 +11,21 @@ const EXPIRE = "NOW() + interval '6 weeks'";
 export interface Data {
   payload: qdrant.Payload;
   field: string; // payload[field] is the text we encode as a vector
-  point_id: string; // a uuid v4
 }
 
 export async function remove(data: Data[]): Promise<string[]> {
-  const points = data.map(({ point_id }) => point_id);
+  const points = data.map(({ payload }) => getPointId(payload?.url as string));
   await qdrant.deletePoints({ points });
   return points;
 }
 
-export async function save(data: Data[]): Promise<void> {
+export async function save(data: Data[]): Promise<string[]> {
   // Define the Qdrant points that we will be inserting corresponding
   // to the given data.
   const points: Partial<qdrant.Point>[] = [];
   const point_ids: string[] = [];
-  for (const { payload, point_id } of data) {
+  for (const { payload } of data) {
+    const point_id = getPointId(payload?.url as string);
     point_ids.push(point_id);
     points.push({ id: point_id, payload });
   }
@@ -88,13 +88,19 @@ export async function save(data: Data[]): Promise<void> {
     });
 
     await qdrant.upsert(points as qdrant.Point[]);
+    return points.map(({ id }) => id as string);
   } finally {
     db.end();
   }
 }
 
 // a url, but with no special encoding.
+// It must always start with a backslash, which is an affordance
+// so we can use qdrant to do prefix substring matching.
 export function getPointId(url: string) {
+  if (!url || url[0] != "\\" || url.length <= 1) {
+    throw Error("url must start with a backslash and be nontrivial");
+  }
   return uuidsha1(url);
 }
 
@@ -126,16 +132,20 @@ export async function search({
   offset?: number | string;
 }): Promise<Result[]> {
   if (input != null || id != null) {
-    // search for points close to input
-    const point_id = id ?? getPointId(`/search/${input}`);
-    await save([
-      {
-        // time is just to know when this term was last searched, so we could delete stale data if want
-        payload: { input, time: Date.now() },
-        field: "input",
-        point_id,
-      },
-    ]);
+    let point_id;
+    if (id != null) {
+      point_id = id;
+    } else {
+      const url = `\\search/${input}`;
+      // search for points close to input
+      [point_id] = await save([
+        {
+          // time is just to know when this term was last searched, so we could delete stale data if want
+          payload: { input, time: Date.now(), url },
+          field: "input",
+        },
+      ]);
+    }
     if (typeof offset == "string") {
       throw Error(
         "when doing a search by input or id, offset must be a number (or not given)"

@@ -2102,7 +2102,7 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"not signed in")
             return
         try
-            matches = await embeddings_api.search(account_id:@account_id, input:mesg.input, filter:mesg.filter, limit:mesg.limit, selector:mesg.selector, offset:mesg.offset)
+            matches = await embeddings_api.search(account_id:@account_id, scope:mesg.scope, input:mesg.input, filter:mesg.filter, limit:mesg.limit, selector:mesg.selector, offset:mesg.offset)
             @push_to_client(message.openai_embeddings_search_response(id:mesg.id, matches:matches))
         catch err
             dbg("failed -- #{err}")
@@ -2115,7 +2115,7 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"not signed in")
             return
         try
-            ids = await embeddings_api.save(account_id:@account_id, data:mesg.data)
+            ids = await embeddings_api.save(account_id:@account_id, data:mesg.data, project_id:mesg.project_id, path:mesg.path)
             @push_to_client(message.openai_embeddings_save_response(id:mesg.id, ids:ids))
         catch err
             dbg("failed -- #{err}")
@@ -2128,7 +2128,7 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"not signed in")
             return
         try
-            ids = await embeddings_api.remove(account_id:@account_id, data:mesg.data)
+            ids = await embeddings_api.remove(account_id:@account_id, data:mesg.data, project_id:mesg.project_id, path:mesg.path)
             @push_to_client(message.openai_embeddings_remove_response(id:mesg.id, ids:ids))
         catch err
             dbg("failed -- #{err}")
@@ -2141,7 +2141,7 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"not signed in")
             return
         try
-            points = await embeddings_api.get(account_id:@account_id, data:mesg.data, selector:mesg.selector)
+            points = await embeddings_api.get(account_id:@account_id, data:mesg.data, selector:mesg.selector, project_id:mesg.project_id, path:mesg.path)
             @push_to_client(message.openai_embeddings_get_response(id:mesg.id, points:points))
         catch err
             dbg("failed -- #{err}")

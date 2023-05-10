@@ -13,10 +13,9 @@ export default async function handle(req, res) {
 }
 
 async function doIt(req) {
-  const { data } = getParams(req);
   const account_id = await getAccountId(req);
   if (!account_id) {
     throw Error("must be signed in");
   }
-  return await get({ account_id, data });
+  return await get({ ...getParams(req), account_id });
 }

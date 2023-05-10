@@ -742,8 +742,6 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   async updateEmbeddings(): Promise<number> {
-    const project_id = this.project_id;
-    const path = this.truePath;
     const data: { payload: any; field: "desc" }[] = [];
     for (const obj of this.syncdb.get().toJS()) {
       if ((obj.last_indexed ?? 0) < obj.last_edited && obj.desc?.trim()) {
@@ -753,8 +751,6 @@ export class TaskActions extends Actions<TaskState> {
         const obj1 = copy_with(obj, ["desc", "due_date", "done", "task_id"]);
         const payload = {
           ...obj1,
-          project_id,
-          path,
           fragment_id: `id=${obj.task_id}`,
           hash: sha1(jsonStable(obj1)),
         };
@@ -762,7 +758,11 @@ export class TaskActions extends Actions<TaskState> {
       }
     }
     if (data.length == 0) return 0;
-    await webapp_client.openai_client.embeddings_save(data);
+    await webapp_client.openai_client.embeddings_save({
+      project_id: this.project_id,
+      path: this.truePath,
+      data,
+    });
     return data.length;
   }
 }
