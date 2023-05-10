@@ -169,7 +169,7 @@ Table({
     },
     time: {
       type: "timestamp",
-      desc: "When this embedding was last accessed.  This is useful in case we decide to automatically delete rows that haven't been recently accessed.  Some entries correspond to queries users type, so may be very frequent, or content in shared notebooks (e.g., students in class), so caching is very valuable when it is actively happening.",
+      desc: "When this embedding was created.",
     },
     tokens: {
       type: "integer",
@@ -183,6 +183,10 @@ Table({
     model: {
       type: "string",
       desc: "The model that was used; if left blank it is assumed to be text-embedding-ada-002.",
+    },
+    expire: {
+      type: "timestamp",
+      desc: "future date, when the entry will be deleted.   This is useful in case we decide to automatically delete rows that haven't been recently accessed.  Some entries correspond to queries users type, so may be very frequent, or content in shared notebooks (e.g., students in class), so caching is very valuable when it is actively happening.",
     },
   },
   rules: {

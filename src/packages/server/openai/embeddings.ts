@@ -3,6 +3,11 @@ import getClient from "./client";
 import * as qdrant from "@cocalc/database/qdrant";
 import { getClient as getDB } from "@cocalc/database/pool";
 
+// the vectors we compute using openai's embeddings api get cached for this long
+// in our database since they were last accessed.  Also, this is how long we
+// cache our log of calls.
+const EXPIRE = "NOW() + interval '6 weeks'";
+
 export interface Data {
   payload: qdrant.Payload;
   field: string; // payload[field] is the text we encode as a vector
@@ -58,6 +63,10 @@ export async function save(data: Data[]): Promise<void> {
     for (const { input_sha1, vector } of rows) {
       sha1_to_vector[input_sha1] = vector;
     }
+    await db.query(
+      `UPDATE openai_embedding_log SET expire=${EXPIRE} WHERE input_sha1 = ANY ($1)`,
+      [rows.map(({ input_sha1 }) => input_sha1)]
+    );
 
     if (rows.length < data.length) {
       // compute some embeddings
@@ -139,12 +148,12 @@ async function saveEmbeddingsInPostgres(
   // are sha1 hashes and uuid's that we computed.
   // Construct the values string for the query.
   const values: string[] = input_sha1s.map((input_sha1, i) => {
-    return `('${input_sha1}', '{${vectors[i].join(",")}}', NOW())`;
+    return `('${input_sha1}', '{${vectors[i].join(",")}}', NOW(), ${EXPIRE})`;
   });
 
   // Insert data into the openai_embedding_log table using a single query
   const query = `
-      INSERT INTO openai_embedding_log (input_sha1, vector, time)
+      INSERT INTO openai_embedding_log (input_sha1, vector, time, expire)
       VALUES ${values.join(", ")};
     `;
 
