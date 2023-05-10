@@ -111,44 +111,44 @@ export interface Result {
 }
 
 // - If id is given search for points near the point with that id.
-// - If input is given search for points near the embedding of that search input string
-// - If neither id or input is given, then the filter must be given, and find
+// - If text is given search for points near the embedding of that search text string
+// - If neither id or text is given, then the filter must be given, and find
 //   points whose payload matches that filter.
 // - selector: determines which fields in payload to include/exclude
-// - offset: for id/input an integer offset; for filter, first point ID to read points from.
+// - offset: for id/text an integer offset; for filter, first point ID to read points from.
 export async function search({
   id,
-  input,
+  text,
   filter,
   limit,
   selector,
   offset,
 }: {
   id?: string; // uuid of a point
-  input?: string;
+  text?: string;
   filter?: object;
   limit: number;
   selector?: { include?: string[]; exclude?: string[] };
   offset?: number | string;
 }): Promise<Result[]> {
-  if (input != null || id != null) {
+  if (text != null || id != null) {
     let point_id;
     if (id != null) {
       point_id = id;
     } else {
-      const url = `\\search/${input}`;
-      // search for points close to input
+      const url = `\\search/${text}`;
+      // search for points close to text
       [point_id] = await save([
         {
           // time is just to know when this term was last searched, so we could delete stale data if want
-          payload: { input, time: Date.now(), url },
-          field: "input",
+          payload: { text, time: Date.now(), url },
+          field: "text",
         },
       ]);
     }
     if (typeof offset == "string") {
       throw Error(
-        "when doing a search by input or id, offset must be a number (or not given)"
+        "when doing a search by text or id, offset must be a number (or not given)"
       );
     }
     return await qdrant.search({
@@ -165,7 +165,7 @@ export async function search({
     // endpoint for qdrant.
     return (await qdrant.scroll({ filter, limit, selector, offset })).points;
   } else {
-    throw Error("at least one of id, input or filter MUST be specified");
+    throw Error("at least one of id, text or filter MUST be specified");
   }
 }
 

@@ -3075,7 +3075,7 @@ API(
     event: "openai_embeddings_search",
     scope: required,
     id: undefined,
-    input: undefined, // at least one of input or filter must be specified; if input given, does vector search
+    text: undefined, // at least one of text or filter must be specified; if text given, does vector search
     filter: undefined,
     limit: required,
     selector: undefined,

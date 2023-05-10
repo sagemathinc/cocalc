@@ -85,14 +85,14 @@ export class OpenAIClient {
   public async embeddings_search({
     scope,
     limit,
-    input,
+    text,
     filter,
     selector,
     offset,
   }: {
     scope: string | string[];
     limit: number;
-    input?: string;
+    text?: string;
     filter?: object;
     selector?: { include?: string[]; exclude?: string[] };
     offset?: number | string;
@@ -100,11 +100,11 @@ export class OpenAIClient {
     if (!redux.getStore("projects").hasOpenAI()) {
       throw Error("OpenAI support is not currently enabled on this server");
     }
-    input = input?.trim();
+    text = text?.trim();
     const resp = await this.async_call({
       message: message.openai_embeddings_search({
         scope,
-        input,
+        text,
         filter,
         limit,
         selector,

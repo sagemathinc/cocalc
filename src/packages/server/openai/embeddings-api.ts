@@ -2,19 +2,19 @@ import * as embeddings from "./embeddings";
 import { isValidUUID, is_array } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
-const MAX_SEARCH_INPUT = 2000;
+const MAX_SEARCH_TEXT = 4000; // *technical* it would be 8K tokens...
 const MAX_SEARCH_LIMIT = 500;
-function validateSearchParams({ input, filter, limit, selector, offset }) {
-  if (input != null) {
-    if (typeof input != "string") {
-      throw Error("input must be a string");
+function validateSearchParams({ text, filter, limit, selector, offset }) {
+  if (text != null) {
+    if (typeof text != "string") {
+      throw Error("text must be a string");
     }
-    if (!input.trim()) {
-      throw Error("input must not be whitespace");
+    if (!text.trim()) {
+      throw Error("text must not be whitespace");
     }
-    if (input.length > MAX_SEARCH_INPUT) {
+    if (text.length > MAX_SEARCH_TEXT) {
       // hard limit on size for *search*.
-      throw Error(`input must be at most ${MAX_SEARCH_INPUT} characters`);
+      throw Error(`text must be at most ${MAX_SEARCH_TEXT} characters`);
     }
   }
   if (filter != null && typeof filter != "object") {
@@ -36,7 +36,7 @@ function validateSearchParams({ input, filter, limit, selector, offset }) {
         throw Error("offset must be nonnegative integer or uuid");
       }
     }
-    if (input != null && typeof offset != "number") {
+    if (text != null && typeof offset != "number") {
       throw Error("offset must be a number when doing a vector search");
     }
   }
@@ -52,7 +52,7 @@ function validateSearchParams({ input, filter, limit, selector, offset }) {
 export async function search({
   account_id,
   scope,
-  input,
+  text,
   limit,
   filter: filter0,
   selector,
@@ -60,7 +60,7 @@ export async function search({
 }: {
   account_id: string;
   scope: string | string[];
-  input?: string;
+  text?: string;
   limit: number;
   filter?: object;
   selector?: { include?: string[]; exclude?: string[] };
@@ -71,8 +71,8 @@ export async function search({
   // [ ] TODO: CRITICAL security check -- need to make sure the filter explicitly contains
   //     only project(s) user has access to, or some other url's later (e.g., for searching share server).
   const filter = await scopeFilter(account_id, scope, filter0);
-  validateSearchParams({ input, filter, limit, selector, offset });
-  return await embeddings.search({ input, limit, filter, selector, offset });
+  validateSearchParams({ text, filter, limit, selector, offset });
+  return await embeddings.search({ text, limit, filter, selector, offset });
 }
 
 // Creates filter object that further restricts input filter to also have the given scope.
@@ -146,36 +146,36 @@ async function prepareData(
   account_id: string,
   project_id: string,
   path: string,
-  data: embeddings.Data[],
-  needsField: boolean
-) {
+  data: Data[],
+  needsText: boolean
+): Promise<embeddings.Data[]> {
   if (!is_array(data)) {
     throw Error("data must be an array");
   }
   if (!(await isCollaborator({ account_id, project_id }))) {
+    // check that account_id is collab on project_id
     throw Error(`user must be collaborator on project with id ${project_id}`);
   }
   const url = toURL({ project_id, path });
-  // checks that account_id is collab on project_id
   const data2: embeddings.Data[] = [];
-  for (const x of data) {
-    const { payload, field } = x;
-    if (payload == null || typeof payload != "object") {
-      throw Error("each datum must have a payload object");
+  for (const { id, text, meta, hash } of data) {
+    if (!id || typeof id != "string") {
+      throw Error(
+        "you must specify the id for each item and it must be a nonempty string"
+      );
     }
-    if (needsField) {
-      if (typeof field != "string") {
-        throw Error("each datum must have a field string");
-      }
-      if (typeof payload[field] != "string" || !payload[field]) {
-        throw Error("each datum must payload[field] a nontrivial string");
+    if (needsText) {
+      if (!text || typeof text != "string") {
+        throw Error("each item must have an nonempty text string");
       }
     }
     data2.push({
-      field,
+      field: "text",
       payload: {
-        ...payload,
-        url: payload.fragment_id ? `${url}#${payload.fragment_id}` : url,
+        text,
+        url: `${url}#${id}`,
+        hash,
+        meta,
       },
     });
   }
@@ -186,16 +186,23 @@ function toURL({ project_id, path }) {
   return `\\projects/${project_id}/files/${path}`;
 }
 
+interface Data {
+  id: string;
+  text?: string;
+  meta?: object;
+  hash?: string;
+}
+
 export async function save({
   account_id,
   project_id,
   path,
-  data, // data about a specific project_id/path.  Will have url set when saving.
+  data,
 }: {
   account_id: string;
   project_id: string;
   path: string;
-  data: embeddings.Data[];
+  data: Data[];
 }): Promise<string[]> {
   if (data.length == 0) {
     // easy
@@ -203,7 +210,13 @@ export async function save({
   }
   // [ ] todo: record in database effort accrued due to account_id.
 
-  const data2 = await prepareData(account_id, project_id, path, data, true);
+  const data2: embeddings.Data[] = await prepareData(
+    account_id,
+    project_id,
+    path,
+    data,
+    true
+  );
   return await embeddings.save(data2);
 }
 
@@ -217,7 +230,7 @@ export async function remove({
   account_id: string;
   project_id: string;
   path: string;
-  data: embeddings.Data[];
+  data: Data[];
 }): Promise<string[]> {
   if (data.length == 0) {
     // easy
@@ -239,7 +252,7 @@ export async function get({
   account_id: string;
   project_id: string;
   path: string;
-  data: embeddings.Data[];
+  data: Data[];
   selector?: { include?: string[]; exclude?: string[] };
 }): Promise<{ id: string | number; payload: object }[]> {
   if (data.length == 0) {

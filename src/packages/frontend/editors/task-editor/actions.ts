@@ -742,21 +742,18 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   async updateEmbeddings(): Promise<number> {
-    const data: { payload: any; field: "desc" }[] = [];
-    for (const obj of this.syncdb.get().toJS()) {
-      if ((obj.last_indexed ?? 0) < obj.last_edited && obj.desc?.trim()) {
-        // we include hash, so we can
-        // tell later if we need to update this, i.e., if part of payload
-        // we care about has changed.
-        const obj1 = copy_with(obj, ["desc", "due_date", "done", "task_id"]);
-        const payload = {
-          ...obj1,
-          fragment_id: `id=${obj.task_id}`,
-          hash: sha1(jsonStable(obj1)),
+    const data = this.syncdb
+      .get()
+      .toJS()
+      .map((obj) => {
+        const meta = copy_with(obj, ["due_date", "done"]);
+        return {
+          id: `id=${obj.task_id}`,
+          text: obj.desc,
+          meta,
+          hash: sha1(jsonStable(meta)),
         };
-        data.push({ payload, field: "desc" });
-      }
-    }
+      });
     if (data.length == 0) return 0;
     await webapp_client.openai_client.embeddings_save({
       project_id: this.project_id,
