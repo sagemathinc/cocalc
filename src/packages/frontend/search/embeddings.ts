@@ -23,20 +23,39 @@ slightly temporary issues of too much or too little data in the search index
 are not "fatal data loss" for us, since this is just search.
 */
 
-import { webapp_client } from "../../webapp-client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { redux } from "@cocalc/frontend/app-framework";
 import { debounce } from "lodash";
 import jsonStable from "json-stable-stringify";
 import sha1 from "sha1";
-import { copy_with, uuidsha1 } from "@cocalc/util/misc";
+import { close, copy_with, uuidsha1 } from "@cocalc/util/misc";
 import type { EmbeddingData } from "@cocalc/util/db-schema/openai";
+import type { SyncDB } from "@cocalc/sync/editor/db";
+import type { Document } from "@cocalc/sync/editor/generic/types";
 
 const LIMIT = 300;
 
-export default class Embeddings {
-  private syncdb;
-  private syncDoc;
+interface Options {
+  project_id: string;
+  path: string;
+  syncdb: SyncDB;
+  primaryKey: string;
+  textColumn: string;
+  metaColumns?: string[];
+}
+
+export default function embeddings(opts: Options): Embeddings {
+  return new Embeddings(opts);
+}
+
+class Embeddings {
+  private syncdb: SyncDB;
+  private syncDoc?: Document;
   private project_id: string;
   private path: string;
+  private primaryKey: string; // primary key of the syncdb; so at least this fragment should work:  "id={obj[primary]}"
+  private textColumn: string; // the name of the column that has the text that gets indexed
+  private metaColumns?: string[]; // the names of the metadata columns
 
   // map from point_id to hash and fragment_id for each remote element
   private remote: { [point_id: string]: EmbeddingData } = {};
@@ -49,21 +68,39 @@ export default class Embeddings {
 
   private url: string;
 
-  constructor({ project_id, path, syncdb }) {
+  constructor({
+    project_id,
+    path,
+    syncdb,
+    primaryKey,
+    textColumn,
+    metaColumns,
+  }: Options) {
     this.syncdb = syncdb;
     this.project_id = project_id;
     this.path = path;
+    this.primaryKey = primaryKey;
+    this.textColumn = textColumn;
+    this.metaColumns = metaColumns;
     this.url = `projects/${project_id}/files/${path}`;
+    if (!this.isEnabled()) {
+      // if disabled we just never do anything.
+      return;
+    }
     syncdb.once("change", () => this.init());
     syncdb.on("change", debounce(this.sync.bind(this), 5000));
+    syncdb.once("closed", () => {
+      close(this);
+    });
   }
 
   pointId(fragmentId: string): string {
     return uuidsha1(`\\${this.url}#${fragmentId}`);
   }
 
-  close() {
-    // not sure if needed...
+  isEnabled(): boolean {
+    // for now -- we may want to do something more finegrained later.
+    return redux.getStore("projects").hasOpenAI(this.project_id);
   }
 
   private async init() {
@@ -94,16 +131,22 @@ export default class Embeddings {
   }
 
   private toData(elt) {
-    const text = elt.desc?.trim() ?? "";
-    const meta = copy_with(elt, ["due_date", "done"]);
-    const hash = text ? sha1(jsonStable({ ...meta, text })) : undefined;
-    const id = `id=${elt.task_id}`;
+    const text = elt[this.textColumn]?.trim() ?? "";
+    let meta, hash;
+    if (this.metaColumns != null && this.metaColumns.length > 0) {
+      meta = copy_with(elt, this.metaColumns);
+      hash = text ? sha1(jsonStable({ ...meta, text })) : undefined;
+    } else {
+      meta = undefined;
+      hash = text ? sha1(text) : undefined;
+    }
+    const id = `id=${elt[this.primaryKey]}`;
     return { text, meta, hash, id };
   }
 
   private async initLocal() {
     Object.keys(this.local).forEach((key) => delete this.local[key]);
-    this.syncDoc = this.syncdb.doc; // save doc
+    this.syncDoc = this.syncdb.get_doc(); // save doc so we can tell what changed later
     this.syncdb
       .get()
       .toJS()
@@ -121,16 +164,17 @@ export default class Embeddings {
       return;
     }
     // this patch encodes what changed since we last updated local:
-    const patch = this.syncDoc.make_patch(this.syncdb.doc);
+    const patch = this.syncDoc.make_patch(this.syncdb.get_doc());
     for (let i = 0; i < patch.length; i += 2) {
       const operation = patch[i];
       const tasks = patch[i + 1];
-      for (const { task_id } of tasks) {
-        const point_id = this.pointId(`id=${task_id}`);
+      for (const task of tasks) {
+        const id = task[this.primaryKey];
+        const point_id = this.pointId(`id=${id}`);
         if (operation == -1) {
           delete this.local[point_id];
         } else if (operation == 1) {
-          const elt = this.syncdb.get_one({ task_id })?.toJS();
+          const elt = this.syncdb.get_one({ [this.primaryKey]: id })?.toJS();
           if (elt != null) {
             const data = this.toData(elt);
             if (data.text) {

@@ -18,7 +18,6 @@ import { TaskStore } from "@cocalc/frontend/editors/task-editor/store";
 import { redux_name } from "../../app-framework";
 import { aux_file, cmp } from "@cocalc/util/misc";
 import { Map } from "immutable";
-import Embeddings from "./embeddings";
 
 interface TaskEditorState extends CodeEditorState {
   // nothing yet
@@ -28,10 +27,14 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
   protected doctype: string = "syncdb";
   protected primary_keys: string[] = ["task_id"];
   protected string_cols: string[] = ["desc"];
+  protected searchEmbeddings = {
+    primaryKey: "task_id",
+    textColumn: "desc",
+    metaColumns: ["due_date", "done"],
+  };
   taskActions: { [frameId: string]: TaskActions } = {};
   taskStore: TaskStore;
   auxPath: string;
-  embeddings?: Embeddings;
 
   _init2(): void {
     this.auxPath = aux_file(this.path, "tasks");
@@ -42,22 +45,6 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     const syncdb = this._syncstring;
     syncdb.on("change", this.syncdbChange);
     syncdb.once("change", this.ensurePositionsAreUnique);
-    this.initEmbeddings(syncdb);
-  }
-
-  private initEmbeddings(syncdb) {
-    if (!this.redux.getStore("projects").hasOpenAI(this.project_id)) {
-      return;
-    }
-    this.embeddings = new Embeddings({
-      project_id: this.project_id,
-      path: this.path,
-      syncdb,
-    });
-    syncdb.on("closed", () => {
-      this.embeddings?.close();
-      delete this.embeddings;
-    });
   }
 
   private syncdbChange(changes) {

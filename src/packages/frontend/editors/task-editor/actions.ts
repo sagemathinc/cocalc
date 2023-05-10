@@ -40,8 +40,6 @@ import { TaskStore } from "./store";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { webapp_client } from "../../webapp-client";
 import type { Actions as TaskFrameActions } from "@cocalc/frontend/frame-editors/task-editor/actions";
-import jsonStable from "json-stable-stringify";
-import sha1 from "sha1";
 
 export class TaskActions extends Actions<TaskState> {
   public syncdb: SyncDB;
@@ -739,28 +737,6 @@ export class TaskActions extends Actions<TaskState> {
     this.redux
       .getProjectActions(this.project_id)
       .open_file({ path, foreground: true });
-  }
-
-  async updateEmbeddings(): Promise<number> {
-    const data = this.syncdb
-      .get()
-      .toJS()
-      .map((obj) => {
-        const meta = copy_with(obj, ["due_date", "done"]);
-        return {
-          id: `id=${obj.task_id}`,
-          text: obj.desc,
-          meta,
-          hash: sha1(jsonStable(meta)),
-        };
-      });
-    if (data.length == 0) return 0;
-    await webapp_client.openai_client.embeddings_save({
-      project_id: this.project_id,
-      path: this.truePath,
-      data,
-    });
-    return data.length;
   }
 }
 

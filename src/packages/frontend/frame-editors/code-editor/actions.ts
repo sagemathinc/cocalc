@@ -85,6 +85,7 @@ import chatgptCreatechat from "../chatgpt/create-chat";
 import type { Scope as ChatGPTScope } from "../chatgpt/types";
 import type { PageActions } from "@cocalc/frontend/app/actions";
 import type { TourProps } from "antd";
+import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 
 interface gutterMarkerParams {
   line: number;
@@ -152,9 +153,20 @@ export class Actions<
   private code_editors: CodeEditorManager<CodeEditorState>;
 
   protected doctype: string = "syncstring";
+
+  ////////
+  // these are for doctype "syncdb":
   protected primary_keys: string[] = [];
   protected string_cols: string[] = [];
   protected disable_cursors: boolean = false;
+  // If this is set, then we get automatic computation of
+  // search embeddings
+  protected searchEmbeddings?: {
+    primaryKey: string;
+    textColumn: string;
+    metaColumns?: string[];
+  };
+  ////////
 
   public project_id: string;
   public path: string;
@@ -284,6 +296,28 @@ export class Actions<
         string_cols: this.string_cols,
         cursors: !this.disable_cursors,
       });
+      if (this.searchEmbeddings != null) {
+        if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
+          throw Error(
+            `search embedding primaryKey must be in ${JSON.stringify(
+              this.primary_keys
+            )}`
+          );
+        }
+        if (!this.string_cols.includes(this.searchEmbeddings.textColumn)) {
+          throw Error(
+            `search embedding textColumn must be in ${JSON.stringify(
+              this.string_cols
+            )}`
+          );
+        }
+        enableSearchEmbeddings({
+          project_id: this.project_id,
+          path: this.path,
+          syncdb: this._syncstring,
+          ...this.searchEmbeddings,
+        });
+      }
     } else {
       throw Error(`invalid doctype="${this.doctype}"`);
     }
