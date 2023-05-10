@@ -109,21 +109,30 @@ export async function search({
   filter,
   limit,
   selector,
+  offset,
 }: {
   input: string;
   filter?: object;
   limit: number;
-  selector?;
+  selector?: { include?: string[]; exclude?: string[] };
+  offset?: number | string;
 }): Promise<Result[]> {
-  const id = getPointId(`/search/${input}`);
-  await save([
-    {
-      payload: { input },
-      field: "input",
-      point_id: id,
-    },
-  ]);
-  return await qdrant.search({ id, filter, limit, selector });
+  if (input != null) {
+    // search for points close to input
+    const id = getPointId(`/search/${input}`);
+    await save([
+      {
+        // time is just to know when this term was last searched, so we could delete stale data if want
+        payload: { input, time: Date.now() },
+        field: "input",
+        point_id: id,
+      },
+    ]);
+    return await qdrant.search({ id, filter, limit, selector, offset });
+  } else {
+    // search using the filter
+    return await qdrant.scroll({ filter, limit, selector, offset });
+  }
 }
 
 // get embeddings corresponding to strings. This is just a simple wrapper

@@ -3,17 +3,23 @@ import { isValidUUID, is_array } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 const MAX_SEARCH_INPUT = 2000;
-const MAX_SEARCH_LIMIT = 100;
-function validateSearchParams({ input, filter, limit }) {
-  if (typeof input != "string") {
-    throw Error("input must be a string");
-  }
-  if (!input.trim()) {
-    throw Error("input must not be whitespace");
-  }
-  if (input.length > MAX_SEARCH_INPUT) {
-    // hard limit on size for *search*.
-    throw Error(`input must be at most ${MAX_SEARCH_INPUT} characters`);
+const MAX_SEARCH_LIMIT = 500;
+function validateSearchParams({ input, filter, limit, selector, offset }) {
+  if (input != null) {
+    if (typeof input != "string") {
+      throw Error("input must be a string");
+    }
+    if (!input.trim()) {
+      throw Error("input must not be whitespace");
+    }
+    if (input.length > MAX_SEARCH_INPUT) {
+      // hard limit on size for *search*.
+      throw Error(`input must be at most ${MAX_SEARCH_INPUT} characters`);
+    }
+  } else {
+    if (filter == null) {
+      throw Error("at least one of input and filter must be specified");
+    }
   }
   if (filter != null && typeof filter != "object") {
     throw Error("if filter is not null it must be an object");
@@ -24,6 +30,27 @@ function validateSearchParams({ input, filter, limit }) {
   if (limit <= 0 || limit > MAX_SEARCH_LIMIT) {
     throw Error(`limit must be a positive number up to ${MAX_SEARCH_LIMIT}`);
   }
+  if (offset != null) {
+    if (typeof offset == "number") {
+      if (offset < 0) {
+        throw Error("offset must be nonnegative integer or uuid");
+      }
+    } else if (typeof offset == "string") {
+      if (!isValidUUID(offset)) {
+        throw Error("offset must be nonnegative integer or uuid");
+      }
+    }
+    if (input != null && typeof offset != "number") {
+      throw Error("offset must be a number when doing a vector search");
+    }
+  }
+  if (selector != null) {
+    if (typeof selector != "object") {
+      throw Error(
+        "selector must object of the form  { include?: string[]; exclude?: string[] }"
+      );
+    }
+  }
 }
 
 export async function search({
@@ -32,20 +59,22 @@ export async function search({
   limit,
   filter,
   selector,
+  offset,
 }: {
   account_id: string;
-  input: string;
   limit: number;
+  input?: string;
   filter?: object;
   selector?: { include?: string[]; exclude?: string[] };
+  offset?: number | string;
 }): Promise<embeddings.Result[]> {
   // [ ] TODO: Get n most recent non-hidden/non-deleted projects for this account, and add
   // a filter to only get results matching them.
   if (!isValidUUID(account_id)) {
     throw Error("account_id must be a valid uuid");
   }
-  validateSearchParams({ input, filter, limit });
-  return await embeddings.search({ input, limit, filter, selector });
+  validateSearchParams({ input, filter, limit, selector, offset });
+  return await embeddings.search({ input, limit, filter, selector, offset });
 }
 
 async function validateData(

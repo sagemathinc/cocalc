@@ -3074,10 +3074,11 @@ API(
   message({
     event: "openai_embeddings_search",
     id: undefined,
-    input: required,
+    input: undefined, // at least one of input or filter must be specified; if input given, does vector search
     filter: undefined,
     limit: required,
     selector: undefined,
+    offset: undefined,
   })
 );
 

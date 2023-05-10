@@ -18,6 +18,7 @@ export async function getClient(): Promise<QdrantClient> {
   }
   // don't necessarily require apiKey to be nontrivial, e.g., not needed locally for dev purposes.
   // We polyfill fetch so cocalc still works with node 16.  With node 18 this isn't needed.
+  // Node 16 is end-of-life soon and we will stop supporting it.
   if (global.Headers == null) {
     const { default: fetch, Headers } = await import("node-fetch");
     global.Headers = Headers;
@@ -87,12 +88,14 @@ export async function search({
   limit,
   filter,
   selector,
+  offset,
 }: {
   vector?: number[];
   id?: string | number;
   limit: number;
   filter?: object;
   selector?;
+  offset?: number;
 }) {
   const client = await getClient();
   if (id) {
@@ -101,6 +104,7 @@ export async function search({
       limit,
       filter,
       with_payload: selector == null ? true : selector,
+      offset,
     });
   } else if (vector) {
     return await client.search(COLLECTION_NAME, {
@@ -108,10 +112,31 @@ export async function search({
       limit,
       filter,
       with_payload: selector == null ? true : selector,
+      offset,
     });
   } else {
     throw Error("id or vector must be specified");
   }
+}
+
+export async function scroll({
+  limit,
+  filter,
+  selector,
+  offset,
+}: {
+  limit: number;
+  filter: object;
+  selector?;
+  offset?: number | string;
+}) {
+  const client = await getClient();
+  return await client.scroll(COLLECTION_NAME, {
+    limit,
+    filter,
+    with_payload: selector == null ? true : selector,
+    offset,
+  });
 }
 
 // See https://github.com/qdrant/qdrant-js/tree/master/packages/js-client-rest/src/api for how all this works.

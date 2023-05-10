@@ -763,11 +763,6 @@ export class TaskActions extends Actions<TaskState> {
     }
     if (data.length == 0) return 0;
     await webapp_client.openai_client.embeddings_save(data);
-    const last_indexed = Date.now();
-    for (const { payload } of data) {
-      this.set_task(payload.task_id, { last_indexed }, false, false);
-    }
-    this.commit();
     return data.length;
   }
 }
