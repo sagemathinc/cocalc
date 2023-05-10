@@ -40,7 +40,7 @@ const PRESETS: Preset[] = [
     description: "Explain how to fix any mistakes it can find.",
   },
   {
-    command: "Complete",
+    command: "Finish writing this",
     codegen: true,
     tag: "complete",
     icon: "pen",
@@ -49,7 +49,7 @@ const PRESETS: Preset[] = [
       "Finish writing this. ChatGPT can automatically write code, finish a poem, and much more.  The output is in chat so your file isn't directly modified.",
   },
   {
-    command: "Explain",
+    command: "Explain in detail how this code works",
     codegen: false,
     tag: "explain",
     icon: "bullhorn",
