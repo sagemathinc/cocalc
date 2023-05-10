@@ -56,7 +56,7 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
         console.warn("issue updating embeddings", err);
       }
     };
-    syncdb.on("change", debounce(update, 10000));
+    syncdb.on("change", debounce(update, 10000, { leading: true }));
   }
 
   private syncdbChange(changes) {

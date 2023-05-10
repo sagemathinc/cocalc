@@ -31,11 +31,13 @@ export async function search({
   input,
   limit,
   filter,
+  selector,
 }: {
   account_id: string;
   input: string;
   limit: number;
   filter?: object;
+  selector?: { include?: string[]; exclude?: string[] };
 }): Promise<embeddings.Result[]> {
   // [ ] TODO: Get n most recent non-hidden/non-deleted projects for this account, and add
   // a filter to only get results matching them.
@@ -43,7 +45,7 @@ export async function search({
     throw Error("account_id must be a valid uuid");
   }
   validateSearchParams({ input, filter, limit });
-  return await embeddings.search({ input, limit, filter });
+  return await embeddings.search({ input, limit, filter, selector });
 }
 
 async function validateData(
@@ -107,7 +109,8 @@ export async function save({
 
   const data2 = await validateData(data, account_id, true);
 
-  return await embeddings.save(data2);
+  await embeddings.save(data2);
+  return data2.map(({ point_id }) => point_id) as string[];
 }
 
 // Remove points from vector store that match

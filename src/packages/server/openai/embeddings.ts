@@ -15,7 +15,7 @@ export async function remove(data: Data[]): Promise<string[]> {
   return points;
 }
 
-export async function save(data: Data[]): Promise<string[]> {
+export async function save(data: Data[]): Promise<void> {
   // Define the Qdrant points that we will be inserting corresponding
   // to the given data.
   const points: Partial<qdrant.Point>[] = [];
@@ -26,130 +26,59 @@ export async function save(data: Data[]): Promise<string[]> {
   }
 
   // Now we need the vector component of each of these points.
-  // These might be available in Qdrant already, or we
-  // might have to compute them by using the embedding.
-
+  // These might be available in our cache already, or we
+  // might have to compute them by calling openai.
   const input_sha1s: string[] = [];
   const sha1_to_input: { [sha1: string]: string } = {};
-  const sha1_to_index: { [id: string]: number } = {};
+  const index_to_sha1: { [n: number]: string } = {};
   let i = 0;
   for (const { field, payload } of data) {
     if (payload == null) {
       throw Error("all payloads must be defined");
     }
-    const val = payload[field];
-    if (!val || typeof val != "string") {
+    const input = payload[field];
+    if (!input || typeof input != "string") {
       throw Error("payload[field] must be a nontrivial string");
     }
-    const s = sha1(val);
+    const s = sha1(input);
     input_sha1s.push(s);
-    sha1_to_input[s] = val;
-    sha1_to_index[s] = i;
+    sha1_to_input[s] = input;
+    index_to_sha1[i] = s;
     i += 1;
   }
-  // Query database for known embedding vectors.  We don't have to do this,
-  // but the idea is to never call openai again once we compute the embedding
-  // for a string.
+  // Query database for cached embedding vectors.
   const db = getDB();
-  const alreadyStored = new Set<string>([]); // data that is already stored.
   try {
     await db.connect();
     const { rows } = await db.query(
-      `
-        SELECT
-          input_sha1,
-          points[1] AS point_id,
-          ARRAY(
-            SELECT unnested_points
-            FROM unnest(points) AS unnested_points
-            WHERE unnested_points = ANY ($2)
-          ) AS intersected_points
-        FROM
-          openai_embedding_log
-        WHERE
-          input_sha1 = ANY ($1)
-`,
-      [input_sha1s, point_ids]
+      "SELECT input_sha1,vector FROM openai_embedding_log WHERE input_sha1 = ANY ($1)",
+      [input_sha1s]
     );
-    const known = new Set<string>([]);
-    for (const { input_sha1, intersected_points } of rows) {
-      if (intersected_points.length > 0) {
-        for (const id of intersected_points) {
-          alreadyStored.add(id);
-          known.add(id);
-        }
-        continue;
-      }
-      known.add(input_sha1);
+    const sha1_to_vector: { [sha1: string]: number[] } = {};
+    for (const { input_sha1, vector } of rows) {
+      sha1_to_vector[input_sha1] = vector;
     }
 
-    if (known.size < data.length) {
-      const unknown = input_sha1s.filter((x) => !known.has(x));
-      const inputs = unknown.map((x) => sha1_to_input[x]);
+    if (rows.length < data.length) {
+      // compute some embeddings
+      const unknown_sha1s = input_sha1s.filter(
+        (x) => sha1_to_vector[x] == null
+      );
+      const inputs = unknown_sha1s.map((x) => sha1_to_input[x]);
       const vectors = await createEmbeddings(inputs);
-      // record these in our points array
-      const newPoints: { input_sha1: string; id: string }[] = [];
-      let j = 0;
-      for (let i = 0; i < points.length; i++) {
-        if (!known.has(input_sha1s[i])) {
-          points[i].vector = vectors[j];
-          const { id } = points[i];
-          if (typeof id != "string") {
-            throw Error("bug");
-          }
-          newPoints.push({ input_sha1: input_sha1s[i], id });
-          j += 1;
-        }
+      for (let i = 0; i < unknown_sha1s.length; i++) {
+        sha1_to_vector[unknown_sha1s[i]] = vectors[i];
       }
-      // store these as new records in postgresql
-      // [ ] TODO: add info about tokens
-      // [ ] TODO: ensure inputs aren't too long
-      await saveEmbeddingsInPostgres(db, newPoints);
+      // save the vectors in postgres
+      await saveEmbeddingsInPostgres(db, unknown_sha1s, vectors);
     }
 
-    if (known.size > 0) {
-      // retrieve already known vectors from qdrant
-      // [ ] TODO: if for some reason there's no vector, fall back to explicit call to createEmbeddings
-      //     This should never happen, but will avoid pain down the line "just in case".
-      const ids = rows
-        .map(({ point_id }) => point_id)
-        .filter((id) => !alreadyStored.has(id));
-      if (ids.length > 0) {
-        const knownPoints = await qdrant.getPoints({
-          ids,
-          with_payload: false,
-          with_vector: true,
-        });
-        const idToVec: { [id: string]: number[] } = {};
-        for (const { id, vector } of knownPoints) {
-          idToVec[id] = vector;
-        }
-        let i = 0;
-        const additionalPoints: { input_sha1: string; id: string }[] = [];
-        for (const id of ids) {
-          const pnt = points[sha1_to_index[rows[i].input_sha1]];
-          if (!alreadyStored.has(pnt.id as string)) {
-            additionalPoints.push({
-              input_sha1: rows[i].input_sha1,
-              id: pnt.id as string,
-            });
-          }
-          pnt.vector = idToVec[id];
+    // Now sha1_to_vector has *all* the vectors in it.
+    points.map((point, i) => {
+      point.vector = sha1_to_vector[index_to_sha1[i]];
+    });
 
-          i += 1;
-        }
-        await saveAdditionalPointsInPostgres(db, additionalPoints);
-      }
-    }
-
-    const pointsToStore = points.filter(
-      (point) => !alreadyStored.has(point.id as string)
-    );
-    if (pointsToStore.length > 0) {
-      await qdrant.upsert(pointsToStore as qdrant.Point[]);
-    }
-
-    return points.map(({ id }) => id) as string[];
+    await qdrant.upsert(points as qdrant.Point[]);
   } finally {
     db.end();
   }
@@ -170,22 +99,28 @@ export async function search({
   input,
   filter,
   limit,
+  selector,
 }: {
   input: string;
   filter?: object;
   limit: number;
+  selector?;
 }): Promise<Result[]> {
-  const [id] = await save([
+  const id = getPointId(`/search/${input}`);
+  await save([
     {
       payload: { input },
       field: "input",
-      point_id: getPointId(`/search/${input}`),
+      point_id: id,
     },
   ]);
-  return await qdrant.search({ id, filter, limit });
+  return await qdrant.search({ id, filter, limit, selector });
 }
 
+// get embeddings corresponding to strings. This is just a simple wrapper
+// around calling openai, and does not cache anything.
 async function createEmbeddings(input: string[]): Promise<number[][]> {
+  // compute embeddings of everythig
   const openai = await getClient();
   const response = await openai.createEmbedding({
     model: "text-embedding-ada-002",
@@ -196,40 +131,24 @@ async function createEmbeddings(input: string[]): Promise<number[][]> {
 
 async function saveEmbeddingsInPostgres(
   db,
-  newPoints: { input_sha1: string; id: string }[]
+  input_sha1s: string[],
+  vectors: number[][]
 ) {
-  if (newPoints.length == 0) return;
+  if (input_sha1s.length == 0) return;
   // We don't have to worry about sql injection because all the inputs
   // are sha1 hashes and uuid's that we computed.
-  // Construct the values string for the query
-  const values = newPoints
-    .map(
-      ({ input_sha1, id }) => `('${input_sha1}', ARRAY['${id}'::UUID], NOW())`
-    )
-    .join(", ");
+  // Construct the values string for the query.
+  const values: string[] = input_sha1s.map((input_sha1, i) => {
+    return `('${input_sha1}', '{${vectors[i].join(",")}}', NOW())`;
+  });
 
   // Insert data into the openai_embedding_log table using a single query
   const query = `
-      INSERT INTO openai_embedding_log (input_sha1, points, time)
-      VALUES ${values};
+      INSERT INTO openai_embedding_log (input_sha1, vector, time)
+      VALUES ${values.join(", ")};
     `;
 
   await db.query(query);
-}
-
-// This is relatively rare so we just do it in a fairly dumb way
-// instead of trying to do it all in one query.
-async function saveAdditionalPointsInPostgres(
-  db,
-  additionalPoints: { input_sha1: string; id: string }[]
-) {
-  if (additionalPoints.length == 0) return;
-  for (const { input_sha1, id } of additionalPoints) {
-    await db.query(
-      "UPDATE openai_embedding_log SET points=points||$1::UUID WHERE input_sha1=$2",
-      [id, input_sha1]
-    );
-  }
 }
 
 export async function getPayloads(

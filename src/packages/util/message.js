@@ -3077,6 +3077,7 @@ API(
     input: required,
     filter: undefined,
     limit: required,
+    selector: undefined,
   })
 );
 

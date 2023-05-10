@@ -750,18 +750,13 @@ export class TaskActions extends Actions<TaskState> {
         // we include hash, so we can
         // tell later if we need to update this, i.e., if part of payload
         // we care about has changed.
+        const obj1 = copy_with(obj, ["desc", "due_date", "done", "task_id"]);
         const payload = {
-          ...obj,
+          ...obj1,
           project_id,
           path,
-          fragment_id: obj.task_id,
-          hash: sha1(
-            jsonStable({
-              desc: obj.desc,
-              due_date: obj.due_date,
-              done: obj.done,
-            })
-          ),
+          fragment_id: `id=${obj.task_id}`,
+          hash: sha1(jsonStable(obj1)),
         };
         data.push({ payload, field: "desc" });
       }

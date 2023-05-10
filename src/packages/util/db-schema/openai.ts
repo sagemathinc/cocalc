@@ -167,27 +167,27 @@ Table({
       type: "string",
       pg_type: "char(40)",
     },
-    time: { type: "timestamp", desc: "When this embedding was computed." },
-    total_tokens: {
+    time: {
+      type: "timestamp",
+      desc: "When this embedding was last accessed.  This is useful in case we decide to automatically delete rows that haven't been recently accessed.  Some entries correspond to queries users type, so may be very frequent, or content in shared notebooks (e.g., students in class), so caching is very valuable when it is actively happening.",
+    },
+    tokens: {
       type: "integer",
       desc: "The total number of tokens of the input string.",
     },
-    points: {
+    vector: {
       type: "array",
-      pg_type: "UUID[]",
-      desc: "The uuid's of points in the vector database with this embedding.",
+      pg_type: "double precision[]",
+      desc: "The vector obtained from openai.",
     },
     model: {
       type: "string",
       desc: "The model that was used; if left blank it is assumed to be text-embedding-ada-002.",
     },
-    tag: {
-      type: "string",
-      desc: "A string that the client can include that is useful for analytics later",
-    },
   },
   rules: {
-    desc: "OpenAI Vector Embedding Log",
+    desc: "OpenAI Vector Embedding Log.  This is a log and a cache of embeddings that we computed using openai.  It helps us track costs and avoid having to recompute embeddings, which costs money and takes time.  It is only used as a CACHE by our system.  This entire table could be deleted at any time, and the only impact is that some things may be slower and we may have to pay to recompute embeddings, but nothing should *break*.",
     primary_key: "input_sha1",
+    pg_indexes: ["((vector IS NOT NULL))"],
   },
 });

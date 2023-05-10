@@ -2102,7 +2102,7 @@ class exports.Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"not signed in")
             return
         try
-            matches = await embeddings_api.search(account_id:@account_id, input:mesg.input, filter:mesg.filter, limit:mesg.limit)
+            matches = await embeddings_api.search(account_id:@account_id, input:mesg.input, filter:mesg.filter, limit:mesg.limit, selector:mesg.selector)
             @push_to_client(message.openai_embeddings_search_response(id:mesg.id, matches:matches))
         catch err
             dbg("failed -- #{err}")

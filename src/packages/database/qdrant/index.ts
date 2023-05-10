@@ -86,11 +86,13 @@ export async function search({
   vector,
   limit,
   filter,
+  selector,
 }: {
   vector?: number[];
   id?: string | number;
   limit: number;
   filter?: object;
+  selector?;
 }) {
   const client = await getClient();
   if (id) {
@@ -98,12 +100,14 @@ export async function search({
       positive: [id],
       limit,
       filter,
+      with_payload: selector == null ? true : selector,
     });
   } else if (vector) {
     return await client.search(COLLECTION_NAME, {
       vector,
       limit,
       filter,
+      with_payload: selector == null ? true : selector,
     });
   } else {
     throw Error("id or vector must be specified");
