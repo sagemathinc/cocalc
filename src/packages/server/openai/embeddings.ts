@@ -42,8 +42,8 @@ export async function save(data: Data[]): Promise<string[]> {
       throw Error("all payloads must be defined");
     }
     const input = payload[field];
-    if (!input || typeof input != "string") {
-      throw Error("payload[field] must be a nontrivial string");
+    if (typeof input != "string") {
+      throw Error("payload[field] must be a string");
     }
     const s = sha1(input);
     input_sha1s.push(s);

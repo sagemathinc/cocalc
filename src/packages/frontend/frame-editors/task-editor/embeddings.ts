@@ -36,15 +36,18 @@ const LIMIT = 300;
 
 export default class Embeddings {
   private syncdb;
+  private syncDoc;
   private project_id: string;
   private path: string;
 
   // map from point_id to hash and fragment_id for each remote element
-  private remote: { [point_id: string]: { hash: string; url: string } } = {};
+  private remote: { [point_id: string]: EmbeddingData } = {};
 
   // map from point_id to Data {id,text,meta,hash} for
   // each local task
   private local: { [point_id: string]: EmbeddingData } = {};
+
+  private initialized: boolean = false;
 
   private url: string;
 
@@ -58,7 +61,7 @@ export default class Embeddings {
   }
 
   pointId(fragmentId: string): string {
-    return uuidsha1(`${this.url}#${fragmentId}`);
+    return uuidsha1(`\\${this.url}#${fragmentId}`);
   }
 
   close() {
@@ -68,6 +71,7 @@ export default class Embeddings {
   private async init() {
     try {
       await Promise.all([this.initRemote(), this.initLocal()]);
+      this.initialized = true;
       this.sync();
     } catch (err) {
       console.warn(
@@ -86,38 +90,70 @@ export default class Embeddings {
     // empty current this.remote:
     Object.keys(this.remote).forEach((key) => delete this.remote[key]);
     for (const { id, payload } of remote) {
-      this.remote[id] = payload as any;
+      const { hash, url } = payload as { hash: string; url: string };
+      this.remote[id] = { hash, id: url.split("#")[1] };
     }
+  }
+
+  private toData(elt) {
+    const text = elt.desc?.trim() ?? "";
+    const meta = copy_with(elt, ["due_date", "done"]);
+    const hash = sha1(jsonStable({ ...meta, text }));
+    const id = `id=${elt.task_id}`;
+    return { text, meta, hash, id };
   }
 
   private async initLocal() {
     Object.keys(this.local).forEach((key) => delete this.local[key]);
+    this.syncDoc = this.syncdb.doc; // save doc
     this.syncdb
       .get()
       .toJS()
-      .map((obj) => {
-        const text = obj.desc;
-        const meta = copy_with(obj, ["due_date", "done"]);
-        const hash = sha1(jsonStable({ ...meta, text }));
-        const id = `id=${obj.task_id}`;
-        this.local[this.pointId(id)] = { id, text, meta, hash };
+      .map((elt) => {
+        const data = this.toData(elt);
+        this.local[this.pointId(data.id)] = data;
       });
   }
 
-  private async sync() {
-    await this.syncDeleteRemote();
-  }
-
-  private async syncDeleteRemote() {
-    // delete all remote ones that shouldn't be there.
-    const data: EmbeddingData[] = [];
-    for (const id in this.remote) {
-      if (this.local[id] === undefined) {
-        const { url } = this.remote[id];
-        data.push({ id: url.split("#")[1] });
+  private async updateLocal() {
+    if (this.syncDoc == null) {
+      await this.initLocal();
+      return;
+    }
+    // this patch encodes what changed since we last updated local:
+    const patch = this.syncDoc.make_patch(this.syncdb.doc);
+    console.log({ patch });
+    for (let i = 0; i < patch.length; i += 2) {
+      const operation = patch[i];
+      const tasks = patch[i + 1];
+      for (const { task_id } of tasks) {
+        if (operation == -1) {
+          delete this.local[this.pointId(`id=${task_id}`)];
+        } else if (operation == 1) {
+          const elt = this.syncdb.get_one({ task_id })?.toJS();
+          if (elt != null) {
+            this.local[this.pointId(`id=${task_id}`)] = this.toData(elt);
+          }
+        }
       }
     }
-    console.log("data = ", data);
+  }
+
+  private async sync() {
+    if (!this.initialized) return;
+    await this.updateLocal();
+    await this.syncDeleteRemote();
+    await this.syncSaveLocal();
+  }
+
+  // delete all remote ones that shouldn't aren't here locally.
+  private async syncDeleteRemote() {
+    const data: EmbeddingData[] = [];
+    for (const point_id in this.remote) {
+      if (this.local[point_id] === undefined) {
+        data.push(this.remote[point_id]);
+      }
+    }
     if (data.length == 0) return;
     const ids = await webapp_client.openai_client.embeddings_remove({
       project_id: this.project_id,
@@ -125,5 +161,33 @@ export default class Embeddings {
       data,
     });
     console.log("removed ", ids);
+    // keep our view of remote in sync.
+    for (const id of ids) {
+      delete this.remote[id];
+    }
+  }
+
+  // save all local data that isn't already saved
+  private async syncSaveLocal() {
+    const data: EmbeddingData[] = [];
+    for (const id in this.local) {
+      const remote = this.remote[id];
+      if (remote === undefined || remote.hash != this.local[id].hash) {
+        if (this.local[id].text) {
+          console.log("have to save ", { id, remote, local: this.local[id] });
+          //  save it
+          data.push(this.local[id]);
+        }
+      }
+    }
+    const ids = await webapp_client.openai_client.embeddings_save({
+      project_id: this.project_id,
+      path: this.path,
+      data,
+    });
+    console.log("output of save ids = ", ids);
+    for (const id of ids) {
+      this.remote[id] = this.local[id];
+    }
   }
 }

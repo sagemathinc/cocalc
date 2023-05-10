@@ -160,10 +160,10 @@ Table({
 });
 
 export interface EmbeddingData {
-  id: string;
-  text?: string;
-  meta?: object;
-  hash?: string;
+  id: string; // fragment id, i.e., exactly what is after the # in the url
+  text?: string; // test that is embedded using a model
+  meta?: object; // extra metadata
+  hash?: string; // hash that is used to know when we need to update the point; e.g., hash of text and meta.
 }
 
 Table({
