@@ -98,7 +98,7 @@ export class OpenAIClient {
     if (!redux.getStore("projects").hasOpenAI()) {
       throw Error("OpenAI support is not currently enabled on this server");
     }
-    input = input.trim();
+    input = input?.trim();
     const resp = await this.async_call({
       message: message.openai_embeddings_search({
         input,

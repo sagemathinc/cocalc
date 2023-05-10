@@ -101,37 +101,61 @@ export function getPointId(url: string) {
 export interface Result {
   id: string | number;
   payload?: qdrant.Payload;
-  score: number;
+  score?: number; // included for vector search, but NOT for filter search.
 }
 
+// - If id is given search for points near the point with that id.
+// - If input is given search for points near the embedding of that search input string
+// - If neither id or input is given, then the filter must be given, and find
+//   points whose payload matches that filter.
+// - selector: determines which fields in payload to include/exclude
+// - offset: for id/input an integer offset; for filter, first point ID to read points from.
 export async function search({
+  id,
   input,
   filter,
   limit,
   selector,
   offset,
 }: {
-  input: string;
+  id?: string; // uuid of a point
+  input?: string;
   filter?: object;
   limit: number;
   selector?: { include?: string[]; exclude?: string[] };
   offset?: number | string;
 }): Promise<Result[]> {
-  if (input != null) {
+  if (input != null || id != null) {
     // search for points close to input
-    const id = getPointId(`/search/${input}`);
+    const point_id = id ?? getPointId(`/search/${input}`);
     await save([
       {
         // time is just to know when this term was last searched, so we could delete stale data if want
         payload: { input, time: Date.now() },
         field: "input",
-        point_id: id,
+        point_id,
       },
     ]);
-    return await qdrant.search({ id, filter, limit, selector, offset });
+    if (typeof offset == "string") {
+      throw Error(
+        "when doing a search by input or id, offset must be a number (or not given)"
+      );
+    }
+    return await qdrant.search({
+      id: point_id,
+      filter,
+      limit,
+      selector,
+      offset,
+    });
+  } else if (filter != null) {
+    // search using the filter.
+    // note the output of scroll has another property next_page_offset, which
+    // would be nice to return somehow, which is of course why it is a different
+    // endpoint for qdrant.
+    return (await qdrant.scroll({ filter, limit, selector, offset })).points;
   } else {
-    // search using the filter
-    return await qdrant.scroll({ filter, limit, selector, offset });
+    throw Error("at least one of id, input or filter MUST be specified");
   }
 }
 

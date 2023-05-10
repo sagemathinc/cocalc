@@ -62,14 +62,16 @@ export async function search({
   offset,
 }: {
   account_id: string;
-  limit: number;
   input?: string;
+  limit: number;
   filter?: object;
   selector?: { include?: string[]; exclude?: string[] };
   offset?: number | string;
 }): Promise<embeddings.Result[]> {
   // [ ] TODO: Get n most recent non-hidden/non-deleted projects for this account, and add
   // a filter to only get results matching them.
+  // [ ] TODO: CRITICAL security check -- need to make sure the filter explicitly contains
+  //     only project(s) user has access to, or some other url's later (e.g., for searching share server).
   if (!isValidUUID(account_id)) {
     throw Error("account_id must be a valid uuid");
   }
