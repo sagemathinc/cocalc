@@ -17,13 +17,11 @@ idempotent.  We do this as follows:
   - Do remove and save operations
   - Update our view of what remote knows.
 
-It's coneivable that somehow remote ends up slightly out of sync with what
+It's conceivable that somehow remote ends up slightly out of sync with what
 we think.  That will be fixed next time the full init step runs.  Also,
 slightly temporary issues of too much or too little data in the search index
 are not "fatal data loss" for us, since this is just search.
 */
-
-// console.log(JSON.stringify(await cc.client.openai_client.embeddings_search({limit:3, selector:{include:['hash']}, filter:{must:[{key:"path",match:{value:'foo bar/x /a.tasks'}}]}}),0,2))
 
 import { webapp_client } from "../../webapp-client";
 import { debounce } from "lodash";
@@ -98,7 +96,7 @@ export default class Embeddings {
   private toData(elt) {
     const text = elt.desc?.trim() ?? "";
     const meta = copy_with(elt, ["due_date", "done"]);
-    const hash = sha1(jsonStable({ ...meta, text }));
+    const hash = text ? sha1(jsonStable({ ...meta, text })) : undefined;
     const id = `id=${elt.task_id}`;
     return { text, meta, hash, id };
   }
@@ -111,7 +109,9 @@ export default class Embeddings {
       .toJS()
       .map((elt) => {
         const data = this.toData(elt);
-        this.local[this.pointId(data.id)] = data;
+        if (data.text) {
+          this.local[this.pointId(data.id)] = data;
+        }
       });
   }
 
@@ -122,17 +122,22 @@ export default class Embeddings {
     }
     // this patch encodes what changed since we last updated local:
     const patch = this.syncDoc.make_patch(this.syncdb.doc);
-    console.log({ patch });
     for (let i = 0; i < patch.length; i += 2) {
       const operation = patch[i];
       const tasks = patch[i + 1];
       for (const { task_id } of tasks) {
+        const point_id = this.pointId(`id=${task_id}`);
         if (operation == -1) {
-          delete this.local[this.pointId(`id=${task_id}`)];
+          delete this.local[point_id];
         } else if (operation == 1) {
           const elt = this.syncdb.get_one({ task_id })?.toJS();
           if (elt != null) {
-            this.local[this.pointId(`id=${task_id}`)] = this.toData(elt);
+            const data = this.toData(elt);
+            if (data.text) {
+              this.local[point_id] = data;
+            } else {
+              delete this.local[point_id];
+            }
           }
         }
       }
@@ -160,7 +165,6 @@ export default class Embeddings {
       path: this.path,
       data,
     });
-    console.log("removed ", ids);
     // keep our view of remote in sync.
     for (const id of ids) {
       delete this.remote[id];
@@ -174,7 +178,6 @@ export default class Embeddings {
       const remote = this.remote[id];
       if (remote === undefined || remote.hash != this.local[id].hash) {
         if (this.local[id].text) {
-          console.log("have to save ", { id, remote, local: this.local[id] });
           //  save it
           data.push(this.local[id]);
         }
@@ -185,7 +188,6 @@ export default class Embeddings {
       path: this.path,
       data,
     });
-    console.log("output of save ids = ", ids);
     for (const id of ids) {
       this.remote[id] = this.local[id];
     }
