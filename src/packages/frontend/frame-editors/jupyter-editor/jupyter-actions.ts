@@ -12,6 +12,8 @@ import { webapp_client } from "../../webapp-client";
 import { meta_file } from "@cocalc/util/misc";
 import { alert_message } from "../../alerts";
 
+import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
+
 export function redux_name(name: string): string {
   return `jupyter-${name}`;
 }
@@ -45,6 +47,14 @@ export function create_jupyter_actions(
     string_cols: ["input"],
     cursors: true,
     persistent: true,
+  });
+  enableSearchEmbeddings({
+    project_id,
+    path,
+    syncdb,
+    primaryKey: "id",
+    textColumn: "input",
+    metaColumns: ["cell_type"],
   });
 
   actions._init(project_id, path, syncdb, store, webapp_client);

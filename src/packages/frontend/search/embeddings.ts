@@ -213,6 +213,7 @@ class Embeddings {
     for (const id of ids) {
       delete this.remote[id];
     }
+    //console.log("embeddings -- deleted", ids);
   }
 
   // save all local data that isn't already saved
@@ -232,6 +233,7 @@ class Embeddings {
       path: this.path,
       data,
     });
+    //console.log("embeddings -- saved", ids);
     for (const id of ids) {
       this.remote[id] = this.local[id];
     }
