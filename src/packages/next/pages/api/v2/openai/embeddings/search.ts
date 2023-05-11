@@ -17,5 +17,5 @@ async function doIt(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  return await search({ ...getParams(req), account_id });
+  return await search({ ...getParams(req), account_id } as any);
 }
