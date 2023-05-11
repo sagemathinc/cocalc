@@ -9,9 +9,19 @@ import { redux } from "../app-framework";
 import { delay } from "awaiting";
 import type { History } from "@cocalc/frontend/misc/openai"; // do not import until needed -- it is HUGE!
 import type { EmbeddingData, Model } from "@cocalc/util/db-schema/openai";
+import { MAX_SEARCH_LIMIT } from "@cocalc/util/db-schema/openai";
 
 const DEFAULT_SYSTEM_PROMPT =
   "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.  ENCLOSE ALL MATH IN $.  INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.";
+
+interface EmbeddingsQuery {
+  scope: string | string[];
+  limit: number; // client automatically deals with large limit by making multiple requests (i.e., there is no limit on the limit)
+  text?: string;
+  filter?: object;
+  selector?: { include?: string[]; exclude?: string[] };
+  offset?: number | string;
+}
 
 export class OpenAIClient {
   private async_call: AsyncCall;
@@ -82,21 +92,41 @@ export class OpenAIClient {
     return resp.text;
   }
 
-  public async embeddings_search({
+  public async embeddings_search(
+    query: EmbeddingsQuery
+  ): Promise<{ id: string; payload: object }[]> {
+    let limit = Math.min(MAX_SEARCH_LIMIT, query.limit);
+    const result = await this.embeddings_search_call({ ...query, limit });
+
+    if (result.length >= MAX_SEARCH_LIMIT) {
+      // get additional pages
+      while (true) {
+        const offset =
+          query.text == null ? result[result.length - 1].id : result.length;
+        const page = await this.embeddings_search_call({
+          ...query,
+          limit,
+          offset,
+        });
+        // Include the new elements
+        result.push(...page);
+        if (page.length < MAX_SEARCH_LIMIT) {
+          // didn't reach the limit, so we're done.
+          break;
+        }
+      }
+    }
+    return result;
+  }
+
+  private async embeddings_search_call({
     scope,
     limit,
     text,
     filter,
     selector,
     offset,
-  }: {
-    scope: string | string[];
-    limit: number;
-    text?: string;
-    filter?: object;
-    selector?: { include?: string[]; exclude?: string[] };
-    offset?: number | string;
-  }): Promise<{ id: string; payload: object }[]> {
+  }: EmbeddingsQuery) {
     if (!redux.getStore("projects").hasOpenAI()) {
       throw Error("OpenAI support is not currently enabled on this server");
     }
@@ -148,30 +178,5 @@ export class OpenAIClient {
       message: message.openai_embeddings_remove({ project_id, path, data }),
     });
     return resp.ids;
-  }
-
-  public async embeddings_get({
-    project_id,
-    path,
-    data,
-    selector,
-  }: {
-    project_id: string;
-    path: string;
-    data: EmbeddingData[];
-    selector?: { include?: string[]; exclude?: string[] };
-  }): Promise<{ id: string | number; payload: object }[]> {
-    if (!redux.getStore("projects").hasOpenAI()) {
-      throw Error("OpenAI support is not currently enabled on this server");
-    }
-    const resp = await this.async_call({
-      message: message.openai_embeddings_get({
-        project_id,
-        path,
-        data,
-        selector,
-      }),
-    });
-    return resp.points;
   }
 }

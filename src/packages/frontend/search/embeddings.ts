@@ -28,17 +28,12 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { debounce } from "lodash";
 import jsonStable from "json-stable-stringify";
 import sha1 from "sha1";
-import { close, copy_with, uuidsha1 } from "@cocalc/util/misc";
+import { close, copy_with, len, uuidsha1 } from "@cocalc/util/misc";
 import type { EmbeddingData } from "@cocalc/util/db-schema/openai";
 import type { SyncDB } from "@cocalc/sync/editor/db";
 import type { Document } from "@cocalc/sync/editor/generic/types";
-import { MAX_SEARCH_LIMIT } from "@cocalc/util/db-schema/openai";
 
-// TODO: do something better.  The fallout of exceeding the limit
-// is that some extra stuff will just keep saving every time.
-// So everything works, but it is less efficient.
-// Fix is just to use offset and paging for initial query.
-const LIMIT = MAX_SEARCH_LIMIT;
+const DEBOUNCE_MS = 7500;
 
 interface Options {
   project_id: string;
@@ -48,6 +43,7 @@ interface Options {
   textColumn: string;
   metaColumns?: string[];
   transform?: (elt: object) => undefined | object;
+  debounceMs?: number;
 }
 
 export default function embeddings(opts: Options): Embeddings {
@@ -83,6 +79,7 @@ class Embeddings {
     textColumn,
     metaColumns,
     transform,
+    debounceMs = DEBOUNCE_MS,
   }: Options) {
     this.syncdb = syncdb;
     this.project_id = project_id;
@@ -97,7 +94,7 @@ class Embeddings {
       return;
     }
     syncdb.once("change", () => this.init());
-    syncdb.on("change", debounce(this.sync.bind(this), 5000));
+    syncdb.on("change", debounce(this.sync.bind(this), debounceMs));
     syncdb.once("closed", () => {
       close(this);
     });
@@ -114,7 +111,8 @@ class Embeddings {
 
   private async init() {
     try {
-      await Promise.all([this.initRemote(), this.initLocal()]);
+      await this.initLocal();
+      await this.initRemote();
       this.initialized = true;
       this.sync();
     } catch (err) {
@@ -125,12 +123,15 @@ class Embeddings {
   }
 
   private async initRemote() {
-    // todo: limit, dealing with offset.
-    const remote = await webapp_client.openai_client.embeddings_search({
+    const query = {
       scope: `${this.url}#`, // hash so don't get data for files that start with the same filename
       selector: { include: ["hash", "url"] },
-      limit: LIMIT,
-    });
+      // NOTE: If somehow the limit isn't high enough, that only means that we would
+      // send some data to the backend that is already there during the first sync;
+      // it's only an efficiency issue.
+      limit: this.local != null ? Math.round(1.2 * len(this.local) + 50) : 1000,
+    };
+    const remote = await webapp_client.openai_client.embeddings_search(query);
     // empty current this.remote:
     Object.keys(this.remote).forEach((key) => delete this.remote[key]);
     for (const { id, payload } of remote) {

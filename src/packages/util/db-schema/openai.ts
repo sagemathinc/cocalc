@@ -166,8 +166,12 @@ export interface EmbeddingData {
   hash?: string; // hash that is used to know when we need to update the point; e.g., hash of text and meta.
 }
 
-export const MAX_SEARCH_TEXT = 4000; // *technical* it would be 8K tokens...
-export const MAX_SEARCH_LIMIT = 1000;
+// *technical* limit is 8K tokens, but there's no good reason for a search to be really longthere's no good reason for a search to be really long,
+// and it could be costly.
+export const MAX_SEARCH_TEXT = 4000;
+// Limit on the number of outputs when doing a search.  This should stay under 10MB,
+// to avoid message size limits. Use paging for more.
+export const MAX_SEARCH_LIMIT = 300;
 
 Table({
   name: "openai_embedding_log",

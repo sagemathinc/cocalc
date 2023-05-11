@@ -115,7 +115,9 @@ export interface Result {
 // - If neither id or text is given, then the filter must be given, and find
 //   points whose payload matches that filter.
 // - selector: determines which fields in payload to include/exclude
-// - offset: for id/text an integer offset; for filter, first point ID to read points from.
+// - offset: for id/text an integer offset and it reads starting there, just like with SQL;
+//           for a filter only search, reads points *AFTER* this id (this is a slight change from the
+//           qdrant api to avoid redundant data transfer to client!!).
 export async function search({
   id,
   text,
@@ -159,11 +161,18 @@ export async function search({
       offset,
     });
   } else if (filter != null) {
-    // search using the filter.
-    // note the output of scroll has another property next_page_offset, which
+    // search using the filter *only*.
+    // The output of scroll has another property next_page_offset, which
     // would be nice to return somehow, which is of course why it is a different
-    // endpoint for qdrant.
-    return (await qdrant.scroll({ filter, limit, selector, offset })).points;
+    // endpoint for qdrant.  Instead, we slightly change how offset works,
+    // and discard one result.  At least the waste stays on the server side.
+    const { points } = await qdrant.scroll({
+      filter,
+      limit: offset ? limit + 1 : limit,
+      selector,
+      offset,
+    });
+    return offset ? points.slice(1) : points;
   } else {
     throw Error("at least one of id, text or filter MUST be specified");
   }
