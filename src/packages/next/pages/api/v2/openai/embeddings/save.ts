@@ -4,6 +4,7 @@ import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
   try {
+    throw Error("currently disabled");
     const ids = await doIt(req);
     res.json({ ids, success: true });
   } catch (err) {

@@ -217,14 +217,3 @@ async function saveEmbeddingsInPostgres(
 
   await db.query(query);
 }
-
-export async function getPayloads(
-  ids: string[],
-  selector?
-): Promise<{ id: string | number; payload: object }[]> {
-  return await qdrant.getPoints({
-    ids,
-    with_payload: selector != null ? selector : true,
-    with_vector: false,
-  });
-}

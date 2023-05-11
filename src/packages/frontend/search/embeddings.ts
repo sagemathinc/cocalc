@@ -34,6 +34,9 @@ import type { Document } from "@cocalc/sync/editor/generic/types";
 
 const DEBOUNCE_MS = 7500;
 
+const log = (..._args) => {};
+// const log = console.log;
+
 interface Options {
   project_id: string;
   path: string;
@@ -247,7 +250,7 @@ class Embeddings {
     for (const id of ids) {
       delete this.remote[id];
     }
-    console.log("embeddings -- deleted", ids);
+    log("embeddings -- deleted", ids);
   }
 
   // save all local data that isn't already saved
@@ -271,7 +274,7 @@ class Embeddings {
       // nothing to do -- probably closed during the above async call.
       return;
     }
-    console.log("embeddings -- saved", ids);
+    log("embeddings -- saved", ids);
     for (const id of ids) {
       this.remote[id] = this.local[id];
     }

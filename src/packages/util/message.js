@@ -3070,7 +3070,7 @@ message({
   text: required, // text of the response
 });
 
-API(
+API( // Read
   message({
     event: "openai_embeddings_search",
     scope: required,
@@ -3089,7 +3089,7 @@ message({
   matches: required, // matching points
 });
 
-API(
+API( // Create/Update
   message({
     event: "openai_embeddings_save",
     project_id: required,
@@ -3105,7 +3105,7 @@ message({
   ids: required, // uuid's of saved data
 });
 
-API(
+API( // Delete
   message({
     event: "openai_embeddings_remove",
     id: undefined,
@@ -3121,22 +3121,6 @@ message({
   ids: required, // uuid's of removed data
 });
 
-API(
-  message({
-    event: "openai_embeddings_get",
-    id: undefined,
-    project_id: required,
-    path: required,
-    data: required,
-    selector: undefined,
-  })
-);
-
-message({
-  event: "openai_embeddings_get_response",
-  id: undefined,
-  points: required, // points and their payloads (but not vectors)
-});
 
 API(
   message({

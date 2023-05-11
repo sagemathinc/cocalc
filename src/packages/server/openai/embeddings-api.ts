@@ -245,28 +245,3 @@ export async function remove({
   const data2 = await prepareData(account_id, project_id, path, data, false);
   return await embeddings.remove(data2);
 }
-
-// get payload of points from vector store that match
-export async function get({
-  account_id,
-  project_id,
-  path,
-  data,
-  selector,
-}: {
-  account_id: string;
-  project_id: string;
-  path: string;
-  data: EmbeddingData[];
-  selector?: { include?: string[]; exclude?: string[] };
-}): Promise<{ id: string | number; payload: object }[]> {
-  if (data.length == 0) {
-    // easy
-    return [];
-  }
-  const data2 = await prepareData(account_id, project_id, path, data, false);
-  return await embeddings.getPayloads(
-    data2.map(({ payload }) => embeddings.getPointId(payload?.url as string)),
-    selector
-  );
-}
