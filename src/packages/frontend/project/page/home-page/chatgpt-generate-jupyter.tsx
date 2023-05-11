@@ -7,12 +7,10 @@ TODO:
 - input description box could be Markdown wysiwyg editor
 */
 
+import { Alert, Button, Input, Modal } from "antd";
 import { delay } from "awaiting";
-import { Alert, Button, Input, Modal, Select } from "antd";
-import { CSSProperties, useState, useEffect } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 
-import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
-import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import {
   redux,
   useActions,
@@ -20,22 +18,24 @@ import {
 } from "@cocalc/frontend/app-framework";
 import {
   A,
+  HelpIcon,
   Icon,
   Loading,
   Markdown,
   Paragraph,
   Title,
-  HelpIcon,
 } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Block } from "./block";
-import { StartButton } from "@cocalc/frontend/project/start-button";
-import Logo from "@cocalc/frontend/jupyter/logo";
-import { field_cmp, to_iso_path } from "@cocalc/util/misc";
+import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
+import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
+import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
+import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { field_cmp, to_iso_path } from "@cocalc/util/misc";
+import { Block } from "./block";
 
 const tag = "generate-jupyter";
 
@@ -315,47 +315,20 @@ export default function ChatGPTGenerateJupyterNotebook({
         />
       )}
       {kernelSpecs == null && <Loading />}
-      {typeof kernelSpecs == "object" && (
+      {typeof kernelSpecs == "object" && kernelSpecs != null && (
         <>
           <Paragraph>
             Generate a Jupyter Notebook using the following Jupyter kernel:
           </Paragraph>
           <Paragraph>
-            <Select
-              showSearch
-              allowClear
+            <SelectKernel
               placeholder="Select a kernel..."
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                (option?.display_name ?? "")
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
-              }
               size="large"
-              style={{ width: "100%", maxWidth: "350px" }}
               disabled={querying}
-              options={
-                typeof kernelSpecs == "object"
-                  ? kernelSpecs
-                      ?.filter((spec) => !spec?.metadata?.["cocalc"]?.disabled)
-                      .map((spec) => {
-                        return {
-                          display_name: spec.display_name,
-                          label: (
-                            <>
-                              <Logo
-                                kernel={spec.name}
-                                project_id={project_id}
-                              />{" "}
-                              {spec.display_name}
-                            </>
-                          ),
-                          value: spec.name,
-                        };
-                      })
-                  : []
-              }
-              onChange={(value) => {
+              project_id={project_id}
+              kernelSpecs={kernelSpecs}
+              style={{ width: "100%", maxWidth: "350px" }}
+              onSelect={(value) => {
                 if (kernelSpecs == null || typeof kernelSpecs != "object")
                   return;
                 for (const spec of kernelSpecs) {
@@ -365,7 +338,7 @@ export default function ChatGPTGenerateJupyterNotebook({
                   }
                 }
               }}
-              value={spec?.name}
+              kernel={spec?.name}
             />
           </Paragraph>
           {spec != null && (

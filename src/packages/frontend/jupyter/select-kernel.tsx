@@ -14,7 +14,7 @@ import {
   Row,
   Typography,
 } from "antd";
-import { List, Map as ImmutableMap, OrderedMap } from "immutable";
+import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 
 import {
   CSS,
@@ -25,18 +25,19 @@ import {
 } from "@cocalc/frontend//app-framework";
 import { Icon, Loading, Paragraph, Text } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
+import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
-import { Kernel as KernelType } from "./util";
 import Logo from "./logo";
-import track from "@cocalc/frontend/user-tracking";
+import { Kernel as KernelType } from "./util";
+import { KernelStar } from "../components/run-button/kernel-star";
 
 const MAIN_STYLE: CSS = {
   padding: "20px 10px",
   overflowY: "auto",
   overflowX: "hidden",
-  background: "#eee",
+  background: COLORS.GRAY_LL,
 } as const;
 
 const SELECTION_STYLE: CSS = {
@@ -73,10 +74,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       actions.name,
       "kernel_info",
     ]);
-    const kernel_selection: undefined | ImmutableMap<string, any> = useRedux([
-      actions.name,
-      "kernel_selection",
-    ]);
+    const kernel_selection: undefined | ImmutableMap<string, string> = useRedux(
+      [actions.name, "kernel_selection"]
+    );
     const kernels_by_name:
       | undefined
       | OrderedMap<string, ImmutableMap<string, string>> = useRedux([
@@ -114,6 +114,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_kernel_button(name: string): Rendered {
       const lang = kernel_attr(name, "language");
+      const priority: number = kernels_by_name
+        ?.get(name)
+        ?.getIn(["metadata", "cocalc", "priority"]);
       return (
         <Button
           key={`kernel-${lang}-${name}`}
@@ -133,6 +136,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
             style={{ marginTop: "-2.5px", marginRight: "5px" }}
           />{" "}
           {kernel_name(name) || name}
+          <KernelStar priority={priority} />
         </Button>
       );
     }
