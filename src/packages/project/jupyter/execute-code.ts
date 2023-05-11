@@ -165,23 +165,23 @@ export class CodeExecutionEmitter
       return;
     }
     log.silly("_handle_shell: got SHELL message -- ", mesg);
-    if (mesg.content?.status == "error" || mesg.content?.status == "abort") {
+
+    if (mesg.content?.status == "ok") {
+      this._push_mesg(mesg);
+      this.set_shell_done(true);
+    } else {
+      log.warn(`_handle_shell: status != ok: ${mesg.content?.status}`);
       // NOTE: I'm adding support for "abort" status, since I was just reading
       // the kernel docs and it exists but is deprecated.  Some old kernels
       // might use it and we should thus properly support it:
       // https://jupyter-client.readthedocs.io/en/stable/messaging.html#request-reply
+      //
+      // 2023-05-11: this was conditional on mesg.content?.status == "error" or == "abort"
+      //             but in reality, there was also "aborted". Hence this as an catch-all else.
       if (this.halt_on_error) {
         this.kernel.clear_execute_code_queue();
       }
       this.set_shell_done(true);
-    } else if (mesg.content?.status == "ok") {
-      this._push_mesg(mesg);
-      this.set_shell_done(true);
-    } else {
-      log.warn(
-        `_handle_shell: got unexpected status: ${mesg.content?.status}`,
-        mesg
-      );
     }
   }
 
