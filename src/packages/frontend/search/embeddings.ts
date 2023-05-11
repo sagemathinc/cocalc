@@ -24,7 +24,6 @@ are not "fatal data loss" for us, since this is just search.
 */
 
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { redux } from "@cocalc/frontend/app-framework";
 import { debounce } from "lodash";
 import jsonStable from "json-stable-stringify";
 import sha1 from "sha1";
@@ -117,8 +116,7 @@ class Embeddings {
   }
 
   isEnabled(): boolean {
-    // for now -- we may want to do something more finegrained later.
-    return redux.getStore("projects").hasOpenAI(this.project_id);
+    return webapp_client.openai_client.neuralSearchIsEnabled();
   }
 
   private async init() {

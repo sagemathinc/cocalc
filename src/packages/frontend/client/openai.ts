@@ -131,9 +131,6 @@ export class OpenAIClient {
     selector,
     offset,
   }: EmbeddingsQuery) {
-    if (!redux.getStore("projects").hasOpenAI()) {
-      throw Error("OpenAI support is not currently enabled on this server");
-    }
     text = text?.trim();
     const resp = await this.async_call({
       message: message.openai_embeddings_search({
@@ -157,9 +154,8 @@ export class OpenAIClient {
     path: string;
     data: EmbeddingData[];
   }): Promise<string[]> {
-    if (!redux.getStore("projects").hasOpenAI()) {
-      throw Error("OpenAI support is not currently enabled on this server");
-    }
+    this.assertHasNeuralSearch();
+
     const ids: string[] = [];
     let v = data;
     while (v.length > 0) {
@@ -186,9 +182,8 @@ export class OpenAIClient {
     path: string;
     data: EmbeddingData[];
   }): Promise<string[]> {
-    if (!redux.getStore("projects").hasOpenAI()) {
-      throw Error("OpenAI support is not currently enabled on this server");
-    }
+    this.assertHasNeuralSearch();
+
     const ids: string[] = [];
     let v = data;
     while (v.length > 0) {
@@ -204,5 +199,15 @@ export class OpenAIClient {
     }
 
     return ids;
+  }
+
+  neuralSearchIsEnabled(): boolean {
+    return !!redux.getStore("customize").get("neural_search_enabled");
+  }
+
+  assertHasNeuralSearch() {
+    if (!this.neuralSearchIsEnabled()) {
+      throw Error("OpenAI support is not currently enabled on this server");
+    }
   }
 }

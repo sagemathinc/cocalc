@@ -87,7 +87,7 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
             <Icon name="git" /> Git search: in GIT repo, use "git grep" to only
             search files in the git repo.
           </Checkbox>
-          {redux.getStore("projects").hasOpenAI(project_id) && (
+          {redux.getStore("customize").get("neural_search_enabled") && (
             <Checkbox
               checked={neural_search}
               onChange={() =>
