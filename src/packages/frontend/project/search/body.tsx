@@ -19,7 +19,11 @@ import {
   useTypedRedux,
   useActions,
 } from "@cocalc/frontend/app-framework";
-import { filename_extension } from "@cocalc/util/misc";
+import {
+  filename_extension,
+  path_split,
+  auxFileToOriginal,
+} from "@cocalc/util/misc";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
@@ -328,11 +332,21 @@ const ProjectSearchResultLine: React.FC<{
 
   async function click_filename(e): Promise<void> {
     e.preventDefault();
-    const path = path_to_file(most_recent_path, filename);
+    let chat;
+    let path = path_to_file(most_recent_path, filename);
+    const { tail } = path_split(path);
+    if (tail.startsWith(".") && tail.endsWith(".sage-chat")) {
+      // special case of chat
+      path = auxFileToOriginal(path);
+      chat = true;
+    } else {
+      chat = false;
+    }
     await actions?.open_file({
       path,
       foreground: should_open_in_foreground(e),
       fragmentId: fragment_id ?? { line: line_number ?? 0 },
+      chat,
     });
   }
 
