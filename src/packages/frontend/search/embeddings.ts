@@ -208,7 +208,9 @@ class Embeddings {
   private async sync() {
     if (!this.initialized) return;
     await this.updateLocal();
+    if (!this.initialized) return;
     await this.syncDeleteRemote();
+    if (!this.initialized) return;
     await this.syncSaveLocal();
   }
 
@@ -226,6 +228,10 @@ class Embeddings {
       path: this.path,
       data,
     });
+    if (this.remote == null) {
+      // nothing to do -- probably closed during the above async call.
+      return;
+    }
     // keep our view of remote in sync.
     for (const id of ids) {
       delete this.remote[id];
@@ -250,6 +256,10 @@ class Embeddings {
       path: this.path,
       data,
     });
+    if (this.remote == null || this.local == null) {
+      // nothing to do -- probably closed during the above async call.
+      return;
+    }
     console.log("embeddings -- saved", ids);
     for (const id of ids) {
       this.remote[id] = this.local[id];
