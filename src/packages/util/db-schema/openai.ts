@@ -166,6 +166,9 @@ export interface EmbeddingData {
   hash?: string; // hash that is used to know when we need to update the point; e.g., hash of text and meta.
 }
 
+export const MAX_SEARCH_TEXT = 4000; // *technical* it would be 8K tokens...
+export const MAX_SEARCH_LIMIT = 1000;
+
 Table({
   name: "openai_embedding_log",
   fields: {

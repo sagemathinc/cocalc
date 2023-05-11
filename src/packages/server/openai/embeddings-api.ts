@@ -2,9 +2,11 @@ import * as embeddings from "./embeddings";
 import { isValidUUID, is_array } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import type { EmbeddingData } from "@cocalc/util/db-schema/openai";
+import {
+  MAX_SEARCH_TEXT,
+  MAX_SEARCH_LIMIT,
+} from "@cocalc/util/db-schema/openai";
 
-const MAX_SEARCH_TEXT = 4000; // *technical* it would be 8K tokens...
-const MAX_SEARCH_LIMIT = 500;
 function validateSearchParams({ text, filter, limit, selector, offset }) {
   if (text != null) {
     if (typeof text != "string") {

@@ -32,8 +32,13 @@ import { close, copy_with, uuidsha1 } from "@cocalc/util/misc";
 import type { EmbeddingData } from "@cocalc/util/db-schema/openai";
 import type { SyncDB } from "@cocalc/sync/editor/db";
 import type { Document } from "@cocalc/sync/editor/generic/types";
+import { MAX_SEARCH_LIMIT } from "@cocalc/util/db-schema/openai";
 
-const LIMIT = 300;
+// TODO: do something better.  The fallout of exceeding the limit
+// is that some extra stuff will just keep saving every time.
+// So everything works, but it is less efficient.
+// Fix is just to use offset and paging for initial query.
+const LIMIT = MAX_SEARCH_LIMIT;
 
 interface Options {
   project_id: string;
@@ -42,6 +47,7 @@ interface Options {
   primaryKey: string;
   textColumn: string;
   metaColumns?: string[];
+  transform?: (elt: object) => undefined | object;
 }
 
 export default function embeddings(opts: Options): Embeddings {
@@ -56,6 +62,7 @@ class Embeddings {
   private primaryKey: string; // primary key of the syncdb; so at least this fragment should work:  "id={obj[primary]}"
   private textColumn: string; // the name of the column that has the text that gets indexed
   private metaColumns?: string[]; // the names of the metadata columns
+  private transform?: (elt: object) => undefined | object;
 
   // map from point_id to hash and fragment_id for each remote element
   private remote: { [point_id: string]: EmbeddingData } = {};
@@ -75,6 +82,7 @@ class Embeddings {
     primaryKey,
     textColumn,
     metaColumns,
+    transform,
   }: Options) {
     this.syncdb = syncdb;
     this.project_id = project_id;
@@ -82,6 +90,7 @@ class Embeddings {
     this.primaryKey = primaryKey;
     this.textColumn = textColumn;
     this.metaColumns = metaColumns;
+    this.transform = transform;
     this.url = `projects/${project_id}/files/${path}`;
     if (!this.isEnabled()) {
       // if disabled we just never do anything.
@@ -151,6 +160,10 @@ class Embeddings {
       .get()
       .toJS()
       .map((elt) => {
+        if (this.transform) {
+          elt = this.transform(elt);
+          if (elt == null) return;
+        }
         const data = this.toData(elt);
         if (data.text) {
           this.local[this.pointId(data.id)] = data;
@@ -174,8 +187,12 @@ class Embeddings {
         if (operation == -1) {
           delete this.local[point_id];
         } else if (operation == 1) {
-          const elt = this.syncdb.get_one({ [this.primaryKey]: id })?.toJS();
+          let elt = this.syncdb.get_one({ [this.primaryKey]: id })?.toJS();
           if (elt != null) {
+            if (this.transform) {
+              elt = this.transform(elt);
+              if (elt == null) continue;
+            }
             const data = this.toData(elt);
             if (data.text) {
               this.local[point_id] = data;
@@ -213,7 +230,7 @@ class Embeddings {
     for (const id of ids) {
       delete this.remote[id];
     }
-    //console.log("embeddings -- deleted", ids);
+    console.log("embeddings -- deleted", ids);
   }
 
   // save all local data that isn't already saved
@@ -233,7 +250,7 @@ class Embeddings {
       path: this.path,
       data,
     });
-    //console.log("embeddings -- saved", ids);
+    console.log("embeddings -- saved", ids);
     for (const id of ids) {
       this.remote[id] = this.local[id];
     }

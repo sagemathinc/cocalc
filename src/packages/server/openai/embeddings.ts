@@ -190,8 +190,14 @@ async function saveEmbeddingsInPostgres(
   // We don't have to worry about sql injection because all the inputs
   // are sha1 hashes and uuid's that we computed.
   // Construct the values string for the query.
-  const values: string[] = input_sha1s.map((input_sha1, i) => {
-    return `('${input_sha1}', '{${vectors[i].join(",")}}', NOW(), ${EXPIRE})`;
+  const sha1s = new Set<string>([]);
+  const values: string[] = [];
+  input_sha1s.forEach((input_sha1, i) => {
+    if (sha1s.has(input_sha1)) return;
+    sha1s.add(input_sha1);
+    values.push(
+      `('${input_sha1}', '{${vectors[i].join(",")}}', NOW(), ${EXPIRE})`
+    );
   });
 
   // Insert data into the openai_embedding_log table using a single query
