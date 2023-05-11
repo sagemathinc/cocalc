@@ -5,6 +5,8 @@ import type { EmbeddingData } from "@cocalc/util/db-schema/openai";
 import {
   MAX_SEARCH_TEXT,
   MAX_SEARCH_LIMIT,
+  MAX_SAVE_LIMIT,
+  MAX_REMOVE_LIMIT,
 } from "@cocalc/util/db-schema/openai";
 
 function validateSearchParams({ text, filter, limit, selector, offset }) {
@@ -204,6 +206,10 @@ export async function save({
     // easy
     return [];
   }
+  if (data.length > MAX_SAVE_LIMIT) {
+    throw Error(`you can save at most ${MAX_SAVE_LIMIT} datum in one call`);
+  }
+
   // [ ] todo: record in database effort accrued due to account_id.
 
   const data2: embeddings.Data[] = await prepareData(
@@ -231,6 +237,9 @@ export async function remove({
   if (data.length == 0) {
     // easy
     return [];
+  }
+  if (data.length > MAX_REMOVE_LIMIT) {
+    throw Error(`you can remove at most ${MAX_REMOVE_LIMIT} datum in one call`);
   }
 
   const data2 = await prepareData(account_id, project_id, path, data, false);

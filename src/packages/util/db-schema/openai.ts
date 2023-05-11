@@ -169,9 +169,15 @@ export interface EmbeddingData {
 // *technical* limit is 8K tokens, but there's no good reason for a search to be really longthere's no good reason for a search to be really long,
 // and it could be costly.
 export const MAX_SEARCH_TEXT = 4000;
-// Limit on the number of outputs when doing a search.  This should stay under 10MB,
-// to avoid message size limits. Use paging for more.
-export const MAX_SEARCH_LIMIT = 300;
+// Limit on the number of outputs when doing a search.  This should stay under 10MB total,
+// to avoid message size limits. Use paging for more, which app client automatically does.
+export const MAX_SEARCH_LIMIT = 200;
+
+// Maximum number of distinct embeddings that a single client can save at once.
+// The app client itself will automatically chunk the saves at this size.
+export const MAX_SAVE_LIMIT = 50;
+// Similar limit on removing items; can be larger since no vector embedding computation, etc.
+export const MAX_REMOVE_LIMIT = 100;
 
 Table({
   name: "openai_embedding_log",

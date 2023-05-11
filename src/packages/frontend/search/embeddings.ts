@@ -94,7 +94,19 @@ class Embeddings {
       return;
     }
     syncdb.once("change", () => this.init());
-    syncdb.on("change", debounce(this.sync.bind(this), debounceMs));
+    syncdb.on(
+      "change",
+      debounce(async () => {
+        try {
+          await this.sync();
+        } catch (err) {
+          console.warn(
+            `WARNING: issue syncing embeddings for "${this.path}:"`,
+            err
+          );
+        }
+      }, debounceMs)
+    );
     syncdb.once("closed", () => {
       close(this);
     });
@@ -114,7 +126,7 @@ class Embeddings {
       await this.initLocal();
       await this.initRemote();
       this.initialized = true;
-      this.sync();
+      await this.sync();
     } catch (err) {
       console.warn(
         `WARNING: issue initializing embeddings for ${this.url}: ${err}`

@@ -9,7 +9,11 @@ import { redux } from "../app-framework";
 import { delay } from "awaiting";
 import type { History } from "@cocalc/frontend/misc/openai"; // do not import until needed -- it is HUGE!
 import type { EmbeddingData, Model } from "@cocalc/util/db-schema/openai";
-import { MAX_SEARCH_LIMIT } from "@cocalc/util/db-schema/openai";
+import {
+  MAX_SEARCH_LIMIT,
+  MAX_SAVE_LIMIT,
+  MAX_REMOVE_LIMIT,
+} from "@cocalc/util/db-schema/openai";
 
 const DEFAULT_SYSTEM_PROMPT =
   "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.  ENCLOSE ALL MATH IN $.  INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.";
@@ -156,10 +160,21 @@ export class OpenAIClient {
     if (!redux.getStore("projects").hasOpenAI()) {
       throw Error("OpenAI support is not currently enabled on this server");
     }
-    const resp = await this.async_call({
-      message: message.openai_embeddings_save({ project_id, path, data }),
-    });
-    return resp.ids;
+    const ids: string[] = [];
+    let v = data;
+    while (v.length > 0) {
+      const resp = await this.async_call({
+        message: message.openai_embeddings_save({
+          project_id,
+          path,
+          data: v.slice(0, MAX_SAVE_LIMIT),
+        }),
+      });
+      ids.push(...resp.ids);
+      v = v.slice(MAX_SAVE_LIMIT);
+    }
+
+    return ids;
   }
 
   public async embeddings_remove({
@@ -174,9 +189,20 @@ export class OpenAIClient {
     if (!redux.getStore("projects").hasOpenAI()) {
       throw Error("OpenAI support is not currently enabled on this server");
     }
-    const resp = await this.async_call({
-      message: message.openai_embeddings_remove({ project_id, path, data }),
-    });
-    return resp.ids;
+    const ids: string[] = [];
+    let v = data;
+    while (v.length > 0) {
+      const resp = await this.async_call({
+        message: message.openai_embeddings_remove({
+          project_id,
+          path,
+          data: v.slice(0, MAX_REMOVE_LIMIT),
+        }),
+      });
+      ids.push(...resp.ids);
+      v = v.slice(MAX_REMOVE_LIMIT);
+    }
+
+    return ids;
   }
 }
