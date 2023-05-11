@@ -56,7 +56,7 @@ export async function save(data: Data[]): Promise<string[]> {
   try {
     await db.connect();
     const { rows } = await db.query(
-      "SELECT input_sha1,vector FROM openai_embedding_log WHERE input_sha1 = ANY ($1)",
+      "SELECT input_sha1,vector FROM openai_embedding_cache WHERE input_sha1 = ANY ($1)",
       [input_sha1s]
     );
     const sha1_to_vector: { [sha1: string]: number[] } = {};
@@ -64,7 +64,7 @@ export async function save(data: Data[]): Promise<string[]> {
       sha1_to_vector[input_sha1] = vector;
     }
     await db.query(
-      `UPDATE openai_embedding_log SET expire=${EXPIRE} WHERE input_sha1 = ANY ($1)`,
+      `UPDATE openai_embedding_cache SET expire=${EXPIRE} WHERE input_sha1 = ANY ($1)`,
       [rows.map(({ input_sha1 }) => input_sha1)]
     );
 
@@ -209,9 +209,9 @@ async function saveEmbeddingsInPostgres(
     );
   });
 
-  // Insert data into the openai_embedding_log table using a single query
+  // Insert data into the openai_embedding_cache table using a single query
   const query = `
-      INSERT INTO openai_embedding_log (input_sha1, vector, time, expire)
+      INSERT INTO openai_embedding_cache (input_sha1, vector, time, expire)
       VALUES ${values.join(", ")};
     `;
 
