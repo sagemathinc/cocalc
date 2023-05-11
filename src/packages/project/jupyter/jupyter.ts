@@ -258,14 +258,9 @@ export class JupyterKernel
       _jupyter_kernels[this._path].close();
     }
     _jupyter_kernels[this._path] = this;
-    const dbg = this.dbg("constructor");
-    dbg();
-    process.on("exit", () => {
-      if (this._kernel != null) {
-        killKernel(this._kernel);
-      }
-    });
     this.setMaxListeners(100);
+    const dbg = this.dbg("constructor");
+    dbg("done");
   }
 
   public get_path() {
@@ -518,7 +513,6 @@ export class JupyterKernel
       delete _jupyter_kernels[this._path];
     }
     this.removeAllListeners();
-    process.removeListener("exit", this.close);
     if (this._kernel != null) {
       killKernel(this._kernel);
       delete this._kernel;
@@ -573,7 +567,7 @@ export class JupyterKernel
     if (this._kernel?.initCode != null) {
       for (const code of this._kernel?.initCode ?? []) {
         dbg("initCode ", code);
-        new CodeExecutionEmitter(this, { code }).go();
+        await new CodeExecutionEmitter(this, { code }).go();
       }
     }
     if (!this.has_ensured_running) {

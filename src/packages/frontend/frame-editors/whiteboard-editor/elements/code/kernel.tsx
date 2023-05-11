@@ -11,20 +11,20 @@ import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { KernelSelector } from "@cocalc/frontend/jupyter/select-kernel";
 import { Kernel } from "@cocalc/frontend/jupyter/status";
+import { COLORS } from "@cocalc/util/theme";
 import { useFrameContext } from "../../hooks";
 import { PANEL_STYLE } from "../../tools/panel";
 import {
-  getJupyterFrameEditorActions,
   JupyterActions,
+  getJupyterFrameEditorActions,
   openJupyterNotebook,
 } from "./actions";
-import { COLORS } from "@cocalc/util/theme";
 
 const KERNEL_STYLE: CSS = {
   backgroundColor: "transparent",
   margin: "5px",
   padding: 0,
-};
+} as const;
 
 export default function KernelPanel0() {
   const isMountedRef = useIsMountedRef();
