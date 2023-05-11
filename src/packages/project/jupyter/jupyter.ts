@@ -567,7 +567,7 @@ export class JupyterKernel
     if (this._kernel?.initCode != null) {
       for (const code of this._kernel?.initCode ?? []) {
         dbg("initCode ", code);
-        new CodeExecutionEmitter(this, { code }).go();
+        await new CodeExecutionEmitter(this, { code }).go();
       }
     }
     if (!this.has_ensured_running) {

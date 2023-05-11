@@ -274,6 +274,7 @@ export class CodeExecutionEmitter
     this.state = "running";
     log.silly("_execute_code", this.code);
     if (this.kernel.get_state() === "closed") {
+      log.silly("_execute_code", "kernel.get_state() is closed");
       this.close();
       cb("closed");
       return;
