@@ -159,6 +159,9 @@ export class CodeExecutionEmitter
 
   _handle_shell(mesg: any): void {
     if (mesg.parent_header.msg_id !== this._message.header.msg_id) {
+      log.silly(
+        `_handle_shell: msg_id mismatch: ${mesg.parent_header.msg_id} != ${this._message.header.msg_id}`
+      );
       return;
     }
     log.silly("_handle_shell: got SHELL message -- ", mesg);
@@ -174,6 +177,11 @@ export class CodeExecutionEmitter
     } else if (mesg.content?.status == "ok") {
       this._push_mesg(mesg);
       this.set_shell_done(true);
+    } else {
+      log.warn(
+        `_handle_shell: got unexpected status: ${mesg.content?.status}`,
+        mesg
+      );
     }
   }
 
