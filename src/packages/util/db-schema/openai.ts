@@ -199,6 +199,7 @@ Table({
   rules: {
     desc: "OpenAI Vector Embedding Log.  This logs who is responsible for calls to openai.  It is used to avoid abuse, have good analytics, and may eventually be used for pay-as-you-go, etc.",
     primary_key: "id",
+    pg_indexes: ["((tokens IS NOT NULL))"],
   },
 });
 

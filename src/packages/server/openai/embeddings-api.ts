@@ -77,7 +77,14 @@ export async function search({
   //     only project(s) user has access to, or some other url's later (e.g., for searching share server).
   const filter = await scopeFilter(account_id, scope, filter0);
   validateSearchParams({ text, filter, limit, selector, offset });
-  return await embeddings.search({ text, limit, filter, selector, offset });
+  return await embeddings.search({
+    text,
+    limit,
+    filter,
+    selector,
+    offset,
+    account_id,
+  });
 }
 
 // Creates filter object that further restricts input filter to also have the given scope.
@@ -219,7 +226,7 @@ export async function save({
     data,
     true
   );
-  return await embeddings.save(data2);
+  return await embeddings.save(data2, account_id);
 }
 
 // Permanently delete points from vector store that match

@@ -2776,7 +2776,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         limit: 25,
         scope,
       });
-      console.log(results);
       const search_results: {
         filename: string;
         description: string;

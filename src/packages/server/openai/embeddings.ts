@@ -19,7 +19,10 @@ export async function remove(data: Data[]): Promise<string[]> {
   return points;
 }
 
-export async function save(data: Data[]): Promise<string[]> {
+export async function save(
+  data: Data[],
+  account_id: string // who is requesting this, so can log it in case we call openai
+): Promise<string[]> {
   // Define the Qdrant points that we will be inserting corresponding
   // to the given data.
   const points: Partial<qdrant.Point>[] = [];
@@ -74,7 +77,7 @@ export async function save(data: Data[]): Promise<string[]> {
         (x) => sha1_to_vector[x] == null
       );
       const inputs = unknown_sha1s.map((x) => sha1_to_input[x]);
-      const vectors = await createEmbeddings(inputs);
+      const vectors = await createEmbeddings(db, inputs, account_id);
       for (let i = 0; i < unknown_sha1s.length; i++) {
         sha1_to_vector[unknown_sha1s[i]] = vectors[i];
       }
@@ -125,6 +128,7 @@ export async function search({
   limit,
   selector,
   offset,
+  account_id,
 }: {
   id?: string; // uuid of a point
   text?: string;
@@ -132,6 +136,7 @@ export async function search({
   limit: number;
   selector?: { include?: string[]; exclude?: string[] };
   offset?: number | string;
+  account_id: string; // who is doing the search, so we can log this
 }): Promise<Result[]> {
   if (text != null || id != null) {
     let point_id;
@@ -140,13 +145,16 @@ export async function search({
     } else {
       const url = `\\search/${text}`;
       // search for points close to text
-      [point_id] = await save([
-        {
-          // time is just to know when this term was last searched, so we could delete stale data if want
-          payload: { text, time: Date.now(), url },
-          field: "text",
-        },
-      ]);
+      [point_id] = await save(
+        [
+          {
+            // time is just to know when this term was last searched, so we could delete stale data if want
+            payload: { text, time: Date.now(), url },
+            field: "text",
+          },
+        ],
+        account_id
+      );
     }
     if (typeof offset == "string") {
       throw Error(
@@ -180,14 +188,24 @@ export async function search({
 
 // get embeddings corresponding to strings. This is just a simple wrapper
 // around calling openai, and does not cache anything.
-async function createEmbeddings(input: string[]): Promise<number[][]> {
+async function createEmbeddings(
+  db,
+  input: string[],
+  account_id: string
+): Promise<number[][]> {
   // compute embeddings of everythig
   const openai = await getClient();
   const response = await openai.createEmbedding({
     model: "text-embedding-ada-002",
     input,
   });
-  return response.data.data.map((x) => x.embedding);
+  const vectors = response.data.data.map((x) => x.embedding);
+  // log this
+  await db.query(
+    `INSERT INTO openai_embedding_log (time,account_id,tokens) VALUES(NOW(),$1,$2)`,
+    [account_id, response.data.usage.total_tokens]
+  );
+  return vectors;
 }
 
 async function saveEmbeddingsInPostgres(

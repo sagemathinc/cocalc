@@ -12,7 +12,13 @@ be in a single namespace somehow...!
 
 import { Button, Row, Col, Tag } from "antd";
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
-import { Icon, Loading, SearchInput, Space } from "@cocalc/frontend/components";
+import {
+  A,
+  Icon,
+  Loading,
+  SearchInput,
+  Space,
+} from "@cocalc/frontend/components";
 import { path_to_file, should_open_in_foreground } from "@cocalc/util/misc";
 import {
   redux,
@@ -67,28 +73,28 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
             checked={subdirectories}
             onChange={() => actions?.toggle_search_checkbox_subdirectories()}
           >
-            <Icon name="folder-open" /> Include subdirectories
+            <Icon name="folder-open" /> Include <b>subdirectories</b>
           </Checkbox>
           <Checkbox
             disabled={neural_search}
             checked={case_sensitive}
             onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
           >
-            <Icon name="font-size" /> Case sensitive search
+            <Icon name="font-size" /> <b>Case sensitive</b> search
           </Checkbox>
           <Checkbox
             disabled={neural_search}
             checked={hidden_files}
             onChange={() => actions?.toggle_search_checkbox_hidden_files()}
           >
-            <Icon name="eye-slash" /> Include hidden files
+            <Icon name="eye-slash" /> Include <b>hidden files</b>
           </Checkbox>
           <Checkbox
             disabled={neural_search}
             checked={git_grep}
             onChange={() => actions?.toggle_search_checkbox_git_grep()}
           >
-            <Icon name="git" /> Git search: in GIT repo, use "git grep" to only
+            <Icon name="git" /> <b>Git search</b>: in GIT repo, use "git grep" to only
             search files in the git repo.
           </Checkbox>
           {redux.getStore("customize").get("neural_search_enabled") && (
@@ -98,12 +104,19 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
                 actions?.setState({ neural_search: !neural_search })
               }
             >
-              <Icon name="robot" /> Neural search using GPT-3: search recently
-              certain types of recently edited files using a neural network
-              similarity algorithm instead of exact string matching
-              <Tag color="green" style={{ marginLeft: "15px" }}>
-                New!
+              <Tag color="green" style={{ float: "right" }}>
+                New
               </Tag>
+              <div>
+                <Icon name="robot" /> <b>Neural search</b> using{" "}
+                <A href="https://platform.openai.com/docs/guides/embeddings/what-are-embeddings">
+                  OpenAI Embeddings
+                </A>{" "}
+                and <A href="https://qdrant.tech/">Qdrant</A>: search recently
+                edited files using a neural network similarity algorithm.
+                Indexed file types: jupyter, tasks, chat, whiteboards, and
+                slides.
+              </div>
             </Checkbox>
           )}
         </Col>

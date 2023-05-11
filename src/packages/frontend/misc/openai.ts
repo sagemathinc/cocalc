@@ -9,9 +9,15 @@ export const MAX_CHATGPT_TOKENS = 4096;
 // each word. So, for every 6 characters, there is approximately one token."
 // Using this, our 250,000 character text gets truncated down to 6*4096 ~ 25,000
 // and then runnin the tokenizer is fast: it takes 62ms instead of nearly 6 seconds!
-const MAX_CHATGPT_LENGTH = MAX_CHATGPT_TOKENS * 6;
+
+// if 6 is about right, 8 should be a good upper bound.
+const APPROX_CHARACTERS_PER_TOKEN = 8;
+
+
+const MAX_CHATGPT_LENGTH = MAX_CHATGPT_TOKENS * APPROX_CHARACTERS_PER_TOKEN;
 
 const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
+
 
 // WARNING: --  tokenizer.encode is blocking and can be slow, e.g., if you give it
 // content of length 250,000 it'll take 6 seconds and make the browser freeze.
@@ -24,8 +30,9 @@ export function numTokensUpperBound(
   maxTokens: number
 ): number {
   return (
-    tokenizer.encode(content.slice(0, maxTokens * 6)).text.length +
-    Math.max(0, content.length - maxTokens * 6)
+    tokenizer.encode(content.slice(0, maxTokens * APPROX_CHARACTERS_PER_TOKEN))
+      .text.length +
+    Math.max(0, content.length - maxTokens * APPROX_CHARACTERS_PER_TOKEN)
   );
 }
 
@@ -46,7 +53,7 @@ that.  We will never return too much text, only possible too little.
 const dots = "\n ...";
 const numDotsTokens = numTokensUpperBound(dots, 1000);
 export function truncateMessage(content: string, maxTokens: number): string {
-  content = content.slice(0, maxTokens * 6); // see performance remarks above.
+  content = content.slice(0, maxTokens * APPROX_CHARACTERS_PER_TOKEN); // see performance remarks above.
   const { text } = tokenizer.encode(content);
   if (text.length > maxTokens) {
     return text.slice(0, maxTokens - numDotsTokens).join("") + dots;
