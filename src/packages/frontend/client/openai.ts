@@ -13,6 +13,7 @@ import {
   MAX_SEARCH_LIMIT,
   MAX_SAVE_LIMIT,
   MAX_REMOVE_LIMIT,
+  MAX_EMBEDDINGS_TOKENS,
 } from "@cocalc/util/db-schema/openai";
 
 const DEFAULT_SYSTEM_PROMPT =
@@ -75,7 +76,7 @@ export class OpenAIClient {
     // We leave some room for output, hence about 3000 instead of 4000 here:
     const maxTokens = MAX_CHATGPT_TOKENS - 1000;
     input = truncateMessage(input, maxTokens);
-    const n = numTokensUpperBound(input);
+    const n = numTokensUpperBound(input, MAX_CHATGPT_TOKENS);
     if (n >= maxTokens) {
       history = undefined;
     } else if (history != null) {
@@ -148,13 +149,31 @@ export class OpenAIClient {
   public async embeddings_save({
     project_id,
     path,
-    data,
+    data: data0,
   }: {
     project_id: string;
     path: string;
     data: EmbeddingData[];
   }): Promise<string[]> {
     this.assertHasNeuralSearch();
+    const { truncateMessage } = await import("@cocalc/frontend/misc/openai");
+
+    // Make data be data0, but without mutate data0
+    // and with any text truncated to fit in the
+    // embeddings limit.
+    const data: EmbeddingData[] = [];
+    for (const x of data0) {
+      const { text } = x;
+      if (typeof text != "string") {
+        throw Error("text must be a string");
+      }
+      const text1 = truncateMessage(text, MAX_EMBEDDINGS_TOKENS);
+      if (text1.length != text.length) {
+        data.push({ ...x, text: text1 });
+      } else {
+        data.push(x);
+      }
+    }
 
     const ids: string[] = [];
     let v = data;

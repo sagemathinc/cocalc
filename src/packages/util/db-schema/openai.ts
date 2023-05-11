@@ -178,6 +178,8 @@ export const MAX_SEARCH_LIMIT = 200;
 export const MAX_SAVE_LIMIT = 50;
 // Similar limit on removing items; can be larger since no vector embedding computation, etc.
 export const MAX_REMOVE_LIMIT = 100;
+// See https://platform.openai.com/docs/guides/embeddings/what-are-embeddings
+export const MAX_EMBEDDINGS_TOKENS = 8191;
 
 Table({
   name: "openai_embedding_log",
