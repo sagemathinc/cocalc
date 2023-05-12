@@ -43,7 +43,7 @@ export async function getClient(): Promise<QdrantClient> {
     apiKey = await kucalcApiKey();
     log.debug("getClient - kucalc apiKey defined:", apiKey.length > 0);
     if (apiKey) {
-      url = "qdrant";
+      url = "http://qdrant:6333";
     }
   }
 
