@@ -11,8 +11,8 @@ importers:
         specifier: ^29.5.0
         version: 29.5.0(@types/node@18.11.18)
       typescript:
-        specifier: ^5.0.2
-        version: 5.0.2
+        specifier: ^5.0.4
+        version: 5.0.4
 
   assets:
     dependencies:
@@ -1940,7 +1940,7 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
-  /@babel/core@7.21.8(supports-color@9.3.1):
+  /@babel/core@7.21.8:
     resolution: {integrity: sha512-YeM22Sondbo523Sz0+CirSPnbj9bG3P0CdHcBZdqUuaeOaYEFbOLoGU7lebvGP6P5J/WE9wOn7u7C4J9HvS1xQ==}
     engines: {node: '>=6.9.0'}
     dependencies:
@@ -1948,14 +1948,14 @@ packages:
       '@babel/code-frame': 7.21.4
       '@babel/generator': 7.21.5
       '@babel/helper-compilation-targets': 7.21.5(@babel/core@7.21.8)
-      '@babel/helper-module-transforms': 7.21.5(supports-color@9.3.1)
-      '@babel/helpers': 7.21.5(supports-color@9.3.1)
+      '@babel/helper-module-transforms': 7.21.5
+      '@babel/helpers': 7.21.5
       '@babel/parser': 7.21.8
       '@babel/template': 7.20.7
-      '@babel/traverse': 7.21.5(supports-color@9.3.1)
+      '@babel/traverse': 7.21.5
       '@babel/types': 7.21.5
       convert-source-map: 1.9.0
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.0
@@ -2059,7 +2059,7 @@ packages:
       '@babel/core': ^7.0.0
     dependencies:
       '@babel/compat-data': 7.21.7
-      '@babel/core': 7.21.8(supports-color@9.3.1)
+      '@babel/core': 7.21.8
       '@babel/helper-validator-option': 7.21.0
       browserslist: 4.21.5
       lru-cache: 5.1.1
@@ -2182,7 +2182,7 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
-  /@babel/helper-module-transforms@7.21.5(supports-color@9.3.1):
+  /@babel/helper-module-transforms@7.21.5:
     resolution: {integrity: sha512-bI2Z9zBGY2q5yMHoBvJ2a9iX3ZOAzJPm7Q8Yz6YeoUjU/Cvhmi2G4QyTNyPBqqXSgTjUxRg3L0xV45HvkNWWBw==}
     engines: {node: '>=6.9.0'}
     dependencies:
@@ -2192,7 +2192,7 @@ packages:
       '@babel/helper-split-export-declaration': 7.18.6
       '@babel/helper-validator-identifier': 7.19.1
       '@babel/template': 7.20.7
-      '@babel/traverse': 7.21.5(supports-color@9.3.1)
+      '@babel/traverse': 7.21.5
       '@babel/types': 7.21.5
     transitivePeerDependencies:
       - supports-color
@@ -2314,12 +2314,12 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
-  /@babel/helpers@7.21.5(supports-color@9.3.1):
+  /@babel/helpers@7.21.5:
     resolution: {integrity: sha512-BSY+JSlHxOmGsPTydUkPf1MdMQ3M81x5xGCOVgWM3G8XH77sJ292Y2oqcp0CbbgxhqBuI46iUz1tT7hqP7EfgA==}
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/template': 7.20.7
-      '@babel/traverse': 7.21.5(supports-color@9.3.1)
+      '@babel/traverse': 7.21.5
       '@babel/types': 7.21.5
     transitivePeerDependencies:
       - supports-color
@@ -3487,7 +3487,7 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
-  /@babel/traverse@7.21.5(supports-color@9.3.1):
+  /@babel/traverse@7.21.5:
     resolution: {integrity: sha512-AhQoI3YjWi6u/y/ntv7k48mcrCXmus0t79J9qPNlk/lAsFlCiJ047RmbfMOawySTHtywXhbXgpx/8nXMYd+oFw==}
     engines: {node: '>=6.9.0'}
     dependencies:
@@ -3499,7 +3499,7 @@ packages:
       '@babel/helper-split-export-declaration': 7.18.6
       '@babel/parser': 7.21.8
       '@babel/types': 7.21.5
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -16553,7 +16553,7 @@ packages:
       babel-plugin-macros:
         optional: true
     dependencies:
-      '@babel/core': 7.21.8(supports-color@9.3.1)
+      '@babel/core': 7.21.8
       client-only: 0.0.1
       react: 18.2.0
     dev: false
@@ -17013,7 +17013,7 @@ packages:
       esbuild:
         optional: true
     dependencies:
-      '@babel/core': 7.21.8(supports-color@9.3.1)
+      '@babel/core': 7.21.8
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
       jest: 29.5.0(@types/node@18.11.18)
@@ -17165,12 +17165,6 @@ packages:
   /typedarray@0.0.6:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
     dev: false
-
-  /typescript@5.0.2:
-    resolution: {integrity: sha512-wVORMBGO/FAs/++blGNeAVdbNKtIh1rbBL2EyQ1+J9lClJ93KiiKe8PmFIVdXhHcyv44SL9oglmfeSsndo0jRw==}
-    engines: {node: '>=12.20'}
-    hasBin: true
-    dev: true
 
   /typescript@5.0.4:
     resolution: {integrity: sha512-cW9T5W9xY37cc+jfEnaUvX91foxtHkza3Nw3wkoF4sSlKn0MONdkdEndig/qPBWXNkmplh3NzayQzCiHM4/hqw==}
