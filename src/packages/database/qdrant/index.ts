@@ -1,5 +1,6 @@
 // NOTE/TODO: there is a grpc client that is faster, but it is "work in progress",
 // so we're waiting and will switch later.
+// See https://github.com/qdrant/qdrant-js/blob/master/packages/js-client-rest/src/qdrant-client.ts
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 
@@ -33,14 +34,25 @@ export async function getClient(): Promise<QdrantClient> {
   return client;
 }
 
-async function init(client) {
-  const { collections } = await client.getCollections();
-  const collectionNames = collections.map((collection) => collection.name);
-  if (collectionNames.includes(COLLECTION_NAME)) {
-    // schema already configured
-    // TODO: maybe we update the schema if it evolves?
-    return;
-  }
+async function createIndexes(client) {
+  // It seems fine to just call this frequently.
+  // There also might not be any way currently to know whether this index exists.
+  // Note that it was only a few months ago when indexes got added to qdrant!
+  await client.createPayloadIndex(COLLECTION_NAME, {
+    field_name: "url",
+    field_schema: {
+      type: "text",
+      tokenizer: "prefix",
+      min_token_len: 2,
+      //  should be more than enough, since the maximum length of a filename is 255 characters; the url field is
+      // of the form "\projects/project_id/files/[filename]#fragmentid", so should easily fit in 1000 characters.
+      max_token_len: 1000,
+      lowercase: false,
+    },
+  });
+}
+
+async function createCollection(client) {
   // define our schema.
   await client.createCollection(COLLECTION_NAME, {
     vectors: {
@@ -57,9 +69,15 @@ async function init(client) {
       },
     },
   });
+}
 
-  // todo: indexes would go here, etc.,  BUT we should use db-schema and make this
-  // all nicely declarative, since that's worked very well for us with postgres, etc.
+async function init(client) {
+  const { collections } = await client.getCollections();
+  const collectionNames = collections.map((collection) => collection.name);
+  if (!collectionNames.includes(COLLECTION_NAME)) {
+    await createCollection(client);
+  }
+  await createIndexes(client);
 }
 
 export type Payload =
