@@ -10,11 +10,8 @@ const log = getLogger("database:qdrant");
 const COLLECTION_NAME = "cocalc";
 const SIZE = 1536; // that's for the openai embeddings api
 
-let _client: null | QdrantClient = null;
+const clientCache: { [key: string]: QdrantClient } = {};
 export async function getClient(): Promise<QdrantClient> {
-  if (_client != null) {
-    return _client;
-  }
   let {
     neural_search_enabled,
     kucalc,
@@ -25,6 +22,12 @@ export async function getClient(): Promise<QdrantClient> {
   if (!neural_search_enabled) {
     log.debug("getClient - not enabled");
     throw Error("Qdrant neural search is not enabled.");
+  }
+  const key = `${url}-${apiKey}`;
+  if (clientCache[key]) {
+    // we return client that matches the configuration in the database. If you change config
+    // in database, then you get a different client as soon as getServerSettings() updates.
+    return clientCache[key];
   }
 
   if (!url && !apiKey && kucalc) {
@@ -58,12 +61,14 @@ export async function getClient(): Promise<QdrantClient> {
     global.Headers = Headers;
     global.fetch = fetch;
   }
+  // NOTE: the client seems to do a good job autoreconnecting even if the
+  // database is stopped and started.
   const client = new QdrantClient({
     url,
     ...(apiKey ? { apiKey } : undefined),
   });
   await init(client);
-  _client = client;
+  clientCache[key] = client;
   return client;
 }
 
