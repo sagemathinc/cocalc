@@ -38,9 +38,7 @@ export function receive_save_blob_message(opts: Opts): void {
   winston.debug(`receive_save_blob_message: ${opts.sha1}`);
   const { sha1 } = opts;
   const id = uuid();
-  if (_save_blob_callbacks[sha1] == null) {
-    _save_blob_callbacks[sha1] = [];
-  }
+  _save_blob_callbacks[sha1] ??= [];
   _save_blob_callbacks[sha1].push([opts.cb, id]);
 
   // Timeout functionality -- send a response after opts.timeout seconds,
@@ -49,7 +47,7 @@ export function receive_save_blob_message(opts: Opts): void {
     return;
   }
 
-  const f = function () {
+  const f = function (): void {
     const v = _save_blob_callbacks[sha1];
     if (v != null) {
       const mesg = message.save_blob({
@@ -68,9 +66,9 @@ export function receive_save_blob_message(opts: Opts): void {
       }
 
       if (w.length === 0) {
-        return delete _save_blob_callbacks[sha1];
+        delete _save_blob_callbacks[sha1];
       } else {
-        return (_save_blob_callbacks[sha1] = w);
+        _save_blob_callbacks[sha1] = w;
       }
     }
   };
