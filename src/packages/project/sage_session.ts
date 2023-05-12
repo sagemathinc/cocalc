@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { reuseInFlight } from "async-await-utils/hof";
+
 import processKill from "@cocalc/backend/misc/process-kill";
 import { abspath, enable_mesg, execute_code } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
@@ -221,7 +223,6 @@ class SageSession {
     [key: string]: CB<any, any>;
   } = {};
   private _socket: CoCalcSocket | undefined;
-  private _init_socket_cbs: CB[] | undefined = [];
 
   constructor(opts: SageSessionOpts) {
     opts = defaults(opts, {
@@ -264,16 +265,9 @@ class SageSession {
   // if e.g., the socket doesn't exist and there are a bunch of calls to @call
   // at the same time.
   // See https://github.com/sagemathinc/cocalc/issues/3506
-  async init_socket(cb: CB): Promise<void> {
+  public init_socket = reuseInFlight(async (): Promise<void> => {
     const dbg = this.dbg("init_socket()");
     dbg();
-
-    if (this._init_socket_cbs != null) {
-      this._init_socket_cbs.push(cb);
-      return;
-    }
-
-    this._init_socket_cbs = [cb];
 
     try {
       const socket = await get_sage_socket();
@@ -291,50 +285,53 @@ class SageSession {
       // this handler to get the response message!
       socket.on("mesg", (type, mesg) => {
         dbg(`sage session: received message ${type}`);
-        this[`_handle_mesg_${type}`]?.(mesg);
-      });
-
-      this._init_path((err) => {
-        const cbs = this._init_socket_cbs ?? [];
-        delete this._init_socket_cbs;
-        for (const c of cbs) {
-          c(err);
+        switch (type) {
+          case "json":
+            return this._handle_mesg_json(mesg);
+          case "blob":
+            return this._handle_mesg_blob(mesg);
+          default:
+            dbg(`unknown message type ${type}`);
+            throw new Error(`unknown message type ${type}`);
         }
       });
+
+      await this._init_path();
     } catch (err) {
       dbg(`fail -- ${err}.`);
-      const cbs = this._init_socket_cbs ?? [];
-      delete this._init_socket_cbs;
-      for (const c of cbs) {
-        c(err);
-      }
-      return;
+      throw err;
     }
-  }
+  });
 
-  _init_path(cb: CB): void {
+  async _init_path(): Promise<void> {
     const dbg = this.dbg("_init_path()");
     dbg();
-    this.call({
-      input: {
-        event: "execute_code",
-        code: "os.chdir(salvus.data['path']);__file__=salvus.data['file']",
-        data: {
-          path: abspath(path_split(this._path).head),
-          file: abspath(this._path),
+    return new Promise<void>(async (resolve, reject) => {
+      await this.call({
+        input: {
+          event: "execute_code",
+          code: "os.chdir(salvus.data['path']);__file__=salvus.data['file']",
+          data: {
+            path: abspath(path_split(this._path).head),
+            file: abspath(this._path),
+          },
+          preparse: false,
         },
-        preparse: false,
-      },
-      cb: (resp) => {
-        let err: string | undefined = undefined;
-        if (resp.stderr) {
-          err = resp.stderr;
-          dbg(`error '${err}'`);
-        }
-        if (resp.done) {
-          cb?.(err);
-        }
-      },
+        cb: (resp) => {
+          let err: string | undefined = undefined;
+          if (resp.stderr) {
+            err = resp.stderr;
+            dbg(`error '${err}'`);
+          }
+          if (resp.done) {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          }
+        },
+      });
     });
   }
 
@@ -348,7 +345,6 @@ class SageSession {
       data?: { path: string; file: string };
       preparse?: boolean;
     };
-
     cb?: (resp: {
       // cb(resp) or cb(resp1), cb(resp2), etc. -- posssibly called multiple times when message is execute or 0 times
       error?: Error | string;
@@ -386,13 +382,12 @@ class SageSession {
         if (this._socket != null) {
           this.close();
         }
-        await this.init_socket((err) => {
-          if (err) {
-            opts.cb?.({ error: err });
-          } else {
-            opts.cb?.({});
-          }
-        });
+        try {
+          await this.init_socket();
+          opts.cb?.({});
+        } catch (err) {
+          opts.cb?.({ error: err });
+        }
         return;
 
       case "raw_input":
@@ -407,15 +402,7 @@ class SageSession {
         // send message over socket and get responses
         try {
           if (this._socket != null) {
-            await new Promise<void>(async (resolve, reject) => {
-              await this.init_socket((err) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  resolve();
-                }
-              });
-            });
+            await this.init_socket();
           }
 
           if (this._socket == null) {

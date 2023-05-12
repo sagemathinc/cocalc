@@ -31,7 +31,6 @@ import {
 import { FLAGS, MARKERS, sagews } from "@cocalc/util/sagews";
 import { SyncDoc } from "./sync-doc";
 import { Client } from "./types";
-import { CB } from "@cocalc/util/types/callback";
 
 type State = "init" | "ready" | "closed";
 
@@ -41,10 +40,11 @@ type Program = "sage" | "bash";
 // Object whose meaning depends on the program
 type Input = any;
 
+// TODO this shouldn't be redefined here -- just use the exported SageSessionType
 interface SageSession {
   close: () => void;
   is_running: () => boolean;
-  init_socket: (cb: CB) => Promise<void>;
+  init_socket: () => Promise<void>;
   call: (obj: { input: object; cb: Function }) => Promise<void>;
 }
 
@@ -344,7 +344,7 @@ export class Evaluator {
     };
   }
 
-  private handle_input_change(key: string): void {
+  private async handle_input_change(key: string): Promise<void> {
     this.assert_not_closed();
     this.assert_is_project();
 
@@ -427,7 +427,7 @@ export class Evaluator {
       hook = (_) => {};
     }
 
-    f(x.input, (output) => {
+    await f(x.input, (output) => {
       if (this.state == "closed") {
         return;
       }
@@ -446,9 +446,9 @@ export class Evaluator {
 
     const dbg = this.dbg("init_project_evaluator");
     dbg("init");
-    this.inputs_table.on("change", (keys) => {
+    this.inputs_table.on("change", async (keys) => {
       for (const key of keys) {
-        this.handle_input_change(key);
+        await this.handle_input_change(key);
       }
     });
     /* CRITICAL: it's very important to handle all the inputs
@@ -463,9 +463,9 @@ export class Evaluator {
     const v = this.inputs_table.get();
     if (v != null) {
       dbg(`handle ${v.size} pending evaluations`);
-      v.forEach((_, key) => {
+      v.forEach(async (_, key) => {
         if (key != null) {
-          this.handle_input_change(key);
+          await this.handle_input_change(key);
         }
       });
     }
@@ -502,15 +502,7 @@ export class Evaluator {
         // if we are going to execute code.  The other events, e.g., 'status' don't
         // need a running sage session.
         if (!this.sage_session.is_running()) {
-          await new Promise<void>(async (resolve, reject) => {
-            await this.sage_session.init_socket((err?) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve();
-              }
-            });
-          });
+          await this.sage_session.init_socket();
         }
       }
     } catch (error) {
