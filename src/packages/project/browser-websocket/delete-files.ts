@@ -3,13 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { stat } from "fs";
-import { callback } from "awaiting";
-
-import { exec } from "./api";
-import { get_listings_table } from "../sync/listings";
-import { deleted_file_variations } from "@cocalc/util/delete-files";
 import { pathExists } from "fs-extra";
+import { stat } from "node:fs/promises";
+
+import { deleted_file_variations } from "@cocalc/util/delete-files";
+import { get_listings_table } from "../sync/listings";
+import { exec } from "./api";
 
 // Delete the files/directories in the given project with the given list of paths.
 export async function delete_files(
@@ -30,7 +29,7 @@ export async function delete_files(
   let extra: string[] = [];
   for (const path of paths) {
     try {
-      const s = await callback(stat, path);
+      const s = await stat(path);
       if (!s.isDirectory()) {
         for (const variation of deleted_file_variations(path)) {
           if (await pathExists(variation)) {

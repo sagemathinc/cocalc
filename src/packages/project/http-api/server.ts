@@ -24,7 +24,7 @@ import type { Request } from "express";
 import RateLimit from "express-rate-limit";
 import { apiServerPortFile } from "@cocalc/project/data";
 const theClient = require("@cocalc/project/client");
-import { secretToken } from "@cocalc/project/servers/secret-token";
+import { getSecretToken } from "@cocalc/project/servers/secret-token";
 
 let client: any = undefined;
 export { client };
@@ -107,6 +107,10 @@ function handleAuth(req): void {
     default:
       throw Error(`unknown authorization type '${type}'`);
   }
+
+  // could throw if not initialized yet -- done in ./init.ts via initSecretToken()
+  const secretToken = getSecretToken();
+
   // now check auth
   if (secretToken != providedToken) {
     throw Error(`incorrect secret token "${secretToken}", "${providedToken}"`);

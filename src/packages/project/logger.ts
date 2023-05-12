@@ -7,6 +7,16 @@
 Logger for a CoCalc project
 
 The logger in packages/hub uses this one as well, but with some minor configuration changes.
+
+Use this one throuout the project, since it automatically prefixes all log messages with "cocalc:project:"
 */
 
-export { getLogger } from "@cocalc/backend/logger";
+import { getLogger as getLoggerMain } from "@cocalc/backend/logger";
+
+const rootLogger = getLoggerMain("project");
+
+export default function getLogger(name: string) {
+  return rootLogger.extend(name);
+}
+
+export { getLogger };
