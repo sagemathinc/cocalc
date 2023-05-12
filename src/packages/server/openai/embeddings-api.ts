@@ -71,10 +71,6 @@ export async function search({
   selector?: { include?: string[]; exclude?: string[] };
   offset?: number | string;
 }): Promise<embeddings.Result[]> {
-  // [ ] TODO: Get n most recent non-hidden/non-deleted projects for this account, and add
-  // a filter to only get results matching them.
-  // [ ] TODO: CRITICAL security check -- need to make sure the filter explicitly contains
-  //     only project(s) user has access to, or some other url's later (e.g., for searching share server).
   const filter = await scopeFilter(account_id, scope, filter0);
   validateSearchParams({ text, filter, limit, selector, offset });
   return await embeddings.search({
@@ -216,8 +212,6 @@ export async function save({
   if (data.length > MAX_SAVE_LIMIT) {
     throw Error(`you can save at most ${MAX_SAVE_LIMIT} datum in one call`);
   }
-
-  // [ ] todo: record in database effort accrued due to account_id.
 
   const data2: embeddings.Data[] = await prepareData(
     account_id,
