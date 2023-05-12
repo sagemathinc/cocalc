@@ -19,19 +19,19 @@ may be used to enhance the experience of document editing.
 
 const stringify = require("json-stable-stringify");
 
-import { callback } from "awaiting";
-import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { to_key } from "@cocalc/sync/table/util";
-import { Client } from "./types";
-import { sagews, MARKERS, FLAGS } from "@cocalc/util/sagews";
 import {
   close,
+  copy_with,
+  copy_without,
   from_json,
   to_json,
-  copy_without,
-  copy_with,
 } from "@cocalc/util/misc";
+import { FLAGS, MARKERS, sagews } from "@cocalc/util/sagews";
+import { SyncDoc } from "./sync-doc";
+import { Client } from "./types";
+import { CB } from "@cocalc/util/types/callback";
 
 type State = "init" | "ready" | "closed";
 
@@ -44,8 +44,8 @@ type Input = any;
 interface SageSession {
   close: () => void;
   is_running: () => boolean;
-  init_socket: (cb: Function) => void;
-  call: (obj: { input: object; cb: Function }) => void;
+  init_socket: (cb: CB) => Promise<void>;
+  call: (obj: { input: object; cb: Function }) => Promise<void>;
 }
 
 export class Evaluator {
@@ -476,6 +476,7 @@ export class Evaluator {
     this.dbg("ensure_sage_session_exists")();
     // This code only runs in the project, where client
     // has a sage_session method.
+    // This could return null, because client.sage_session gets it from a cache
     this.sage_session = (this.client as any).sage_session({
       path: this.syncdoc.get_path(),
     });
@@ -501,7 +502,15 @@ export class Evaluator {
         // if we are going to execute code.  The other events, e.g., 'status' don't
         // need a running sage session.
         if (!this.sage_session.is_running()) {
-          await callback(this.sage_session.init_socket);
+          await new Promise<void>(async (resolve, reject) => {
+            await this.sage_session.init_socket((err?) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve();
+              }
+            });
+          });
         }
       }
     } catch (error) {
@@ -509,7 +518,7 @@ export class Evaluator {
       return;
     }
     dbg("send call to backend sage session manager", to_json(input));
-    this.sage_session.call({ input, cb });
+    await this.sage_session.call({ input, cb });
   }
 
   // Runs only in the project

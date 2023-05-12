@@ -82,6 +82,7 @@ import launchJupyterKernel, {
   SpawnedKernel,
   killKernel,
 } from "./pool";
+import { KernelParams } from "./types";
 import { getAbsolutePathFromHome } from "./util";
 
 import { getLogger } from "@cocalc/project/logger";
@@ -166,13 +167,6 @@ export async function remove_jupyter_backend(
 //     return (...m) => console.log(new Date(), `Client.${f}: `, ...m);
 //   }
 // }
-
-interface KernelParams {
-  name: string;
-  path: string; // filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
-  actions?: any; // optional redux actions object
-  ulimit?: string;
-}
 
 export function kernel(opts: KernelParams): JupyterKernel {
   return new JupyterKernel(opts.name, opts.path, opts.actions, opts.ulimit);

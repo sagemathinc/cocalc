@@ -61,7 +61,7 @@ export async function executeCode(
 // Callback interface to executing code.
 // This will get deprecated and is only used by some old coffeescript code.
 export const execute_code: ExecuteCodeFunctionWithCallback = aggregate(
-  (opts: ExecuteCodeOptionsWithCallback) => {
+  (opts: ExecuteCodeOptionsWithCallback): void => {
     (async () => {
       try {
         opts.cb?.(undefined, await executeCodeNoAggregate(opts));
