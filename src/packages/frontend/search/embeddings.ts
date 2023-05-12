@@ -61,6 +61,7 @@ class Embeddings {
   private textColumn: string; // the name of the column that has the text that gets indexed
   private metaColumns?: string[]; // the names of the metadata columns
   private transform?: (elt: object) => undefined | object;
+  private waitUntil?: number; // if given, don't try to sync again until this point in time (ms since epoch).
 
   // map from point_id to hash and fragment_id for each remote element
   private remote: { [point_id: string]: EmbeddingData } = {};
@@ -99,6 +100,9 @@ class Embeddings {
     syncdb.on(
       "change",
       debounce(async () => {
+        if (this.waitUntil != null && Date.now() < this.waitUntil) {
+          return;
+        }
         try {
           await this.sync();
         } catch (err) {
@@ -106,6 +110,7 @@ class Embeddings {
             `WARNING: issue syncing embeddings for "${this.path}:"`,
             err
           );
+          this.waitUntil = Date.now() + 60 * 1000; // wait a bit before trying again.
         }
       }, debounceMs)
     );

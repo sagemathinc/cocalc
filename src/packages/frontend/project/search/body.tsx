@@ -94,8 +94,8 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
             checked={git_grep}
             onChange={() => actions?.toggle_search_checkbox_git_grep()}
           >
-            <Icon name="git" /> <b>Git search</b>: in GIT repo, use "git grep" to only
-            search files in the git repo.
+            <Icon name="git" /> <b>Git search</b>: in GIT repo, use "git grep"
+            to only search files in the git repo.
           </Checkbox>
           {redux.getStore("customize").get("neural_search_enabled") && (
             <Checkbox
@@ -211,8 +211,8 @@ const ProjectSearchOutput: React.FC<{ project_id: string }> = ({
     if (search_error != null) {
       return (
         <Alert bsStyle="warning">
-          Search error: {search_error} Please try again with a more restrictive
-          search
+          Search error: {search_error} Please try a different type of search or
+          a more restrictive search.
         </Alert>
       );
     }

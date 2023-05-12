@@ -2,6 +2,7 @@ import { sha1, uuidsha1 } from "@cocalc/backend/sha1";
 import getClient from "./client";
 import * as qdrant from "@cocalc/database/qdrant";
 import { getClient as getDB } from "@cocalc/database/pool";
+import checkForAbuse from "./embeddings-abuse";
 
 // the vectors we compute using openai's embeddings api get cached for this long
 // in our database since they were last accessed.  Also, this is how long we
@@ -193,6 +194,7 @@ async function createEmbeddings(
   input: string[],
   account_id: string
 ): Promise<number[][]> {
+  await checkForAbuse(account_id);
   // compute embeddings of everythig
   const openai = await getClient();
   const response = await openai.createEmbedding({
@@ -222,14 +224,12 @@ async function saveEmbeddingsInPostgres(
   input_sha1s.forEach((input_sha1, i) => {
     if (sha1s.has(input_sha1)) return;
     sha1s.add(input_sha1);
-    values.push(
-      `('${input_sha1}', '{${vectors[i].join(",")}}', NOW(), ${EXPIRE})`
-    );
+    values.push(`('${input_sha1}', '{${vectors[i].join(",")}}', ${EXPIRE})`);
   });
 
   // Insert data into the openai_embedding_cache table using a single query
   const query = `
-      INSERT INTO openai_embedding_cache (input_sha1, vector, time, expire)
+      INSERT INTO openai_embedding_cache (input_sha1, vector, expire)
       VALUES ${values.join(", ")};
     `;
 
