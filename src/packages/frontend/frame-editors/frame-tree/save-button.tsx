@@ -3,10 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, CSS } from "../../app-framework";
-import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
-import { Button, ButtonSize } from "../../antd-bootstrap";
-import { UncommittedChanges } from "../../components";
+import { FC, CSSProperties, memo } from "react";
+import {
+  Icon,
+  UncommittedChanges,
+  VisibleMDLG,
+} from "@cocalc/frontend/components";
+import { Button } from "antd";
 
 interface Props {
   has_unsaved_changes?: boolean;
@@ -15,14 +18,14 @@ interface Props {
   is_public?: boolean;
   is_saving?: boolean;
   no_labels?: boolean;
-  size?: ButtonSize;
+  size?;
   onClick?: (e) => void;
   show_uncommitted_changes?: boolean;
   set_show_uncommitted_changes?: Function;
-  style?: CSS;
+  style?: CSSProperties;
 }
 
-export const SaveButton: React.FC<Props> = React.memo((props: Props) => {
+export const SaveButton: FC<Props> = memo((props: Props) => {
   const {
     has_unsaved_changes,
     has_uncommitted_changes,
@@ -61,11 +64,16 @@ export const SaveButton: React.FC<Props> = React.memo((props: Props) => {
   return (
     <Button
       title={"Save file to disk"}
-      bsStyle={"success"}
-      bsSize={size}
+      size={size}
       disabled={disabled}
       onClick={onClick}
-      style={{ ...style, ...{ whiteSpace: "nowrap" } }}
+      style={{
+        background: "#5cb85c",
+        color: "white",
+        opacity: disabled ? 0.65 : undefined,
+        whiteSpace: "nowrap",
+        ...style,
+      }}
     >
       <Icon name={icon} style={{ width: "15px", display: "inline-block" }} />{" "}
       <VisibleMDLG>{label}</VisibleMDLG>

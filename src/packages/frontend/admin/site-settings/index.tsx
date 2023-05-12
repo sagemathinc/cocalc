@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Button, Input, InputRef, Modal } from "antd";
+import { Alert, Button, Input, InputRef, Modal, Tag, Row, Col } from "antd";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
 import { useMemo, useRef, useState } from "react";
@@ -25,6 +25,8 @@ import { deep_copy, keys, unreachable } from "@cocalc/util/misc";
 import { site_settings_conf } from "@cocalc/util/schema";
 import { RenderRow } from "./render-row";
 import { Data, IsReadonly, State } from "./types";
+
+const { CheckableTag } = Tag;
 
 export default function SiteSettings({}) {
   const { inc: change } = useCounter();
@@ -466,14 +468,46 @@ export default function SiteSettings({}) {
             style={{ margin: "30px auto", maxWidth: "800px" }}
           />
         )}
-        <Input.Search
-          allowClear
-          value={filter}
-          style={{ float: "right", width: "50%", paddingLeft: "5px" }}
-          placeholder="Filter Site Settings..."
-          onChange={(e) => setFilter(e.target.value)}
-        />
-        <Buttons />
+        <Row key="filter">
+          <Col span={12}>
+            <Buttons />
+          </Col>
+          <Col span={12}>
+            <Input.Search
+              style={{ marginBottom: "5px" }}
+              allowClear
+              value={filter}
+              placeholder="Filter Site Settings..."
+              onChange={(e) => setFilter(e.target.value)}
+            />
+            {[
+              "openai",
+              "jupyter",
+              "email",
+              "logo",
+              "version",
+              "stripe",
+              "captcha",
+              "zendesk",
+              "github",
+            ].map((name) => (
+              <CheckableTag
+                key={name}
+                style={{ cursor: "pointer" }}
+                checked={!!filter?.includes(name)}
+                onChange={(checked) => {
+                  if (checked) {
+                    setFilter(name);
+                  } else {
+                    setFilter("");
+                  }
+                }}
+              >
+                {name}
+              </CheckableTag>
+            ))}
+          </Col>
+        </Row>
         {editRows}
         <Space />
         {!filter.trim() && <Tests />}

@@ -40,7 +40,7 @@ const PRESETS: Preset[] = [
     description: "Explain how to fix any mistakes it can find.",
   },
   {
-    command: "Complete",
+    command: "Finish writing this",
     codegen: true,
     tag: "complete",
     icon: "pen",
@@ -49,7 +49,7 @@ const PRESETS: Preset[] = [
       "Finish writing this. ChatGPT can automatically write code, finish a poem, and much more.  The output is in chat so your file isn't directly modified.",
   },
   {
-    command: "Explain",
+    command: "Explain in detail how this code works",
     codegen: false,
     tag: "explain",
     icon: "bullhorn",
@@ -106,12 +106,12 @@ function getCustomDescription(frameType) {
 interface Props {
   id: string;
   actions;
-  ButtonComponent;
   buttonSize;
   buttonStyle;
   labels?: boolean;
   visible?: boolean;
   path: string;
+  buttonRef;
 }
 
 import type { Scope } from "./types";
@@ -119,12 +119,12 @@ import type { Scope } from "./types";
 export default function ChatGPT({
   id,
   actions,
-  ButtonComponent,
   buttonSize,
   buttonStyle,
   labels,
   visible,
   path,
+  buttonRef,
 }: Props) {
   const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -369,20 +369,22 @@ export default function ChatGPT({
         );
       }}
     >
-      <ButtonComponent
+      <Button
         style={buttonStyle}
-        bsSize={buttonSize}
+        size={buttonSize}
         onClick={() => {
           setError("");
           setShowChatGPT(!showChatGPT);
           actions.blur();
         }}
       >
-        <Tooltip title="Get assistance from ChatGPT">
-          <OpenAIAvatar size={20} style={{ marginTop: "-5px" }} />{" "}
-        </Tooltip>
-        <VisibleMDLG>{labels ? "ChatGPT..." : undefined}</VisibleMDLG>
-      </ButtonComponent>
+        <span ref={buttonRef}>
+          <Tooltip title="Get assistance from ChatGPT">
+            <OpenAIAvatar size={20} style={{ marginTop: "-5px" }} />{" "}
+          </Tooltip>
+          <VisibleMDLG>{labels ? "ChatGPT..." : undefined}</VisibleMDLG>
+        </span>
+      </Button>
     </Popover>
   );
 }

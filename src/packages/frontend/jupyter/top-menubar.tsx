@@ -7,6 +7,7 @@
 // File, Edit, etc....
 
 import * as immutable from "immutable";
+import { sortBy } from "lodash";
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -22,9 +23,9 @@ import {
   MenuItems,
   r_join,
 } from "@cocalc/frontend/components";
+import { KernelStar } from "@cocalc/frontend/components/run-button/kernel-star";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { cmp } from "@cocalc/util/misc";
 import { user_activity } from "@cocalc/frontend/tracker";
 import {
   all_fields_equal,
@@ -37,6 +38,7 @@ import { JupyterActions } from "./browser-actions";
 import { get_help_links } from "./help-links";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 import Logo from "./logo";
+import { KernelSpec } from "./types";
 
 type MenuItemName = string | { name: string; display?: string; style?: object };
 
@@ -48,7 +50,7 @@ const TITLE_STYLE: React.CSSProperties = {
 } as const;
 
 const SELECTED_STYLE: React.CSSProperties = {
-  color: "#2196F3",
+  color: COLORS.BS_BLUE_TEXT,
   fontWeight: "bold",
 } as const;
 
@@ -78,11 +80,21 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
   (props: TopMenubarProps) => {
     const { actions, cur_id, cells, name } = props;
     const frameActions = useNotebookFrameActions();
-
-    const kernels: immutable.List<any> | undefined = useRedux([
-      name,
-      "kernels",
+    const kernel_selection: undefined | immutable.Map<string, string> =
+      useRedux([actions.name, "kernel_selection"]);
+    const kernels_by_name:
+      | undefined
+      | immutable.OrderedMap<string, immutable.Map<string, string>> = useRedux([
+      actions.name,
+      "kernels_by_name",
     ]);
+    const kernels_by_language:
+      | undefined
+      | immutable.OrderedMap<string, immutable.List<string>> = useRedux([
+      actions.name,
+      "kernels_by_language",
+    ]);
+
     const kernel_state: string | undefined = useRedux([name, "kernel_state"]);
     const has_unsaved_changes: boolean | undefined = useRedux([
       name,
@@ -96,6 +108,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       name,
       "backend_kernel_info",
     ]);
+    const current_kernel: string | undefined = useRedux([name, "kernel"]);
     const toolbar_state: boolean | undefined = useRedux([name, "toolbar"]);
     const cell_toolbar: string | undefined = useRedux([name, "cell_toolbar"]);
     const read_only: boolean | undefined = useRedux([name, "read_only"]);
@@ -329,56 +342,108 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       user_activity("cocal_jupyter", "change kernel", kernel_name);
     }
 
-    function render_kernel_item(kernel: any): MenuItems[0] | string {
+    function render_kernel_item(
+      kernel: KernelSpec,
+      prefix = ""
+    ): MenuItems[0] | string {
       if (kernel == null) return "";
-      const style: React.CSSProperties = { marginLeft: "4ex" };
-      if (kernel.name === kernel) {
-        style.color = "#2196F3";
-        style.fontWeight = "bold";
-      }
-      let label = (
-        <span style={style}>
-          <Logo kernel={kernel.name} size={20} style={{ marginTop: "-2px" }} />{" "}
-          {kernel.display_name}{" "}
+      const current = kernel.name === current_kernel;
+      const style: React.CSSProperties = {
+        marginLeft: "4ex",
+        ...(current ? SELECTED_STYLE : undefined),
+      };
+      const priority = (kernel as any).metadata?.cocalc?.priority ?? 0;
+      const arrow = current ? (
+        <span style={{ float: "left", position: "absolute" }}>
+          <Icon
+            name="arrow-right"
+            style={{ position: "relative", left: "-4ex" }}
+          />
         </span>
+      ) : undefined;
+      const logo = (
+        <Logo kernel={kernel.name} size={20} style={{ marginTop: "-2px" }} />
       );
-      if (kernel_info?.get("name") == kernel.name) {
-        label = <b>{label}</b>;
-      }
       return {
-        key: kernel.name,
-        label,
+        key: `${prefix}-${kernel.name}`,
+        label: (
+          <div style={style}>
+            {arrow}
+            {logo} {kernel.display_name}
+            <KernelStar priority={priority} />
+          </div>
+        ),
         onClick: () => {
           handle_kernel_select(kernel.name);
         },
       };
     }
 
-    function render_kernel_items(): (MenuItems[0] | string)[] | undefined {
-      if (kernels == null) {
-        return;
-      }
-      const kernels_js = kernels.toJS();
-      kernels_js.sort((a, b) => {
-        const c = -cmp(
-          a.metadata?.cocalc?.priority ?? 0,
-          b.metadata?.cocalc?.priority ?? 0
-        );
-        if (c != 0) return c;
-        return cmp(a.display_name, b.display_name);
-      });
-      let i = 0;
-      while (
-        i < kernels_js.length &&
-        (kernels_js[i].metadata?.cocalc?.priority ?? 0) >= 10
-      ) {
-        i += 1;
-      }
-      if (i < kernels_js.length) {
-        kernels_js.splice(i, 0, null);
+    function getKernelOfLanguageByPriority(currentLang: string): string[] {
+      if (kernels_by_language == null || kernels_by_name == null) return [];
+      return sortBy(
+        kernels_by_language.get(currentLang)?.toJS() ?? [],
+        (name) => {
+          const kernel = kernels_by_name.get(name);
+          return -kernel?.getIn(["metadata", "cocalc", "priority"]) ?? 0;
+        }
+      );
+    }
+
+    function render_kernel_items(): (MenuItems[0] | string)[] {
+      if (
+        kernels_by_name == null ||
+        kernel_selection == null ||
+        kernels_by_language == null
+      )
+        return [];
+
+      const entries: (MenuItems[0] | string)[] = [];
+
+      if (current_kernel != null) {
+        const currentLang = kernels_by_name
+          .get(current_kernel)
+          ?.get("language");
+        undefined;
+
+        if (currentLang != null) {
+          const byPrio = getKernelOfLanguageByPriority(currentLang);
+
+          // if there is actually something to choose...
+          if (byPrio.length > 1) {
+            entries.push(`<Change ${capitalize(currentLang)} kernel ...`);
+            for (const name of byPrio) {
+              const kernel = kernels_by_name.get(name)?.toJS() as KernelSpec;
+              if (kernel == null) continue;
+              entries.push(render_kernel_item(kernel, "current"));
+            }
+
+            entries.push(null);
+          }
+        }
       }
 
-      return kernels_js.map((kernel) => render_kernel_item(kernel));
+      // and below are all kernels by language
+      if (entries.length > 0) {
+        entries.push("<Change language...");
+      } else {
+        entries.push("<Change language and select kernel...");
+      }
+      const langSorted = sortBy(
+        kernels_by_language.keySeq().toJS(),
+        capitalize
+      );
+      for (const lang of langSorted) {
+        entries.push(`~${capitalize(lang)}...`);
+        for (const name of getKernelOfLanguageByPriority(lang)) {
+          const kernel = kernels_by_name.get(name)?.toJS() as KernelSpec;
+          const e = render_kernel_item(kernel, "all");
+          if (typeof e === "string") continue;
+          entries.push(e);
+        }
+      }
+
+      return entries;
     }
 
     function render_kernel(): Rendered {
@@ -394,11 +459,9 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         "",
       ]
         .concat([
-          items?.length ?? 0 > 0
-            ? "<Change kernel..."
-            : "<No Kernels available!",
+          items?.length ?? 0 > 0 ? (items[0] as any) : "<No Kernels available!",
         ])
-        .concat((items as any) || [])
+        .concat((items.slice(1) as any) || [])
         .concat(["", "no kernel"])
         .concat(["", "refresh kernels"])
         .concat(["", "custom kernel"]);
@@ -471,12 +534,18 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
       if (name[0] === "<") {
         disabled = true;
         name = name.slice(1);
+        style.color = COLORS.GRAY;
       } else {
         disabled = false;
       }
 
       if (name[0] === ">") {
         style.marginLeft = "4ex";
+        name = name.slice(1);
+      }
+      if (name[0] === "~") {
+        style.marginLeft = "2ex";
+        style.color = COLORS.GRAY;
         name = name.slice(1);
       }
       const obj = frameActions.current?.commands[name];
@@ -500,7 +569,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         s = (
           <span
             className="pull-right"
-            style={{ marginLeft: "1em", color: "#888" }}
+            style={{ marginLeft: "1em", color: COLORS.GRAY }}
           >
             {r_join(v, ", ")}
           </span>
@@ -551,6 +620,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
           disabled={opts.disabled}
           style={TITLE_STYLE}
           items={items}
+          mode={"vertical"}
         />
       );
     }

@@ -1,30 +1,35 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Button, Popover, Tooltip } from "antd";
 import {
   CSSProperties,
-  ReactNode,
   MutableRefObject,
+  ReactNode,
   useEffect,
   useRef,
   useState,
 } from "react";
-import { Button, Popover, Tooltip } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { useFileContext } from "@cocalc/frontend/lib/file-context";
-import { path_split } from "@cocalc/util/misc";
-import computeHash from "@cocalc/util/jupyter-api/compute-hash";
-import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 import TimeAgo from "react-timeago";
-import Logo from "@cocalc/frontend/jupyter/logo";
-import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
-import { plural } from "@cocalc/util/misc";
-import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
+
 //import { file_associations } from "@cocalc/frontend/file-associations";
 //import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import { getFromCache, saveToCache } from "./cache";
-import { kernelDisplayName, kernelLanguage } from "./kernel-info";
+import { Icon } from "@cocalc/frontend/components/icon";
+import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import Logo from "@cocalc/frontend/jupyter/logo";
+import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import computeHash from "@cocalc/util/jupyter-api/compute-hash";
+import { path_split, plural } from "@cocalc/util/misc";
 import api from "./api";
-import SelectKernel from "./select-kernel";
+import { getFromCache, saveToCache } from "./cache";
 import getKernel from "./get-kernel";
+import { kernelDisplayName, kernelLanguage } from "./kernel-info";
 import Output from "./output";
+import SelectKernel from "./select-kernel";
 
 export type RunFunction = () => Promise<void>;
 type RunRef = MutableRefObject<RunFunction | null>;
@@ -241,7 +246,11 @@ export default function RunButton({
           tag,
         });
       } catch (err) {
-        setOutput({ error: resp.error });
+        if (resp?.error != null) {
+          setOutput({ error: resp.error });
+        } else {
+          setOutput({ error: `Timeout or communication problem` });
+        }
         return;
       }
       if (resp.output != null) {

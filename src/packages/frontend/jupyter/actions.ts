@@ -25,13 +25,14 @@ import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import * as awaiting from "awaiting";
-import { Cell, KernelInfo } from "./types";
+import * as cell_utils from "./cell-utils";
 import {
-  JupyterStoreState,
   JupyterStore,
+  JupyterStoreState,
   show_kernel_selector_reasons,
 } from "./store";
-import * as cell_utils from "./cell-utils";
+import { Cell, KernelInfo } from "./types";
+import { get_kernels_by_name_or_language } from "./util";
 
 const { close, required, defaults } = misc;
 
@@ -284,6 +285,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // know the kernels (e.g., maybe it changed or is now known but wasn't before).
     const kernel_info = this.store.get_kernel_info(this.store.get("kernel"));
     this.setState({ kernel_info });
+    await this.update_select_kernel_data(); // e.g. "kernel_selection" is drived from "kernels"
+    this.check_select_kernel();
   };
 
   set_jupyter_kernels = async () => {
@@ -2528,7 +2531,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (kernels == null) return;
     const kernel_selection = this.store.get_kernel_selection(kernels);
     const [kernels_by_name, kernels_by_language] =
-      this.store.get_kernels_by_name_or_language(kernels);
+      get_kernels_by_name_or_language(kernels);
     const default_kernel = this.store.get_default_kernel();
     // do we have a similar kernel?
     let closestKernel: Kernel | undefined = undefined;
@@ -2577,8 +2580,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.setState({
       show_kernel_selector_reason: undefined,
       show_kernel_selector: false,
-      kernel_selection: undefined,
-      kernels_by_name: undefined,
     });
   };
 

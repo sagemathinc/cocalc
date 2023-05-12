@@ -4,33 +4,14 @@ Backend server side part of ChatGPT integration with CoCalc.
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { Configuration, OpenAIApi } from "openai";
 import { checkForAbuse } from "./abuse";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import type { Model } from "@cocalc/util/db-schema/openai";
 import { delay } from "awaiting";
+import getClient from "./client";
+import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 
 const log = getLogger("chatgpt");
-
-async function getConfig(): Promise<{
-  apiKey: string;
-  expire: Date | undefined;
-}> {
-  log.debug("get API key");
-  const server_settings = await getServerSettings();
-  const { openai_api_key, pii_retention } = server_settings;
-
-  if (!openai_api_key) {
-    log.debug("NO API key");
-    throw Error("You must provide an OpenAI API Key.");
-  }
-  log.debug("got API key");
-  return {
-    apiKey: openai_api_key,
-    expire: pii_retention_to_future(pii_retention),
-  };
-}
 
 interface ChatOptions {
   input: string; // new input that user types
@@ -68,10 +49,8 @@ export async function evaluate({
   });
   const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie, model });
-  const { apiKey, expire } = await getConfig();
+  const openai = await getClient();
 
-  const configuration = new Configuration({ apiKey });
-  const openai = new OpenAIApi(configuration);
   const messages: { role: "system" | "user" | "assistant"; content: string }[] =
     [];
   if (system) {
@@ -95,6 +74,17 @@ export async function evaluate({
   ).trim();
   const total_tokens = completion.data.usage?.total_tokens;
   const total_time_s = (Date.now() - start) / 1000;
+
+  let expire;
+  if (account_id == null) {
+    // this never happens right now since it's disabled; we may
+    // bring this back with captcha
+    const { pii_retention } = await getServerSettings();
+    expire = pii_retention_to_future(pii_retention);
+  } else {
+    expire = undefined;
+  }
+
   saveResponse({
     input,
     system,
@@ -106,9 +96,9 @@ export async function evaluate({
     path,
     total_tokens,
     total_time_s,
-    expire: account_id == null ? expire : undefined,
     model,
     tag,
+    expire,
   });
 
   // NOTE about expire: If the admin setting for "PII Retention" is set *and*

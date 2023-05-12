@@ -39,6 +39,7 @@ db_schema            = require('@cocalc/util/db-schema')
 generateHash =require("@cocalc/server/auth/hash").default;
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 chatgpt        = require('@cocalc/server/openai/chatgpt');
+embeddings_api   = require('@cocalc/server/openai/embeddings-api');
 jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
 jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
 
@@ -2090,6 +2091,45 @@ class exports.Client extends EventEmitter
         try
             output = await chatgpt.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag)
             @push_to_client(message.chatgpt_response(id:mesg.id, text:output))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_openai_embeddings_search: (mesg) =>
+        dbg = @dbg("mesg_openai_embeddings_search")
+        dbg(mesg.input)
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"not signed in")
+            return
+        try
+            matches = await embeddings_api.search(account_id:@account_id, scope:mesg.scope, text:mesg.text, filter:mesg.filter, limit:mesg.limit, selector:mesg.selector, offset:mesg.offset)
+            @push_to_client(message.openai_embeddings_search_response(id:mesg.id, matches:matches))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_openai_embeddings_save: (mesg) =>
+        dbg = @dbg("mesg_openai_embeddings_save")
+        dbg()
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"not signed in")
+            return
+        try
+            ids = await embeddings_api.save(account_id:@account_id, data:mesg.data, project_id:mesg.project_id, path:mesg.path)
+            @push_to_client(message.openai_embeddings_save_response(id:mesg.id, ids:ids))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_openai_embeddings_remove: (mesg) =>
+        dbg = @dbg("mesg_openai_embeddings_remove")
+        dbg()
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"not signed in")
+            return
+        try
+            ids = await embeddings_api.remove(account_id:@account_id, data:mesg.data, project_id:mesg.project_id, path:mesg.path)
+            @push_to_client(message.openai_embeddings_remove_response(id:mesg.id, ids:ids))
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")
