@@ -18,25 +18,11 @@ so we can't just cap per hour for this embeddings stuff, since it is very bursty
 We could do 100K/day, since hitting that every day for a month is about $1.50, which
 is probably fine... though we do have over 30K active users, and $45K is a lot of money!
 
-So let's just think about a max across all users first.  I want to spend at most $1K/month
-on indexing. That's about 1/5 of the above limit, i.e., 50K/minute, or 3 million/hour.
+So let's just think about a max across all users first.  If want to spend at most $1K/month
+on indexing, that's about 1/5 of the above limit, i.e., 50K/minute, or 3 million/hour.
 
-Ideas:
-
-Overall GOAL -- average cap of about 3 million tokens per hour; this would
-keep cost below $1K/month.
-
- - per user limit: always have a 100K tokens per hour limit for all users
- - while the global usage during the last hour is at least 1 million, we reduce
-   the per user limit from 100K to 50K per hour. That should throttle whoever
-   is causing the trouble.
- - while the global usage during the last hour is at least 2 million, we reduce
-   the per user limit from 50K to 10K per hour. That should throttle whoever
-   is causing the trouble.
- - etc.
-
-This keeps total costs below $2K/month no matter what, but allows for users to
-user a lot during low usage periods with no problems.
+We'll cap for now at an average cap of about 5 million tokens per hour; this would
+keep cost below $2K/month.
 
 And we will definitely have a "pay for what you use" option to index and search
 any amount of content!
@@ -48,11 +34,11 @@ import getPool from "@cocalc/database/pool";
 
 const QUOTA = [
   //{ upTo: 100000, perUser: 1000 }, // FOR TESTING ONLY!
-  { upTo: 1000000, perUser: 100000 },
-  { upTo: 2000000, perUser: 50000 },
-  { upTo: 3000000, perUser: 10000 },
-  { upTo: 4000000, perUser: 5000 },
-  { upTo: 5000000, perUser: 3000 },
+  { upTo: 1000000, perUser: 250000 },
+  { upTo: 2000000, perUser: 100000 },
+  { upTo: 3000000, perUser: 20000 },
+  { upTo: 4000000, perUser: 10000 },
+  { upTo: 5000000, perUser: 5000 },
 ];
 
 function perUserQuotaPerHour(global: number): number {
