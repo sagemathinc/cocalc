@@ -43,6 +43,7 @@ any amount of content!
 
 */
 
+import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getPool from "@cocalc/database/pool";
 
 const QUOTA = [
@@ -64,6 +65,12 @@ function perUserQuotaPerHour(global: number): number {
 }
 
 export default async function checkForAbuse(account_id: string): Promise<void> {
+  const { neural_search_enabled } = await getServerSettings();
+  if (!neural_search_enabled) {
+    // ensure that if you explicitly switch off neural search, then all api requests fail quickly,
+    // even if some frontend browsers haven't got the message (or don't care).
+    throw Error("Neural search is currently disabled.");
+  }
   const global = await recentUsage({
     cache: "medium",
     period: "1 hour",
