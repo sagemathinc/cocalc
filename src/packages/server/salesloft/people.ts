@@ -1,4 +1,5 @@
 import getClient from "./client";
+import getPool from "@cocalc/database/pool";
 
 // https://developers.salesloft.com/docs/api/people-index
 export async function list(params: object) {
@@ -14,6 +15,12 @@ export async function create(newPerson: object) {
 }
 
 export async function destroy(personId: string) {
+  const db = getPool("long");
+  // this would likely be slow, due to no index.
+  await db.query(
+    "UPDATE accounts SET salesloft_id=NULL WHERE salesloft_id=$1",
+    [personId]
+  );
   const client = await getClient();
   await client.delete(`/people/${personId}`);
 }
