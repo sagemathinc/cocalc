@@ -33,7 +33,9 @@ import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("salesloft:sync");
 const log = logger.debug.bind(logger);
 
-export async function sync(account_ids: string[]) {
+export async function sync(
+  account_ids: string[]
+): Promise<{ update: number; create: number }> {
   const cocalc = getPool("long");
 
   log(
@@ -47,6 +49,7 @@ export async function sync(account_ids: string[]) {
   );
   log("got ", rows.length, " records with an email address");
 
+  const stats = { update: 0, create: 0 };
   for (const row of rows) {
     log("considering ", row.email_address);
     const data = toSalesloft(row);
@@ -58,6 +61,7 @@ export async function sync(account_ids: string[]) {
       );
       // person already exists in salesloft, so update it
       await update(row.salesloft_id, data);
+      stats.update += 1;
     } else {
       log("does not exists in salesloft yet...");
       // They *might* exist for some reason, even though we haven't explicitly linked them.
@@ -68,10 +72,12 @@ export async function sync(account_ids: string[]) {
         log("They exist, so update them");
         salesloft_id = matches.data[0].id;
         await update(salesloft_id, data);
+        stats.update += 1;
       } else {
         log("Do not exist, so create them");
         const result = await create(data);
         salesloft_id = result.data.id;
+        stats.create += 1;
       }
       log(
         "Link this cocalc account ",
@@ -85,6 +91,7 @@ export async function sync(account_ids: string[]) {
       );
     }
   }
+  return stats;
 }
 
 function toSalesloft({
@@ -116,4 +123,14 @@ function toSalesloft({
   // @ts-ignore
   delete data.custom_fields;
   return data;
+}
+
+// account_id's that were active during the given Date range.
+export async function addActiveUsers(howLongAgo: string = "1 day") {
+  const db = getPool("long");
+  const { rows } = await db.query(
+    `SELECT account_id FROM accounts WHERE last_active >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NULL`
+  );
+  const account_ids = rows.map(({ account_id }) => account_id);
+  return await sync(account_ids);
 }
