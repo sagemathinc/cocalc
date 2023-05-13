@@ -21,6 +21,7 @@ register({
         notes: null,
         banned: null,
         unlisted: null,
+        salesloft_id: null,
       },
     ],
   },
