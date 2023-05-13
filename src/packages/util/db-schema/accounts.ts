@@ -192,6 +192,12 @@ Table({
     salesloft_id: {
       type: "integer",
       desc: "The id of corresponding person in salesloft, if they exist there.",
+      render: {
+        type: "number",
+        integer: true,
+        editable: true,
+        min: 1,
+      },
     },
   },
   rules: {
@@ -471,6 +477,7 @@ Table({
           banned: true,
           unlisted: true,
           notes: true,
+          salesloft_id: true,
         },
       },
     },
