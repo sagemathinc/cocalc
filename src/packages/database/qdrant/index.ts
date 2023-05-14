@@ -7,7 +7,7 @@ import { promises as fs } from "fs";
 import { getLogger } from "@cocalc/backend/logger";
 const log = getLogger("database:qdrant");
 
-const COLLECTION_NAME = "cocalc";
+export const COLLECTION_NAME = "cocalc";
 const SIZE = 1536; // that's for the openai embeddings api
 
 const clientCache: { [key: string]: QdrantClient } = {};
@@ -200,8 +200,6 @@ export async function scroll({
     offset,
   });
 }
-
-// See https://github.com/qdrant/qdrant-js/tree/master/packages/js-client-rest/src/api for how all this works.
 
 export async function getPoints(opts): Promise<any> {
   const client = await getClient();
