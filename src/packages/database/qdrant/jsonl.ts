@@ -1,6 +1,6 @@
 /*
 Save and restore the *data* in a collection to/from a jsonl  file.
-That's json-lines, i.e., https://www.atatus.com/glossary/jsonl/
+That's json-lines, i.e., https://jsonlines.org/
 
 I wrote this because it's faster and "easier to trust" than Qdrant's built in
 snapshot functionality for my use case.  It actually seems like this is 10x faster,
