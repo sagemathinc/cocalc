@@ -3,27 +3,50 @@ I wrote this for exporting data from a collection to sqlite3.
 It might be useful, but it's a lot slower and bigger than
 exporting to json-lines, so we're probably not going to use
 it, except possibly for interactively exploring data (?).
+
+E.g., you can look at or query the text field of the payload:
+
+SELECT json_extract(payload, '$.text') as text FROM cocalc;
+
+NOTE: If you just want to make a backup, use jsonl -- it's much faster.
+The size between json and sqlite3 is the same.
 */
 
-import { getClient, COLLECTION_NAME } from "./index";
 import Database from "better-sqlite3";
-import { getLogger } from "@cocalc/backend/logger";
+import { QdrantClient } from "@qdrant/js-client-rest";
 
-const log = getLogger("database:qdrant:snapshot-sqlite");
+const log = console.log;
+const DEFAULT_BATCH_SIZE = 1000;
 
-export async function dumpToSqlite({
-  file = "dump.db",
-  collection = COLLECTION_NAME,
-  batchSize = 500,
+function getClient({ url, apiKey }) {
+  return new QdrantClient({
+    url,
+    ...(apiKey ? { apiKey } : undefined),
+  });
+}
+
+export async function save({
+  file,
+  collection,
+  batchSize = DEFAULT_BATCH_SIZE,
+  url,
+  apiKey,
 }: {
   file?: string;
-  collection?: string;
+  collection: string;
   batchSize?: number;
-} = {}) {
-  const client = await getClient();
+  url: string;
+  apiKey?: string;
+}) {
+  const t = Date.now();
+  if (file == null) {
+    file = `${collection}.db`;
+  }
+  const client = getClient({ url, apiKey });
+
   const info = await client.getCollection(collection);
   const { vectors_count } = info;
-  log.debug(
+  log(
     "dump: there are ",
     vectors_count,
     "vectors to dump in ",
@@ -50,7 +73,7 @@ export async function dumpToSqlite({
   // Fetch all points in the collection in blocks, inserting them
   // into our database.
   for (let offset = 0; offset < vectors_count; offset += batchSize) {
-    log.debug("dumpToSqlite: from ", offset, " to ", offset + batchSize);
+    log("sqlite: from ", offset, " to ", offset + batchSize);
     const { points } = await client.scroll(collection, {
       limit: batchSize,
       with_payload: true,
@@ -72,4 +95,5 @@ export async function dumpToSqlite({
       }
     })();
   }
+  log("Total time:", (Date.now() - t) / 1000, " seconds");
 }
