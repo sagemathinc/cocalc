@@ -71,6 +71,7 @@ class Embeddings {
   private local: { [point_id: string]: EmbeddingData } = {};
 
   private initialized: boolean = false;
+  private syncing: boolean = false;
 
   private url: string;
 
@@ -117,6 +118,7 @@ class Embeddings {
     syncdb.once("closed", () => {
       close(this);
     });
+    // window.x = this;
   }
 
   pointId(fragmentId: string): string {
@@ -225,19 +227,25 @@ class Embeddings {
   }
 
   private async sync() {
-    if (!this.initialized) return;
-    await this.updateLocal();
-    if (!this.initialized) return;
-    await this.syncDeleteRemote();
-    if (!this.initialized) return;
-    await this.syncSaveLocal();
+    if (this.syncing) return;
+    try {
+      this.syncing = true;
+      if (!this.initialized) return;
+      await this.updateLocal();
+      if (!this.initialized) return;
+      await this.syncDeleteRemote();
+      if (!this.initialized) return;
+      await this.syncSaveLocal();
+    } finally {
+      this.syncing = false;
+    }
   }
 
-  // delete all remote ones that shouldn't aren't here locally.
+  // delete all remote ones that aren't here locally.
   private async syncDeleteRemote() {
     const data: EmbeddingData[] = [];
     for (const point_id in this.remote) {
-      if (this.local[point_id] === undefined) {
+      if (this.local[point_id] == null) {
         data.push(this.remote[point_id]);
       }
     }
@@ -263,7 +271,7 @@ class Embeddings {
     const data: EmbeddingData[] = [];
     for (const id in this.local) {
       const remote = this.remote[id];
-      if (remote === undefined || remote.hash != this.local[id].hash) {
+      if (remote == null || remote.hash != this.local[id].hash) {
         if (this.local[id].text) {
           //  save it
           data.push(this.local[id]);

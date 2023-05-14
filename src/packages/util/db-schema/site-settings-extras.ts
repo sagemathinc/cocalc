@@ -21,6 +21,7 @@ import {
   only_nonneg_int,
   only_pos_int,
   only_commercial,
+  only_cocalc_com,
 } from "./site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
@@ -83,6 +84,7 @@ export type SiteSettingsExtrasKeys =
   | "openai_api_key"
   | "qdrant_api_key"
   | "qdrant_cluster_url"
+  | "salesloft_api_key"
   | "jupyter_section"
   | "jupyter_account_id"
   | "jupyter_project_pool_size"
@@ -133,6 +135,13 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: neural_search_enabled,
+  },
+  salesloft_api_key: {
+    name: "Salesloft API key (needed for Salesloft integration)",
+    desc: "Your API key, which is needed to connect for some functionality related to [the Salesloft API](https://developers.salesloft.com/docs/api).",
+    default: "",
+    password: true,
+    show: only_cocalc_com,
   },
   jupyter_section: {
     name: "Jupyter API Configuration",
