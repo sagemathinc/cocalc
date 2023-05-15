@@ -10,12 +10,11 @@ this projects.  It serves both HTTP and websocket connections, which
 should be proxied through some hub.
 */
 
-import { callback } from "awaiting";
 import bodyParser from "body-parser";
 import compression from "compression";
 import express from "express";
-import { writeFile } from "node:fs";
-import { createServer } from "node:http";
+import { createServer } from "http";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import basePath from "@cocalc/backend/base-path";
@@ -106,5 +105,5 @@ export default async function init(): Promise<void> {
   );
 
   winston.info(`Writing port to ${browserPortFile}`);
-  await callback(writeFile, browserPortFile, `${assignedPort}`);
+  await writeFile(browserPortFile, `${assignedPort}`);
 }

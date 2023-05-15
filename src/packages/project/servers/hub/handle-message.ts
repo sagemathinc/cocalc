@@ -1,28 +1,33 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Handle a general message from the hub.  These are the generic message,
 as opposed to the messages specific to "client" functionality such as
 database queries.
 */
 
-import { getLogger } from "@cocalc/project/logger";
-import { Message } from "./types";
-import * as message from "@cocalc/util/message";
-import handleNamedServer from "@cocalc/project/named-servers";
+import processKill from "@cocalc/backend/misc/process-kill";
+import { handle_save_blob_message } from "@cocalc/project/blobs";
+import { project_id } from "@cocalc/project/data";
 import { exec_shell_code } from "@cocalc/project/exec_shell_code";
-// Reading and writing files to/from project and sending over socket
-const {
+import { get_kernel_data } from "@cocalc/project/jupyter/kernel-data";
+import jupyterExecute from "@cocalc/project/jupyter/stateless-api/execute";
+import { getLogger } from "@cocalc/project/logger";
+import handleNamedServer from "@cocalc/project/named-servers";
+import { print_to_pdf } from "@cocalc/project/print_to_pdf";
+import {
   read_file_from_project,
   write_file_to_project,
-} = require("@cocalc/project/read_write_files");
-const { print_to_pdf } = require("@cocalc/project/print_to_pdf");
-import processKill from "@cocalc/backend/misc/process-kill";
-const { handle_save_blob_message } = require("@cocalc/project/blobs");
-const client = require("@cocalc/project/client");
+} from "@cocalc/project/read_write_files";
+import * as message from "@cocalc/util/message";
 import { version } from "@cocalc/util/smc-version";
+import { Message } from "./types";
 import writeTextFileToProject from "./write-text-file-to-project";
-import jupyterExecute from "@cocalc/project/jupyter/stateless-api/execute";
-import { get_kernel_data } from "@cocalc/project/jupyter/kernel-data";
-import { project_id } from "@cocalc/project/data";
+
+const client = require("@cocalc/project/client");
 
 const winston = getLogger("handle-message-from-hub");
 
@@ -97,6 +102,7 @@ export default async function handleMessage(socket, mesg: Message) {
       }
       return;
 
+    // Reading and writing files to/from project and sending over socket
     case "read_file_from_project":
       read_file_from_project(socket, mesg);
       return;
