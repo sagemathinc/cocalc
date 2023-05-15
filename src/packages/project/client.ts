@@ -57,6 +57,7 @@ import { Watcher } from "./watcher";
 import { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import { getLogger } from "./logger";
 import { SageSessionOpts } from "./types";
+import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
 
 const sage_session = require("./sage_session");
 
@@ -84,7 +85,7 @@ export function init() {
 
 let ALREADY_CREATED = false;
 
-export class Client extends EventEmitter {
+export class Client extends EventEmitter implements ProjectClientInterface {
   private project_id: string;
   private _connected: boolean;
 
@@ -542,7 +543,10 @@ export class Client extends EventEmitter {
       // lock expires after 15 seconds (see https://github.com/sagemathinc/cocalc/issues/1147)
       dbg("LOCK");
       // Try again in 1s.
-      setTimeout(() => this.path_read(opts), 500 + 500 * Math.random());
+      setTimeout(
+        async () => await this.path_read(opts),
+        500 + 500 * Math.random()
+      );
       return;
     }
     this._file_io_lock[path] = now;
@@ -611,7 +615,7 @@ export class Client extends EventEmitter {
     dbg();
     return fs.exists(opts.path, (exists) => {
       dbg(`returned ${exists}`);
-      return opts.cb(undefined, exists);
+      opts.cb(undefined, exists);
     }); // err actually never happens with node.js, so we change api to be more consistent
   }
 

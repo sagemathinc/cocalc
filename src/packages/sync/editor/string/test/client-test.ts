@@ -107,11 +107,19 @@ export class Client extends EventEmitter implements Client0 {
     console.log("path_state", opts.path);
     opts.cb(true);
   }
-  path_read(opts: { path: string; maxsize_MB?: number; cb: Function }): void {
+  async path_read(opts: {
+    path: string;
+    maxsize_MB?: number;
+    cb: Function;
+  }): Promise<void> {
     console.log("path_ready", opts.path);
     opts.cb(true);
   }
-  write_file(opts: { path: string; data: string; cb: Function }): void {
+  async write_file(opts: {
+    path: string;
+    data: string;
+    cb: Function;
+  }): Promise<void> {
     console.log("write_file", opts.path, opts.data);
     opts.cb(true);
   }

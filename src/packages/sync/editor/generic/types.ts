@@ -53,39 +53,35 @@ but anything that has the following interface
 might work... */
 import { EventEmitter } from "events";
 
-export interface Client extends EventEmitter {
+export interface ProjectClient extends EventEmitter {
   server_time: () => Date;
   is_user: () => boolean;
   is_project: () => boolean;
   is_connected: () => boolean;
   is_signed_in: () => boolean;
   dbg: (desc: string) => Function;
-  mark_file: (opts: {
-    project_id: string;
-    path: string;
-    action: string;
-    ttl: number;
-  }) => void;
-
-  log_error: (opts: {
-    project_id: string;
-    path: string;
-    string_id: string;
-    error: any;
-  }) => void;
 
   query: (opts: { query: any; cb: Function }) => void;
 
   // Only required to work on project client.
   path_access: (opts: { path: string; mode: string; cb: Function }) => void;
+
   path_exists: (opts: { path: string; cb: Function }) => void;
+
   path_stat: (opts: { path: string; cb: Function }) => void;
+
   path_read: (opts: {
     path: string;
     maxsize_MB?: number;
     cb: Function;
-  }) => void;
-  write_file: (opts: { path: string; data: string; cb: Function }) => void;
+  }) => Promise<void>;
+
+  write_file: (opts: {
+    path: string;
+    data: string;
+    cb: Function;
+  }) => Promise<void>;
+
   watch_file: (opts: { path: string }) => FileWatcher;
 
   synctable_project: (
@@ -96,12 +92,6 @@ export interface Client extends EventEmitter {
     id?: string
   ) => Promise<SyncTable>;
 
-  synctable_database: (
-    query: any,
-    options: any,
-    throttle_changes?: number
-  ) => Promise<SyncTable>;
-
   // account_id or project_id
   client_id: () => string;
 
@@ -110,10 +100,32 @@ export interface Client extends EventEmitter {
 
   ipywidgetsGetBuffer?: (
     project_id: string, // id of the project
-    path: string,  // path = name of ipynb file
+    path: string, // path = name of ipynb file
     model_id: string, // id of the ipywidgets model
     buffer_path: string // JSON.stringify(['binary','buffer','path'])
   ) => ArrayBuffer;
+}
+
+export interface Client extends ProjectClient {
+  log_error: (opts: {
+    project_id: string;
+    path: string;
+    string_id: string;
+    error: any;
+  }) => void;
+
+  mark_file: (opts: {
+    project_id: string;
+    path: string;
+    action: string;
+    ttl: number;
+  }) => void;
+
+  synctable_database: (
+    query: any,
+    options: any,
+    throttle_changes?: number
+  ) => Promise<SyncTable>;
 }
 
 export interface DocType {
