@@ -32,7 +32,11 @@ import type { EmbeddingData } from "@cocalc/util/db-schema/openai";
 import type { SyncDB } from "@cocalc/sync/editor/db";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 
+// How long until we update the index, if users stops using this file actively.
 const DEBOUNCE_MS = 7500;
+
+// For now, only index something if it has at least 6 characters.
+const MIN_LENGTH = 6;
 
 const log = (..._args) => {};
 // const log = console.log;
@@ -192,6 +196,10 @@ class Embeddings {
       });
   }
 
+  private isNontrivial(text?: string): boolean {
+    return (text?.trim().length ?? 0) >= MIN_LENGTH;
+  }
+
   private async updateLocal() {
     if (this.syncDoc == null) {
       await this.initLocal();
@@ -215,7 +223,7 @@ class Embeddings {
               if (elt == null) continue;
             }
             const data = this.toData(elt);
-            if (data.text) {
+            if (this.isNontrivial(data.text)) {
               this.local[point_id] = data;
             } else {
               delete this.local[point_id];

@@ -6,12 +6,13 @@ import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { promises as fs } from "fs";
 import { getLogger } from "@cocalc/backend/logger";
 const log = getLogger("database:qdrant");
+import * as jsonl from "./jsonl";
+import * as sqlite from "./sqlite";
 
-const COLLECTION_NAME = "cocalc";
+export const COLLECTION_NAME = "cocalc";
 const SIZE = 1536; // that's for the openai embeddings api
 
-const clientCache: { [key: string]: QdrantClient } = {};
-export async function getClient(): Promise<QdrantClient> {
+async function getAuth(): Promise<{ url: string; apiKey?: string }> {
   let {
     neural_search_enabled,
     kucalc,
@@ -23,13 +24,6 @@ export async function getClient(): Promise<QdrantClient> {
     log.debug("getClient - not enabled");
     throw Error("Qdrant neural search is not enabled.");
   }
-  const key = `${url}-${apiKey}`;
-  if (clientCache[key]) {
-    // we return client that matches the configuration in the database. If you change config
-    // in database, then you get a different client as soon as getServerSettings() updates.
-    return clientCache[key];
-  }
-
   if (!url && !apiKey && kucalc) {
     // There is special case fallback config on kucalc.  If the
     // directory /secrets/qdrant/qdrant exists *AND* no apiKey is set,
@@ -50,9 +44,7 @@ export async function getClient(): Promise<QdrantClient> {
   if (!url) {
     throw Error("Qdrant Cluster URL not configured");
   }
-  log.debug("getClient -- using url = ", url);
 
-  // don't necessarily require apiKey to be nontrivial, e.g., not needed locally for dev purposes.
   // We polyfill fetch so cocalc still works with node 16.  With node 18 this isn't needed.
   // Node 16 is end-of-life soon and we will stop supporting it.
   if (global.Headers == null) {
@@ -61,6 +53,24 @@ export async function getClient(): Promise<QdrantClient> {
     global.Headers = Headers;
     global.fetch = fetch;
   }
+
+  return { url, apiKey };
+}
+
+const clientCache: { [key: string]: QdrantClient } = {};
+export async function getClient(): Promise<QdrantClient> {
+  const { url, apiKey } = await getAuth();
+
+  const key = `${url}-${apiKey}`;
+  if (clientCache[key]) {
+    // we return client that matches the configuration in the database. If you change config
+    // in database, then you get a different client as soon as getServerSettings() updates.
+    return clientCache[key];
+  }
+
+  log.debug("getClient -- using url = ", url);
+
+  // don't necessarily require apiKey to be nontrivial, e.g., not needed locally for dev purposes.
   // NOTE: the client seems to do a good job autoreconnecting even if the
   // database is stopped and started.
   const client = new QdrantClient({
@@ -201,8 +211,6 @@ export async function scroll({
   });
 }
 
-// See https://github.com/qdrant/qdrant-js/tree/master/packages/js-client-rest/src/api for how all this works.
-
 export async function getPoints(opts): Promise<any> {
   const client = await getClient();
   const result = await client
@@ -229,4 +237,19 @@ async function kucalcApiKey(): Promise<string> {
   } catch (_err) {
     return "";
   }
+}
+
+export async function jsonlSave(collection = COLLECTION_NAME, file?) {
+  const { url, apiKey } = await getAuth();
+  await jsonl.save({ collection, file, apiKey, url });
+}
+
+export async function jsonlLoad(collection = COLLECTION_NAME, file?) {
+  const { url, apiKey } = await getAuth();
+  await jsonl.load({ collection, file, apiKey, url });
+}
+
+export async function sqliteSave(collection = COLLECTION_NAME, file?) {
+  const { url, apiKey } = await getAuth();
+  await sqlite.save({ collection, file, apiKey, url });
 }
