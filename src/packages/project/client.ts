@@ -33,7 +33,9 @@ import { join, join as path_join } from "node:path";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
+import { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
+import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import * as synctable2 from "@cocalc/sync/table";
 import { callback2, once } from "@cocalc/util/async-utils";
@@ -50,14 +52,12 @@ import { JupyterKernel, kernel as jupyter_kernel } from "./jupyter/jupyter";
 import { get_kernel_data } from "./jupyter/kernel-data";
 import { KernelParams } from "./jupyter/types";
 import * as kucalc from "./kucalc";
+import { getLogger } from "./logger";
 import { get_listings_table } from "./sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
-import { Watcher } from "./watcher";
-import { KernelSpec } from "@cocalc/frontend/jupyter/types";
-import { getLogger } from "./logger";
 import { SageSessionOpts } from "./types";
-import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
+import { Watcher } from "./watcher";
 
 const sage_session = require("./sage_session");
 
@@ -561,18 +561,22 @@ export class Client extends EventEmitter implements ProjectClientInterface {
         size = await this.file_size_async(opts.path);
       } catch (err) {
         dbg(`error checking -- ${err}`);
-        throw err;
+        opts.cb(err);
+        return;
       }
 
       if (size > opts.maxsize_MB * 1000000) {
         dbg("file is too big!");
-        throw new Error(
-          `file '${opts.path}' size (=${
-            size / 1000000
-          }MB) too large (must be at most ${
-            opts.maxsize_MB
-          }MB); try opening it in a Terminal with vim instead or click Help in the upper right to open a support request`
+        opts.cb(
+          new Error(
+            `file '${opts.path}' size (=${
+              size / 1000000
+            }MB) too large (must be at most ${
+              opts.maxsize_MB
+            }MB); try opening it in a Terminal with vim instead or click Help in the upper right to open a support request`
+          )
         );
+        return;
       } else {
         dbg("file is fine");
       }
@@ -586,7 +590,8 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       content = data.toString();
     } catch (err) {
       dbg(`error reading file -- ${err}`);
-      throw err;
+      opts.cb(err);
+      return;
     }
 
     // release lock

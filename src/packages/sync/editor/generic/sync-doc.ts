@@ -2256,7 +2256,7 @@ export class SyncDoc extends EventEmitter {
     this.file_watcher.on("delete", this.handle_file_watcher_delete.bind(this));
   }
 
-  private handle_file_watcher_change(ctime: Date): void {
+  private async handle_file_watcher_change(ctime: Date): Promise<void> {
     const dbg = this.dbg("handle_file_watcher_change");
     const time: number = ctime.valueOf();
     dbg(
@@ -2271,7 +2271,7 @@ export class SyncDoc extends EventEmitter {
       // to save was at least 7s ago, and it finished,
       // so definitely this change event was not caused by it.
       dbg("load_from_disk since no recent save to disk");
-      this.load_from_disk();
+      await this.load_from_disk();
       return;
     }
   }
