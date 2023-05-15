@@ -27,6 +27,11 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
   protected doctype: string = "syncdb";
   protected primary_keys: string[] = ["task_id"];
   protected string_cols: string[] = ["desc"];
+  protected searchEmbeddings = {
+    primaryKey: "task_id",
+    textColumn: "desc",
+    metaColumns: ["due_date", "done"],
+  };
   taskActions: { [frameId: string]: TaskActions } = {};
   taskStore: TaskStore;
   auxPath: string;
@@ -131,7 +136,8 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
       this.project_id,
       this.auxPath,
       this._syncstring,
-      this.taskStore
+      this.taskStore,
+      this.path
     );
     actions._init_frame(frameId, this);
     this.taskActions[frameId] = actions;
@@ -232,4 +238,9 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
   chatgptGetLanguage() {
     return "md";
   }
+
+  //   async updateEmbeddings(): Promise<number> {
+  //     if (this._syncstring == null) return 0;
+  //     return (await this.getTaskActions()?.updateEmbeddings()) ?? 0;
+  //   }
 }

@@ -24,6 +24,7 @@ export type SiteSettingsKeys =
   | "imprint"
   | "policies"
   | "openai_enabled"
+  | "neural_search_enabled"
   | "jupyter_api_enabled"
   | "organization_name"
   | "organization_email"
@@ -538,6 +539,13 @@ export const site_settings_conf: SiteSettings = {
   openai_enabled: {
     name: "OpenAI ChatGPT UI",
     desc: "Controls visibility of UI elements related to ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  neural_search_enabled: {
+    name: "OpenAI Neural Search UI",
+    desc: "Controls visibility of UI elements related to Neural Search integration.  You must **also set your OpenAI API key** below and fully configure the **Qdrant vector database** for neural search to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

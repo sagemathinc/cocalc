@@ -21,6 +21,7 @@ import {
   only_nonneg_int,
   only_pos_int,
   only_commercial,
+  only_cocalc_com,
 } from "./site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
@@ -57,6 +58,9 @@ const pii_retention_display = (retention: string) => {
 
 const openai_enabled = (conf) => to_bool(conf.openai_enabled);
 
+const neural_search_enabled = (conf) =>
+  openai_enabled(conf) && to_bool(conf.neural_search_enabled);
+
 const jupyter_api_enabled = (conf) => to_bool(conf.jupyter_api_enabled);
 
 export type SiteSettingsExtrasKeys =
@@ -78,6 +82,9 @@ export type SiteSettingsExtrasKeys =
   | "email_smtp_secure"
   | "openai_section"
   | "openai_api_key"
+  | "qdrant_api_key"
+  | "qdrant_cluster_url"
+  | "salesloft_api_key"
   | "jupyter_section"
   | "jupyter_account_id"
   | "jupyter_project_pool_size"
@@ -115,6 +122,26 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: openai_enabled,
+  },
+  qdrant_cluster_url: {
+    name: "Qdrant Cluster URL (needed for OpenAI Neural Search)",
+    desc: "Your [Qdrant](https://qdrant.tech/) server from https://cloud.qdrant.io/ or you can also run Qdrant locally.  This is needed to support functionality that uses Neural Search.",
+    default: "",
+    show: neural_search_enabled,
+  },
+  qdrant_api_key: {
+    name: "Qdrant API key (needed for OpenAI Neural Search)",
+    desc: "Your [Qdrant](https://qdrant.tech/) API key, which is needed to connect to your Qdrant server.  See https://qdrant.tech/documentation/cloud/cloud-quick-start/#authentication",
+    default: "",
+    password: true,
+    show: neural_search_enabled,
+  },
+  salesloft_api_key: {
+    name: "Salesloft API key (needed for Salesloft integration)",
+    desc: "Your API key, which is needed to connect for some functionality related to [the Salesloft API](https://developers.salesloft.com/docs/api).",
+    default: "",
+    password: true,
+    show: only_cocalc_com,
   },
   jupyter_section: {
     name: "Jupyter API Configuration",
@@ -264,40 +291,40 @@ export const EXTRAS: SettingsExtras = {
     show: () => true,
   },
   sendgrid_key: {
-    name: "Sendgrid API key",
+    name: "Sendgrid API key (for email)",
     desc: "You need a Sendgrid account and then enter a valid API key here",
     password: true,
     default: "",
     show: only_for_sendgrid,
   },
   email_smtp_server: {
-    name: "SMTP server",
+    name: "SMTP server (for email)",
     desc: "the hostname to talk to",
     default: "",
     show: only_for_smtp,
   },
   email_smtp_from: {
-    name: "SMTP server FROM",
+    name: "SMTP server FROM (for email)",
     desc: "the FROM and REPLYTO email address",
     default: "",
     valid: is_valid_email_address,
     show: only_for_smtp,
   },
   email_smtp_login: {
-    name: "SMTP username",
+    name: "SMTP username (for email)",
     desc: "the username, for PLAIN login",
     default: "",
     show: only_for_smtp,
   },
   email_smtp_password: {
-    name: "SMTP password",
+    name: "SMTP password (for email)",
     desc: "the password, for PLAIN login",
     default: "",
     show: only_for_smtp,
     password: true,
   },
   email_smtp_port: {
-    name: "SMTP port",
+    name: "SMTP port (for email)",
     desc: "Usually: For secure==true use port 465, otherwise port 587 or 25",
     default: "465",
     to_val: to_int,
@@ -305,7 +332,7 @@ export const EXTRAS: SettingsExtras = {
     show: only_for_smtp,
   },
   email_smtp_secure: {
-    name: "SMTP secure",
+    name: "SMTP secure (for email)",
     desc: "Usually 'true'",
     default: "true",
     valid: only_booleans,
@@ -321,33 +348,33 @@ export const EXTRAS: SettingsExtras = {
     show: is_email_enabled,
   },
   password_reset_smtp_server: {
-    name: "Secondary SMTP server",
+    name: "Secondary SMTP server (for email)",
     desc: "hostname sending password reset emails",
     default: "",
     show: only_for_password_reset_smtp,
   },
   password_reset_smtp_from: {
-    name: "Secondary SMTP FROM",
+    name: "Secondary SMTP FROM (for email)",
     desc: "This sets the FROM and REPLYTO email address",
     default: "",
     valid: is_valid_email_address,
     show: only_for_password_reset_smtp,
   },
   password_reset_smtp_login: {
-    name: "Secondary SMTP username",
+    name: "Secondary SMTP username (for email)",
     desc: "username, PLAIN auth",
     default: "",
     show: only_for_password_reset_smtp,
   },
   password_reset_smtp_password: {
-    name: "Secondary SMTP password",
+    name: "Secondary SMTP password (for email)",
     desc: "password, PLAIN auth",
     default: "",
     show: only_for_password_reset_smtp,
     password: true,
   },
   password_reset_smtp_port: {
-    name: "Secondary SMTP port",
+    name: "Secondary SMTP port (for email)",
     desc: "Usually: For secure==true use port 465, otherwise port 587 or 25",
     default: "465",
     to_val: to_int,
@@ -355,7 +382,7 @@ export const EXTRAS: SettingsExtras = {
     show: only_for_password_reset_smtp,
   },
   password_reset_smtp_secure: {
-    name: "Secondary SMTP secure",
+    name: "Secondary SMTP secure (for email)",
     desc: "Usually 'true'",
     default: "true",
     valid: only_booleans,

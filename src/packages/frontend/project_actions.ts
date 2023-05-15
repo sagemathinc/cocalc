@@ -2768,6 +2768,38 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  private async neuralSearch(text, path) {
+    try {
+      const scope = `projects/${this.project_id}/files/${path}`;
+      const results = await webapp_client.openai_client.embeddings_search({
+        text,
+        limit: 25,
+        scope,
+      });
+      const search_results: {
+        filename: string;
+        description: string;
+        fragment_id?: FragmentId;
+      }[] = [];
+      for (const result of results) {
+        const url = result.payload["url"] as string | undefined;
+        if (!url) continue;
+        const [filename, fragment_id] = url.slice(scope.length + 1).split("#");
+        const description = result.payload["text"] ?? "";
+        search_results.push({
+          filename: filename[0] == "/" ? filename.slice(1) : filename,
+          description,
+          fragment_id: Fragment.decode(fragment_id),
+        });
+      }
+      this.setState({ search_results });
+    } catch (err) {
+      this.setState({
+        search_error: `${err}`,
+      });
+    }
+  }
+
   search() {
     let cmd, ins;
     const store = this.get_store();
@@ -2780,6 +2812,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const search_query = `"${query}"`;
+    this.setState({
+      search_results: undefined,
+      search_error: undefined,
+      most_recent_search: query,
+      most_recent_path: store.get("current_path"),
+      too_many_results: false,
+    });
+
+    if (store.get("neural_search")) {
+      this.neuralSearch(query, store.get("current_path"));
+      return;
+    }
 
     // generate the grep command for the given query with the given flags
     if (store.get("case_sensitive")) {
@@ -2822,11 +2866,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const max_output = 110 * max_results; // just in case
 
     this.setState({
-      search_results: undefined,
-      search_error: undefined,
       command: cmd,
-      most_recent_search: query,
-      most_recent_path: store.get("current_path"),
     });
 
     webapp_client.exec({

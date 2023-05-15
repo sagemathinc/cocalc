@@ -20,6 +20,7 @@ import { cmp, parse_hashtags } from "@cocalc/util/misc";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { History as ChatGPTHistory } from "@cocalc/frontend/misc/openai";
 import type { Model } from "@cocalc/util/db-schema/openai";
+import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
@@ -28,6 +29,23 @@ export class ChatActions extends Actions<ChatState> {
   public set_syncdb(syncdb: SyncDB, store: ChatStore): void {
     this.syncdb = syncdb;
     this.store = store;
+
+    enableSearchEmbeddings({
+      project_id: store.get("project_id")!,
+      path: store.get("path")!,
+      syncdb,
+      transform: (elt) => {
+        if (elt["event"] != "chat") return;
+        return {
+          date: elt["date"],
+          content: elt["history"]?.[0]?.content,
+          sender_id: elt["sender_id"],
+        };
+      },
+      primaryKey: "date",
+      textColumn: "content",
+      metaColumns: ["sender_id"],
+    });
   }
 
   public close(): void {

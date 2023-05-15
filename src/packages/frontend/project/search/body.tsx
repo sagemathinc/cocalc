@@ -10,91 +10,119 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
+import { Button, Row, Col, Tag } from "antd";
+import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
-  Alert,
-  Row,
-  Col,
-  Button,
-  Checkbox,
-  Well,
-} from "@cocalc/frontend/antd-bootstrap";
-import { Icon, Loading, SearchInput, Space } from "@cocalc/frontend/components";
+  A,
+  Icon,
+  Loading,
+  SearchInput,
+  Space,
+} from "@cocalc/frontend/components";
 import { path_to_file, should_open_in_foreground } from "@cocalc/util/misc";
-import { useTypedRedux, useActions } from "@cocalc/frontend/app-framework";
-import { filename_extension } from "@cocalc/util/misc";
+import {
+  redux,
+  useTypedRedux,
+  useActions,
+} from "@cocalc/frontend/app-framework";
+import {
+  filename_extension,
+  path_split,
+  auxFileToOriginal,
+} from "@cocalc/util/misc";
 import { file_associations } from "@cocalc/frontend/file-associations";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 
 const DESC_STYLE: React.CSSProperties = {
   color: "#666",
   marginBottom: "5px",
-  border: 0,
+  border: "1px solid #eee",
+  borderRadius: "5px",
+  maxHeight: "300px",
+  padding: "15px",
+  overflowY: "auto",
 };
 
 export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
   project_id,
 }) => {
-  const user_input = useTypedRedux({ project_id }, "user_input");
   const subdirectories = useTypedRedux({ project_id }, "subdirectories");
   const case_sensitive = useTypedRedux({ project_id }, "case_sensitive");
   const hidden_files = useTypedRedux({ project_id }, "hidden_files");
   const git_grep = useTypedRedux({ project_id }, "git_grep");
-
-  function is_valid_search(): boolean {
-    return user_input.trim() != "";
-  }
+  const neural_search = useTypedRedux({ project_id }, "neural_search");
 
   const actions = useActions({ project_id });
 
   return (
     <Well>
       <Row>
-        <Col sm={8}>
-          <Row>
-            <Col sm={9}>
-              <ProjectSearchInput project_id={project_id} />
-            </Col>
-            <Col sm={3}>
-              <Button
-                bsStyle="primary"
-                onClick={() => actions?.search()}
-                disabled={!is_valid_search()}
-              >
-                <Icon name="search" /> Search
-              </Button>
-            </Col>
-          </Row>
+        <Col sm={12}>
+          <ProjectSearchInput
+            project_id={project_id}
+            neural={neural_search}
+            git={!neural_search && git_grep}
+          />
           <ProjectSearchOutputHeader project_id={project_id} />
         </Col>
-
-        <Col sm={4} style={{ fontSize: "16px" }}>
+        <Col sm={10} offset={2} style={{ fontSize: "16px" }}>
           <Checkbox
+            disabled={neural_search}
             checked={subdirectories}
             onChange={() => actions?.toggle_search_checkbox_subdirectories()}
           >
-            Include subdirectories
+            <Icon name="folder-open" /> Include <b>subdirectories</b>
           </Checkbox>
           <Checkbox
+            disabled={neural_search}
             checked={case_sensitive}
             onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
           >
-            Case sensitive search
+            <Icon name="font-size" /> <b>Case sensitive</b> search
           </Checkbox>
           <Checkbox
+            disabled={neural_search}
             checked={hidden_files}
             onChange={() => actions?.toggle_search_checkbox_hidden_files()}
           >
-            Include hidden files
+            <Icon name="eye-slash" /> Include <b>hidden files</b>
           </Checkbox>
           <Checkbox
+            disabled={neural_search}
             checked={git_grep}
             onChange={() => actions?.toggle_search_checkbox_git_grep()}
           >
-            Only search files in GIT repo (if in a repo)
+            <Icon name="git" /> <b>Git search</b>: in GIT repo, use "git grep"
+            to only search files in the git repo.
           </Checkbox>
+          {redux.getStore("customize").get("neural_search_enabled") && (
+            <Checkbox
+              checked={neural_search}
+              onChange={() =>
+                actions?.setState({ neural_search: !neural_search })
+              }
+            >
+              <Tag color="green" style={{ float: "right" }}>
+                New
+              </Tag>
+              <div>
+                <Icon name="robot" /> <b>Neural search</b> using{" "}
+                <A href="https://platform.openai.com/docs/guides/embeddings/what-are-embeddings">
+                  OpenAI Embeddings
+                </A>{" "}
+                and <A href="https://qdrant.tech/">Qdrant</A>: search recently
+                edited files using a neural network similarity algorithm.
+                Indexed file types: jupyter, tasks, chat, whiteboards, and
+                slides.
+              </div>
+            </Checkbox>
+          )}
         </Col>
       </Row>
       <Row>
-        <Col sm={12}>
+        <Col sm={24}>
           <ProjectSearchOutput project_id={project_id} />
         </Col>
       </Row>
@@ -102,17 +130,22 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
   );
 };
 
-const ProjectSearchInput: React.FC<{ project_id: string }> = ({
-  project_id,
-}) => {
+const ProjectSearchInput: React.FC<{
+  project_id: string;
+  neural?: boolean;
+  git?: boolean;
+}> = ({ neural, project_id, git }) => {
   const actions = useActions({ project_id });
   const user_input = useTypedRedux({ project_id }, "user_input");
 
   return (
     <SearchInput
+      size="large"
       autoFocus={true}
       value={user_input}
-      placeholder="Enter search (supports regular expressions!)"
+      placeholder={`Enter your search ${
+        neural ? "(semantic similarity)" : "(supports regular expressions!)"
+      }`}
       on_change={(value) => actions?.setState({ user_input: value })}
       on_submit={() => actions?.search()}
       on_clear={() =>
@@ -123,6 +156,27 @@ const ProjectSearchInput: React.FC<{ project_id: string }> = ({
           search_results: undefined,
           search_error: undefined,
         })
+      }
+      buttonAfter={
+        <Button
+          disabled={!user_input?.trim()}
+          type="primary"
+          onClick={() => actions?.search()}
+        >
+          {neural ? (
+            <>
+              <Icon name="robot" /> Neural Search
+            </>
+          ) : git ? (
+            <>
+              <Icon name="git" /> Git Grep Search
+            </>
+          ) : (
+            <>
+              <Icon name="search" /> Grep Search
+            </>
+          )}
+        </Button>
       }
     />
   );
@@ -157,14 +211,14 @@ const ProjectSearchOutput: React.FC<{ project_id: string }> = ({
     if (search_error != null) {
       return (
         <Alert bsStyle="warning">
-          Search error: {search_error} Please try again with a more restrictive
-          search
+          Search error: {search_error} Please try a different type of search or
+          a more restrictive search.
         </Alert>
       );
     }
     if (search_results?.size == 0) {
       return (
-        <Alert bsStyle="warning">There were no results for your search</Alert>
+        <Alert bsStyle="warning">There were no results for your search.</Alert>
       );
     }
     const v: JSX.Element[] = [];
@@ -177,6 +231,7 @@ const ProjectSearchOutput: React.FC<{ project_id: string }> = ({
           filename={result.get("filename")}
           description={result.get("description")}
           line_number={result.get("line_number")}
+          fragment_id={result.get("fragment_id")?.toJS()}
           most_recent_path={most_recent_path}
         />
       );
@@ -187,13 +242,12 @@ const ProjectSearchOutput: React.FC<{ project_id: string }> = ({
 
   const results_well_styles: React.CSSProperties = {
     backgroundColor: "white",
-    fontFamily: "monospace",
   };
 
   return (
     <div>
-      {too_many_results ?? (
-        <Alert bsStyle="warning">
+      {too_many_results && (
+        <Alert bsStyle="warning" style={{ margin: "15px 0" }}>
           There were more results than displayed below. Try making your search
           more specific.
         </Alert>
@@ -208,7 +262,6 @@ const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
 }) => {
   const actions = useActions({ project_id });
   const info_visible = useTypedRedux({ project_id }, "info_visible");
-  const search_error = useTypedRedux({ project_id }, "search_error");
   const search_results = useTypedRedux({ project_id }, "search_results");
   const command = useTypedRedux({ project_id }, "command");
   const most_recent_search = useTypedRedux(
@@ -223,14 +276,14 @@ const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
 
   function render_get_info() {
     return (
-      <Alert bsStyle="info">
+      <Alert bsStyle="info" style={{ margin: "15px 0" }}>
         <ul>
           <li>
             Search command (in a terminal): <pre>{command}</pre>
           </li>
           <li>
             Number of results:{" "}
-            {search_error ? search_results?.size : <Loading />}
+            {search_results ? search_results?.size : <Loading />}
           </li>
         </ul>
       </Alert>
@@ -256,7 +309,6 @@ const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
         Results of searching in {output_path()} for "{most_recent_search}"
         <Space />
         <Button
-          bsStyle="info"
           onClick={() =>
             actions?.setState({
               info_visible: !info_visible,
@@ -277,28 +329,63 @@ const ProjectSearchResultLine: React.FC<{
   filename: string;
   description: string;
   line_number: number;
+  fragment_id: string;
   most_recent_path: string;
-}> = ({ project_id, filename, description, line_number, most_recent_path }) => {
+}> = ({
+  project_id,
+  filename,
+  description,
+  line_number,
+  fragment_id,
+  most_recent_path,
+}) => {
   const actions = useActions({ project_id });
-  const icon = file_associations[filename_extension(filename)]?.icon ?? "file";
+  const ext = filename_extension(filename);
+  const icon = file_associations[ext]?.icon ?? "file";
 
   async function click_filename(e): Promise<void> {
     e.preventDefault();
-    const path = path_to_file(most_recent_path, filename);
+    let chat;
+    let path = path_to_file(most_recent_path, filename);
+    const { tail } = path_split(path);
+    if (tail.startsWith(".") && tail.endsWith(".sage-chat")) {
+      // special case of chat
+      path = auxFileToOriginal(path);
+      chat = true;
+    } else {
+      chat = false;
+    }
     await actions?.open_file({
       path,
       foreground: should_open_in_foreground(e),
-      fragmentId: { line: line_number },
+      fragmentId: fragment_id ?? { line: line_number ?? 0 },
+      chat,
     });
   }
 
   return (
-    <div style={{ wordWrap: "break-word" }}>
+    <div style={{ wordWrap: "break-word", marginBottom: "30px" }}>
       <a onClick={click_filename} href="">
         <Icon name={icon} style={{ marginRight: "5px" }} />{" "}
         <strong>{filename}</strong>
       </a>
-      <pre style={DESC_STYLE}>{description}</pre>
+      <div style={DESC_STYLE}>
+        <Snippet ext={ext} value={description} />
+      </div>
     </div>
   );
 };
+
+const MARKDOWN_EXTS = new Set(["tasks", "slides", "board", "sage-chat"]);
+function Snippet({ ext, value }) {
+  if (MARKDOWN_EXTS.has(ext)) {
+    return <StaticMarkdown value={value} />;
+  }
+  return (
+    <CodeMirrorStatic
+      no_border
+      options={{ mode: infoToMode(ext) }}
+      value={value}
+    />
+  );
+}
