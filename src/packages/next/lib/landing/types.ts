@@ -3,9 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { LANGUAGE_NAMES } from "./consts";
-
-export type LanguageName = typeof LANGUAGE_NAMES[number];
+import type { LanguageName } from "@cocalc/util/consts/software-envs";
+export type { LanguageName };
 
 export interface SoftwareSpecEntry {
   cmd: string;

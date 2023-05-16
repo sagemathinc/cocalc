@@ -179,7 +179,11 @@ export const Button = (props: {
   );
   if (props.title) {
     return (
-      <Tooltip title={props.title} mouseEnterDelay={0.7} placement={props.placement}>
+      <Tooltip
+        title={props.title}
+        mouseEnterDelay={0.7}
+        placement={props.placement}
+      >
         {btn}
       </Tooltip>
     );
@@ -422,10 +426,11 @@ interface AlertProps {
   style?: React.CSSProperties;
   banner?: boolean;
   children?: any;
+  icon?: JSX.Element;
 }
 
 export function Alert(props: AlertProps) {
-  const { bsStyle, style, banner, children } = props;
+  const { bsStyle, style, banner, children, icon } = props;
 
   let type: "success" | "info" | "warning" | "error" | undefined = undefined;
   // success, info, warning, error
@@ -439,7 +444,13 @@ export function Alert(props: AlertProps) {
     type = "success";
   }
   return (
-    <AntdAlert message={children} type={type} style={style} banner={banner} />
+    <AntdAlert
+      message={children}
+      type={type}
+      style={style}
+      banner={banner}
+      icon={icon}
+    />
   );
 }
 

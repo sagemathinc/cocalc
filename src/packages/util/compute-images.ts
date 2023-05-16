@@ -24,7 +24,15 @@ const GROUPS = [
   "Ubuntu 16.04",
 ] as const;
 
-type Group = typeof GROUPS[number];
+type Group = (typeof GROUPS)[number];
+
+// names of old images, that won't trigger the "upgrade banner", pointing to the most recent end-of-life image of that series
+export const DISMISS_IMG_1804 = "ubuntu1804";
+export const DISMISS_IMG_2004 = "ubuntu2004-eol";
+// names of old images triggering the upgrade banner to 22.04
+export const UBUNTU2004_DEPRECATED = "ubuntu2004";
+export const UBUNTU2004_DEV = "ubuntu2004-dev";
+export const UBUNTU2204_DEV = "ubuntu2204-dev";
 
 export interface ComputeImage {
   id: string; // the key under which it is stored in the database
@@ -47,36 +55,52 @@ interface ComputeImageProd
 //       rather, mark them as {hidden: true}
 const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
   // "default" or "undefined" is what was used for "ubuntu1804" until summer 2020
-  // nowdays, DEFAULT_COMPUTE_IMAGE is "ubuntu2004"
+  // 2020: DEFAULT_COMPUTE_IMAGE has been "ubuntu2004" until december 2022.
+  // 2022: DEFAULT_COMPUTE_IMAGE is now "ubuntu2204" and "ubuntu2004" became EOL.
+  [DEFAULT_COMPUTE_IMAGE]: {
+    order: 0,
+    title: "Ubuntu 22.04 (Default)",
+    short: "Ubuntu 22.04 (Default)",
+    descr: "Ubuntu 22.04 based software stack, regularly updated",
+    group: "Main",
+  },
+  [UBUNTU2204_DEV]: {
+    title: "Ubuntu 22.04 (Testing)",
+    short: "Ubuntu 22.04 (Testing)",
+    descr: "Upcoming Ubuntu 22.04 based software stack",
+    group: "Ubuntu 22.04",
+  },
   default: {
     order: 1,
     title: "Ubuntu 18.04 (Deprecated)",
     short: "Ubuntu 18.04 (Deprecated)",
-    descr: "Ubuntu 18.04 reached end of life in August 2020",
+    descr: "Reached end of life in August 2020",
     group: "Main",
     hidden: true,
   },
-  ubuntu1804: {
+  [DISMISS_IMG_1804]: {
     // a synonym of "default", but with a specific functionality!
     // we use it as a marker: if a "default" project (before the 20.04 upgrade) is set to stay at 18.04, this image is selected.
-    order: 1,
+    order: 2,
     title: "Ubuntu 18.04 (EndOfLife)",
     short: "Ubuntu 18.04 (EndOfLife)",
-    descr: "Ubuntu 18.04 reached end of life in August 2020",
+    descr: "Reached end of life in August 2020",
     group: "Main",
   },
-  ubuntu2004: {
-    order: 0,
-    title: "Ubuntu 20.04 (Current)",
-    short: "Ubuntu 20.04 (Current)",
-    descr: "Regular updates, well tested",
+  [DISMISS_IMG_2004]: {
+    order: 1,
+    title: "Ubuntu 20.04 (Deprecated)",
+    short: "Ubuntu 20.04 (Deprecated)",
+    descr: "Reached of life in May 2023",
     group: "Main",
   },
-  ubuntu2204: {
-    title: "Ubuntu 22.04 (Current)",
-    short: "Ubuntu 22.04 (Current)",
-    descr: "Upcoming Ubuntu 22.04 based software stack",
+  [UBUNTU2004_DEPRECATED]: {
+    order: 1,
+    title: "Ubuntu 20.04 (Deprecated)",
+    short: "Ubuntu 20.04 (Deprecated)",
+    descr: "Reached end of life in May 2023",
     group: "Main",
+    hidden: true, // any project that is set to "ubuntu2004" will be shown a banner → either update to ubuntu2204 or keep ubuntu2004-eol
   },
   "ubuntu2204-previous": {
     title: "Ubuntu 22.04 (Previous)",
@@ -84,17 +108,12 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     descr: "Slightly behind 22.04 (Current)",
     group: "Ubuntu 22.04",
   },
-  "ubuntu2204-dev": {
-    title: "Ubuntu 22.04 (Testing)",
-    short: "Testing",
-    descr: "Upcoming Ubuntu 22.04 based software stack",
-    group: "Ubuntu 22.04",
-  },
   "ubuntu2004-previous": {
     title: "Ubuntu 20.04 (Previous)",
     short: "Previous",
     descr: "Slightly behind 20.04 (Current)",
     group: "Ubuntu 20.04",
+    hidden: true,
   },
   "ubuntu2204-2023-01-09": {
     title: "Ubuntu 22.04 (2023-01-09)",
@@ -102,7 +121,19 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     descr: "Frozen on 2023-01-09 and no longer updated",
     group: "Ubuntu 22.04",
   },
-  "ubuntu2004-dev": {
+  "ubuntu2204-2023-04-19": {
+    title: "Ubuntu 22.04 (2023-04-19)",
+    short: "2023-04-19",
+    descr: "Frozen on 2023-04-19 and no longer updated",
+    group: "Ubuntu 22.04",
+  },
+  "ubuntu2204-2023-05-15": {
+    title: "Ubuntu 22.04 (2023-05-15)",
+    short: "2023-05-15",
+    descr: "Frozen on 2023-05-15 and no longer updated",
+    group: "Ubuntu 22.04",
+  },
+  [UBUNTU2004_DEV]: {
     title: "Ubuntu 20.04 (Testing)",
     short: "Testing",
     descr: "Upcoming software changes – could be broken!",
@@ -166,7 +197,7 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     order: -2,
     title: "Ubuntu 18.04 (Previous)",
     short: "Previous",
-    descr: "Ubuntu 18.04 Reached end of life in August 2020",
+    descr: "Reached end of life in August 2020",
     group: "Ubuntu 18.04",
     hidden: true,
   },

@@ -5,10 +5,9 @@
 
 // The "Restart Project" button, which says "Start" like the one at the top if the project isn't running
 
-import { Popconfirm } from "antd";
-
 import { PlayCircleOutlined, SyncOutlined } from "@ant-design/icons";
-import { Button } from "antd";
+import { Button, Popconfirm } from "antd";
+
 import { useActions } from "@cocalc/frontend/app-framework";
 import { useProjectState } from "../page/project-state-hook";
 

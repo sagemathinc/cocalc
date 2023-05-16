@@ -5,7 +5,7 @@
 
 import { toPairs } from "lodash";
 
-import { SOFTWARE_ENV_NAMES } from "./consts";
+import { SOFTWARE_ENV_NAMES } from "@cocalc/util/consts/software-envs";
 import { SOFTWARE_FALLBACK, SOFTWARE_URLS } from "./software-data";
 import { EnvData } from "./types";
 
