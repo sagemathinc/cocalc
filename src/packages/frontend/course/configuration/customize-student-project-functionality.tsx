@@ -21,6 +21,8 @@ export interface StudentProjectFunctionality {
   disableJupyterClassicServer?: boolean;
   disableJupyterClassicMode?: boolean;
   disableJupyterLabServer?: boolean;
+  disableVSCodeServer?: boolean;
+  disablePlutoServer?: boolean;
   disableTerminals?: boolean;
   disableUploads?: boolean;
   disableNetwork?: boolean;
@@ -68,6 +70,18 @@ const OPTIONS: Option[] = [
     title: "JupyterLab notebook server",
     description:
       "Disable the user interface for running a JupyterLab server in student projects.  This is important, since JupyterLab it provides its own extensive download and edit functionality; moreover, you may want to disable JupyterLab to reduce confusion if you don't plan to use it.",
+  },
+  {
+    name: "disableVSCodeServer",
+    title: "VS Code IDE Server",
+    description:
+      "Disable the VS Code IDE Server, which lets you run VS Code in a project with one click.",
+  },
+  {
+    name: "disablePlutoServer",
+    title: "Pluto Julia notebook server",
+    description:
+      "Disable the user interface for running a pluto server in student projects.  Pluto lets you run Julia notebooks from a project.",
   },
   {
     name: "disableTerminals",
