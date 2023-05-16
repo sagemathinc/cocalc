@@ -75,6 +75,8 @@ if (fs.existsSync(DEBUG_FILE)) {
   DEBUG = true;
 }
 
+winston.info("DEBUG = ", DEBUG);
+
 let client: Client;
 
 export function init() {
@@ -94,14 +96,22 @@ export function getClient(): Client {
 
 let ALREADY_CREATED = false;
 
+type HubCB = CB<any, { event: "error"; error?: string }>;
+
 export class Client extends EventEmitter implements ProjectClientInterface {
   private project_id: string;
   private _connected: boolean;
 
   private _hub_callbacks: {
-    [key: string]: CB<any, { event: "error"; error?: string }>;
+    [key: string]: HubCB;
   };
-  private _hub_client_sockets: any;
+  private _hub_client_sockets: {
+    [id: string]: {
+      socket: CoCalcSocket;
+      callbacks?: any; // TODO could be { [id: string]: HubCB | ((err: string) => void) }
+      activity: Date;
+    };
+  };
   private _changefeed_sockets: any;
 
   private _open_syncstrings?: { [key: string]: SyncString };
@@ -217,7 +227,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
   // Declare that the given socket is active right now and can be used for
   // communication with some hub (the one the socket is connected to).
-  public active_socket(socket) {
+  public active_socket(socket: CoCalcSocket) {
     const dbg = this.dbg(
       `active_socket(id=${socket.id},ip='${socket.remoteAddress}')`
     );
@@ -267,7 +277,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       const check_heartbeat = () => {
         if (
           socket.heartbeat == null ||
-          Date.now() - socket.heartbeat >=
+          Date.now() - socket.heartbeat.getTime() >=
             1.5 * PROJECT_HUB_HEARTBEAT_INTERVAL_S * 1000
         ) {
           dbg("heartbeat failed");
@@ -302,7 +312,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       dbg("calling callback");
       if (!mesg.multi_response) {
         delete this._hub_callbacks[mesg.id];
-        delete this._hub_client_sockets[socket.id].callbacks[mesg.id];
+        delete this._hub_client_sockets[socket.id].callbacks?.[mesg.id];
       }
       try {
         f(mesg);
@@ -375,7 +385,10 @@ export class Client extends EventEmitter implements ProjectClientInterface {
           opts.cb?.(undefined, resp);
         }
       });
-      this._hub_client_sockets[socket.id].callbacks[opts.message.id] = cb;
+      const callbacks = this._hub_client_sockets[socket.id].callbacks;
+      if (callbacks != null) {
+        callbacks[opts.message.id] = cb;
+      }
     }
     // Finally, send the message
     return socket.write_mesg("json", opts.message);
@@ -708,7 +721,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   }: {
     blob: Buffer; // Buffer of data
     sha1?: string;
-    uuid?: string; // if NOT given then uuid must be derived from sha1 hash
+    uuid?: string; // if given then uuid must be derived from sha1 hash
     cb?: (err: string | undefined, resp?: any) => void;
   }) {
     const uuid = optsUUID ?? uuidsha1(blob, sha1);
