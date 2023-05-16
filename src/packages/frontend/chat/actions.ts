@@ -453,9 +453,16 @@ export class ChatActions extends Actions<ChatState> {
 
   private async processChatGPT(message, reply_to?: Date, tag?: string) {
     if (
+      !tag &&
+      !reply_to &&
       !this.redux.getStore("projects").hasOpenAI(this.store?.get("project_id"))
     ) {
-      // no need to check for chatgpt at all
+      // No need to check whether chatgpt is enabled at all.
+      // We only do this check if tag is not set, e.g., directly typing @chatgpt
+      // into the input box.  If the tag is set, then the request to use
+      // chatgpt came from some place, e.g., the "Explain" button, so
+      // we trust that.
+      // We also do the check when replying.
       return;
     }
     if (message.getIn(["history", 0, "author_id"])?.startsWith("chatgpt")) {
@@ -504,6 +511,9 @@ export class ChatActions extends Actions<ChatState> {
     const interval = setInterval(draft, 25000);
     const project_id = store.get("project_id");
     const path = store.get("path");
+    if (!tag && reply_to) {
+      tag = "reply";
+    }
 
     // submit question to chatgpt
     track("chatgpt", {

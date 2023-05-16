@@ -123,9 +123,15 @@ const OPTIONS: Option[] = [
   },
   {
     name: "disableChatGPT",
-    title: "ChatGPT integration",
+    title: "all ChatGPT integration",
     description:
-      "Remove all ChatGPT integrations from the student projects.  This is a hint for honest students, since of course students can still use copy/paste to accomplish the same thing.",
+      "Remove *all* ChatGPT integrations from the student projects.  This is a hint for honest students, since of course students can still use copy/paste to accomplish the same thing.",
+  },
+  {
+    name: "disableSomeChatGPT",
+    title: "some ChatGPT integration",
+    description:
+      "Disable ChatGPT integration except that 'Help me fix' and 'Explain' buttons.  Use this if you only want the students to  use ChatGPT to get unstuck.",
   },
   {
     name: "disableSharing",

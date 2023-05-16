@@ -43,7 +43,7 @@ export default function HelpMeFix({
   const { redux, project_id, path } = useFrameContext();
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
   const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
-  if (redux == null || !redux.getStore("projects").hasOpenAI(project_id)) {
+  if (redux == null || !redux.getStore("projects").hasOpenAI(project_id, "help-me-fix")) {
     return null;
   }
   return (
