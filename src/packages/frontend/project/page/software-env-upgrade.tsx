@@ -124,7 +124,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
       try {
         await actions.set_compute_image(image);
         // only restart the project if it is actually running
-        if (image != DISMISS_IMG_1804 && is_running) {
+        if (image != KEEP_IMAGE && is_running) {
           await redux.getActions("projects").restart_project(project_id);
         }
       } catch (err) {
