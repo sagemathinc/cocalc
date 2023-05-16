@@ -18,8 +18,7 @@ import { getOptions } from "@cocalc/project/init-program";
 import { getSecretToken } from "@cocalc/project/servers/secret-token";
 import { once } from "@cocalc/util/async-utils";
 import handleMessage from "./handle-message";
-
-const client = require("@cocalc/project/client");
+import { getClient } from "@cocalc/project/client";
 
 import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("hub-tcp-server");
@@ -73,7 +72,7 @@ async function handleConnection(socket: CoCalcSocket) {
   enableMessagingProtocol(socket);
 
   socket.on("mesg", (type, mesg) => {
-    client.client?.active_socket(socket); // record that this socket is active now.
+    getClient().active_socket(socket); // record that this socket is active now.
     if (type === "json") {
       // non-JSON types are handled elsewhere, e.g., for sending binary data.
       // I'm not sure that any other message types are actually used though.

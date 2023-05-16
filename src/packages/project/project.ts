@@ -6,14 +6,13 @@
 import daemonizeProcess from "daemonize-process";
 
 import { init as initBugCounter } from "./bug-counter";
+import { init as initClient } from "./client";
 import initInfoJson from "./info-json";
 import initKucalc from "./init-kucalc";
 import { getOptions } from "./init-program";
 import { cleanup as cleanupEnvironmentVariables } from "./project-setup";
 import initPublicPaths from "./public-paths";
 import initServers from "./servers/init";
-
-const { init: initClient } = require("./client"); // import { Client } from "./client";
 
 import { getLogger } from "./logger";
 const winston = getLogger("project-main");

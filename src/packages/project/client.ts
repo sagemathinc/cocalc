@@ -42,7 +42,6 @@ import { callback2, once } from "@cocalc/util/async-utils";
 import { PROJECT_HUB_HEARTBEAT_INTERVAL_S } from "@cocalc/util/heartbeat";
 import * as message from "@cocalc/util/message";
 import * as misc from "@cocalc/util/misc";
-import { defaults, required } from "@cocalc/util/misc";
 import { CB } from "@cocalc/util/types/callback";
 import * as blobs from "./blobs";
 import { symmetric_channel } from "./browser-websocket/symmetric_channel";
@@ -76,10 +75,20 @@ if (fs.existsSync(DEBUG_FILE)) {
   DEBUG = true;
 }
 
-export let client: Client;
+let client: Client;
 
 export function init() {
+  if (client != null) {
+    throw Error("BUG: Client already initialized!");
+  }
   client = new Client();
+  return client;
+}
+
+export function getClient(): Client {
+  if (client == null) {
+    throw Error("BUG: Client not initialized!");
+  }
   return client;
 }
 
@@ -147,15 +156,18 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     }
   }
 
-  public alert_message(opts) {
-    opts = defaults(opts, {
-      type: "default",
-      title: undefined,
-      message: required,
-      block: undefined,
-      timeout: undefined,
-    }); // time in seconds
-    return this.dbg("alert_message")(opts.title, opts.message);
+  public alert_message({
+    type = "default",
+    title,
+    message,
+  }: {
+    type?: "default";
+    title?: string;
+    message: string;
+    block?: boolean;
+    timeout?: number; // time in seconds
+  }): void {
+    this.dbg("alert_message")(type, title, message);
   }
 
   // todo: more could be closed...
@@ -477,9 +489,8 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
   // Get the synchronized doc with the given path.  Returns undefined
   // if currently no such sync-doc.
-  public syncdoc(opts: { path: string }): SyncDoc | undefined {
-    opts = defaults(opts, { path: required });
-    return get_syncdoc(opts.path);
+  public syncdoc({ path }: { path: string }): SyncDoc | undefined {
+    return get_syncdoc(path);
   }
 
   public symmetric_channel(name) {
@@ -672,60 +683,56 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return await get_kernel_data();
   }
 
-  // See the file watcher.ts for docs
-  public watch_file(opts): Watcher {
-    opts = defaults(opts, {
-      path: required,
-      interval: 1500, // polling interval in ms
-      debounce: 500,
-    }); // don't fire until at least this many ms after the file has REMAINED UNCHANGED
-    const path = path_join(HOME, opts.path);
+  public watch_file({
+    path: relPath,
+    interval = 1500, // polling interval in ms
+    debounce = 500, // don't fire until at least this many ms after the file has REMAINED UNCHANGED
+  }: {
+    path: string;
+    interval?: number;
+    debounce?: number;
+  }): Watcher {
+    const path = path_join(HOME, relPath);
     const dbg = this.dbg(`watch_file(path='${path}')`);
     dbg(`watching file '${path}'`);
-    return new Watcher(path, opts.interval, opts.debounce);
+    return new Watcher(path, interval, debounce);
   }
 
   // Save a blob to the central db blobstore.
   // The sha1 is optional.
-  public save_blob(opts: {
-    blob: Buffer;
+  public save_blob({
+    blob,
+    sha1,
+    uuid: optsUUID,
+    cb,
+  }: {
+    blob: Buffer; // Buffer of data
     sha1?: string;
-    uuid?: string;
+    uuid?: string; // if NOT given then uuid must be derived from sha1 hash
     cb?: (err: string | undefined, resp?: any) => void;
   }) {
-    let uuid;
-    opts = defaults(opts, {
-      blob: required, // Buffer of data
-      sha1: undefined,
-      uuid: undefined, // if given then uuid must be derived from sha1 hash
-      cb: undefined,
-    }); // (err, resp)
-    if (opts.uuid != null) {
-      ({ uuid } = opts);
-    } else {
-      uuid = uuidsha1(opts.blob, opts.sha1);
-    }
+    const uuid = optsUUID ?? uuidsha1(blob, sha1);
     const dbg = this.dbg(`save_blob(uuid='${uuid}')`);
     const hub = this.get_hub_socket();
     if (hub == null) {
       dbg("fail -- no global hubs");
-      opts.cb?.(
+      cb?.(
         "no global hubs are connected to the local hub, so nowhere to send file"
       );
       return;
     }
     dbg("sending blob mesg");
-    hub.write_mesg("blob", { uuid, blob: opts.blob });
+    hub.write_mesg("blob", { uuid, blob });
     dbg("waiting for response");
     blobs.receive_save_blob_message({
       sha1: uuid,
       cb: (resp): void => {
         if (resp?.error) {
           dbg(`fail -- '${resp.error}'`);
-          opts.cb?.(resp.error, resp);
+          cb?.(resp.error, resp);
         } else {
           dbg("success");
-          opts.cb?.(undefined, resp);
+          cb?.(undefined, resp);
         }
       },
     });

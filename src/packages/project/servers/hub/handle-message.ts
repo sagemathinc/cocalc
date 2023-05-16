@@ -10,7 +10,9 @@ database queries.
 */
 
 import processKill from "@cocalc/backend/misc/process-kill";
+import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { handle_save_blob_message } from "@cocalc/project/blobs";
+import { getClient } from "@cocalc/project/client";
 import { project_id } from "@cocalc/project/data";
 import { exec_shell_code } from "@cocalc/project/exec_shell_code";
 import { get_kernel_data } from "@cocalc/project/jupyter/kernel-data";
@@ -27,21 +29,23 @@ import { version } from "@cocalc/util/smc-version";
 import { Message } from "./types";
 import writeTextFileToProject from "./write-text-file-to-project";
 
-const client = require("@cocalc/project/client");
-
 const winston = getLogger("handle-message-from-hub");
 
-export default async function handleMessage(socket, mesg: Message) {
+export default async function handleMessage(
+  socket: CoCalcSocket,
+  mesg: Message
+) {
   winston.debug("received a message", {
     event: mesg.event,
     id: mesg.id,
     "...": "...",
   });
+
   // We can't just log this in general, since it can be big.
   // So only uncomment this for low level debugging, unfortunately.
   // winston.debug("received ", mesg);
 
-  if (client.client?.handle_mesg(mesg, socket)) {
+  if (getClient().handle_mesg(mesg, socket)) {
     return;
   }
 
@@ -157,6 +161,7 @@ export default async function handleMessage(socket, mesg: Message) {
       winston.info(`hello from hub -- sending back our version = ${version}`);
       socket.write_mesg("json", message.version({ version }));
       return;
+
     default:
       if (mesg.id != null) {
         // only respond with error if there is an id -- otherwise response has no meaning to hub.
