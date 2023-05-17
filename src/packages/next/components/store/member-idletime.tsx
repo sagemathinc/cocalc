@@ -286,14 +286,19 @@ export function MemberHostingAndIdleTimeout(props: Props) {
   function uptimeOptions(): JSX.Element[] {
     const ret: JSX.Element[] = [];
     for (const [key, it] of Object.entries(LicenseIdleTimeouts)) {
+      const disabled = requiresMemberhosting(key) && !form.getFieldValue("member");
       ret.push(
-        <Radio.Button key={key} value={key}>
+        <Radio.Button key={key} value={key} disabled={disabled}>
           {it.label}
         </Radio.Button>
       );
     }
     ret.push(
-      <Radio.Button key={"always_running"} value={"always_running"}>
+      <Radio.Button
+        key={"always_running"}
+        value={"always_running"}
+        disabled={!form.getFieldValue("member")}
+      >
         Always running
       </Radio.Button>
     );
