@@ -34,6 +34,7 @@ interface Props {
   confirmLabel?: ReactNode;
   style?: CSS;
   extra?: ReactNode; // plain-text node is ok
+  extraButtons?: ReactNode;
 }
 
 export default function SelectLicense(props: Props) {
@@ -47,6 +48,7 @@ export default function SelectLicense(props: Props) {
     confirmLabel,
     style,
     extra,
+    extraButtons,
   } = props;
   const isBlurredRef = useRef<boolean>(true);
   const [licenseId, setLicenseId] = useState<string>(defaultLicenseId ?? "");
@@ -136,6 +138,9 @@ export default function SelectLicense(props: Props) {
             </Button>
           )}
         {onCancel && <Button onClick={onCancel}>Cancel</Button>}
+        {extraButtons != null ? (
+          <span style={{ paddingLeft: "20px" }}>{extraButtons}</span>
+        ) : null}
       </Space>
     );
   }

@@ -133,8 +133,8 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         <>
           <BuyLicenseForProject
             project_id={project_id}
-            text={"with a license"}
-            showVoucherButton={false}
+            buyText={"with a license"}
+            voucherText={"a voucher"}
             asLink={true}
             style={{ padding: 0, fontSize: style.fontSize, ...a_style }}
           />
@@ -320,6 +320,9 @@ export const BannerApplySiteLicense: React.FC<ApplyLicenseProps> = (
             applyLicense({ project_id, license_id });
           }}
           onCancel={() => setShowAddLicense(false)}
+          extraButtons={
+            <BuyLicenseForProject project_id={project_id} size={"middle"} />
+          }
         />
       </div>
     </>
