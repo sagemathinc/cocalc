@@ -548,6 +548,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState(change);
   }
 
+  public toggleFlyout(name: FixedTab | null): void {
+    const store = this.get_store();
+    if (store == undefined) return;
+    const flyout = name === store.get("flyout") ? null : name;
+    this.setState({ flyout });
+  }
+
   add_a_ghost_file_tab(): void {
     const store = this.get_store();
     if (store == undefined) {

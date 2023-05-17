@@ -28,7 +28,7 @@ const STYLE_SIGNIN_WARNING: CSS = {
   marginRight: "auto",
   marginLeft: "auto",
   marginTop: "50px",
-};
+} as const;
 
 export const ActiveContent: React.FC = React.memo(() => {
   const page_actions = useActions("page");

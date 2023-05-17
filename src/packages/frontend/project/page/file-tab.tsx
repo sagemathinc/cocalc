@@ -20,16 +20,17 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { HiddenXSSM, Icon, IconName } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
+import track from "@cocalc/frontend/user-tracking";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { TITLE as SERVERS_TITLE } from "../servers";
 import { PROJECT_INFO_TITLE } from "../info";
+import { TITLE as SERVERS_TITLE } from "../servers";
 import { RestartProject } from "../settings/restart-project";
 import { StopProject } from "../settings/stop-project";
-import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
-import { HomeRecentFiles } from "./home-page/recent-files";
 import { ChatGPTGenerateNotebookButton } from "./home-page/chatgpt-generate-jupyter";
-import track from "@cocalc/frontend/user-tracking";
+import { HomeRecentFiles } from "./home-page/recent-files";
+import { FilesFlyout } from "./flyouts/files";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -47,6 +48,8 @@ type FixedTabs = {
     label: string;
     icon: IconName;
     tooltip?: string | ((props: { project_id: string }) => ReactNode);
+    flyout: (props: { project_id: string }) => ReactNode;
+    flyoutTitle?: string | ReactNode;
     noAnonymous?: boolean;
   };
 };
@@ -59,42 +62,50 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: "Explorer",
     icon: "folder-open",
     tooltip: "Browse files",
+    flyout: FilesFlyout,
     noAnonymous: false,
   },
   new: {
     label: "New",
     icon: "plus-circle",
     tooltip: NewPopover,
+    flyout: NewPopover,
     noAnonymous: false,
   },
   log: {
     label: "Log",
     icon: "history",
     tooltip: LogPopover,
+    flyout: LogFlyout,
+    flyoutTitle: "Recent Files",
     noAnonymous: false,
   },
   search: {
     label: "Find",
     icon: "search",
     tooltip: "Search files in the project",
+    flyout: SearchFlyout,
     noAnonymous: false,
   },
   servers: {
     label: SERVERS_TITLE,
     icon: "server",
     tooltip: ServersPopover,
+    flyout: ({ project_id }) => ServersPopover({ project_id, flyout: true }),
     noAnonymous: false,
   },
   info: {
     label: PROJECT_INFO_TITLE,
     icon: "microchip",
     tooltip: "Running processes, resource usage, …",
+    flyout: ProjectInfoFlyout,
     noAnonymous: false,
   },
   settings: {
     label: "Settings",
     icon: "wrench",
     tooltip: SettingsPopover,
+    flyout: SettingsPopover,
     noAnonymous: false,
   },
 } as const;
@@ -107,6 +118,7 @@ interface Props0 {
   placement?;
   iconStyle?: CSSProperties;
   isFixedTab?: boolean;
+  flyout?: FixedTab;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -114,12 +126,19 @@ interface PropsPath extends Props0 {
 }
 interface PropsName extends Props0 {
   path?: undefined;
-  name: FixedTab;
+  name: string;
 }
 type Props = PropsPath | PropsName;
 
-export function FileTab(props: Props) {
-  const { project_id, path, name, label: label_prop, isFixedTab } = props;
+export function FileTab(props: Readonly<Props>) {
+  const {
+    project_id,
+    path,
+    name,
+    label: label_prop,
+    isFixedTab,
+    flyout = null,
+  } = props;
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
   // this is @cocalc/project/project-status/types::ProjectStatus
@@ -127,6 +146,7 @@ export function FileTab(props: Props) {
   const status_alert =
     name === "info" && project_status?.get("alerts")?.size > 0;
   const other_settings = useTypedRedux("account", "other_settings");
+  const active_flyout = useTypedRedux({ project_id }, "flyout");
 
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
@@ -180,6 +200,37 @@ export function FileTab(props: Props) {
     }
   }
 
+  function renderFlyoutCaret() {
+    const color =
+      flyout === active_flyout
+        ? COLORS.PROJECT.FIXED_LEFT_ACTIVE
+        : active_flyout == null
+        ? COLORS.GRAY_L
+        : COLORS.GRAY_L0;
+    const bg = flyout === active_flyout ? COLORS.GRAY_L0 : undefined;
+
+    return (
+      <div
+        className="cc-project-fixedtab"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          color,
+          backgroundColor: bg,
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          actions?.toggleFlyout(flyout);
+        }}
+      >
+        <Icon
+          style={{ padding: "0 3px", margin: "0", color }}
+          name="caret-right"
+        />
+      </div>
+    );
+  }
+
   let style: CSSProperties;
   if (path != null) {
     style = {};
@@ -203,6 +254,7 @@ export function FileTab(props: Props) {
       label = path_split(path).tail;
     }
   }
+
   if (label == null) throw Error("label must not be null");
 
   const icon =
@@ -210,7 +262,36 @@ export function FileTab(props: Props) {
       ? file_options(path)?.icon ?? "code-o"
       : FIXED_PROJECT_TABS[name!].icon;
 
-  let body = (
+  const btnLeft = (
+    <>
+      <div>
+        <Icon style={{ ...icon_style }} name={icon} />
+      </div>
+      <DisplayedLabel path={path} label={label} inline={!isFixedTab} />
+    </>
+  );
+
+  const inner = !isFixedTab ? (
+    btnLeft
+  ) : (
+    <div
+      style={{
+        display: "flex",
+        flex: "1 0 auto",
+        justifyContent: "space-between",
+      }}
+    >
+      <div
+        className="cc-project-fixedtab"
+        style={{ textAlign: "center", width: "100%" }}
+      >
+        {btnLeft}
+      </div>
+      {renderFlyoutCaret()}
+    </div>
+  );
+
+  const body = (
     <div
       style={{ ...style, ...props.style }}
       cocalc-test={label}
@@ -225,15 +306,13 @@ export function FileTab(props: Props) {
           textAlign: "center",
         }}
       >
-        <div>
-          <Icon style={{ ...icon_style }} name={icon} />
-        </div>
-        <DisplayedLabel path={path} label={label} />
+        {inner}
       </div>
     </div>
   );
 
   if (
+    1 == 1 || // disabled for now
     props.noPopover ||
     IS_MOBILE ||
     (isFixedTab && other_settings.get("hide_action_popovers")) ||
@@ -289,12 +368,13 @@ const FULLPATH_LABEL_STYLE: CSS = {
   padding: "0 1px", // need less since have ..
 } as const;
 
-function DisplayedLabel({ path, label }) {
+function DisplayedLabel({ path, label, inline = true }) {
   if (path == null) {
     // a fixed tab (not an actual file)
+    const E = inline ? "span" : "div";
     return (
       <HiddenXSSM>
-        <span style={{ fontSize: "9pt" }}>{label}</span>
+        <E style={{ fontSize: "9pt", textAlign: "center" }}>{label}</E>
       </HiddenXSSM>
     );
   }
@@ -342,6 +422,12 @@ function LogPopover({ project_id }) {
   );
 }
 
+function LogFlyout({ project_id, wrap }) {
+  return (
+    <HomeRecentFiles project_id={project_id} mode={"flyout"} wrap={wrap} />
+  );
+}
+
 function SettingsPopover({ project_id }) {
   return (
     <div>
@@ -355,17 +441,35 @@ function SettingsPopover({ project_id }) {
   );
 }
 
-function ServersPopover({ project_id }) {
+function ServersPopover({ project_id, flyout = false }) {
+  const servers = [
+    <ServerLink key="jupyterlab" name="jupyterlab" project_id={project_id} />,
+    <ServerLink key="jupyter" name="jupyter" project_id={project_id} />,
+    <ServerLink key="code" name="code" project_id={project_id} />,
+    <ServerLink key="pluto" name="pluto" project_id={project_id} />,
+  ].filter((s) => s != null);
+
   return (
     <div>
-      Launch servers: Jupyter, Pluto, VS Code (click for more details...)
+      Launch servers
+      {!flyout ? ": Jupyter, Pluto, VS Code (click for more details..." : ""}
       <hr />
       <Space direction="vertical">
-        <ServerLink name="jupyterlab" project_id={project_id} />
-        <ServerLink name="jupyter" project_id={project_id} />
-        <ServerLink name="code" project_id={project_id} />
-        <ServerLink name="pluto" project_id={project_id} />
+        {servers}
+        {servers.length == 0 && (
+          <>
+            No available server has been detected in this project environment.
+          </>
+        )}
       </Space>
     </div>
   );
+}
+
+function SearchFlyout({ project_id }) {
+  return <div>search flyout {project_id}</div>;
+}
+
+function ProjectInfoFlyout({ project_id }) {
+  return <div>project info flyout {project_id}</div>;
 }

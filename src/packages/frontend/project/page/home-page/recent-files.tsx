@@ -1,7 +1,11 @@
-import { List, Input, Space } from "antd";
+import { Input, List, Space } from "antd";
 
-import { CSSProperties, useState } from "react";
-import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  CSS,
+  redux,
+  useMemo,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
@@ -14,6 +18,8 @@ import { handle_log_click } from "@cocalc/frontend/components/path-link";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
+import { unreachable } from "@cocalc/util/misc";
+import { CSSProperties, useState } from "react";
 
 interface OpenedFile {
   filename: string;
@@ -24,9 +30,17 @@ interface Props {
   project_id: string;
   max?: number;
   style?: CSSProperties;
+  mode?: "flyout" | "home";
+  wrap?: (list: JSX.Element, style?: CSS) => JSX.Element;
 }
 
-export function HomeRecentFiles({ max = 100, project_id, style }: Props) {
+export function HomeRecentFiles({
+  max = 100,
+  project_id,
+  style,
+  mode = "home",
+  wrap,
+}: Props) {
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
 
@@ -68,6 +82,33 @@ export function HomeRecentFiles({ max = 100, project_id, style }: Props) {
       .toJS();
   }, [project_log, searchTerm]);
 
+  function renderItemInfo({ account_id, time }) {
+    switch (mode) {
+      case "home":
+        return (
+          <>
+            {" "}
+            <Text type="secondary">
+              by <User user_map={user_map} account_id={account_id} />{" "}
+              <TimeAgo date={time} />
+            </Text>
+          </>
+        );
+      case "flyout":
+        return (
+          <>
+            <br />
+            <Text type="secondary">
+              <TimeAgo date={time} /> by{" "}
+              <User user_map={user_map} account_id={account_id} />
+            </Text>
+          </>
+        );
+      default:
+        unreachable(mode);
+    }
+  }
+
   function renderItem(entry) {
     const time = entry.time;
     const account_id = entry.account_id;
@@ -86,11 +127,8 @@ export function HomeRecentFiles({ max = 100, project_id, style }: Props) {
           style={{ fontWeight: "bold" }}
           path={path}
           project_id={project_id}
-        />{" "}
-        <Text type="secondary">
-          by <User user_map={user_map} account_id={account_id} />{" "}
-          <TimeAgo date={time} />
-        </Text>
+        />
+        {renderItemInfo({ account_id, time })}
       </List.Item>
     );
   }
@@ -100,26 +138,73 @@ export function HomeRecentFiles({ max = 100, project_id, style }: Props) {
     return <Loading />;
   }
 
-  return (
-    <>
-      <List
-        style={{ maxHeight: "500px", overflow: "auto", ...style }}
-        size="small"
-        header={
-          <Space style={{ width: "100%" }}>
-            Recent Files{" "}
-            <Input
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ width: "350px" }}
-            />
-          </Space>
+  function renderHeader(): JSX.Element | undefined {
+    switch (mode) {
+      case "flyout":
+        return undefined;
+      case "home":
+        return (
+          <>
+            <Space style={{ width: "100%" }}>
+              Recent Files{" "}
+              <Input
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ width: "350px" }}
+              />
+            </Space>
+          </>
+        );
+      default:
+        unreachable(mode);
+    }
+  }
+
+  function onKeyUpHandler(e) {
+    // if esc key is pressed, empty the search term
+    if (e.key === "Escape") {
+      setSearchTerm("");
+    }
+  }
+
+  const listStyle: CSS =
+    mode === "flyout"
+      ? {
+          width: "100%",
+          overflowX: "hidden",
+          overflowY: "auto",
+          ...style,
         }
-        bordered
-        dataSource={log}
-        renderItem={renderItem}
-      />
-    </>
+      : { maxHeight: "500px", overflow: "auto", ...style };
+
+  const list = (
+    <List
+      style={listStyle}
+      size="small"
+      header={renderHeader()}
+      bordered={mode === "home"}
+      dataSource={log}
+      renderItem={renderItem}
+    />
   );
+
+  if (wrap) {
+    return (
+      <>
+        <Input
+          placeholder="Search..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyUp={onKeyUpHandler}
+          style={{ width: "100%" }}
+          allowClear
+          prefix={<Icon name="search" />}
+        />
+        {wrap(list, { marginTop: "10px" })}
+      </>
+    );
+  } else {
+    return list;
+  }
 }
