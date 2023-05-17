@@ -20,6 +20,7 @@ undefined
 
 import Primus from "primus";
 import http from "http";
+import { join } from "path";
 
 export function server() {
   const httpServer = http.createServer((_req, res) => {
@@ -50,6 +51,54 @@ export function client() {
     console.log("Connected to server");
     socket.write("Hello from the client!");
 
+    socket.on("data", (data) => {
+      console.log(`Received from server: ${data}`);
+    });
+  });
+
+  return socket;
+}
+
+/*
+connect to a specific project (bypassing the proxy) for now, so
+we can flesh this out.
+
+> c = require('./dist/primus').project({appBasePath:'/10f0e544-313c-4efe-8718-2142ac97ad11/port/5000',project_id:'97ce5a7c-25c1-4059-8670-c7de96a0db92', port:44095})
+> c.writeAndWait({cmd:'exec',opts:{command:'pwd'}}, console.log)
+undefined
+> {
+  stdout: '/home/user/cocalc/src/data/projects/97ce5a7c-25c1-4059-8670-c7de96a0db92\n',
+  stderr: '',
+  exit_code: 0
+}
+
+With this, we can make a proof of concept of a remote Jupyter
+kernel.  Then we have to worry about authentication.
+*/
+
+export function project({
+  appBasePath,
+  project_id,
+  port,
+}: {
+  appBasePath: string;
+  project_id: string;
+  port: number;
+}) {
+  const url = `http://localhost:${port}`;
+  const opts = {
+    pathname: join(appBasePath, project_id, "raw/.smc/ws"),
+    transformer: "websockets",
+    plugin: {
+      responder: require("primus-responder"),
+      multiplex: require("@cocalc/primus-multiplex"),
+    },
+  } as const;
+  const primus = Primus.createSocket(opts);
+  const socket = new primus(url);
+
+  socket.on("open", () => {
+    console.log("Connected to project");
     socket.on("data", (data) => {
       console.log(`Received from server: ${data}`);
     });

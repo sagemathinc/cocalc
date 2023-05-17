@@ -8,7 +8,7 @@ Create the Primus realtime socket server
 */
 
 const { join } = require("path");
-import { Router } from "express"; 
+import { Router } from "express";
 import { Server } from "http";
 import Primus from "primus";
 
@@ -30,7 +30,7 @@ export default function init(server: Server, basePath: string): Router {
   const primus = new Primus(server, opts);
 
   // add multiplex to Primus so we have channels.
-  primus.plugin("multiplex", require("primus-multiplex"));
+  primus.plugin("multiplex", require("@cocalc/primus-multiplex"));
 
   init_websocket_api(primus);
 
