@@ -63,7 +63,7 @@ export function client() {
 connect to a specific project (bypassing the proxy) for now, so
 we can flesh this out.
 
-> c = require('./dist/primus').project({appBasePath:'/10f0e544-313c-4efe-8718-2142ac97ad11/port/5000',project_id:'97ce5a7c-25c1-4059-8670-c7de96a0db92', port:44095})
+> c = require('./dist/primus').project({appBasePath:'/10f0e544-313c-4efe-8718-2142ac97ad11/port/5000',project_id:'97ce5a7c-25c1-4059-8670-c7de96a0db92', port:34491})
 > c.writeAndWait({cmd:'exec',opts:{command:'pwd'}}, console.log)
 undefined
 > {

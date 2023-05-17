@@ -20,7 +20,7 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/frontend": "workspace:*",
-    "@cocalc/primus-multiplex": "^1.0.0",
+    "@cocalc/primus-multiplex": "^1.1.0",
     "@cocalc/project": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
