@@ -9,16 +9,14 @@ Functionality related to Sync.
 
 import { callback2 } from "@cocalc/util/async-utils";
 import { once } from "@cocalc/util/async-utils";
-import { defaults, is_valid_uuid_string, merge, required } from "@cocalc/util/misc";
+import {
+  defaults,
+  is_valid_uuid_string,
+  merge,
+  required,
+} from "@cocalc/util/misc";
 import { SyncDoc, SyncOpts0 } from "@cocalc/sync/editor/generic/sync-doc";
-
-interface SyncOpts extends Omit<SyncOpts0, "client"> {}
-
 import { SyncDB, SyncDBOpts0 } from "@cocalc/sync/editor/db";
-interface SyncDBOpts extends Omit<SyncDBOpts0, "client" | "string_cols"> {
-  string_cols?: string[];
-}
-
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import {
   synctable,
@@ -27,11 +25,14 @@ import {
   QueryOptions,
   synctable_no_changefeed,
 } from "@cocalc/sync/table";
+import synctable_project from "./synctable-project";
+import type { Channel, WebappClient } from "./types";
 
-import { synctable_project } from "../project/websocket/synctable";
-import { Channel } from "../project/websocket/types";
+interface SyncOpts extends Omit<SyncOpts0, "client"> {}
 
-import { WebappClient } from "./client";
+interface SyncDBOpts extends Omit<SyncDBOpts0, "client" | "string_cols"> {
+  string_cols?: string[];
+}
 
 export class SyncClient {
   private client: WebappClient;

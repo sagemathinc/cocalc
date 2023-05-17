@@ -11,8 +11,8 @@ import { delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
 import { synctable_no_database, SyncTable } from "@cocalc/sync/table";
 import { once, retry_until_success } from "@cocalc/util/async-utils";
-import { WebappClient } from "../../webapp-client";
 import { assertDefined } from "@cocalc/util/misc";
+import type { WebappClient } from "./types";
 
 // Always wait at least this long between connect attempts.  This
 // avoids flooding the project with connection requests if, e.g., the
@@ -126,7 +126,7 @@ class SyncTableChannel extends EventEmitter {
     // touch_project mainly makes sure that some hub is connected to
     // the project, so the project can do DB queries.  Also
     // starts the project.
-    await this.client.touch_project(this.project_id);
+    this.client.touch_project(this.project_id);
     // Get a websocket.
     this.websocket = await this.client.project_client.websocket(
       this.project_id
@@ -210,10 +210,13 @@ class SyncTableChannel extends EventEmitter {
       throw Error("mesg must not be null");
     }
     if (mesg.error != null) {
+      const { alert_message } = this.client;
       const message = `Error opening file -- ${mesg.error} -- wait, restart your project or refresh your browser`;
-      // NOTE: right now module level import of this breaks things.
-      const { alert_message } = require("../../alerts");
-      alert_message({ type: "info", message, timeout: 10 });
+      if (alert_message != null) {
+        alert_message({ type: "info", message, timeout: 10 });
+      } else {
+        console.warn(message);
+      }
     }
     if (mesg.init != null) {
       this.log("project --> client: init_browser_client");
@@ -290,7 +293,9 @@ async function synctable_project0(opts: Options): Promise<SyncTable> {
   return t.synctable;
 }
 
-export const synctable_project = reuseInFlight(synctable_project0, {
+const synctable_project = reuseInFlight(synctable_project0, {
   createKey: (args) =>
     JSON.stringify([args[0].project_id, args[0].query, args[0].options]),
 });
+
+export default synctable_project;

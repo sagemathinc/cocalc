@@ -16,7 +16,7 @@ import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
 import { OpenAIClient } from "./openai";
 import { JupyterClient } from "./jupyter";
-import { SyncClient } from "./sync";
+import { SyncClient } from "@cocalc/sync/client/sync-client";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
 import { TrackingClient } from "./tracking";
