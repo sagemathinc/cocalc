@@ -25,6 +25,7 @@
     "@cocalc/util": "workspace:*",
     "@nteract/messaging": "^7.0.20",
     "@types/lodash": "^4.14.176",
+    "@types/primus": "^7.3.6",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
@@ -74,7 +75,7 @@
     "underscore": "^1.12.1",
     "uuid": "^8.3.2",
     "which": "^2.0.2",
-    "ws": "^6.0.0",
+    "ws": "^8.13.0",
     "zeromq": "^5.2.8"
   },
   "devDependencies": {

@@ -8,11 +8,9 @@ Create the Primus realtime socket server
 */
 
 const { join } = require("path");
-import { Router } from "express";
+import { Router } from "express"; 
 import { Server } from "http";
-
-// Primus devs don't care about typescript: https://github.com/primus/primus/pull/623
-const Primus = require("primus");
+import Primus from "primus";
 
 // We are NOT using UglifyJS because it can easily take 3 blocking seconds of cpu
 // during project startup to save 100kb -- it just isn't worth it.  Obviously, it
@@ -27,7 +25,7 @@ export default function init(server: Server, basePath: string): Router {
   const opts = {
     pathname: join(basePath, ".smc", "ws"),
     transformer: "websockets",
-  };
+  } as const;
   winston.info(`Initalizing primus websocket server at "${opts.pathname}"...`);
   const primus = new Primus(server, opts);
 

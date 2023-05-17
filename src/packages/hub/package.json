@@ -22,6 +22,7 @@
     "@sendgrid/client": "^7.4.6",
     "@types/express": "^4.17.13",
     "@types/nodemailer": "^6.4.4",
+    "@types/primus": "^7.3.6",
     "@types/react": "^18.0.26",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
@@ -76,7 +77,8 @@
     "uuid": "^8.3.2",
     "validator": "^13.6.0",
     "webpack-dev-middleware": "^6.0.1",
-    "webpack-hot-middleware": "^2.25.3"
+    "webpack-hot-middleware": "^2.25.3",
+    "ws": "^8.13.0"
   },
   "devDependenicesNotes": "For license and size reasons, we make @cocalc/crm a dev dependency so it is NOT installed unless explicitly installed as a separate step.",
   "devDependencies": {
