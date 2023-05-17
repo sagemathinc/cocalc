@@ -124,7 +124,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
       try {
         await actions.set_compute_image(image);
         // only restart the project if it is actually running
-        if (image != DISMISS_IMG_1804 && is_running) {
+        if (image != KEEP_IMAGE && is_running) {
           await redux.getActions("projects").restart_project(project_id);
         }
       } catch (err) {
@@ -141,7 +141,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
             onClick={() => set_image(dflt_compute_image)}
             bsStyle={"primary"}
           >
-            Update
+            Upgrade
           </Button>
         );
       } else {
@@ -197,9 +197,9 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
         >
           <div style={{ display: "flex" }}>
             <div style={{ flex: "1 1 auto" }}>
-              <strong>Software Update Available!</strong>{" "}
+              <strong>Software Upgrade Available!</strong>{" "}
               <VisibleMDLG>
-                Update this project's software environment from {oldname} to{" "}
+                Upgrade this project's software environment from {oldname} to{" "}
                 {render_update_to_2004()}
                 <strong>
                   <A href={DOC_UBUNTU_2204}>{name2204}</A>

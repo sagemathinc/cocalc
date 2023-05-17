@@ -104,12 +104,25 @@ export const NamedServerPanel: React.FC<Props> = ({
     name == "jupyterlab" &&
     student_project_functionality.disableJupyterLabServer
   ) {
-    body = "Disabled. Please contact your instructor if you need to use this.";
+    body =
+      "Disabled. Please contact your instructor if you need to use Jupyter Lab";
   } else if (
     name == "jupyter" &&
     student_project_functionality.disableJupyterLabServer
   ) {
-    body = "Disabled. Please contact your instructor if you need to use this.";
+    body =
+      "Disabled. Please contact your instructor if you need to use Jupyter Classic.";
+  } else if (
+    name == "code" &&
+    student_project_functionality.disableVSCodeServer
+  ) {
+    body =
+      "Disabled. Please contact your instructor if you need to use VS Code.";
+  } else if (
+    name == "pluto" &&
+    student_project_functionality.disablePlutoServer
+  ) {
+    body = "Disabled. Please contact your instructor if you need to use Pluto.";
   } else {
     body = (
       <>
@@ -163,16 +176,40 @@ export function ServerLink({
   project_id: string;
   name: NamedServerName;
 }) {
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
   const { icon, longName } = getServerInfo(name);
-  return (
-    <LinkRetry
-      href={serverURL(project_id, name)}
-      loadingText="Launching server..."
-      onClick={() => {
-        track("launch-server", { name, project_id });
-      }}
-    >
-      <Icon name={icon} /> {longName} Server...
-    </LinkRetry>
-  );
+  if (
+    name == "jupyterlab" &&
+    student_project_functionality.disableJupyterLabServer
+  ) {
+    return null;
+  } else if (
+    name == "jupyter" &&
+    student_project_functionality.disableJupyterLabServer
+  ) {
+    return null;
+  } else if (
+    name == "code" &&
+    student_project_functionality.disableVSCodeServer
+  ) {
+    return null;
+  } else if (
+    name == "pluto" &&
+    student_project_functionality.disablePlutoServer
+  ) {
+    return null;
+  } else {
+    return (
+      <LinkRetry
+        href={serverURL(project_id, name)}
+        loadingText="Launching server..."
+        onClick={() => {
+          track("launch-server", { name, project_id });
+        }}
+      >
+        <Icon name={icon} /> {longName} Server...
+      </LinkRetry>
+    );
+  }
 }

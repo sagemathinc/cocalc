@@ -422,7 +422,11 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         <>
           <Form.Item style={{ margin: "5px 0 15px 0" }}>
             <select
-              style={{ width: "100%", border: "1px solid lightgray" }}
+              style={{
+                width: "100%",
+                border: "1px solid lightgray",
+                padding: "4px 11px",
+              }}
               multiple
               ref={addSelectRef}
               size={8}

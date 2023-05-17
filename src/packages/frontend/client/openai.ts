@@ -52,7 +52,7 @@ export class OpenAIClient {
     model?: Model;
     tag?: string;
   }): Promise<string> {
-    if (!redux.getStore("projects").hasOpenAI(project_id)) {
+    if (!redux.getStore("projects").hasOpenAI(project_id, tag)) {
       return `OpenAI support is not currently enabled ${
         project_id ? "in this project" : "on this server"
       }.`;

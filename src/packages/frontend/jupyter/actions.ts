@@ -2163,7 +2163,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       new_id: this.new_id.bind(this),
       process_attachment:
         this.jupyter_kernel != null
-          ? this.jupyter_kernel.process_attachment
+          ? this.jupyter_kernel.process_attachment.bind(this.jupyter_kernel)
           : undefined,
       output_handler:
         this.jupyter_kernel != null ? this._output_handler : undefined, // undefined in client; defined in project

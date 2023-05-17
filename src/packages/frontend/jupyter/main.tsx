@@ -341,11 +341,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         sel_ids={sel_ids}
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
-        chatgpt={
-          actions?.redux?.getStore("projects").hasOpenAI(project_id)
-            ? chatgpt
-            : undefined
-        }
+        chatgpt={chatgpt}
       />
     );
   }

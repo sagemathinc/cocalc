@@ -390,8 +390,18 @@ export class IPynbImporter {
         for (const mime in val) {
           const base64 = val[mime];
           if (this._process_attachment != null) {
-            const sha1 = this._process_attachment(base64, mime);
-            obj.attachments[name] = { type: "sha1", value: sha1 };
+            try {
+              const sha1 = this._process_attachment(base64, mime);
+              obj.attachments[name] = { type: "sha1", value: sha1 };
+            } catch (err) {
+              // We put this in input, since actually attachments are
+              // only for markdown cells (?), and they have no output.
+              // Anyway, I'm mainly putting this here to debug this
+              // and it should never failed when debugged.
+              // Just to be clear again: this should never ever happen.
+              const text = `\n${err.stack}\nCoCalc Bug -- ${err}\n`;
+              obj.input = (obj.input ?? "") + text;
+            }
           } else {
             obj.attachments[name] = { type: "base64", value: base64 };
           }

@@ -18,6 +18,7 @@ import { alert_message } from "@cocalc/frontend/alerts";
 import {
   CSS,
   React,
+  redux,
   useFrameContext,
   useState,
 } from "@cocalc/frontend/app-framework";
@@ -65,8 +66,8 @@ function should_memoize(prev, next) {
 export const InsertCell: React.FC<InsertCellProps> = React.memo(
   (props: InsertCellProps) => {
     const { position, chatgpt, actions, id } = props;
-    const haveChatGTP = chatgpt != null;
     const { project_id, path } = useFrameContext();
+    const haveChatGTP = chatgpt && redux.getStore("projects").hasOpenAI(project_id, "generate-cell")
     const frameActions = useNotebookFrameActions();
     const [showChatGPT, setShowChatGPT] = useState<boolean>(false);
     const [querying, setQuerying] = useState<boolean>(false);

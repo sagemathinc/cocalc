@@ -22,7 +22,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
   const [error, setError] = useState<string>("");
   if (
     actions == null ||
-    !actions.redux.getStore("projects").hasOpenAI(project_id)
+    !actions.redux.getStore("projects").hasOpenAI(project_id, "explain")
   ) {
     return null;
   }

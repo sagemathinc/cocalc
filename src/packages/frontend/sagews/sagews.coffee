@@ -1253,15 +1253,13 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         output = opts.element
         # mesg = object
         # output = jQuery wrapped element
-        window.opts = opts
-
         if mesg.stdout?
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
 
         if mesg.stderr?
             # This is entirely for the ChatGPT help button:
             # TODO: don't show if chatgpt disabled.
-            if chatgpt.isEnabled()
+            if chatgpt.isEnabled(@project_id)
                 cur = output.data('stderr')
                 if not cur
                     button = $("<div><span title='@ChatGPT, help fix this...' style='font-family:sans-serif;' class='btn btn-default'>Help me fix this...</span></div>")

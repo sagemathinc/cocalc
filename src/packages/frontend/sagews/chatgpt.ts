@@ -3,7 +3,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { getHelp } from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
 
 export function isEnabled(project_id: string): boolean {
-  return redux.getStore("projects").hasOpenAI(project_id);
+  return redux.getStore("projects").hasOpenAI(project_id, "help-me-fix");
 }
 export function helpMeFix({
   codemirror,

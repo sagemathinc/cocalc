@@ -731,18 +731,31 @@ export class ProjectsStore extends Store<ProjectsState> {
     openAICache.clear();
   }
 
-  hasOpenAI(project_id?: string): boolean {
+  hasOpenAI(project_id?: string, tag?: string): boolean {
     // cache answer for a few seconds, in case this gets called a lot:
-    const key = project_id ?? "global";
+
+    let courseLimited = false;
+    if (
+      tag &&
+      (tag.includes("explain") ||
+        tag.includes("help-me-fix") ||
+        tag.includes("reply"))
+    ) {
+      // We only care about 'explain' or 'help-me-fix' or 'reply' for the tags
+      // right now regarding disabling chatgpt, hence to make our cache
+      // better we base the key only on those possibilities.
+      courseLimited = true;
+    }
+    const key = `${project_id ?? "global"}-${courseLimited}`;
     if (openAICache.has(key)) {
       return !!openAICache.get(key);
     }
-    const value = this._hasOpenAI(project_id);
+    const value = this._hasOpenAI(project_id, courseLimited);
     openAICache.set(key, value);
     return value;
   }
 
-  private _hasOpenAI(project_id?: string): boolean {
+  private _hasOpenAI(project_id?: string, courseLimited?: boolean): boolean {
     if (!redux.getStore("customize").get("openai_enabled")) {
       return false;
     }
@@ -752,16 +765,21 @@ export class ProjectsStore extends Store<ProjectsState> {
       return false;
     }
     if (project_id != null) {
-      if (
-        this.getIn([
-          "project_map",
-          project_id,
-          "course",
-          "student_project_functionality",
-          "disableChatGPT",
-        ])
-      ) {
+      const s = this.getIn([
+        "project_map",
+        project_id,
+        "course",
+        "student_project_functionality",
+      ]);
+      if (s?.get("disableChatGPT")) {
         return false;
+      }
+      if (s?.get("disableSomeChatGPT")) {
+        if (courseLimited) {
+          return true;
+        } else {
+          return false;
+        }
       }
     }
     return true;
