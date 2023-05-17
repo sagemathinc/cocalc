@@ -5,51 +5,27 @@
 
 // Execute code in a subprocess.
 
-import getLogger from "@cocalc/backend/logger";
 import { callback } from "awaiting";
-import { chmod, mkdtemp, rm, writeFile } from "fs/promises";
-import { join } from "path";
-import { tmpdir } from "os";
-import { spawn } from "child_process";
+import { spawn } from "node:child_process";
+import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import shellEscape from "shell-escape";
+
+import getLogger from "@cocalc/backend/logger";
 import { aggregate } from "@cocalc/util/aggregate";
-import { to_json, trunc, walltime } from "@cocalc/util/misc";
 import { callback_opts } from "@cocalc/util/async-utils";
+import { to_json, trunc, walltime } from "@cocalc/util/misc";
 import { envForSpawn } from "./misc";
 
+import type {
+  ExecuteCodeFunctionWithCallback,
+  ExecuteCodeOptions,
+  ExecuteCodeOptionsWithCallback,
+  ExecuteCodeOutput,
+} from "@cocalc/util/types/execute-code";
+
 const log = getLogger("execute-code");
-
-export interface ExecuteCodeOutput {
-  stdout: string;
-  stderr: string;
-  exit_code: number;
-}
-
-export interface ExecuteCodeOptions {
-  command: string;
-  args?: string[];
-  path?: string; // defaults to home directory; where code is executed from
-  timeout?: number; // timeout in *seconds*
-  ulimit_timeout?: boolean; // If set (the default), use ulimit to ensure a cpu timeout -- don't use when launching a daemon!
-  // This has no effect if bash not true.
-  err_on_exit?: boolean; // if true (the default), then a nonzero exit code will result in an error; if false, even with a nonzero exit code you just get back the stdout, stderr and the exit code as usual.
-  max_output?: number; // bound on size of stdout and stderr; further output ignored
-  bash?: boolean; // if true, ignore args and evaluate command as a bash command
-  home?: string;
-  uid?: number;
-  gid?: number;
-  env?: object; // if given, added to exec environment
-  aggregate?: string | number; // if given, aggregates multiple calls with same sequence number into one -- see @cocalc/util/aggregate; typically make this a timestamp for compiling code (e.g., latex).
-  verbose?: boolean; // default true -- impacts amount of logging
-}
-
-export interface ExecuteCodeOptionsWithCallback extends ExecuteCodeOptions {
-  cb?: (err: undefined | Error, output?: ExecuteCodeOutput) => void;
-}
-
-type ExecuteCodeFunctionWithCallback = (
-  opts: ExecuteCodeOptionsWithCallback
-) => void;
 
 // Async/await interface to executing code.
 export async function executeCode(

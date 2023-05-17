@@ -11,6 +11,8 @@
 
 import { SyncTable } from "@cocalc/sync/table/synctable";
 
+import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
+
 export interface Patch {
   time: Date; // timestamp of when patch made
   patch: CompressedPatch /* compressed format patch (stored as a
@@ -126,6 +128,10 @@ export interface Client extends ProjectClient {
     options: any,
     throttle_changes?: number
   ) => Promise<SyncTable>;
+
+  shell: (opts: ExecuteCodeOptionsWithCallback) => void;
+
+  sage_session: (opts: { path: string }) => any;
 }
 
 export interface DocType {

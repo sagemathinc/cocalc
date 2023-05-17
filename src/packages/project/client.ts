@@ -55,8 +55,9 @@ import { getLogger } from "./logger";
 import { get_listings_table } from "./sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
-import { SageSessionOpts } from "./types";
 import { Watcher } from "./watcher";
+
+import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 
 const sage_session = require("./sage_session");
 
@@ -671,14 +672,18 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   }
 
   // execute a command using the shell or a subprocess -- see docs for execute_code in misc_node.
-  public shell(opts): void {
+  public shell(opts: ExecuteCodeOptionsWithCallback): void {
     execute_code(opts);
   }
 
   // return new sage session -- the code that actually calls this is in the @cocalc/sync package
   // in "packages/sync/editor/generic/evaluator.ts"
-  public sage_session(opts: SageSessionOpts) {
-    return sage_session.sage_session({ path: opts.path, client: this });
+  public sage_session({
+    path,
+  }: {
+    path: string; // the path to the *worksheet* file
+  }) {
+    return sage_session.sage_session({ path, client: this });
   }
 
   // returns a Jupyter kernel session

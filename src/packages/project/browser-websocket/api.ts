@@ -163,11 +163,12 @@ async function listing(
 import { handle_request as jupyter } from "../jupyter/websocket-api";
 
 // Execute code
-import {
-  executeCode,
+import { executeCode } from "@cocalc/backend/execute-code";
+
+import type {
   ExecuteCodeOptions,
   ExecuteCodeOutput,
-} from "@cocalc/backend/execute-code";
+} from "@cocalc/util/types/execute-code";
 
 export async function exec(
   opts: ExecuteCodeOptions
