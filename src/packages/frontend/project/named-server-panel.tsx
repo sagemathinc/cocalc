@@ -108,7 +108,7 @@ export const NamedServerPanel: React.FC<Props> = ({
       "Disabled. Please contact your instructor if you need to use Jupyter Lab";
   } else if (
     name == "jupyter" &&
-    student_project_functionality.disableJupyterLabServer
+    student_project_functionality.disableJupyterClassicServer
   ) {
     body =
       "Disabled. Please contact your instructor if you need to use Jupyter Classic.";
@@ -186,7 +186,7 @@ export function ServerLink({
     return null;
   } else if (
     name == "jupyter" &&
-    student_project_functionality.disableJupyterLabServer
+    student_project_functionality.disableJupyterClassicServer
   ) {
     return null;
   } else if (
