@@ -36,16 +36,16 @@ export interface ProjectWebsocket {
   writeAndWait: (message: any, cb: Function) => void;
 }
 
-interface API {
+export interface API {
   symmetric_channel(name: string): Promise<Channel>;
 }
 
-interface ProjectClient {
+export interface ProjectClient {
   websocket(project_id: string): Promise<ProjectWebsocket>;
   api(project_id: string): Promise<API>;
 }
 
-export interface WebappClient extends Client {
+export interface AppClient extends Client {
   touch_project: (project_id: string) => void;
   project_client: ProjectClient;
 }

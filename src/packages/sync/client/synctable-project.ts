@@ -12,7 +12,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { synctable_no_database, SyncTable } from "@cocalc/sync/table";
 import { once, retry_until_success } from "@cocalc/util/async-utils";
 import { assertDefined } from "@cocalc/util/misc";
-import type { WebappClient } from "./types";
+import type { AppClient } from "./types";
 
 // Always wait at least this long between connect attempts.  This
 // avoids flooding the project with connection requests if, e.g., the
@@ -23,7 +23,7 @@ interface Options {
   project_id: string;
   query: object;
   options: any[];
-  client: WebappClient;
+  client: AppClient;
   throttle_changes?: undefined | number;
   id: string;
 }
@@ -33,7 +33,7 @@ import { EventEmitter } from "events";
 class SyncTableChannel extends EventEmitter {
   public synctable?: SyncTable;
   private project_id: string;
-  private client: WebappClient;
+  private client: AppClient;
   private channel?: any;
   private websocket?: any;
   private query: any;

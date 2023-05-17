@@ -21,6 +21,8 @@ undefined
 import Primus from "primus";
 import http from "http";
 import { join } from "path";
+import * as responder from "primus-responder";
+import * as multiplex from "@cocalc/primus-multiplex";
 
 export function server() {
   const httpServer = http.createServer((_req, res) => {
@@ -89,10 +91,7 @@ export function project({
   const opts = {
     pathname: join(appBasePath, project_id, "raw/.smc/ws"),
     transformer: "websockets",
-    plugin: {
-      responder: require("primus-responder"),
-      multiplex: require("@cocalc/primus-multiplex"),
-    },
+    plugin: { responder, multiplex },
   } as const;
   const primus = Primus.createSocket(opts);
   const socket = new primus(url);

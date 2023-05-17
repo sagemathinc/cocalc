@@ -26,7 +26,7 @@ import {
   synctable_no_changefeed,
 } from "@cocalc/sync/table";
 import synctable_project from "./synctable-project";
-import type { Channel, WebappClient } from "./types";
+import type { Channel, AppClient } from "./types";
 
 interface SyncOpts extends Omit<SyncOpts0, "client"> {}
 
@@ -35,9 +35,9 @@ interface SyncDBOpts extends Omit<SyncDBOpts0, "client" | "string_cols"> {
 }
 
 export class SyncClient {
-  private client: WebappClient;
+  private client: AppClient;
 
-  constructor(client: WebappClient) {
+  constructor(client: AppClient) {
     this.client = client;
   }
 
