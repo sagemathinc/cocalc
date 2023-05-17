@@ -119,7 +119,7 @@ export async function read_file_from_project(socket: CoCalcSocket, mesg) {
     if (data == null) {
       throw new Error("data is null");
     }
-    id = uuidsha1(data.toString());
+    id = uuidsha1(data)
     //dbg("sha1 hash = '#{id}'")
 
     //dbg("send the file as a blob back to the hub.")
