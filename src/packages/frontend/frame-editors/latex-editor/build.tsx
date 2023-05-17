@@ -176,7 +176,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
 
     const items: AntdTabItem[] = [];
 
-    for (const log of Object.keys(BUILD_SPECS)) {
+    for (const log in BUILD_SPECS) {
       if (log === "clean" || log === "build") continue; // skip these
       const item = render_log(log);
       if (item) items.push(item);
