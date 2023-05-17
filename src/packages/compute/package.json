@@ -1,0 +1,32 @@
+{
+  "name": "@cocalc/compute",
+  "version": "0.1.0",
+  "description": "CoCalc remote compute service",
+  "exports": {
+    "./*": "./dist/*.js"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "npx tsc",
+    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+  },
+  "author": "SageMath, Inc.",
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/sync": "workspace:*",
+    "primus": "^8.0.7"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.18",
+    "ts-jest": "^29.0.3"
+  }
+}

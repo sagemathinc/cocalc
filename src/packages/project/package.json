@@ -60,7 +60,7 @@
     "pidusage": "^1.2.0",
     "portfinder": "^1.0.32",
     "prettier": "^2.6.2",
-    "primus": "^8.0.6",
+    "primus": "^8.0.7",
     "primus-multiplex": "github:STRML/primus-multiplex",
     "primus-responder": "^1.0.4",
     "prom-client": "^13.0.0",

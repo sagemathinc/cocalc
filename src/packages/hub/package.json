@@ -57,7 +57,7 @@
     "parse-domain": "^5.0.0",
     "passport": "^0.6.0",
     "password-hash": "^1.2.2",
-    "primus": "^8.0.6",
+    "primus": "^8.0.7",
     "prom-client": "^13.0.0",
     "random-key": "^0.3.2",
     "react": "^18.2.0",
