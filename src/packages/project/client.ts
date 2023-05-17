@@ -75,7 +75,7 @@ if (fs.existsSync(DEBUG_FILE)) {
   DEBUG = true;
 }
 
-winston.info("DEBUG = ", DEBUG);
+winston.info(`DEBUG = ${DEBUG}`);
 
 let client: Client;
 
@@ -108,7 +108,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   private _hub_client_sockets: {
     [id: string]: {
       socket: CoCalcSocket;
-      callbacks?: any; // TODO could be { [id: string]: HubCB | ((err: string) => void) }
+      callbacks?: { [id: string]: HubCB | CB<any, string> };
       activity: Date;
     };
   };
@@ -227,7 +227,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
   // Declare that the given socket is active right now and can be used for
   // communication with some hub (the one the socket is connected to).
-  public active_socket(socket: CoCalcSocket) {
+  public active_socket(socket: CoCalcSocket): void {
     const dbg = this.dbg(
       `active_socket(id=${socket.id},ip='${socket.remoteAddress}')`
     );
@@ -239,20 +239,18 @@ export class Client extends EventEmitter implements ProjectClientInterface {
         callbacks: {},
         activity: new Date(),
       };
-      const locals: { heartbeat_interval?: NodeJS.Timer } = {
-        heartbeat_interval: undefined,
-      };
-      const socket_end = () => {
-        let id;
-        if (locals.heartbeat_interval == null) {
+      let heartbeat_interval: NodeJS.Timer | undefined = undefined;
+      const socket_end = (): void => {
+        if (heartbeat_interval == null) {
           return;
         }
         dbg("ending socket");
-        clearInterval(locals.heartbeat_interval);
-        locals.heartbeat_interval = undefined;
+        clearInterval(heartbeat_interval);
+        heartbeat_interval = undefined;
         if (x.callbacks != null) {
-          for (id in x.callbacks) {
-            const cb = x.callbacks[id];
+          for (const id in x.callbacks) {
+            // TODO: is this right?  Should we call the callback an {event:error} object?
+            const cb = x.callbacks[id] as CB<any, string>;
             cb?.("socket closed");
           }
           delete x.callbacks; // so additional trigger of end doesn't do anything
@@ -268,26 +266,26 @@ export class Client extends EventEmitter implements ProjectClientInterface {
           dbg("lost all active sockets");
           this.emit("disconnected");
         }
-        return socket.end();
+        socket.end();
       };
 
       socket.on("end", socket_end);
       socket.on("error", socket_end);
 
-      const check_heartbeat = () => {
+      const check_heartbeat = (): void => {
         if (
           socket.heartbeat == null ||
           Date.now() - socket.heartbeat.getTime() >=
             1.5 * PROJECT_HUB_HEARTBEAT_INTERVAL_S * 1000
         ) {
           dbg("heartbeat failed");
-          return socket_end();
+          socket_end();
         } else {
-          return dbg("heartbeat -- socket is working");
+          dbg("heartbeat -- socket is working");
         }
       };
 
-      locals.heartbeat_interval = setInterval(
+      heartbeat_interval = setInterval(
         check_heartbeat,
         1.5 * PROJECT_HUB_HEARTBEAT_INTERVAL_S * 1000
       );
@@ -295,10 +293,10 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       if (misc.len(this._hub_client_sockets) >= 1) {
         dbg("CONNECTED!");
         this._connected = true;
-        return this.emit("connected");
+        this.emit("connected");
       }
     } else {
-      return (x.activity = new Date());
+      x.activity = new Date();
     }
   }
 
