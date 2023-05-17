@@ -14,18 +14,20 @@ import { is_valid_uuid_string } from "@cocalc/util/misc";
 
 interface Props {
   project_id?: string;
-  text?: string;
+  buyText?: string;
+  voucherText?: string;
   asLink?: boolean;
-  showVoucherButton?: boolean;
   style?: CSS;
+  size?: "small" | "middle" | "large";
 }
 
 export const BuyLicenseForProject: React.FC<Props> = ({
   project_id,
-  text = "Buy a license",
+  buyText = "Buy a license",
+  voucherText = "Redeem a voucher",
   asLink = false,
-  showVoucherButton = true,
   style,
+  size = "large",
 }: Props) => {
   const commercial = useTypedRedux("customize", "commercial");
 
@@ -45,7 +47,7 @@ export const BuyLicenseForProject: React.FC<Props> = ({
   function renderBuyButton() {
     return (
       <Button
-        size={asLink ? undefined : "large"}
+        size={asLink ? undefined : size}
         type={asLink ? "link" : "default"}
         icon={asLink ? undefined : <Icon name="shopping-cart" />}
         style={style}
@@ -53,7 +55,7 @@ export const BuyLicenseForProject: React.FC<Props> = ({
           open_new_tab(url("store/site-license"));
         }}
       >
-        {text}
+        {buyText}
       </Button>
     );
   }
@@ -61,21 +63,25 @@ export const BuyLicenseForProject: React.FC<Props> = ({
   function renderVoucherButton() {
     return (
       <Button
-        size={asLink ? undefined : "large"}
+        size={asLink ? undefined : size}
         type={asLink ? "link" : "default"}
         style={style}
-        icon={<Icon name="gift2" />}
+        icon={asLink ? undefined : <Icon name="gift2" />}
         onClick={() => {
           open_new_tab(url("redeem"));
         }}
       >
-        Redeem a voucher
+        {voucherText}
       </Button>
     );
   }
 
-  if (showVoucherButton === false) {
-    return renderBuyButton();
+  if (asLink) {
+    return (
+      <>
+        {renderBuyButton()} or {renderVoucherButton()}
+      </>
+    );
   } else {
     return (
       <Space>
