@@ -266,6 +266,12 @@ export default function EditNews(props: Props) {
 
   const title = `${siteName} / Edit News / ${isNew ? "new" : `${id}`}`;
 
+  const items = [
+    { key: "/", title: <A href="/">{siteName}</A> },
+    { key: "/news", title: <A href="/news">News</A> },
+    { key: "new", title: isNew ? "Create New" : `Edit #${id}` },
+  ];
+
   return (
     <Customize value={customize}>
       <Head title={title} />
@@ -284,17 +290,7 @@ export default function EditNews(props: Props) {
               margin: "0 auto",
             }}
           >
-            <Breadcrumb style={{ margin: "30px 0" }}>
-              <Breadcrumb.Item>
-                <A href="/">{siteName}</A>
-              </Breadcrumb.Item>
-              <Breadcrumb.Item>
-                <A href="/news">News</A>
-              </Breadcrumb.Item>
-              <Breadcrumb.Item>
-                {isNew ? "Create New" : `Edit #${id}`}
-              </Breadcrumb.Item>
-            </Breadcrumb>
+            <Breadcrumb style={{ margin: "30px 0" }} items={items} />
             {content()}
           </div>
           <Footer />

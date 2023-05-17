@@ -28,13 +28,11 @@ export default function Main(props: Props) {
 
   function renderNav() {
     if (nav == null) return null;
-    return (
-      <Breadcrumb style={{ margin: "50px 0 25px 0" }}>
-        {nav.map((entry, idx) => (
-          <Breadcrumb.Item key={idx}>{entry}</Breadcrumb.Item>
-        ))}
-      </Breadcrumb>
-    );
+    const items = nav.map((entry, idx) => ({
+      key: idx,
+      title: entry,
+    }));
+    return <Breadcrumb style={{ margin: "50px 0 25px 0" }} items={items} />;
   }
 
   return (
