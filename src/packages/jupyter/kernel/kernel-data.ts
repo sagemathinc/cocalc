@@ -14,7 +14,7 @@ Specs: https://jupyter-client.readthedocs.io/en/stable/kernels.html#kernel-specs
 import { findAll } from "kernelspecs";
 import LRU from "lru-cache";
 
-import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
+import type { KernelSpec } from "@cocalc/jupyter/types/types";
 import { field_cmp } from "@cocalc/util/misc";
 
 const cache = new LRU<"kernel_data", KernelSpec[]>({

@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "description": "CoCalc Jupyter -- code to support using Jupyter in cocalc, mainly across all clients",
   "exports": {
-    "./*": "./dist/*.js"
+    "./*": "./dist/*.js",
+    "./types": "./dist/types/index.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -15,10 +16,12 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/jupyter": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
     "execa": "^7.1.1",
+    "immutable": "4.0.0-rc.12",
     "jsonfile": "^6.1.0",
     "jupyter-paths": "^2.0.3",
     "kernelspecs": "^2.0.1",
