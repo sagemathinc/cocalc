@@ -113,4 +113,12 @@ export default class API implements API_Interface {
     );
     return this.conn.channel(channel_name);
   }
+
+  async query(opts: any): Promise<any> {
+    if (opts.timeout == null) {
+      opts.timeout = 30000;
+    }
+    const timeout_ms = opts.timeout * 1000 + 2000;
+    return await this.call({ cmd: "query", opts }, timeout_ms);
+  }
 }

@@ -33,6 +33,7 @@ import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
 import { Mesg } from "@cocalc/frontend/project/websocket/types";
 import { reuseInFlight } from "async-await-utils/hof";
+import query from "./query";
 
 import { getLogger } from "@cocalc/project/logger";
 const log = getLogger("websocket-api");
@@ -105,6 +106,8 @@ async function handleApiCall0(data: Mesg): Promise<any> {
       return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
       return await exec(data.opts);
+    case "query":
+      return await query(client, data.opts);
     case "eval_code":
       return eval_code(data.code);
     case "terminal":

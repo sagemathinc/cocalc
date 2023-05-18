@@ -25,7 +25,31 @@ export default class Client extends EventEmitter implements AppClient {
   }
 
   query(opts) {
-    this.dbg("query")("STUB", opts);
+    this.dbg("query")(opts);
+    if (typeof opts?.query != "object") {
+      throw Error("opts.query must be specified");
+    }
+    let project_id;
+    for (const table in opts.query) {
+      if (opts.query[table].project_id) {
+        project_id = opts.query[table].project_id;
+        break;
+      }
+      if (opts.query[table][0]?.project_id) {
+        project_id = opts.query[table][0]?.project_id;
+        break;
+      }
+    }
+    if (!project_id) {
+      throw Error(
+        "only queries involving an explicit project_id are supported"
+      );
+    }
+    (async () => {
+      const api = await this.project_client.api(project_id);
+      const result = await api.query(opts);
+      opts.cb?.(undefined, result);
+    })();
   }
 
   query_cancel() {

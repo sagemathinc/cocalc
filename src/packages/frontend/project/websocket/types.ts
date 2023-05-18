@@ -153,6 +153,11 @@ interface MesgProjectInfo {
   cmd: "project_info";
 }
 
+interface MesgQuery {
+  cmd: "query",
+  opts: any;
+}
+
 export type Mesg =
   | MesgExec
   | MesgDeleteFiles
@@ -169,6 +174,7 @@ export type Mesg =
   | MesgTerminal
   | MesgLean
   | MesgLeanChannel
+  | MesgQuery
   | MesgX11Channel
   | MesgSynctableChannel
   | MesgSyncdocCall

@@ -314,4 +314,17 @@ export class API {
     );
     return this.conn.channel(channel_name);
   }
+
+  // Do a database query, but via the project.  This has the project
+  // do the query, so the identity used to access the database is that
+  // of the project.  This isn't useful in the browser, where the user
+  // always has more power to directly use the database.  It is *is*
+  // very useful the @cocalc/compute though.
+  async query(opts: any): Promise<any> {
+    if (opts.timeout == null) {
+      opts.timeout = 30000;
+    }
+    const timeout_ms = opts.timeout * 1000 + 2000;
+    return await this.call({ cmd: "query", opts }, timeout_ms);
+  }
 }
