@@ -1097,6 +1097,9 @@ export class SyncTable extends EventEmitter {
   // Return modified immutable Map, with all types coerced to be
   // as specified in the schema, if possible, or throw an exception.
   private do_coerce_types(changes: Map<string, any>): Map<string, any> {
+    if(!Map.isMap(changes)) {
+      changes = Map(changes);
+    }
     if (!this.coerce_types) {
       // no-op if coerce_types isn't set.
       return changes;
@@ -1204,7 +1207,7 @@ export class SyncTable extends EventEmitter {
         }
         if (desired === "map") {
           if (!Map.isMap(value)) {
-            value = fromJS(value);
+            value = Map(value);
             if (!Map.isMap(value)) {
               throw Error(
                 `field ${field} of table ${this.table} (value=${changes.get(

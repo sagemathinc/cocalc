@@ -79,7 +79,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private log(..._args): void {
-    // console.log("SyncChannel", this.query, ..._args);
+    // console.log("SyncTableChannel", this.query, ..._args);
   }
 
   private async connect(): Promise<void> {
