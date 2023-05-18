@@ -12,7 +12,9 @@
   "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/sync-client": "workspace:*"
+    "@cocalc/sync-client": "workspace:*",
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/util": "workspace:*"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
   "repository": {
