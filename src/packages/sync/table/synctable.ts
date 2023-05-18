@@ -32,24 +32,11 @@ import { query_function } from "./query-function";
 import { assert_uuid, copy, is_array, is_object, len } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
 import mergeDeep from "./immutable-deep-merge";
+import type { Client } from "@cocalc/sync/client/types";
+export type { Client };
 
 export type Query = any; // TODO typing
 export type QueryOptions = any[]; // TODO typing
-
-// What we need the client below to implement so we can use
-// it to support a table.
-export interface Client extends EventEmitter {
-  is_project: () => boolean;
-  dbg: (str: string) => Function;
-  query: Query; // TODO typing
-  query_cancel: Function;
-  server_time: Function;
-  alert_message?: Function;
-  is_connected: () => boolean;
-  is_signed_in: () => boolean;
-  touch_project: (opts: any) => void;
-  set_connected?: Function;
-}
 
 export interface VersionedChange {
   obj: { [key: string]: any };

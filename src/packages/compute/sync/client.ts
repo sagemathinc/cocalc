@@ -8,11 +8,15 @@ import { bind_methods } from "@cocalc/util/misc";
 export default class Client extends EventEmitter implements AppClient {
   project_client: ProjectClient;
   sync_client: SyncClient;
+  synctable_project: Function;
 
   constructor() {
     super();
     this.project_client = bind_methods(new ProjectClient());
     this.sync_client = bind_methods(new SyncClient(this));
+    this.synctable_project = this.sync_client.synctable_project.bind(
+      this.sync_client
+    );
     bind_methods(this);
   }
 

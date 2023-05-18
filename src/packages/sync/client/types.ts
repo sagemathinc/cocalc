@@ -1,4 +1,19 @@
-import type { Client } from "@cocalc/sync/table/synctable";
+import type { EventEmitter } from "events";
+
+// What we need the client to implement so we can use
+// it to support a table.
+export interface Client extends EventEmitter {
+  is_project: () => boolean;
+  dbg: (str: string) => Function;
+  query: (opts: any) => void;
+  query_cancel: Function;
+  server_time: Function;
+  alert_message?: Function;
+  is_connected: () => boolean;
+  is_signed_in: () => boolean;
+  touch_project: (project_id: string) => void;
+  set_connected?: Function;
+}
 
 export interface Channel {
   OPEN: number;
@@ -15,10 +30,10 @@ export interface Channel {
 }
 
 type ReconnectEventOpts = any; // defined in @types/primus but don't need them here...
+export type WebsocketState = "offline" | "online" | "destroyed";
 
-export interface ProjectWebsocket {
+export interface ProjectWebsocket extends EventEmitter {
   // These are the standard things that Primus provides:
-  state: string;
   write(data: any): this;
   end(data?: any): this;
   destroy(): void;
@@ -42,10 +57,16 @@ export interface ProjectWebsocket {
   writeAndWait: (message: any, cb: Function) => void;
   // added by multiplex plugin; used to multiplex many channels over a single websocket.
   channel: (channel_name: string) => Channel;
+  // we explicitly add this
+  state: WebsocketState;
 }
 
 export interface API {
   symmetric_channel(name: string): Promise<Channel>;
+  synctable_channel(
+    query: { [field: string]: any },
+    options: { [field: string]: any }[]
+  ): Promise<Channel>;
 }
 
 export interface ProjectClient {
@@ -54,6 +75,5 @@ export interface ProjectClient {
 }
 
 export interface AppClient extends Client {
-  touch_project: (project_id: string) => void;
   project_client: ProjectClient;
 }

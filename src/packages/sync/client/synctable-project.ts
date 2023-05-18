@@ -83,6 +83,7 @@ class SyncTableChannel extends EventEmitter {
   }
 
   private async connect(): Promise<void> {
+    this.log("connect...");
     if (this.synctable == null) return;
     this.set_connected(false);
     this.clean_up_sockets();
@@ -132,20 +133,23 @@ class SyncTableChannel extends EventEmitter {
       this.project_id
     );
     if (this.websocket.state != "online") {
-      // give websocket state once chance to change.
+      // give websocket state one chance to change.
       // It could change to destroyed or online.
+      this.log(
+        "wait for websocket to connect since state is",
+        this.websocket.state
+      );
       await once(this.websocket, "state");
     }
     if (this.websocket.state != "online") {
       // Already offline... let's try again from the top.
+      this.log("websocket failed");
       throw Error("websocket went offline already");
     }
 
-    // Get a channel.
-    this.channel = await this.websocket.api.synctable_channel(
-      this.query,
-      this.options
-    );
+    this.log("Get a channel");
+    const api = await this.client.project_client.api(this.project_id);
+    this.channel = await api.synctable_channel(this.query, this.options);
 
     if (this.websocket.state != "online") {
       // Already offline... let's try again from the top.
