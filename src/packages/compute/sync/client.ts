@@ -20,6 +20,21 @@ export default class Client extends EventEmitter implements AppClient {
     bind_methods(this);
   }
 
+  client_id(): string {
+    // [ ] TODO: I haven't decided *what* this should be yet.
+    // Maybe the project_id?  this is just a random uuid:
+    return "10f0e544-313c-4efe-8718-2142ac97ad99";
+  }
+
+  // [ ] TODO: is this something we should worry about?  Probably yes.
+  is_deleted(_filename: string, _project_id: string): boolean {
+    return false;
+  }
+
+  async mark_file(_opts: any) {
+    // [ ] TODO: should we?
+  }
+
   is_project(): boolean {
     return false;
   }
