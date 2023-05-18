@@ -102,6 +102,9 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      short-uuid:
+        specifier: ^4.2.2
+        version: 4.2.2
     devDependencies:
       '@types/node':
         specifier: ^18.11.18
@@ -941,6 +944,55 @@ importers:
         specifier: ^4.5.0
         version: 4.5.0
 
+  jupyter:
+    dependencies:
+      '@cocalc/backend':
+        specifier: workspace:*
+        version: link:../backend
+      '@cocalc/sync':
+        specifier: workspace:*
+        version: link:../sync
+      '@cocalc/sync-client':
+        specifier: workspace:*
+        version: link:../sync-client
+      '@cocalc/util':
+        specifier: workspace:*
+        version: link:../util
+      execa:
+        specifier: ^7.1.1
+        version: 7.1.1
+      jsonfile:
+        specifier: ^6.1.0
+        version: 6.1.0
+      jupyter-paths:
+        specifier: ^2.0.3
+        version: 2.0.4
+      kernelspecs:
+        specifier: ^2.0.1
+        version: 2.0.1
+      lru-cache:
+        specifier: ^7.14.1
+        version: 7.14.1
+      mkdirp:
+        specifier: ^1.0.4
+        version: 1.0.4
+      portfinder:
+        specifier: ^1.0.32
+        version: 1.0.32
+      shell-escape:
+        specifier: ^0.2.0
+        version: 0.2.0
+      tsimportlib:
+        specifier: ^0.0.3
+        version: 0.0.3
+      uuid:
+        specifier: ^8.3.2
+        version: 8.3.2
+    devDependencies:
+      '@types/node':
+        specifier: ^18.11.18
+        version: 18.11.18
+
   next:
     dependencies:
       '@ant-design/icons':
@@ -1082,6 +1134,9 @@ importers:
       '@cocalc/frontend':
         specifier: workspace:*
         version: link:../frontend
+      '@cocalc/jupyter':
+        specifier: workspace:*
+        version: link:../jupyter
       '@cocalc/primus-multiplex':
         specifier: ^1.1.0
         version: 1.1.0
@@ -1142,9 +1197,6 @@ importers:
       enchannel-zmq-backend:
         specifier: ^9.1.23
         version: 9.1.23(rxjs@6.6.7)
-      execa:
-        specifier: ^7.1.1
-        version: 7.1.1
       expect:
         specifier: ^26.6.2
         version: 26.6.2
@@ -1172,9 +1224,6 @@ importers:
       json-stable-stringify:
         specifier: ^1.0.1
         version: 1.0.1
-      jsonfile:
-        specifier: ^6.1.0
-        version: 6.1.0
       jupyter-paths:
         specifier: ^2.0.3
         version: 2.0.4
@@ -1190,9 +1239,6 @@ importers:
       lru-cache:
         specifier: ^7.14.1
         version: 7.14.1
-      mkdirp:
-        specifier: ^1.0.4
-        version: 1.0.4
       node-cleanup:
         specifier: ^2.1.2
         version: 2.1.2
@@ -1202,9 +1248,6 @@ importers:
       pidusage:
         specifier: ^1.2.0
         version: 1.2.0
-      portfinder:
-        specifier: ^1.0.32
-        version: 1.0.32
       prettier:
         specifier: ^2.6.2
         version: 2.8.1
@@ -1223,18 +1266,12 @@ importers:
       serve-index:
         specifier: ^1.9.1
         version: 1.9.1
-      shell-escape:
-        specifier: ^0.2.0
-        version: 0.2.0
       temp:
         specifier: ^0.9.4
         version: 0.9.4
       tmp:
         specifier: 0.0.33
         version: 0.0.33
-      tsimportlib:
-        specifier: ^0.0.3
-        version: 0.0.3
       uglify-js:
         specifier: ^3.14.1
         version: 3.17.4
@@ -4543,7 +4580,7 @@ packages:
   /@nteract/commutable@7.5.0:
     resolution: {integrity: sha512-rOUkWJdPif/1wbBEAJa4hHxLhhZRJ2/9xWt4RletIcWoAhPCJZkvUDYcS5ZIWUJ2nZoUyLiUhAD2qx5+PAS4CA==}
     dependencies:
-      immutable: 4.2.1
+      immutable: 4.0.0-rc.12
       uuid: 8.3.2
     dev: false
 
@@ -4561,7 +4598,7 @@ packages:
     resolution: {integrity: sha512-a7lGMWdjfz2QGlZbAiFHifU9Nhk9ntwg/iKUTMIMRPY1Wfs5UreHSMt+vZ8OY5HGjxicfHozBatGDKXeKXFHMQ==}
     dependencies:
       '@nteract/commutable': 7.5.0
-      immutable: 4.2.1
+      immutable: 4.0.0-rc.12
       rxjs: 6.6.7
       uuid: 8.3.2
     dev: false
@@ -6267,6 +6304,10 @@ packages:
       - date-fns
       - luxon
       - moment
+    dev: false
+
+  /any-base@1.1.0:
+    resolution: {integrity: sha512-uMgjozySS8adZZYePpaWs8cxB9/kdzmpX6SgJZ+wbz1K5eYk5QMYDVJaZKhxyIHUdnnJkfR7SVgStgH7LkGUyg==}
     dev: false
 
   /anymatch@3.1.3:
@@ -10556,6 +10597,7 @@ packages:
 
   /immutable@4.2.1:
     resolution: {integrity: sha512-7WYV7Q5BTs0nlQm7tl92rDYYoyELLKHoDMBKhrxEoiV4mrfVdRz8hzPiYOzH7yWjzoVEamxRuAqhxL2PLRwZYQ==}
+    dev: true
 
   /import-fresh@3.3.0:
     resolution: {integrity: sha512-veYYhQa+D1QBKznvhUHxb8faxlrwUnxseDAbAp457E0wLNio2bOSKnjYDhMj+YiAq61xrMGhQk9iXVk5FzgQMw==}
@@ -11288,7 +11330,7 @@ packages:
       '@jest/types': 26.6.2
       '@types/stack-utils': 2.0.1
       chalk: 4.1.2
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.11
       micromatch: 4.0.5
       pretty-format: 26.6.2
       slash: 3.0.0
@@ -16129,6 +16171,14 @@ packages:
 
   /shell-escape@0.2.0:
     resolution: {integrity: sha512-uRRBT2MfEOyxuECseCZd28jC1AJ8hmqqneWQ4VWUTgCAFvb3wKU1jLqj6egC4Exrr88ogg3dp+zroH4wJuaXzw==}
+    dev: false
+
+  /short-uuid@4.2.2:
+    resolution: {integrity: sha512-IE7hDSGV2U/VZoCsjctKX6l5t5ak2jE0+aeGJi3KtvjIUNuZVmHVYUjNBhmo369FIWGDtaieRaO8A83Lvwfpqw==}
+    engines: {node: '>=8'}
+    dependencies:
+      any-base: 1.1.0
+      uuid: 8.3.2
     dev: false
 
   /should-equal@0.5.0:

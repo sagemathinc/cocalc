@@ -9,12 +9,16 @@
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/sync-client": "workspace:*",
     "@cocalc/sync": "workspace:*",
-    "@cocalc/util": "workspace:*"
+    "@cocalc/sync-client": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "short-uuid": "^4.2.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
   "repository": {

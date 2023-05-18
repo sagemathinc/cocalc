@@ -20,10 +20,11 @@ import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import createSetenvCommand from "@cocalc/util/jupyter-api/setenv-commands";
 import { exists, unlink } from "./async-utils-node";
 import { getLanguage } from "./kernel-data";
+
 import launchJupyterKernelNoPool, {
   LaunchJupyterOpts,
   SpawnedKernel,
-} from "./launch-jupyter-kernel";
+} from "@cocalc/jupyter/kernel/launch-kernel";
 import {
   getConfig,
   getConfigDir,
