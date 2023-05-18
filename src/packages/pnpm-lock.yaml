@@ -99,6 +99,9 @@ importers:
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync
+      '@cocalc/util':
+        specifier: workspace:*
+        version: link:../util
       '@types/primus':
         specifier: ^7.3.6
         version: 7.3.6

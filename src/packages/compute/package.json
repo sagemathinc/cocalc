@@ -19,6 +19,7 @@
   "dependencies": {
     "@cocalc/primus-multiplex": "^1.1.0",
     "@cocalc/sync": "workspace:*",
+    "@cocalc/util": "workspace:*",
     "@types/primus": "^7.3.6",
     "debug": "^4.3.2",
     "primus": "^8.0.7",
