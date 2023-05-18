@@ -51,7 +51,6 @@
     "googlediff": "^0.1.0",
     "json-stable-stringify": "^1.0.1",
     "jupyter-paths": "^2.0.3",
-    "kernelspecs": "^2.0.1",
     "lean-client-js-node": "^1.2.12",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
