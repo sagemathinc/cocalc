@@ -17,6 +17,7 @@ export interface Channel {
 type ReconnectEventOpts = any; // defined in @types/primus but don't need them here...
 
 export interface ProjectWebsocket {
+  // These are the standard things that Primus provides:
   state: string;
   write(data: any): this;
   end(data?: any): this;
@@ -33,7 +34,14 @@ export interface ProjectWebsocket {
   on(event: "data", handler: (message: any) => void): this;
   on(event: "error", handler: (err: Error) => void): this;
   open(): this;
+
+  // Special things for cocalc
+  // a verbose flag
+  verbose?: boolean;
+  // added by responder plugin; used to write one message and get back a single response.
   writeAndWait: (message: any, cb: Function) => void;
+  // added by multiplex plugin; used to multiplex many channels over a single websocket.
+  channel: (channel_name: string) => Channel;
 }
 
 export interface API {
