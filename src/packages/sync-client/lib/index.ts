@@ -4,7 +4,7 @@ Example use:
 ~/cocalc/src/packages/compute$ PROJECT_PORT=33177 DEBUG='cocalc:sync*' node
 ...
 
-> c = new (require('./dist/client').default)(); s = c.sync_client.sync_db({project_id:'97ce5a7c-25c1-4059-8670-c7de96a0db92',path:'b.tasks',primary_keys:["task_id"], string_cols:['desc']})
+> c = new (require('.').default)(); s = c.sync_client.sync_db({project_id:'97ce5a7c-25c1-4059-8670-c7de96a0db92',path:'b.tasks',primary_keys:["task_id"], string_cols:['desc']})
 
 > s.set({task_id:'cf163fb4-b198-4664-b32b-82ce4ec71701',desc:"fubar"})
 > await s.save()

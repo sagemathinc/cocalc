@@ -1,7 +1,7 @@
 {
-  "name": "@cocalc/compute",
+  "name": "@cocalc/sync-client",
   "version": "0.1.0",
-  "description": "CoCalc remote compute provider -- connects to project and provides remote compute",
+  "description": "CoCalc Lightweight Nodejs Sync Client",
   "main": "./dist/lib/index.js",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -12,9 +12,16 @@
   "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/sync-client": "workspace:*"
+    "@cocalc/primus-multiplex": "^1.1.0",
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "@types/primus": "^7.3.6",
+    "debug": "^4.3.2",
+    "primus": "^8.0.7",
+    "primus-responder": "^1.0.4",
+    "ws": "^8.13.0"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync-client",
   "repository": {
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"

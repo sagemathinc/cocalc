@@ -93,37 +93,13 @@ importers:
 
   compute:
     dependencies:
-      '@cocalc/primus-multiplex':
-        specifier: ^1.1.0
-        version: 1.1.0
-      '@cocalc/sync':
+      '@cocalc/sync-client':
         specifier: workspace:*
-        version: link:../sync
-      '@cocalc/util':
-        specifier: workspace:*
-        version: link:../util
-      '@types/primus':
-        specifier: ^7.3.6
-        version: 7.3.6
-      debug:
-        specifier: ^4.3.2
-        version: 4.3.4(supports-color@8.1.1)
-      primus:
-        specifier: ^8.0.7
-        version: 8.0.7
-      primus-responder:
-        specifier: ^1.0.4
-        version: 1.0.4
-      ws:
-        specifier: ^8.13.0
-        version: 8.13.0
+        version: link:../sync-client
     devDependencies:
       '@types/node':
         specifier: ^18.11.18
         version: 18.11.18
-      ts-jest:
-        specifier: ^29.0.3
-        version: 29.0.3(@babel/core@7.21.8)(jest@29.5.0)(typescript@5.0.4)
 
   database:
     dependencies:
@@ -1698,6 +1674,37 @@ importers:
       ts-jest:
         specifier: ^29.0.3
         version: 29.0.3(@babel/core@7.18.13)(jest@29.5.0)(typescript@5.0.4)
+
+  sync-client:
+    dependencies:
+      '@cocalc/primus-multiplex':
+        specifier: ^1.1.0
+        version: 1.1.0
+      '@cocalc/sync':
+        specifier: workspace:*
+        version: link:../sync
+      '@cocalc/util':
+        specifier: workspace:*
+        version: link:../util
+      '@types/primus':
+        specifier: ^7.3.6
+        version: 7.3.6
+      debug:
+        specifier: ^4.3.2
+        version: 4.3.4(supports-color@8.1.1)
+      primus:
+        specifier: ^8.0.7
+        version: 8.0.7
+      primus-responder:
+        specifier: ^1.0.4
+        version: 1.0.4
+      ws:
+        specifier: ^8.13.0
+        version: 8.13.0
+    devDependencies:
+      '@types/node':
+        specifier: ^18.11.18
+        version: 18.11.18
 
   util:
     dependencies:
