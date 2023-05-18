@@ -1,3 +1,25 @@
+/*
+Example use:
+
+~/cocalc/src/packages/compute$ PROJECT_PORT=33177 DEBUG='cocalc:sync*' node
+...
+
+> c = new (require('./dist/client').default)(); s = c.sync_client.sync_db({project_id:'97ce5a7c-25c1-4059-8670-c7de96a0db92',path:'b.tasks',primary_keys:["task_id"], string_cols:['desc']})
+
+> s.set({task_id:'cf163fb4-b198-4664-b32b-82ce4ec71701',desc:"fubar"})
+> await s.save()
+> s.to_str()
+'{"desc":"fubar","last_edited":1684420716277,"position":0,"task_id":"cf163fb4-b198-4664-b32b-82ce4ec71701"}'
+> s.set({task_id:'cf163fb4-b198-4664-b32b-82ce4ec71701',desc:"figure it out"})
+undefined
+> await s.save()
+undefined
+> s.to_str()
+'{"desc":"figure it out","last_edited":1684420716277,"position":0,"task_id":"cf163fb4-b198-4664-b32b-82ce4ec71701"}'
+
+
+*/
+
 import { EventEmitter } from "events";
 import type { AppClient } from "@cocalc/sync/client/types";
 import { SyncClient } from "@cocalc/sync/client/sync-client";
