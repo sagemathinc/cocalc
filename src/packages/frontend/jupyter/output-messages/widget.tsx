@@ -7,23 +7,24 @@
 Widget rendering.
 */
 
-import $ from "jquery";
-import { Map, List, fromJS } from "immutable";
-import { Tabs, Tab } from "../../antd-bootstrap";
 import { Alert } from "antd";
+import { List, Map, fromJS } from "immutable";
+import $ from "jquery";
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
-import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
-import useDelayedRender from "@cocalc/frontend/app-framework/delayed-render-hook";
-import { usePrevious, useRedux } from "@cocalc/frontend/app-framework";
 
-import { JupyterActions } from "../browser-actions";
-import * as pWidget from "@lumino/widgets";
-require("@jupyter-widgets/controls/css/widgets.css");
-import { CellOutputMessages } from "./message";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { AntdTabItem, Tab, Tabs } from "@cocalc/frontend/antd-bootstrap";
+import { usePrevious, useRedux } from "@cocalc/frontend/app-framework";
+import useDelayedRender from "@cocalc/frontend/app-framework/delayed-render-hook";
+import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { A, Loading } from "@cocalc/frontend/components";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import getSupportURL from "@cocalc/frontend/support/url";
+import * as pWidget from "@lumino/widgets";
+import { JupyterActions } from "../browser-actions";
+import { CellOutputMessages } from "./message";
+
+require("@jupyter-widgets/controls/css/widgets.css");
 
 interface WidgetProps {
   value: Map<string, any>;
@@ -343,22 +344,23 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       if (typeof react_view == "string") return;
       if (model.current == null) return;
 
-      const v: JSX.Element[] = [];
+      const v: AntdTabItem[] = [];
       let i = 0;
       for (const model_id of react_view.toJS()) {
         const key = `${i}`;
         v.push(
-          <Tab
-            eventKey={key}
-            key={key}
-            title={model.current.attributes._titles[i]}
-          >
-            <Widget
-              value={fromJS({ model_id })}
-              actions={actions}
-              name={name}
-            />
-          </Tab>
+          Tab({
+            eventKey: key,
+            key,
+            title: model.current.attributes._titles[i],
+            children: (
+              <Widget
+                value={fromJS({ model_id })}
+                actions={actions}
+                name={name}
+              />
+            ),
+          })
         );
         i += 1;
       }
@@ -370,9 +372,8 @@ export const Widget: React.FC<WidgetProps> = React.memo(
             model.current?.set_state({ selected_index });
           }}
           id={`tabs${model.current.model_id}`}
-        >
-          {v}
-        </Tabs>
+          items={v}
+        />
       );
     }
 

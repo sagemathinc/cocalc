@@ -36,7 +36,6 @@ import {
 } from "antd";
 import { MouseEventHandler } from "react";
 
-import { Rendered } from "@cocalc/frontend/app-framework";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { Space } from "@cocalc/frontend/components/space";
 
@@ -340,27 +339,10 @@ interface TabsProps {
   tabBarExtraContent?;
   tabPosition?: "left" | "top" | "right" | "bottom";
   size?: "small";
-  items?: AntdTabItem[];
-  children?: any;
+  items: AntdTabItem[]; // This is mandatory: Tabs.TabPane (was in "Tab") is deprecated.
 }
 
-export function Tabs(props: TabsProps) {
-  const { children, items } = props;
-
-  let tabs: Rendered[] | Rendered = undefined;
-  if (items == null && children != null) {
-    tabs = [];
-    // We do this because for antd, "There must be `tab` property on children of Tabs."
-    if (Symbol.iterator in Object(props.children)) {
-      for (const x of children) {
-        if (x == null || !x.props) continue;
-        tabs.push(Tab(x.props));
-      }
-    } else {
-      tabs = Tab(children);
-    }
-  }
-
+export function Tabs(props: Readonly<TabsProps>) {
   return (
     <AntdTabs
       activeKey={props.activeKey}
@@ -370,21 +352,19 @@ export function Tabs(props: TabsProps) {
       tabBarExtraContent={props.tabBarExtraContent}
       tabPosition={props.tabPosition}
       size={props.size}
-      items={items}
-    >
-      {tabs}
-    </AntdTabs>
+      items={props.items}
+    />
   );
 }
 
 export function Tab(props: {
   id?: string;
   key?: string;
-  eventKey?: string;
+  eventKey: string;
   title: any;
   children?: any;
   style?: React.CSSProperties;
-}) {
+}): AntdTabItem {
   let title = props.title;
   if (!title) {
     // In case of useless title, some sort of fallback.
@@ -393,16 +373,18 @@ export function Tab(props: {
     title = props.eventKey ?? props.key;
     if (!title) title = "Tab";
   }
+
   // Get rid of the fade transition, which is inconsistent with
   // react-bootstrap (and also really annoying to me). See
   // https://github.com/ant-design/ant-design/issues/951#issuecomment-176291275
   const style = { ...{ transition: "0s" }, ...props.style };
 
-  return (
-    <AntdTabs.TabPane key={props.eventKey} tab={title} style={style}>
-      {props.children}
-    </AntdTabs.TabPane>
-  );
+  return {
+    key: props.key ?? props.eventKey,
+    label: title,
+    style,
+    children: props.children,
+  };
 }
 
 export function Modal(props: {
