@@ -8,9 +8,11 @@ import { throttle } from "lodash";
 import { nextTick } from "async";
 import { fromJS } from "immutable";
 import { createSelector } from "reselect";
-import { AppRedux } from "../app-framework";
+import type { AppRedux } from "./types";
+
 import { TypedMap } from "./TypedMap";
 import { TypedCollectionMethods } from "./immutable-types";
+
 import { callback2 } from "@cocalc/util/async-utils";
 import { bind_methods, defaults, required, top_sort } from "@cocalc/util/misc";
 

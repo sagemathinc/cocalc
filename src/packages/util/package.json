@@ -10,7 +10,8 @@
     "./consts": "./dist/consts/index.js",
     "./sync/table": "./dist/sync/table/index.js",
     "./sync/editor/db": "./dist/sync/editor/db/index.js",
-    "./licenses/purchase/*": "./dist/licenses/purchase/*.js"
+    "./licenses/purchase/*": "./dist/licenses/purchase/*.js",
+    "./redux/*": "./dist/redux/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -41,6 +42,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "prop-types": "^15.7.2",
+    "reselect": "^4.1.8",
     "sha1": "^1.1.1",
     "underscore": "^1.12.1",
     "utility-types": "^3.10.0",

@@ -24,7 +24,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Icon } from "@cocalc/frontend/components";
 import { JupyterActions } from "./browser-actions";
-import { find_matches } from "./find";
+import { find_matches } from "@cocalc/jupyter/util/find";
 
 interface FindAndReplaceProps {
   actions: JupyterActions;

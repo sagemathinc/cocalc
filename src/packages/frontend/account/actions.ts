@@ -7,7 +7,7 @@ import { fromJS } from "immutable";
 import { join } from "path";
 
 import { alert_message } from "@cocalc/frontend/alerts";
-import { Actions } from "@cocalc/frontend/app-framework/Actions";
+import { Actions } from "@cocalc/util/redux/Actions";
 import { AccountClient } from "@cocalc/frontend/client/account";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { set_url } from "@cocalc/frontend/history";

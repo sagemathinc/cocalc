@@ -8,7 +8,6 @@ The Store
 */
 
 import { List, Map, OrderedMap, Set } from "immutable";
-
 import { Store } from "@cocalc/frontend/app-framework";
 import {
   delete_local_storage,
@@ -17,7 +16,6 @@ import {
 import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
 import { Syntax } from "@cocalc/util/code-formatter";
 import { cmp, from_json, startswith } from "@cocalc/util/misc";
-
 import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 import { NBGraderStore } from "./nbgrader/store";
 import { KernelSpec } from "./nbviewer/parse";

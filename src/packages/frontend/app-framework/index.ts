@@ -27,14 +27,14 @@ import createReactClass from "create-react-class";
 import { Provider, connect, useSelector } from "react-redux";
 import json_stable from "json-stable-stringify";
 
-import { Store, StoreConstructorType } from "./Store";
-import { Actions } from "./Actions";
+import { Store, StoreConstructorType } from "@cocalc/util/redux/Store";
+import { Actions } from "@cocalc/util/redux/Actions";
 import { Table, TableConstructor } from "./Table";
 
 // Relative import is temporary, until I figure this out -- needed for *project*
 import { bind_methods, keys, is_valid_uuid_string } from "@cocalc/util/misc";
 
-export { TypedMap, createTypedMap } from "./TypedMap";
+export { TypedMap, createTypedMap } from "@cocalc/util/redux/TypedMap";
 
 import { NAME_TYPE as ComputeImageStoreType } from "../custom-software/util";
 import { NEWS } from "@cocalc/frontend/notifications/news/init";

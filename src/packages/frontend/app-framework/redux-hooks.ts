@@ -392,7 +392,7 @@ export function useActions(x, path?: string) {
 // in actions-and-stores.ts but it did NOT work. All
 // the types just became any or didn't match.  Don't
 // move this unless you also fully test it!!
-import { Store } from "./Store";
+import { Store } from "@cocalc/util/redux/Store";
 export interface Stores {
   account: types.AccountStore;
   "admin-site-licenses": types.SiteLicensesStore;

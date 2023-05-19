@@ -560,9 +560,6 @@ importers:
       requirejs:
         specifier: ^2.3.6
         version: 2.3.6
-      reselect:
-        specifier: ^4.0.0
-        version: 4.1.7
       resize-observer-polyfill:
         specifier: ^1.5.1
         version: 1.5.1
@@ -1805,6 +1802,9 @@ importers:
       prop-types:
         specifier: ^15.7.2
         version: 15.8.1
+      reselect:
+        specifier: ^4.1.8
+        version: 4.1.8
       sha1:
         specifier: ^1.1.1
         version: 1.1.1
@@ -15497,8 +15497,8 @@ packages:
     resolution: {integrity: sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ==}
     dev: false
 
-  /reselect@4.1.7:
-    resolution: {integrity: sha512-Zu1xbUt3/OPwsXL46hvOOoQrap2azE7ZQbokq61BQfiXvhewsKDwhMeZjTX9sX0nvw1t/U5Audyn1I9P/m9z0A==}
+  /reselect@4.1.8:
+    resolution: {integrity: sha512-ab9EmR80F/zQTMNeneUr4cv+jSwPJgIlvEmVwLerwrWVbpLlBuls9XHzIeTFy4cegU2NHBp3va0LKOzU5qFEYQ==}
     dev: false
 
   /resize-observer-polyfill@1.5.1:
