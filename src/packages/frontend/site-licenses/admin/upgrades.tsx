@@ -10,14 +10,12 @@ import {
   Component,
   React,
   Rendered,
-  TypedMap,
   useState,
 } from "@cocalc/frontend/app-framework";
 import { Icon, MenuItem, MenuItems } from "@cocalc/frontend/components";
 import { plural } from "@cocalc/util/misc";
 import { upgrades } from "@cocalc/util/upgrade-spec";
 import { DebounceInput } from "react-debounce-input";
-import { SiteLicensePublicInfo } from "../types";
 import { actions } from "./actions";
 import { INPUT_STYLE } from "./license";
 import {

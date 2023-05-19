@@ -24,7 +24,7 @@ export interface BillingStoreState {
   course_pay: CoursePay;
   managed_license_ids?: string[]; // array of active (or recently expired) id's of license you manage. Not a changefeed -- you must explicitly call update_managed_licenses action.
   all_managed_license_ids?: string[]; // same as managed_license_ids, but also includes all expired licenses.
-  managed_licenses?: { [id: string]: SiteLicense }; // actual data of the licenses.
+  managed_licenses?: TypedMap<{ [id: string]: SiteLicense }>; // actual data of the licenses.
   subscription_list_state?: "view" | "buy_upgrades" | "buy_license";
 }
 
