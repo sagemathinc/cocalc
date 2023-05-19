@@ -210,9 +210,7 @@ export function normalize_upgrades_for_save(obj: {
   }
 }
 
-export function scale_by_display_factors(
-  upgrades: TypedMap<SiteLicensePublicInfo>
-): Map<string, number> {
+export function scale_by_display_factors(upgrades): Map<string, number> {
   let x: Map<string, number> = Map();
   for (const [field, val] of upgrades) {
     // this makes sure we only scale upgrade fields, no other ones (e.g. "status")

@@ -31,7 +31,7 @@ import { wait } from "@cocalc/util/async-wait";
 import { query_function } from "./query-function";
 import { assert_uuid, copy, is_array, is_object, len } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
-import mergeDeep from "./immutable-deep-merge";
+import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import type { Client } from "@cocalc/sync/client/types";
 export type { Client };
 

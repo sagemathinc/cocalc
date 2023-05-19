@@ -7,7 +7,7 @@ import { List, Map, Set } from "immutable";
 
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import { SiteLicense } from "@cocalc/util/types/site-licenses";
-import { AppliedCoupons, CoursePay, Customer, Invoices } from "./types";
+import { AppliedCoupons, CoursePay, CustomerMap, InvoicesMap } from "./types";
 
 export interface BillingStoreState {
   stripe_publishable_key?: string;
@@ -16,15 +16,15 @@ export interface BillingStoreState {
   error?: string;
   action?: string;
   no_stripe?: boolean;
-  customer?: TypedMap<Customer>;
-  invoices?: TypedMap<Invoices>;
+  customer?: CustomerMap;
+  invoices?: InvoicesMap;
   loaded?: boolean;
   continue_first_purchase?: boolean;
   selected_plan?: string;
   course_pay: CoursePay;
-  managed_license_ids?: List<string>; // array of active (or recently expired) id's of license you manage. Not a changefeed -- you must explicitly call update_managed_licenses action.
-  all_managed_license_ids?: List<string>; // same as managed_license_ids, but also includes all expired licenses.
-  managed_licenses?: Map<string, TypedMap<SiteLicense>>; // actual data of the licenses.
+  managed_license_ids?: string[]; // array of active (or recently expired) id's of license you manage. Not a changefeed -- you must explicitly call update_managed_licenses action.
+  all_managed_license_ids?: string[]; // same as managed_license_ids, but also includes all expired licenses.
+  managed_licenses?: { [id: string]: SiteLicense }; // actual data of the licenses.
   subscription_list_state?: "view" | "buy_upgrades" | "buy_license";
 }
 
