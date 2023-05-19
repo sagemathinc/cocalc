@@ -15,9 +15,9 @@ import Head from "components/landing/head";
 import Header from "components/landing/header";
 import A from "components/misc/A";
 import { News } from "components/news/news";
-import Loading from "components/share/loading";
 import { NewsWithFuture } from "components/news/types";
 import { useDateStr } from "components/news/useDateStr";
+import Loading from "components/share/loading";
 import { MAX_WIDTH, NOT_FOUND } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
@@ -62,15 +62,12 @@ export default function NewsPage(props: Props) {
   }
 
   function breadcrumb() {
-    return (
-      <Breadcrumb>
-        <Breadcrumb.Item>
-          <A href="/">{siteName}</A>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>
-          <A href="/news">News</A>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>
+    const items = [
+      { key: "/", title: <A href="/">{siteName}</A> },
+      { key: "/news", title: <A href="/news">News</A> },
+      {
+        key: "permalink",
+        title: (
           <A href={permalink}>
             {isAdmin || (!news.future && !news.hide) ? (
               <>
@@ -80,9 +77,10 @@ export default function NewsPage(props: Props) {
               "Not Authorized"
             )}
           </A>
-        </Breadcrumb.Item>
-      </Breadcrumb>
-    );
+        ),
+      },
+    ];
+    return <Breadcrumb items={items} />;
   }
 
   function olderNewer() {

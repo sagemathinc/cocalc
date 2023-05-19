@@ -3,18 +3,23 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import {} from "mocha";
 import expect from "expect";
 
-const misc_node = require("@cocalc/backend/misc_node");
+import * as misc_node from "@cocalc/backend/misc_node";
 
 import { blob_store } from "@cocalc/jupyter/blobs";
 
 describe("very basic tests of the blob store -- ", function () {
+  const blob_store = get_blob_store();
+  if (blob_store == null) {
+    throw Error("blob_store is null");
+  }
+
   blob_store.delete_all_blobs();
 
-  it("gets a list of blobs (which should be empty)", () =>
-    expect(blob_store.keys()).toEqual([]));
+  it("gets a list of blobs (which should be empty)", () => {
+    expect(blob_store.keys()).toEqual([]);
+  });
 
   // got via
   // require('./jupyter').kernel(name:'sage-7.4', verbose:false).execute_code(code:'point((0,0), axes=False, figsize=1)', all:true, cb:(e,m)->console.log(m[2].content.data))
@@ -23,10 +28,12 @@ describe("very basic tests of the blob store -- ", function () {
   const buffer = Buffer.from(blob, "base64");
   const sha1 = misc_node.sha1(buffer);
 
-  it("saves a blob", function () {
+  it("saves a blob", () => {
     expect(blob_store.save(blob, "image/png")).toBe(sha1);
-    return expect(blob_store.keys()).toEqual([sha1]);
+    expect(blob_store.keys()).toEqual([sha1]);
   });
 
-  it("reads a blob", () => expect(blob_store.get(sha1)).toEqual(buffer));
+  it("reads a blob", () => {
+    expect(blob_store.get(sha1)).toEqual(buffer);
+  });
 });

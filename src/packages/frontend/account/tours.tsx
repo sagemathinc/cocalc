@@ -15,6 +15,7 @@ export default function Tours() {
   for (const name in names) {
     v.push(
       <Checkbox
+        key={name}
         checked={tours?.includes(name) || tours?.includes("all")}
         onChange={(e) => {
           const actions = redux.getActions("account");

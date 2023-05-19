@@ -424,6 +424,7 @@ class ListingsTable {
 }
 
 let listings_table: ListingsTable | undefined = undefined;
+
 export function register_listings_table(
   table: SyncTable,
   logger: any,

@@ -7,10 +7,13 @@
 Terminal server
 */
 
-const { spawn } = require("node-pty");
-import { readFile, writeFile } from "fs";
-import { promises as fsPromises } from "fs";
-const { readlink } = fsPromises;
+import { callback, delay } from "awaiting";
+import { isEqual, throttle } from "lodash";
+import { spawn } from "node-pty";
+import { readFile, writeFile } from "node:fs";
+import { readlink } from "node:fs/promises";
+
+import { envForSpawn } from "@cocalc/backend/misc";
 import {
   console_init_filename,
   len,

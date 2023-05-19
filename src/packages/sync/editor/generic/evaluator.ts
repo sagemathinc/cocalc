@@ -476,7 +476,7 @@ export class Evaluator {
     this.dbg("ensure_sage_session_exists")();
     // This code only runs in the project, where client
     // has a sage_session method.
-    this.sage_session = (this.client as any).sage_session({
+    this.sage_session = this.client.sage_session({
       path: this.syncdoc.get_path(),
     });
   }
@@ -528,6 +528,6 @@ export class Evaluator {
       output.done = true;
       cb(output);
     };
-    (this.client as any).shell(input);
+    this.client.shell(input);
   }
 }

@@ -7,7 +7,7 @@
 Create the Primus realtime socket server
 */
 
-const { join } = require("path");
+import { join } from "node:path";
 import { Router } from "express";
 import { Server } from "http";
 import Primus from "primus";

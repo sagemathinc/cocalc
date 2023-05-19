@@ -6,15 +6,14 @@
 // usage info for a specific file path, derived from the more general project info,
 // which includes all processes and other stats
 
-import { once } from "@cocalc/util/async-utils";
 import { SyncTable, SyncTableState } from "@cocalc/sync/table";
+import { once } from "@cocalc/util/async-utils";
 import { close, merge } from "@cocalc/util/misc";
 import { UsageInfoServer } from "../usage-info";
-import { UsageInfo, ImmutableUsageInfo } from "../usage-info/types";
-import { getLogger } from "../logger";
+import { ImmutableUsageInfo, UsageInfo } from "../usage-info/types";
 
-const logger = getLogger("sync:usage-info");
-const L = logger.debug;
+import { getLogger } from "@cocalc/backend/logger";
+const L = getLogger("sync:usage-info");
 
 class UsageInfoTable {
   private readonly table?: SyncTable; // might be removed by close()
@@ -24,7 +23,7 @@ class UsageInfoTable {
 
   constructor(table: SyncTable, project_id: string) {
     this.project_id = project_id;
-    this.log = logger.extend("table").debug;
+    this.log = L.extend("table").debug;
     this.table = table;
     this.setup_watchers();
   }
@@ -170,7 +169,7 @@ export function register_usage_info_table(
   table: SyncTable,
   project_id: string
 ): void {
-  L("register_usage_info_table");
+  L.debug("register_usage_info_table");
   if (usage_info_table != null) {
     // There was one sitting around wasting space so clean it up
     // before making a new one.
