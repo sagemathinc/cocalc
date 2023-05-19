@@ -62,7 +62,7 @@ import parseTableOfContents from "./table-of-contents";
 import { delay } from "awaiting";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import debug from "debug";
-import { moveCell } from "@cocalc/frontend/jupyter/cell-utils";
+import { moveCell } from "@cocalc/jupyter/util/cell-utils";
 import { migrateToNewPageNumbers } from "./migrate";
 import { toMarkdown, elementToMarkdown } from "./export";
 

@@ -14,7 +14,7 @@ import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
 import {
   KERNEL_POPULAR_THRESHOLD,
   get_kernels_by_name_or_language,
-} from "@cocalc/frontend/jupyter/util";
+} from "@cocalc/jupyter/util/misc";
 import { capitalize } from "@cocalc/util/misc";
 import { getKernelInfo } from "./kernel-info";
 import { KernelStar } from "./kernel-star";

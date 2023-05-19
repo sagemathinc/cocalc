@@ -24,22 +24,22 @@ import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import * as awaiting from "awaiting";
-import * as cell_utils from "./cell-utils";
+import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
 import {
   JupyterStore,
   JupyterStoreState,
   show_kernel_selector_reasons,
 } from "./store";
 import { Cell, KernelInfo } from "./types";
-import { get_kernels_by_name_or_language } from "./util";
+import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
 
 const { close, required, defaults } = misc;
 
 // local cache: map project_id (string) -> kernels (immutable)
-import { Kernel, Kernels } from "./util";
+import { Kernel, Kernels } from "@cocalc/jupyter/util/misc";
 let jupyter_kernels = immutable.Map<string, Kernels>();
 
-import { IPynbImporter } from "./import-from-ipynb";
+import { IPynbImporter } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 
 import { JupyterKernelInterface } from "./project-interface";
 
@@ -49,7 +49,7 @@ import {
   char_idx_to_js_idx,
   codemirror_to_jupyter_pos,
   js_idx_to_char_idx,
-} from "./util";
+} from "@cocalc/jupyter/util/misc";
 
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { get_local_storage, set_local_storage } from "../misc/local-storage";
@@ -1429,7 +1429,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         before_pos = undefined;
         after_pos = cells.getIn([cell_ids[0], "pos"]) as number;
       } else {
-        before_pos = cells.getIn([cell_before_pasted_id, "pos"]) as number | undefined;
+        before_pos = cells.getIn([cell_before_pasted_id, "pos"]) as
+          | number
+          | undefined;
         after_pos = cells.getIn([
           this.store.get_cell_id(+1, cell_before_pasted_id),
           "pos",

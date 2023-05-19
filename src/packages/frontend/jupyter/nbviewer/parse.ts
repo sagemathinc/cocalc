@@ -1,5 +1,5 @@
-import { IPynbImporter } from "../import-from-ipynb";
-import { JUPYTER_MIMETYPES } from "../util";
+import { IPynbImporter } from "@cocalc/jupyter/ipynb/import-from-ipynb";
+import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import { field_cmp } from "@cocalc/util/misc";
 
 export interface KernelSpec {

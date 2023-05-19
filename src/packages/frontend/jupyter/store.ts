@@ -18,11 +18,11 @@ import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
 import { Syntax } from "@cocalc/util/code-formatter";
 import { cmp, from_json, startswith } from "@cocalc/util/misc";
 
-import { export_to_ipynb } from "./export-to-ipynb";
+import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 import { NBGraderStore } from "./nbgrader/store";
 import { KernelSpec } from "./nbviewer/parse";
 import { Cell, CellToolbarName, KernelInfo, NotebookMode } from "./types";
-import { Kernel, Kernels } from "./util";
+import { Kernel, Kernels } from "@cocalc/jupyter/util/misc";
 
 // Used for copy/paste.  We make a single global clipboard, so that
 // copy/paste between different notebooks works.
@@ -428,8 +428,14 @@ export class JupyterStore extends Store<JupyterStoreState> {
       .forEach((kernels, lang) => {
         const top: any = kernels
           .sort((a, b) => {
-            const va = -(a.getIn(["metadata", "cocalc", "priority"], 0) as number);
-            const vb = -(b.getIn(["metadata", "cocalc", "priority"], 0) as number);
+            const va = -(a.getIn(
+              ["metadata", "cocalc", "priority"],
+              0
+            ) as number);
+            const vb = -(b.getIn(
+              ["metadata", "cocalc", "priority"],
+              0
+            ) as number);
             return cmp(va, vb);
           })
           .first();

@@ -7,7 +7,7 @@ import { Set } from "immutable";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
-import { move_selected_cells } from "@cocalc/frontend/jupyter/cell-utils";
+import { move_selected_cells } from "@cocalc/jupyter/util/cell-utils";
 import {
   CommandDescription,
   commands,

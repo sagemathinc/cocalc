@@ -30,7 +30,7 @@ import {
   getSize,
   getTimeoutS,
 } from "./pool-params";
-import { getAbsolutePathFromHome } from "@cocalc/jupyter/util";
+import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 
 export type { LaunchJupyterOpts, SpawnedKernel };
 

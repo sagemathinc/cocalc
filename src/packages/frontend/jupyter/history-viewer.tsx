@@ -12,7 +12,7 @@ import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { Redux, useTypedRedux } from "../app-framework";
 import { createRoot } from "react-dom/client";
 import { path_split } from "@cocalc/util/misc";
-import * as cell_utils from "./cell-utils";
+import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
 import { CellList } from "./cell-list";
 import { cm_options } from "./cm_options";
 import { ErrorDisplay } from "../components";
@@ -90,7 +90,7 @@ export const HistoryViewer: React.FC<HistoryViewerProps> = ({
 };
 
 // The following is just for integrating the history viewer.
-import { export_to_ipynb } from "./export-to-ipynb";
+import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 import json_stable from "json-stable-stringify";
 
 export function to_ipynb(syncdb: SyncDB, version: Date): object {

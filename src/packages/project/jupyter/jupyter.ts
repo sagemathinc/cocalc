@@ -48,7 +48,7 @@ import {
   process as iframe_process,
   is_likely_iframe,
 } from "@cocalc/frontend/jupyter/iframe";
-import { remove_redundant_reps } from "@cocalc/frontend/jupyter/import-from-ipynb";
+import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import { JupyterActions } from "@cocalc/frontend/jupyter/project-actions";
 import {
   CodeExecutionEmitterInterface,
@@ -57,7 +57,7 @@ import {
   KernelInfo,
 } from "@cocalc/frontend/jupyter/project-interface";
 import { JupyterStore } from "@cocalc/frontend/jupyter/store";
-import { JUPYTER_MIMETYPES } from "@cocalc/frontend/jupyter/util";
+import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
@@ -82,7 +82,7 @@ import launchJupyterKernel, {
   SpawnedKernel,
   killKernel,
 } from "@cocalc/jupyter/pool/pool";
-import { getAbsolutePathFromHome } from "@cocalc/jupyter/util";
+import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 import type { KernelParams } from "./types";
 import { getLogger } from "@cocalc/project/logger";
 const log = getLogger("jupyter");
