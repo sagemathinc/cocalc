@@ -239,8 +239,8 @@ class ListingsTable {
     let missing: number | undefined = undefined;
 
     const y = this.get(path);
-    const previous_listing = y?.get("listing")?.toJS();
-    let deleted: any = y?.get("deleted")?.toJS();
+    const previous_listing = y?.get("listing")?.toJS() as any;
+    let deleted: any = y?.get("deleted")?.toJS() as any;
     if (previous_listing != null) {
       // Check to see to what extend change in the listing is due to files
       // being deleted.  Note that in case of a directory with a large
