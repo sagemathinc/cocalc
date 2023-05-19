@@ -1128,7 +1128,11 @@ export class SyncDoc extends EventEmitter {
     }
 
     assertDefined(this.patch_list);
-    if (!this.client.is_project() && this.patch_list.count() === 0 && init.size) {
+    if (
+      !this.client.is_project() &&
+      this.patch_list.count() === 0 &&
+      init.size
+    ) {
       dbg("waiting for patches for nontrivial file");
       // normally this only happens in a later event loop,
       // so force it now.
@@ -1528,7 +1532,8 @@ export class SyncDoc extends EventEmitter {
     let map = this.cursor_map;
     if (
       map.has(account_id) &&
-      this.cursor_last_time >= map.getIn([account_id, "time"])
+      this.cursor_last_time >=
+        (map.getIn([account_id, "time"], new Date(0)) as Date)
     ) {
       map = map.delete(account_id);
     }
@@ -1536,7 +1541,7 @@ export class SyncDoc extends EventEmitter {
       // Remove any old cursors, where "old" is by default more than 1 minute old; this is never useful.
       const cutoff = server_minutes_ago(oldMinutes);
       for (const [a] of map as any) {
-        if (map.getIn([a, "time"]) < cutoff) {
+        if ((map.getIn([a, "time"], new Date(0)) as Date) < cutoff) {
           map = map.delete(a);
         }
       }
@@ -2385,7 +2390,9 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "ready") {
       return;
     }
-    return this.syncstring_table_get_one().getIn(["save", "hash"]);
+    return this.syncstring_table_get_one().getIn(["save", "hash"]) as
+      | number
+      | undefined;
   }
 
   /* Return hash of the live version of the document,
@@ -2547,7 +2554,7 @@ export class SyncDoc extends EventEmitter {
       return done;
     }
 
-    let last_err = undefined;
+    let last_err : string | undefined = undefined;
     const f = async () => {
       dbg("f");
       if (
@@ -2571,7 +2578,9 @@ export class SyncDoc extends EventEmitter {
         dbg("not ready or deleted - no longer trying to save.");
         return;
       }
-      const err = this.syncstring_table_get_one().getIn(["save", "error"]);
+      const err = this.syncstring_table_get_one().getIn(["save", "error"]) as
+        | string
+        | undefined;
       if (err) {
         dbg("error", err);
         last_err = err;

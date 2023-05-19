@@ -36,9 +36,9 @@ import { fromJS, Map } from "immutable";
 // efficient later.
 
 export default function mergeDeep(
-  a: Map<string, any>,
-  b: Map<string, any>
-): Map<string, any> {
+  a: Map<string|number|any, any>,
+  b: Map<string|number|any, any>
+): Map<string|number|any, any> {
   const c = merge(a.toJS(), b.toJS());
   return fromJS(c);
 }

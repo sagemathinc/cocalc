@@ -21,7 +21,7 @@ importers:
         version: 3.6.3
       url-loader:
         specifier: ^4.1.1
-        version: 4.1.1(webpack@5.83.0)
+        version: 4.1.1(webpack@5.83.1)
     devDependencies:
       '@cocalc/backend':
         specifier: workspace:*
@@ -905,7 +905,7 @@ importers:
         version: 13.7.0
       webpack-dev-middleware:
         specifier: ^6.0.1
-        version: 6.0.1(webpack@5.83.0)
+        version: 6.0.1(webpack@5.83.1)
       webpack-hot-middleware:
         specifier: ^2.25.3
         version: 2.25.3
@@ -1102,7 +1102,7 @@ importers:
         version: 13.2.3(@babel/core@7.21.4)(react-dom@18.2.0)(react@18.2.0)
       next-remove-imports:
         specifier: ^1.0.11
-        version: 1.0.11(webpack@5.83.0)
+        version: 1.0.11(webpack@5.83.1)
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -1717,8 +1717,8 @@ importers:
         specifier: 3.3.0
         version: 3.3.0
       immutable:
-        specifier: ^3.8.2
-        version: 3.8.2
+        specifier: ^4.3.0
+        version: 4.3.0
       json-stable-stringify:
         specifier: ^1.0.1
         version: 1.0.1
@@ -6404,7 +6404,7 @@ packages:
       - supports-color
     dev: true
 
-  /babel-loader@9.1.2(@babel/core@7.21.4)(webpack@5.83.0):
+  /babel-loader@9.1.2(@babel/core@7.21.4)(webpack@5.83.1):
     resolution: {integrity: sha512-mN14niXW43tddohGl8HPu5yfQq70iUThvFL/4QzESA7GcZoC0eVOhvWdQ8+3UlSjaDE9MVtsW9mxDY07W7VpVA==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -6414,7 +6414,7 @@ packages:
       '@babel/core': 7.21.4
       find-cache-dir: 3.3.2
       schema-utils: 4.0.0
-      webpack: 5.83.0(uglify-js@3.17.4)
+      webpack: 5.83.1(uglify-js@3.17.4)
     dev: false
 
   /babel-plugin-dynamic-import-node@2.3.3:
@@ -8493,7 +8493,7 @@ packages:
     resolution: {integrity: sha512-QHTXI/sZQmko1cbDoNAa3mJ5qhWUUNAq3vR0/YiD379fWQrcfuoX1+HW2S0MTt7XmoPLapdaDKUtelUSPic7hQ==}
     engines: {node: '>=10.13.0'}
     dependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.10
       tapable: 2.2.1
     dev: true
 
@@ -10371,9 +10371,8 @@ packages:
     resolution: {integrity: sha512-0M2XxkZLx/mi3t8NVwIm1g8nHoEmM9p9UBl/G9k4+hm0kBgOVdMV/B3CY5dQ8qG8qc80NN4gDV4HQv6FTJ5q7A==}
     dev: false
 
-  /immutable@4.2.1:
-    resolution: {integrity: sha512-7WYV7Q5BTs0nlQm7tl92rDYYoyELLKHoDMBKhrxEoiV4mrfVdRz8hzPiYOzH7yWjzoVEamxRuAqhxL2PLRwZYQ==}
-    dev: true
+  /immutable@4.3.0:
+    resolution: {integrity: sha512-0AOCmOip+xgJwEVTQj1EfiDDOkPmuyllDuTuEX+DDXUgapLAsBIfkg3sxCYyCEA8mQqZrrxPUGjcOQ2JS3WLkg==}
 
   /import-fresh@3.3.0:
     resolution: {integrity: sha512-veYYhQa+D1QBKznvhUHxb8faxlrwUnxseDAbAp457E0wLNio2bOSKnjYDhMj+YiAq61xrMGhQk9iXVk5FzgQMw==}
@@ -12613,11 +12612,11 @@ packages:
   /neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
-  /next-remove-imports@1.0.11(webpack@5.83.0):
+  /next-remove-imports@1.0.11(webpack@5.83.1):
     resolution: {integrity: sha512-i+L8kcP1hM3nOCNv8NWhtJGWwkEDtej0BaRlCzcZDQeXCT3cwaJo4VyD9x4449sbJwj9xt/wmqlH8fg5g8RaYg==}
     dependencies:
       '@babel/core': 7.21.4
-      babel-loader: 9.1.2(@babel/core@7.21.4)(webpack@5.83.0)
+      babel-loader: 9.1.2(@babel/core@7.21.4)(webpack@5.83.1)
       babel-plugin-transform-remove-imports: 1.7.0(@babel/core@7.21.4)
     transitivePeerDependencies:
       - supports-color
@@ -15706,7 +15705,7 @@ packages:
     hasBin: true
     dependencies:
       chokidar: 3.5.3
-      immutable: 4.2.1
+      immutable: 4.3.0
       source-map-js: 1.0.2
     dev: true
 
@@ -16604,8 +16603,8 @@ packages:
       webpack: 5.75.0(@swc/core@1.3.3)(webpack-cli@5.0.1)
     dev: true
 
-  /terser-webpack-plugin@5.3.8(uglify-js@3.17.4)(webpack@5.83.0):
-    resolution: {integrity: sha512-WiHL3ElchZMsK27P8uIUh4604IgJyAW47LVXGbEoB21DbQcZ+OuMpGjVYnEUaqcWM6dO8uS2qUbA7LSCWqvsbg==}
+  /terser-webpack-plugin@5.3.9(uglify-js@3.17.4)(webpack@5.83.1):
+    resolution: {integrity: sha512-ZuXsqE07EcggTWQjXUj+Aot/OMcD0bMKGgF63f7UxYcu5/AJF53aIpK1YoP5xR9l6s/Hy2b+t1AM0bLNPRuhwA==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
       '@swc/core': '*'
@@ -16626,7 +16625,7 @@ packages:
       serialize-javascript: 6.0.1
       terser: 5.17.4
       uglify-js: 3.17.4
-      webpack: 5.83.0(uglify-js@3.17.4)
+      webpack: 5.83.1(uglify-js@3.17.4)
     dev: false
 
   /terser@4.8.1:
@@ -17248,7 +17247,7 @@ packages:
     dependencies:
       punycode: 2.1.1
 
-  /url-loader@4.1.1(webpack@5.83.0):
+  /url-loader@4.1.1(webpack@5.83.1):
     resolution: {integrity: sha512-3BTV812+AVHHOJQO8O5MkWgZ5aosP7GnROJwvzLS9hWDj00lZ6Z0wNak423Lp9PBZN05N+Jk/N5Si8jRAlGyWA==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
@@ -17261,7 +17260,7 @@ packages:
       loader-utils: 2.0.4
       mime-types: 2.1.35
       schema-utils: 3.1.1
-      webpack: 5.83.0(uglify-js@3.17.4)
+      webpack: 5.83.1(uglify-js@3.17.4)
     dev: false
 
   /url-parse@1.5.10:
@@ -17637,7 +17636,7 @@ packages:
     engines: {node: '>=10.13.0'}
     dependencies:
       glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.10
 
   /weak-map@1.0.8:
     resolution: {integrity: sha512-lNR9aAefbGPpHO7AEnY0hCFjz1eTkWCXYvkTRrTHs9qv8zJp+SkVYpzfLIFXQQiG3tVvbNFQgVg2bQS8YGgxyw==}
@@ -17723,7 +17722,7 @@ packages:
       webpack-merge: 5.8.0
     dev: true
 
-  /webpack-dev-middleware@6.0.1(webpack@5.83.0):
+  /webpack-dev-middleware@6.0.1(webpack@5.83.1):
     resolution: {integrity: sha512-PZPZ6jFinmqVPJZbisfggDiC+2EeGZ1ZByyMP5sOFJcPPWSexalISz+cvm+j+oYPT7FIJyxT76esjnw9DhE5sw==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -17734,7 +17733,7 @@ packages:
       mime-types: 2.1.35
       range-parser: 1.2.1
       schema-utils: 4.0.0
-      webpack: 5.83.0(uglify-js@3.17.4)
+      webpack: 5.83.1(uglify-js@3.17.4)
     dev: false
 
   /webpack-hot-middleware@2.25.3:
@@ -17803,8 +17802,8 @@ packages:
       - uglify-js
     dev: true
 
-  /webpack@5.83.0(uglify-js@3.17.4):
-    resolution: {integrity: sha512-mdWk7amgh7hMCXzU+uTDGpIJEbkqat2RLgSDW53E1OOSE6U0gmBcWadJ6y0FdQQbGbW0lV2LT9t2iOEZc+FU7w==}
+  /webpack@5.83.1(uglify-js@3.17.4):
+    resolution: {integrity: sha512-TNsG9jDScbNuB+Lb/3+vYolPplCS3bbEaJf+Bj0Gw4DhP3ioAflBb1flcRt9zsWITyvOhM96wMQNRWlSX52DgA==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     peerDependencies:
@@ -17834,7 +17833,7 @@ packages:
       neo-async: 2.6.2
       schema-utils: 3.1.2
       tapable: 2.2.1
-      terser-webpack-plugin: 5.3.8(uglify-js@3.17.4)(webpack@5.83.0)
+      terser-webpack-plugin: 5.3.9(uglify-js@3.17.4)(webpack@5.83.1)
       watchpack: 2.4.0
       webpack-sources: 3.2.3
     transitivePeerDependencies:

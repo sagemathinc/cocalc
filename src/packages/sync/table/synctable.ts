@@ -856,7 +856,7 @@ export class SyncTable extends EventEmitter {
         if (obj == null) {
           return;
         }
-        const v: string[] = [];
+        const v: any[] = [];
         if (Map.isMap(obj)) {
           for (const pk of this.primary_keys) {
             const a = obj.get(pk);
@@ -1096,8 +1096,10 @@ export class SyncTable extends EventEmitter {
 
   // Return modified immutable Map, with all types coerced to be
   // as specified in the schema, if possible, or throw an exception.
-  private do_coerce_types(changes: Map<string, any>): Map<string, any> {
-    if(!Map.isMap(changes)) {
+  private do_coerce_types(
+    changes: Map<string | number, any>
+  ): Map<string | number, any> {
+    if (!Map.isMap(changes)) {
       changes = Map(changes);
     }
     if (!this.coerce_types) {
