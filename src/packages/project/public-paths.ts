@@ -11,10 +11,11 @@ const UPDATE_INTERVAL_S: number = 20;
 //const UPDATE_INTERVAL_S: number = 3; // for testing
 
 import { callback, delay } from "awaiting";
-import { execFile } from "child_process";
-import { lstat } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { lstat } from "node:fs";
 
-import * as client from "./client";
+import type { Client } from "@cocalc/project/client";
+import { getClient } from "@cocalc/project/client";
 
 let monitor: MonitorPublicPaths | undefined = undefined;
 export default function init() {
@@ -23,14 +24,11 @@ export default function init() {
 }
 
 class MonitorPublicPaths {
-  private client: client.Client;
+  private client: Client;
   private table: any;
 
   constructor() {
-    this.client = client.client;
-    if (this.client == null) {
-      throw Error("client must have been initialized first");
-    }
+    this.client = getClient();
     if (process.env.COCALC_EPHEMERAL_STATE === "yes") {
       // nothing to do -- can't do anything with public paths if can't write to db.
       return;
@@ -119,7 +117,7 @@ class MonitorPublicPaths {
     let changed: boolean = false; // don't know yet
     let stats: any;
     d("lstat");
-    stats = await lstat(path);
+    stats = await callback(lstat, path);
     if (stats.mtime.valueOf() > last_edited) {
       d("clearly modified, since path changed");
       changed = true;
@@ -128,7 +126,7 @@ class MonitorPublicPaths {
       // Is a directory, and directory mtime hasn't changed; still possible
       // that there is a file in some subdir has changed, so have to do
       // a full scan.
-      const days = (new Date().valueOf() - last_edited) / (1000 * 60 * 60 * 24);
+      const days = (Date.now() - last_edited) / (1000 * 60 * 60 * 24);
       // This input to find will give return code 1 if and only if it finds a FILE
       // modified since last_edited (since we know the path exists).
       const args = [

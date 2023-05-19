@@ -32,7 +32,11 @@ import type { EmbeddingData } from "@cocalc/util/db-schema/openai";
 import type { SyncDB } from "@cocalc/sync/editor/db";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 
+// How long until we update the index, if users stops using this file actively.
 const DEBOUNCE_MS = 7500;
+
+// For now, only index something if it has at least 6 characters.
+const MIN_LENGTH = 6;
 
 const log = (..._args) => {};
 // const log = console.log;
@@ -71,6 +75,7 @@ class Embeddings {
   private local: { [point_id: string]: EmbeddingData } = {};
 
   private initialized: boolean = false;
+  private syncing: boolean = false;
 
   private url: string;
 
@@ -117,6 +122,7 @@ class Embeddings {
     syncdb.once("closed", () => {
       close(this);
     });
+    // window.x = this;
   }
 
   pointId(fragmentId: string): string {
@@ -190,6 +196,10 @@ class Embeddings {
       });
   }
 
+  private isNontrivial(text?: string): boolean {
+    return (text?.trim().length ?? 0) >= MIN_LENGTH;
+  }
+
   private async updateLocal() {
     if (this.syncDoc == null) {
       await this.initLocal();
@@ -213,7 +223,7 @@ class Embeddings {
               if (elt == null) continue;
             }
             const data = this.toData(elt);
-            if (data.text) {
+            if (this.isNontrivial(data.text)) {
               this.local[point_id] = data;
             } else {
               delete this.local[point_id];
@@ -225,19 +235,25 @@ class Embeddings {
   }
 
   private async sync() {
-    if (!this.initialized) return;
-    await this.updateLocal();
-    if (!this.initialized) return;
-    await this.syncDeleteRemote();
-    if (!this.initialized) return;
-    await this.syncSaveLocal();
+    if (this.syncing) return;
+    try {
+      this.syncing = true;
+      if (!this.initialized) return;
+      await this.updateLocal();
+      if (!this.initialized) return;
+      await this.syncDeleteRemote();
+      if (!this.initialized) return;
+      await this.syncSaveLocal();
+    } finally {
+      this.syncing = false;
+    }
   }
 
-  // delete all remote ones that shouldn't aren't here locally.
+  // delete all remote ones that aren't here locally.
   private async syncDeleteRemote() {
     const data: EmbeddingData[] = [];
     for (const point_id in this.remote) {
-      if (this.local[point_id] === undefined) {
+      if (this.local[point_id] == null) {
         data.push(this.remote[point_id]);
       }
     }
@@ -263,7 +279,7 @@ class Embeddings {
     const data: EmbeddingData[] = [];
     for (const id in this.local) {
       const remote = this.remote[id];
-      if (remote === undefined || remote.hash != this.local[id].hash) {
+      if (remote == null || remote.hash != this.local[id].hash) {
         if (this.local[id].text) {
           //  save it
           data.push(this.local[id]);

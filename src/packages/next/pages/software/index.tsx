@@ -5,6 +5,11 @@
 
 import { Button, Layout } from "antd";
 
+import {
+  LanguageName,
+  SOFTWARE_ENV_DEFAULT,
+  SOFTWARE_ENV_NAMES,
+} from "@cocalc/util/consts/software-envs";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -13,8 +18,6 @@ import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
-import { SOFTWARE_ENV_DEFAULT, SOFTWARE_ENV_NAMES } from "lib/landing/consts";
-import { LanguageName } from "lib/landing/types";
 import withCustomize from "lib/with-customize";
 import juliaLogo from "public/features/julia-logo.svg";
 import sageScreenshot from "public/features/sage-worksheet.png";

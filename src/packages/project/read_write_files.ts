@@ -42,8 +42,9 @@ const winston = getLogger("read-write-files");
 // TODO: should support -- 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'. and mesg.archive option!!!
 //
 export async function read_file_from_project(socket: CoCalcSocket, mesg) {
-  //dbg = (m) -> winston.debug("read_file_from_project(path='#{mesg.path}'): #{m}")
-  //dbg()
+  const dbg = (...m) =>
+    winston.debug(`read_file_from_project(path='${mesg.path}'): `, ...m);
+  dbg("called");
   let data: Buffer | undefined = undefined;
   let path = abspath(mesg.path);
   let is_dir: boolean | undefined = undefined;
@@ -118,7 +119,7 @@ export async function read_file_from_project(socket: CoCalcSocket, mesg) {
     if (data == null) {
       throw new Error("data is null");
     }
-    id = uuidsha1(data.toString());
+    id = uuidsha1(data)
     //dbg("sha1 hash = '#{id}'")
 
     //dbg("send the file as a blob back to the hub.")
@@ -155,8 +156,9 @@ export async function read_file_from_project(socket: CoCalcSocket, mesg) {
 }
 
 export function write_file_to_project(socket: CoCalcSocket, mesg) {
-  //dbg = (m) -> winston.debug("write_file_to_project(path='#{mesg.path}'): #{m}")
-  //dbg()
+  const dbg = (...m) =>
+    winston.debug(`write_file_to_project(path='${mesg.path}'): `, ...m);
+  dbg("called");
 
   const { data_uuid } = mesg;
   const path = abspath(mesg.path);
@@ -168,17 +170,14 @@ export function write_file_to_project(socket: CoCalcSocket, mesg) {
       try {
         await ensureContainingDirectoryExists(path);
         await writeFile(path, value.blob);
-        return socket.write_mesg(
+        socket.write_mesg(
           "json",
           message.file_written_to_project({ id: mesg.id })
         );
       } catch (err) {
-        return socket.write_mesg(
-          "json",
-          message.error({ id: mesg.id, error: err })
-        );
+        socket.write_mesg("json", message.error({ id: mesg.id, error: err }));
       }
     }
   };
-  return socket.on("mesg", write_file);
+  socket.on("mesg", write_file);
 }

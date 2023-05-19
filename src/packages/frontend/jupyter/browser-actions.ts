@@ -70,6 +70,7 @@ export class JupyterActions extends JupyterActions0 {
     // Load kernel (once ipynb file loads).
     (async () => {
       await this.set_kernel_after_load();
+      if (!this.store) return;
       track("jupyter", {
         kernel: this.store.get("kernel"),
         project_id: this.project_id,

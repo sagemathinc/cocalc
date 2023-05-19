@@ -58,7 +58,6 @@ import {
 } from "@cocalc/frontend/jupyter/project-interface";
 import { JupyterStore } from "@cocalc/frontend/jupyter/store";
 import { JUPYTER_MIMETYPES } from "@cocalc/frontend/jupyter/util";
-import { Client } from "@cocalc/project/client";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
@@ -71,18 +70,19 @@ import {
   merge,
   original_path,
   path_split,
-  trunc,
+  //trunc,
   uuid,
 } from "@cocalc/util/misc";
 import { nbconvert } from "./convert";
 import { CodeExecutionEmitter } from "./execute-code";
-import { get_blob_store_sync } from "./jupyter-blobs-get";
+import { get_blob_store_sync as get_blob_store } from "./jupyter-blobs-get";
 import { getLanguage, get_kernel_data_by_name } from "./kernel-data";
 import launchJupyterKernel, {
   LaunchJupyterOpts,
   SpawnedKernel,
   killKernel,
 } from "./pool";
+import { KernelParams } from "./types";
 import { getAbsolutePathFromHome } from "./util";
 
 import { getLogger } from "@cocalc/project/logger";
@@ -167,15 +167,6 @@ export async function remove_jupyter_backend(
 //     return (...m) => console.log(new Date(), `Client.${f}: `, ...m);
 //   }
 // }
-
-export interface KernelParams {
-  name: string;
-  path: string; // filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
-  actions?: any; // optional redux actions object
-  ulimit?: string;
-  verbose?: boolean;
-  client?: Client;
-}
 
 export function kernel(opts: KernelParams): JupyterKernel {
   return new JupyterKernel(opts.name, opts.path, opts.actions, opts.ulimit);
@@ -704,17 +695,16 @@ export class JupyterKernel
     return await new CodeExecutionEmitter(this, opts).go();
   }
 
-  get_blob_store() {
-    return get_blob_store_sync();
-  }
-
   process_output(content: any): void {
     if (this._state === "closed") {
       return;
     }
     const dbg = this.dbg("process_output");
     // https://github.com/sagemathinc/cocalc/issues/6665
-    dbg(trunc(JSON.stringify(content), 300));
+    // NO do not do this sort of thing.  This is exactly the sort of situation where
+    // content could be very large, and JSON.stringify could use huge amounts of memory.
+    // If you need to see this for debugging, uncomment it.
+    // dbg(trunc(JSON.stringify(content), 300));
     if (content.data == null) {
       // todo: FOR now -- later may remove large stdout, stderr, etc...
       dbg("no data, so nothing to do");
@@ -727,7 +717,7 @@ export class JupyterKernel
     for (type of JUPYTER_MIMETYPES) {
       if (content.data[type] != null) {
         if (type.split("/")[0] === "image" || type === "application/pdf") {
-          const blob_store = this.get_blob_store();
+          const blob_store = get_blob_store();
           if (blob_store != null) {
             content.data[type] = blob_store.save(content.data[type], type);
           }
@@ -741,7 +731,7 @@ export class JupyterKernel
           //  {iframe: sha1 of srcdoc}
           content.data["iframe"] = iframe_process(
             content.data[type],
-            this.get_blob_store()
+            get_blob_store()
           );
           delete content.data[type];
         }
@@ -878,7 +868,7 @@ export class JupyterKernel
       path = process.env.HOME + "/" + path;
     }
     async function f(): Promise<string> {
-      const bs = get_blob_store_sync();
+      const bs = get_blob_store();
       if (bs == null) throw new Error("BlobStore not available");
       return bs.readFile(path, "base64");
     }
@@ -893,8 +883,15 @@ export class JupyterKernel
     }
   }
 
+  // This is called by project-actions when exporting the notebook
+  // to an ipynb file, since we can't explicitly call get_blob_store
+  // in that code in: @cocalc/frontend/jupyter/project-actions.ts
+  get_blob_store() {
+    return get_blob_store();
+  }
+
   process_attachment(base64, mime): string | undefined {
-    const blob_store = this.get_blob_store();
+    const blob_store = get_blob_store();
     return blob_store?.save(base64, mime);
   }
 

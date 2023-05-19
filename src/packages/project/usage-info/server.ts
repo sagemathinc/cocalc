@@ -18,6 +18,7 @@ import { getLogger } from "../logger";
 import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
 import { Process, ProjectInfo } from "../project-info/types";
 import { UsageInfo } from "./types";
+import { throttle } from "lodash";
 
 const L = getLogger("usage-info:server").debug;
 
@@ -31,6 +32,7 @@ function is_diff(prev: UsageInfo, next: UsageInfo, key: keyof UsageInfo) {
 
 export class UsageInfoServer extends EventEmitter {
   private readonly dbg: Function;
+  private readonly throttled_dbg: Function;
   private running = false;
   private readonly testing: boolean;
   private readonly project_info: ProjectInfoServer;
@@ -44,6 +46,7 @@ export class UsageInfoServer extends EventEmitter {
     this.testing = testing;
     this.path = path;
     this.dbg = L;
+    this.throttled_dbg = throttle((...args) => L(...args), 10000);
     this.project_info = get_ProjectInfoServer();
     this.dbg("starting");
   }
@@ -121,7 +124,9 @@ export class UsageInfoServer extends EventEmitter {
     const cg = this.info.cgroup;
     const du = this.info.disk_usage;
     if (cg == null || du == null) {
-      this.dbg("info incomplete, can't send usage data");
+      // I'm seeing situations where I get many of these a second,
+      // and that isn't useful, hence throttling.
+      this.throttled_dbg("info incomplete, can't send usage data", this.path);
       return;
     }
     const mem_rss = cg.mem_stat.total_rss + (du.tmp?.usage ?? 0);

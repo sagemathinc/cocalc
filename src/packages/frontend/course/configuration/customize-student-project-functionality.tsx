@@ -21,6 +21,8 @@ export interface StudentProjectFunctionality {
   disableJupyterClassicServer?: boolean;
   disableJupyterClassicMode?: boolean;
   disableJupyterLabServer?: boolean;
+  disableVSCodeServer?: boolean;
+  disablePlutoServer?: boolean;
   disableTerminals?: boolean;
   disableUploads?: boolean;
   disableNetwork?: boolean;
@@ -70,6 +72,18 @@ const OPTIONS: Option[] = [
       "Disable the user interface for running a JupyterLab server in student projects.  This is important, since JupyterLab it provides its own extensive download and edit functionality; moreover, you may want to disable JupyterLab to reduce confusion if you don't plan to use it.",
   },
   {
+    name: "disableVSCodeServer",
+    title: "VS Code IDE Server",
+    description:
+      "Disable the VS Code IDE Server, which lets you run VS Code in a project with one click.",
+  },
+  {
+    name: "disablePlutoServer",
+    title: "Pluto Julia notebook server",
+    description:
+      "Disable the user interface for running a pluto server in student projects.  Pluto lets you run Julia notebooks from a project.",
+  },
+  {
     name: "disableTerminals",
     title: "command line terminal",
     description:
@@ -109,9 +123,15 @@ const OPTIONS: Option[] = [
   },
   {
     name: "disableChatGPT",
-    title: "ChatGPT integration",
+    title: "all ChatGPT integration",
     description:
-      "Remove all ChatGPT integrations from the student projects.  This is a hint for honest students, since of course students can still use copy/paste to accomplish the same thing.",
+      "Remove *all* ChatGPT integrations from the student projects.  This is a hint for honest students, since of course students can still use copy/paste to accomplish the same thing.",
+  },
+  {
+    name: "disableSomeChatGPT",
+    title: "some ChatGPT integration",
+    description:
+      "Disable ChatGPT integration except that 'Help me fix' and 'Explain' buttons.  Use this if you only want the students to  use ChatGPT to get unstuck.",
   },
   {
     name: "disableSharing",

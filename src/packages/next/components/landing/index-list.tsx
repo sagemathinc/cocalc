@@ -4,7 +4,7 @@
  */
 
 import { Avatar, Layout, List } from "antd";
-import { ReactNode, useMemo, isValidElement } from "react";
+import { ReactNode, isValidElement, useMemo } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";

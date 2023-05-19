@@ -49,6 +49,7 @@
     "async-await-utils": "^3.0.1",
     "await-spawn": "^4.0.2",
     "awaiting": "^3.0.0",
+    "axios": "^1.4.0",
     "cookies": "^0.8.0",
     "dayjs": "^1.11.7",
     "json-stable-stringify": "^1.0.1",

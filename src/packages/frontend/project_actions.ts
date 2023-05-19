@@ -54,6 +54,7 @@ import { FixedTab } from "./project/page/file-tab";
 import { init as initChat } from "@cocalc/frontend/chat/register";
 import { local_storage } from "./editor-local-storage";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
+import track from "@cocalc/frontend/user-tracking";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -2819,9 +2820,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       most_recent_path: store.get("current_path"),
       too_many_results: false,
     });
+    const path = store.get("current_path");
+
+    track("search", {
+      project_id: this.project_id,
+      path,
+      query,
+      neural_search: store.get("neural_search"),
+      subdirectories: store.get("subdirectories"),
+      hidden_files: store.get("hidden_files"),
+      git_grep: store.get("git_grep"),
+    });
 
     if (store.get("neural_search")) {
-      this.neuralSearch(query, store.get("current_path"));
+      this.neuralSearch(query, path);
       return;
     }
 

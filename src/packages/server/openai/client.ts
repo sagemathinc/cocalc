@@ -8,12 +8,13 @@ import { getServerSettings } from "@cocalc/server/settings/server-settings";
 
 const log = getLogger("openai:client");
 
-let _client: OpenAIApi | null = null;
+const clientCache: { [key: string]: OpenAIApi } = {};
+
 export default async function getClient(): Promise<OpenAIApi> {
-  if (_client != null) {
-    return _client;
-  }
   const { openai_api_key: apiKey } = await getServerSettings();
+  if (clientCache[apiKey]) {
+    return clientCache[apiKey];
+  }
   if (!apiKey) {
     log.warn("requested openai api key, but it's not configured");
     throw Error("openai not configured");
@@ -22,6 +23,6 @@ export default async function getClient(): Promise<OpenAIApi> {
   log.debug("creating openai client...");
   const configuration = new Configuration({ apiKey });
   const client = new OpenAIApi(configuration);
-  _client = client;
+  clientCache[apiKey] = client;
   return client;
 }

@@ -13,17 +13,18 @@ import enableMessagingProtocol, {
   CoCalcSocket,
 } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { unlockSocket } from "@cocalc/backend/tcp/locked-socket";
-import * as client from "@cocalc/project/client";
 import { hubPortFile } from "@cocalc/project/data";
 import { getOptions } from "@cocalc/project/init-program";
-import { secretToken } from "@cocalc/project/servers/secret-token";
+import { getSecretToken } from "@cocalc/project/servers/secret-token";
 import { once } from "@cocalc/util/async-utils";
 import handleMessage from "./handle-message";
+import { getClient } from "@cocalc/project/client";
 
 import { getLogger } from "@cocalc/project/logger";
 const winston = getLogger("hub-tcp-server");
 
 export default async function init(): Promise<void> {
+  const secretToken = getSecretToken(); // could throw if not initialized yet
   if (!secretToken || secretToken.length < 16) {
     // being extra careful since security
     throw Error("secret token must be defined and at least 16 characters");
@@ -57,7 +58,7 @@ async function handleConnection(socket: CoCalcSocket) {
   });
 
   try {
-    await unlockSocket(socket, secretToken);
+    await unlockSocket(socket, getSecretToken());
   } catch (err) {
     winston.error(
       "failed to unlock socket -- ignoring any future messages and closing connection"
@@ -71,7 +72,7 @@ async function handleConnection(socket: CoCalcSocket) {
   enableMessagingProtocol(socket);
 
   socket.on("mesg", (type, mesg) => {
-    client.client?.active_socket(socket); // record that this socket is active now.
+    getClient().active_socket(socket); // record that this socket is active now.
     if (type === "json") {
       // non-JSON types are handled elsewhere, e.g., for sending binary data.
       // I'm not sure that any other message types are actually used though.

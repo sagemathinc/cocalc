@@ -71,6 +71,7 @@ const codemirror_associations: { [ext: string]: string } = {
   js: "javascript",
   jsx: "jsx",
   json: "javascript",
+  jsonl: "javascript", // See https://jsonlines.org/
   lean: "lean", // obviously nowhere close...
   ls: "text/x-livescript",
   lua: "lua",

@@ -22,7 +22,6 @@ const winston = getLogger("secret-token");
 const LENGTH = 128;
 
 let secretToken: string = ""; // not yet initialized
-export { secretToken };
 
 async function createSecretToken(): Promise<string> {
   winston.info(`creating '${secretTokenPath}'`);
@@ -42,4 +41,11 @@ export default async function init(): Promise<string> {
   } catch (err) {
     return await createSecretToken();
   }
+}
+
+export function getSecretToken(): string {
+  if (secretToken == "") {
+    throw Error("secret token not yet initialized");
+  }
+  return secretToken;
 }

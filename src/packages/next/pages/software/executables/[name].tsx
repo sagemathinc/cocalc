@@ -5,6 +5,7 @@
 
 import { Layout } from "antd";
 
+import { SoftwareEnvNames } from "@cocalc/util/consts/software-envs";
 import ExecutablesTable from "components/landing/executables-table";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
@@ -13,7 +14,6 @@ import Image from "components/landing/image";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { Customize, CustomizeType } from "lib/customize";
-import { SoftwareEnvNames } from "lib/landing/consts";
 import { withCustomizedAndSoftwareSpec } from "lib/landing/software-specs";
 import { ComputeInventory } from "lib/landing/types";
 import executablesScreenshot from "public/software/executables.png";

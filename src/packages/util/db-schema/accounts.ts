@@ -189,6 +189,16 @@ Table({
       render: { type: "string-tags" },
     },
     notes: NOTES,
+    salesloft_id: {
+      type: "integer",
+      desc: "The id of corresponding person in salesloft, if they exist there.",
+      render: {
+        type: "number",
+        integer: true,
+        editable: true,
+        min: 1,
+      },
+    },
   },
   rules: {
     desc: "All user accounts.",
@@ -452,6 +462,7 @@ Table({
           banned: null,
           groups: null,
           notes: null,
+          salesloft_id: null,
         },
       },
       set: {
@@ -466,6 +477,7 @@ Table({
           banned: true,
           unlisted: true,
           notes: true,
+          salesloft_id: true,
         },
       },
     },

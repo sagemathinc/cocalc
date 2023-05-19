@@ -1,42 +1,51 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+/*
 Handle a general message from the hub.  These are the generic message,
 as opposed to the messages specific to "client" functionality such as
 database queries.
 */
 
-import { getLogger } from "@cocalc/project/logger";
-import { Message } from "./types";
-import * as message from "@cocalc/util/message";
-import handleNamedServer from "@cocalc/project/named-servers";
+import processKill from "@cocalc/backend/misc/process-kill";
+import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
+import { handle_save_blob_message } from "@cocalc/project/blobs";
+import { getClient } from "@cocalc/project/client";
+import { project_id } from "@cocalc/project/data";
 import { exec_shell_code } from "@cocalc/project/exec_shell_code";
-// Reading and writing files to/from project and sending over socket
+import { get_kernel_data } from "@cocalc/project/jupyter/kernel-data";
+import jupyterExecute from "@cocalc/project/jupyter/stateless-api/execute";
+import { getLogger } from "@cocalc/project/logger";
+import handleNamedServer from "@cocalc/project/named-servers";
+import { print_to_pdf } from "@cocalc/project/print_to_pdf";
 import {
   read_file_from_project,
   write_file_to_project,
 } from "@cocalc/project/read_write_files";
-import { print_to_pdf } from "@cocalc/project/print_to_pdf";
-import processKill from "@cocalc/backend/misc/process-kill";
-import { handle_save_blob_message } from "@cocalc/project/blobs";
-import * as client from "@cocalc/project/client";
+import * as message from "@cocalc/util/message";
 import { version } from "@cocalc/util/smc-version";
+import { Message } from "./types";
 import writeTextFileToProject from "./write-text-file-to-project";
-import jupyterExecute from "@cocalc/project/jupyter/stateless-api/execute";
-import { get_kernel_data } from "@cocalc/project/jupyter/kernel-data";
-import { project_id } from "@cocalc/project/data";
 
 const winston = getLogger("handle-message-from-hub");
 
-export default async function handleMessage(socket, mesg: Message) {
+export default async function handleMessage(
+  socket: CoCalcSocket,
+  mesg: Message
+) {
   winston.debug("received a message", {
     event: mesg.event,
     id: mesg.id,
     "...": "...",
   });
+
   // We can't just log this in general, since it can be big.
   // So only uncomment this for low level debugging, unfortunately.
   // winston.debug("received ", mesg);
 
-  if (client.client?.handle_mesg(mesg, socket)) {
+  if (getClient().handle_mesg(mesg, socket)) {
     return;
   }
 
@@ -97,6 +106,7 @@ export default async function handleMessage(socket, mesg: Message) {
       }
       return;
 
+    // Reading and writing files to/from project and sending over socket
     case "read_file_from_project":
       read_file_from_project(socket, mesg);
       return;
@@ -151,6 +161,7 @@ export default async function handleMessage(socket, mesg: Message) {
       winston.info(`hello from hub -- sending back our version = ${version}`);
       socket.write_mesg("json", message.version({ version }));
       return;
+
     default:
       if (mesg.id != null) {
         // only respond with error if there is an id -- otherwise response has no meaning to hub.

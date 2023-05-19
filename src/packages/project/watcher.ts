@@ -24,6 +24,9 @@ the file first has ctime changed.
 
 import { EventEmitter } from "node:events";
 import { stat, unwatchFile, watchFile } from "node:fs";
+import { getLogger } from "./logger";
+
+const L = getLogger("watcher");
 
 export class Watcher extends EventEmitter {
   private path: string;
@@ -40,6 +43,7 @@ export class Watcher extends EventEmitter {
     this.interval = interval;
     this.debounce = debounce;
 
+    L.debug(`${path}: interval=${interval}, debounce=${debounce}`);
     watchFile(
       this.path,
       { interval: this.interval, persistent: false },
@@ -52,17 +56,17 @@ export class Watcher extends EventEmitter {
     unwatchFile(this.path, this._listen);
   }
 
-  _listen(curr, _prev) {
+  _listen(curr, _prev): void {
     if (curr.dev === 0) {
       this.emit("delete");
       return;
     }
     if (this.debounce) {
-      return this._emit_when_stable(true);
+      this._emit_when_stable(true);
     } else {
-      return stat(this.path, (err, stats) => {
+      stat(this.path, (err, stats) => {
         if (!err) {
-          return this.emit("change", stats.ctime);
+          this.emit("change", stats.ctime);
         }
       });
     }
