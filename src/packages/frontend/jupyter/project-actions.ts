@@ -14,16 +14,12 @@ fully unit test it via mocking of components.
 
 import * as immutable from "immutable";
 import json_stable from "json-stable-stringify";
-import * as underscore from "underscore";
-
+import { debounce } from "lodash";
 import { JupyterActions as JupyterActions0 } from "./actions";
-
 import { callback2, once } from "@cocalc/util/async-utils";
-//import { reuseInFlight } from "async-await-utils/hof";
 import * as misc from "@cocalc/util/misc";
 import { OutputHandler } from "./output-handler";
 import { RunAllLoop } from "./run-all-loop";
-
 import nbconvertChange from "./convert/handle-change";
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
@@ -145,8 +141,8 @@ export class JupyterActions extends JupyterActions0 {
     let cells = this.store.get("cells")?.toJS();
     dbg(`cells at manage_init = ${JSON.stringify(cells)}`);
 
-    this.sync_exec_state = underscore.debounce(this.sync_exec_state, 2000);
-    this._throttled_ensure_positions_are_unique = underscore.debounce(
+    this.sync_exec_state = debounce(this.sync_exec_state, 2000);
+    this._throttled_ensure_positions_are_unique = debounce(
       this.ensure_positions_are_unique,
       5000
     );

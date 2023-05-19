@@ -19,7 +19,6 @@ declare const localStorage: any;
 import { reuseInFlight } from "async-await-utils/hof";
 import * as immutable from "immutable";
 import { debounce } from "lodash";
-
 import { Actions } from "@cocalc/frontend/app-framework";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
