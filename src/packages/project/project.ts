@@ -1,18 +1,23 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import daemonizeProcess from "daemonize-process";
 
 import { init as initBugCounter } from "./bug-counter";
+import { init as initClient } from "./client";
 import initInfoJson from "./info-json";
 import initKucalc from "./init-kucalc";
 import { getOptions } from "./init-program";
-import { getLogger } from "./logger";
 import { cleanup as cleanupEnvironmentVariables } from "./project-setup";
 import initPublicPaths from "./public-paths";
 import initServers from "./servers/init";
-const { init: initClient } = require("./client"); // import { Client } from "./client";
 
+import { getLogger } from "./logger";
 const winston = getLogger("project-main");
 
-export async function main() {
+function checkEnvVariables() {
   const { HOME } = process.env;
   if (HOME == null) {
     throw Error("HOME env var must be set");
@@ -25,7 +30,10 @@ export async function main() {
   // TODO: some code, e.g., smc_pyutil's cc-jupyter script, assumes
   // that SMC is defined still.
   process.env.SMC = process.env.DATA;
+}
 
+export async function main() {
+  checkEnvVariables();
   const options = getOptions();
   if (options.daemon) {
     winston.info("daemonize the process");

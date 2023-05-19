@@ -3,20 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { writeFile } from "fs";
-import { callback } from "awaiting";
+import { writeFile } from "node:fs/promises";
 
+import { session_id, start_ts } from "@cocalc/project/consts";
 import {
   projectPidFile,
-  startTimestampFile,
   sessionIDFile,
+  startTimestampFile,
 } from "@cocalc/project/data";
-import { session_id, start_ts } from "@cocalc/project/consts";
 
 export default async function init() {
   await Promise.all([
-    callback(writeFile, projectPidFile, `${process.pid}`),
-    callback(writeFile, startTimestampFile, `${start_ts}`),
-    callback(writeFile, sessionIDFile, `${session_id}`),
+    writeFile(projectPidFile, `${process.pid}`),
+    writeFile(startTimestampFile, `${start_ts}`),
+    writeFile(sessionIDFile, `${session_id}`),
   ]);
 }
