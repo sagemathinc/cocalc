@@ -42,7 +42,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
-import { unlink } from "./async-utils-node";
+import { unlink } from "@cocalc/backend/misc/async-utils-node";
 
 import {
   process as iframe_process,
@@ -75,16 +75,15 @@ import {
 } from "@cocalc/util/misc";
 import { nbconvert } from "./convert";
 import { CodeExecutionEmitter } from "./execute-code";
-import { get_blob_store_sync as get_blob_store } from "./jupyter-blobs-get";
+import { get_blob_store_sync } from "@cocalc/jupyter/blobs";
 import { getLanguage, get_kernel_data_by_name } from "./kernel-data";
 import launchJupyterKernel, {
   LaunchJupyterOpts,
   SpawnedKernel,
   killKernel,
-} from "./pool";
-import { KernelParams } from "./types";
-import { getAbsolutePathFromHome } from "./util";
-
+} from "@cocalc/jupyter/pool/pool";
+import { getAbsolutePathFromHome } from "@cocalc/jupyter/util";
+import type { KernelParams } from "./types";
 import { getLogger } from "@cocalc/project/logger";
 const log = getLogger("jupyter");
 
@@ -717,7 +716,7 @@ export class JupyterKernel
     for (type of JUPYTER_MIMETYPES) {
       if (content.data[type] != null) {
         if (type.split("/")[0] === "image" || type === "application/pdf") {
-          const blob_store = get_blob_store();
+          const blob_store = get_blob_store_sync();
           if (blob_store != null) {
             content.data[type] = blob_store.save(content.data[type], type);
           }
@@ -731,7 +730,7 @@ export class JupyterKernel
           //  {iframe: sha1 of srcdoc}
           content.data["iframe"] = iframe_process(
             content.data[type],
-            get_blob_store()
+            get_blob_store_sync()
           );
           delete content.data[type];
         }
@@ -868,7 +867,7 @@ export class JupyterKernel
       path = process.env.HOME + "/" + path;
     }
     async function f(): Promise<string> {
-      const bs = get_blob_store();
+      const bs = get_blob_store_sync();
       if (bs == null) throw new Error("BlobStore not available");
       return bs.readFile(path, "base64");
     }
@@ -887,11 +886,11 @@ export class JupyterKernel
   // to an ipynb file, since we can't explicitly call get_blob_store
   // in that code in: @cocalc/frontend/jupyter/project-actions.ts
   get_blob_store() {
-    return get_blob_store();
+    return get_blob_store_sync();
   }
 
   process_attachment(base64, mime): string | undefined {
-    const blob_store = get_blob_store();
+    const blob_store = get_blob_store_sync();
     return blob_store?.save(base64, mime);
   }
 

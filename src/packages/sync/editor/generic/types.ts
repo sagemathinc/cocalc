@@ -57,7 +57,6 @@ import { EventEmitter } from "events";
 
 export interface ProjectClient extends EventEmitter {
   server_time: () => Date;
-  is_user: () => boolean;
   is_project: () => boolean;
   is_connected: () => boolean;
   is_signed_in: () => boolean;

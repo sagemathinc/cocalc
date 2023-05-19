@@ -29,6 +29,9 @@ export function versionCheckFails(req, res?): boolean {
      but everybody imports it from @cocalc/util/consts.
   */
   const rawVal = cookies.get(versionCookieName(base_path));
+  if (rawVal == null) {
+    return true;
+  }
   const version = parseInt(rawVal);
   winston.debug(`version check version=${version}, minVersion=${minVersion}`);
   if (isNaN(version) || version < minVersion) {

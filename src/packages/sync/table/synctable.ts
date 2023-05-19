@@ -31,25 +31,12 @@ import { wait } from "@cocalc/util/async-wait";
 import { query_function } from "./query-function";
 import { assert_uuid, copy, is_array, is_object, len } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
-import mergeDeep from "./immutable-deep-merge";
+import mergeDeep from "@cocalc/util/immutable-deep-merge";
+import type { Client } from "@cocalc/sync/client/types";
+export type { Client };
 
 export type Query = any; // TODO typing
 export type QueryOptions = any[]; // TODO typing
-
-// What we need the client below to implement so we can use
-// it to support a table.
-export interface Client extends EventEmitter {
-  is_project: () => boolean;
-  dbg: (str: string) => Function;
-  query: Query; // TODO typing
-  query_cancel: Function;
-  server_time: Function;
-  alert_message?: Function;
-  is_connected: () => boolean;
-  is_signed_in: () => boolean;
-  touch_project: (opts: any) => void;
-  set_connected?: Function;
-}
 
 export interface VersionedChange {
   obj: { [key: string]: any };
@@ -869,7 +856,7 @@ export class SyncTable extends EventEmitter {
         if (obj == null) {
           return;
         }
-        const v: string[] = [];
+        const v: any[] = [];
         if (Map.isMap(obj)) {
           for (const pk of this.primary_keys) {
             const a = obj.get(pk);
@@ -1109,7 +1096,12 @@ export class SyncTable extends EventEmitter {
 
   // Return modified immutable Map, with all types coerced to be
   // as specified in the schema, if possible, or throw an exception.
-  private do_coerce_types(changes: Map<string, any>): Map<string, any> {
+  private do_coerce_types(
+    changes: Map<string | number, any>
+  ): Map<string | number, any> {
+    if (!Map.isMap(changes)) {
+      changes = Map(changes);
+    }
     if (!this.coerce_types) {
       // no-op if coerce_types isn't set.
       return changes;
@@ -1217,7 +1209,7 @@ export class SyncTable extends EventEmitter {
         }
         if (desired === "map") {
           if (!Map.isMap(value)) {
-            value = fromJS(value);
+            value = Map(value);
             if (!Map.isMap(value)) {
               throw Error(
                 `field ${field} of table ${this.table} (value=${changes.get(

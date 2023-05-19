@@ -14,9 +14,6 @@
 //  -- one request
 //  -- one response
 
-import { reuseInFlight } from "async-await-utils/hof";
-
-import { Mesg } from "@cocalc/frontend/project/websocket/types";
 import { getClient } from "@cocalc/project/client";
 import { get_configuration } from "../configuration";
 import { run_formatter, run_formatter_string } from "../formatters";
@@ -25,7 +22,6 @@ import { lean, lean_channel } from "../lean/server";
 import { nbgrader } from "../nbgrader/api";
 import { jupyter_strip_notebook } from "../nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "../nbgrader/jupyter-run";
-import { project_info_ws } from "../project-info";
 import { synctable_channel } from "../sync/server";
 import { syncdoc_call } from "../sync/sync-doc";
 import { terminal } from "../terminal/server";
@@ -35,6 +31,10 @@ import { delete_files } from "./delete-files";
 import { eval_code } from "./eval-code";
 import { move_files, rename_file } from "./move-files";
 import { realpath } from "./realpath";
+import { project_info_ws } from "../project-info";
+import { Mesg } from "@cocalc/frontend/project/websocket/types";
+import { reuseInFlight } from "async-await-utils/hof";
+import query from "./query";
 import { browser_symmetric_channel } from "./symmetric_channel";
 
 import { getLogger } from "@cocalc/project/logger";
@@ -105,6 +105,8 @@ async function handleApiCall0(data: Mesg): Promise<any> {
       return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
       return await exec(data.opts);
+    case "query":
+      return await query(client, data.opts);
     case "eval_code":
       return eval_code(data.code);
     case "terminal":

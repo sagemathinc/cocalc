@@ -757,7 +757,7 @@ const Explorer0 = rclass(
           project_state = this.props.project_map.getIn([
             this.props.project_id,
             "state",
-          ]);
+          ]) as any;
         }
         project_is_running = project_state?.get("state") == "running";
       } else {

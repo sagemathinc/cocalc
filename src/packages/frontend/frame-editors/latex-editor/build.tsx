@@ -152,7 +152,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     const time_str = time ? `(${(time / 1000).toFixed(1)} seconds)` : "";
     const title = BUILD_SPECS[stage].label;
     // highlights tab, if there is at least one parsed error
-    const error = build_logs.getIn([stage, "parse", "errors"]).size > 0;
+    const error = (build_logs.getIn([stage, "parse", "errors"]) as any).size > 0;
     // also show the problematic log to the user
     if (error) {
       no_errors = false;
@@ -165,7 +165,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
   }
 
   function render_clean(): AntdTabItem | undefined {
-    const value = build_logs?.getIn(["clean", "output"]);
+    const value = build_logs?.getIn(["clean", "output"]) as any;
     if (!value) return;
     const title = "Clean Auxiliary Files";
     return render_tab_item(title, value);

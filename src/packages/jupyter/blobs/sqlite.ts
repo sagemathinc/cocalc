@@ -12,10 +12,10 @@ import * as fs from "node:fs";
 
 import Logger from "@cocalc/backend/logger";
 import * as misc_node from "@cocalc/backend/misc_node";
-import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
+import type { BlobStoreInterface } from "@cocalc/jupyter/types/project-interface";
 import { months_ago } from "@cocalc/util/misc";
-import { readFile } from "./async-utils-node";
-import { BASE64_TYPES } from "./jupyter-blobs-get";
+import { readFile } from "fs/promises";
+import { BASE64_TYPES } from "./get";
 
 const winston = Logger("jupyter-blobs:sqlite");
 

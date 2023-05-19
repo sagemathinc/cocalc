@@ -44,19 +44,19 @@ export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
 export const logs: string = process.env.LOGS ?? join(data, "logs");
-export const BLOBSTORE = getBlobstore();
-
-function getBlobstore(): "sqlite" | "disk" {
-  const env = process.env["COCALC_JUPYTER_BLOBSTORE_IMPL"];
-  if (env === "disk") return "disk";
-  return "sqlite";
-}
+export const blobstore: "disk" | "sqlite" =
+  (process.env.COCALC_JUPYTER_BLOBSTORE_IMPL as any) ?? "sqlite";
 
 function sanityChecks() {
   // Do a sanity check on projects:
   if (!projects.includes("[project_id]")) {
     throw Error(
       `${DEFINITION}\n\nenv variable PROJECTS must contain "[project_id]" but it is "${process.env.PROJECTS}"`
+    );
+  }
+  if ((blobstore as any) != "sqlite" && (blobstore as any) != "disk") {
+    throw Error(
+      "If set, COCALC_JUPYTER_BLOBSTORE_IMPL must be 'sqlite' or 'disk'"
     );
   }
 }

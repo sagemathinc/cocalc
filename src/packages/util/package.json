@@ -36,7 +36,7 @@
     "dayjs": "^1.11.7",
     "events": "3.3.0",
     "get-random-values": "^1.2.0",
-    "immutable": "^3.8.2",
+    "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",

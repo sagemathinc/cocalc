@@ -12,7 +12,6 @@ import { isEqual, throttle } from "lodash";
 import { spawn } from "node-pty";
 import { readFile, writeFile } from "node:fs";
 import { readlink } from "node:fs/promises";
-
 import { envForSpawn } from "@cocalc/backend/misc";
 import {
   console_init_filename,
@@ -20,7 +19,7 @@ import {
   merge,
   path_split,
 } from "@cocalc/util/misc";
-import { exists } from "../jupyter/async-utils-node";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
 
 interface Terminal {
   channel: any;

@@ -19,7 +19,6 @@ declare const localStorage: any;
 import { reuseInFlight } from "async-await-utils/hof";
 import * as immutable from "immutable";
 import { debounce } from "lodash";
-
 import { Actions } from "@cocalc/frontend/app-framework";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
@@ -1222,8 +1221,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       "\n" +
       cells.getIn([next_id, "input"], "");
 
-    const output0 = cells.getIn([cell_id, "output"]);
-    const output1 = cells.getIn([next_id, "output"]);
+    const output0 = cells.getIn([cell_id, "output"]) as any;
+    const output1 = cells.getIn([next_id, "output"]) as any;
     let output: any = undefined;
     if (output0 == null) {
       output = output1;
@@ -1428,13 +1427,13 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       if (cell_before_pasted_id == null) {
         // very top cell
         before_pos = undefined;
-        after_pos = cells.getIn([cell_ids[0], "pos"]);
+        after_pos = cells.getIn([cell_ids[0], "pos"]) as number;
       } else {
-        before_pos = cells.getIn([cell_before_pasted_id, "pos"]);
+        before_pos = cells.getIn([cell_before_pasted_id, "pos"]) as number | undefined;
         after_pos = cells.getIn([
           this.store.get_cell_id(+1, cell_before_pasted_id),
           "pos",
-        ]);
+        ]) as number;
       }
       const positions = cell_utils.positions_between(
         before_pos,

@@ -85,7 +85,7 @@ export function HomeRecentFiles({
           account_id: entry.get("account_id"),
         };
       })
-      .toJS();
+      .toJS() as any;
   }, [project_log, searchTerm]);
 
   function renderItemInfo({ account_id, time }) {

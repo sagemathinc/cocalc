@@ -15,8 +15,8 @@ import Logger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { touch } from "@cocalc/backend/misc/touch";
 import { sha1 } from "@cocalc/backend/sha1";
-import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
-import { BASE64_TYPES } from "./jupyter-blobs-get";
+import type { BlobStoreInterface } from "@cocalc/jupyter/types/project-interface";
+import { BASE64_TYPES } from "./get";
 
 const { debug: D, info: I, warn: W } = Logger("jupyter-blobs:disk");
 

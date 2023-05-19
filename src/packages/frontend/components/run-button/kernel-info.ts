@@ -5,7 +5,7 @@
 
 import LRU from "lru-cache";
 
-import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
+import type { KernelSpec } from "@cocalc/jupyter/types";
 import { capitalize } from "@cocalc/util/misc";
 import api from "./api";
 

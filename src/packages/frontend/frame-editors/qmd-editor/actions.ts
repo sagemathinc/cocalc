@@ -130,7 +130,7 @@ export class Actions extends MarkdownActions {
 
     // console.log("setting derived_file_types to", existing.toJS());
     this.setState({
-      derived_file_types: existing,
+      derived_file_types: existing as any,
     });
   }
 

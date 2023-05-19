@@ -545,7 +545,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (!use_windowed_list) return "";
     let value = "";
     cell_list.forEach((id) => {
-      debouncedCells.getIn([id, "output"])?.forEach((output) => {
+      (debouncedCells.getIn([id, "output"]) as any)?.forEach((output) => {
         const html = output.getIn(["data", "text/html"]);
         if (html?.includes("style")) {
           // parse out and include style tags

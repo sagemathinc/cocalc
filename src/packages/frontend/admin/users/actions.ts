@@ -51,7 +51,7 @@ export class AdminUsersActions extends Actions<StoreState> {
     this.set_status("");
 
     this.setState({
-      result: fromJS(result_sorted) as List<ImmutableUser>,
+      result: fromJS(result_sorted) as unknown as List<ImmutableUser>,
     });
   }
 

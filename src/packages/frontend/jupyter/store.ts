@@ -428,8 +428,8 @@ export class JupyterStore extends Store<JupyterStoreState> {
       .forEach((kernels, lang) => {
         const top: any = kernels
           .sort((a, b) => {
-            const va = -a.getIn(["metadata", "cocalc", "priority"], 0);
-            const vb = -b.getIn(["metadata", "cocalc", "priority"], 0);
+            const va = -(a.getIn(["metadata", "cocalc", "priority"], 0) as number);
+            const vb = -(b.getIn(["metadata", "cocalc", "priority"], 0) as number);
             return cmp(va, vb);
           })
           .first();

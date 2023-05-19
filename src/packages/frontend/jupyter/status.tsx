@@ -173,7 +173,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           return <span style={KERNEL_ERROR_STYLE}>Unknown kernel</span>;
         } else {
           const closestKernelDisplayName = closestKernel.get("display_name");
-          const closestKernelName = closestKernel.get("name");
+          const closestKernelName = closestKernel.get("name") as string;
           return (
             <span
               style={KERNEL_ERROR_STYLE}
@@ -435,7 +435,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
       ]);
       const language = capitalize(kernel_info?.get("language", "Unknown"));
       const langTxt = `${language}${description ? ` (${description})` : ""}`;
-      const langURL = kernel_info?.getIn(["metadata", "cocalc", "url"]);
+      const langURL = kernel_info?.getIn(["metadata", "cocalc", "url"]) as string|undefined;
       const lang = (
         <>
           Language:{" "}

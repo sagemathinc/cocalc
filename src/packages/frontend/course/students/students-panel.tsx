@@ -267,7 +267,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       // contains the course.
       const users = redux.getStore("projects").get_users(project_id);
       // Make a map with keys the email or account_id is already part of the course.
-      const already_added = users?.toJS() ?? {}; // start with collabs on project
+      const already_added : {[key:string]:boolean} = (users?.toJS() ?? {}) as any; // start with collabs on project
       // also track **which** students are already part of the course
       const existing_students: any = {};
       existing_students.account = {};

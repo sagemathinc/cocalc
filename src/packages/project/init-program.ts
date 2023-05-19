@@ -5,8 +5,7 @@
 
 // parses command line arguments -- https://github.com/visionmedia/commander.js/
 import { program } from "commander";
-
-import { BLOBSTORE } from "@cocalc/backend/data";
+import { blobstore } from "@cocalc/backend/data";
 
 interface Options {
   hubPort: number;
@@ -17,7 +16,7 @@ interface Options {
   daemon: boolean;
   sshd: boolean;
   init: string;
-  blobstore: typeof BLOBSTORE;
+  blobstore: typeof blobstore;
 }
 
 const DEFAULTS: Options = {
@@ -29,7 +28,7 @@ const DEFAULTS: Options = {
   daemon: false,
   sshd: false,
   init: "",
-  blobstore: BLOBSTORE,
+  blobstore,
 };
 
 program

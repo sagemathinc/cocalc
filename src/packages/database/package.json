@@ -29,7 +29,7 @@
     "awaiting": "^3.0.0",
     "better-sqlite3": "^8.3.0",
     "debug": "^4.3.2",
-    "immutable": "^3.8.2",
+    "immutable": "^4.3.0",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "node-fetch": "2.6.7",

@@ -1,0 +1,57 @@
+{
+  "name": "@cocalc/jupyter",
+  "version": "0.1.0",
+  "description": "CoCalc Jupyter -- code to support using Jupyter in cocalc, mainly across all clients",
+  "exports": {
+    "./*": "./dist/*.js",
+    "./blobs": "./dist/blobs/index.js",
+    "./pool/*": "./dist/pool/*.js",
+    "./types": "./dist/types/index.js",
+    "./types/*": "./dist/types/*.js",
+    "./util": "./dist/util/index.js",
+    "./util/*": "./dist/util/*.js"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "npx tsc",
+    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+  },
+  "author": "SageMath, Inc.",
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/jupyter": "workspace:*",
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/sync-client": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "@types/better-sqlite3": "^7.6.4",
+    "async-await-utils": "^3.0.1",
+    "awaiting": "^3.0.0",
+    "better-sqlite3": "^8.3.0",
+    "execa": "^7.1.1",
+    "immutable": "^4.3.0",
+    "json-stable-stringify": "^1.0.1",
+    "jsonfile": "^6.1.0",
+    "jupyter-paths": "^2.0.3",
+    "kernelspecs": "^2.0.1",
+    "lru-cache": "^7.14.1",
+    "mkdirp": "^1.0.4",
+    "node-cleanup": "^2.1.2",
+    "portfinder": "^1.0.32",
+    "shell-escape": "^0.2.0",
+    "tsimportlib": "^0.0.3",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.18"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/jupyter",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  }
+}

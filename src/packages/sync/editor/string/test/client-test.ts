@@ -46,10 +46,6 @@ export class Client extends EventEmitter implements Client0 {
     return new Date();
   }
 
-  public is_user(): boolean {
-    return true;
-  }
-
   public is_project(): boolean {
     return false;
   }

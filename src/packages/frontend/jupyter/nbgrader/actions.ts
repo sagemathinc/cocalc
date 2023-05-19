@@ -39,7 +39,7 @@ export class NBGraderActions {
     let changed: boolean = false; // did something change.
     cells.forEach((cell, id: string): void => {
       if (cell == null) return;
-      const nbgrader = cell.getIn(["metadata", "nbgrader"]);
+      const nbgrader = cell.getIn(["metadata", "nbgrader"]) as any;
       if (nbgrader == null || nbgrader.get("schema_version") === 3) return;
       // Doing this set
       // make the actual change via the syncdb mechanism (NOT updating cells directly; instead
@@ -368,7 +368,7 @@ export class NBGraderActions {
     // "metadata":{"nbgrader":{"locked":true,...
     //console.log("assign_lock_readonly_cells");
     this.jupyter_actions.store.get("cells").forEach((cell) => {
-      const nbgrader = cell?.getIn(["metadata", "nbgrader"]);
+      const nbgrader = cell?.getIn(["metadata", "nbgrader"]) as any;
       if (!nbgrader) return;
 
       // We don't allow student to delete *any* cells with any
@@ -398,7 +398,7 @@ export class NBGraderActions {
     let changed: boolean = false; // did something change.
     cells.forEach((cell, id: string): void => {
       if (cell == null) return;
-      const nbgrader = cell.getIn(["metadata", "nbgrader"]);
+      const nbgrader = cell.getIn(["metadata", "nbgrader"]) as any;
       if (nbgrader == null) return;
       let grade_id = nbgrader.get("grade_id");
       if (grade_ids.has(grade_id)) {

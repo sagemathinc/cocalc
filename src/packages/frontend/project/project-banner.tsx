@@ -92,7 +92,7 @@ export const ProjectWarningBanner: React.FC<Props> = React.memo(
           <TrialBanner
             project_id={project_id}
             projectSiteLicenses={projectSiteLicenses}
-            projectCreatedTS={project_map?.getIn([project_id, "created"])}
+            projectCreatedTS={project_map?.get(project_id)?.get("created")}
             host={host}
             internet={internet}
             projectIsRunning={projectIsRunning}

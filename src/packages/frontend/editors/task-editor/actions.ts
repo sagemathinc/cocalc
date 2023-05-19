@@ -308,7 +308,7 @@ export class TaskActions extends Actions<TaskState> {
     if (task_id == null) {
       return;
     }
-    let task = this.store.getIn(["tasks", task_id]);
+    let task = this.store.getIn(["tasks", task_id]) as any;
     // Update last_edited if desc or due date changes
     if (
       task == null ||
@@ -334,7 +334,7 @@ export class TaskActions extends Actions<TaskState> {
       // **immediately**; this would happen
       // eventually as a result of the syncdb set above.
       let tasks = this.store.get("tasks") ?? fromJS({});
-      task = tasks.get(task_id) ?? fromJS({ task_id });
+      task = tasks.get(task_id) ?? fromJS({ task_id }) as any;
       if (task == null) throw Error("bug");
       for (let k in obj) {
         const v = obj[k];
@@ -595,7 +595,7 @@ export class TaskActions extends Actions<TaskState> {
 
   public set_sort_column(column: Headings, dir: HeadingsDir): void {
     let view = this.getFrameData("local_view_state") ?? fromJS({});
-    let sort = view.get("sort") ?? (fromJS({}) as Sort);
+    let sort = view.get("sort") ?? (fromJS({}) as unknown as Sort);
     sort = sort.set("column", column);
     sort = sort.set("dir", dir);
     view = view.set("sort", sort);

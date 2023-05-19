@@ -2210,7 +2210,7 @@ export function closest_kernel_match(
     }
     // filter out kernels with negative priority (using the priority
     // would be great, though)
-    if (k.getIn(["metadata", "cocalc", "priority"], 0) < 0) continue;
+    if ((k.getIn(["metadata", "cocalc", "priority"], 0) as number) < 0) continue;
     const kernel_name = k.get("name")?.toLowerCase();
     if (!kernel_name) continue;
     let v = 0;

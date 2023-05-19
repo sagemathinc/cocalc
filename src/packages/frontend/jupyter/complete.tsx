@@ -82,9 +82,9 @@ export function Complete({ actions, id, complete }: Props) {
   }
 
   function getStyle(): CSSProperties {
-    const top = complete.getIn(["offset", "top"], 0);
-    const left = complete.getIn(["offset", "left"], 0);
-    const gutter = complete.getIn(["offset", "gutter"], 0);
+    const top = complete.getIn(["offset", "top"], 0) as number;
+    const left = complete.getIn(["offset", "left"], 0) as number;
+    const gutter = complete.getIn(["offset", "gutter"], 0) as number;
     return {
       cursor: "pointer",
       top: top + 15 + "px",

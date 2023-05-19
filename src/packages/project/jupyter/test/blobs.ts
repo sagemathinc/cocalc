@@ -7,7 +7,7 @@ import expect from "expect";
 
 import * as misc_node from "@cocalc/backend/misc_node";
 
-import { get_blob_store } from "../jupyter-blobs-sqlite";
+import { blob_store } from "@cocalc/jupyter/blobs";
 
 describe("very basic tests of the blob store -- ", function () {
   const blob_store = get_blob_store();

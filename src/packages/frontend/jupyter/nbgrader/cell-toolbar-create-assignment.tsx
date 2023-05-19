@@ -59,7 +59,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
     }
     const metadata: Metadata = value_to_state(value);
     const id = cell.get("id");
-    metadata.grade_id = cell.getIn(["metadata", "nbgrader", "grade_id"], "");
+    metadata.grade_id = cell.getIn(["metadata", "nbgrader", "grade_id"], "") as string;
     if (!metadata.grade_id) {
       // TODO -- check if default is globally unique...?
       metadata.grade_id = id;
@@ -92,7 +92,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
   }
 
   function get_value(): string {
-    const x = cell.getIn(["metadata", "nbgrader"], Map());
+    const x = cell.getIn(["metadata", "nbgrader"], Map()) as any;
     if (x == null) return "";
     try {
       const val = state_to_value(x.toJS());
@@ -115,7 +115,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
       "metadata",
       "nbgrader",
       "points",
-    ]);
+    ]) as any;
     if (points == null) return;
     const do_focus_points = focus_points.current;
     focus_points.current = false;
@@ -156,7 +156,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
       "metadata",
       "nbgrader",
       "grade_id",
-    ]);
+    ]) as any;
     if (grade_id == null) return;
     return (
       <>

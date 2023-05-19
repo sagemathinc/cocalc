@@ -556,7 +556,7 @@ export default function Canvas({
   }, [frame.desc.get("fitToScreen")]);
 
   const edgeStart =
-    selectedTool == "edge" ? frame.desc.getIn(["edgeStart", "id"]) : undefined;
+    selectedTool == "edge" ? (frame.desc.getIn(["edgeStart", "id"]) as string | undefined) : undefined;
 
   let selectionHandled = false;
   function processElement(element, isNavRectangle = false) {
