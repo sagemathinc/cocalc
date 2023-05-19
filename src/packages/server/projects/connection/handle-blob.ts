@@ -46,7 +46,9 @@ async function saveBlob({ project_id, uuid, blob }): Promise<number> {
   if (!isValidUUID(uuid)) throw Error("uuid is invalid");
   if (!blob) throw Error("blob is required");
   if (uuid != uuidsha1(blob)) {
-    throw Error("uuid must be the sha1-uuid of blob");
+    throw Error(
+      `uuid must be the sha1-uuid of blob but got ${uuid} != ${uuidsha1(blob)}`
+    );
   }
   if (blob.length > MAX_BLOB_SIZE) {
     throw Error(

@@ -117,7 +117,7 @@ _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
         (cb) =>
             winston.debug("get and unlock socket")
             try
-                sage_socket = await connectToLockedSocket({port:port, token:secret_token.secretToken})
+                sage_socket = await connectToLockedSocket({port:port, token:secret_token.getSecretToken()})
                 winston.debug("Successfully unlocked a sage session connection.")
                 cb()
             catch err

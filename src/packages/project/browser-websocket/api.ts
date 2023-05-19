@@ -14,25 +14,28 @@
 //  -- one request
 //  -- one response
 
-import { browser_symmetric_channel } from "./symmetric_channel";
-import { canonical_paths } from "./canonical-path";
-import { eval_code } from "./eval-code";
-import { terminal } from "../terminal/server";
+import { reuseInFlight } from "async-await-utils/hof";
+
+import { Mesg } from "@cocalc/frontend/project/websocket/types";
+import { getClient } from "@cocalc/project/client";
+import { get_configuration } from "../configuration";
+import { run_formatter, run_formatter_string } from "../formatters";
+import { nbconvert as jupyter_nbconvert } from "../jupyter/convert";
 import { lean, lean_channel } from "../lean/server";
 import { nbgrader } from "../nbgrader/api";
 import { jupyter_strip_notebook } from "../nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "../nbgrader/jupyter-run";
-import { nbconvert as jupyter_nbconvert } from "../jupyter/convert";
-import { x11_channel } from "../x11/server";
+import { project_info_ws } from "../project-info";
 import { synctable_channel } from "../sync/server";
 import { syncdoc_call } from "../sync/sync-doc";
-import { get_configuration } from "../configuration";
+import { terminal } from "../terminal/server";
+import { x11_channel } from "../x11/server";
+import { canonical_paths } from "./canonical-path";
 import { delete_files } from "./delete-files";
-import { rename_file, move_files } from "./move-files";
+import { eval_code } from "./eval-code";
+import { move_files, rename_file } from "./move-files";
 import { realpath } from "./realpath";
-import { project_info_ws } from "../project-info";
-import { Mesg } from "@cocalc/frontend/project/websocket/types";
-import { reuseInFlight } from "async-await-utils/hof";
+import { browser_symmetric_channel } from "./symmetric_channel";
 
 import { getLogger } from "@cocalc/project/logger";
 const log = getLogger("websocket-api");
@@ -77,11 +80,8 @@ export function init_websocket_api(_primus: any): void {
   });
 }
 
-import { run_formatter, run_formatter_string } from "../formatters";
-const theClient = require("@cocalc/project/client");
-
 async function handleApiCall0(data: Mesg): Promise<any> {
-  const { client } = theClient;
+  const client = getClient();
   switch (data.cmd) {
     case "listing":
       return await listing(data.path, data.hidden);
@@ -151,8 +151,8 @@ const handleApiCall = reuseInFlight(handleApiCall0);
 
 /* implementation of the api calls */
 
-import { get_listing } from "../directory-listing";
 import { DirectoryListingEntry } from "@cocalc/util/types";
+import { get_listing } from "../directory-listing";
 async function listing(
   path: string,
   hidden?: boolean
@@ -163,11 +163,12 @@ async function listing(
 import { handle_request as jupyter } from "../jupyter/websocket-api";
 
 // Execute code
-import {
-  executeCode,
+import { executeCode } from "@cocalc/backend/execute-code";
+
+import type {
   ExecuteCodeOptions,
   ExecuteCodeOutput,
-} from "@cocalc/backend/execute-code";
+} from "@cocalc/util/types/execute-code";
 
 export async function exec(
   opts: ExecuteCodeOptions

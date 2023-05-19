@@ -49,10 +49,7 @@ const CURSOR_THROTTLE_MS = 750;
 
 type XPatch = any;
 
-import { EventEmitter } from "events";
-import { debounce, throttle } from "lodash";
-import { Map, fromJS } from "immutable";
-import { delay } from "awaiting";
+import { SyncTable } from "@cocalc/sync/table/synctable";
 import {
   callback2,
   cancel_scheduled,
@@ -62,34 +59,37 @@ import {
 } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
 import {
+  ISO_to_Date,
   assertDefined,
   close,
   cmp_Date,
   endswith,
   filename_extension,
-  keys,
-  uuid,
   hash_string,
   is_date,
-  ISO_to_Date,
+  keys,
   minutes_ago,
   server_minutes_ago,
+  uuid,
 } from "@cocalc/util/misc";
-import { Evaluator } from "./evaluator";
-import { IpywidgetsState } from "./ipywidgets-state";
 import * as schema from "@cocalc/util/schema";
-import { SyncTable } from "@cocalc/sync/table/synctable";
+import { delay } from "awaiting";
+import { EventEmitter } from "events";
+import { Map, fromJS } from "immutable";
+import { debounce, throttle } from "lodash";
+import { Evaluator } from "./evaluator";
+import { HistoryEntry, HistoryExportOptions, export_history } from "./export";
+import { IpywidgetsState } from "./ipywidgets-state";
+import { SortedPatchList } from "./sorted-patch-list";
 import {
   Client,
   CompressedPatch,
   DocType,
   Document,
-  Patch,
   FileWatcher,
+  Patch,
 } from "./types";
-import { SortedPatchList } from "./sorted-patch-list";
 import { patch_cmp } from "./util";
-import { export_history, HistoryEntry, HistoryExportOptions } from "./export";
 
 export type State = "init" | "ready" | "closed";
 export type DataServer = "project" | "database";
@@ -2256,7 +2256,7 @@ export class SyncDoc extends EventEmitter {
     this.file_watcher.on("delete", this.handle_file_watcher_delete.bind(this));
   }
 
-  private handle_file_watcher_change(ctime: Date): void {
+  private async handle_file_watcher_change(ctime: Date): Promise<void> {
     const dbg = this.dbg("handle_file_watcher_change");
     const time: number = ctime.valueOf();
     dbg(
@@ -2271,7 +2271,7 @@ export class SyncDoc extends EventEmitter {
       // to save was at least 7s ago, and it finished,
       // so definitely this change event was not caused by it.
       dbg("load_from_disk since no recent save to disk");
-      this.load_from_disk();
+      await this.load_from_disk();
       return;
     }
   }
@@ -2297,10 +2297,21 @@ export class SyncDoc extends EventEmitter {
     } else {
       dbg("file exists");
       await this.update_if_file_is_read_only();
-      const data = await callback2(this.client.path_read, {
-        path,
-        maxsize_MB: MAX_FILE_SIZE_MB,
+
+      const data = await new Promise<string>(async (resolve, reject) => {
+        await this.client.path_read({
+          path,
+          maxsize_MB: MAX_FILE_SIZE_MB,
+          cb(err, data) {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(data);
+            }
+          },
+        });
       });
+
       size = data.length;
       dbg(`got it -- length=${size}`);
       this.from_str(data);
@@ -2682,10 +2693,23 @@ export class SyncDoc extends EventEmitter {
     // imprecision.
     // Over an sshfs mount, all stats info is **rounded down
     // to the nearest second**, which this also takes care of.
-    this.save_to_disk_start_ctime = new Date().valueOf() - 1500;
+    this.save_to_disk_start_ctime = Date.now() - 1500;
     this.save_to_disk_end_ctime = undefined;
     try {
-      await callback2(this.client.write_file, { path, data });
+      await new Promise<void>(async (resolve, reject) => {
+        await this.client.write_file({
+          path,
+          data,
+          cb(err) {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          },
+        });
+      });
+
       this.assert_is_ready("save_to_disk_project -- after write_file");
       const stat = await callback2(this.client.path_stat, { path });
       this.assert_is_ready("save_to_disk_project -- after path_state");
