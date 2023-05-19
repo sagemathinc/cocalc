@@ -8,7 +8,7 @@ import expect from "expect";
 
 const misc_node = require("@cocalc/backend/misc_node");
 
-import { blob_store } from "../jupyter-blobs-sqlite";
+import { blob_store } from "@cocalc/jupyter/blobs";
 
 describe("very basic tests of the blob store -- ", function () {
   blob_store.delete_all_blobs();

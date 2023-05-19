@@ -4,7 +4,9 @@
   "description": "CoCalc Jupyter -- code to support using Jupyter in cocalc, mainly across all clients",
   "exports": {
     "./*": "./dist/*.js",
-    "./types": "./dist/types/index.js"
+    "./types": "./dist/types/index.js",
+    "./types/*": "./dist/types/*.js",
+    "./blobs": "./dist/blobs/index.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -12,7 +14,10 @@
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
@@ -20,6 +25,9 @@
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@types/better-sqlite3": "^7.6.4",
+    "async-await-utils": "^3.0.1",
+    "better-sqlite3": "^8.3.0",
     "execa": "^7.1.1",
     "immutable": "4.0.0-rc.12",
     "jsonfile": "^6.1.0",
