@@ -1,9 +1,15 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import { Input, List, Space } from "antd";
 
 import {
   CSS,
   redux,
   useMemo,
+  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
@@ -19,7 +25,7 @@ import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
 import { unreachable } from "@cocalc/util/misc";
-import { CSSProperties, useState } from "react";
+import { COLORS } from "@cocalc/util/theme";
 
 interface OpenedFile {
   filename: string;
@@ -29,7 +35,7 @@ interface OpenedFile {
 interface Props {
   project_id: string;
   max?: number;
-  style?: CSSProperties;
+  style?: CSS;
   mode?: "flyout" | "home";
   wrap?: (list: JSX.Element, style?: CSS) => JSX.Element;
 }
@@ -40,7 +46,7 @@ export function HomeRecentFiles({
   style,
   mode = "home",
   wrap,
-}: Props) {
+}: Props): JSX.Element {
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
 
@@ -97,11 +103,11 @@ export function HomeRecentFiles({
       case "flyout":
         return (
           <>
-            <br />
-            <Text type="secondary">
+            {/*<br />
+             <Text type="secondary">
               <TimeAgo date={time} /> by{" "}
               <User user_map={user_map} account_id={account_id} />
-            </Text>
+            </Text> */}
           </>
         );
       default:
@@ -124,7 +130,11 @@ export function HomeRecentFiles({
         <PathLink
           trunc={48}
           full={true}
-          style={{ fontWeight: "bold" }}
+          style={
+            mode === "flyout"
+              ? { color: COLORS.GRAY_M }
+              : { fontWeight: "bold" }
+          }
           path={path}
           project_id={project_id}
         />
@@ -168,26 +178,35 @@ export function HomeRecentFiles({
     }
   }
 
-  const listStyle: CSS =
-    mode === "flyout"
-      ? {
+  function listStyle(): CSS {
+    switch (mode) {
+      case "flyout":
+        return {
           width: "100%",
           overflowX: "hidden",
           overflowY: "auto",
           ...style,
-        }
-      : { maxHeight: "500px", overflow: "auto", ...style };
+        };
+      case "home":
+        return { maxHeight: "500px", overflow: "auto", ...style };
+      default:
+        unreachable(mode);
+        return {};
+    }
+  }
 
-  const list = (
-    <List
-      style={listStyle}
-      size="small"
-      header={renderHeader()}
-      bordered={mode === "home"}
-      dataSource={log}
-      renderItem={renderItem}
-    />
-  );
+  function list(): JSX.Element {
+    return (
+      <List
+        style={listStyle()}
+        size="small"
+        header={renderHeader()}
+        bordered={mode === "home"}
+        dataSource={log}
+        renderItem={renderItem}
+      />
+    );
+  }
 
   if (wrap) {
     return (
@@ -201,10 +220,10 @@ export function HomeRecentFiles({
           allowClear
           prefix={<Icon name="search" />}
         />
-        {wrap(list, { marginTop: "10px" })}
+        {wrap(list(), { marginTop: "10px" })}
       </>
     );
   } else {
-    return list;
+    return list();
   }
 }

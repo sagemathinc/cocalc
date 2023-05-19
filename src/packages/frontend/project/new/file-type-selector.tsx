@@ -3,12 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Tag, Col, Row } from "antd";
+import { Col, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import React from "react";
-import { Icon } from "@cocalc/frontend/components/icon";
+
 import { A } from "@cocalc/frontend/components/A";
+import { Icon } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
+import { NEW_FILETYPE_ICONS } from "./consts";
 import { NewFileButton } from "./new-file-button";
 
 interface Props {
@@ -19,6 +21,8 @@ interface Props {
   disabledFeatures?;
   chatgptNotebook?;
   children?: React.ReactNode;
+  mode?: "flyout" | "full";
+  selectedExt?: string;
 }
 
 const delayShow = 1500;
@@ -32,18 +36,28 @@ export function FileTypeSelector({
   availableFeatures,
   disabledFeatures,
   chatgptNotebook,
+  mode = "full",
+  selectedExt,
   children,
 }: Props) {
   if (!create_file) {
     return null;
   }
 
+  const isFlyout = mode === "flyout";
+  const btnSize = isFlyout ? "small" : "large";
+
   // col width of Antd's 24 grid system
-  const md = 6;
-  const sm = 12;
-  const y: Gutter = 30;
+  const md = isFlyout ? 24 : 6;
+  const sm = isFlyout ? 24 : 12;
+  const y: Gutter = isFlyout ? 15 : 30;
   const gutter: [Gutter, Gutter] = [20, y / 2];
   const newRowStyle = { marginTop: `${y}px` };
+
+  function btnActive(ext: string): boolean {
+    if (!isFlyout) return false;
+    return ext === selectedExt;
+  }
 
   // console.log("FileTypeSelector: available", available)
   return (
@@ -56,6 +70,7 @@ export function FileTypeSelector({
           color="geekblue"
           icon="jupyter"
           style={{ margin: "0 0 15px 0" }}
+          isFlyout={isFlyout}
         >
           Data & Science
         </Section>
@@ -65,15 +80,16 @@ export function FileTypeSelector({
           <Col sm={sm} md={md}>
             <Tip
               delayShow={delayShow}
-              icon="jupyter"
+              icon={NEW_FILETYPE_ICONS["ipynb"]}
               title="Jupyter Notebook"
               tip="Create an interactive notebook for using Python, Sage, R, Octave and more."
             >
               <NewFileButton
-                icon="jupyter"
                 name="Jupyter Notebook"
                 on_click={create_file}
                 ext={"ipynb"}
+                size={btnSize}
+                active={btnActive("ipynb")}
               />
             </Tip>
             {chatgptNotebook}
@@ -84,15 +100,16 @@ export function FileTypeSelector({
           <Col sm={sm} md={md}>
             <Tip
               delayShow={delayShow}
-              icon="sagemath-bold"
+              icon={NEW_FILETYPE_ICONS.sagews}
               title="SageMath Worksheet"
               tip="Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
             >
               <NewFileButton
-                icon="sagemath-bold"
                 name="SageMath Worksheet"
                 on_click={create_file}
                 ext="sagews"
+                size={btnSize}
+                active={btnActive("sagews")}
               />
             </Tip>{" "}
           </Col>
@@ -103,14 +120,15 @@ export function FileTypeSelector({
             <Tip
               delayShow={delayShow}
               title="LaTeX Document"
-              icon="tex-file"
+              icon={NEW_FILETYPE_ICONS.tex}
               tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
             >
               <NewFileButton
-                icon="tex-file"
                 name="LaTeX Document"
                 on_click={create_file}
                 ext="tex"
+                size={btnSize}
+                active={btnActive("tex")}
               />
             </Tip>
           </Col>
@@ -121,14 +139,15 @@ export function FileTypeSelector({
             <Tip
               delayShow={delayShow}
               title="RMarkdown File"
-              icon="r"
+              icon={NEW_FILETYPE_ICONS.rmd}
               tip="RMarkdown document with real-time preview."
             >
               <NewFileButton
-                icon="r"
                 name="RMarkdown"
                 on_click={create_file}
                 ext="rmd"
+                size={btnSize}
+                active={btnActive("rmd")}
               />
             </Tip>
           </Col>
@@ -137,7 +156,7 @@ export function FileTypeSelector({
 
       {!disabledFeatures?.linux && (
         <>
-          <Section color="orange" icon="linux">
+          <Section color="orange" icon="linux" isFlyout={isFlyout}>
             Linux Operating System
           </Section>
 
@@ -146,14 +165,15 @@ export function FileTypeSelector({
               <Tip
                 delayShow={delayShow}
                 title="Linux Terminal"
-                icon="terminal"
+                icon={NEW_FILETYPE_ICONS.term}
                 tip="Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more."
               >
                 <NewFileButton
-                  icon="terminal"
                   name="Linux Terminal"
                   on_click={create_file}
                   ext="term"
+                  size={btnSize}
+                  active={btnActive("term")}
                 />
               </Tip>
             </Col>
@@ -162,14 +182,15 @@ export function FileTypeSelector({
                 <Tip
                   delayShow={delayShow}
                   title="Graphical X11 Desktop"
-                  icon="window-restore"
+                  icon={NEW_FILETYPE_ICONS.x11}
                   tip="Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser."
                 >
                   <NewFileButton
-                    icon="window-restore"
                     name="Graphical X11 Desktop"
                     on_click={create_file}
                     ext="x11"
+                    size={btnSize}
+                    active={btnActive("x11")}
                   />
                 </Tip>
               </Col>
@@ -180,7 +201,7 @@ export function FileTypeSelector({
 
       {!disabledFeatures?.md && (
         <>
-          <Section color="green" icon="markdown">
+          <Section color="green" icon="markdown" isFlyout={isFlyout}>
             Computational Markdown Suite
           </Section>
           <Row gutter={gutter} style={newRowStyle}>
@@ -188,28 +209,30 @@ export function FileTypeSelector({
               <Tip
                 delayShow={delayShow}
                 title="Computational Markdown Document"
-                icon="markdown"
+                icon={NEW_FILETYPE_ICONS.md}
                 tip="Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code."
               >
                 <NewFileButton
-                  icon="markdown"
                   name="Markdown"
                   on_click={create_file}
                   ext="md"
+                  size={btnSize}
+                  active={btnActive("md")}
                 />
               </Tip>
             </Col>
             <Col sm={sm} md={md}>
               <Tip
-                icon="layout"
+                icon={NEW_FILETYPE_ICONS.board}
                 title="Computational Whiteboard"
                 tip="Create a computational whiteboard with mathematical formulas, lists, headings, images and Jupyter code cells."
               >
                 <NewFileButton
-                  icon="layout"
                   name="Whiteboard"
                   on_click={create_file}
                   ext="board"
+                  size={btnSize}
+                  active={btnActive("board")}
                 />
               </Tip>
             </Col>
@@ -217,15 +240,16 @@ export function FileTypeSelector({
             <Col sm={sm} md={md}>
               <Tip
                 delayShow={delayShow}
-                icon="slides"
+                icon={NEW_FILETYPE_ICONS.slides}
                 title="Slides"
                 tip="Create a slideshow presentation with mathematical formulas, lists, headings, images and code cells."
               >
                 <NewFileButton
-                  icon="slides"
                   name="Slides"
                   on_click={create_file}
                   ext="slides"
+                  size={btnSize}
+                  active={btnActive("slides")}
                 />
               </Tip>
             </Col>
@@ -234,14 +258,15 @@ export function FileTypeSelector({
               <Tip
                 delayShow={delayShow}
                 title="Task List"
-                icon="tasks"
+                icon={NEW_FILETYPE_ICONS.tasks}
                 tip="Create a task list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.  Run code."
               >
                 <NewFileButton
-                  icon="tasks"
                   name="Task List"
                   on_click={create_file}
                   ext="tasks"
+                  size={btnSize}
+                  active={btnActive("tasks")}
                 />
               </Tip>
             </Col>
@@ -251,7 +276,7 @@ export function FileTypeSelector({
 
       {!(disabledFeatures?.course && disabledFeatures?.chat) && (
         <>
-          <Section color="purple" icon="graduation-cap">
+          <Section color="purple" icon="graduation-cap" isFlyout={isFlyout}>
             Teaching and Social
           </Section>
 
@@ -262,7 +287,7 @@ export function FileTypeSelector({
                   delayShow={delayShow}
                   title="Create a Chatroom"
                   placement="bottom"
-                  icon="comment"
+                  icon={NEW_FILETYPE_ICONS["sage-chat"]}
                   tip={
                     <>
                       Create a chatroom for chatting with collaborators on this
@@ -272,10 +297,11 @@ export function FileTypeSelector({
                   }
                 >
                   <NewFileButton
-                    icon="comment"
                     name={"Chatroom"}
                     on_click={create_file}
                     ext="sage-chat"
+                    size={btnSize}
+                    active={btnActive("sage-chat")}
                   />
                 </Tip>
               </Col>
@@ -286,7 +312,7 @@ export function FileTypeSelector({
                   delayShow={delayShow}
                   title="Manage a Course"
                   placement="bottom"
-                  icon="graduation-cap"
+                  icon={NEW_FILETYPE_ICONS.course}
                   tip={
                     <>
                       If you are a teacher, click here to create a new course.
@@ -302,10 +328,11 @@ export function FileTypeSelector({
                   }
                 >
                   <NewFileButton
-                    icon="graduation-cap"
                     name="Manage a Course"
                     on_click={create_file}
                     ext="course"
+                    size={btnSize}
+                    active={btnActive("course")}
                   />
                 </Tip>
               </Col>
@@ -315,14 +342,15 @@ export function FileTypeSelector({
                 <Tip
                   delayShow={delayShow}
                   title="Stopwatches and Timers"
-                  icon="stopwatch"
+                  icon={NEW_FILETYPE_ICONS.time}
                   tip="A handy little utility to create collaborative stopwatches and timers to track your use of time."
                 >
                   <NewFileButton
-                    icon="stopwatch"
                     name="Timers"
                     on_click={create_file}
                     ext="time"
+                    size={btnSize}
+                    active={btnActive("time")}
                   />
                 </Tip>
               </Col>
@@ -331,9 +359,9 @@ export function FileTypeSelector({
         </>
       )}
 
-      {!disabledFeatures?.servers && (
+      {!disabledFeatures?.servers && !isFlyout && (
         <>
-          <Section color="red" icon="server">
+          <Section color="red" icon="server" isFlyout={isFlyout}>
             Files and Servers
           </Section>
 
@@ -344,15 +372,17 @@ export function FileTypeSelector({
                   delayShow={delayShow}
                   title={"Create New Folder"}
                   placement="left"
-                  icon={"folder-open"}
+                  icon={NEW_FILETYPE_ICONS["/"]}
                   tip={
                     "Create a folder (subdirectory) in which to store and organize your files.  CoCalc provides a full featured filesystem.  You can also type a path in the input box above that ends with a forward slash / and press enter."
                   }
                 >
                   <NewFileButton
-                    icon={"folder-open"}
+                    ext="/"
                     name={"New Folder"}
                     on_click={create_folder}
+                    size={btnSize}
+                    active={btnActive("/")}
                   />
                 </Tip>
               </Col>
@@ -363,13 +393,15 @@ export function FileTypeSelector({
             {projectActions != null && (
               <Col sm={sm} md={md}>
                 <NewFileButton
+                  size={btnSize}
                   name={`Jupyter, VS Code and Pluto Servers...`}
-                  icon={"server"}
+                  ext="server"
                   on_click={() => {
                     projectActions.set_active_tab("servers", {
                       change_history: true,
                     });
                   }}
+                  active={false}
                 />
               </Col>
             )}
@@ -385,16 +417,18 @@ function Section({
   color,
   icon,
   style,
+  isFlyout,
 }: {
   children;
   color;
   icon;
   style?;
+  isFlyout: boolean;
 }) {
   return (
     <div
       style={{
-        margin: "20px 0 -20px 0",
+        margin: isFlyout ? "20px 0 -10px 0" : "20px 0 -20px 0",
         ...style,
       }}
     >

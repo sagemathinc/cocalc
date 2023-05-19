@@ -31,6 +31,9 @@ import { StopProject } from "../settings/stop-project";
 import { ChatGPTGenerateNotebookButton } from "./home-page/chatgpt-generate-jupyter";
 import { HomeRecentFiles } from "./home-page/recent-files";
 import { FilesFlyout } from "./flyouts/files";
+import { ProjectSearchBody } from "../search/body";
+import { NewFlyout } from "./flyouts/new";
+import { ProjectInfoFlyout } from "./flyouts/info";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -69,7 +72,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: "New",
     icon: "plus-circle",
     tooltip: NewPopover,
-    flyout: NewPopover,
+    flyout: NewFlyout,
     noAnonymous: false,
   },
   log: {
@@ -466,10 +469,8 @@ function ServersPopover({ project_id, flyout = false }) {
   );
 }
 
-function SearchFlyout({ project_id }) {
-  return <div>search flyout {project_id}</div>;
-}
-
-function ProjectInfoFlyout({ project_id }) {
-  return <div>project info flyout {project_id}</div>;
+function SearchFlyout({ project_id, wrap }) {
+  return (
+    <ProjectSearchBody mode="flyout" project_id={project_id} wrap={wrap} />
+  );
 }

@@ -6,6 +6,7 @@
 export interface ListingItem {
   name: string;
   isdir: boolean;
+  isopen?: boolean;
 }
 
 export interface DirectoryListingEntry {

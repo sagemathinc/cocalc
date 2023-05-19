@@ -10,8 +10,12 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
-import { Button, Row, Col, Tag } from "antd";
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
+import {
+  redux,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
@@ -19,21 +23,18 @@ import {
   SearchInput,
   Space,
 } from "@cocalc/frontend/components";
-import { path_to_file, should_open_in_foreground } from "@cocalc/util/misc";
+import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { file_associations } from "@cocalc/frontend/file-associations";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import {
-  redux,
-  useTypedRedux,
-  useActions,
-} from "@cocalc/frontend/app-framework";
-import {
+  auxFileToOriginal,
   filename_extension,
   path_split,
-  auxFileToOriginal,
+  path_to_file,
+  should_open_in_foreground,
 } from "@cocalc/util/misc";
-import { file_associations } from "@cocalc/frontend/file-associations";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
-import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
+import { Button, Col, Row, Tag } from "antd";
 
 const DESC_STYLE: React.CSSProperties = {
   color: "#666",
@@ -45,9 +46,11 @@ const DESC_STYLE: React.CSSProperties = {
   overflowY: "auto",
 };
 
-export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
-  project_id,
-}) => {
+export const ProjectSearchBody: React.FC<{
+  project_id: string;
+  mode: "project" | "flyout";
+  wrap?: Function;
+}> = ({ project_id, mode = "project", wrap }) => {
   const subdirectories = useTypedRedux({ project_id }, "subdirectories");
   const case_sensitive = useTypedRedux({ project_id }, "case_sensitive");
   const hidden_files = useTypedRedux({ project_id }, "hidden_files");
@@ -56,85 +59,101 @@ export const ProjectSearchBody: React.FC<{ project_id: string }> = ({
 
   const actions = useActions({ project_id });
 
-  return (
-    <Well>
-      <Row>
-        <Col sm={12}>
-          <ProjectSearchInput
-            project_id={project_id}
-            neural={neural_search}
-            git={!neural_search && git_grep}
-          />
-          <ProjectSearchOutputHeader project_id={project_id} />
-        </Col>
-        <Col sm={10} offset={2} style={{ fontSize: "16px" }}>
-          <Checkbox
-            disabled={neural_search}
-            checked={subdirectories}
-            onChange={() => actions?.toggle_search_checkbox_subdirectories()}
+  const isFlyout = mode === "flyout";
+
+  function renderBody() {
+    return (
+      <>
+        <Row>
+          <Col sm={isFlyout ? 24 : 12}>
+            <ProjectSearchInput
+              project_id={project_id}
+              neural={neural_search}
+              git={!neural_search && git_grep}
+              small={isFlyout}
+            />
+            <ProjectSearchOutputHeader project_id={project_id} />
+          </Col>
+          <Col
+            sm={isFlyout ? 24 : 10}
+            offset={isFlyout ? 0 : 2}
+            style={{ fontSize: "16px" }}
           >
-            <Icon name="folder-open" /> Include <b>subdirectories</b>
-          </Checkbox>
-          <Checkbox
-            disabled={neural_search}
-            checked={case_sensitive}
-            onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
-          >
-            <Icon name="font-size" /> <b>Case sensitive</b> search
-          </Checkbox>
-          <Checkbox
-            disabled={neural_search}
-            checked={hidden_files}
-            onChange={() => actions?.toggle_search_checkbox_hidden_files()}
-          >
-            <Icon name="eye-slash" /> Include <b>hidden files</b>
-          </Checkbox>
-          <Checkbox
-            disabled={neural_search}
-            checked={git_grep}
-            onChange={() => actions?.toggle_search_checkbox_git_grep()}
-          >
-            <Icon name="git" /> <b>Git search</b>: in GIT repo, use "git grep"
-            to only search files in the git repo.
-          </Checkbox>
-          {redux.getStore("customize").get("neural_search_enabled") && (
             <Checkbox
-              checked={neural_search}
-              onChange={() =>
-                actions?.setState({ neural_search: !neural_search })
-              }
+              disabled={neural_search}
+              checked={subdirectories}
+              onChange={() => actions?.toggle_search_checkbox_subdirectories()}
             >
-              <Tag color="green" style={{ float: "right" }}>
-                New
-              </Tag>
-              <div>
-                <Icon name="robot" /> <b>Neural search</b> using{" "}
-                <A href="https://platform.openai.com/docs/guides/embeddings/what-are-embeddings">
-                  OpenAI Embeddings
-                </A>{" "}
-                and <A href="https://qdrant.tech/">Qdrant</A>: search recently
-                edited files using a neural network similarity algorithm.
-                Indexed file types: jupyter, tasks, chat, whiteboards, and
-                slides.
-              </div>
+              <Icon name="folder-open" /> Include <b>subdirectories</b>
             </Checkbox>
-          )}
-        </Col>
-      </Row>
-      <Row>
-        <Col sm={24}>
-          <ProjectSearchOutput project_id={project_id} />
-        </Col>
-      </Row>
-    </Well>
-  );
+            <Checkbox
+              disabled={neural_search}
+              checked={case_sensitive}
+              onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
+            >
+              <Icon name="font-size" /> <b>Case sensitive</b> search
+            </Checkbox>
+            <Checkbox
+              disabled={neural_search}
+              checked={hidden_files}
+              onChange={() => actions?.toggle_search_checkbox_hidden_files()}
+            >
+              <Icon name="eye-slash" /> Include <b>hidden files</b>
+            </Checkbox>
+            <Checkbox
+              disabled={neural_search}
+              checked={git_grep}
+              onChange={() => actions?.toggle_search_checkbox_git_grep()}
+            >
+              <Icon name="git" /> <b>Git search</b>: in GIT repo, use "git grep"
+              to only search files in the git repo.
+            </Checkbox>
+            {redux.getStore("customize").get("neural_search_enabled") && (
+              <Checkbox
+                checked={neural_search}
+                onChange={() =>
+                  actions?.setState({ neural_search: !neural_search })
+                }
+              >
+                <Tag color="green" style={{ float: "right" }}>
+                  New
+                </Tag>
+                <div>
+                  <Icon name="robot" /> <b>Neural search</b> using{" "}
+                  <A href="https://platform.openai.com/docs/guides/embeddings/what-are-embeddings">
+                    OpenAI Embeddings
+                  </A>{" "}
+                  and <A href="https://qdrant.tech/">Qdrant</A>: search recently
+                  edited files using a neural network similarity algorithm.
+                  Indexed file types: jupyter, tasks, chat, whiteboards, and
+                  slides.
+                </div>
+              </Checkbox>
+            )}
+          </Col>
+        </Row>
+        <Row>
+          <Col sm={24}>
+            <ProjectSearchOutput project_id={project_id} />
+          </Col>
+        </Row>
+      </>
+    );
+  }
+
+  if (isFlyout) {
+    return wrap?.(<div style={{ padding: "5px" }}>{renderBody()}</div>);
+  } else {
+    return <Well>{renderBody()}</Well>;
+  }
 };
 
 const ProjectSearchInput: React.FC<{
   project_id: string;
   neural?: boolean;
   git?: boolean;
-}> = ({ neural, project_id, git }) => {
+  small?: boolean;
+}> = ({ neural, project_id, git, small = false }) => {
   const actions = useActions({ project_id });
   const user_input = useTypedRedux({ project_id }, "user_input");
 
@@ -165,15 +184,18 @@ const ProjectSearchInput: React.FC<{
         >
           {neural ? (
             <>
-              <Icon name="robot" /> Neural Search
+              <Icon name="robot" />
+              {small ? "" : " Neural Search"}
             </>
           ) : git ? (
             <>
-              <Icon name="git" /> Git Grep Search
+              <Icon name="git" />
+              {small ? "" : " Git Grep Search"}
             </>
           ) : (
             <>
-              <Icon name="search" /> Grep Search
+              <Icon name="search" />
+              {small ? "" : " Grep Search"}
             </>
           )}
         </Button>
@@ -182,9 +204,9 @@ const ProjectSearchInput: React.FC<{
   );
 };
 
-const ProjectSearchOutput: React.FC<{ project_id: string }> = ({
-  project_id,
-}) => {
+const ProjectSearchOutput: React.FC<{
+  project_id: string;
+}> = ({ project_id }) => {
   const most_recent_search = useTypedRedux(
     { project_id },
     "most_recent_search"

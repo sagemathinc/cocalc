@@ -73,6 +73,7 @@ export default function NewFilePage(props: Props) {
   }
 
   const [creatingFile, setCreatingFile] = useState<string>("");
+
   async function createFile(ext?: string) {
     if (!filename) {
       return;

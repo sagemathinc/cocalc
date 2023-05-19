@@ -5,51 +5,54 @@
 
 declare let DEBUG;
 
-import { delay } from "awaiting";
-import {
-  React,
-  CSS,
-  redux,
-  Rendered,
-  useState,
-  useRef,
-  useTypedRedux,
-  useIsMountedRef,
-  useActions,
-} from "../../app-framework";
-import { Col, Row } from "../../antd-bootstrap";
-import { Alert, Table, Button, Form, Popconfirm, Modal, Switch } from "antd";
 import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
-import { webapp_client } from "../../webapp-client";
-import { seconds2hms, unreachable, field_cmp } from "@cocalc/util/misc";
-import { A, Tip, Loading } from "../../components";
-import { RestartProject } from "../settings/restart-project";
-import { Channel } from "../../project/websocket/types";
-import { ProjectInfo as WSProjectInfo } from "../websocket/project-info";
+import { Alert, Button, Form, Modal, Popconfirm, Switch, Table } from "antd";
+import { delay } from "awaiting";
+
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
-  ProjectInfo as ProjectInfoType,
+  CSS,
+  React,
+  Rendered,
+  redux,
+  useActions,
+  useIsMountedRef,
+  useRef,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { A, Loading, Tip } from "@cocalc/frontend/components";
+import { SiteName } from "@cocalc/frontend/customize";
+import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
+import { Channel } from "@cocalc/frontend/project/websocket/types";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import {
   Process,
+  ProjectInfo as ProjectInfoType,
 } from "@cocalc/project/project-info/types";
 import { cgroup_stats } from "@cocalc/project/project-status/utils";
+import { field_cmp, seconds2hms, unreachable } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { RestartProject } from "../settings/restart-project";
 import {
+  AboutContent,
   CGroup,
-  ProjectProblems,
   CoCalcFile,
   LabelQuestionmark,
   ProcState,
-  AboutContent,
+  ProjectProblems,
   SignalButtons,
 } from "./components";
-import { ProcessRow, PTStats, CGroupInfo, DUState } from "./types";
-import { connect_ws, process_tree, sum_children, grid_warning } from "./utils";
-import { COLORS } from "@cocalc/util/theme";
-import { SiteName } from "../../customize";
+import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
+import { connect_ws, grid_warning, process_tree, sum_children } from "./utils";
 
 const SSH_KEYS_DOC = "https://doc.cocalc.com/project-settings.html#ssh-keys";
 const DETAILS_BTN_TEXT = "Details";
 
 interface Props {
   project_id: string;
+  mode?: "flyout" | "full";
+  wrap?: Function;
 }
 
 const gc_info_init: CGroupInfo = {
@@ -76,7 +79,7 @@ const pt_stats_init = {
 } as const;
 
 export const ProjectInfo: React.FC<Props> = React.memo(
-  ({ project_id }: Props) => {
+  ({ project_id, mode = "full", wrap }: Props) => {
     const isMountedRef = useIsMountedRef();
     const project_actions = useActions({ project_id });
     const [idle_timeout, set_idle_timeout] = useState<number>(30 * 60);
@@ -305,527 +308,599 @@ export const ProjectInfo: React.FC<Props> = React.memo(
       return 1;
     }
 
-    // if collapsed, we sum up the values of the children
-    // to avoid misunderstandings due to data not being shown…
-    function render_val(
-      index: string,
-      to_str: (val) => Rendered | React.ReactText
-    ) {
-      const cell_val = (val, proc): number => {
-        // we have to check for length==0, because initally rows are all expanded but
-        // onExpandedRowsChange isn't triggered
-        if (
-          expanded.length == 0 ||
-          expanded.includes(proc.key) ||
-          !have_children.includes(proc.key)
-        ) {
-          return val;
-        } else {
-          const cs = proc.chldsum;
-          return val + (cs != null ? cs[index] : 0);
-        }
-      };
-
-      const max_val = val_max_value(index);
-
-      return (val: number, proc: ProcessRow) => {
-        const display_val = cell_val(val, proc);
-        return {
-          props: { style: grid_warning(display_val, max_val) },
-          children: to_str(display_val),
-        };
-      };
-    }
-
-    function render_help() {
-      return (
-        <Form.Item label="Help:">
-          <Switch
-            checked={show_explanation}
-            onChange={(val) =>
-              project_actions?.setState({ show_project_info_explanation: val })
-            }
-          />
-        </Form.Item>
-      );
-    }
-
     function any_alerts(): boolean {
       return project_status?.get("alerts").size > 0;
     }
 
-    function render_restart_project() {
-      return (
-        <Form.Item>
-          <RestartProject
-            project_id={project_id}
-            text={"Restart…"}
-            size={"small"}
-            danger={any_alerts()}
-          />
-        </Form.Item>
-      );
-    }
-
-    function render_details() {
-      const proc =
-        selected.length === 1 ? info?.processes?.[selected[0]] : undefined;
-      return (
-        <Form.Item>
-          <Button
-            type={"primary"}
-            icon={<InfoCircleOutlined />}
-            disabled={proc == null}
-            onClick={() => set_modal(proc)}
-          >
-            {DETAILS_BTN_TEXT}
-          </Button>
-        </Form.Item>
-      );
-    }
-
-    function render_disconnected() {
-      if (!disconnected) return;
-      return <Alert type={"warning"} message={"Warning: disconnected …"} />;
-    }
-
-    function render_action_buttons() {
-      const disabled = disconnected || selected.length == 0;
-      if (disabled || info?.processes == null) return;
-
-      return (
-        <>
-          {render_details()}
-          <SignalButtons
-            chan={chan}
-            selected={selected}
-            set_selected={set_selected}
-            loading={loading}
-            disabled={disabled}
-            processes={info.processes}
-          />
-        </>
-      );
-    }
-
-    function has_children(proc: ProcessRow): boolean {
-      return proc.children != null && proc.children.length > 0;
-    }
-
-    function restart_project() {
-      return (
-        <Popconfirm
-          title="Are you sure to restart this project?"
-          onConfirm={() => {
-            const actions = redux.getActions("projects");
-            actions?.restart_project(project_id);
-          }}
-          okText="Restart"
-          cancelText="No"
-        >
-          <a href="#">restart this project</a>
-        </Popconfirm>
-      );
-    }
-
-    function render_cocalc_btn({ title, onClick }) {
-      return (
-        <Button shape="round" onClick={onClick}>
-          {title}
-        </Button>
-      );
-    }
-
-    function render_modal_footer() {
-      return (
-        <Button type={"primary"} onClick={() => set_modal(undefined)}>
-          Ok
-        </Button>
-      );
-    }
-
-    function render_modals() {
-      switch (modal) {
-        case "ssh":
-          return (
-            <Modal
-              title="Project's SSH Daemon"
-              open={modal === "ssh"}
-              footer={render_modal_footer()}
-              onCancel={() => set_modal(undefined)}
-            >
-              <div>
-                This process allows to SSH into this project. Do not terminate
-                it!
-                <br />
-                Learn more: <A href={SSH_KEYS_DOC}>SSH keys documentation</A>
-              </div>
-            </Modal>
-          );
-        case "project":
-          return (
-            <Modal
-              title="Project's process"
-              open={modal === "project"}
-              footer={render_modal_footer()}
-              onCancel={() => set_modal(undefined)}
-            >
-              <div>
-                This is the project's own management process. Do not terminate
-                it! If it uses too much resources, you can {restart_project()}.
-              </div>
-            </Modal>
-          );
-        default:
-          if (modal != null && typeof modal !== "string") {
-            return (
-              <Modal
-                title="Process info"
-                open
-                width={"75vw"}
-                footer={render_modal_footer()}
-                onCancel={() => set_modal(undefined)}
-              >
-                <AboutContent proc={modal} />;
-              </Modal>
-            );
-          }
-      }
-    }
-
-    function render_cocalc({ cocalc }: ProcessRow) {
-      if (cocalc == null) return;
-      switch (cocalc.type) {
-        case "project":
-          return render_cocalc_btn({
-            title: "Project",
-            onClick: () => set_modal("project"),
-          });
-
-        case "sshd":
-          return render_cocalc_btn({
-            title: "SSH",
-            onClick: () => set_modal("ssh"),
-          });
-
-        case "terminal":
-          return (
-            <CoCalcFile
-              icon={"terminal"}
-              path={cocalc.path}
-              project_actions={project_actions}
-            />
-          );
-
-        case "jupyter":
-          return (
-            <CoCalcFile
-              icon={"ipynb"}
-              path={cocalc.path}
-              project_actions={project_actions}
-            />
-          );
-
-        case "x11":
-          return (
-            <CoCalcFile
-              icon={"window-restore"}
-              path={cocalc.path}
-              project_actions={project_actions}
-            />
-          );
-
-        default:
-          unreachable(cocalc);
-      }
-    }
-
-    function render_not_loading_info() {
-      return (
-        <>
-          <div>
-            <Loading />
-          </div>
-          {show_long_loading && (
-            <Alert
-              type="info"
-              message={
-                <div>
-                  <p>
-                    If the Table of Processes does not load, the project might
-                    be malfunctioning or saturated by load. Try restarting the
-                    project to make it work again.
-                  </p>
-                  {render_restart_project()}
-                </div>
-              }
-            />
-          )}
-        </>
-      );
-    }
-
-    // mimic a table of processes program like htop – with tailored descriptions for cocalc
-    function render_top() {
-      if (ptree == null) {
-        if (project_state === "running" && error == null) {
-          // return <Loading />;
-          return render_not_loading_info();
-        } else {
-          return null;
-        }
-      }
-
-      const expandable = {
-        defaultExpandAllRows: true,
-        onExpandedRowsChange: (keys) => set_expanded(keys),
-        rowExpandable: (proc) => has_children(proc),
-      };
-
-      const rowSelection = {
-        selectedRowKeys: selected,
-        onChange: select_proc,
-        hideSelectAll: true,
-      };
-
-      const cocalc_title = (
-        <Tip
-          title={"The role of these processes in this project."}
-          trigger={["hover", "click"]}
-        >
-          <LabelQuestionmark text={"Project"} />
-        </Tip>
-      );
-
-      const state_title = (
-        <Tip
-          title={
-            "Process state: running means it is actively using CPU, while sleeping means it waits for input."
-          }
-          trigger={["hover", "click"]}
-        >
-          <ScheduleOutlined />
-        </Tip>
-      );
-
-      const table_style: CSS = { marginBottom: "2rem" };
-
-      return (
-        <>
-          <Row style={{ marginBottom: "10px", marginTop: "20px" }}>
-            <Col md={9}>
-              <Form layout="inline">
-                <Form.Item label="Table of Processes" />
-                {render_action_buttons()}
-                {render_disconnected()}
-              </Form>
-            </Col>
-            <Col md={3}>
-              <Form layout="inline" style={{ float: "right" }}>
-                {render_restart_project()}
-                {render_help()}
-              </Form>
-            </Col>
-          </Row>
-          <Row>{render_explanation()}</Row>
-          <Row>
-            <Table<ProcessRow>
-              dataSource={ptree}
-              size={"small"}
-              pagination={false}
-              scroll={{ y: "65vh" }}
-              style={table_style}
-              expandable={expandable}
-              rowSelection={rowSelection}
-              loading={disconnected || loading}
-            >
-              <Table.Column<ProcessRow>
-                key="process"
-                title="Process"
-                width="40%"
-                align={"left"}
-                ellipsis={true}
-                render={(proc) => (
-                  <span>
-                    <b>{proc.name}</b> <span>{proc.args}</span>
-                  </span>
-                )}
-                sorter={field_cmp("name")}
-              />
-              <Table.Column<ProcessRow>
-                key="cocalc"
-                title={cocalc_title}
-                width="15%"
-                align={"left"}
-                render={(proc) => (
-                  <div style={{ width: "100%", overflow: "hidden" }}>
-                    {render_cocalc(proc)}
-                  </div>
-                )}
-                sorter={field_cmp("cocalc")}
-              />
-              <Table.Column<ProcessRow>
-                key="pid"
-                title={"PID"}
-                width="10%"
-                align={"left"}
-                render={render_val("pid", (x) =>
-                  x.pid == null ? "" : `${x.pid}`
-                )}
-                sorter={field_cmp("pid")}
-              />
-              <Table.Column<ProcessRow>
-                key="cpu_state"
-                title={state_title}
-                width="5%"
-                align={"right"}
-                render={(proc) => <ProcState state={proc.state} />}
-                sorter={field_cmp("state")}
-              />
-              <Table.Column<ProcessRow>
-                key="cpu_pct"
-                title="CPU%"
-                width="10%"
-                dataIndex="cpu_pct"
-                align={"right"}
-                render={render_val("cpu_pct", (val) => `${val.toFixed(1)}%`)}
-                sorter={field_cmp("cpu_pct")}
-              />
-              <Table.Column<ProcessRow>
-                key="cpu_tot"
-                title="CPU Time"
-                dataIndex="cpu_tot"
-                width="10%"
-                align={"right"}
-                render={render_val("cpu_tot", (val) => seconds2hms(val))}
-                sorter={field_cmp("cpu_tot")}
-              />
-              <Table.Column<ProcessRow>
-                key="mem"
-                title="Memory"
-                dataIndex="mem"
-                width="10%"
-                align={"right"}
-                render={render_val("mem", (val) => `${val.toFixed(0)}MiB`)}
-                sorter={field_cmp("mem")}
-              />
-            </Table>
-          </Row>
-        </>
-      );
-    }
-
-    function render_explanation() {
-      if (!show_explanation) return;
-      const msg = (
-        <div>
-          <p>
-            This panel shows{" "}
-            <strong>real-time information about this project</strong> and its
-            resource usage. In particular, you can see which processes are
-            running, and if available, also get a button to <SiteName />{" "}
-            specific information or links to the associated file.
-          </p>
-          <p>
-            By selecting a process via the checkbox on the left hand side, you
-            can obtain more detailed information via the "{DETAILS_BTN_TEXT}"
-            button or even issue commands like sending a signal to the selected
-            job(s).
-          </p>
-          <p>
-            Sub-processes are shown as a tree. When you collapse a branch, the
-            values you see are the sum of that particular process and all its
-            children. Note that because of this tree structure, sorting happens
-            in each branch, since the tree structure must also be preserved.
-          </p>
-          <p>
-            If there are any issues detected, there will be highlights in red.
-            They could be caused by individual processes using CPU non-stop, the
-            total of all processes hitting the overall memory limit, or even the
-            disk space running low. You can use the signals to fix some of these
-            issues by interrupting/terminating a job, or restarting the project.
-            If you're low on disk space, you either have to delete some files or
-            purchase disk space upgrades.
-          </p>
-        </div>
-      );
-      return (
-        <Col lg={8} lgOffset={2} md={12} mdOffset={0}>
-          <Alert
-            message={msg}
-            style={{ margin: "10px 0" }}
-            type={"info"}
-            closable
-            onClose={() =>
-              project_actions?.setState({
-                show_project_info_explanation: false,
-              })
-            }
-          />
-        </Col>
-      );
-    }
-
-    function render_general_status() {
-      return (
-        <Col md={12} style={{ color: COLORS.GRAY }}>
-          Timestamp:{" "}
-          {info?.timestamp != null ? (
-            <code>{new Date(info.timestamp).toISOString()}</code>
-          ) : (
-            "no timestamp"
-          )}{" "}
-          | Connections sync=<code>{`${sync != null}`}</code> chan=
-          <code>{`${chan != null}`}</code> | Status: <code>{status}</code>
-        </Col>
-      );
-    }
-
-    function render_body() {
-      return (
-        <>
-          <ProjectProblems project_status={project_status} />
-          <CGroup
-            have_cgroup={info?.cgroup != null}
+    switch (mode) {
+      case "flyout":
+        return <Flyout wrap={wrap} />;
+      case "full":
+        return (
+          <Full
+            any_alerts={any_alerts}
             cg_info={cg_info}
+            chan={chan}
+            disconnected={disconnected}
             disk_usage={disk_usage}
-            pt_stats={pt_stats}
-            start_ts={start_ts}
+            error={error}
+            expanded={expanded}
+            have_children={have_children}
+            info={info}
+            loading={loading}
+            modal={modal}
+            project_actions={project_actions}
+            project_id={project_id}
+            project_state={project_state}
             project_status={project_status}
+            pt_stats={pt_stats}
+            ptree={ptree}
+            select_proc={select_proc}
+            selected={selected}
+            set_expanded={set_expanded}
+            set_modal={set_modal}
+            set_selected={set_selected}
+            show_explanation={show_explanation}
+            show_long_loading={show_long_loading}
+            start_ts={start_ts}
+            status={status}
+            sync={sync}
+            val_max_value={val_max_value}
           />
-          {render_top()}
-          {render_modals()}
-          {DEBUG && render_general_status()}
-        </>
-      );
+        );
     }
+  }
+);
 
-    function render_error() {
-      if (error == null) return;
-      return (
-        <Row>
-          <Alert message={error} type="error" />
-        </Row>
-      );
-    }
+function Flyout({ wrap }): JSX.Element {
+  return wrap(<div>flyout info</div>);
+}
 
-    function render_not_running() {
-      if (project_state === "running") return;
-      return (
-        <Row>
-          <Alert type="warning" message={"Project is not running."} />
-        </Row>
-      );
-    }
+function Full(props): JSX.Element {
+  const {
+    any_alerts,
+    cg_info,
+    chan,
+    disconnected,
+    disk_usage,
+    error,
+    expanded,
+    have_children,
+    status,
+    info,
+    loading,
+    modal,
+    project_actions,
+    project_id,
+    project_state,
+    project_status,
+    pt_stats,
+    ptree,
+    select_proc,
+    selected,
+    set_expanded,
+    set_modal,
+    set_selected,
+    show_explanation,
+    show_long_loading,
+    start_ts,
+    sync,
+    val_max_value,
+  } = props;
+  // if collapsed, we sum up the values of the children
+  // to avoid misunderstandings due to data not being shown…
+  function render_val(
+    index: string,
+    to_str: (val) => Rendered | React.ReactText
+  ) {
+    const cell_val = (val, proc): number => {
+      // we have to check for length==0, because initally rows are all expanded but
+      // onExpandedRowsChange isn't triggered
+      if (
+        expanded.length == 0 ||
+        expanded.includes(proc.key) ||
+        !have_children.includes(proc.key)
+      ) {
+        return val;
+      } else {
+        const cs = proc.chldsum;
+        return val + (cs != null ? cs[index] : 0);
+      }
+    };
+
+    const max_val = val_max_value(index);
+
+    return (val: number, proc: ProcessRow) => {
+      const display_val = cell_val(val, proc);
+      return {
+        props: { style: grid_warning(display_val, max_val) },
+        children: to_str(display_val),
+      };
+    };
+  }
+
+  function render_help() {
+    return (
+      <Form.Item label="Help:">
+        <Switch
+          checked={show_explanation}
+          onChange={(val) =>
+            project_actions?.setState({ show_project_info_explanation: val })
+          }
+        />
+      </Form.Item>
+    );
+  }
+
+  function render_restart_project() {
+    return (
+      <Form.Item>
+        <RestartProject
+          project_id={project_id}
+          text={"Restart…"}
+          size={"small"}
+          danger={any_alerts()}
+        />
+      </Form.Item>
+    );
+  }
+
+  function render_details() {
+    const proc =
+      selected.length === 1 ? info?.processes?.[selected[0]] : undefined;
+    return (
+      <Form.Item>
+        <Button
+          type={"primary"}
+          icon={<InfoCircleOutlined />}
+          disabled={proc == null}
+          onClick={() => set_modal(proc)}
+        >
+          {DETAILS_BTN_TEXT}
+        </Button>
+      </Form.Item>
+    );
+  }
+
+  function render_disconnected() {
+    if (!disconnected) return;
+    return <Alert type={"warning"} message={"Warning: disconnected …"} />;
+  }
+
+  function render_action_buttons() {
+    const disabled = disconnected || selected.length == 0;
+    if (disabled || info?.processes == null) return;
 
     return (
-      <Row style={{ padding: "15px 15px 0 15px" }}>
-        <Col md={12}>
-          {render_not_running()}
-          {render_error()}
-          {render_body()}
-        </Col>
+      <>
+        {render_details()}
+        <SignalButtons
+          chan={chan}
+          selected={selected}
+          set_selected={set_selected}
+          loading={loading}
+          disabled={disabled}
+          processes={info.processes}
+        />
+      </>
+    );
+  }
+
+  function has_children(proc: ProcessRow): boolean {
+    return proc.children != null && proc.children.length > 0;
+  }
+
+  function restart_project() {
+    return (
+      <Popconfirm
+        title="Are you sure to restart this project?"
+        onConfirm={() => {
+          const actions = redux.getActions("projects");
+          actions?.restart_project(project_id);
+        }}
+        okText="Restart"
+        cancelText="No"
+      >
+        <a href="#">restart this project</a>
+      </Popconfirm>
+    );
+  }
+
+  function render_cocalc_btn({ title, onClick }) {
+    return (
+      <Button shape="round" onClick={onClick}>
+        {title}
+      </Button>
+    );
+  }
+
+  function render_modal_footer() {
+    return (
+      <Button type={"primary"} onClick={() => set_modal(undefined)}>
+        Ok
+      </Button>
+    );
+  }
+
+  function render_modals() {
+    switch (modal) {
+      case "ssh":
+        return (
+          <Modal
+            title="Project's SSH Daemon"
+            open={modal === "ssh"}
+            footer={render_modal_footer()}
+            onCancel={() => set_modal(undefined)}
+          >
+            <div>
+              This process allows to SSH into this project. Do not terminate it!
+              <br />
+              Learn more: <A href={SSH_KEYS_DOC}>SSH keys documentation</A>
+            </div>
+          </Modal>
+        );
+      case "project":
+        return (
+          <Modal
+            title="Project's process"
+            open={modal === "project"}
+            footer={render_modal_footer()}
+            onCancel={() => set_modal(undefined)}
+          >
+            <div>
+              This is the project's own management process. Do not terminate it!
+              If it uses too much resources, you can {restart_project()}.
+            </div>
+          </Modal>
+        );
+      default:
+        if (modal != null && typeof modal !== "string") {
+          return (
+            <Modal
+              title="Process info"
+              open
+              width={"75vw"}
+              footer={render_modal_footer()}
+              onCancel={() => set_modal(undefined)}
+            >
+              <AboutContent proc={modal} />;
+            </Modal>
+          );
+        }
+    }
+  }
+
+  function render_cocalc({ cocalc }: ProcessRow) {
+    if (cocalc == null) return;
+    switch (cocalc.type) {
+      case "project":
+        return render_cocalc_btn({
+          title: "Project",
+          onClick: () => set_modal("project"),
+        });
+
+      case "sshd":
+        return render_cocalc_btn({
+          title: "SSH",
+          onClick: () => set_modal("ssh"),
+        });
+
+      case "terminal":
+        return (
+          <CoCalcFile
+            icon={"terminal"}
+            path={cocalc.path}
+            project_actions={project_actions}
+          />
+        );
+
+      case "jupyter":
+        return (
+          <CoCalcFile
+            icon={"ipynb"}
+            path={cocalc.path}
+            project_actions={project_actions}
+          />
+        );
+
+      case "x11":
+        return (
+          <CoCalcFile
+            icon={"window-restore"}
+            path={cocalc.path}
+            project_actions={project_actions}
+          />
+        );
+
+      default:
+        unreachable(cocalc);
+    }
+  }
+
+  function render_not_loading_info() {
+    return (
+      <>
+        <div>
+          <Loading />
+        </div>
+        {show_long_loading && (
+          <Alert
+            type="info"
+            message={
+              <div>
+                <p>
+                  If the Table of Processes does not load, the project might be
+                  malfunctioning or saturated by load. Try restarting the
+                  project to make it work again.
+                </p>
+                {render_restart_project()}
+              </div>
+            }
+          />
+        )}
+      </>
+    );
+  }
+
+  // mimic a table of processes program like htop – with tailored descriptions for cocalc
+  function render_top() {
+    if (ptree == null) {
+      if (project_state === "running" && error == null) {
+        // return <Loading />;
+        return render_not_loading_info();
+      } else {
+        return null;
+      }
+    }
+
+    const expandable = {
+      defaultExpandAllRows: true,
+      onExpandedRowsChange: (keys) => set_expanded(keys),
+      rowExpandable: (proc) => has_children(proc),
+    };
+
+    const rowSelection = {
+      selectedRowKeys: selected,
+      onChange: select_proc,
+      hideSelectAll: true,
+    };
+
+    const cocalc_title = (
+      <Tip
+        title={"The role of these processes in this project."}
+        trigger={["hover", "click"]}
+      >
+        <LabelQuestionmark text={"Project"} />
+      </Tip>
+    );
+
+    const state_title = (
+      <Tip
+        title={
+          "Process state: running means it is actively using CPU, while sleeping means it waits for input."
+        }
+        trigger={["hover", "click"]}
+      >
+        <ScheduleOutlined />
+      </Tip>
+    );
+
+    const table_style: CSS = { marginBottom: "2rem" };
+
+    return (
+      <>
+        <Row style={{ marginBottom: "10px", marginTop: "20px" }}>
+          <Col md={9}>
+            <Form layout="inline">
+              <Form.Item label="Table of Processes" />
+              {render_action_buttons()}
+              {render_disconnected()}
+            </Form>
+          </Col>
+          <Col md={3}>
+            <Form layout="inline" style={{ float: "right" }}>
+              {render_restart_project()}
+              {render_help()}
+            </Form>
+          </Col>
+        </Row>
+        <Row>{render_explanation()}</Row>
+        <Row>
+          <Table<ProcessRow>
+            dataSource={ptree}
+            size={"small"}
+            pagination={false}
+            scroll={{ y: "65vh" }}
+            style={table_style}
+            expandable={expandable}
+            rowSelection={rowSelection}
+            loading={disconnected || loading}
+          >
+            <Table.Column<ProcessRow>
+              key="process"
+              title="Process"
+              width="40%"
+              align={"left"}
+              ellipsis={true}
+              render={(proc) => (
+                <span>
+                  <b>{proc.name}</b> <span>{proc.args}</span>
+                </span>
+              )}
+              sorter={field_cmp("name")}
+            />
+            <Table.Column<ProcessRow>
+              key="cocalc"
+              title={cocalc_title}
+              width="15%"
+              align={"left"}
+              render={(proc) => (
+                <div style={{ width: "100%", overflow: "hidden" }}>
+                  {render_cocalc(proc)}
+                </div>
+              )}
+              sorter={field_cmp("cocalc")}
+            />
+            <Table.Column<ProcessRow>
+              key="pid"
+              title={"PID"}
+              width="10%"
+              align={"left"}
+              render={render_val("pid", (x) =>
+                x.pid == null ? "" : `${x.pid}`
+              )}
+              sorter={field_cmp("pid")}
+            />
+            <Table.Column<ProcessRow>
+              key="cpu_state"
+              title={state_title}
+              width="5%"
+              align={"right"}
+              render={(proc) => <ProcState state={proc.state} />}
+              sorter={field_cmp("state")}
+            />
+            <Table.Column<ProcessRow>
+              key="cpu_pct"
+              title="CPU%"
+              width="10%"
+              dataIndex="cpu_pct"
+              align={"right"}
+              render={render_val("cpu_pct", (val) => `${val.toFixed(1)}%`)}
+              sorter={field_cmp("cpu_pct")}
+            />
+            <Table.Column<ProcessRow>
+              key="cpu_tot"
+              title="CPU Time"
+              dataIndex="cpu_tot"
+              width="10%"
+              align={"right"}
+              render={render_val("cpu_tot", (val) => seconds2hms(val))}
+              sorter={field_cmp("cpu_tot")}
+            />
+            <Table.Column<ProcessRow>
+              key="mem"
+              title="Memory"
+              dataIndex="mem"
+              width="10%"
+              align={"right"}
+              render={render_val("mem", (val) => `${val.toFixed(0)}MiB`)}
+              sorter={field_cmp("mem")}
+            />
+          </Table>
+        </Row>
+      </>
+    );
+  }
+
+  function render_explanation() {
+    if (!show_explanation) return;
+    const msg = (
+      <div>
+        <p>
+          This panel shows{" "}
+          <strong>real-time information about this project</strong> and its
+          resource usage. In particular, you can see which processes are
+          running, and if available, also get a button to <SiteName /> specific
+          information or links to the associated file.
+        </p>
+        <p>
+          By selecting a process via the checkbox on the left hand side, you can
+          obtain more detailed information via the "{DETAILS_BTN_TEXT}" button
+          or even issue commands like sending a signal to the selected job(s).
+        </p>
+        <p>
+          Sub-processes are shown as a tree. When you collapse a branch, the
+          values you see are the sum of that particular process and all its
+          children. Note that because of this tree structure, sorting happens in
+          each branch, since the tree structure must also be preserved.
+        </p>
+        <p>
+          If there are any issues detected, there will be highlights in red.
+          They could be caused by individual processes using CPU non-stop, the
+          total of all processes hitting the overall memory limit, or even the
+          disk space running low. You can use the signals to fix some of these
+          issues by interrupting/terminating a job, or restarting the project.
+          If you're low on disk space, you either have to delete some files or
+          purchase disk space upgrades.
+        </p>
+      </div>
+    );
+    return (
+      <Col lg={8} lgOffset={2} md={12} mdOffset={0}>
+        <Alert
+          message={msg}
+          style={{ margin: "10px 0" }}
+          type={"info"}
+          closable
+          onClose={() =>
+            project_actions?.setState({
+              show_project_info_explanation: false,
+            })
+          }
+        />
+      </Col>
+    );
+  }
+
+  function render_general_status() {
+    return (
+      <Col md={12} style={{ color: COLORS.GRAY }}>
+        Timestamp:{" "}
+        {info?.timestamp != null ? (
+          <code>{new Date(info.timestamp).toISOString()}</code>
+        ) : (
+          "no timestamp"
+        )}{" "}
+        | Connections sync=<code>{`${sync != null}`}</code> chan=
+        <code>{`${chan != null}`}</code> | Status: <code>{status}</code>
+      </Col>
+    );
+  }
+
+  function render_body() {
+    return (
+      <>
+        <ProjectProblems project_status={project_status} />
+        <CGroup
+          have_cgroup={info?.cgroup != null}
+          cg_info={cg_info}
+          disk_usage={disk_usage}
+          pt_stats={pt_stats}
+          start_ts={start_ts}
+          project_status={project_status}
+        />
+        {render_top()}
+        {render_modals()}
+        {DEBUG && render_general_status()}
+      </>
+    );
+  }
+
+  function render_error() {
+    if (error == null) return;
+    return (
+      <Row>
+        <Alert message={error} type="error" />
       </Row>
     );
   }
-);
+
+  function render_not_running() {
+    if (project_state === "running") return;
+    return (
+      <Row>
+        <Alert type="warning" message={"Project is not running."} />
+      </Row>
+    );
+  }
+
+  return (
+    <Row style={{ padding: "15px 15px 0 15px" }}>
+      <Col md={12}>
+        {render_not_running()}
+        {render_error()}
+        {render_body()}
+      </Col>
+    </Row>
+  );
+}

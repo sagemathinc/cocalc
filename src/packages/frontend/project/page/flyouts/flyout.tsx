@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Tooltip } from "antd";
 import { debounce } from "lodash";
 
 import {
@@ -14,6 +15,7 @@ import {
 import { Icon } from "@cocalc/frontend/components";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { capitalize } from "@cocalc/util/misc";
+import { PathNavigator } from "../../explorer/path-navigator";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIX_BORDER } from "../page";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
@@ -30,7 +32,7 @@ export function FlyoutHeader({
 }) {
   const actions = useActions({ project_id });
 
-  function renderTitle() {
+  function renderDefaultTitle() {
     const title = FIXED_PROJECT_TABS[flyout].flyoutTitle;
     if (title != null) {
       return title;
@@ -50,18 +52,45 @@ export function FlyoutHeader({
 
   function closeBtn() {
     return (
-      <Icon
-        name="vertical-right-outlined"
-        className="cc-project-fixedtab-close"
-        style={{
-          float: "right",
-          padding: "5px",
-          borderRadius: "2px",
-          margin: "0",
-        }}
-        onClick={() => actions?.toggleFlyout(flyout)}
-      />
+      <Tooltip title="Hide this action panel" placement="bottom">
+        <Icon
+          name="vertical-right-outlined"
+          className="cc-project-fixedtab-close"
+          style={{
+            flex: "0",
+            float: "right",
+            padding: "5px",
+            borderRadius: "2px",
+            margin: "0",
+          }}
+          onClick={() => actions?.toggleFlyout(flyout)}
+        />
+      </Tooltip>
     );
+  }
+
+  function renderTitle() {
+    switch (flyout) {
+      case "files":
+        return (
+          <div style={{ display: "flex", flexDirection: "row" }}>
+            <PathNavigator
+              style={{ flex: 1 }}
+              mode={"flyout"}
+              project_id={project_id}
+              className={"cc-project-flyout-path-navigator"}
+            />
+            {closeBtn()}
+          </div>
+        );
+      default:
+        return (
+          <>
+            {renderIcon()} {renderDefaultTitle()}
+            {closeBtn()}
+          </>
+        );
+    }
   }
 
   return (
@@ -79,8 +108,7 @@ export function FlyoutHeader({
         marginRight: "5px",
       }}
     >
-      {renderIcon()} {renderTitle()}
-      {closeBtn()}
+      {renderTitle()}
     </div>
   );
 }
