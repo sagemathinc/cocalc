@@ -12,7 +12,7 @@ export default function sortedElements(
   let v = elementsMap
     .valueSeq()
     .filter((x) => x != null && x.get("str"))
-    .toJS();
+    .toJS() as any as Element[];
 
   if (search) {
     // filter by matches for the str attribute for now.
@@ -30,10 +30,10 @@ export default function sortedElements(
   }
 
   v?.sort((elt1, elt2) => {
-    if ((idToNumber[elt1.page] ?? 1) < (idToNumber[elt2.page] ?? 1)) {
+    if ((idToNumber[elt1.page ?? ""] ?? 1) < (idToNumber[elt2.page ?? ""] ?? 1)) {
       return -1;
     }
-    if ((idToNumber[elt1.page] ?? 1) > (idToNumber[elt2.page] ?? 1)) {
+    if ((idToNumber[elt1.page ?? ""] ?? 1) > (idToNumber[elt2.page ?? ""] ?? 1)) {
       return 1;
     }
     if (elt1.y < elt2.y) return -1;

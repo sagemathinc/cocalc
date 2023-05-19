@@ -118,11 +118,11 @@ export const ProjectInfo: React.FC<Props> = React.memo(
 
     React.useEffect(() => {
       if (project == null) return;
-      const next_start_ts = project.getIn(["status", "start_ts"]);
+      const next_start_ts = project.getIn(["status", "start_ts"]) as any;
       if (next_start_ts != start_ts) {
         set_start_ts(next_start_ts);
       }
-      const next_state = project.getIn(["state", "state"]);
+      const next_state = project.getIn(["state", "state"]) as any;
       if (next_state != project_state) {
         set_project_state(next_state);
       }

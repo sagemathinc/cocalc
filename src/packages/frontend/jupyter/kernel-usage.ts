@@ -102,7 +102,7 @@ function calc_cell_timings(cells?: immutableMap<string, any>): number[] {
     })
     .filter((v) => v != null)
     .sort()
-    .toJS();
+    .toJS() as number[];
 }
 
 // for the sorted list of cell timing, get the median or quantile.

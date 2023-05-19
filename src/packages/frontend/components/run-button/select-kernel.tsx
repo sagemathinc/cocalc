@@ -101,7 +101,7 @@ export default function SelectKernel({
   function getOptions() {
     if (kernelSpecs == null) return [];
     const [byName, byLang] = get_kernels_by_name_or_language(
-      fromJS(kernelSpecs)
+      fromJS(kernelSpecs) as any
     );
 
     // langs: all kenrels by language, then the popular ones by priority
@@ -112,14 +112,14 @@ export default function SelectKernel({
       const top = sortBy(
         names
           .map((name) => {
-            const spec = byName.get(name)?.toJS() as KernelSpec;
+            const spec = byName.get(name)?.toJS() as unknown as KernelSpec;
             return { spec, priority: spec?.metadata?.cocalc?.priority ?? 0 };
           })
           .toJS(),
         "priority"
       ).pop();
       if (!top) return;
-      const { spec, priority } = top;
+      const { spec, priority } = top as { spec: any; priority: number };
       const display_name = capitalize(spec.language ?? spec.name);
       const item = entry({ ...spec, display_name }, "lang");
       if (priority >= KERNEL_POPULAR_THRESHOLD) {

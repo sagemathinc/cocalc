@@ -53,7 +53,7 @@ async function guessKernel({ info, code, project_id }): Promise<string> {
   if (info.includes("kernel") || info.includes("engine")) {
     // No match but they are clearly attempting to use an explicit kernel, so use closest_kernel_match.
     // TODO: it's not efficient converting to immutable.js constantly...
-    closest_kernel_match(mode, fromJS(kernelInfo)).get("name");
+    closest_kernel_match(mode, fromJS(kernelInfo) as any).get("name");
   }
   // Let them decide explicitly.
   return "";

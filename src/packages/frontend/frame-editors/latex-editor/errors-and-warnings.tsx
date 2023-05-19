@@ -252,7 +252,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
       }
       const level = group_to_level(group);
       const spec: SpecItem = SPEC[level];
-      const content = build_logs.getIn([tool, "parse", group]);
+      const content = build_logs.getIn([tool, "parse", group]) as any;
       if (!content) {
         return;
       }

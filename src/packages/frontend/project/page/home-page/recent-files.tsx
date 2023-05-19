@@ -65,7 +65,7 @@ export function HomeRecentFiles({ max = 100, project_id, style }: Props) {
           account_id: entry.get("account_id"),
         };
       })
-      .toJS();
+      .toJS() as any;
   }, [project_log, searchTerm]);
 
   function renderItem(entry) {

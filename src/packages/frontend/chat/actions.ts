@@ -106,7 +106,7 @@ export class ChatActions extends Actions<ChatState> {
     }
 
     this.setState({
-      messages: fromJS(v),
+      messages: fromJS(v) as any,
     });
   }
 
@@ -115,7 +115,7 @@ export class ChatActions extends Actions<ChatState> {
       if (this.syncdb == null) return;
       obj = obj.toJS();
       if (obj.event == "draft") {
-        let drafts = this.store?.get("drafts") ?? fromJS({});
+        let drafts = this.store?.get("drafts") ?? fromJS({}) as any;
         // used to show that another user is editing a message.
         const record = this.syncdb.get_one(obj);
         if (record == null) {
@@ -129,7 +129,7 @@ export class ChatActions extends Actions<ChatState> {
       }
       if (obj.event == "chat") {
         let changed: boolean = false;
-        let messages = this.store?.get("messages") ?? fromJS({});
+        let messages = this.store?.get("messages") ?? fromJS({}) as any;
         obj.date = new Date(obj.date);
         const record = this.syncdb.get_one(obj);
         let x: any = record?.toJS();

@@ -768,7 +768,7 @@ export class Actions<
   }
 
   _default_frame_tree(): Map<string, any> {
-    let frame_tree = fromJS(this._raw_default_frame_tree());
+    let frame_tree = fromJS(this._raw_default_frame_tree()) as Map<string, any>;
     frame_tree = tree_ops.assign_ids(frame_tree);
     frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
     return frame_tree;
@@ -1103,7 +1103,7 @@ export class Actions<
       info.get("locs").forEach((loc) => {
         loc = loc.set("time", info.get("time"));
         const locs = cursors.get(account_id, List()).push(loc);
-        cursors = cursors.set(account_id, locs);
+        cursors = cursors.set(account_id, locs as any);
       });
     });
     if (!cursors.equals(this.store.get("cursors"))) {

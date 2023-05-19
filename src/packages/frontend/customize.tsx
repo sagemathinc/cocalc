@@ -244,7 +244,7 @@ function process_software(software, is_cocalc_com) {
     actions.setState({ software });
   } else {
     if (is_cocalc_com) {
-      actions.setState({ software: fromJS(FALLBACK_SOFTWARE_ENV) });
+      actions.setState({ software: fromJS(FALLBACK_SOFTWARE_ENV) as any});
     } else {
       software = sanitizeSoftwareEnv(
         { software: FALLBACK_ONPREM_ENV, purpose: "webapp" },

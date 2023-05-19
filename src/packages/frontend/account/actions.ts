@@ -149,7 +149,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     } catch (err) {
       // generic error.
       this.setState(
-        fromJS({ sign_up_error: { generic: JSON.stringify(err) } })
+        fromJS({ sign_up_error: { generic: JSON.stringify(err) } }) as any
       );
       return;
     } finally {

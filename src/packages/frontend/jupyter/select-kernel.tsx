@@ -116,7 +116,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       const lang = kernel_attr(name, "language");
       const priority: number = kernels_by_name
         ?.get(name)
-        ?.getIn(["metadata", "cocalc", "priority"]);
+        ?.getIn(["metadata", "cocalc", "priority"]) as number;
       return (
         <Button
           key={`kernel-${lang}-${name}`}
@@ -158,7 +158,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           const cocalc: ImmutableMap<string, any> = kbn.getIn(
             [name, "metadata", "cocalc"],
             null
-          );
+          ) as any;
           if (cocalc == null) return;
           const prio: number = cocalc.get("priority", 0);
 

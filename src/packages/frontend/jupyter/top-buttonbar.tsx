@@ -180,7 +180,7 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
 
   function render_select_cell_type() {
     const cell_type =
-      sel_ids.size > 1 ? "multi" : cells.getIn([cur_id, "cell_type"], "code");
+      sel_ids.size > 1 ? "multi" : cells.getIn([cur_id, "cell_type"], "code") as string;
     const title = cell_type_title(cell_type);
 
     const items: MenuItems = [

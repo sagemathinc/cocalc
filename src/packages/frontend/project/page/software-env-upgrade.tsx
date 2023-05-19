@@ -60,7 +60,7 @@ function useComputeImage(project_id) {
   );
   const project_map = useTypedRedux("projects", "project_map");
   // ? below because reported to be null in some cases of iframe embedding.
-  const current_image = project_map?.getIn([project_id, "compute_image"]);
+  const current_image = project_map?.getIn([project_id, "compute_image"]) as any;
   if (current_image != compute_image) {
     set_compute_image(current_image);
   }
@@ -91,7 +91,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
   const customize_software = useTypedRedux("customize", "software");
   const [software_envs, dflt_compute_image] = useMemo(() => {
     return [
-      customize_software.get("environments")?.toJS(),
+      customize_software.get("environments")?.toJS() as any,
       customize_software.get("default"),
     ];
   }, [customize_software]);

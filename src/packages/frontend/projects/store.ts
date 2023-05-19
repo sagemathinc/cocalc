@@ -301,8 +301,8 @@ export class ProjectsStore extends Store<ProjectsState> {
     }
     let total: Upgrades = {};
     this.get("project_map")?.map((project) => {
-      const upgrades = project
-        .getIn(["users", webapp_client.account_id, "upgrades"])
+      const upgrades = (project
+        .getIn(["users", webapp_client.account_id, "upgrades"]) as any)
         ?.toJS();
       if (upgrades == null) return;
       total = map_sum(total as any, upgrades);
@@ -618,7 +618,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (account_id == null) return {};
     const v: { [project_id: string]: Upgrades } = {};
     this.get("project_map")?.map((project, project_id) => {
-      const upgrades = project.getIn(["users", account_id, "upgrades"])?.toJS();
+      const upgrades = (project.getIn(["users", account_id, "upgrades"]) as any)?.toJS();
       if (upgrades == null) return;
       for (let upgrade in upgrades) {
         const val = upgrades[upgrade];

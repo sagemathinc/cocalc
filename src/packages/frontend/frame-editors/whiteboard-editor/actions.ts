@@ -179,7 +179,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
           // this is a page
           somePageChanged = true;
           if (!pages.has(id)) {
-            pages = pages.set(id, ImmutableMap(fromJS(this.fixedElements)));
+            pages = pages.set(id, ImmutableMap(fromJS(this.fixedElements)) as any);
           }
           elements = elements.set(id, element);
         } else {
@@ -191,7 +191,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
           if (newPage) {
             const elementsOnNewPage =
               pages.get(newPage) ?? ImmutableMap(fromJS(this.fixedElements));
-            pages = pages.set(newPage, elementsOnNewPage.set(id, element));
+            pages = pages.set(newPage, elementsOnNewPage.set(id, element) as any);
           }
           if (oldPage && oldPage != newPage) {
             // change page, so delete element from the old page
@@ -221,7 +221,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         for (const [id] of pages ?? []) {
           v.push({
             id,
-            pos: elements.getIn([id, "data", "pos"], 0),
+            pos: elements.getIn([id, "data", "pos"], 0) as number,
           });
         }
         v.sort(field_cmp("pos"));
@@ -544,7 +544,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       if (expandGroups) {
         const elements = this.store.get("elements");
         if (elements == null) return;
-        const group = elements.getIn([id, "group"]);
+        const group = elements.getIn([id, "group"]) as string | undefined;
         if (group) {
           const ids = this.getGroup(group).map((e) => e.id);
           if (ids.length > 1) {
@@ -604,7 +604,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       const elements = this.store.get("elements");
       if (elements == null) return;
       for (const id of ids) {
-        const group = elements.getIn([id, "group"]);
+        const group = elements.getIn([id, "group"]) as string | undefined;
         if (group && !groups.has(group)) {
           groups.add(group);
           for (const e of this.getGroup(group)) {
@@ -1370,7 +1370,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
 
     const contents = fromJS(
       parseTableOfContents(elements, this.store.get("sortedPageIds"))
-    );
+    ) as any;
     this.setState({ contents });
   }
 
@@ -1436,12 +1436,12 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         // Complexity: we don't just move the newly inserted page by calling
         // movePage, since the store isn't updated yet (that only happens in
         // response to commit), and movePage works on what is in the store.
-        const curPos = elements.getIn([pages.get(cur) ?? "", "data", "pos"]);
+        const curPos = elements.getIn([pages.get(cur) ?? "", "data", "pos"]) as number;
         const nextPos = elements.getIn([
           pages.get(cur + 1) ?? "",
           "data",
           "pos",
-        ]);
+        ]) as number | undefined;
         const pos = nextPos == null ? curPos + 1 : (curPos + nextPos) / 2;
         this.setElement({
           create: false,
@@ -1511,7 +1511,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     if (sortedPageIds == null) return;
     const positions = sortedPageIds.map((pageId) =>
       elements.getIn([pageId, "data", "pos"])
-    );
+    ) as any;
     let tooClose = false;
     for (let i = 1; i < positions.size; i++) {
       if (positions.get(i) - positions.get(i - 1) < epsilon) {
@@ -1535,7 +1535,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   deletePage(pageId: string, commit: boolean = true): void {
     const page = this.store.getIn(["pages", pageId]);
     if (page == null) return;
-    this.deleteElements(Object.values(page.toJS()), false);
+    this.deleteElements(Object.values(page.toJS() as any), false);
     this.delete(pageId, commit);
   }
 
@@ -1544,7 +1544,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   }
 
   chatgptGetText(frameId: string, scope): string {
-    const elts = this.store.get("elements")?.toJS();
+    const elts = this.store.get("elements")?.toJS() as any;
     if (elts == null) {
       return "";
     }

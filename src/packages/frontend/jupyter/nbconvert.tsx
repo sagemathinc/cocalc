@@ -183,8 +183,8 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
       // --to script converts to probably a .py file
       if (to === "script" && backend_kernel_info != null) {
         // special case where extension may be different
-        ext = backend_kernel_info
-          .getIn(["language_info", "file_extension"], "")
+        ext = (backend_kernel_info
+          .getIn(["language_info", "file_extension"], "") as string)
           .slice(1);
         if (ext === "") {
           ext = "py";

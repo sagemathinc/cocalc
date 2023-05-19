@@ -53,7 +53,7 @@ export const StartButton: React.FC<Props> = (props: Props) => {
   const allowed = useAllowedFreeProjectToRun(project_id);
 
   const state = useMemo(() => {
-    const state = project_map?.getIn([project_id, "state"]);
+    const state = project_map?.get(project_id)?.get("state");
     if (state != null) {
       lastNotRunningRef.current =
         state.get("state") == "running" ? null : Date.now();
@@ -69,9 +69,9 @@ export const StartButton: React.FC<Props> = (props: Props) => {
     if (state?.get("state") == "starting" || state?.get("state") == "opening")
       return true;
     if (state?.get("state") == "running") return false;
-    const action_request = project_map
-      ?.getIn([project_id, "action_request"])
-      ?.toJS();
+    const action_request = (project_map
+      ?.getIn([project_id, "action_request"]) as any)
+      ?.toJS() as any;
     if (action_request == null) {
       return false; // no action request at all
     }

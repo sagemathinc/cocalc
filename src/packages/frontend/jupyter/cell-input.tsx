@@ -39,7 +39,7 @@ function attachmentTransform(
     return;
   }
   const name = href.slice("attachment:".length);
-  const data = cell.getIn(["attachments", name]);
+  const data = cell.getIn(["attachments", name]) as any;
   let ext = filename_extension(name);
   switch (data?.get("type")) {
     case "sha1":

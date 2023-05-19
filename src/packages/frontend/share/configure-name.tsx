@@ -16,7 +16,7 @@ export default function ConfigureName({ project_id, path }: Props) {
   const public_paths = useTypedRedux({ project_id }, "public_paths");
   const id = client_db.sha1(project_id, path);
 
-  const name: string | undefined = public_paths?.getIn([id, "name"]);
+  const name: string | undefined = public_paths?.getIn([id, "name"]) as any;
   const [choosingName, setChoosingName] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [saved, setSaved] = useState<boolean>(false);
