@@ -17,7 +17,7 @@ import {
   merge,
   path_split,
 } from "@cocalc/util/misc";
-import { exists } from "../jupyter/async-utils-node";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { isEqual, throttle } from "lodash";
 import { callback, delay } from "awaiting";
 import { envForSpawn } from "@cocalc/backend/misc";

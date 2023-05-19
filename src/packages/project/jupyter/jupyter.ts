@@ -42,7 +42,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
-import { unlink } from "./async-utils-node";
+import { unlink } from "@cocalc/backend/misc/async-utils-node";
 
 import {
   process as iframe_process,
@@ -82,7 +82,7 @@ import launchJupyterKernel, {
   SpawnedKernel,
   killKernel,
 } from "./pool";
-import { getAbsolutePathFromHome } from "./util";
+import { getAbsolutePathFromHome } from "@cocalc/jupyter/util";
 
 import { getLogger } from "@cocalc/project/logger";
 const log = getLogger("jupyter");

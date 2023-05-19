@@ -16,7 +16,7 @@ import * as os_path from "node:path";
 import Logger from "@cocalc/backend/logger";
 import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
 import { startswith, to_json } from "@cocalc/util/misc";
-import { exists } from "./async-utils-node";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { get_existing_kernel } from "./jupyter";
 import {
   BlobStoreDisk,

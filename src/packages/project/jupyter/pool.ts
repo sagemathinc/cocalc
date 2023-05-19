@@ -18,8 +18,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getLogger } from "@cocalc/project/logger";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import createSetenvCommand from "@cocalc/util/jupyter-api/setenv-commands";
-import { exists, unlink } from "./async-utils-node";
-import { getLanguage } from "./kernel-data";
+import { exists, unlink } from "@cocalc/backend/misc/async-utils-node";
+import { getLanguage } from "@cocalc/jupyter/kernel/kernel-data";
 
 import launchJupyterKernelNoPool, {
   LaunchJupyterOpts,
@@ -32,7 +32,7 @@ import {
   getSize,
   getTimeoutS,
 } from "./pool-params";
-import { getAbsolutePathFromHome } from "./util";
+import { getAbsolutePathFromHome } from "@cocalc/jupyter/util";
 
 export type { LaunchJupyterOpts, SpawnedKernel };
 

@@ -4,9 +4,11 @@
   "description": "CoCalc Jupyter -- code to support using Jupyter in cocalc, mainly across all clients",
   "exports": {
     "./*": "./dist/*.js",
+    "./blobs": "./dist/blobs/index.js",
     "./types": "./dist/types/index.js",
     "./types/*": "./dist/types/*.js",
-    "./blobs": "./dist/blobs/index.js"
+    "./util": "./dist/util/index.js",
+    "./util/*": "./dist/util/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
