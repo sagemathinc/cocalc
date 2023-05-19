@@ -33,7 +33,7 @@
     "awaiting": "^3.0.0",
     "better-sqlite3": "^8.3.0",
     "execa": "^7.1.1",
-    "immutable": "4.0.0-rc.12",
+    "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
     "jsonfile": "^6.1.0",
     "jupyter-paths": "^2.0.3",

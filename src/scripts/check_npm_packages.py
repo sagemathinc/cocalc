@@ -29,7 +29,6 @@ root: Final[str] = os.environ.get('COCALC_ROOT', abspath(os.curdir))
 
 whitelist: Final[List[str]] = [
     'async',  # we really want to get rid of using this at all!  And we have to use two very different versions across our packages :-(
-    'immutable',  # same comment as for async... :-(
     'entities'  # it breaks when you upgrade in static to 4.x
 ]
 
