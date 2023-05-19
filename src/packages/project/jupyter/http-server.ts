@@ -12,9 +12,8 @@ kernels, sending signals, doing tab completions, and so on.
 
 import { Router } from "express";
 import * as os_path from "node:path";
-
-import Logger from "@cocalc/backend/logger";
-import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
+import getLogger from "@cocalc/backend/logger";
+import { BlobStoreInterface } from  "@cocalc/jupyter/types/project-interface";
 import { startswith, to_json } from "@cocalc/util/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { get_existing_kernel } from "./jupyter";
@@ -27,7 +26,7 @@ import { get_kernel_data } from "./kernel-data";
 import { get_ProjectStatusServer } from "@cocalc/project/project-status/server";
 import { delay } from "awaiting";
 
-const winston = Logger("jupyter-http-server");
+const log = getLogger("jupyter-http-server");
 
 const BASE = "/.smc/jupyter/";
 
@@ -135,13 +134,13 @@ export default async function init(): Promise<Router> {
       break;
     } catch (err) {
       get_ProjectStatusServer().setComponentAlert("BlobStore");
-      winston.warn(`unable to instantiate BlobStore -- ${err}`);
+      log.warn(`unable to instantiate BlobStore -- ${err}`);
     }
     await delay(d);
     d = Math.min(30000, 1.2 * d);
   }
 
-  winston.debug("got blob store, setting up jupyter http server");
+  log.debug("got blob store, setting up jupyter http server");
   const router = Router();
 
   // Install handling for the blob store

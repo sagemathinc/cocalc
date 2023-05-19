@@ -8,9 +8,9 @@ browser-actions: additional actions that are only available in the
 web browser frontend.
 */
 import { fromJS, Map } from "immutable";
-import { debounce, isEqual } from "underscore";
-import { merge_copy, uuid } from "@cocalc/util/misc";
-import { JupyterActions as JupyterActions0 } from "./actions";
+import { debounce, isEqual } from "lodash";
+import { from_json, to_json, merge_copy, uuid } from "@cocalc/util/misc";
+import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
 import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
 import { ConfirmDialogOptions } from "./confirm-dialog";
@@ -28,6 +28,13 @@ import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import * as awaiting from "awaiting";
 import { cm_options } from "./cm_options";
 import track from "@cocalc/frontend/user-tracking";
+import {
+  delete_local_storage,
+  get_local_storage,
+  set_local_storage,
+} from "../misc/local-storage";
+import { parse_headings } from "./contents";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -41,6 +48,12 @@ export class JupyterActions extends JupyterActions0 {
 
   // Only run this code on the browser frontend (not in project).
   protected init_client_only(): void {
+    this.update_contents = debounce(this.update_contents.bind(this), 2000);
+    this.setState({
+      toolbar: !this.get_local_storage("hide_toolbar"),
+      cell_toolbar: this.get_local_storage("cell_toolbar"),
+    });
+
     this.usage_info_handler = this.usage_info_handler.bind(this);
 
     const do_set = () => {
@@ -64,8 +77,12 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.on("metadata-change", this.sync_read_only);
     this.syncdb.on("connected", this.sync_read_only);
 
-    // And activity indicator
-    this.syncdb.on("change", this.activity);
+    this.syncdb.on("change", () => {
+      // And activity indicator
+      this.activity();
+      // Update table of contents
+      this.update_contents();
+    });
 
     // Load kernel (once ipynb file loads).
     (async () => {
@@ -77,11 +94,6 @@ export class JupyterActions extends JupyterActions0 {
         path: this.path,
       });
     })();
-
-    // Setup dedicated websocket to project
-    // TODO: might be replaced by an ephemeral table which broadcasts cpu
-    // state, all user tab completions, widget state, etc.
-    this.init_project_conn();
 
     // this initializes actions+store for the snippet dialog
     // this is also only a UI specific action
@@ -186,9 +198,8 @@ export class JupyterActions extends JupyterActions0 {
     if (this._state === "closed") {
       throw Error("closed");
     }
-    return await (
-      await this.init_project_conn()
-    ).api.formatter_string(str, config, timeout_ms);
+    const api = await webapp_client.project_client.api(this.project_id);
+    return await api.formatter_string(str, config, timeout_ms);
   }
 
   // throws an error if anything goes wrong. the error
@@ -618,7 +629,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public toggle_line_numbers(): void {
-    this.set_line_numbers(!this.store.get_local_storage("line_numbers"));
+    this.set_line_numbers(!this.get_local_storage("line_numbers"));
   }
 
   public toggle_cell_line_numbers(id: string): void {
@@ -628,7 +639,7 @@ export class JupyterActions extends JupyterActions0 {
     if (cell == null) throw Error(`no cell with id ${id}`);
     const line_numbers: boolean = !!cell.get(
       "line_numbers",
-      this.store.get_local_storage("line_numbers")
+      this.get_local_storage("line_numbers")
     );
     this.setState({
       cells: cells.set(id, cell.set("line_numbers", !line_numbers)),
@@ -801,7 +812,7 @@ export class JupyterActions extends JupyterActions0 {
     if (immutable_editor_settings == null) return;
     const editor_settings = immutable_editor_settings.toJS();
     const line_numbers =
-      this.store.get_local_storage("line_numbers") ??
+      this.get_local_storage("line_numbers") ??
       immutable_editor_settings.get("jupyter_line_numbers") ??
       false;
     const read_only = this.store.get("read_only");
@@ -819,5 +830,81 @@ export class JupyterActions extends JupyterActions0 {
       // actually changed
       this.setState({ cm_options: x });
     }
+  }
+
+  toggle_toolbar() {
+    return this.set_toolbar_state(!this.store.get("toolbar"));
+  }
+
+  public set_toolbar_state(toolbar: boolean): void {
+    // true = visible
+    this.setState({ toolbar });
+    this.set_local_storage("hide_toolbar", !toolbar);
+  }
+
+  public toggle_header(): void {
+    (this.redux.getActions("page") as any).toggle_fullscreen();
+  }
+
+  public set_header_state(visible: boolean): void {
+    (this.redux.getActions("page") as any).set_fullscreen(
+      visible ? "default" : undefined
+    );
+  }
+
+  get_local_storage(key: any) {
+    const value = get_local_storage(this.name);
+    if (value != null) {
+      try {
+        const x = typeof value === "string" ? from_json(value) : value;
+        if (x != null) {
+          return x[key];
+        }
+      } catch {
+        // from_json might throw, hence the value is problematic and we delete it
+        delete_local_storage(this.name);
+      }
+    }
+  }
+
+  set_line_numbers(show: boolean): void {
+    this.set_local_storage("line_numbers", !!show);
+    // unset the line_numbers property from all cells
+    const cells = this.store
+      .get("cells")
+      .map((cell) => cell.delete("line_numbers"));
+    if (!cells.equals(this.store.get("cells"))) {
+      // actually changed
+      this.setState({ cells });
+    }
+    // now cause cells to update
+    this.set_cm_options();
+  }
+
+  set_local_storage(key, value) {
+    if (localStorage == null) return;
+    let current_str = get_local_storage(this.name);
+    const current =
+      current_str != null
+        ? typeof current_str === "string"
+          ? from_json(current_str)
+          : current_str
+        : {};
+    if (value === null) {
+      delete current[key];
+    } else {
+      current[key] = value;
+    }
+    set_local_storage(this.name, to_json(current));
+  }
+
+  public update_contents(): void {
+    if (this._state == "closed") return;
+    const cells = this.store.get("cells");
+    if (cells == null) return;
+    const cell_list = this.store.get("cell_list");
+    if (cell_list == null) return;
+    const contents = fromJS(parse_headings(cells, cell_list));
+    this.setState({ contents });
   }
 }

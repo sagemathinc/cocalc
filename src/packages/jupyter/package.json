@@ -7,6 +7,7 @@
     "./blobs": "./dist/blobs/index.js",
     "./execute/*": "./dist/execute/*.js",
     "./pool/*": "./dist/pool/*.js",
+    "./store/*": "./dist/store/*.js",
     "./types": "./dist/types/index.js",
     "./types/*": "./dist/types/*.js",
     "./util": "./dist/util/index.js",
@@ -18,7 +19,10 @@
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
@@ -30,12 +34,14 @@
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "better-sqlite3": "^8.3.0",
+    "debug": "^4.3.2",
     "execa": "^7.1.1",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
     "jsonfile": "^6.1.0",
     "jupyter-paths": "^2.0.3",
     "kernelspecs": "^2.0.1",
+    "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "mkdirp": "^1.0.4",
     "node-cleanup": "^2.1.2",

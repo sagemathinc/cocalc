@@ -142,7 +142,11 @@ export class API {
     return await this.call({ cmd: "prettier", path: path, options }, 15000);
   }
 
-  async formatter_string(str: string, config: FormatterConfig): Promise<any> {
+  async formatter_string(
+    str: string,
+    config: FormatterConfig,
+    timeout_ms: number = 15000
+  ): Promise<any> {
     const options: FormatterOptions = this.check_formatter_available(config);
     // TODO change this to "formatter_string" at some point in the future (Sep 2020)
     return await this.call(
@@ -151,7 +155,7 @@ export class API {
         str,
         options,
       },
-      15000
+      timeout_ms
     );
   }
 

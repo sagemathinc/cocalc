@@ -36,27 +36,25 @@ export const VERSION = "5.3";
 // https://github.com/jtlapp/node-cleanup/issues/16
 // Also exit-hook is hard to import from commonjs.
 import nodeCleanup from "node-cleanup";
-
 import { Channels, MessageType } from "@nteract/messaging";
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
-
 import {
   process as iframe_process,
   is_likely_iframe,
 } from "@cocalc/frontend/jupyter/iframe";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
-import { JupyterActions } from "@cocalc/frontend/jupyter/project-actions";
+import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import {
   CodeExecutionEmitterInterface,
   ExecOpts,
   JupyterKernelInterface,
   KernelInfo,
-} from "@cocalc/frontend/jupyter/project-interface";
-import { JupyterStore } from "@cocalc/frontend/jupyter/store";
+} from "@cocalc/jupyter/types/project-interface";
+import { JupyterStore } from "@cocalc/jupyter/redux/store";
 import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { retry_until_success } from "@cocalc/util/async-utils";

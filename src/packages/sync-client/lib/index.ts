@@ -111,3 +111,4 @@ export default class Client extends EventEmitter implements AppClient {
 
   touch_project(_project_id: string): void {}
 }
+

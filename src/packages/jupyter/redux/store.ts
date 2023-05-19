@@ -4,21 +4,18 @@
  */
 
 /*
-The Store
+The Redux Store For Jupyter Notebooks
+
+This is used by everybody involved in using jupyter -- the project, the browser client, etc.
 */
 
 import { List, Map, OrderedMap, Set } from "immutable";
-import { Store } from "@cocalc/frontend/app-framework";
-import {
-  delete_local_storage,
-  get_local_storage,
-} from "@cocalc/frontend/misc/local-storage";
+import { Store } from "@cocalc/util/redux/Store";
 import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
 import { Syntax } from "@cocalc/util/code-formatter";
-import { cmp, from_json, startswith } from "@cocalc/util/misc";
+import { cmp, startswith } from "@cocalc/util/misc";
 import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
-import { NBGraderStore } from "./nbgrader/store";
-import { KernelSpec } from "./nbviewer/parse";
+import { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
 import {
   Cell,
   CellToolbarName,
@@ -51,7 +48,7 @@ export interface JupyterStoreState {
   about: boolean;
   backend_kernel_info: KernelInfo;
   cell_list: List<string>; // list of id's of the cells, in order by pos.
-  cell_toolbar: CellToolbarName;
+  cell_toolbar?: CellToolbarName;
   cells: Map<string, Cell>; // map from string id to cell; the structure of a cell is complicated...
   check_select_kernel_init: boolean;
   closestKernel?: Kernel;
@@ -60,7 +57,6 @@ export interface JupyterStoreState {
   confirm_dialog: any;
   connection_file?: string;
   contents?: List<Map<string, any>>; // optional global contents info (about sections, problems, etc.)
-  cur_id: string;
   default_kernel?: string;
   directory: string;
   edit_attachments?: string;
@@ -68,7 +64,6 @@ export interface JupyterStoreState {
   error?: string;
   fatal: string;
   find_and_replace: any;
-  font_size: number;
   has_uncommitted_changes?: boolean;
   has_unsaved_changes?: boolean;
   insert_image: string; // id of a markdown cell
@@ -118,30 +113,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
   // manipulated in jupyter/project-actions.ts
   public _more_output: any;
 
-  // eventually set in jupyter/nbgrader/actions.ts
-  nbgrader?: NBGraderStore;
-
-  private deprecated(f: string, ...args): void {
-    const s = "DEPRECATED JupyterStore." + f;
-    console.warn(s, ...args);
-  }
-
-  // Return map from selected cell ids to true, in no particular order
-  get_selected_cell_ids = () => {
-    this.deprecated("get_selected_cell_ids");
-    return {};
-
-    const selected = {};
-    const cur_id = this.get("cur_id");
-    if (cur_id != null) {
-      selected[cur_id] = true;
-    }
-    this.get("sel_ids").map(function (x) {
-      selected[x] = true;
-    });
-    return selected;
-  };
-
   // immutable List
   public get_cell_list = (): List<string> => {
     return this.get("cell_list") ?? List();
@@ -151,11 +122,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
   public get_cell_ids_list(): string[] {
     return this.get_cell_list().toJS();
   }
-
-  public get_selected_cell_ids_list = () => {
-    this.deprecated("get_selected_cell_ids_list");
-    return [];
-  };
 
   public get_cell_type(id: string): "markdown" | "code" | "raw" {
     // NOTE: default cell_type is "code", which is common, to save space.
@@ -201,21 +167,6 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   get_global_clipboard = () => {
     return global_clipboard;
-  };
-
-  get_local_storage = (key: any) => {
-    const value = get_local_storage(this.name);
-    if (value != null) {
-      try {
-        const x = typeof value === "string" ? from_json(value) : value;
-        if (x != null) {
-          return x[key];
-        }
-      } catch {
-        // from_json might throw, hence the value is problematic and we delete it
-        delete_local_storage(this.name);
-      }
-    }
   };
 
   get_kernel_info = (

@@ -23,10 +23,11 @@ If not exporting, starts exporting and sets:
      {type:'nbconvert', args:[...], state:'done', error:'message' or {key:'xlkjdf'}}
 */
 
-import type { JupyterActions } from "../project-actions";
+import type { JupyterActions } from "./project-actions";
 import { is_array, trunc } from "@cocalc/util/misc";
-import { getLogger } from "@cocalc/project/logger";
-const log = getLogger("handle-nbconvert-change");
+
+import { getLogger } from "@cocalc/backend/logger";
+const log = getLogger("jupyter:handle-nbconvert-change");
 
 // nbconvert can output arbitrarily large errors, so we truncate.
 // But don't truncate too small!  https://github.com/sagemathinc/cocalc/issues/5878

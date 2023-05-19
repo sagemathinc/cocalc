@@ -15,14 +15,36 @@ fully unit test it via mocking of components.
 import * as immutable from "immutable";
 import json_stable from "json-stable-stringify";
 import { debounce } from "lodash";
-import { JupyterActions as JupyterActions0 } from "./actions";
+import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
 import { callback2, once } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
 import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
 import { RunAllLoop } from "./run-all-loop";
-import nbconvertChange from "./convert/handle-change";
+import nbconvertChange from "./handle-nbconvert-change";
+import type Client from "@cocalc/sync-client";
+import type { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
+
+import type { CB } from "@cocalc/util/types/callback";
+
+interface NodejsClient extends Client {
+  write_file: (opts: { path: string; data: string; cb: CB<void> }) => void;
+  path_read: (opts: {
+    path: string;
+    maxsize_MB?: number; // in megabytes; if given and file would be larger than this, then cb(err)
+    cb: CB<string>; // cb(err, file content as string (not Buffer!))
+  }) => Promise<void>;
+  path_stat: (opts: { path: string; cb: CB }) => any;
+  watch_file: (opts: {
+    path: string;
+    interval?: number;
+    debounce?: number;
+  }) => any;
+  jupyter_kernel_info: () => Promise<KernelSpec[]>;
+  jupyter_kernel: (opts) => any; // todo typing
+  server_time: () => Date;
+}
 
 export class JupyterActions extends JupyterActions0 {
   private _backend_state: BackendState = "init";
@@ -35,6 +57,7 @@ export class JupyterActions extends JupyterActions0 {
   private run_all_loop?: RunAllLoop;
   private clear_kernel_error?: any;
   private running_manager_run_cell_process_queue: boolean = false;
+  protected _client: NodejsClient; // this has filesystem access, etc.
 
   public run_cell(
     id: string,
@@ -147,11 +170,9 @@ export class JupyterActions extends JupyterActions0 {
       5000
     );
 
-    //dbg("syncdb='#{JSON.stringify(@syncdb.get().toJS())}'")
-
     this.setState({
       // used by jupyter.ts
-      start_time: this._client.server_time() - 0,
+      start_time: this._client.server_time().valueOf(),
     });
     this.syncdb.delete({ type: "nbconvert" });
     // clear on init, since can't be running yet
@@ -365,12 +386,13 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   init_kernel_info = async () => {
-    let kernels = this.store.get("kernels");
-    if (kernels != null) {
+    let kernels0 = this.store.get("kernels");
+    if (kernels0 != null) {
       return;
     }
     const dbg = this.dbg("init_kernel_info");
     dbg("getting");
+    let kernels;
     try {
       kernels = await this._client.jupyter_kernel_info();
       dbg("success");

@@ -973,6 +973,9 @@ importers:
       better-sqlite3:
         specifier: ^8.3.0
         version: 8.3.0
+      debug:
+        specifier: ^4.3.2
+        version: 4.3.4(supports-color@8.1.1)
       execa:
         specifier: ^7.1.1
         version: 7.1.1
@@ -991,6 +994,9 @@ importers:
       kernelspecs:
         specifier: ^2.0.1
         version: 2.0.1
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
       lru-cache:
         specifier: ^7.14.1
         version: 7.14.1

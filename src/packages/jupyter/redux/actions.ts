@@ -18,8 +18,7 @@ declare const localStorage: any;
 
 import { reuseInFlight } from "async-await-utils/hof";
 import * as immutable from "immutable";
-import { debounce } from "lodash";
-import { Actions } from "@cocalc/frontend/app-framework";
+import { Actions } from "@cocalc/util/redux/Actions";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
@@ -29,30 +28,28 @@ import {
   JupyterStore,
   JupyterStoreState,
   show_kernel_selector_reasons,
-} from "./store";
+} from "@cocalc/jupyter/redux/store";
 import { Cell, KernelInfo } from "@cocalc/jupyter/types";
 import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
-
-const { close, required, defaults } = misc;
-
-// local cache: map project_id (string) -> kernels (immutable)
+import debug from "debug";
 import { Kernel, Kernels } from "@cocalc/jupyter/util/misc";
-let jupyter_kernels = immutable.Map<string, Kernels>();
-
 import { IPynbImporter } from "@cocalc/jupyter/ipynb/import-from-ipynb";
-
-import { JupyterKernelInterface } from "./project-interface";
-
-import { parse_headings } from "./contents";
-
+import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
 import {
   char_idx_to_js_idx,
   codemirror_to_jupyter_pos,
   js_idx_to_char_idx,
 } from "@cocalc/jupyter/util/misc";
-
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
-import { get_local_storage, set_local_storage } from "../misc/local-storage";
+import type Client from "@cocalc/sync-client";
+
+
+const log = debug("cocalc:jupyter:actions");
+const { close, required, defaults } = misc;
+
+// local cache: map project_id (string) -> kernels (immutable)
+let jupyter_kernels = immutable.Map<string, Kernels>();
+
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the
@@ -76,9 +73,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   private _cursor_locs?: any;
   private _introspect_request?: any;
   protected set_save_status: any;
-  private project_conn: any;
-
-  protected _client: any;
+  protected _client: Client;
   protected _file_watcher: any;
   protected _state: any;
 
@@ -115,24 +110,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     store.syncdb = syncdb;
     this.syncdb = syncdb;
     this._client = client;
-    this.update_contents = debounce(this.update_contents.bind(this), 2000);
     // the project client is designated to manage execution/conflict, etc.
     this.is_project = client.is_project();
     store._is_project = this.is_project;
     this._account_id = client.client_id(); // project or account's id
-
-    let font_size: any = this.store.get_local_storage("font_size");
-    if (font_size == null) {
-      const account = this.redux.getStore<JupyterStoreState, JupyterStore>(
-        "account"
-      );
-      if (account != null) {
-        font_size = account.get("font_size");
-      }
-    }
-    if (font_size == null) {
-      font_size = 14;
-    }
 
     let directory: any;
     const split_path = misc.path_split(path);
@@ -142,18 +123,14 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.setState({
       error: undefined,
-      cur_id: this.store.get_local_storage("cur_id"),
-      toolbar: !this.store.get_local_storage("hide_toolbar"),
       has_unsaved_changes: false,
       sel_ids: immutable.Set(), // immutable set of selected cells
       md_edit_ids: immutable.Set(), // set of ids of markdown cells in edit mode
       mode: "escape",
-      font_size,
       project_id,
       directory,
       path,
       max_output_length: DEFAULT_MAX_OUTPUT_LENGTH,
-      cell_toolbar: this.store.get_local_storage("cell_toolbar"),
     });
 
     this.syncdb.on("change", this._syncdb_change);
@@ -199,15 +176,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
-  init_project_conn = reuseInFlight(async (): Promise<any> => {
-    // this cannot (and does not need to be) be imported from within the project.
-    // TODO: move to browser-actions.ts
-    const { connection_to_project } = require("../project/websocket/connect");
-    return (this.project_conn = await connection_to_project(
-      this.store.get("project_id")
-    ));
-  });
-
   protected async api_call(
     endpoint: string,
     query?: any,
@@ -216,13 +184,13 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (this._state === "closed") {
       throw Error("closed");
     }
-    return await (
-      await this.init_project_conn()
-    ).api.jupyter(this.path, endpoint, query, timeout_ms);
+    const api = await this._client.project_client.api(this.project_id);
+    return await api.jupyter(this.path, endpoint, query, timeout_ms);
   }
 
   public dbg(f: string): (...args) => void {
-    return this._client.dbg(`JupyterActions('${this.store.get("path")}').${f}`);
+    return (...args) =>
+      log(`JupyterActions('${this.store.get("path")}').${f}`, ...args);
   }
 
   protected close_client_only(): void {
@@ -243,7 +211,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     //     in having two formats.
     await this.save();
 
-    this.set_local_storage("cur_id", this.store.get("cur_id"));
     if (this.syncdb != null) {
       this.syncdb.close();
     }
@@ -740,8 +707,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         this._state = "ready";
       }
       this.check_select_kernel();
-
-      this.update_contents();
     }
   };
 
@@ -1453,57 +1418,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   }
 
-  toggle_toolbar = () => {
-    return this.set_toolbar_state(!this.store.get("toolbar"));
-  };
-
-  public set_toolbar_state(toolbar: boolean): void {
-    // true = visible
-    this.setState({ toolbar });
-    this.set_local_storage("hide_toolbar", !toolbar);
-  }
-
-  public toggle_header(): void {
-    (this.redux.getActions("page") as any).toggle_fullscreen();
-  }
-
-  public set_header_state(visible: boolean): void {
-    (this.redux.getActions("page") as any).set_fullscreen(
-      visible ? "default" : undefined
-    );
-  }
-
-  set_line_numbers = (show: any): void => {
-    this.set_local_storage("line_numbers", !!show);
-    // unset the line_numbers property from all cells
-    const cells = this.store
-      .get("cells")
-      .map((cell) => cell.delete("line_numbers"));
-    if (!cells.equals(this.store.get("cells"))) {
-      // actually changed
-      this.setState({ cells });
-    }
-    // now cause cells to update
-    this.set_cm_options();
-  };
-
-  set_local_storage = (key, value) => {
-    if (localStorage == null) return;
-    let current_str = get_local_storage(this.name);
-    const current =
-      current_str != null
-        ? typeof current_str === "string"
-          ? misc.from_json(current_str)
-          : current_str
-        : {};
-    if (value === null) {
-      delete current[key];
-    } else {
-      current[key] = value;
-    }
-    set_local_storage(this.name, misc.to_json(current));
-  };
-
   // File --> Open: just show the file listing page.
   file_open = (): void => {
     if (this.redux == null) return;
@@ -1590,11 +1504,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     id?: string,
     offset?: any
   ): Promise<boolean> {
-    if (this.project_conn === undefined) {
-      this.setState({ complete: { error: "no project connection" } });
-      return false;
-    }
-
     let cursor_pos;
     const req = (this._complete_request =
       (this._complete_request != null ? this._complete_request : 0) + 1);
@@ -2622,16 +2531,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   split_current_cell = () => {
     this.deprecated("split_current_cell");
   };
-
-  public update_contents(): void {
-    if (this._state == "closed") return;
-    const cells = this.store.get("cells");
-    if (cells == null) return;
-    const cell_list = this.store.get("cell_list");
-    if (cell_list == null) return;
-    const contents = immutable.fromJS(parse_headings(cells, cell_list));
-    this.setState({ contents });
-  }
 
   handle_nbconvert_change(_oldVal, _newVal): void {
     throw Error("define this in derived class");

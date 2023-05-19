@@ -42,7 +42,7 @@ import { callback2, once } from "@cocalc/util/async-utils";
 import { PROJECT_HUB_HEARTBEAT_INTERVAL_S } from "@cocalc/util/heartbeat";
 import * as message from "@cocalc/util/message";
 import * as misc from "@cocalc/util/misc";
-import { CB } from "@cocalc/util/types/callback";
+import type { CB } from "@cocalc/util/types/callback";
 import * as blobs from "./blobs";
 import { symmetric_channel } from "./browser-websocket/symmetric_channel";
 import { json } from "./common";

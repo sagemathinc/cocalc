@@ -8,7 +8,7 @@ import { basename } from "path";
 import { unreachable, separate_file_extension } from "@cocalc/util/misc";
 import { reuseInFlight } from "async-await-utils/hof";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
-import { canonical_language } from "@cocalc/frontend/jupyter/store";
+import { canonical_language } from "@cocalc/jupyter/redux/store";
 import {
   Snippets,
   LangSnippets,

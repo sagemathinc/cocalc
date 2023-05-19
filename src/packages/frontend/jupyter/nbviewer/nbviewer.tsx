@@ -11,7 +11,7 @@ import { CSSProperties, useMemo } from "react";
 import { Alert } from "antd";
 import CellList from "./cell-list";
 import { path_split } from "@cocalc/util/misc";
-import parse from "./parse";
+import parse from "@cocalc/jupyter/ipynb/parse";
 import { CodeMirrorStatic } from "../codemirror-static";
 import "../output-messages/mime-types/init-nbviewer";
 import { JupyterContext } from "../jupyter-context";
