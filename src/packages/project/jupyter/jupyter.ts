@@ -81,7 +81,7 @@ import launchJupyterKernel, {
   LaunchJupyterOpts,
   SpawnedKernel,
   killKernel,
-} from "./pool";
+} from "@cocalc/jupyter/pool/pool";
 import { getAbsolutePathFromHome } from "@cocalc/jupyter/util";
 
 import { getLogger } from "@cocalc/project/logger";

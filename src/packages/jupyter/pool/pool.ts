@@ -14,13 +14,11 @@ import json from "json-stable-stringify";
 import nodeCleanup from "node-cleanup";
 import { unlinkSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-
-import { getLogger } from "@cocalc/project/logger";
+import getLogger from "@cocalc/backend/logger";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import createSetenvCommand from "@cocalc/util/jupyter-api/setenv-commands";
 import { exists, unlink } from "@cocalc/backend/misc/async-utils-node";
 import { getLanguage } from "@cocalc/jupyter/kernel/kernel-data";
-
 import launchJupyterKernelNoPool, {
   LaunchJupyterOpts,
   SpawnedKernel,

@@ -9,8 +9,8 @@
 
 import { join } from "node:path";
 import { homedir } from "node:os";
+import getLogger from "@cocalc/backend/logger";
 
-import { getLogger } from "../logger";
 const L = getLogger("jupyter:pool-params").debug;
 
 // read env vars with that prefix
