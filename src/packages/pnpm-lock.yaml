@@ -11,8 +11,8 @@ importers:
         specifier: ^29.5.0
         version: 29.5.0(@types/node@18.11.18)
       typescript:
-        specifier: ^5.0.2
-        version: 5.0.2
+        specifier: ^5.0.4
+        version: 5.0.4
 
   assets:
     dependencies:
@@ -1296,9 +1296,6 @@ importers:
       uglify-js:
         specifier: ^3.14.1
         version: 3.17.4
-      underscore:
-        specifier: ^1.12.1
-        version: 1.13.4
       uuid:
         specifier: ^8.3.2
         version: 8.3.2
@@ -17023,12 +17020,6 @@ packages:
   /typedarray@0.0.6:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
     dev: false
-
-  /typescript@5.0.2:
-    resolution: {integrity: sha512-wVORMBGO/FAs/++blGNeAVdbNKtIh1rbBL2EyQ1+J9lClJ93KiiKe8PmFIVdXhHcyv44SL9oglmfeSsndo0jRw==}
-    engines: {node: '>=12.20'}
-    hasBin: true
-    dev: true
 
   /typescript@5.0.4:
     resolution: {integrity: sha512-cW9T5W9xY37cc+jfEnaUvX91foxtHkza3Nw3wkoF4sSlKn0MONdkdEndig/qPBWXNkmplh3NzayQzCiHM4/hqw==}

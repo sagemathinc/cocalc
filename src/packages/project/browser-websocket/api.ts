@@ -14,9 +14,6 @@
 //  -- one request
 //  -- one response
 
-import { reuseInFlight } from "async-await-utils/hof";
-
-import { Mesg } from "@cocalc/frontend/project/websocket/types";
 import { getClient } from "@cocalc/project/client";
 import { get_configuration } from "../configuration";
 import { run_formatter, run_formatter_string } from "../formatters";
@@ -25,7 +22,6 @@ import { lean, lean_channel } from "../lean/server";
 import { nbgrader } from "../nbgrader/api";
 import { jupyter_strip_notebook } from "../nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "../nbgrader/jupyter-run";
-import { project_info_ws } from "../project-info";
 import { synctable_channel } from "../sync/server";
 import { syncdoc_call } from "../sync/sync-doc";
 import { terminal } from "../terminal/server";

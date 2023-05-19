@@ -12,7 +12,6 @@ import { isEqual, throttle } from "lodash";
 import { spawn } from "node-pty";
 import { readFile, writeFile } from "node:fs";
 import { readlink } from "node:fs/promises";
-
 import { envForSpawn } from "@cocalc/backend/misc";
 import {
   console_init_filename,
@@ -21,9 +20,6 @@ import {
   path_split,
 } from "@cocalc/util/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { isEqual, throttle } from "lodash";
-import { callback, delay } from "awaiting";
-import { envForSpawn } from "@cocalc/backend/misc";
 
 interface Terminal {
   channel: any;
