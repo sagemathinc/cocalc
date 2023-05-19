@@ -13,7 +13,7 @@ import { A, Icon, Paragraph, Title } from "@cocalc/frontend/components";
 import { ShowSupportLink } from "@cocalc/frontend/support";
 import { COLORS, JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
-import { KernelInfo } from "./types";
+import { KernelInfo } from "@cocalc/jupyter/types";
 
 interface AboutProps {
   actions: JupyterActions;

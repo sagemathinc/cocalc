@@ -13,7 +13,7 @@ import {
   commands,
 } from "@cocalc/frontend/jupyter/commands";
 import { create_key_handler } from "@cocalc/frontend/jupyter/keyboard";
-import { Cell, CellType, Scroll } from "@cocalc/frontend/jupyter/types";
+import { Cell, CellType, Scroll } from "@cocalc/jupyter/types";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import {
   bind_methods,
@@ -24,7 +24,6 @@ import {
 } from "@cocalc/util/misc";
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
-require("@cocalc/frontend/jupyter/types");
 
 export interface EditorFunctions {
   set_cursor: (pos: { x?: number; y?: number }) => void;

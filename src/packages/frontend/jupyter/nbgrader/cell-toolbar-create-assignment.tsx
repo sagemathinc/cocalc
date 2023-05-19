@@ -24,7 +24,7 @@ import {
   value_to_state,
   value_to_template_content,
 } from "./cell-types";
-import { Metadata } from "./types";
+import type { Metadata } from "./types";
 
 const OPTIONS_CODE: Rendered[] = [];
 const OPTIONS_NOTCODE: Rendered[] = [];
@@ -59,7 +59,10 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
     }
     const metadata: Metadata = value_to_state(value);
     const id = cell.get("id");
-    metadata.grade_id = cell.getIn(["metadata", "nbgrader", "grade_id"], "") as string;
+    metadata.grade_id = cell.getIn(
+      ["metadata", "nbgrader", "grade_id"],
+      ""
+    ) as string;
     if (!metadata.grade_id) {
       // TODO -- check if default is globally unique...?
       metadata.grade_id = id;

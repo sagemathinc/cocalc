@@ -31,7 +31,7 @@ import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
 import { InsertCell } from "./insert-cell";
-import { NotebookMode, Scroll } from "./types";
+import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
 
 import {
   SortableList,

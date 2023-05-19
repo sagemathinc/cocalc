@@ -18,7 +18,7 @@ import { debounce } from "lodash";
 import { JupyterActions as JupyterActions0 } from "./actions";
 import { callback2, once } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
-import { OutputHandler } from "./output-handler";
+import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
 import { RunAllLoop } from "./run-all-loop";
 import nbconvertChange from "./convert/handle-change";
 

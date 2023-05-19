@@ -10,7 +10,7 @@ import { sortBy } from "lodash";
 import { useEffect, useState } from "react";
 
 import Logo from "@cocalc/frontend/jupyter/logo";
-import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
+import type { KernelSpec } from "@cocalc/jupyter/types";
 import {
   KERNEL_POPULAR_THRESHOLD,
   get_kernels_by_name_or_language,

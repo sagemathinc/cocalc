@@ -13,13 +13,18 @@ import {
   delete_local_storage,
   get_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
-import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
+import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
 import { Syntax } from "@cocalc/util/code-formatter";
 import { cmp, from_json, startswith } from "@cocalc/util/misc";
 import { export_to_ipynb } from "@cocalc/jupyter/ipynb/export-to-ipynb";
 import { NBGraderStore } from "./nbgrader/store";
 import { KernelSpec } from "./nbviewer/parse";
-import { Cell, CellToolbarName, KernelInfo, NotebookMode } from "./types";
+import {
+  Cell,
+  CellToolbarName,
+  KernelInfo,
+  NotebookMode,
+} from "@cocalc/jupyter/types";
 import { Kernel, Kernels } from "@cocalc/jupyter/util/misc";
 
 // Used for copy/paste.  We make a single global clipboard, so that

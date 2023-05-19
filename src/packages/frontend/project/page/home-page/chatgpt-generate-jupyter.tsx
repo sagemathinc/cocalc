@@ -30,7 +30,7 @@ import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
-import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
+import type { KernelSpec } from "@cocalc/jupyter/types";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";

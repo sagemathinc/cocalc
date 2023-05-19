@@ -11,7 +11,7 @@ import {
   ALERT_LOW_PCT,
 } from "@cocalc/project/project-status/const";
 
-import { Usage, AlertLevel } from "./types";
+import { Usage, AlertLevel } from "@cocalc/jupyter/types";
 
 export const ALERT_COLS: { [key in AlertLevel]: string } = {
   none: COLORS.BS_GREEN,

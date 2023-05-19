@@ -30,7 +30,7 @@ import {
   JupyterStoreState,
   show_kernel_selector_reasons,
 } from "./store";
-import { Cell, KernelInfo } from "./types";
+import { Cell, KernelInfo } from "@cocalc/jupyter/types";
 import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
 
 const { close, required, defaults } = misc;

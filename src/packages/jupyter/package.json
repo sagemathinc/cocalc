@@ -5,6 +5,7 @@
   "exports": {
     "./*": "./dist/*.js",
     "./blobs": "./dist/blobs/index.js",
+    "./execute/*": "./dist/execute/*.js",
     "./pool/*": "./dist/pool/*.js",
     "./types": "./dist/types/index.js",
     "./types/*": "./dist/types/*.js",
@@ -17,10 +18,7 @@
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",

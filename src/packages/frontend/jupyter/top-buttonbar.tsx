@@ -20,7 +20,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { capitalize, endswith } from "@cocalc/util/misc";
-import { Cells, CellType, Usage } from "./types";
+import { Cells, CellType, Usage } from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
 
 type ButtonDescription =

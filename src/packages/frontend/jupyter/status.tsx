@@ -25,7 +25,7 @@ import { PROJECT_INFO_TITLE } from "../project/info";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
 import { Mode } from "./mode";
-import { AlertLevel, BackendState, NotebookMode, Usage } from "./types";
+import { AlertLevel, BackendState, NotebookMode, Usage } from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
 import ProgressEstimate from "../components/progress-estimate";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
