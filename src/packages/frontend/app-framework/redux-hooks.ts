@@ -140,18 +140,17 @@ function useReduxProjectStore(path: string[], project_id: string) {
 function useReduxEditorStore(
   path: string[],
   project_id: string,
-  filename: string,
-  is_public?: boolean
+  filename: string
 ) {
   const [value, set_value] = React.useState(() =>
     // the editor itself might not be defined hence the ?. below:
     redux
-      .getEditorStore(project_id, filename, is_public)
+      .getEditorStore(project_id, filename)
       ?.getIn(path as [string, string, string, string, string])
   );
 
   useDeepCompareEffect(() => {
-    let store = redux.getEditorStore(project_id, filename, is_public);
+    let store = redux.getEditorStore(project_id, filename);
     let last_value = value;
     const f = (obj) => {
       if (obj == null || !f.is_mounted) return; // see comment for useReduxNamedStore
@@ -178,7 +177,7 @@ function useReduxEditorStore(
           unsubscribe();
           return;
         }
-        store = redux.getEditorStore(project_id, filename, is_public);
+        store = redux.getEditorStore(project_id, filename);
         if (store != null) {
           unsubscribe();
           f(store); // may have missed an initial change
@@ -274,16 +273,11 @@ export function useEditorRedux(
 export function useRedux(
   path: string | string[],
   project_id?: string,
-  filename?: string,
-  is_public?: boolean
+  filename?: string
 ) {
   if (typeof path == "string") {
     // good typed version!! -- path specifies store
-    if (
-      typeof project_id != "string" ||
-      typeof filename != "undefined" ||
-      typeof is_public != "undefined"
-    ) {
+    if (typeof project_id != "string" || typeof filename != "undefined") {
       throw Error(
         "if first argument of useRedux is a string then second argument must also be and no other arguments can be specified"
       );
@@ -305,7 +299,7 @@ export function useRedux(
       return useReduxProjectStore(path, project_id);
     }
   }
-  return useReduxEditorStore(path, project_id, filename, is_public);
+  return useReduxEditorStore(path, project_id, filename);
 }
 
 /*

@@ -20,14 +20,12 @@ import { syncdb2 as new_syncdb } from "@cocalc/frontend/frame-editors/generic/cl
 register_file_editor({
   ext: ["time"],
 
-  is_public: false,
-
   icon: "stopwatch",
 
   component: EditorTime,
 
   init(path: string, redux: AppRedux, project_id: string): string {
-    const name = redux_name(project_id, path, this.is_public);
+    const name = redux_name(project_id, path);
     if (redux.getActions(name) !== undefined) {
       return name; // already initialized
     }
@@ -55,7 +53,7 @@ register_file_editor({
   },
 
   remove(path: string, redux: AppRedux, project_id: string): string {
-    const name = redux_name(project_id, path, this.is_public);
+    const name = redux_name(project_id, path);
     const actions: InstanceType<typeof TimeActions> = redux.getActions(name);
     if (actions !== undefined && actions.syncdb !== undefined) {
       actions.syncdb.close();

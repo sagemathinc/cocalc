@@ -35,6 +35,8 @@ import { Table, TableConstructor } from "./Table";
 import { bind_methods, keys, is_valid_uuid_string } from "@cocalc/util/misc";
 
 export { TypedMap, createTypedMap } from "@cocalc/util/redux/TypedMap";
+import { redux_name, project_redux_name } from "@cocalc/util/redux/name";
+export { redux_name, project_redux_name };
 
 import { NAME_TYPE as ComputeImageStoreType } from "../custom-software/util";
 import { NEWS } from "@cocalc/frontend/notifications/news/init";
@@ -399,20 +401,20 @@ export class AppRedux {
     this.removeStore(name);
   }
 
-  getEditorStore(project_id: string, path: string, is_public?: boolean) {
+  getEditorStore(project_id: string, path: string) {
     if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getEditorStore: INVALID project_id -- "${project_id}"`);
     }
-    return this.getStore(file_redux_name(project_id, path, is_public));
+    return this.getStore(redux_name(project_id, path));
   }
 
-  getEditorActions(project_id: string, path: string, is_public?: boolean) {
+  getEditorActions(project_id: string, path: string) {
     if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getEditorActions: INVALID project_id -- "${project_id}"`);
     }
-    return this.getActions(file_redux_name(project_id, path, is_public));
+    return this.getActions(redux_name(project_id, path));
   }
 
   // getEditorActions but for whatever editor  -- this is mainly meant to be used
@@ -647,28 +649,6 @@ export function is_redux(obj) {
 }
 export function is_redux_actions(obj) {
   return obj instanceof Actions;
-}
-
-// Canonical name to use for Redux store associated to a given project/path.
-// TODO: this code is also in many editors -- make them all just use this.
-export function redux_name(
-  project_id: string,
-  path: string,
-  is_public?: boolean
-) {
-  if (is_public) {
-    return `public-${project_id}-${path}`;
-  } else {
-    return `editor-${project_id}-${path}`;
-  }
-}
-
-const file_redux_name = redux_name;
-
-export function project_redux_name(project_id: string, name?: string): string {
-  let s = `project-${project_id}`;
-  if (name !== undefined) s += `-${name}`;
-  return s;
 }
 
 export function Redux({ children }) {

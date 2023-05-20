@@ -45,7 +45,7 @@ import { unlink } from "@cocalc/backend/misc/async-utils-node";
 import {
   process as iframe_process,
   is_likely_iframe,
-} from "@cocalc/frontend/jupyter/iframe";
+} from "@cocalc/jupyter/blobs/iframe";
 import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import {
@@ -56,7 +56,7 @@ import {
 } from "@cocalc/jupyter/types/project-interface";
 import { JupyterStore } from "@cocalc/jupyter/redux/store";
 import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
-import { SyncDB } from "@cocalc/sync/editor/db/sync";
+import type { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import { key_value_store } from "@cocalc/util/key-value-store";
@@ -82,6 +82,7 @@ import launchJupyterKernel, {
 } from "@cocalc/jupyter/pool/pool";
 import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 import type { KernelParams } from "./types";
+import { redux_name } from "@cocalc/util/redux/name";
 import { getLogger } from "@cocalc/project/logger";
 const log = getLogger("jupyter");
 
@@ -106,18 +107,18 @@ export function jupyter_backend(syncdb: SyncDB, client: any): void {
   // official ipynb format:
   const path = original_path(syncdb.get_path());
 
-  const redux_name = app_framework.redux_name(project_id, path);
+  const name = redux_name(project_id, path);
   if (
-    app_framework.redux.getStore(redux_name) != null &&
-    app_framework.redux.getActions(redux_name) != null
+    app_framework.redux.getStore(name) != null &&
+    app_framework.redux.getActions(name) != null
   ) {
     // The redux info for this notebook already exists, so don't
     // try to make it again (which would be an error).
     // See https://github.com/sagemathinc/cocalc/issues/4331
     return;
   }
-  const store = app_framework.redux.createStore(redux_name, JupyterStore);
-  const actions = app_framework.redux.createActions(redux_name, JupyterActions);
+  const store = app_framework.redux.createStore(name, JupyterStore);
+  const actions = app_framework.redux.createActions(name, JupyterActions);
 
   actions._init(project_id, path, syncdb, store, client);
 
