@@ -12,7 +12,8 @@ TODO: for easy testing/debugging, at an "async run() : Messages[]" method.
 
 import { callback, delay } from "awaiting";
 import { EventEmitter } from "events";
-import { JupyterKernel, VERSION } from "./jupyter";
+import { VERSION } from "./jupyter";
+import type { JupyterKernelInterface as JupyterKernel } from "@cocalc/jupyter/types/project-interface";
 import { MessageType } from "@nteract/messaging";
 import { bind_methods, copy_with, deep_copy, uuid } from "@cocalc/util/misc";
 import {

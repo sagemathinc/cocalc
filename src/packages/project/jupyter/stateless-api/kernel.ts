@@ -1,7 +1,5 @@
-import {
-  kernel as createKernel,
-  JupyterKernel,
-} from "@cocalc/project/jupyter/jupyter";
+import { kernel as createKernel } from "@cocalc/project/jupyter/jupyter";
+import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
 import { run_cell, Limits } from "@cocalc/project/nbgrader/jupyter-run";
 import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
@@ -21,7 +19,7 @@ export default class Kernel {
   private static pools: { [kernelName: string]: Kernel[] } = {};
   private static last_active: { [kernelName: string]: number } = {};
 
-  private kernel?: JupyterKernel;
+  private kernel?: JupyterKernelInterface;
   private tempDir: string;
 
   constructor(private kernelName: string) {
@@ -56,7 +54,8 @@ export default class Kernel {
       // shrink the pool to MIN_POOL_SIZE.
       // no request for kernelName, so we clear them from the pool
       const poolToShrink = Kernel.pools[kernelName] ?? [];
-      if (poolToShrink.length > MIN_POOL_SIZE) { // check if pool needs shrinking
+      if (poolToShrink.length > MIN_POOL_SIZE) {
+        // check if pool needs shrinking
         // calculate how many to close
         const numToClose = poolToShrink.length - MIN_POOL_SIZE;
         for (let i = 0; i < numToClose; i++) {

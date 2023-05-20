@@ -958,6 +958,9 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      '@nteract/messaging':
+        specifier: ^7.0.20
+        version: 7.0.20
       '@types/better-sqlite3':
         specifier: ^7.6.4
         version: 7.6.4

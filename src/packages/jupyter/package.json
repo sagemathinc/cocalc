@@ -30,6 +30,7 @@
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@nteract/messaging": "^7.0.20",
     "@types/better-sqlite3": "^7.6.4",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",

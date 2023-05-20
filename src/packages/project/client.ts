@@ -47,8 +47,9 @@ import * as blobs from "./blobs";
 import { symmetric_channel } from "./browser-websocket/symmetric_channel";
 import { json } from "./common";
 import * as data from "./data";
-import { JupyterKernel, kernel as jupyter_kernel } from "./jupyter/jupyter";
-import { get_kernel_data } from "./jupyter/kernel-data";
+import { kernel as jupyter_kernel } from "./jupyter/jupyter";
+import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
+import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 import { KernelParams } from "./jupyter/types";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
@@ -689,7 +690,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // returns a Jupyter kernel session
   public jupyter_kernel(
     opts: KernelParams & { client?: Client }
-  ): JupyterKernel {
+  ): JupyterKernelInterface {
     // TODO is opts.client needed?
     opts.client = this;
     return jupyter_kernel(opts);

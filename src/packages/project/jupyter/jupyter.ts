@@ -36,7 +36,7 @@ export const VERSION = "5.3";
 // https://github.com/jtlapp/node-cleanup/issues/16
 // Also exit-hook is hard to import from commonjs.
 import nodeCleanup from "node-cleanup";
-import { Channels, MessageType } from "@nteract/messaging";
+import type { Channels, MessageType } from "@nteract/messaging";
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
@@ -74,7 +74,7 @@ import {
 import { nbconvert } from "./convert";
 import { CodeExecutionEmitter } from "./execute-code";
 import { get_blob_store_sync } from "@cocalc/jupyter/blobs";
-import { getLanguage, get_kernel_data_by_name } from "./kernel-data";
+import { getLanguage, get_kernel_data_by_name } from "@cocalc/jupyter/kernel/kernel-data";
 import launchJupyterKernel, {
   LaunchJupyterOpts,
   SpawnedKernel,
@@ -174,7 +174,9 @@ nodeCleanup(() => {
   }
 });
 
-export class JupyterKernel
+// NOTE: keep JupyterKernel implementation private -- use the kernel function
+// above, and the interface defined in types.
+class JupyterKernel
   extends EventEmitter
   implements JupyterKernelInterface
 {
@@ -183,7 +185,7 @@ export class JupyterKernel
   // Everything should work, except you can't *spawn* such a kernel.
   public name: string | undefined;
 
-  public store: any; // used mainly for stdin support right now...
+  public store: any; // this is a key:value store used mainly for stdin support right now. NOTHING TO DO WITH REDUX!
   public readonly identity: string = uuid();
 
   private stderr: string = "";
@@ -195,7 +197,7 @@ export class JupyterKernel
   private _filename: string;
   private _kernel?: SpawnedKernel;
   private _kernel_info?: KernelInfo;
-  _execute_code_queue: CodeExecutionEmitter[] = [];
+  public _execute_code_queue: CodeExecutionEmitter[] = [];
   public channel?: Channels;
   private has_ensured_running: boolean = false;
 

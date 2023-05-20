@@ -9,7 +9,7 @@ various messages related to working with Jupyter.
 */
 
 import { get_existing_kernel } from "./jupyter";
-import { get_kernel_data } from "./kernel-data";
+import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 
 export async function handle_request(
   path: string,

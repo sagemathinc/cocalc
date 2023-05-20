@@ -22,7 +22,7 @@ import {
   get_blob_store,
   BlobStoreSqlite,
 } from "@cocalc/jupyter/blobs";
-import { get_kernel_data } from "./kernel-data";
+import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 import { get_ProjectStatusServer } from "@cocalc/project/project-status/server";
 import { delay } from "awaiting";
 

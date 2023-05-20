@@ -11,6 +11,8 @@ same code as the frontend (e.g., actions.ts), so we use an interface
 so that Typescript can meaningfully type check everything.
 */
 
+import type { Channels } from "@nteract/messaging";
+
 // see https://gist.github.com/rsms/3744301784eb3af8ed80bc746bef5eeb#file-eventlistener-d-ts
 export interface EventEmitterInterface {
   addListener(event: string | symbol, listener: (...args: any[]) => void): this;
@@ -114,9 +116,11 @@ interface JupyterKernelInterfaceSpawnOpts {
 }
 
 export interface JupyterKernelInterface extends EventEmitterInterface {
+  channel?: Channels;
   name: string | undefined; // name = undefined implies it is not spawnable.  It's a notebook with no actual jupyter kernel process.
   store: any;
   readonly identity: string;
+
   get_state(): string;
   signal(signal: string): void;
   close(): Promise<void>;
@@ -139,4 +143,11 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   process_attachment(base64, mime): string | undefined;
   send_comm_message_to_kernel(msg_id: string, comm_id: string, data: any): void;
   get_connection_file(): string | undefined;
+
+  _execute_code_queue: CodeExecutionEmitterInterface[];
+  clear_execute_code_queue(): void;
+  _process_execute_code_queue(): Promise<void>
+
+  chdir(path: string): Promise<void>;
+  ensure_running(): Promise<void>;
 }
