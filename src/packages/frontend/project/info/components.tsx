@@ -591,3 +591,13 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
     }
   }
 );
+
+
+
+export function render_cocalc_btn({ title, onClick }) {
+  return (
+    <Button shape="round" onClick={onClick}>
+      {title}
+    </Button>
+  );
+}

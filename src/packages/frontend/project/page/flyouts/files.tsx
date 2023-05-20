@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Input, Radio, Space } from "antd";
+import { Button, Input, Radio, Space, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
@@ -28,6 +28,7 @@ import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
 import track from "@cocalc/frontend/user-tracking";
 import { path_to_file, should_open_in_foreground } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { EditorFileInfoDropdown } from "../../../editors/file-info-dropdown";
 
 const ITEM_LINE_STYLE: CSS = {
   display: "flex",
@@ -41,7 +42,7 @@ const ITEM_LINE_STYLE: CSS = {
   paddingTop: "5px",
   paddingLeft: "5px",
   paddingRight: "5px",
-  color: COLORS.GRAY_M,
+  color: COLORS.GRAY_D,
 } as const;
 
 const ITEM_STYLE: CSS = {
@@ -234,6 +235,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
         direction="vertical"
         style={{
           paddingBottom: "10px",
+          paddingRight: "5px",
           borderBottom: `1px solid ${COLORS.GRAY_L}`,
         }}
       >
@@ -250,32 +252,64 @@ export function FilesFlyout({ project_id }): JSX.Element {
             {renderSortButton("time", "Time")}
             {renderSortButton("type", "Type")}
           </Radio.Group>
+          <Space direction="horizontal" size={"small"}>
+            <Tooltip title="Create a new file">
+              <Button
+                size="small"
+                type="primary"
+                onClick={() => actions?.toggleFlyout("new")}
+              >
+                <Icon name={"plus-circle"} />
+              </Button>
+            </Tooltip>
+          </Space>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            width: "100%",
+          }}
+        >
+          <Input
+            placeholder="Filter..."
+            size="small"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ flex: "1", marginRight: "10px" }}
+            allowClear
+            prefix={<Icon name="search" />}
+          />
           <Button
             size="small"
+            style={{ flex: "0" }}
             onClick={() => actions?.setState({ show_hidden: !hidden })}
           >
             <Icon name={hidden ? "eye" : "eye-slash"} />
           </Button>
         </div>
-        <Input
-          placeholder="Search..."
-          size="small"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ width: "100%" }}
-          allowClear
-          prefix={<Icon name="search" />}
-        />
       </Space>
     );
   }
 
   function renderItemIcon(item: ListingItem): JSX.Element {
+    const style = { fontSize: "120%", marginRight: "5px" };
     if (item.isdir) {
-      return <Icon name="folder-open" />;
+      return <Icon name="folder-open" style={style} />;
     } else {
       const ficon = file_options(item.name)?.icon ?? "file";
-      return <Icon name={ficon} />;
+
+      return (
+        <EditorFileInfoDropdown
+          button={false}
+          filename={path_to_file(current_path, item.name)}
+          project_id={project_id}
+          title={<Icon name={ficon} style={style} />}
+          style={{ margin: 0 }}
+          mode="flyout"
+        />
+      );
     }
   }
 
@@ -295,25 +329,27 @@ export function FilesFlyout({ project_id }): JSX.Element {
 
   function renderListItem(index: number, item: ListingItem) {
     return (
-      <div
-        className="cc-project-flyout-file-item"
-        onClick={(e) => open(e, index)}
-        style={{
-          ...ITEM_LINE_STYLE,
-          ...(item.isopen
-            ? {
-                fontWeight: "bold",
-                color: COLORS.PROJECT.FIXED_LEFT_ACTIVE,
-                backgroundColor: COLORS.GRAY_LL,
-              }
-            : {}),
-        }}
-      >
-        <div style={ITEM_STYLE}>
-          {renderItemIcon(item)} {item.name}
+      <>
+        <div
+          className="cc-project-flyout-file-item"
+          style={{
+            ...ITEM_LINE_STYLE,
+            ...(item.isopen
+              ? {
+                  fontWeight: "bold",
+                  color: COLORS.PROJECT.FIXED_LEFT_ACTIVE,
+                  backgroundColor: COLORS.GRAY_LL,
+                }
+              : {}),
+          }}
+        >
+          {renderItemIcon(item)}{" "}
+          <div style={ITEM_STYLE} onClick={(e) => open(e, index)}>
+            {item.name}
+          </div>
+          {item.isopen ? renderCloseItem(item) : null}
         </div>
-        {item.isopen ? renderCloseItem(item) : null}
-      </div>
+      </>
     );
   }
 

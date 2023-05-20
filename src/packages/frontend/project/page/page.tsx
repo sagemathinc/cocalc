@@ -9,6 +9,7 @@ import {
   React,
   redux,
   useActions,
+  useEffect,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -31,6 +32,8 @@ import HomePageButton from "./home-page/button";
 import { useProjectStatus } from "./project-status-hook";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
+import { getFlyoutExpanded } from "./flyouts/local-state";
+import { isFixedTab } from "./file-tab";
 //import FirstSteps from "@cocalc/frontend/project/explorer/file-listing/first-steps";
 
 const PAGE_STYLE: React.CSSProperties = {
@@ -74,6 +77,13 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   );
   const [homePageButtonWidth, setHomePageButtonWidth] =
     React.useState<number>(80);
+
+  useEffect(() => {
+    const name = getFlyoutExpanded(project_id);
+    if (isFixedTab(name)) {
+      actions?.setFlyoutExpanded(name, true, false);
+    }
+  }, [project_id]);
 
   function renderEditorContent() {
     const v: JSX.Element[] = [];

@@ -4,7 +4,6 @@
  */
 
 import { Button, Input, Space, Tag } from "antd";
-import { join } from "path";
 
 import { default_filename } from "@cocalc/frontend/account";
 import {
@@ -18,16 +17,17 @@ import {
   ErrorDisplay,
   Icon,
   IconName,
-  Paragraph,
   SelectorInput,
   Text,
 } from "@cocalc/frontend/components";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
+import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import {
   NEW_FILETYPE_ICONS,
   isNewFiletypeIconName,
 } from "@cocalc/frontend/project/new/consts";
+import { NewFileDropdown } from "@cocalc/frontend/project/new/new-file-dropdown";
 import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-features";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
@@ -35,10 +35,12 @@ import { separate_file_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatGPTGenerateNotebookButton } from "../home-page/chatgpt-generate-jupyter";
 
+const DEFAULT_EXT = "ipynb";
+
 export function NewFlyout({
   project_id,
   wrap,
-  defaultExt = "ipynb",
+  defaultExt = DEFAULT_EXT,
 }: {
   project_id: string;
   wrap: Function;
@@ -77,6 +79,18 @@ export function NewFlyout({
       makeNewFilename();
     }
   }, [ext, manual, selected]);
+
+  // if name is entered manual and contains an extension, set the ext to it
+  useEffect(() => {
+    if (manual) {
+      const { ext: newExt } = separate_file_extension(filename);
+      if (newExt) {
+        setExt(newExt);
+      } else {
+        setExt(DEFAULT_EXT);
+      }
+    }
+  }, [filename, manual]);
 
   async function createFile() {
     if (!filename) return;
@@ -153,16 +167,29 @@ export function NewFlyout({
     e.target.select();
   }
 
+  function renderExtAddon(): JSX.Element {
+    return (
+      <NewFileDropdown
+        mode="flyout"
+        create_file={(ext) => ext && setExt(ext)}
+        title={`.${ext}`}
+        hide_down={true}
+        button={false}
+      />
+    );
+  }
+
   function renderHead() {
     return (
       <Space style={{ padding: "10px" }} direction="vertical">
-        <Paragraph>
-          Create a new file in
-          <code>
-            <Icon name="home" />/{current_path}
-          </code>
-          .
-        </Paragraph>
+        <Space direction="horizontal">
+          Location:{" "}
+          <PathNavigator
+            mode={"flyout"}
+            project_id={project_id}
+            className={"cc-project-flyout-path-navigator"}
+          />
+        </Space>
         <Input
           placeholder="Basename..."
           value={filename}
@@ -171,7 +198,7 @@ export function NewFlyout({
           onFocus={inputOnFocus}
           style={{ width: "100%" }}
           addonBefore={fileIcon()}
-          addonAfter={`.${ext}`}
+          addonAfter={renderExtAddon()}
         />
         <div
           style={{
@@ -200,7 +227,10 @@ export function NewFlyout({
 
   function renderBody() {
     return (
-      <div style={{ width: "100%", overflowX: "hidden", padding: "5px" }}>
+      <Space
+        style={{ width: "100%", overflowX: "hidden", padding: "5px" }}
+        direction="vertical"
+      >
         {file_creation_error && renderError()}
         <FileTypeSelector
           mode="flyout"
@@ -215,6 +245,8 @@ export function NewFlyout({
             />
           }
         />
+        <Tag color={COLORS.ANTD_ORANGE}>More file types</Tag>
+        <NewFileDropdown mode="flyout" create_file={selectType} />
         <hr />
         <Tag color={COLORS.GRAY_L}>Name generator</Tag>
         <SelectorInput
@@ -223,7 +255,7 @@ export function NewFlyout({
           options={NewFilenameFamilies}
           on_change={(family) => actions?.set_new_filename_family(family)}
         />
-      </div>
+      </Space>
     );
   }
 

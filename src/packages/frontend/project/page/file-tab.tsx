@@ -34,6 +34,7 @@ import { FilesFlyout } from "./flyouts/files";
 import { ProjectSearchBody } from "../search/body";
 import { NewFlyout } from "./flyouts/new";
 import { ProjectInfoFlyout } from "./flyouts/info";
+import { SettingsFlyout } from "./flyouts/control";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -46,12 +47,16 @@ export type FixedTab =
   | "settings"
   | "info";
 
+export function isFixedTab(tab?: any): tab is FixedTab {
+  return typeof tab === "string" && tab in FIXED_PROJECT_TABS;
+}
+
 type FixedTabs = {
   [name in FixedTab]: {
     label: string;
     icon: IconName;
     tooltip?: string | ((props: { project_id: string }) => ReactNode);
-    flyout: (props: { project_id: string }) => ReactNode;
+    flyout: (props: { project_id: string; wrap: Function }) => JSX.Element;
     flyoutTitle?: string | ReactNode;
     noAnonymous?: boolean;
   };
@@ -70,6 +75,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   },
   new: {
     label: "New",
+    flyoutTitle: "New file",
     icon: "plus-circle",
     tooltip: NewPopover,
     flyout: NewFlyout,
@@ -108,8 +114,9 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: "Settings",
     icon: "wrench",
     tooltip: SettingsPopover,
-    flyout: SettingsPopover,
+    flyout: SettingsFlyout,
     noAnonymous: false,
+    flyoutTitle: "Status and controls",
   },
 } as const;
 
@@ -204,6 +211,8 @@ export function FileTab(props: Readonly<Props>) {
   }
 
   function renderFlyoutCaret() {
+    if (IS_MOBILE || flyout == null) return;
+
     const color =
       flyout === active_flyout
         ? COLORS.PROJECT.FIXED_LEFT_ACTIVE

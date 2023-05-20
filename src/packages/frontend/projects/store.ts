@@ -34,6 +34,7 @@ const ZERO_QUOTAS = fromPairs(
   Object.keys(PROJECT_UPGRADES.params).map((x) => [x, 0])
 );
 
+// TODO fix this "Project" type, shouldn't this be ./project/settings/types::Project ?
 export type Project = Map<string, any>;
 export type ProjectMap = Map<string, Project>;
 
@@ -301,9 +302,9 @@ export class ProjectsStore extends Store<ProjectsState> {
     }
     let total: Upgrades = {};
     this.get("project_map")?.map((project) => {
-      const upgrades = (project
-        .getIn(["users", webapp_client.account_id, "upgrades"]) as any)
-        ?.toJS();
+      const upgrades = (
+        project.getIn(["users", webapp_client.account_id, "upgrades"]) as any
+      )?.toJS();
       if (upgrades == null) return;
       total = map_sum(total as any, upgrades);
     });
@@ -618,7 +619,9 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (account_id == null) return {};
     const v: { [project_id: string]: Upgrades } = {};
     this.get("project_map")?.map((project, project_id) => {
-      const upgrades = (project.getIn(["users", account_id, "upgrades"]) as any)?.toJS();
+      const upgrades = (
+        project.getIn(["users", account_id, "upgrades"]) as any
+      )?.toJS();
       if (upgrades == null) return;
       for (let upgrade in upgrades) {
         const val = upgrades[upgrade];

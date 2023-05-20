@@ -17,6 +17,7 @@ interface Props {
   text?: string;
   size?;
   danger?: boolean;
+  short?: boolean;
 }
 
 export function RestartProject({
@@ -25,13 +26,15 @@ export function RestartProject({
   text,
   size,
   danger,
+  short = false,
 }: Props) {
   const actions = useActions("projects");
   const state = useProjectState(project_id);
   const is_running = state.get("state") === "running";
   const task = is_running ? "Restart" : "Start";
   const icon = is_running ? <SyncOutlined /> : <PlayCircleOutlined />;
-  const description = text != null ? text : `${task} Project…`;
+  const description =
+    text != null ? text : `${task}${short ? "" : " Project"}…`;
 
   const explanation = (
     <div style={{ maxWidth: "300px" }}>
@@ -50,7 +53,7 @@ export function RestartProject({
       title={explanation}
       icon={icon}
       onConfirm={() => actions?.restart_project(project_id)}
-      okText="Yes, restart project"
+      okText={`Yes, ${task.toLocaleLowerCase()} project`}
       cancelText="Cancel"
     >
       <Button

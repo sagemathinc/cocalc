@@ -10,9 +10,9 @@ import {
   CSS,
   useActions,
   useEffect,
-  useRef,
+  useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { capitalize } from "@cocalc/util/misc";
 import { PathNavigator } from "../../explorer/path-navigator";
@@ -20,6 +20,7 @@ import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIX_BORDER } from "../page";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { FLYOUT_WIDTH_PX } from "./consts";
+import { LSFlyout, lsKey, storeFlyoutState } from "./local-state";
 
 export function FlyoutHeader({
   flyout,
@@ -118,44 +119,37 @@ export function Flyout({
   project_id,
 }: {
   project_id: string;
-  flyout: string;
+  flyout: FixedTab;
 }) {
-  const refDiv = useRef<HTMLDivElement>(null);
-
-  const lsKey = `flyout_${project_id}_${flyout}`;
+  // No "Ref", because otherwise we don't trigger the useEffect below
+  const [bodyDiv, setBodyDiv] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const storedScroll = LS.get<number>(lsKey);
-    const div = refDiv.current;
-    if (!div) return;
-    if (storedScroll && !isNaN(storedScroll)) {
-      div.scrollTop = storedScroll;
+    const state = LS.get<LSFlyout>(lsKey(project_id));
+    const scroll = state?.scroll?.[flyout];
+    if (!bodyDiv) return;
+    if (scroll && !isNaN(scroll)) {
+      bodyDiv.scrollTop = scroll;
     } else {
-      div.scrollTop = 0;
+      bodyDiv.scrollTop = 0;
     }
-  }, [project_id, flyout]);
+  }, [project_id, flyout, bodyDiv]);
 
   const onScroll = debounce(
     () => {
-      const div = refDiv.current;
-      if (div) {
-        const val = div.scrollTop;
-        console.log("scroll", val);
-        if (val > 0) {
-          LS.set(lsKey, val);
-        } else {
-          LS.del(lsKey);
-        }
+      if (bodyDiv) {
+        const val = bodyDiv.scrollTop;
+        storeFlyoutState(project_id, flyout, { scroll: val });
       }
     },
-    100,
-    { leading: true, trailing: true }
+    1000,
+    { leading: false, trailing: true }
   );
 
   function wrap(content, style: CSS = {}) {
     return (
       <div
-        ref={refDiv}
+        ref={setBodyDiv}
         onScroll={onScroll}
         style={{
           height: "100%",
@@ -187,7 +181,7 @@ export function Flyout({
         }}
       >
         {Body == null ? (
-          <>Not available yet</>
+          <Loading />
         ) : (
           <Body project_id={project_id} wrap={wrap} />
         )}

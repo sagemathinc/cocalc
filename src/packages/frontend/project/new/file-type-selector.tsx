@@ -66,93 +66,90 @@ export function FileTypeSelector({
         availableFeatures.sage ||
         availableFeatures.latex ||
         availableFeatures.rmd) && (
-        <Section
-          color="geekblue"
-          icon="jupyter"
-          style={{ margin: "0 0 15px 0" }}
-          isFlyout={isFlyout}
-        >
-          Data & Science
-        </Section>
+        <>
+          <Section color="geekblue" icon="jupyter" isFlyout={isFlyout}>
+            Data & Science
+          </Section>
+          <Row gutter={gutter} style={newRowStyle}>
+            {availableFeatures.jupyter_notebook && (
+              <Col sm={sm} md={md}>
+                <Tip
+                  delayShow={delayShow}
+                  icon={NEW_FILETYPE_ICONS["ipynb"]}
+                  title="Jupyter Notebook"
+                  tip="Create an interactive notebook for using Python, Sage, R, Octave and more."
+                >
+                  <NewFileButton
+                    name="Jupyter Notebook"
+                    on_click={create_file}
+                    ext={"ipynb"}
+                    size={btnSize}
+                    active={btnActive("ipynb")}
+                  />
+                </Tip>
+                {chatgptNotebook}
+              </Col>
+            )}
+
+            {availableFeatures.sage && (
+              <Col sm={sm} md={md}>
+                <Tip
+                  delayShow={delayShow}
+                  icon={NEW_FILETYPE_ICONS.sagews}
+                  title="SageMath Worksheet"
+                  tip="Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
+                >
+                  <NewFileButton
+                    name="SageMath Worksheet"
+                    on_click={create_file}
+                    ext="sagews"
+                    size={btnSize}
+                    active={btnActive("sagews")}
+                  />
+                </Tip>{" "}
+              </Col>
+            )}
+
+            {availableFeatures.latex && (
+              <Col sm={sm} md={md}>
+                <Tip
+                  delayShow={delayShow}
+                  title="LaTeX Document"
+                  icon={NEW_FILETYPE_ICONS.tex}
+                  tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
+                >
+                  <NewFileButton
+                    name="LaTeX Document"
+                    on_click={create_file}
+                    ext="tex"
+                    size={btnSize}
+                    active={btnActive("tex")}
+                  />
+                </Tip>
+              </Col>
+            )}
+
+            {availableFeatures.rmd && (
+              <Col sm={sm} md={md}>
+                <Tip
+                  delayShow={delayShow}
+                  title="RMarkdown File"
+                  icon={NEW_FILETYPE_ICONS.rmd}
+                  tip="RMarkdown document with real-time preview."
+                >
+                  <NewFileButton
+                    name="RMarkdown"
+                    on_click={create_file}
+                    ext="rmd"
+                    size={btnSize}
+                    active={btnActive("rmd")}
+                  />
+                </Tip>
+              </Col>
+            )}
+          </Row>
+        </>
       )}
-      <Row gutter={gutter}>
-        {availableFeatures.jupyter_notebook && (
-          <Col sm={sm} md={md}>
-            <Tip
-              delayShow={delayShow}
-              icon={NEW_FILETYPE_ICONS["ipynb"]}
-              title="Jupyter Notebook"
-              tip="Create an interactive notebook for using Python, Sage, R, Octave and more."
-            >
-              <NewFileButton
-                name="Jupyter Notebook"
-                on_click={create_file}
-                ext={"ipynb"}
-                size={btnSize}
-                active={btnActive("ipynb")}
-              />
-            </Tip>
-            {chatgptNotebook}
-          </Col>
-        )}
-
-        {availableFeatures.sage && (
-          <Col sm={sm} md={md}>
-            <Tip
-              delayShow={delayShow}
-              icon={NEW_FILETYPE_ICONS.sagews}
-              title="SageMath Worksheet"
-              tip="Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
-            >
-              <NewFileButton
-                name="SageMath Worksheet"
-                on_click={create_file}
-                ext="sagews"
-                size={btnSize}
-                active={btnActive("sagews")}
-              />
-            </Tip>{" "}
-          </Col>
-        )}
-
-        {availableFeatures.latex && (
-          <Col sm={sm} md={md}>
-            <Tip
-              delayShow={delayShow}
-              title="LaTeX Document"
-              icon={NEW_FILETYPE_ICONS.tex}
-              tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
-            >
-              <NewFileButton
-                name="LaTeX Document"
-                on_click={create_file}
-                ext="tex"
-                size={btnSize}
-                active={btnActive("tex")}
-              />
-            </Tip>
-          </Col>
-        )}
-
-        {availableFeatures.rmd && (
-          <Col sm={sm} md={md}>
-            <Tip
-              delayShow={delayShow}
-              title="RMarkdown File"
-              icon={NEW_FILETYPE_ICONS.rmd}
-              tip="RMarkdown document with real-time preview."
-            >
-              <NewFileButton
-                name="RMarkdown"
-                on_click={create_file}
-                ext="rmd"
-                size={btnSize}
-                active={btnActive("rmd")}
-              />
-            </Tip>
-          </Col>
-        )}
-      </Row>
 
       {!disabledFeatures?.linux && (
         <>

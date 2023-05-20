@@ -55,6 +55,7 @@ import { init as initChat } from "@cocalc/frontend/chat/register";
 import { local_storage } from "./editor-local-storage";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import track from "@cocalc/frontend/user-tracking";
+import { storeFlyoutState } from "./project/page/flyouts/local-state";
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -129,7 +130,14 @@ const must_define = function (redux) {
 const _init_library_index_ongoing = {};
 const _init_library_index_cache = {};
 
-export const FILE_ACTIONS = {
+interface FileAction {
+  name: string;
+  icon: IconName;
+  allows_multiple_files?: boolean;
+  hideFlyout? :boolean;
+}
+
+export const FILE_ACTIONS: {[key: string]: FileAction} = {
   compress: {
     name: "Compress",
     icon: "compress" as IconName,
@@ -173,10 +181,12 @@ export const FILE_ACTIONS = {
   upload: {
     name: "Upload",
     icon: "upload" as IconName,
+    hideFlyout: true,
   },
   create: {
     name: "Create",
     icon: "plus-circle" as IconName,
+    hideFlyout: true,
   },
 } as const;
 
@@ -548,11 +558,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState(change);
   }
 
-  public toggleFlyout(name: FixedTab | null): void {
+  public toggleFlyout(name: FixedTab): void {
     const store = this.get_store();
     if (store == undefined) return;
     const flyout = name === store.get("flyout") ? null : name;
     this.setState({ flyout });
+    // also store this in local storage
+    storeFlyoutState(this.project_id, name, { expanded: flyout != null });
+  }
+
+  public setFlyoutExpanded(name: FixedTab, state: boolean, save = true): void {
+    this.setState({ flyout: state ? name : null });
+    // also store this in local storage
+    if (save) {
+      storeFlyoutState(this.project_id, name, { expanded: name != null });
+    }
   }
 
   add_a_ghost_file_tab(): void {
@@ -717,7 +737,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    const path_data = store.get("open_files").getIn([opts.path, "component"]) as any;
+    const path_data = store
+      .get("open_files")
+      .getIn([opts.path, "component"]) as any;
     const is_public = path_data ? path_data.is_public : false;
 
     project_file.save(opts.path, this.redux, this.project_id, is_public);
@@ -973,7 +995,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
   open_chat({ path, width = 0.7 }: { path: string; width?: number }): void {
-    const info = this.get_store()?.get("open_files").getIn([path, "component"]) as any;
+    const info = this.get_store()
+      ?.get("open_files")
+      .getIn([path, "component"]) as any;
     if (info?.Editor == null) {
       // not opened in the foreground yet.
       this.set_chat_state(path, "pending");
