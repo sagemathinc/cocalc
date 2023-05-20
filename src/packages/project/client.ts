@@ -778,7 +778,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return await callback2(this.call, { message: mesg });
   }
 
-  // NOTE: returns false if the listings table isn't connected.
   public is_deleted(filename: string, _project_id: string): boolean {
     // project_id is ignored, of course
     // WE cannot depend on the listing table entirely because it only
