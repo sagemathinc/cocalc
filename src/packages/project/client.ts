@@ -781,17 +781,17 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // NOTE: returns false if the listings table isn't connected.
   public is_deleted(filename: string, _project_id: string): boolean {
     // project_id is ignored, of course
-    try {
-      const listings = get_listings_table();
-      if (listings == null) throw new Error("no listings table");
-      return listings.is_deleted(filename);
-    } catch (error1) {
-      // is_deleted can raise an exception if the table is
-      // not yet initialized, in which case we fall back
-      // to actually looking.  We have to use existsSync
-      // because is_deleted is not an async function.
-      return !fs.existsSync(join(HOME, filename));
+    // WE cannot depend on the listing table entirely because it only
+    // keeps information about the last n directories that were visited.
+    // If somebody is browsing around a lot, suddenly a file goes from
+    // known to be deleted to "we know nothing".
+    const x = get_listings_table()?.is_deleted(filename);
+    if (x != null) {
+      return x;
     }
+    // We have to use existsSync because is_deleted is
+    // not an async function (TODO?).
+    return !fs.existsSync(join(HOME, filename));
   }
 
   public async set_deleted(

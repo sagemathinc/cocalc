@@ -397,13 +397,13 @@ class ListingsTable {
     }
   }
 
-  public is_deleted(filename: string): boolean {
+  // Returns true if definitely known to be deleted.
+  // Returns false if definitely known to not be deleted
+  // Returns null if we don't know for sure, e.g., not in listing table or listings not ready.
+  public is_deleted(filename: string): boolean | null {
     if (!this.is_ready()) {
-      // in case that listings are available, it is safe to just
-      // assume file not deleted.  Is_deleted is only used on the
-      // backend to redundantly reduce the chances of confusion,
-      // since the frontends do the same thing.
-      return false;
+      // in case that listings are not available, return null -- we don't know.
+      return null;
     }
     const { head, tail } = path_split(filename);
     if (head != "" && this.is_deleted(head)) {
@@ -413,12 +413,15 @@ class ListingsTable {
     }
     const x = this.get(head);
     if (x == null) {
-      return false;
+      // we don't know.
+      return null;
     }
     const deleted = x.get("deleted");
     if (deleted == null) {
-      return false;
+      // we don't know
+      return null;
     }
+    // table is available and has deleted info for the directory -- let's see:
     return deleted.indexOf(tail) != -1;
   }
 }
