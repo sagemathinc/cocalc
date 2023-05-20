@@ -29,8 +29,6 @@ if (DEBUG) {
   console.log("Enabling low level Jupyter kernel debugging.");
 }
 
-export const VERSION = "5.3";
-
 // NOTE: we choose to use node-cleanup instead of the much more
 // popular exit-hook, since node-cleanup actually works for us.
 // https://github.com/jtlapp/node-cleanup/issues/16
@@ -68,25 +66,40 @@ import {
   merge,
   original_path,
   path_split,
-  //trunc,
   uuid,
 } from "@cocalc/util/misc";
-import { nbconvert } from "./convert";
-import { CodeExecutionEmitter } from "./execute-code";
+import { CodeExecutionEmitter } from "@cocalc/jupyter/execute/execute-code";
 import { get_blob_store_sync } from "@cocalc/jupyter/blobs";
-import { getLanguage, get_kernel_data_by_name } from "@cocalc/jupyter/kernel/kernel-data";
+import {
+  getLanguage,
+  get_kernel_data_by_name,
+} from "@cocalc/jupyter/kernel/kernel-data";
 import launchJupyterKernel, {
   LaunchJupyterOpts,
   SpawnedKernel,
   killKernel,
 } from "@cocalc/jupyter/pool/pool";
 import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
-import type { KernelParams } from "./types";
+import type { KernelParams } from "@cocalc/jupyter/types/kernel";
 import { redux_name } from "@cocalc/util/redux/name";
 import { getLogger } from "@cocalc/project/logger";
 import { redux } from "@cocalc/jupyter/redux/app";
+import { VERSION } from "@cocalc/jupyter/kernel/version";
+import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
 
 const log = getLogger("jupyter");
+
+// We make it so nbconvert functionality can be dynamically enabled
+// by calling this at runtime.  The reason is because some users of
+// this code (e.g., remote kernels) don't need to provide nbconvert
+// functionality, and our implementation has some heavy dependencies,
+// e.g., on a big chunk of the react frontend.
+let nbconvert: (opts: NbconvertParams) => Promise<void> = async () => {
+  throw Error("nbconvert is not enabled");
+};
+export function initNbconvert(f) {
+  nbconvert = f;
+}
 
 /*
 We set a few extra user-specific options for the environment in which
@@ -176,10 +189,7 @@ nodeCleanup(() => {
 
 // NOTE: keep JupyterKernel implementation private -- use the kernel function
 // above, and the interface defined in types.
-class JupyterKernel
-  extends EventEmitter
-  implements JupyterKernelInterface
-{
+class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   // name -- if undefined that means "no actual Jupyter kernel" (i.e., this JupyterKernel exists
   // here, but there is no actual separate real Jupyter kernel process and one won't be created).
   // Everything should work, except you can't *spawn* such a kernel.

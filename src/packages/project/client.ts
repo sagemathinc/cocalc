@@ -50,13 +50,14 @@ import * as data from "./data";
 import { kernel as jupyter_kernel } from "./jupyter/jupyter";
 import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
 import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
-import { KernelParams } from "./jupyter/types";
+import type { KernelParams } from "@cocalc/jupyter/types/kernel";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
 import { get_listings_table } from "./sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
 import { Watcher } from "./watcher";
+import initJupyter from "./jupyter/init";
 
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 
@@ -144,6 +145,8 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     }
 
     misc.bind_methods(this);
+
+    initJupyter();
   }
 
   // use to define a logging function that is cleanly used internally
