@@ -85,7 +85,7 @@ async function handleApiCall0(data: Mesg): Promise<any> {
     case "listing":
       return await listing(data.path, data.hidden);
     case "delete_files":
-      return await delete_files(data.paths, log);
+      return await delete_files(data.paths);
     case "move_files":
       return await move_files(data.paths, data.dest, log);
     case "rename_file":
