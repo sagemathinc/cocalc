@@ -24,7 +24,7 @@ import {
 } from "@cocalc/util/db-schema/listings";
 import { Watcher } from "./path-watcher";
 import { close_all_syncdocs_in_tree } from "./sync-doc";
-import { remove_jupyter_backend } from "../jupyter/jupyter";
+import { remove_jupyter_backend } from "@cocalc/jupyter/kernel";
 
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,

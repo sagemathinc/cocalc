@@ -1,8 +1,12 @@
 # @cocalc/compute
 
+## Goal
+
 The goal of this is to connect to a cocalc project, open a Jupyter notebook sync session, and provide the output.  I.e., instead of the project running a kernel and providing output, it will be provided by whatever client is running this @cocalc/compute!
 
-Examples:
+Constraint: I want this package to remain lightweight if at all possible, so it's fast to install and uses little space.  Also, we plan to be able to run it in a web browser, which is another reason to keep it small.
+
+## Examples
 
 - A powerful computer \(possibly with a GPU?\) and a Jupyter kernel installed
 - A web browser providing Python code evaluation via WebAssembly.
@@ -13,3 +17,4 @@ Examples:
 The filesystem from the project will get mounted probably via sshfs.  In the case of a server this is straightforward.  It may also be [possible from the browser](https://hackmd.io/@q/sftp-over-ws), using [sftp\-ws](https://github.com/Inveniem/sftp-ws).
 
 This is currently an unfinished work in progress.  We will focus mostly on the powerful computer scenario first, since then sshfs is easy, and it's also what we need to make cocalc vastly more useful to people.
+

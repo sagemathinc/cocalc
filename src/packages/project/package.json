@@ -39,7 +39,6 @@
     "daemonize-process": "^3.0.0",
     "debug": "^4.3.2",
     "diskusage": "^1.1.3",
-    "enchannel-zmq-backend": "^9.1.23",
     "expect": "^26.6.2",
     "express": "^4.17.1",
     "express-rate-limit": "^6.3.0",
@@ -53,7 +52,6 @@
     "lean-client-js-node": "^1.2.12",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
-    "node-cleanup": "^2.1.2",
     "node-pty": "^0.10.1",
     "pidusage": "^1.2.0",
     "prettier": "^2.6.2",
@@ -75,7 +73,6 @@
     "@types/express": "^4.17.13",
     "@types/jquery": "^3.5.5",
     "@types/node": "^18.11.18",
-    "@types/node-cleanup": "^2.1.2",
     "coffeescript": "^2.5.1"
   },
   "scripts": {

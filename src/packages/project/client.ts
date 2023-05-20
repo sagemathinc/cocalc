@@ -47,7 +47,7 @@ import * as blobs from "./blobs";
 import { symmetric_channel } from "./browser-websocket/symmetric_channel";
 import { json } from "./common";
 import * as data from "./data";
-import { kernel as jupyter_kernel } from "./jupyter/jupyter";
+import { kernel as jupyter_kernel } from "@cocalc/jupyter/kernel";
 import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
 import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 import type { KernelParams } from "@cocalc/jupyter/types/kernel";

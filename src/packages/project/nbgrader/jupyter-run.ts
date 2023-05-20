@@ -8,7 +8,7 @@ import { JupyterNotebook } from "@cocalc/frontend/jupyter/nbgrader/autograde";
 import { is_object, len, uuid, trunc_middle } from "@cocalc/util/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
 
-import { kernel } from "../jupyter/jupyter";
+import { kernel } from "@cocalc/jupyter/kernel";
 import type { JupyterKernelInterface as JupyterKernel } from "@cocalc/jupyter/types/project-interface";
 
 // For tracking limits during the run:

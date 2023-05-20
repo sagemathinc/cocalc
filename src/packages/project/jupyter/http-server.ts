@@ -13,10 +13,10 @@ kernels, sending signals, doing tab completions, and so on.
 import { Router } from "express";
 import * as os_path from "node:path";
 import getLogger from "@cocalc/backend/logger";
-import { BlobStoreInterface } from  "@cocalc/jupyter/types/project-interface";
+import { BlobStoreInterface } from "@cocalc/jupyter/types/project-interface";
 import { startswith, to_json } from "@cocalc/util/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { get_existing_kernel } from "./jupyter";
+import { get_existing_kernel } from "@cocalc/jupyter/kernel";
 import {
   BlobStoreDisk,
   get_blob_store,
