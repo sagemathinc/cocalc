@@ -1,6 +1,6 @@
 import { kernel as createKernel } from "@cocalc/jupyter/kernel";
 import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
-import { run_cell, Limits } from "@cocalc/project/nbgrader/jupyter-run";
+import { run_cell, Limits } from "@cocalc/jupyter/nbgrader/jupyter-run";
 import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";

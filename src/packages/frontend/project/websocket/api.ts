@@ -8,10 +8,7 @@ API for direct connection to a project; implemented using the websocket.
 */
 
 import { redux } from "@cocalc/frontend/app-framework";
-import {
-  NBGraderAPIOptions,
-  RunNotebookOptions,
-} from "@cocalc/frontend/jupyter/nbgrader/api";
+import { RunNotebookOptions } from "@cocalc/frontend/jupyter/nbgrader/api";
 import {
   Capabilities,
   Configuration,
@@ -264,11 +261,6 @@ export class API {
       timeout_ms = opts.timeout * 1000 + 2000;
     }
     return await this.call({ cmd: "lean", opts }, timeout_ms);
-  }
-
-  // Use the nbgrader "protocol" to autograde a notebook
-  async nbgrader(opts: NBGraderAPIOptions): Promise<any> {
-    return await this.call({ cmd: "nbgrader", opts }, opts.timeout_ms + 5000);
   }
 
   // Convert a notebook to some other format.

@@ -8,6 +8,8 @@
     "./execute/*": "./dist/execute/*.js",
     "./kernel": "./dist/kernel/index.js",
     "./kernel/*": "./dist/kernel/*.js",
+    "./nbgrader": "./dist/nbgrader/index.js",
+    "./nbgrader/*": "./dist/nbgrader/*.js",
     "./pool/*": "./dist/pool/*.js",
     "./store/*": "./dist/store/*.js",
     "./types": "./dist/types/index.js",

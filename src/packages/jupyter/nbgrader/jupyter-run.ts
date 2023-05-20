@@ -3,13 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { RunNotebookOptions } from "@cocalc/frontend/jupyter/nbgrader/api";
-import { JupyterNotebook } from "@cocalc/frontend/jupyter/nbgrader/autograde";
+import type { RunNotebookOptions } from "@cocalc/jupyter/nbgrader/types";
+import type { JupyterNotebook } from "@cocalc/jupyter/nbgrader/types";
+import type { JupyterKernelInterface as JupyterKernel } from "@cocalc/jupyter/types/project-interface";
 import { is_object, len, uuid, trunc_middle } from "@cocalc/util/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
-
 import { kernel } from "@cocalc/jupyter/kernel";
-import type { JupyterKernelInterface as JupyterKernel } from "@cocalc/jupyter/types/project-interface";
 
 // For tracking limits during the run:
 export interface Limits {
