@@ -84,6 +84,8 @@ import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 import type { KernelParams } from "./types";
 import { redux_name } from "@cocalc/util/redux/name";
 import { getLogger } from "@cocalc/project/logger";
+import { redux } from "@cocalc/jupyter/redux/app";
+
 const log = getLogger("jupyter");
 
 /*
@@ -99,7 +101,6 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 export function jupyter_backend(syncdb: SyncDB, client: any): void {
   const dbg = getLogger("jupyter_backend");
   dbg.debug();
-  const app_framework = require("@cocalc/frontend/app-framework");
 
   const project_id = client.client_id();
 
@@ -108,17 +109,14 @@ export function jupyter_backend(syncdb: SyncDB, client: any): void {
   const path = original_path(syncdb.get_path());
 
   const name = redux_name(project_id, path);
-  if (
-    app_framework.redux.getStore(name) != null &&
-    app_framework.redux.getActions(name) != null
-  ) {
+  if (redux.getStore(name) != null && redux.getActions(name) != null) {
     // The redux info for this notebook already exists, so don't
     // try to make it again (which would be an error).
     // See https://github.com/sagemathinc/cocalc/issues/4331
     return;
   }
-  const store = app_framework.redux.createStore(name, JupyterStore);
-  const actions = app_framework.redux.createActions(name, JupyterActions);
+  const store = redux.createStore(name, JupyterStore);
+  const actions = redux.createActions(name, JupyterActions);
 
   actions._init(project_id, path, syncdb, store, client);
 
@@ -138,9 +136,8 @@ export async function remove_jupyter_backend(
   } catch (_err) {
     // ignore
   }
-  const app_framework = require("@cocalc/frontend/app-framework");
-  const redux_name = app_framework.redux_name(project_id, path);
-  const actions = app_framework.redux.getActions(redux_name);
+  const name = redux_name(project_id, path);
+  const actions = redux.getActions(name);
   if (actions != null) {
     try {
       await actions.close();
@@ -148,23 +145,9 @@ export async function remove_jupyter_backend(
       // ignore.
     }
   }
-  app_framework.redux.removeStore(redux_name);
-  app_framework.redux.removeActions(redux_name);
+  redux.removeStore(name);
+  redux.removeActions(name);
 }
-
-// for interactive testing
-// TODO: needs to somehow proxy through the real client...
-// class Client {
-//   client_id(): string {
-//     return "123e4567-e89b-12d3-a456-426655440000";
-//   }
-//   is_project(): boolean {
-//     return true;
-//   }
-//   dbg(f) {
-//     return (...m) => console.log(new Date(), `Client.${f}: `, ...m);
-//   }
-// }
 
 export function kernel(opts: KernelParams): JupyterKernel {
   return new JupyterKernel(opts.name, opts.path, opts.actions, opts.ulimit);
@@ -882,8 +865,7 @@ export class JupyterKernel
   }
 
   // This is called by project-actions when exporting the notebook
-  // to an ipynb file, since we can't explicitly call get_blob_store
-  // in that code in: @cocalc/frontend/jupyter/project-actions.ts
+  // to an ipynb file:
   get_blob_store() {
     return get_blob_store_sync();
   }

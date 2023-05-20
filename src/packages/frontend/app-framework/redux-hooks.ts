@@ -184,7 +184,7 @@ function useReduxEditorStore(
           store.on("change", f);
         }
       };
-      const unsubscribe = redux._redux_store.subscribe(g);
+      const unsubscribe = redux.reduxStore.subscribe(g);
     }
 
     return () => {

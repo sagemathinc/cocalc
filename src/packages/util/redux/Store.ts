@@ -114,7 +114,7 @@ export class Store<State extends Record<string, any>> extends EventEmitter {
   };
 
   getState(): TypedMap<State> {
-    return this.redux._redux_store.getState().get(this.name);
+    return this.redux.reduxStore.getState().get(this.name);
   }
 
   get: TypedCollectionMethods<State>["get"] = (
@@ -124,7 +124,7 @@ export class Store<State extends Record<string, any>> extends EventEmitter {
     if (this.selectors && this.selectors[field] != undefined) {
       return this.selectors[field]!.fn(this.getState());
     } else {
-      return this.redux._redux_store
+      return this.redux.reduxStore
         .getState()
         .getIn([this.name, field], notSetValue);
     }
@@ -156,14 +156,14 @@ export class Store<State extends Record<string, any>> extends EventEmitter {
         return fromJS(top_value).getIn(path.slice(1), notSetValue);
       }
     } else {
-      return this.redux._redux_store
+      return this.redux.reduxStore
         .getState()
         .getIn([this.name].concat(path), notSetValue);
     }
   };
 
   unsafe_getIn(path: any[], notSetValue?: any): any {
-    return this.redux._redux_store
+    return this.redux.reduxStore
       .getState()
       .getIn([this.name].concat(path), notSetValue);
   }

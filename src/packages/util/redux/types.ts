@@ -1,8 +1,12 @@
 import type { Actions } from "./Actions";
 import type { Store } from "./Store";
 
+export interface ClassMap<T extends C, C> {
+  [key: string]: T;
+}
+
 export interface AppRedux {
-  _redux_store: any;
+  reduxStore: any;
   _set_state(change, store_name: string): void;
 
   createActions<T, C extends Actions<T>>(
@@ -12,7 +16,6 @@ export interface AppRedux {
   getActions(name);
   removeActions(name: string): void;
   getEditorActions(project_id: string, path: string, is_public?: boolean);
-
   getProjectActions(project_id: string);
   getProjectStore(project_id: string);
   getProjectTable(project_id: string, name: string);

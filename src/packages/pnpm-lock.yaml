@@ -547,16 +547,13 @@ importers:
         version: 1.8.14(react-dom@18.2.0)(react@18.2.0)
       react-redux:
         specifier: ^8.0.5
-        version: 8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0)(react@18.2.0)(redux@4.2.0)
+        version: 8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0)(react@18.2.0)
       react-timeago:
         specifier: ^7.1.0
         version: 7.1.0(react@18.2.0)
       react-virtuoso:
         specifier: ^4.1.1
         version: 4.1.1(react-dom@18.2.0)(react@18.2.0)
-      redux:
-        specifier: ^4.0.1
-        version: 4.2.0
       requirejs:
         specifier: ^2.3.6
         version: 2.3.6
@@ -1808,6 +1805,9 @@ importers:
       prop-types:
         specifier: ^15.7.2
         version: 15.8.1
+      redux:
+        specifier: ^4.2.1
+        version: 4.2.1
       reselect:
         specifier: ^4.1.8
         version: 4.1.8
@@ -3402,6 +3402,7 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       regenerator-runtime: 0.13.11
+    dev: false
 
   /@babel/runtime@7.20.7:
     resolution: {integrity: sha512-UF0tvkUtxwAgZ5W/KrkHf0Rn0fdnLDU9ScxBrEVNUprE/MzirjK4MJUX1/BVDv00Sv8cljtukVK1aky++X1SjQ==}
@@ -5293,7 +5294,7 @@ packages:
       '@types/hoist-non-react-statics': 3.3.1
       '@types/react': 18.0.26
       hoist-non-react-statics: 3.3.2
-      redux: 4.2.0
+      redux: 4.2.1
     dev: true
 
   /@types/react@18.0.26:
@@ -15056,7 +15057,7 @@ packages:
       react-dom: 18.2.0(react@18.2.0)
     dev: false
 
-  /react-redux@8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0)(react@18.2.0)(redux@4.2.0):
+  /react-redux@8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-Q2f6fCKxPFpkXt1qNRZdEDLlScsDWyrgSj0mliK59qU6W5gvBiKkdMEG2lJzhd1rCctf0hb6EtePPLZ2e0m1uw==}
     peerDependencies:
       '@types/react': ^16.8 || ^17.0 || ^18.0
@@ -15086,7 +15087,6 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       react-is: 18.2.0
-      redux: 4.2.0
       use-sync-external-store: 1.2.0(react@18.2.0)
     dev: false
 
@@ -15253,10 +15253,10 @@ packages:
       indent-string: 4.0.0
       strip-indent: 3.0.0
 
-  /redux@4.2.0:
-    resolution: {integrity: sha512-oSBmcKKIuIR4ME29/AeNUnl5L+hvBq7OaJWzaptTQJAntaPvxIJqfnjbaEiCzzaIz+XmVILfqAM3Ob0aXLPfjA==}
+  /redux@4.2.1:
+    resolution: {integrity: sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w==}
     dependencies:
-      '@babel/runtime': 7.18.9
+      '@babel/runtime': 7.21.5
 
   /refractor@4.8.1:
     resolution: {integrity: sha512-/fk5sI0iTgFYlmVGYVew90AoYnNMP6pooClx/XKqyeeCQXrL0Kvgn8V0VEht5ccdljbzzF1i3Q213gcntkRExg==}

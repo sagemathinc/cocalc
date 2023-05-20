@@ -42,6 +42,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "prop-types": "^15.7.2",
+    "redux": "^4.2.1",
     "reselect": "^4.1.8",
     "sha1": "^1.1.1",
     "underscore": "^1.12.1",
