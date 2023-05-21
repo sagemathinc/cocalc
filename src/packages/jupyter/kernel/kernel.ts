@@ -8,18 +8,10 @@ Jupyter Backend
 
 For interactive testing:
 
-$ ts-node
-> const j = require('@cocalc/project/jupyter/jupyter'); const k = j.kernel({name:'python3', path:'x.ipynb'});
-> k.execute_code({all:true, cb:((x) => console.log(JSON.stringify(x))), code:'2+3'})
+$ node
 
-Interactive testing at the command prompt involving stdin:
-
-let echo=(content, cb) => cb(undefined, '389'+content.prompt)
-k.execute_code({all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'input("a")'})
-
-k.execute_code({all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'[input("-"+str(i)) for i in range(100)]'})
-
-echo=(content, cb) => setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
+> j = require('./dist/kernel'); k = j.kernel({name:'python3', path:'x.ipynb'});
+> console.log(JSON.stringify(await k.execute_code_now({code:'2+3'}),0,2))
 
 */
 

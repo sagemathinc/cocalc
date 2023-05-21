@@ -21,10 +21,14 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "npx tsc",
+    "test": "pnpm exec jest dist",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
@@ -41,6 +45,7 @@
     "debug": "^4.3.2",
     "enchannel-zmq-backend": "^9.1.23",
     "execa": "^7.1.1",
+    "expect": "^26.6.2",
     "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
     "jsonfile": "^6.1.0",
