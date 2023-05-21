@@ -75,12 +75,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   protected _file_watcher: any;
   protected _state: any;
 
-  public _complete_request?: any;
-  public _output_handler?: any;
-  public ensure_backend_kernel_setup?: any;
-  public initialize_manager: any;
-  public manager_on_cell_change: any;
-  public manager_run_cell_process_queue: any;
+  public _complete_request?: number;
   public store: JupyterStore;
   public syncdb: SyncDB;
 
@@ -708,6 +703,30 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       this.check_select_kernel();
     }
   };
+
+  protected async initialize_manager() {
+    throw Error("define in a derived class.");
+  }
+
+  protected manager_on_cell_change(
+    _id: string,
+    _new_cell: any,
+    _old_cell: any
+  ) {
+    throw Error("define in a derived class.");
+  }
+
+  protected async manager_run_cell_process_queue() {
+    throw Error("define in a derived class.");
+  }
+
+  ensure_backend_kernel_setup() {
+    throw Error("define in a derived class.");
+  }
+
+  protected _output_handler(_cell: any) {
+    throw Error("define in a derived class.");
+  }
 
   private _syncdb_init_kernel(): void {
     // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
@@ -2075,7 +2094,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
           ? this.jupyter_kernel.process_attachment.bind(this.jupyter_kernel)
           : undefined,
       output_handler:
-        this.jupyter_kernel != null ? this._output_handler : undefined, // undefined in client; defined in project
+        this.jupyter_kernel != null
+          ? this._output_handler.bind(this)
+          : undefined, // undefined in client; defined in project
     });
 
     if (data_only) {

@@ -151,15 +151,14 @@ export class JupyterActions extends JupyterActions0 {
   // Called exactly once when the manager first starts up after the store is initialized.
   // Here we ensure everything is in a consistent state so that we can react
   // to changes later.
-  initialize_manager = async () => {
+  async initialize_manager() {
+    const dbg = this.dbg("initialize_manager");
     if (this._initialize_manager_already_done) {
-      console.log("DONE");
+      dbg("DONE");
       return;
     }
     this._initialize_manager_already_done = true;
-
-    const dbg = this.dbg("initialize_manager");
-    dbg();
+    dbg("first time...");
 
     let cells = this.store.get("cells")?.toJS();
     dbg(`cells at manage_init = ${JSON.stringify(cells)}`);
@@ -187,7 +186,7 @@ export class JupyterActions extends JupyterActions0 {
     await this._first_load();
 
     // Listen for changes...
-    this.syncdb.on("change", this._backend_syncdb_change);
+    this.syncdb.on("change", this._backend_syncdb_change.bind(this));
 
     // Listen for model state changes...
     if (this.syncdb.ipywidgets_state == null) {
@@ -197,7 +196,7 @@ export class JupyterActions extends JupyterActions0 {
       "change",
       this.handle_ipywidgets_state_change.bind(this)
     );
-  };
+  }
 
   _first_load = async () => {
     const dbg = this.dbg("_first_load");
@@ -285,7 +284,7 @@ export class JupyterActions extends JupyterActions0 {
   // ensure_backend_kernel_setup ensures that we have a connection
   // to the proper type of kernel.
   // If running is true, starts the kernel and waits until running.
-  ensure_backend_kernel_setup = () => {
+  ensure_backend_kernel_setup() {
     const dbg = this.dbg("ensure_backend_kernel_setup");
     const kernel = this.store.get("kernel");
 
@@ -368,7 +367,7 @@ export class JupyterActions extends JupyterActions0 {
 
     this.handle_all_cell_attachments();
     this.set_backend_state("ready");
-  };
+  }
 
   set_connection_file = () => {
     const connection_file = this.jupyter_kernel?.get_connection_file() ?? "";
@@ -433,7 +432,7 @@ export class JupyterActions extends JupyterActions0 {
   // It ensures any cell with a compute request
   // gets computed.
   //    Only one client -- the project itself -- will run this code.
-  manager_on_cell_change = (id: any, new_cell: any, old_cell: any) => {
+  protected manager_on_cell_change(id: string, new_cell: any, old_cell: any) {
     const dbg = this.dbg(`manager_on_cell_change(id='${id}')`);
     dbg(
       `new_cell='${misc.to_json(
@@ -458,7 +457,7 @@ export class JupyterActions extends JupyterActions0 {
     ) {
       return this.handle_cell_attachments(new_cell);
     }
-  };
+  }
 
   // Ensure that the cells listed as running *are* exactly the
   // ones actually running or queued up to run.
@@ -519,7 +518,7 @@ export class JupyterActions extends JupyterActions0 {
 
   // Note that there is a request to run a given cell.
   // You must call manager_run_cell_process_queue for them to actually start running.
-  manager_run_cell_enqueue = (id: string) => {
+  protected manager_run_cell_enqueue(id: string) {
     if (this._running_cells?.[id]) {
       return;
     }
@@ -527,10 +526,10 @@ export class JupyterActions extends JupyterActions0 {
       this._manager_run_cell_queue = {};
     }
     this._manager_run_cell_queue[id] = true;
-  };
+  }
 
   // properly start running -- in order -- the cells that have been requested to run
-  manager_run_cell_process_queue = async () => {
+  protected async manager_run_cell_process_queue() {
     if (this.running_manager_run_cell_process_queue) {
       return;
     }
@@ -590,10 +589,10 @@ export class JupyterActions extends JupyterActions0 {
     } finally {
       this.running_manager_run_cell_process_queue = false;
     }
-  };
+  }
 
   // returns new output handler for this cell.
-  _output_handler = (cell: any) => {
+  protected _output_handler(cell: any) {
     const dbg = this.dbg(`handler(id='${cell.id}')`);
     if (
       this.jupyter_kernel == null ||
@@ -638,7 +637,7 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     return handler;
-  };
+  }
 
   manager_run_cell = (id: string) => {
     const dbg = this.dbg(`manager_run_cell(id='${id}')`);
