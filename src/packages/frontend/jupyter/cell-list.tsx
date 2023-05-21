@@ -546,7 +546,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     let value = "";
     cell_list.forEach((id) => {
       (debouncedCells.getIn([id, "output"]) as any)?.forEach((output) => {
-        const html = output.getIn(["data", "text/html"]);
+        // I hit a case in prod of output not being defined. Given the
+        // debounce and how debouncedCells might not match up with cell_list,
+        // and how output is going from markdown cells or maybe cleared cells,
+        // it seems plausible output could contain an undefined entry.
+        const html = output?.getIn(["data", "text/html"]);
         if (html?.includes("style")) {
           // parse out and include style tags
           for (const x of $("<div>" + html + "</div>").find("style")) {
