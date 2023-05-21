@@ -59,7 +59,7 @@ const CellWriteProtectedException = new Error("CellWriteProtectedException");
 const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
 export abstract class JupyterActions extends Actions<JupyterStoreState> {
-  private is_project: boolean;
+  protected is_project: boolean;
   readonly path: string;
   readonly project_id: string;
   private _last_start?: number;
@@ -182,7 +182,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return await api.jupyter(this.path, endpoint, query, timeout_ms);
   }
 
-  public dbg(f: string): (...args) => void {
+  protected dbg(f: string): (...args) => void {
     return (...args) =>
       log(`JupyterActions('${this.store.get("path")}').${f}`, ...args);
   }
@@ -515,9 +515,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
 
-    if (this.is_project) {
-      this.manager_on_cell_change(id, new_cell, old_cell);
-    }
+    this.onCellChange(id, new_cell, old_cell);
     this.store.emit("cell_change", id, new_cell, old_cell);
 
     return cell_list_needs_recompute;
@@ -541,7 +539,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     ) {
       return;
     }
-    const do_init = this.is_project && this._state === "init";
+    const doInit = this._state === "init";
     let cell_list_needs_recompute = false;
 
     if (changes == "all" || this.store.get("cells") == null) {
@@ -675,53 +673,21 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       this.set_cell_list();
     }
 
-    if (this.is_project) {
-      if (do_init) {
-        // Since just opening the actions in the project, definitely the kernel
-        // isn't running so set this fact in the shared database.  It will make
-        // things always be in the right initial state.
-        this.syncdb.set({
-          type: "settings",
-          backend_state: "init",
-          kernel_state: "idle",
-          kernel_usage: { memory: 0, cpu: 0 },
-        });
-        this.syncdb.commit();
-
-        // Also initialize the execution manager, which runs cells that have been
-        // requested to run.
-        this.initialize_manager();
-      }
-      if (this.store.get("kernel")) {
-        this.manager_run_cell_process_queue();
-      }
-    } else {
-      // client
-      if (this._state === "init") {
-        this._state = "ready";
-      }
-      this.check_select_kernel();
-    }
+    this.__syncdb_change_post_hook(doInit);
   };
 
-  protected async initialize_manager() {
-    throw Error("define in a derived class.");
+  protected __syncdb_change_post_hook(_doInit: boolean) {
+    // no-op in base class -- does interesting and different
+    // things in project, browser, etc.
   }
 
-  protected manager_on_cell_change(
-    _id: string,
-    _new_cell: any,
-    _old_cell: any
-  ) {
-    throw Error("define in a derived class.");
-  }
-
-  protected async manager_run_cell_process_queue() {
-    throw Error("define in a derived class.");
+  protected onCellChange(_id: string, _new_cell: any, _old_cell: any) {
+    // no-op in base class.  This is a hook though
+    // for potentially doing things when any cell changes.
   }
 
   ensure_backend_kernel_setup() {
-    throw Error("define in a derived class.");
+    // nontrivial in the project, but not in client or here.
   }
 
   protected _output_handler(_cell: any) {
@@ -2075,9 +2041,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     // Change kernel to what is in the file if necessary:
     set({ type: "settings", kernel });
-    if (typeof this.ensure_backend_kernel_setup === "function") {
-      this.ensure_backend_kernel_setup();
-    }
+    this.ensure_backend_kernel_setup();
 
     const importer = new IPynbImporter();
 
@@ -2124,9 +2088,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.syncdb.commit();
     await this.syncdb.save();
-    if (typeof this.ensure_backend_kernel_setup === "function") {
-      this.ensure_backend_kernel_setup();
-    }
+    this.ensure_backend_kernel_setup();
     this._state = "ready";
   }
 
@@ -2428,7 +2390,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
   }
 
-  private check_select_kernel(): void {
+  protected check_select_kernel(): void {
     const kernel = this.store.get("kernel");
     if (kernel == null) return;
     let unknown_kernel = false;

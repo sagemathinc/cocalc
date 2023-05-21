@@ -25,7 +25,7 @@ import type Client from "@cocalc/sync-client";
 import type { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
 import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
 
-const COMPUTE_THRESH_MS = 60 * 1000; // 60s
+export const COMPUTE_THRESH_MS = 30 * 1000; // 30s
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
@@ -155,13 +155,12 @@ export class JupyterActions extends JupyterActions0 {
   // Here we ensure everything is in a consistent state so that we can react
   // to changes later.
   async initialize_manager() {
-    const dbg = this.dbg("initialize_manager");
     if (this._initialize_manager_already_done) {
-      dbg("DONE");
       return;
     }
+    const dbg = this.dbg("initialize_manager");
+    dbg("initialize the manager...");
     this._initialize_manager_already_done = true;
-    dbg("first time...");
 
     let cells = this.store.get("cells")?.toJS();
     dbg(`cells at manage_init = ${JSON.stringify(cells)}`);
@@ -171,25 +170,30 @@ export class JupyterActions extends JupyterActions0 {
       this.ensure_positions_are_unique,
       5000
     );
-
-    this.setState({
-      // used by jupyter.ts
-      start_time: this._client.server_time().valueOf(),
-    });
-    this.syncdb.delete({ type: "nbconvert" });
-    // clear on init, since can't be running yet
-
-    // Initialize info about available kernels
-    this.init_kernel_info();
-
-    // We try once to load from disk.  If it fails, then
-    // a record with type:'fatal'
-    // is created in the database; if it succeeds, that record is deleted.
-    // Try again only when the file changes.
-    await this._first_load();
-
     // Listen for changes...
     this.syncdb.on("change", this._backend_syncdb_change.bind(this));
+
+    this.setState({
+      // used by the kernel_info function of this.jupyter_kernel
+      start_time: this._client.server_time().valueOf(),
+    });
+
+    if (this.is_project) {
+      // stuff only done by the project:
+
+      // clear nbconvert start on init, since no nbconvert can be running yet
+      this.syncdb.delete({ type: "nbconvert" });
+
+      // Initialize info about available kernels, which is used e.g., for
+      // saving to ipynb format.
+      this.init_kernel_info();
+
+      // We try once to load from disk.  If it fails, then
+      // a record with type:'fatal'
+      // is created in the database; if it succeeds, that record is deleted.
+      // Try again only when the file changes.
+      await this._first_load();
+    }
 
     // Listen for model state changes...
     if (this.syncdb.ipywidgets_state == null) {
@@ -201,7 +205,7 @@ export class JupyterActions extends JupyterActions0 {
     );
   }
 
-  _first_load = async () => {
+  private async _first_load() {
     const dbg = this.dbg("_first_load");
     dbg("doing load");
     try {
@@ -218,9 +222,9 @@ export class JupyterActions extends JupyterActions0 {
     }
     dbg("loading worked");
     this._init_after_first_load();
-  };
+  }
 
-  _init_after_first_load = () => {
+  private _init_after_first_load() {
     const dbg = this.dbg("_init_after_first_load");
 
     dbg("initializing");
@@ -230,7 +234,7 @@ export class JupyterActions extends JupyterActions0 {
 
     this._state = "ready";
     this.ensure_there_is_a_cell();
-  };
+  }
 
   _backend_syncdb_change = (changes: any) => {
     const dbg = this.dbg("_backend_syncdb_change");
@@ -430,35 +434,56 @@ export class JupyterActions extends JupyterActions0 {
     await this.syncdb.wait(is_running, 60);
   }
 
-  // manager_on_cell_change is called after a cell change has been
-  // incorporated into the store by syncdb_cell_change.
-  // It ensures any cell with a compute request
-  // gets computed.
-  //    Only one client -- the project itself -- will run this code.
-  protected manager_on_cell_change(id: string, new_cell: any, old_cell: any) {
-    const dbg = this.dbg(`manager_on_cell_change(id='${id}')`);
-    dbg(
-      `new_cell='${misc.to_json(
-        new_cell != null ? new_cell.toJS() : undefined
-      )}',old_cell='${misc.to_json(
-        old_cell != null ? old_cell.toJS() : undefined
-      )}')`
-    );
+  // onCellChange is called after a cell change has been
+  // incorporated into the store after the syncdb change event.
+  // - If we are responsible for running cells, then it ensures
+  //   that cell gets computed.
+  // - We also handle attachments for markdown cells.
+  protected onCellChange(id: string, new_cell: any, old_cell: any) {
+    const dbg = this.dbg(`onCellChange(id='${id}')`);
+    dbg();
+    // this logging could be expensive due to toJS, so only uncomment
+    // if really needed
+    // dbg("new_cell=", new_cell?.toJS(), "old_cell", old_cell?.toJS());
 
     if (
-      (new_cell != null ? new_cell.get("state") : undefined) === "start" &&
-      (old_cell != null ? old_cell.get("state") : undefined) !== "start"
+      new_cell?.get("state") === "start" &&
+      old_cell?.get("state") !== "start" &&
+      this.isCellRunner()
     ) {
       this.manager_run_cell_enqueue(id);
+      // attachments below only happen for markdown cells, which don't get run,
+      // we can return here:
       return;
     }
 
-    if (
-      (new_cell != null ? new_cell.get("attachments") : undefined) != null &&
-      new_cell.get("attachments") !==
-        (old_cell != null ? old_cell.get("attachments") : undefined)
-    ) {
-      return this.handle_cell_attachments(new_cell);
+    const attachments = new_cell?.get("attachments");
+    if (attachments != null && attachments !== old_cell?.get("attachments")) {
+      this.handle_cell_attachments(new_cell);
+    }
+  }
+
+  protected __syncdb_change_post_hook(doInit: boolean) {
+    if (doInit) {
+      if (this.is_project) {
+        // Since just opening the actions in the project, definitely the kernel
+        // isn't running so set this fact in the shared database.  It will make
+        // things always be in the right initial state.
+        this.syncdb.set({
+          type: "settings",
+          backend_state: "init",
+          kernel_state: "idle",
+          kernel_usage: { memory: 0, cpu: 0 },
+        });
+        this.syncdb.commit();
+      }
+
+      // Also initialize the execution manager, which runs cells that have been
+      // requested to run.
+      this.initialize_manager();
+    }
+    if (this.store.get("kernel")) {
+      this.manager_run_cell_process_queue();
     }
   }
 
@@ -894,7 +919,7 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  init_file_watcher = () => {
+  private init_file_watcher() {
     const dbg = this.dbg("file_watcher");
     dbg();
     this._file_watcher = this._client.watch_file({
@@ -920,7 +945,7 @@ export class JupyterActions extends JupyterActions0 {
     return this._file_watcher.on("delete", () => {
       return dbg("delete");
     });
-  };
+  }
 
   /*
     * Unfortunately, though I spent two hours on this approach... it just doesn't work,
@@ -1146,17 +1171,15 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
-  handle_all_cell_attachments = () => {
+  private handle_all_cell_attachments() {
     // Check if any cell attachments need to be loaded.
     const cells = this.store.get("cells");
-    if (cells != null) {
-      cells.forEach((cell) => {
-        return this.handle_cell_attachments(cell);
-      });
-    }
-  };
+    cells?.forEach((cell) => {
+      this.handle_cell_attachments(cell);
+    });
+  }
 
-  handle_cell_attachments = (cell: any) => {
+  private handle_cell_attachments(cell) {
     if (this.jupyter_kernel == null) {
       // can't do anything
       return;
@@ -1191,7 +1214,7 @@ export class JupyterActions extends JupyterActions0 {
         });
       }
     });
-  };
+  }
 
   private handle_ipywidgets_state_change(keys): void {
     const dbg = this.dbg("handle_ipywidgets_state_change");
@@ -1272,7 +1295,10 @@ export class JupyterActions extends JupyterActions0 {
     nbconvertChange(this, oldVal?.toJS(), newVal?.toJS());
   }
 
-  numComputeClients(): number {
+  private numComputeClients(): number {
+    // [ ] TODO: this info should be in the cursors table instead
+    // with a smaller COMPUTE_THRESH_MS, to avoid wasting
+    // space in the database!
     const compute = this.syncdb.get({ type: "compute" });
     if (compute.size == 0) {
       // definitely no compute
@@ -1284,7 +1310,7 @@ export class JupyterActions extends JupyterActions0 {
       const time = node.get("time");
       if (
         typeof time != "number" ||
-        isFinite(time) ||
+        !isFinite(time) ||
         Math.abs(time - now) > COMPUTE_THRESH_MS
       ) {
         this.syncdb.delete({ type: "compute", id: node.get("id") });
@@ -1293,6 +1319,22 @@ export class JupyterActions extends JupyterActions0 {
         numClients += 1;
       }
     }
+    const dbg = this.dbg("numComputeClients");
+    dbg(numClients);
     return numClients;
+  }
+
+  private isCellRunner(): boolean {
+    if (!this.is_project) {
+      // not the project -- for now that means this is a compute
+      // client, so it will definitely try to evaluate code.
+      // TODO: [ ] will maybe only allow a specifically selected
+      // one or the newest or something.  This depends on how
+      // we end up fleshing out the rest of the architecture.
+      return true;
+    }
+    // It is a project, so we return code exactly if there are no
+    // actively registered compute clients.
+    return this.numComputeClients() == 0;
   }
 }

@@ -5,6 +5,7 @@ import { initJupyterRedux } from "@cocalc/jupyter/kernel";
 import { redux } from "@cocalc/jupyter/redux/app";
 import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("compute");
+import { COMPUTE_THRESH_MS } from "@cocalc/jupyter/redux/project-actions";
 
 export function tasks({
   project_id,
@@ -47,12 +48,19 @@ export function jupyter({
   });
 
   syncdb.once("ready", () => {
-    syncdb.set({
-      type: "compute",
-      id: client.client_id(),
-      time: Date.now(),
+    const f = () => {
+      syncdb.set({
+        type: "compute",
+        id: client.client_id(),
+        time: Date.now(),
+      });
+      syncdb.commit();
+    };
+    const i = setInterval(f, COMPUTE_THRESH_MS / 2);
+    f();
+    syncdb.once("closed", () => {
+      clearInterval(i);
     });
-    syncdb.commit();
   });
 
   log("initializing jupyter notebook redux...");

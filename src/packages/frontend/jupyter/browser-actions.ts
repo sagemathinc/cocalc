@@ -907,4 +907,11 @@ export class JupyterActions extends JupyterActions0 {
     const contents = fromJS(parse_headings(cells, cell_list));
     this.setState({ contents });
   }
+
+  protected __syncdb_change_post_hook(_doInit: boolean) {
+    if (this._state === "init") {
+      this._state = "ready";
+    }
+    this.check_select_kernel();
+  }
 }
