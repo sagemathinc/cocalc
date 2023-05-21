@@ -14,7 +14,10 @@ export default async function connectionToProject(
   const log = debug("cocalc:compute:sync:connect");
 
   // temporary for a proof of concept!
-  const port = parseInt(process.env.PROJECT_PORT ?? "34491");
+  if (!process.env.PROJECT_PORT) {
+    throw Error("you MUST set the env variable PROJECT_PORT right now");
+  }
+  const port = parseInt(process.env.PROJECT_PORT);
   const appBasePath =
     process.env.PROJECT_BASE_PATH ??
     "/10f0e544-313c-4efe-8718-2142ac97ad11/port/5000";

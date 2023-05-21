@@ -46,8 +46,7 @@ export class JupyterActions extends JupyterActions0 {
   private update_keyboard_shortcuts: any;
   private usage_info?: UsageInfoWS;
 
-  // Only run this code on the browser frontend (not in project).
-  protected init_client_only(): void {
+  protected init2(): void {
     this.update_contents = debounce(this.update_contents.bind(this), 2000);
     this.setState({
       toolbar: !this.get_local_storage("hide_toolbar"),

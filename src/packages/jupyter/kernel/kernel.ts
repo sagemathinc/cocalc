@@ -74,11 +74,11 @@ import launchJupyterKernel, {
 import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 import type { KernelParams } from "@cocalc/jupyter/types/kernel";
 import { redux_name } from "@cocalc/util/redux/name";
-import { getLogger } from "@cocalc/backend/logger";
 import { redux } from "@cocalc/jupyter/redux/app";
 import { VERSION } from "@cocalc/jupyter/kernel/version";
 import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
 import type Client from "@cocalc/sync-client";
+import { getLogger } from "@cocalc/backend/logger";
 
 const log = getLogger("jupyter");
 
@@ -104,13 +104,21 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
   R_MAKEVARS_USER: `${process.env.HOME}/.sage/R/Makevars.user`,
 });
 
-export function jupyter_backend(syncdb: SyncDB, client: Client): void {
-  const dbg = getLogger("jupyter_backend");
+// Initialize the actions and store for working with a specific
+// ipython notebook.  The syncdb is the syncdoc associated to
+// the ipynb file, and this function creates the corresponding
+// actions and store, which make it possible to work with this
+// notebook.
+export function initJupyterRedux(
+  syncdb: SyncDB,
+  client: Client,
+): void {
+  const dbg = getLogger("jupyter-redux");
   dbg.debug();
 
-  const project_id = client.client_id();
+  const project_id = syncdb.project_id;
   if (project_id == null) {
-    throw Error("client_id must be defined");
+    throw Error("project_id must be defined");
   }
 
   // This path is the file we will watch for changes and save to, which is in the original
@@ -133,9 +141,9 @@ export function jupyter_backend(syncdb: SyncDB, client: Client): void {
   syncdb.once("ready", () => dbg.debug("syncdb ready"));
 }
 
-// Get rid of the store/actions for a given Jupyter notebook,
+// Remove the store/actions for a given Jupyter notebook,
 // and also close the kernel if it is running.
-export async function remove_jupyter_backend(
+export async function removeJupyterRedux(
   path: string,
   project_id: string
 ): Promise<void> {

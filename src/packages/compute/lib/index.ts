@@ -1,14 +1,21 @@
 import SyncClient from "@cocalc/sync-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { meta_file } from "@cocalc/util/misc";
-import { jupyter_backend, kernel } from "@cocalc/jupyter/kernel";
+import { initJupyterRedux } from "@cocalc/jupyter/kernel";
+import { redux } from "@cocalc/jupyter/redux/app";
 import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("compute");
 
-export function tasks({ path }: { path: string }): SyncDB {
+export function tasks({
+  project_id,
+  path,
+}: {
+  project_id: string;
+  path: string;
+}): SyncDB {
   const c = new SyncClient();
   const s = c.sync_client.sync_db({
-    project_id: "97ce5a7c-25c1-4059-8670-c7de96a0db92",
+    project_id,
     path,
     primary_keys: ["task_id"],
     string_cols: ["desc"],
@@ -17,12 +24,19 @@ export function tasks({ path }: { path: string }): SyncDB {
 }
 
 // path should be something like "foo/bar.ipynb"
-export async function jupyter({ path }: { path: string }): Promise<any> {
+export function jupyter({
+  project_id,
+  path,
+}: {
+  project_id: string;
+  path: string;
+}) {
   const log = (...args) => logger.debug(path, ...args);
+  log();
   const syncdb_path = meta_file(path, "jupyter2");
   const client = new SyncClient();
   const syncdb = client.sync_client.sync_db({
-    project_id: "97ce5a7c-25c1-4059-8670-c7de96a0db92",
+    project_id,
     path: syncdb_path,
     change_throttle: 50, // our UI/React can handle more rapid updates; plus we want output FAST.
     patch_interval: 50,
@@ -31,20 +45,9 @@ export async function jupyter({ path }: { path: string }): Promise<any> {
     cursors: false,
     persistent: true,
   });
-  log("got syncdb");
-  await syncdb.wait_until_ready();
-  log("ready");
-
-  // Doing this jupyter_backend will create the actions, which will then create this
-  // kernel object when the first eval happens...
-  // TODO
-
-  // jupyter_backend(syncdb, client)
-  const name = syncdb.get_one({ type: "settings" })?.get("kernel");
-  log("kernel name = ", name);
-  if (!name) {
-    throw Error("no kernel set");
-  }
-  const ker = kernel({ path, name });
-  return { syncdb, kernel: ker };
+  log("initializing jupyter notebook redux...");
+  initJupyterRedux(syncdb, client);
+  const actions = redux.getEditorActions(project_id, path);
+  const store = redux.getEditorStore(project_id, path);
+  return { syncdb, client, actions, store, redux };
 }

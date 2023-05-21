@@ -24,7 +24,7 @@ import {
 } from "@cocalc/util/db-schema/listings";
 import { Watcher } from "./path-watcher";
 import { close_all_syncdocs_in_tree } from "./sync-doc";
-import { remove_jupyter_backend } from "@cocalc/jupyter/kernel";
+import { removeJupyterRedux } from "@cocalc/jupyter/kernel";
 
 // Update directory listing only when file changes stop for at least this long.
 // This is important since we don't want to fire off dozens of changes per second,
@@ -392,7 +392,7 @@ class ListingsTable {
     // If it is a Jupyter kernel, close that too
     if (endswith(filename, ".ipynb")) {
       this.log(`set_deleted: handling jupyter kernel for ${filename}`);
-      await remove_jupyter_backend(filename, this.project_id);
+      await removeJupyterRedux(filename, this.project_id);
       if (!this.is_ready()) return;
     }
   }

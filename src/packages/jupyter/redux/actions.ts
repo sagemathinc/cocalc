@@ -43,13 +43,11 @@ import {
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type Client from "@cocalc/sync-client";
 
-
 const log = debug("cocalc:jupyter:actions");
 const { close, required, defaults } = misc;
 
 // local cache: map project_id (string) -> kernels (immutable)
 let jupyter_kernels = immutable.Map<string, Kernels>();
-
 
 /*
 The actions -- what you can do with a jupyter notebook, and also the
@@ -135,18 +133,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.syncdb.on("change", this._syncdb_change);
 
-    if (!this.is_project) {
-      this.init_client_only();
-    }
+    // Hook for additional initialization.
+    this.init2();
+  }
+
+  // default is to do nothing, but e.g., frontend browser client
+  // does overload this to do a lot of additional init.
+  protected init2(): void {
+    // this can be overloaded in a derived class
   }
 
   // Only use this on the frontend, of course.
   protected getFrameActions() {
     return this.redux.getEditorActions(this.project_id, this.path);
-  }
-
-  protected init_client_only(): void {
-    throw Error("must define in a derived class");
   }
 
   protected async set_kernel_after_load(): Promise<void> {
