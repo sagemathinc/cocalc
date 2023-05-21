@@ -31,7 +31,29 @@ import { CoCalcFile, render_cocalc_btn } from "./components";
 import { Flyout } from "./flyout";
 import { Full } from "./full";
 import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
-import { connect_ws, grid_warning, process_tree, sum_children } from "./utils";
+import {
+  connect_ws,
+  grid_warning,
+  linearList,
+  process_tree,
+  sum_children,
+} from "./utils";
+
+// DEV: DEBUG is true, add some generic static values about CGroups, such that these elements show up in the UI
+const DEV = DEBUG
+  ? {
+      cgroup: {
+        mem_stat: {
+          hierarchical_memory_limit: 1000,
+          total_rss: 550,
+        },
+        cpu_usage: 12, // seconds
+        cpu_usage_rate: 0.8, // seconds / second
+        oom_kills: 1,
+        cpu_cores_limit: 1,
+      } as ProjectInfoType["cgroup"],
+    }
+  : undefined;
 
 interface Props {
   project_id: string;
@@ -147,7 +169,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           if (!isMountedRef.current) return;
           const data = info_sync.get();
           if (data != null) {
-            set_info(data.toJS() as ProjectInfoType);
+            set_info({ ...data.toJS(), ...DEV } as ProjectInfoType);
           } else {
             console.warn("got no data from info_sync.get()");
           }
@@ -228,14 +250,24 @@ export const ProjectInfo: React.FC<Props> = React.memo(
       // the ProjectInfoType type is updated to refrect this edge case and here we bail out
       // and wait for the next update of "info" to get all processes…
       if (info.processes == null) return;
-      const pchildren: string[] = [];
-      const pt_stats = { ...pt_stats_init };
-      const new_ptree =
-        process_tree(info.processes, 1, pchildren, pt_stats) ?? [];
-      sum_children(new_ptree);
-      set_ptree(new_ptree);
-      set_pt_stats(pt_stats);
-      set_have_children(pchildren);
+      switch (mode) {
+        case "full":
+          const pchildren: string[] = [];
+          const pt_stats = { ...pt_stats_init };
+          const new_ptree =
+            process_tree(info.processes, 1, pchildren, pt_stats) ?? [];
+          sum_children(new_ptree);
+          set_ptree(new_ptree);
+          set_pt_stats(pt_stats);
+          set_have_children(pchildren);
+          break;
+        case "flyout":
+          // flyout does not nest children, not enogh space
+          set_ptree(linearList(info.processes));
+          break;
+        default:
+          unreachable(mode);
+      }
     }
 
     // when "info" changes, we compute a few derived values and the data for the process table

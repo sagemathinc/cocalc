@@ -166,6 +166,33 @@ export function process_tree(
   return data.length > 0 ? data : undefined;
 }
 
+/**
+ * A linear list of processes, where each process is a row in the table.
+ */
+export function linearList(procs: Processes): ProcessRow[] | undefined {
+  const data: ProcessRow[] = [];
+  Object.values(procs).forEach((proc) => {
+    const key = `${proc.pid}`;
+    const p: ProcessRow = {
+      key,
+      pid: proc.pid,
+      ppid: proc.ppid,
+      name: basename(proc.exe),
+      args: args(proc),
+      state: proc.stat.state as State,
+      mem: proc.stat.mem.rss,
+      cpu_tot: proc.cpu.secs,
+      cpu_pct: proc.cpu.pct,
+      cocalc: proc.cocalc,
+      children: undefined,
+    };
+    if (keep_proc(proc)) {
+      data.push(p);
+    }
+  });
+  return data.length > 0 ? data : undefined;
+}
+
 function sum_children_val(proc, index): number {
   if (proc.children == null) return 0;
   return proc.children

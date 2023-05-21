@@ -298,6 +298,8 @@ interface CGroupProps {
   pt_stats;
   start_ts;
   project_status?: immutable.Map<string, any>;
+  mode?: "full" | "flyout";
+  style?: CSS;
 }
 
 export const CGroup: React.FC<CGroupProps> = React.memo(
@@ -309,7 +311,10 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
       pt_stats,
       start_ts,
       project_status,
+      mode = "full",
+      style,
     } = props;
+    const isFlyout = mode === "flyout";
     const progprops = useProgressProps();
     const all_alerts = project_status?.get("alerts") ?? immutable.Map();
     const status_alerts: Readonly<string[]> = all_alerts.map((a) =>
@@ -415,7 +420,12 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
     } else {
       // for now, we only show row 2
       return (
-        <Descriptions bordered={true} column={3} size={"middle"}>
+        <Descriptions
+          bordered={true}
+          column={isFlyout ? 1 : 3}
+          size={isFlyout ? "small" : "middle"}
+          style={style}
+        >
           {false && render_row1()}
           {render_row2()}
         </Descriptions>
@@ -591,8 +601,6 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
     }
   }
 );
-
-
 
 export function render_cocalc_btn({ title, onClick }) {
   return (

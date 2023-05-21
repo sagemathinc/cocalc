@@ -6,56 +6,60 @@
 // TODO: we should refactor our code to not have these window/document/$ references here.
 declare let window, document, $;
 
-import { join } from "path";
 import * as async from "async";
+import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
-import { Set, List, fromJS, Map } from "immutable";
+import { join } from "path";
 
-import { client_db } from "@cocalc/util/schema";
-import {
-  ConfigurationAspect,
-  Configuration,
-  ProjectConfiguration,
-  get_configuration,
-  LIBRARY_INDEX_FILE,
-  is_available as feature_is_available,
-} from "./project_configuration";
-import { query as client_query } from "./frame-editors/generic/client";
-import { callback } from "awaiting";
+import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
+import { init as initChat } from "@cocalc/frontend/chat/register";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import track from "@cocalc/frontend/user-tracking";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
-import { exec } from "./frame-editors/generic/client";
-import { API } from "./project/websocket/api";
-import { in_snapshot_path, NewFilenames, normalize } from "./project/utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
-import { transform_get_url } from "./project/transform-get-url";
-import { OpenFiles } from "./project/open-files";
-import { log_opened_time, open_file, log_file_open } from "./project/open-file";
-import * as project_file from "./project-file";
-import { get_editor } from "./editors/react-wrapper";
 import * as misc from "@cocalc/util/misc";
 import { MARKERS } from "@cocalc/util/sagews";
+import { client_db } from "@cocalc/util/schema";
+import { callback } from "awaiting";
+import { default_filename } from "./account";
 import { alert_message } from "./alerts";
-import { webapp_client } from "./webapp-client";
-const { defaults, required } = misc;
+import { Actions, project_redux_name, redux } from "./app-framework";
+import { IconName } from "./components";
+import { local_storage } from "./editor-local-storage";
+import { get_editor } from "./editors/react-wrapper";
+import { query as client_query, exec } from "./frame-editors/generic/client";
 import { set_url } from "./history";
+import { download_file, open_new_tab, open_popup_window } from "./misc";
+import * as project_file from "./project-file";
 import { delete_files } from "./project/delete-files";
 import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
-import { Actions, project_redux_name, redux } from "./app-framework";
-import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { ProjectEvent } from "./project/history/types";
-import { download_href, url_href } from "./project/utils";
-import { ensure_project_running } from "./project/project-start-warning";
-import { download_file, open_new_tab, open_popup_window } from "./misc";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { IconName } from "./components";
-import { default_filename } from "./account";
-import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { log_file_open, log_opened_time, open_file } from "./project/open-file";
+import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
-import { init as initChat } from "@cocalc/frontend/chat/register";
-import { local_storage } from "./editor-local-storage";
-import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
-import track from "@cocalc/frontend/user-tracking";
 import { storeFlyoutState } from "./project/page/flyouts/local-state";
+import { ensure_project_running } from "./project/project-start-warning";
+import { transform_get_url } from "./project/transform-get-url";
+import {
+  NewFilenames,
+  download_href,
+  in_snapshot_path,
+  normalize,
+  url_href,
+} from "./project/utils";
+import { API } from "./project/websocket/api";
+import {
+  Configuration,
+  ConfigurationAspect,
+  LIBRARY_INDEX_FILE,
+  ProjectConfiguration,
+  is_available as feature_is_available,
+  get_configuration,
+} from "./project_configuration";
+import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
+import { webapp_client } from "./webapp-client";
+const { defaults, required } = misc;
 
 const BAD_FILENAME_CHARACTERS = "\\";
 const BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%$';
@@ -134,10 +138,10 @@ interface FileAction {
   name: string;
   icon: IconName;
   allows_multiple_files?: boolean;
-  hideFlyout? :boolean;
+  hideFlyout?: boolean;
 }
 
-export const FILE_ACTIONS: {[key: string]: FileAction} = {
+export const FILE_ACTIONS: { [key: string]: FileAction } = {
   compress: {
     name: "Compress",
     icon: "compress" as IconName,
@@ -565,6 +569,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ flyout });
     // also store this in local storage
     storeFlyoutState(this.project_id, name, { expanded: flyout != null });
+    if (flyout != null) {
+      track("flyout", { name: flyout });
+    }
   }
 
   public setFlyoutExpanded(name: FixedTab, state: boolean, save = true): void {

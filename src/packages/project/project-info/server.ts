@@ -210,48 +210,53 @@ export class ProjectInfoServer extends EventEmitter {
   // you what the whole system is doing, all your processes,…
   // NOTE: most of this replaces kucalc.coffee
   private async cgroup({ timestamp }): Promise<CGroup | undefined> {
-    const [mem_stat_raw, cpu_raw, oom_raw, cfs_quota_raw, cfs_period_raw] =
-      await Promise.all([
-        readFile("/sys/fs/cgroup/memory/memory.stat", "utf8"),
-        readFile("/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage", "utf8"),
-        readFile("/sys/fs/cgroup/memory/memory.oom_control", "utf8"),
-        readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us", "utf8"),
-        readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us", "utf8"),
-      ]);
-    const mem_stat_keys = [
-      "total_rss",
-      "total_cache",
-      "hierarchical_memory_limit",
-    ];
-    const cpu_usage = parseFloat(cpu_raw) / Math.pow(10, 9);
-    const dt = this.dt(timestamp);
-    const cpu_usage_rate =
-      this.last?.cgroup != null
-        ? (cpu_usage - this.last.cgroup.cpu_usage) / dt
-        : 0;
-    const [cfs_quota, cfs_period] = [
-      parseInt(cfs_quota_raw),
-      parseInt(cfs_period_raw),
-    ];
-    const mem_stat = mem_stat_raw
-      .split("\n")
-      .map((line) => line.split(" "))
-      .filter(([k, _]) => mem_stat_keys.includes(k))
-      .reduce((stat, [key, val]) => {
-        stat[key] = bytes2MiB(parseInt(val));
-        return stat;
-      }, {});
-    const oom_kills = oom_raw
-      .split("\n")
-      .filter((val) => val.startsWith("oom_kill "))
-      .map((val) => parseInt(val.slice("oom_kill ".length)))[0];
-    return {
-      mem_stat,
-      cpu_usage,
-      cpu_usage_rate,
-      cpu_cores_limit: cfs_quota / cfs_period,
-      oom_kills,
-    };
+    try {
+      const [mem_stat_raw, cpu_raw, oom_raw, cfs_quota_raw, cfs_period_raw] =
+        await Promise.all([
+          readFile("/sys/fs/cgroup/memory/memory.stat", "utf8"),
+          readFile("/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage", "utf8"),
+          readFile("/sys/fs/cgroup/memory/memory.oom_control", "utf8"),
+          readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us", "utf8"),
+          readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us", "utf8"),
+        ]);
+      const mem_stat_keys = [
+        "total_rss",
+        "total_cache",
+        "hierarchical_memory_limit",
+      ];
+      const cpu_usage = parseFloat(cpu_raw) / Math.pow(10, 9);
+      const dt = this.dt(timestamp);
+      const cpu_usage_rate =
+        this.last?.cgroup != null
+          ? (cpu_usage - this.last.cgroup.cpu_usage) / dt
+          : 0;
+      const [cfs_quota, cfs_period] = [
+        parseInt(cfs_quota_raw),
+        parseInt(cfs_period_raw),
+      ];
+      const mem_stat = mem_stat_raw
+        .split("\n")
+        .map((line) => line.split(" "))
+        .filter(([k, _]) => mem_stat_keys.includes(k))
+        .reduce((stat, [key, val]) => {
+          stat[key] = bytes2MiB(parseInt(val));
+          return stat;
+        }, {});
+      const oom_kills = oom_raw
+        .split("\n")
+        .filter((val) => val.startsWith("oom_kill "))
+        .map((val) => parseInt(val.slice("oom_kill ".length)))[0];
+      return {
+        mem_stat,
+        cpu_usage,
+        cpu_usage_rate,
+        cpu_cores_limit: cfs_quota / cfs_period,
+        oom_kills,
+      };
+    } catch (err) {
+      this.dbg("cgroup: error", err);
+      return undefined;
+    }
   }
 
   // for cocalc/kucalc we want to know the disk usage + limits of the

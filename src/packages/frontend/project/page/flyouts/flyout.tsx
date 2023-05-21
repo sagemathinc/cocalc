@@ -139,6 +139,7 @@ export function Flyout({
     () => {
       if (bodyDiv) {
         const val = bodyDiv.scrollTop;
+        console.log("onScroll", val)
         storeFlyoutState(project_id, flyout, { scroll: val });
       }
     },

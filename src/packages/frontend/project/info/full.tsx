@@ -468,7 +468,11 @@ export function Full(props: Readonly<any>): JSX.Element {
     if (project_state === "running") return;
     return (
       <Row>
-        <Alert type="warning" message={"Project is not running."} />
+        <Alert
+          type="warning"
+          banner={true}
+          message={"Project is not running."}
+        />
       </Row>
     );
   }
