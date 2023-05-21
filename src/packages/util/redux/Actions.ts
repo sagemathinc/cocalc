@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { AppRedux } from "../app-framework";
+import type { AppRedux } from "./types";
 import { bind_methods } from "@cocalc/util/misc";
 
 // NOTE: it is intentional that there is no get method.  Instead, get data
@@ -21,19 +21,23 @@ export class Actions<T> {
   }
 
   setState = (obj: Partial<{ [P in keyof T]: T[P] }>): void => {
-    // This ? is because sometimes setState is called after the actions
-    // are cleaned up (so this.redux is null) and closed for an editor,
-    // and crashing isn't useful, but silently ignoring is in this case.
-    // See https://github.com/sagemathinc/cocalc/issues/5263 for an
-    // example in nature.
-    if (this.redux?.getStore(this.name) == null) {
+    if (this.redux == null) {
+      // Sometimes setState is called after the actions
+      // are cleaned up (so this.redux is null) and closed for an editor,
+      // and crashing isn't useful, but silently ignoring is in this case.
+      // See https://github.com/sagemathinc/cocalc/issues/5263 for an
+      // example in nature.
+      return;
+    }
+    if (this.redux.getStore(this.name) == null) {
       return; // No op
     }
     this.redux._set_state({ [this.name]: obj }, this.name);
   };
 
   destroy = (): void => {
+    if (this.redux == null) { return; }
     // On the share server this.redux can be undefined at this point.
-    this.redux?.removeActions(this.name);
+    this.redux.removeActions(this.name);
   };
 }

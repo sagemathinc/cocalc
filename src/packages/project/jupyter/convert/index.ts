@@ -10,10 +10,11 @@ Node.js interface to nbconvert.
 import { executeCode } from "@cocalc/backend/execute-code";
 import ipynbToHtml, { htmlPath } from "./ipynb-to-html";
 import htmlToPDF from "./html-to-pdf";
-import { NbconvertParams, parseSource, parseTo } from "./util";
+import { parseSource, parseTo } from "./util";
 import { join } from "path";
 import { getLogger } from "@cocalc/project/logger";
 import { sanitize_nbconvert_path } from "@cocalc/util/sanitize-nbconvert";
+import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
 
 const log = getLogger("jupyter-nbconvert");
 

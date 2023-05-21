@@ -15,8 +15,8 @@ import { EventEmitter } from "node:events";
 import { readFile, readdir, readlink } from "node:fs/promises";
 import { join } from "node:path";
 
-//import { getOptions } from "../init-program";
-import { get_kernel_by_pid } from "../jupyter/jupyter";
+// import { getOptions } from "../init-program";
+import { get_kernel_by_pid } from "@cocalc/jupyter/kernel";
 import { pid2path as terminal_pid2path } from "../terminal/server";
 import { get_path_for_pid as x11_pid2path } from "../x11/server";
 import {

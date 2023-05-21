@@ -18,7 +18,7 @@ import { React, Rendered, useTypedRedux } from "../app-framework";
 import { createRoot } from "react-dom/client";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
-import { times_n } from "./util";
+import { times_n } from "@cocalc/jupyter/util/misc";
 
 import { server_time, trunc_middle, is_different } from "@cocalc/util/misc";
 import { IS_SAFARI, IS_FIREFOX } from "@cocalc/frontend/feature";

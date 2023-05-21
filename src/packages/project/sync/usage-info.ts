@@ -10,9 +10,9 @@ import { SyncTable, SyncTableState } from "@cocalc/sync/table";
 import { once } from "@cocalc/util/async-utils";
 import { close, merge } from "@cocalc/util/misc";
 import { UsageInfoServer } from "../usage-info";
-import { ImmutableUsageInfo, UsageInfo } from "../usage-info/types";
-
+import type { ImmutableUsageInfo, UsageInfo } from "@cocalc/util/types/project-usage-info";
 import { getLogger } from "@cocalc/backend/logger";
+
 const L = getLogger("sync:usage-info");
 
 class UsageInfoTable {

@@ -30,7 +30,7 @@ import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
-import { Kernel as KernelType } from "./util";
+import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
 import { KernelStar } from "../components/run-button/kernel-star";
 
 const MAIN_STYLE: CSS = {

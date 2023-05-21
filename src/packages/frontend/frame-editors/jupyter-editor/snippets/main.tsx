@@ -44,7 +44,7 @@ import {
   useStore,
 } from "@cocalc/frontend/app-framework";
 import { A, Loading } from "@cocalc/frontend/components";
-import { JupyterStore } from "@cocalc/frontend/jupyter/store";
+import type { JupyterStore } from "@cocalc/jupyter/redux/store";
 import { isMainConfiguration } from "@cocalc/frontend/project_configuration";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../actions";

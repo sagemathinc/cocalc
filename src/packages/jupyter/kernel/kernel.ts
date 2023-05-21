@@ -29,36 +29,32 @@ if (DEBUG) {
   console.log("Enabling low level Jupyter kernel debugging.");
 }
 
-export const VERSION = "5.3";
-
 // NOTE: we choose to use node-cleanup instead of the much more
 // popular exit-hook, since node-cleanup actually works for us.
 // https://github.com/jtlapp/node-cleanup/issues/16
 // Also exit-hook is hard to import from commonjs.
 import nodeCleanup from "node-cleanup";
-
-import { Channels, MessageType } from "@nteract/messaging";
+import type { Channels, MessageType } from "@nteract/messaging";
 import { reuseInFlight } from "async-await-utils/hof";
 import { callback } from "awaiting";
 import { createMainChannel } from "enchannel-zmq-backend";
 import { EventEmitter } from "node:events";
 import { unlink } from "@cocalc/backend/misc/async-utils-node";
-
 import {
   process as iframe_process,
   is_likely_iframe,
-} from "@cocalc/frontend/jupyter/iframe";
-import { remove_redundant_reps } from "@cocalc/frontend/jupyter/import-from-ipynb";
-import { JupyterActions } from "@cocalc/frontend/jupyter/project-actions";
+} from "@cocalc/jupyter/blobs/iframe";
+import { remove_redundant_reps } from "@cocalc/jupyter/ipynb/import-from-ipynb";
+import { JupyterActions } from "@cocalc/jupyter/redux/project-actions";
 import {
   CodeExecutionEmitterInterface,
   ExecOpts,
   JupyterKernelInterface,
   KernelInfo,
-} from "@cocalc/frontend/jupyter/project-interface";
-import { JupyterStore } from "@cocalc/frontend/jupyter/store";
-import { JUPYTER_MIMETYPES } from "@cocalc/frontend/jupyter/util";
-import { SyncDB } from "@cocalc/sync/editor/db/sync";
+} from "@cocalc/jupyter/types/project-interface";
+import { JupyterStore } from "@cocalc/jupyter/redux/store";
+import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
+import type { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import createChdirCommand from "@cocalc/util/jupyter-api/chdir-commands";
 import { key_value_store } from "@cocalc/util/key-value-store";
@@ -70,22 +66,40 @@ import {
   merge,
   original_path,
   path_split,
-  //trunc,
   uuid,
 } from "@cocalc/util/misc";
-import { nbconvert } from "./convert";
-import { CodeExecutionEmitter } from "./execute-code";
+import { CodeExecutionEmitter } from "@cocalc/jupyter/execute/execute-code";
 import { get_blob_store_sync } from "@cocalc/jupyter/blobs";
-import { getLanguage, get_kernel_data_by_name } from "./kernel-data";
+import {
+  getLanguage,
+  get_kernel_data_by_name,
+} from "@cocalc/jupyter/kernel/kernel-data";
 import launchJupyterKernel, {
   LaunchJupyterOpts,
   SpawnedKernel,
   killKernel,
 } from "@cocalc/jupyter/pool/pool";
-import { getAbsolutePathFromHome } from "@cocalc/jupyter/util";
-import type { KernelParams } from "./types";
-import { getLogger } from "@cocalc/project/logger";
+import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
+import type { KernelParams } from "@cocalc/jupyter/types/kernel";
+import { redux_name } from "@cocalc/util/redux/name";
+import { getLogger } from "@cocalc/backend/logger";
+import { redux } from "@cocalc/jupyter/redux/app";
+import { VERSION } from "@cocalc/jupyter/kernel/version";
+import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
+
 const log = getLogger("jupyter");
+
+// We make it so nbconvert functionality can be dynamically enabled
+// by calling this at runtime.  The reason is because some users of
+// this code (e.g., remote kernels) don't need to provide nbconvert
+// functionality, and our implementation has some heavy dependencies,
+// e.g., on a big chunk of the react frontend.
+let nbconvert: (opts: NbconvertParams) => Promise<void> = async () => {
+  throw Error("nbconvert is not enabled");
+};
+export function initNbconvert(f) {
+  nbconvert = f;
+}
 
 /*
 We set a few extra user-specific options for the environment in which
@@ -100,7 +114,6 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 export function jupyter_backend(syncdb: SyncDB, client: any): void {
   const dbg = getLogger("jupyter_backend");
   dbg.debug();
-  const app_framework = require("@cocalc/frontend/app-framework");
 
   const project_id = client.client_id();
 
@@ -108,18 +121,15 @@ export function jupyter_backend(syncdb: SyncDB, client: any): void {
   // official ipynb format:
   const path = original_path(syncdb.get_path());
 
-  const redux_name = app_framework.redux_name(project_id, path);
-  if (
-    app_framework.redux.getStore(redux_name) != null &&
-    app_framework.redux.getActions(redux_name) != null
-  ) {
+  const name = redux_name(project_id, path);
+  if (redux.getStore(name) != null && redux.getActions(name) != null) {
     // The redux info for this notebook already exists, so don't
     // try to make it again (which would be an error).
     // See https://github.com/sagemathinc/cocalc/issues/4331
     return;
   }
-  const store = app_framework.redux.createStore(redux_name, JupyterStore);
-  const actions = app_framework.redux.createActions(redux_name, JupyterActions);
+  const store = redux.createStore(name, JupyterStore);
+  const actions = redux.createActions(name, JupyterActions);
 
   actions._init(project_id, path, syncdb, store, client);
 
@@ -139,9 +149,8 @@ export async function remove_jupyter_backend(
   } catch (_err) {
     // ignore
   }
-  const app_framework = require("@cocalc/frontend/app-framework");
-  const redux_name = app_framework.redux_name(project_id, path);
-  const actions = app_framework.redux.getActions(redux_name);
+  const name = redux_name(project_id, path);
+  const actions = redux.getActions(name);
   if (actions != null) {
     try {
       await actions.close();
@@ -149,23 +158,9 @@ export async function remove_jupyter_backend(
       // ignore.
     }
   }
-  app_framework.redux.removeStore(redux_name);
-  app_framework.redux.removeActions(redux_name);
+  redux.removeStore(name);
+  redux.removeActions(name);
 }
-
-// for interactive testing
-// TODO: needs to somehow proxy through the real client...
-// class Client {
-//   client_id(): string {
-//     return "123e4567-e89b-12d3-a456-426655440000";
-//   }
-//   is_project(): boolean {
-//     return true;
-//   }
-//   dbg(f) {
-//     return (...m) => console.log(new Date(), `Client.${f}: `, ...m);
-//   }
-// }
 
 export function kernel(opts: KernelParams): JupyterKernel {
   return new JupyterKernel(opts.name, opts.path, opts.actions, opts.ulimit);
@@ -192,16 +187,15 @@ nodeCleanup(() => {
   }
 });
 
-export class JupyterKernel
-  extends EventEmitter
-  implements JupyterKernelInterface
-{
+// NOTE: keep JupyterKernel implementation private -- use the kernel function
+// above, and the interface defined in types.
+class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   // name -- if undefined that means "no actual Jupyter kernel" (i.e., this JupyterKernel exists
   // here, but there is no actual separate real Jupyter kernel process and one won't be created).
   // Everything should work, except you can't *spawn* such a kernel.
   public name: string | undefined;
 
-  public store: any; // used mainly for stdin support right now...
+  public store: any; // this is a key:value store used mainly for stdin support right now. NOTHING TO DO WITH REDUX!
   public readonly identity: string = uuid();
 
   private stderr: string = "";
@@ -213,7 +207,7 @@ export class JupyterKernel
   private _filename: string;
   private _kernel?: SpawnedKernel;
   private _kernel_info?: KernelInfo;
-  _execute_code_queue: CodeExecutionEmitter[] = [];
+  public _execute_code_queue: CodeExecutionEmitter[] = [];
   public channel?: Channels;
   private has_ensured_running: boolean = false;
 
@@ -883,8 +877,7 @@ export class JupyterKernel
   }
 
   // This is called by project-actions when exporting the notebook
-  // to an ipynb file, since we can't explicitly call get_blob_store
-  // in that code in: @cocalc/frontend/jupyter/project-actions.ts
+  // to an ipynb file:
   get_blob_store() {
     return get_blob_store_sync();
   }

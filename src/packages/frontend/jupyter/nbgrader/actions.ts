@@ -13,7 +13,6 @@ import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
 import clearSolution from "./clear-solutions";
 import { set_checksum } from "./compute-checksums";
-import { NBGraderStore } from "./store";
 import { ImmutableMetadata, Metadata } from "./types";
 
 export class NBGraderActions {
@@ -23,9 +22,6 @@ export class NBGraderActions {
   constructor(jupyter_actions, redux) {
     this.jupyter_actions = jupyter_actions;
     this.redux = redux;
-    this.jupyter_actions.store.nbgrader = new NBGraderStore(
-      jupyter_actions.store
-    );
   }
 
   public close(): void {

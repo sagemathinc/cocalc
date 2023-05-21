@@ -1,5 +1,11 @@
-import { IPynbImporter } from "../import-from-ipynb";
-import { JUPYTER_MIMETYPES } from "../util";
+/*
+This is a very lightweight ipynb parser in pure javascript.
+
+It's used, e.g., in our analogue of nbviewer.
+*/
+
+import { IPynbImporter } from "@cocalc/jupyter/ipynb/import-from-ipynb";
+import { JUPYTER_MIMETYPES } from "@cocalc/jupyter/util/misc";
 import { field_cmp } from "@cocalc/util/misc";
 
 export interface KernelSpec {

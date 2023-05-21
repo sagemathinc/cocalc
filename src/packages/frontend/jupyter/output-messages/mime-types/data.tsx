@@ -2,7 +2,7 @@ import React from "react";
 import { DataProps, hasHandler, getHandler, getPriority } from "./register";
 import { all_fields_equal as allFieldsEqual } from "@cocalc/util/misc";
 import useJupyterContext from "@cocalc/frontend/jupyter/jupyter-context";
-import type { KernelSpec } from "@cocalc/frontend/jupyter/nbviewer/parse";
+import type { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
 
 function shouldMemoize(prev, next) {
   return (

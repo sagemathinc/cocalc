@@ -38,7 +38,7 @@ import { JupyterActions } from "./browser-actions";
 import { get_help_links } from "./help-links";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 import Logo from "./logo";
-import { KernelSpec } from "./types";
+import { KernelSpec } from "@cocalc/jupyter/types";
 
 type MenuItemName = string | { name: string; display?: string; style?: object };
 
