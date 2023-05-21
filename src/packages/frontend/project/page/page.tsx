@@ -27,13 +27,13 @@ import { DiskSpaceWarning } from "../warnings/disk-space";
 import { OOMWarning } from "../warnings/oom";
 import { RamWarning } from "../warnings/ram";
 import { Content } from "./content";
+import { isFixedTab } from "./file-tab";
 import { Flyout, FlyoutHeader } from "./flyouts/flyout";
+import { getFlyoutExpanded } from "./flyouts/local-state";
 import HomePageButton from "./home-page/button";
 import { useProjectStatus } from "./project-status-hook";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
-import { getFlyoutExpanded } from "./flyouts/local-state";
-import { isFixedTab } from "./file-tab";
 //import FirstSteps from "@cocalc/frontend/project/explorer/file-listing/first-steps";
 
 const PAGE_STYLE: React.CSSProperties = {

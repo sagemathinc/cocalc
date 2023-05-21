@@ -8,8 +8,8 @@ Tabs in a particular project.
 */
 import { Switch, Tooltip } from "antd";
 
-import { throttle } from "lodash";
-import { ReactNode, useLayoutEffect, useRef, useState } from "react";
+import { debounce, throttle } from "lodash";
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
@@ -99,7 +99,6 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
 
       const th = tabs.current.clientHeight;
       const ph = parent.current.clientHeight;
-      setHomePageButtonWidth(parent.current.clientWidth);
 
       if (refCondensed.current) {
         // 5px slack to avoid flickering
@@ -128,6 +127,26 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
       window.removeEventListener("resize", calcCondensed);
     };
   }, []);
+
+  useEffect(() => {
+    if (parent.current == null) return;
+
+    const observer = new ResizeObserver(
+      debounce(
+        () => {
+          if (parent.current == null) return;
+          setHomePageButtonWidth(parent.current.scrollWidth);
+        },
+        50,
+        { trailing: true, leading: false }
+      )
+    );
+    observer.observe(parent.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [condensed, parent.current]);
 
   const items: ReactNode[] = [];
   for (const nameStr in FIXED_PROJECT_TABS) {

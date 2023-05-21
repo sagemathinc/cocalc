@@ -288,14 +288,11 @@ export const RunQuota: React.FC<Props> = React.memo(
           size="small"
           pagination={false}
           rowClassName={() => "cursor-pointer"}
-          expandable={
-            isFlyout
-              ? undefined
-              : {
-                  expandedRowRender: (record) => renderExtra(record),
-                  expandRowByClick: true,
-                }
-          }
+          expandable={{
+            expandedRowRender: (record) => renderExtra(record),
+            expandRowByClick: true,
+          }}
+          expandIcon={isFlyout ? () => <></> : undefined}
         >
           <Table.Column<QuotaData>
             key="key"

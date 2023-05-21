@@ -21,6 +21,7 @@ import {
   Text,
 } from "@cocalc/frontend/components";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
+import { file_options } from "@cocalc/frontend/editor-tmp";
 import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import {
@@ -64,8 +65,12 @@ export function NewFlyout({
 
   function makeNewFilename() {
     const fullname = default_filename(ext, project_id);
-    const { name } = separate_file_extension(fullname);
-    setFilename(name);
+    if (ext != "/") {
+      const { name } = separate_file_extension(fullname);
+      setFilename(name);
+    } else {
+      setFilename(`${fullname.slice(0, fullname.length - 2)}/`);
+    }
   }
 
   useEffect(() => {
@@ -80,28 +85,43 @@ export function NewFlyout({
     }
   }, [ext, manual, selected]);
 
+  const isFile = !(filename && filename.endsWith("/"));
+
   // if name is entered manual and contains an extension, set the ext to it
   useEffect(() => {
     if (manual) {
-      const { ext: newExt } = separate_file_extension(filename);
-      if (newExt) {
-        setExt(newExt);
+      if (isFile) {
+        const { ext: newExt } = separate_file_extension(filename);
+        if (newExt) {
+          setExt(newExt);
+        } else {
+          setExt(DEFAULT_EXT);
+        }
       } else {
-        setExt(DEFAULT_EXT);
+        setExt("/");
       }
     }
   }, [filename, manual]);
 
   async function createFile() {
     if (!filename) return;
-    const name = `${filename}.${ext}`;
+    const name = isFile ? `${filename}.${ext}` : `${filename}/`;
     try {
       setCreating(true);
-      await actions?.create_file({
-        name,
-        ext,
-        current_path,
-      });
+      if (isFile) {
+        await actions?.create_file({
+          name,
+          ext,
+          current_path,
+        });
+      } else {
+        await actions?.create_folder({
+          name,
+          current_path,
+        });
+      }
+      setManual(false);
+      makeNewFilename();
     } finally {
       setCreating(false);
     }
@@ -132,7 +152,7 @@ export function NewFlyout({
   function fileIcon() {
     const name: IconName = isNewFiletypeIconName(ext)
       ? NEW_FILETYPE_ICONS[ext!]
-      : "file";
+      : file_options(`foo.${ext}`)?.icon ?? "file";
     return <Icon name={name} style={{ fontSize: "150%" }} />;
   }
 
@@ -171,7 +191,7 @@ export function NewFlyout({
     return (
       <NewFileDropdown
         mode="flyout"
-        create_file={(ext) => ext && setExt(ext)}
+        create_file={(ext) => ext && ext}
         title={`.${ext}`}
         hide_down={true}
         button={false}
@@ -215,7 +235,7 @@ export function NewFlyout({
             disabled={creating || !filename || !ext}
             onClick={createFile}
           >
-            Create File
+            Create {isFile ? "File" : "Folder"}
           </Button>
           <Text type="secondary" style={{ textAlign: "center" }}>
             (or click the type button twice)

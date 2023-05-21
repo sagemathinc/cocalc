@@ -94,6 +94,7 @@ export function HomeRecentFiles({
         return (
           <>
             {" "}
+            {/* this space is intentional! */}
             <Text type="secondary">
               by <User user_map={user_map} account_id={account_id} />{" "}
               <TimeAgo date={time} />
@@ -101,21 +102,13 @@ export function HomeRecentFiles({
           </>
         );
       case "flyout":
-        return (
-          <>
-            {/*<br />
-             <Text type="secondary">
-              <TimeAgo date={time} /> by{" "}
-              <User user_map={user_map} account_id={account_id} />
-            </Text> */}
-          </>
-        );
+        return <></>;
       default:
         unreachable(mode);
     }
   }
 
-  function renderItem(entry) {
+  function renderItem(entry: OpenedFile) {
     const time = entry.time;
     const account_id = entry.account_id;
     const path = entry.filename;
@@ -132,7 +125,7 @@ export function HomeRecentFiles({
           full={true}
           style={
             mode === "flyout"
-              ? { color: COLORS.GRAY_M }
+              ? { color: COLORS.GRAY_D, fontWeight: "normal" }
               : { fontWeight: "bold" }
           }
           path={path}

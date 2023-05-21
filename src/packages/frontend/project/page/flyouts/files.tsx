@@ -23,12 +23,12 @@ import {
 import { Icon, Loading } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { ListingItem } from "@cocalc/frontend/project/explorer/types";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
 import track from "@cocalc/frontend/user-tracking";
 import { path_to_file, should_open_in_foreground } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { EditorFileInfoDropdown } from "../../../editors/file-info-dropdown";
 
 const ITEM_LINE_STYLE: CSS = {
   display: "flex",
@@ -63,6 +63,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   }> = useTypedRedux({ project_id }, "active_file_sort");
   const hidden = useTypedRedux({ project_id }, "show_hidden");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
+  const [search, setSearch] = useState<string>("");
 
   // TODO: display_listing is usually undefined. WHY?
   // const displayed_listing: {
@@ -70,8 +71,6 @@ export function FilesFlyout({ project_id }): JSX.Element {
   //   error: any;
   //   file_map: Map<string, any>;
   // } = useTypedRedux({ project_id }, "displayed_listing");
-
-  const [search, setSearch] = useState<string>("");
 
   // copied roughly from directoy-selector.tsx
   useEffect(() => {

@@ -9,12 +9,23 @@ import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { Alert, Button, Form, Modal, Popconfirm, Switch, Table } from "antd";
 
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
-import { CSS, redux } from "@cocalc/frontend/app-framework";
+import {
+  CSS,
+  ProjectActions,
+  Rendered,
+  redux,
+} from "@cocalc/frontend/app-framework";
 import { A, Loading, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
+import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
+import {
+  Process,
+  ProjectInfo as ProjectInfoType,
+} from "@cocalc/project/project-info/types";
 import { field_cmp, seconds2hms } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { RestartProject } from "../settings/restart-project";
+import { Channel } from "../websocket/types";
 import {
   AboutContent,
   CGroup,
@@ -23,10 +34,44 @@ import {
   ProjectProblems,
   SignalButtons,
 } from "./components";
-import { ProcessRow } from "./types";
+import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
 import { DETAILS_BTN_TEXT, SSH_KEYS_DOC } from "./utils";
 
-export function Full(props: Readonly<any>): JSX.Element {
+interface Props {
+  any_alerts: () => boolean;
+  cg_info: CGroupInfo;
+  chan: Channel | null;
+  render_disconnected: () => JSX.Element | undefined;
+  disconnected: boolean;
+  disk_usage: DUState;
+  error: JSX.Element | null;
+  status: string;
+  info: ProjectInfoType | undefined;
+  loading: boolean;
+  modal: string | Process | undefined;
+  project_actions: ProjectActions | undefined;
+  project_id: string;
+  project_state: string | undefined;
+  project_status: Immutable.Map<string, any> | undefined;
+  pt_stats: PTStats;
+  ptree: ProcessRow[] | undefined;
+  select_proc: (pids: number[]) => void;
+  selected: number[];
+  set_expanded: (keys: number[]) => void;
+  set_modal: (proc: string | Process | undefined) => void;
+  set_selected: (pids: number[]) => void;
+  show_explanation: boolean;
+  show_long_loading: boolean;
+  start_ts: number | undefined;
+  sync: WSProjectInfo | null;
+  render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
+  render_val: (
+    index: string,
+    to_str: (val) => Rendered | React.ReactText
+  ) => (val: number, proc: ProcessRow) => { props: any; children: any };
+}
+
+export function Full(props: Readonly<Props>): JSX.Element {
   const {
     any_alerts,
     cg_info,
