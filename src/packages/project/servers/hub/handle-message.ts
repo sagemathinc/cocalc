@@ -16,7 +16,7 @@ import { getClient } from "@cocalc/project/client";
 import { project_id } from "@cocalc/project/data";
 import { exec_shell_code } from "@cocalc/project/exec_shell_code";
 import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
-import jupyterExecute from "@cocalc/project/jupyter/stateless-api/execute";
+import jupyterExecute from "@cocalc/jupyter/stateless-api/execute";
 import { getLogger } from "@cocalc/project/logger";
 import handleNamedServer from "@cocalc/project/named-servers";
 import { print_to_pdf } from "@cocalc/project/print_to_pdf";

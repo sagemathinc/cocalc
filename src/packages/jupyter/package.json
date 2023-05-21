@@ -11,6 +11,7 @@
     "./nbgrader": "./dist/nbgrader/index.js",
     "./nbgrader/*": "./dist/nbgrader/*.js",
     "./pool/*": "./dist/pool/*.js",
+    "./stateless-api/*": "./dist/stateless-api/*.js",
     "./store/*": "./dist/store/*.js",
     "./types": "./dist/types/index.js",
     "./types/*": "./dist/types/*.js",
