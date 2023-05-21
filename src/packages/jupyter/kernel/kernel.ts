@@ -216,7 +216,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   private has_ensured_running: boolean = false;
 
   constructor(
-    name: string,
+    name: string | undefined,
     _path: string,
     _actions: JupyterActions | undefined,
     ulimit: string | undefined

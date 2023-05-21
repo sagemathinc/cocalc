@@ -4,7 +4,7 @@
  */
 
 export interface KernelParams {
-  name: string;
+  name?: string; // yes, this can be undefined since we fully support notebooks with *no* kernel at all defined.
   path: string; // filename of the ipynb corresponding to this kernel (doesn't have to actually exist)
   actions?: any; // optional redux actions object
   ulimit?: string;

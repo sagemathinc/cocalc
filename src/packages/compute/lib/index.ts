@@ -45,6 +45,16 @@ export function jupyter({
     cursors: false,
     persistent: true,
   });
+
+  syncdb.once("ready", () => {
+    syncdb.set({
+      type: "compute",
+      id: client.client_id(),
+      time: Date.now(),
+    });
+    syncdb.commit();
+  });
+
   log("initializing jupyter notebook redux...");
   initJupyterRedux(syncdb, client);
   const actions = redux.getEditorActions(project_id, path);

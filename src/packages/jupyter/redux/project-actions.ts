@@ -23,6 +23,9 @@ import { RunAllLoop } from "./run-all-loop";
 import nbconvertChange from "./handle-nbconvert-change";
 import type Client from "@cocalc/sync-client";
 import type { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
+import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
+
+const COMPUTE_THRESH_MS = 60 * 1000; // 60s
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
@@ -316,7 +319,7 @@ export class JupyterActions extends JupyterActions0 {
     dbg("make a new kernel");
 
     // No kernel wrapper object setup at all. Make one.
-    this.jupyter_kernel = this._client.jupyter_kernel({
+    this.jupyter_kernel = createJupyterKernel({
       name: kernel,
       path: this.store.get("path"),
       actions: this,
@@ -405,7 +408,7 @@ export class JupyterActions extends JupyterActions0 {
     });
   };
 
-  ensure_backend_kernel_is_running = async () => {
+  async ensure_backend_kernel_is_running() {
     const dbg = this.dbg("ensure_backend_kernel_is_running");
     if (this._backend_state == "ready") {
       dbg("in state 'ready', so kick it into gear");
@@ -425,7 +428,7 @@ export class JupyterActions extends JupyterActions0 {
       }
     };
     await this.syncdb.wait(is_running, 60);
-  };
+  }
 
   // manager_on_cell_change is called after a cell change has been
   // incorporated into the store by syncdb_cell_change.
@@ -1267,5 +1270,29 @@ export class JupyterActions extends JupyterActions0 {
 
   public handle_nbconvert_change(oldVal, newVal): void {
     nbconvertChange(this, oldVal?.toJS(), newVal?.toJS());
+  }
+
+  numComputeClients(): number {
+    const compute = this.syncdb.get({ type: "compute" });
+    if (compute.size == 0) {
+      // definitely no compute
+      return 0;
+    }
+    const now = Date.now();
+    let numClients = 0;
+    for (const node of compute) {
+      const time = node.get("time");
+      if (
+        typeof time != "number" ||
+        isFinite(time) ||
+        Math.abs(time - now) > COMPUTE_THRESH_MS
+      ) {
+        this.syncdb.delete({ type: "compute", id: node.get("id") });
+        this.syncdb.commit();
+      } else {
+        numClients += 1;
+      }
+    }
+    return numClients;
   }
 }

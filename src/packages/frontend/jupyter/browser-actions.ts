@@ -113,7 +113,8 @@ export class JupyterActions extends JupyterActions0 {
       // Stupid hack for now -- this just causes some activity so
       // that the syncdb syncs.
       // This should not be necessary, and may indicate a bug in the sync layer?
-      this.syncdb.set({ type: "user", id: 0, time: new Date().valueOf() });
+      // id has to be set here since it is a primary key
+      this.syncdb.set({ type: "user", id: 0, time: Date.now() });
       this.syncdb.commit();
 
       // If using nbgrader ensure document is fully updated.

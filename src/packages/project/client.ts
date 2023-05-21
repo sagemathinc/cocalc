@@ -47,10 +47,7 @@ import * as blobs from "./blobs";
 import { symmetric_channel } from "./browser-websocket/symmetric_channel";
 import { json } from "./common";
 import * as data from "./data";
-import { kernel as jupyter_kernel } from "@cocalc/jupyter/kernel";
-import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
 import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
-import type { KernelParams } from "@cocalc/jupyter/types/kernel";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
 import { get_listings_table } from "./sync/listings";
@@ -688,11 +685,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     path: string; // the path to the *worksheet* file
   }) {
     return sage_session.sage_session({ path, client: this });
-  }
-
-  // returns a Jupyter kernel session
-  public jupyter_kernel(opts: KernelParams): JupyterKernelInterface {
-    return jupyter_kernel(opts);
   }
 
   public async jupyter_kernel_info(): Promise<KernelSpec[]> {
