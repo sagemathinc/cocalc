@@ -93,6 +93,12 @@ importers:
 
   compute:
     dependencies:
+      '@cocalc/backend':
+        specifier: workspace:*
+        version: link:../backend
+      '@cocalc/jupyter':
+        specifier: workspace:*
+        version: link:../jupyter
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync
@@ -1185,6 +1191,9 @@ importers:
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync
+      '@cocalc/sync-client':
+        specifier: workspace:*
+        version: link:../sync-client
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util

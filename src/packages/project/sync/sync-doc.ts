@@ -17,7 +17,7 @@ import { SyncTable } from "@cocalc/sync/table";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
-import { Client } from "@cocalc/sync/editor/generic/types";
+import type Client from "@cocalc/sync-client";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension } from "@cocalc/util/misc";
 import { jupyter_backend } from "@cocalc/jupyter/kernel";

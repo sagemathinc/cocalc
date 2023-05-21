@@ -691,11 +691,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   }
 
   // returns a Jupyter kernel session
-  public jupyter_kernel(
-    opts: KernelParams & { client?: Client }
-  ): JupyterKernelInterface {
-    // TODO is opts.client needed?
-    opts.client = this;
+  public jupyter_kernel(opts: KernelParams): JupyterKernelInterface {
     return jupyter_kernel(opts);
   }
 

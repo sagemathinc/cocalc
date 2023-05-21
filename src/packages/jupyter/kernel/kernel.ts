@@ -78,6 +78,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import { redux } from "@cocalc/jupyter/redux/app";
 import { VERSION } from "@cocalc/jupyter/kernel/version";
 import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
+import type Client from "@cocalc/sync-client";
 
 const log = getLogger("jupyter");
 
@@ -103,11 +104,14 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
   R_MAKEVARS_USER: `${process.env.HOME}/.sage/R/Makevars.user`,
 });
 
-export function jupyter_backend(syncdb: SyncDB, client: any): void {
+export function jupyter_backend(syncdb: SyncDB, client: Client): void {
   const dbg = getLogger("jupyter_backend");
   dbg.debug();
 
   const project_id = client.client_id();
+  if (project_id == null) {
+    throw Error("client_id must be defined");
+  }
 
   // This path is the file we will watch for changes and save to, which is in the original
   // official ipynb format:

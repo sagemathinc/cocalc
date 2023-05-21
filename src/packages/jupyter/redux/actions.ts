@@ -91,7 +91,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     path: string,
     syncdb: SyncDB,
     store: any,
-    client: any
+    client: Client
   ): void {
     if (project_id == null || path == null) {
       // typescript should ensure this, but just in case.
