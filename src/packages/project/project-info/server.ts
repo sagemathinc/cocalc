@@ -9,6 +9,7 @@ about what's going on in a project.
 */
 
 import { delay } from "awaiting";
+import type { DiskUsage as DF_DiskUsage } from "diskusage";
 import { check as df } from "diskusage";
 import { EventEmitter } from "node:events";
 import { readFile, readdir, readlink } from "node:fs/promises";
@@ -35,9 +36,9 @@ import { getLogger } from "../logger";
 
 const L = getLogger("project-info:server").debug;
 
-function is_in_dev_project() {
-  return process.env.SMC_LOCAL_HUB_HOME != null;
-}
+// function is_in_dev_project() {
+//   return process.env.SMC_LOCAL_HUB_HOME != null;
+// }
 
 // this is a hard limit on the number of processes we gather, just to
 // be on the safe side to avoid processing too much data.
@@ -209,7 +210,6 @@ export class ProjectInfoServer extends EventEmitter {
   // you what the whole system is doing, all your processes,…
   // NOTE: most of this replaces kucalc.coffee
   private async cgroup({ timestamp }): Promise<CGroup | undefined> {
-    if (!is_in_dev_project() && !this.testing) return; // !getOptions().kucalc &&
     const [mem_stat_raw, cpu_raw, oom_raw, cfs_quota_raw, cfs_period_raw] =
       await Promise.all([
         readFile("/sys/fs/cgroup/memory/memory.stat", "utf8"),
@@ -258,7 +258,7 @@ export class ProjectInfoServer extends EventEmitter {
   // users home dir and /tmp. /tmp is a ram disk, which will count against
   // the overall memory limit!
   private async disk_usage(): Promise<DiskUsage> {
-    const convert = function (val) {
+    const convert = function (val: DF_DiskUsage) {
       return {
         total: bytes2MiB(val.total),
         free: bytes2MiB(val.free),
@@ -288,23 +288,27 @@ export class ProjectInfoServer extends EventEmitter {
   }
 
   // orchestrating where all the information is bundled up for an update
-  private async get_info(): Promise<ProjectInfo> {
-    const [uptime, boottime] = await this.uptime();
-    const timestamp = new Date().getTime();
-    const [processes, cgroup, disk_usage] = await Promise.all([
-      this.processes({ uptime, timestamp }),
-      this.cgroup({ timestamp }),
-      this.disk_usage(),
-    ]);
-    const info: ProjectInfo = {
-      timestamp,
-      processes,
-      uptime,
-      boottime,
-      cgroup,
-      disk_usage,
-    };
-    return info;
+  private async get_info(): Promise<ProjectInfo | undefined> {
+    try {
+      const [uptime, boottime] = await this.uptime();
+      const timestamp = new Date().getTime();
+      const [processes, cgroup, disk_usage] = await Promise.all([
+        this.processes({ uptime, timestamp }),
+        this.cgroup({ timestamp }),
+        this.disk_usage(),
+      ]);
+      const info: ProjectInfo = {
+        timestamp,
+        processes,
+        uptime,
+        boottime,
+        cgroup,
+        disk_usage,
+      };
+      return info;
+    } catch (err) {
+      this.dbg("get_info: error", err);
+    }
   }
 
   public stop() {
@@ -329,8 +333,8 @@ export class ProjectInfoServer extends EventEmitter {
     while (true) {
       //this.dbg(`listeners on 'info': ${this.listenerCount("info")}`);
       const info = await this.get_info();
-      this.last = info;
-      this.emit("info", info);
+      if (info != null) this.last = info;
+      this.emit("info", info ?? this.last);
       if (this.running) {
         await delay(1000 * this.delay_s);
       } else {
