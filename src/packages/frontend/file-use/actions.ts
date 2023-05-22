@@ -53,7 +53,7 @@ export class FileUseActions<T = FileUseState> extends Actions<
     this.setState({
       errors: this.get_store()
         .get_errors()
-        .push(fromJS({ time: webapp_client.server_time(), err: `${err}` })),
+        .push(fromJS({ time: webapp_client.server_time(), err: `${err}` }) as any),
     });
   }
 

@@ -38,7 +38,7 @@ import { JupyterActions } from "./browser-actions";
 import { get_help_links } from "./help-links";
 import { KeyboardShortcut } from "./keyboard-shortcuts";
 import Logo from "./logo";
-import { KernelSpec } from "./types";
+import { KernelSpec } from "@cocalc/jupyter/types";
 
 type MenuItemName = string | { name: string; display?: string; style?: object };
 
@@ -137,7 +137,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         ]);
         if (ext != null) {
           const m = capitalize(
-            backend_kernel_info.getIn(["language_info", "name"], "")
+            backend_kernel_info.getIn(["language_info", "name"], "") as any
           );
           script_entry = {
             name: ">nbconvert script",
@@ -385,7 +385,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         kernels_by_language.get(currentLang)?.toJS() ?? [],
         (name) => {
           const kernel = kernels_by_name.get(name);
-          return -kernel?.getIn(["metadata", "cocalc", "priority"]) ?? 0;
+          return -(kernel?.getIn(["metadata", "cocalc", "priority"]) as any) ?? 0;
         }
       );
     }
@@ -413,7 +413,7 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
           if (byPrio.length > 1) {
             entries.push(`<Change ${capitalize(currentLang)} kernel ...`);
             for (const name of byPrio) {
-              const kernel = kernels_by_name.get(name)?.toJS() as KernelSpec;
+              const kernel = kernels_by_name.get(name)?.toJS() as unknown as KernelSpec;
               if (kernel == null) continue;
               entries.push(render_kernel_item(kernel, "current"));
             }
@@ -434,9 +434,10 @@ export const TopMenubar: React.FC<TopMenubarProps> = React.memo(
         capitalize
       );
       for (const lang of langSorted) {
+        if(lang == null) continue;
         entries.push(`~${capitalize(lang)}...`);
         for (const name of getKernelOfLanguageByPriority(lang)) {
-          const kernel = kernels_by_name.get(name)?.toJS() as KernelSpec;
+          const kernel = kernels_by_name.get(name)?.toJS() as unknown as KernelSpec;
           const e = render_kernel_item(kernel, "all");
           if (typeof e === "string") continue;
           entries.push(e);

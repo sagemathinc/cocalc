@@ -10,7 +10,8 @@
     "./consts": "./dist/consts/index.js",
     "./sync/table": "./dist/sync/table/index.js",
     "./sync/editor/db": "./dist/sync/editor/db/index.js",
-    "./licenses/purchase/*": "./dist/licenses/purchase/*.js"
+    "./licenses/purchase/*": "./dist/licenses/purchase/*.js",
+    "./redux/*": "./dist/redux/*.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -36,11 +37,13 @@
     "dayjs": "^1.11.7",
     "events": "3.3.0",
     "get-random-values": "^1.2.0",
-    "immutable": "^3.8.2",
+    "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "prop-types": "^15.7.2",
+    "redux": "^4.2.1",
+    "reselect": "^4.1.8",
     "sha1": "^1.1.1",
     "underscore": "^1.12.1",
     "utility-types": "^3.10.0",

@@ -487,7 +487,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           (redux.getStore("projects") as any).get_my_group(this.project_id) ===
           "public";
 
-        const info = store.get("open_files").getIn([path, "component"]);
+        const info = store.get("open_files").getIn([path, "component"]) as any;
         if (info == null) {
           // shouldn't happen...
           return;
@@ -533,7 +533,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             // If a fragment identifier is set, we also jump there.
             const fragmentId = store
               .get("open_files")
-              .getIn([path, "fragmentId"]);
+              .getIn([path, "fragmentId"]) as any;
             if (fragmentId) {
               this.gotoFragment(path, fragmentId);
             }
@@ -710,7 +710,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
 
-    const path_data = store.get("open_files").getIn([opts.path, "component"]);
+    const path_data = store.get("open_files").getIn([opts.path, "component"]) as any;
     const is_public = path_data ? path_data.is_public : false;
 
     project_file.save(opts.path, this.redux, this.project_id, is_public);
@@ -839,7 +839,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           return;
         }
         // WARNING: Saving scroll position does NOT trigger a rerender. This is intentional.
-        const info = store!.get("open_files").getIn([path, "component"]);
+        const info = store!.get("open_files").getIn([path, "component"]) as any;
         info.scroll_position = scroll_position; // Yes, this mutates the store silently.
         return scroll_position;
       };
@@ -966,7 +966,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
   open_chat({ path, width = 0.7 }: { path: string; width?: number }): void {
-    const info = this.get_store()?.get("open_files").getIn([path, "component"]);
+    const info = this.get_store()?.get("open_files").getIn([path, "component"]) as any;
     if (info?.Editor == null) {
       // not opened in the foreground yet.
       this.set_chat_state(path, "pending");
@@ -1084,7 +1084,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const file_paths = store.get("open_files");
     file_paths.map((obj, path) => {
-      const component_data = obj.getIn(["component"]);
+      const component_data = obj.get("component");
       const is_public = component_data ? component_data.is_public : undefined;
       project_file.remove(path, this.redux, this.project_id, is_public);
     });
@@ -1101,7 +1101,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     const open_files = store.get("open_files");
-    const component_data = open_files.getIn([path, "component"]);
+    const component_data = open_files.getIn([path, "component"]) as any;
     if (component_data == null) return; // nothing to do since already closed.
     this.open_files?.delete(path);
     project_file.remove(
@@ -1838,7 +1838,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         configuration: next,
         available_features: feature_is_available(next),
         configuration_loading: false,
-      })
+      } as any)
     );
 
     return next.get(aspect) as Configuration;
@@ -3114,7 +3114,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       content,
       onOk: () => (response = "ok"),
       onCancel: () => (response = "cancel"),
-    });
+    }) as any;
     this.modal = modal;
     this.setState({
       modal,

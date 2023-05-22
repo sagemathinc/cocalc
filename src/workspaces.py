@@ -104,8 +104,11 @@ def all_packages() -> List[str]:
         'packages/cdn',  # packages/hub assumes this is built
         'packages/util',
         'packages/sync',
+        'packages/sync-client',
         'packages/backend',
-        'packages/project',  # frontend depend on project
+        'packages/jupyter',
+        'packages/compute',
+        'packages/project',  # frontend depends on project (and project on frontend!) right now...
         'packages/assets',
         'packages/frontend',  # static depends on frontend
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)

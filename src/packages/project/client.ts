@@ -33,7 +33,7 @@ import { join, join as path_join } from "node:path";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
-import { KernelSpec } from "@cocalc/frontend/jupyter/types";
+import { KernelSpec } from "@cocalc/jupyter/types";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
@@ -42,20 +42,22 @@ import { callback2, once } from "@cocalc/util/async-utils";
 import { PROJECT_HUB_HEARTBEAT_INTERVAL_S } from "@cocalc/util/heartbeat";
 import * as message from "@cocalc/util/message";
 import * as misc from "@cocalc/util/misc";
-import { CB } from "@cocalc/util/types/callback";
+import type { CB } from "@cocalc/util/types/callback";
 import * as blobs from "./blobs";
 import { symmetric_channel } from "./browser-websocket/symmetric_channel";
 import { json } from "./common";
 import * as data from "./data";
-import { JupyterKernel, kernel as jupyter_kernel } from "./jupyter/jupyter";
-import { get_kernel_data } from "./jupyter/kernel-data";
-import { KernelParams } from "./jupyter/types";
+import { kernel as jupyter_kernel } from "@cocalc/jupyter/kernel";
+import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
+import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
+import type { KernelParams } from "@cocalc/jupyter/types/kernel";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
 import { get_listings_table } from "./sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
 import { Watcher } from "./watcher";
+import initJupyter from "./jupyter/init";
 
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 
@@ -143,6 +145,8 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     }
 
     misc.bind_methods(this);
+
+    initJupyter();
   }
 
   // use to define a logging function that is cleanly used internally
@@ -689,7 +693,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // returns a Jupyter kernel session
   public jupyter_kernel(
     opts: KernelParams & { client?: Client }
-  ): JupyterKernel {
+  ): JupyterKernelInterface {
     // TODO is opts.client needed?
     opts.client = this;
     return jupyter_kernel(opts);
@@ -778,20 +782,19 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return await callback2(this.call, { message: mesg });
   }
 
-  // NOTE: returns false if the listings table isn't connected.
   public is_deleted(filename: string, _project_id: string): boolean {
     // project_id is ignored, of course
-    try {
-      const listings = get_listings_table();
-      if (listings == null) throw new Error("no listings table");
-      return listings.is_deleted(filename);
-    } catch (error1) {
-      // is_deleted can raise an exception if the table is
-      // not yet initialized, in which case we fall back
-      // to actually looking.  We have to use existsSync
-      // because is_deleted is not an async function.
-      return !fs.existsSync(join(HOME, filename));
+    // WE cannot depend on the listing table entirely because it only
+    // keeps information about the last n directories that were visited.
+    // If somebody is browsing around a lot, suddenly a file goes from
+    // known to be deleted to "we know nothing".
+    const x = get_listings_table()?.is_deleted(filename);
+    if (x != null) {
+      return x;
     }
+    // We have to use existsSync because is_deleted is
+    // not an async function (TODO?).
+    return !fs.existsSync(join(HOME, filename));
   }
 
   public async set_deleted(

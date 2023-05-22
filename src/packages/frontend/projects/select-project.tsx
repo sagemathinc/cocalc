@@ -76,7 +76,7 @@ export const SelectProject: React.FC<Props> = ({
         if (project_id != null && map.has(project_id)) {
           data.push({
             id: project_id,
-            title: map.getIn([project_id, "title"]),
+            title: map.getIn([project_id, "title"]) as string,
           });
           map = map.delete(project_id);
         }

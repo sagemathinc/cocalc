@@ -4,7 +4,7 @@ import { exec as exec0, spawn } from "child_process";
 import spawnAsync from "await-spawn";
 import * as fs from "fs";
 
-import { projects, root, BLOBSTORE } from "@cocalc/backend/data";
+import { projects, root, blobstore } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "@cocalc/backend/logger";
@@ -88,7 +88,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
     "--init",
     "project_init.sh",
     "--blobstore",
-    BLOBSTORE,
+    blobstore,
   ];
   winston.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`

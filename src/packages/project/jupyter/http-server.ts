@@ -12,18 +12,21 @@ kernels, sending signals, doing tab completions, and so on.
 
 import { Router } from "express";
 import * as os_path from "node:path";
-
-import Logger from "@cocalc/backend/logger";
-import { BlobStoreInterface } from "@cocalc/frontend/jupyter/project-interface";
+import getLogger from "@cocalc/backend/logger";
+import { BlobStoreInterface } from "@cocalc/jupyter/types/project-interface";
 import { startswith, to_json } from "@cocalc/util/misc";
-import { exists } from "./async-utils-node";
-import { get_existing_kernel } from "./jupyter";
-import { BlobStoreDisk } from "./jupyter-blobs-disk";
-import { get_blob_store } from "./jupyter-blobs-get";
-import { BlobStoreSqlite } from "./jupyter-blobs-sqlite";
-import { get_kernel_data } from "./kernel-data";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
+import { get_existing_kernel } from "@cocalc/jupyter/kernel";
+import {
+  BlobStoreDisk,
+  get_blob_store,
+  BlobStoreSqlite,
+} from "@cocalc/jupyter/blobs";
+import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
+import { get_ProjectStatusServer } from "@cocalc/project/project-status/server";
+import { delay } from "awaiting";
 
-const winston = Logger("jupyter-http-server");
+const log = getLogger("jupyter-http-server");
 
 const BASE = "/.smc/jupyter/";
 
@@ -121,10 +124,23 @@ function jupyter_kernel_info_handler(router): void {
 }
 
 export default async function init(): Promise<Router> {
-  // this might take infinitely long, see get_blob_store() for details
-  const blob_store: BlobStoreSqlite | BlobStoreDisk = await get_blob_store();
+  // this might take infinitely long, obviously:
+  let blob_store: BlobStoreSqlite | BlobStoreDisk;
+  let d = 3000;
+  while (true) {
+    try {
+      blob_store = await get_blob_store();
+      get_ProjectStatusServer().clearComponentAlert("BlobStore");
+      break;
+    } catch (err) {
+      get_ProjectStatusServer().setComponentAlert("BlobStore");
+      log.warn(`unable to instantiate BlobStore -- ${err}`);
+    }
+    await delay(d);
+    d = Math.min(30000, 1.2 * d);
+  }
 
-  winston.debug("got blob store, setting up jupyter http server");
+  log.debug("got blob store, setting up jupyter http server");
   const router = Router();
 
   // Install handling for the blob store

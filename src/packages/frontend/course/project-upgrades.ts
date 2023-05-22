@@ -38,7 +38,7 @@ export function available_upgrades(opts: {
       // do not count projects in course
       return;
     }
-    const upgrades = project.getIn(["users", opts.account_id, "upgrades"]);
+    const upgrades = project.getIn(["users", opts.account_id, "upgrades"]) as any;
     if (upgrades != null) {
       available = map_diff(available as any, upgrades.toJS());
     }
@@ -60,7 +60,7 @@ export function current_student_project_upgrades(opts: {
     */
   const other = {};
   for (const project_id in opts.student_project_ids) {
-    const users = opts.project_map.getIn([project_id, "users"]);
+    const users = opts.project_map.getIn([project_id, "users"]) as any;
     if (users == null) {
       continue;
     }
@@ -157,7 +157,7 @@ export function upgrade_plan(opts: {
       "users",
       opts.account_id,
       "upgrades",
-    ]);
+    ]) as any;
     const alloc = upgrades != null ? upgrades.toJS() : {};
     let change = false;
     for (quota in opts.upgrade_goal) {

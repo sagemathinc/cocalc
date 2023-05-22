@@ -16,7 +16,7 @@ import { ProjectClient } from "./project";
 import { AdminClient } from "./admin";
 import { OpenAIClient } from "./openai";
 import { JupyterClient } from "./jupyter";
-import { SyncClient } from "./sync";
+import { SyncClient } from "@cocalc/sync/client/sync-client";
 import { UsersClient } from "./users";
 import { FileClient } from "./file";
 import { TrackingClient } from "./tracking";
@@ -77,9 +77,9 @@ export interface WebappClient extends EventEmitter {
   is_connected: () => boolean;
   query: Query; // TODO typing
   query_cancel: Function;
-  is_deleted: Function;
+  is_deleted: (filename: string, project_id: string) => boolean;
   set_deleted: Function;
-  mark_file: Function;
+  mark_file: (opts: any) => Promise<void>;
 
   set_connected?: Function;
   version: Function;
@@ -154,8 +154,8 @@ class Client extends EventEmitter implements WebappClient {
   query: typeof QueryClient.prototype.query;
   query_cancel: Function;
 
-  is_deleted: Function;
-  mark_file: Function;
+  is_deleted: (filename: string, project_id: string)=> boolean;
+  mark_file: (opts: any) => Promise<void>;
 
   idle_reset: Function;
   latency: Function;

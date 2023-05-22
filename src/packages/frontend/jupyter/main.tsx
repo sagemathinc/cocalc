@@ -42,8 +42,8 @@ import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
 import { TopButtonbar } from "./top-buttonbar";
 import { TopMenubar } from "./top-menubar";
-import { NotebookMode, Scroll } from "./types";
-import { Kernels as KernelsType } from "./util";
+import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
+import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import * as chatgpt from "./chatgpt";
 import KernelWarning from "./kernel-warning";
 

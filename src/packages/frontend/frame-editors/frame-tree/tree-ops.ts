@@ -302,7 +302,7 @@ function split_the_leaf(
     }
   }
   // 2. Make node with these two leafs
-  let node = fromJS({ direction, id: generate_id(ids), type: "node" });
+  let node = fromJS({ direction, id: generate_id(ids), type: "node" }) as ImmutableFrameTree;
   if (first) {
     node = node.set("first", leaf2);
     node = node.set("second", leaf);
@@ -366,8 +366,8 @@ export function new_frame(
     direction,
     type: "node",
     [first ? "first" : "second"]: { type, id: generate_id(ids) },
-  });
-  return newTree.set(first ? "second" : "first", tree);
+  }) as ImmutableFrameTree;
+  return newTree.set(first ? "second" : "first", tree) as ImmutableFrameTree;
 }
 
 export function is_leaf_id(tree: ImmutableFrameTree, id: string): boolean {

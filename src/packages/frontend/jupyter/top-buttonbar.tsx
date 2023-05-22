@@ -20,7 +20,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { capitalize, endswith } from "@cocalc/util/misc";
-import { Cells, CellType, Usage } from "./types";
+import { Cells, CellType, Usage } from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
 
 type ButtonDescription =
@@ -180,7 +180,7 @@ export const TopButtonbar: React.FC<Props> = React.memo((props: Props) => {
 
   function render_select_cell_type() {
     const cell_type =
-      sel_ids.size > 1 ? "multi" : cells.getIn([cur_id, "cell_type"], "code");
+      sel_ids.size > 1 ? "multi" : cells.getIn([cur_id, "cell_type"], "code") as string;
     const title = cell_type_title(cell_type);
 
     const items: MenuItems = [

@@ -108,7 +108,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
       "editor_state",
       terminal_id,
       "cwd",
-    ]);
+    ]) as string | undefined;
     if (next_cwd != null && cwd != next_cwd) {
       set_cwd(next_cwd);
       project_actions?.fetch_directory_listing({ path: cwd2path(next_cwd) });

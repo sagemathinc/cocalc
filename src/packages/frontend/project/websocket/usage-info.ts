@@ -9,7 +9,7 @@ import { SyncTable } from "@cocalc/sync/table";
 import { webapp_client } from "../../webapp-client";
 import { once } from "@cocalc/util/async-utils";
 import { merge } from "@cocalc/util/misc";
-import { ImmutableUsageInfo } from "@cocalc/project/usage-info/types";
+import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
 
 type State = "init" | "ready" | "closed";
 

@@ -47,6 +47,17 @@
     {
       "name": "assets",
       "path": "packages/assets"
+    },
+    {
+"name": "sync-client",
+      "path": "packages/sync-client"
+    },
+    {"name": "jupyter",
+      "path": "packages/jupyter"
+    },
+    {
+"name": "compute",
+      "path": "packages/compute"
     }
   ],
   "settings": {

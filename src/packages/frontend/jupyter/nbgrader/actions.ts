@@ -13,7 +13,6 @@ import { clear_hidden_tests } from "./clear-hidden-tests";
 import { clear_mark_regions } from "./clear-mark-regions";
 import clearSolution from "./clear-solutions";
 import { set_checksum } from "./compute-checksums";
-import { NBGraderStore } from "./store";
 import { ImmutableMetadata, Metadata } from "./types";
 
 export class NBGraderActions {
@@ -23,9 +22,6 @@ export class NBGraderActions {
   constructor(jupyter_actions, redux) {
     this.jupyter_actions = jupyter_actions;
     this.redux = redux;
-    this.jupyter_actions.store.nbgrader = new NBGraderStore(
-      jupyter_actions.store
-    );
   }
 
   public close(): void {
@@ -39,7 +35,7 @@ export class NBGraderActions {
     let changed: boolean = false; // did something change.
     cells.forEach((cell, id: string): void => {
       if (cell == null) return;
-      const nbgrader = cell.getIn(["metadata", "nbgrader"]);
+      const nbgrader = cell.getIn(["metadata", "nbgrader"]) as any;
       if (nbgrader == null || nbgrader.get("schema_version") === 3) return;
       // Doing this set
       // make the actual change via the syncdb mechanism (NOT updating cells directly; instead
@@ -368,7 +364,7 @@ export class NBGraderActions {
     // "metadata":{"nbgrader":{"locked":true,...
     //console.log("assign_lock_readonly_cells");
     this.jupyter_actions.store.get("cells").forEach((cell) => {
-      const nbgrader = cell?.getIn(["metadata", "nbgrader"]);
+      const nbgrader = cell?.getIn(["metadata", "nbgrader"]) as any;
       if (!nbgrader) return;
 
       // We don't allow student to delete *any* cells with any
@@ -398,7 +394,7 @@ export class NBGraderActions {
     let changed: boolean = false; // did something change.
     cells.forEach((cell, id: string): void => {
       if (cell == null) return;
-      const nbgrader = cell.getIn(["metadata", "nbgrader"]);
+      const nbgrader = cell.getIn(["metadata", "nbgrader"]) as any;
       if (nbgrader == null) return;
       let grade_id = nbgrader.get("grade_id");
       if (grade_ids.has(grade_id)) {

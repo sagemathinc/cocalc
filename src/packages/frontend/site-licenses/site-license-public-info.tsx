@@ -77,7 +77,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   useEffect(() => {
     // Optimization: check in redux store for first approximation of
     // info already available locally
-    let infos = redux.getStore("billing").getIn(["managed_licenses"]);
+    let infos = redux.getStore("billing").get("managed_licenses");
     if (infos != null) {
       const infos2 = infos.toJS() as { [license_id: string]: Info };
       // redux store *only* has entries that are managed.

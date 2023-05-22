@@ -590,7 +590,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   check_for_fatal_error(): void {
     const build_logs: BuildLogs = this.store.get("build_logs");
     if (!build_logs) return;
-    const errors = build_logs.getIn(["latex", "parse", "errors"]);
+    const errors = build_logs.getIn(["latex", "parse", "errors"]) as any;
     if (errors === undefined || errors.size < 1) return;
     const last_error = errors.get(errors.size - 1);
     let s = last_error.get("message") + last_error.get("content");
@@ -1498,7 +1498,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     const contents = fromJS(
       parseTableOfContents(this._syncstring.to_str() ?? "")
-    );
+    ) as any;
     this.setState({ contents });
   }
 

@@ -344,7 +344,7 @@ export class SyncDoc extends EventEmitter {
       this.file_use_interval = 60 * 1000;
     }
 
-    if (!this.file_use_interval || !this.client.is_user()) {
+    if (!this.file_use_interval || this.client.is_project()) {
       // file_use_interval has to be nonzero, and we only do
       // this for browser user.
       return;
@@ -778,7 +778,7 @@ export class SyncDoc extends EventEmitter {
     if (this.state == "closed") {
       return;
     }
-    if (this.client.is_user() && this.state == "ready") {
+    if (!this.client.is_project() && this.state == "ready") {
       try {
         await this.save_to_disk();
       } catch (err) {
@@ -882,7 +882,7 @@ export class SyncDoc extends EventEmitter {
       await once(this.client, "connected");
     }
 
-    if (this.client.is_user() && !this.client.is_signed_in()) {
+    if (!this.client.is_project() && !this.client.is_signed_in()) {
       await once(this.client, "signed_in");
     }
 
@@ -1088,7 +1088,7 @@ export class SyncDoc extends EventEmitter {
     dbg();
     this.assert_not_closed("wait_until_fully_ready");
 
-    if (this.client.is_user() && this.init_error()) {
+    if (!this.client.is_project() && this.init_error()) {
       // init is set and is in error state.  Give the backend a few seconds
       // to try to fix this error before giving up.  The browser client
       // can close and open the file to retry this (as instructed).
@@ -1128,7 +1128,11 @@ export class SyncDoc extends EventEmitter {
     }
 
     assertDefined(this.patch_list);
-    if (this.client.is_user() && this.patch_list.count() === 0 && init.size) {
+    if (
+      !this.client.is_project() &&
+      this.patch_list.count() === 0 &&
+      init.size
+    ) {
       dbg("waiting for patches for nontrivial file");
       // normally this only happens in a later event loop,
       // so force it now.
@@ -1429,7 +1433,7 @@ export class SyncDoc extends EventEmitter {
 
   private async init_cursors(): Promise<void> {
     const dbg = this.dbg("init_cursors");
-    if (!this.client.is_user()) {
+    if (this.client.is_project()) {
       dbg("done -- only users care about cursors.");
       return;
     }
@@ -1528,7 +1532,8 @@ export class SyncDoc extends EventEmitter {
     let map = this.cursor_map;
     if (
       map.has(account_id) &&
-      this.cursor_last_time >= map.getIn([account_id, "time"])
+      this.cursor_last_time >=
+        (map.getIn([account_id, "time"], new Date(0)) as Date)
     ) {
       map = map.delete(account_id);
     }
@@ -1536,7 +1541,7 @@ export class SyncDoc extends EventEmitter {
       // Remove any old cursors, where "old" is by default more than 1 minute old; this is never useful.
       const cutoff = server_minutes_ago(oldMinutes);
       for (const [a] of map as any) {
-        if (map.getIn([a, "time"]) < cutoff) {
+        if ((map.getIn([a, "time"], new Date(0)) as Date) < cutoff) {
           map = map.delete(a);
         }
       }
@@ -2396,7 +2401,9 @@ export class SyncDoc extends EventEmitter {
     if (this.state !== "ready") {
       return;
     }
-    return this.syncstring_table_get_one().getIn(["save", "hash"]);
+    return this.syncstring_table_get_one().getIn(["save", "hash"]) as
+      | number
+      | undefined;
   }
 
   /* Return hash of the live version of the document,
@@ -2496,7 +2503,7 @@ export class SyncDoc extends EventEmitter {
     // First make sure any changes are saved to the database.
     // One subtle case where this matters is that loading a file
     // with \r's into codemirror changes them to \n...
-    if (this.client.is_user()) {
+    if (!this.client.is_project()) {
       dbg("browser client -- sending any changes over network");
       await this.save();
       dbg("save done; now do actual save to the *disk*.");
@@ -2513,7 +2520,7 @@ export class SyncDoc extends EventEmitter {
       }
     }
 
-    if (this.client.is_user()) {
+    if (!this.client.is_project()) {
       dbg("now wait for the save to disk to finish");
       this.assert_is_ready("save_to_disk - waiting to finish");
       await this.wait_for_save_to_disk_done();
@@ -2558,7 +2565,7 @@ export class SyncDoc extends EventEmitter {
       return done;
     }
 
-    let last_err = undefined;
+    let last_err : string | undefined = undefined;
     const f = async () => {
       dbg("f");
       if (
@@ -2582,7 +2589,9 @@ export class SyncDoc extends EventEmitter {
         dbg("not ready or deleted - no longer trying to save.");
         return;
       }
-      const err = this.syncstring_table_get_one().getIn(["save", "error"]);
+      const err = this.syncstring_table_get_one().getIn(["save", "error"]) as
+        | string
+        | undefined;
       if (err) {
         dbg("error", err);
         last_err = err;
@@ -2623,7 +2632,7 @@ export class SyncDoc extends EventEmitter {
   private async save_to_disk_aux(): Promise<void> {
     this.assert_is_ready("save_to_disk_aux");
 
-    if (this.client.is_user()) {
+    if (!this.client.is_project()) {
       return await this.save_to_disk_user();
     }
 

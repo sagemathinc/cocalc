@@ -210,7 +210,7 @@ function ChatIndicatorTab({ activeTab, project_id }): JSX.Element | null {
     // bug -- tab is not a file tab.
     return null;
   }
-  const chatState = openFileInfo.getIn([path, "chatState"]);
+  const chatState = openFileInfo.getIn([path, "chatState"]) as any;
   return (
     <div style={INDICATOR_STYLE}>
       <ChatIndicator

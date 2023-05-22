@@ -252,7 +252,7 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
 // were written with that unlikely assumption on their knowledge of project_id.
 type Hook = (project_id?: string) => StudentProjectFunctionality;
 export const useStudentProjectFunctionality: Hook = (project_id?: string) => {
-  const project_map = useTypedRedux("projects", "project_map");
+  const project_map = useTypedRedux("projects", "project_map") as any;
   const [state, setState] = useState<StudentProjectFunctionality>(
     project_map
       ?.getIn([project_id ?? "", "course", "student_project_functionality"])

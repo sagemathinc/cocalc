@@ -20,7 +20,7 @@ import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { Client } from "@cocalc/sync/editor/generic/types";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension } from "@cocalc/util/misc";
-import { jupyter_backend } from "../jupyter/jupyter";
+import { jupyter_backend } from "@cocalc/jupyter/kernel";
 import { EventEmitter } from "events";
 
 const COCALC_EPHEMERAL_STATE: boolean =

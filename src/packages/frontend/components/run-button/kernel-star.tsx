@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { KERNEL_POPULAR_THRESHOLD } from "@cocalc/frontend/jupyter/util";
+import { KERNEL_POPULAR_THRESHOLD } from "@cocalc/jupyter/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "../icon";
 

@@ -3,15 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { JupyterActions } from "../../jupyter/browser-actions";
-import { JupyterStore, initial_jupyter_store_state } from "../../jupyter/store";
-
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { JupyterStore, initial_jupyter_store_state } from "@cocalc/jupyter/redux/store";
 import { syncdb2 as new_syncdb } from "../generic/client";
-
-import { webapp_client } from "../../webapp-client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { meta_file } from "@cocalc/util/misc";
-import { alert_message } from "../../alerts";
-
+import { alert_message } from "@cocalc/frontend/alerts";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 
 export function redux_name(name: string): string {

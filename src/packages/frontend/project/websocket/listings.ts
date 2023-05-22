@@ -108,7 +108,7 @@ export class Listings extends EventEmitter {
 
     const x = this.get_record(path);
     if (x == null || x.get("error")) return;
-    return x.get("listing")?.toJS();
+    return x.get("listing")?.toJS() as any;
   }
 
   public async get_deleted(path: string): Promise<List<string> | undefined> {
@@ -259,7 +259,7 @@ export class Listings extends EventEmitter {
     if (this.state != "ready") {
       const x = await this.get_using_database(path);
       if (x == null) return x;
-      return fromJS(x);
+      return fromJS(x) as any;
     }
     const x = this.get_record(path);
     if (x == null) return x;

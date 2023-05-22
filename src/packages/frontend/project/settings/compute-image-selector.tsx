@@ -70,7 +70,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   const GROUPS: string[] = software_envs.get("groups").toJS();
 
   function compute_image_info(name, type) {
-    return computeEnvs.getIn([name, type]);
+    return computeEnvs.get(name)?.get(type);
   }
 
   function compute_image_title(name) {

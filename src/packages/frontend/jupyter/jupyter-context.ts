@@ -1,4 +1,4 @@
-import type { KernelSpec } from "./nbviewer/parse";
+import type { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
 import { createContext, useContext } from "react";
 
 interface IJupyterContext {

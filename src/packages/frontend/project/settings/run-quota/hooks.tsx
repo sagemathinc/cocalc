@@ -42,7 +42,7 @@ export function useRunQuota(
 ): DisplayQuota {
   const [runQuota, setRunQuota] = useState<DisplayQuota>({});
   const project_map = useTypedRedux("projects", "project_map");
-  const rq = project_map?.getIn([project_id, "run_quota"]);
+  const rq = project_map?.get(project_id)?.get("run_quota");
   // NOTE: even if project is NOT running, we do know the run quota
   // the problem is this information is not accurate, because only upon
   // startup the validity of a license is determined.
@@ -114,12 +114,12 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
   const project_status = useTypedRedux({ project_id }, "status");
 
   const project_map = useTypedRedux("projects", "project_map");
-  const last_edited: Date | undefined = project_map?.getIn([
-    project_id,
-    "last_edited",
-  ]);
-  const runQuota: Map<string, number | List<object>> | undefined =
-    project_map?.getIn([project_id, "run_quota"]);
+  const last_edited: Date | undefined = project_map
+    ?.get(project_id)
+    ?.get("last_edited");
+  const runQuota: Map<string, number | List<object>> | undefined = project_map
+    ?.get(project_id)
+    ?.get("run_quota");
 
   const [currentUsage, setCurrentUsage] = useState<CurrentUsage>({});
 

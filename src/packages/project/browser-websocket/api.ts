@@ -14,18 +14,13 @@
 //  -- one request
 //  -- one response
 
-import { reuseInFlight } from "async-await-utils/hof";
-
-import { Mesg } from "@cocalc/frontend/project/websocket/types";
 import { getClient } from "@cocalc/project/client";
 import { get_configuration } from "../configuration";
 import { run_formatter, run_formatter_string } from "../formatters";
 import { nbconvert as jupyter_nbconvert } from "../jupyter/convert";
 import { lean, lean_channel } from "../lean/server";
-import { nbgrader } from "../nbgrader/api";
-import { jupyter_strip_notebook } from "../nbgrader/jupyter-parse";
-import { jupyter_run_notebook } from "../nbgrader/jupyter-run";
-import { project_info_ws } from "../project-info";
+import { jupyter_strip_notebook } from "@cocalc/jupyter/nbgrader/jupyter-parse";
+import { jupyter_run_notebook } from "@cocalc/jupyter/nbgrader/jupyter-run";
 import { synctable_channel } from "../sync/server";
 import { syncdoc_call } from "../sync/sync-doc";
 import { terminal } from "../terminal/server";
@@ -35,6 +30,10 @@ import { delete_files } from "./delete-files";
 import { eval_code } from "./eval-code";
 import { move_files, rename_file } from "./move-files";
 import { realpath } from "./realpath";
+import { project_info_ws } from "../project-info";
+import { Mesg } from "@cocalc/frontend/project/websocket/types";
+import { reuseInFlight } from "async-await-utils/hof";
+import query from "./query";
 import { browser_symmetric_channel } from "./symmetric_channel";
 
 import { getLogger } from "@cocalc/project/logger";
@@ -86,7 +85,7 @@ async function handleApiCall0(data: Mesg): Promise<any> {
     case "listing":
       return await listing(data.path, data.hidden);
     case "delete_files":
-      return await delete_files(data.paths, log);
+      return await delete_files(data.paths);
     case "move_files":
       return await move_files(data.paths, data.dest, log);
     case "rename_file":
@@ -105,14 +104,14 @@ async function handleApiCall0(data: Mesg): Promise<any> {
       return await jupyter(data.path, data.endpoint, data.query);
     case "exec":
       return await exec(data.opts);
+    case "query":
+      return await query(client, data.opts);
     case "eval_code":
       return eval_code(data.code);
     case "terminal":
       return await terminal(primus, log, data.path, data.options);
     case "lean":
       return await lean(client, primus, log, data.opts);
-    case "nbgrader":
-      return await nbgrader(client, log, data.opts);
     case "jupyter_strip_notebook":
       return await jupyter_strip_notebook(data.ipynb_path);
     case "jupyter_nbconvert":
@@ -160,7 +159,7 @@ async function listing(
   return await get_listing(path, hidden);
 }
 
-import { handle_request as jupyter } from "../jupyter/websocket-api";
+import { handle_request as jupyter } from "@cocalc/jupyter/kernel/websocket-api";
 
 // Execute code
 import { executeCode } from "@cocalc/backend/execute-code";

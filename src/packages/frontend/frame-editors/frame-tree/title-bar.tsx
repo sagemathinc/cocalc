@@ -237,8 +237,10 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     "hide_button_tooltips"
   );
 
+  const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
   const getTourRef = (name: string) => {
+    if (disableTourRefs.current) return null;
     if (tourRefs.current[name] == null) {
       tourRefs.current[name] = { current: null };
     }
@@ -424,7 +426,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     return (
       <div
         key="control"
-        style={{ overflow: "hidden" }}
+        style={{ overflow: "hidden", display: "inline-block" }}
         ref={getTourRef("control")}
       >
         <ButtonGroup style={style} key={"close"}>
@@ -825,7 +827,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     }
     if (v.length > 0) {
       return (
-        <div key="copy" ref={getTourRef("copy")}>
+        <div
+          key="copy"
+          ref={getTourRef("copy")}
+          style={{ display: "inline-block" }}
+        >
           <ButtonGroup>{v}</ButtonGroup>
         </div>
       );
@@ -834,7 +840,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   function render_zoom_group(): Rendered {
     return (
-      <div key="zoom" ref={getTourRef("zoom")}>
+      <div
+        key="zoom"
+        ref={getTourRef("zoom")}
+        style={{ display: "inline-block" }}
+      >
         <AntdButton.Group>
           {render_set_zoom()}
           {render_zoom_out()}
@@ -1058,7 +1068,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }}
         style={{ border: "1px solid rgb(217, 217, 217)", ...button_style() }}
       >
-        <div ref={getTourRef("tour")}>
+        <div ref={getTourRef("tour")} style={{ display: "inline-block" }}>
           <Icon name="map" />
           <VisibleMDLG>{labels ? " Tour" : undefined}</VisibleMDLG>
         </div>
@@ -1088,7 +1098,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <div key="help" ref={getTourRef("help")}>
+      <div
+        key="help"
+        ref={getTourRef("help")}
+        style={{ display: "inline-block" }}
+      >
         <Button
           title={"Show documentation for working with this editor"}
           bsSize={button_size()}
@@ -1118,7 +1132,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       ...props.editor_spec[props.type].guide_info,
     };
     return (
-      <div key="guide" ref={getTourRef("guide")}>
+      <div
+        key="guide"
+        ref={getTourRef("guide")}
+        style={{ display: "inline-block" }}
+      >
         <Button
           title={descr}
           bsSize={button_size()}
@@ -1404,6 +1422,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       <div
         key={"kick_other_users_out"}
         ref={getTourRef("kick_other_users_out")}
+        style={{ display: "inline-block" }}
       >
         <Button
           bsSize={button_size()}
@@ -1430,7 +1449,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       title = "Pause";
     }
     return (
-      <div key="pause" ref={getTourRef("pause")}>
+      <div
+        key="pause"
+        ref={getTourRef("pause")}
+        style={{ display: "inline-block" }}
+      >
         <Button
           bsSize={button_size()}
           bsStyle={style}
@@ -1455,7 +1478,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       return;
     }
     return (
-      <div key="edit_init_script" ref={getTourRef("edit_init_script")}>
+      <div
+        key="edit_init_script"
+        ref={getTourRef("edit_init_script")}
+        style={{ display: "inline-block" }}
+      >
         <Button
           bsSize={button_size()}
           onClick={() => props.actions.edit_init_script(props.id)}
@@ -1487,7 +1514,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         okText={info.confirm}
         cancelText={"Cancel"}
       >
-        <div ref={getTourRef("clear")}>
+        <div ref={getTourRef("clear")} style={{ display: "inline-block" }}>
           <Button bsSize={button_size()} title={"Clear"}>
             {icon}{" "}
           </Button>
@@ -1662,7 +1689,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_buttons(forceLabels?: boolean, style?: CSS): Rendered {
+  function render_buttons(
+    forceLabels?: boolean,
+    style?: CSS,
+    noRefs?
+  ): Rendered {
     if (!(props.is_only || props.is_full)) {
       // When in split view, we let the buttonbar flow around and hide, so that
       // extra buttons are cleanly not visible when frame is thin.
@@ -1679,71 +1710,84 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         ...style,
       };
     }
+    try {
+      if (noRefs) {
+        // When rendering the buttons for the all button popover, we
+        // must NOT set the tour refs, since if we do, then they get
+        // stolen and the tour then breaks! So we temporarily disable
+        // the refs and re-enable them in the finally below.
+        disableTourRefs.current = true;
+      }
 
-    const labels: boolean = forceLabels ?? show_labels();
+      const labels: boolean = forceLabels ?? show_labels();
 
-    const v: Rendered[] = [];
-    v.push(renderPage(true));
-    v.push(render_save_timetravel_group(labels));
-    v.push(render_actions_dropdown(labels));
-    v.push(render_build());
-    v.push(render_force_build());
-    v.push(render_edit());
-    v.push(render_readonly_view());
-    v.push(render_sync(labels));
-    v.push(render_switch_to_file());
-    v.push(render_clean(labels));
-    v.push(render_zoom_group());
-    v.push(render_rescan_latex_directives());
-    if (!is_public) {
-      v.push(render_undo_redo_group());
-    }
-    v.push(render_terminal(labels));
-    v.push(render_format(labels));
-    v.push(render_restart(labels));
-    v.push(render_close_and_halt(labels));
+      const v: Rendered[] = [];
+      v.push(renderPage(true));
+      v.push(render_save_timetravel_group(labels));
+      v.push(render_actions_dropdown(labels));
+      v.push(render_build());
+      v.push(render_force_build());
+      v.push(render_edit());
+      v.push(render_readonly_view());
+      v.push(render_sync(labels));
+      v.push(render_switch_to_file());
+      v.push(render_clean(labels));
+      v.push(render_zoom_group());
+      v.push(render_rescan_latex_directives());
+      if (!is_public) {
+        v.push(render_undo_redo_group());
+      }
+      v.push(render_terminal(labels));
+      v.push(render_format(labels));
+      v.push(render_restart(labels));
+      v.push(render_close_and_halt(labels));
 
-    v.push(render_page_width_height_group());
-    v.push(render_download(labels));
-    v.push(render_pause(labels));
-    v.push(render_copy_group());
-    v.push(render_find_replace_group());
-    if (!is_public) {
-      v.push(render_format_group());
-    }
-    v.push(render_halt_jupyter());
-    v.push(render_edit_init_script());
-    v.push(render_clear());
-    v.push(render_count_words());
-    v.push(render_kick_other_users_out());
-    v.push(render_shell(labels));
-    v.push(render_print(labels));
-    v.push(render_export_to_markdown(labels));
-    v.push(render_table_of_contents(labels));
-    v.push(render_show_pages(labels));
-    v.push(render_show_overview(labels));
-    v.push(render_show_slideshow(labels));
-    v.push(render_show_speaker_notes(labels));
-    v.push(render_show_search(labels));
-    v.push(render_guide(labels));
-    v.push(render_help(labels));
+      v.push(render_page_width_height_group());
+      v.push(render_download(labels));
+      v.push(render_pause(labels));
+      v.push(render_copy_group());
+      v.push(render_find_replace_group());
+      if (!is_public) {
+        v.push(render_format_group());
+      }
+      v.push(render_halt_jupyter());
+      v.push(render_edit_init_script());
+      v.push(render_clear());
+      v.push(render_count_words());
+      v.push(render_kick_other_users_out());
+      v.push(render_shell(labels));
+      v.push(render_print(labels));
+      v.push(render_export_to_markdown(labels));
+      v.push(render_table_of_contents(labels));
+      v.push(render_show_pages(labels));
+      v.push(render_show_overview(labels));
+      v.push(render_show_slideshow(labels));
+      v.push(render_show_speaker_notes(labels));
+      v.push(render_show_search(labels));
+      v.push(render_guide(labels));
+      v.push(render_help(labels));
 
-    const w: Rendered[] = [];
-    for (const c of v) {
-      if (c != null) {
-        w.push(c);
+      const w: Rendered[] = [];
+      for (const c of v) {
+        if (c != null) {
+          w.push(c);
+        }
+      }
+
+      return (
+        <div
+          style={style}
+          key={"buttons"}
+          className={"cc-frame-tree-title-bar-buttons"}
+        >
+          {r_join(w, <Space />)}
+        </div>
+      );
+    } finally {
+      if (noRefs) {
+        disableTourRefs.current = false;
       }
     }
-
-    return (
-      <div
-        style={style}
-        key={"buttons"}
-        className={"cc-frame-tree-title-bar-buttons"}
-      >
-        {r_join(w, <Space />)}
-      </div>
-    );
   }
 
   function render_main_buttons(): Rendered {
@@ -1768,15 +1812,18 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
         }
         content={() => {
           return (
-            <div style={{ display: "flex" }}>
+            <div style={{ display: "flex", maxWidth: "100vw" }}>
               <div
                 style={{
-                  maxWidth: "390px",
                   marginLeft: "3px",
                   marginRight: "3px",
                 }}
               >
-                {render_buttons(true, { maxHeight: "50vh" })}
+                {render_buttons(
+                  true,
+                  { maxHeight: "50vh", display: "block" },
+                  true
+                )}
               </div>
               <div>{render_types()}</div>
               <Icon
@@ -1792,7 +1839,11 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           );
         }}
       >
-        <div key="all-buttons" ref={getTourRef("all-buttons")}>
+        <div
+          key="all-buttons"
+          ref={getTourRef("all-buttons")}
+          style={{ display: "inline-block" }}
+        >
           <AntdButton
             type="text"
             style={{

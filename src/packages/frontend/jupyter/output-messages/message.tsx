@@ -9,7 +9,7 @@ Handling of output messages.
 
 import React from "react";
 import type { Map } from "immutable";
-import type { JupyterActions } from "../actions";
+import type { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import { OUTPUT_STYLE, OUTPUT_STYLE_SCROLLED } from "./style";
 import { Stdout } from "./stdout";
 import { Stderr } from "./stderr";
