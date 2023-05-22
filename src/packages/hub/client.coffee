@@ -1880,6 +1880,9 @@ class exports.Client extends EventEmitter
                 account_id : @account_id
                 password   : mesg.password
                 action     : mesg.action
+                project_id : mesg.project_id
+                trunc      : mesg.trunc
+                name       : mesg.name
             if api_key
                 @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
             else

@@ -2722,6 +2722,9 @@ message({
   id: undefined,
   action: required, // 'get', 'delete', 'regenerate'
   password: required,
+  project_id: undefined, // optional - if given then refers to api_key(s) for a project
+  trunc: undefined, // truncated key to delete/regenerate
+  name: undefined;
 });
 
 // hub --> client
@@ -3070,7 +3073,8 @@ message({
   text: required, // text of the response
 });
 
-API( // Read
+API(
+  // Read
   message({
     event: "openai_embeddings_search",
     scope: required,
@@ -3089,7 +3093,8 @@ message({
   matches: required, // matching points
 });
 
-API( // Create/Update
+API(
+  // Create/Update
   message({
     event: "openai_embeddings_save",
     project_id: required,
@@ -3105,7 +3110,8 @@ message({
   ids: required, // uuid's of saved data
 });
 
-API( // Delete
+API(
+  // Delete
   message({
     event: "openai_embeddings_remove",
     id: undefined,
@@ -3120,7 +3126,6 @@ message({
   id: undefined,
   ids: required, // uuid's of removed data
 });
-
 
 API(
   message({
