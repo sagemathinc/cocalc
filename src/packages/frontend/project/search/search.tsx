@@ -8,7 +8,7 @@ export const ProjectSearch: React.FC<{ project_id: string }> = ({
   return (
     <div style={{ padding: "15px" }}>
       <ProjectSearchHeader project_id={project_id} />
-      <ProjectSearchBody project_id={project_id} />
+      <ProjectSearchBody project_id={project_id} mode="project" />
     </div>
   );
 };

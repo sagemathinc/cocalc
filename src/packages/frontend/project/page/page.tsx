@@ -9,14 +9,16 @@ import {
   React,
   redux,
   useActions,
+  useEffect,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import {
-  defaultFrameContext,
   FrameContext,
+  defaultFrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { COLORS } from "@cocalc/util/theme";
 import { AnonymousName } from "../anonymous-name";
 import { ProjectWarningBanner } from "../project-banner";
 import { StartButton } from "../start-button";
@@ -25,10 +27,13 @@ import { DiskSpaceWarning } from "../warnings/disk-space";
 import { OOMWarning } from "../warnings/oom";
 import { RamWarning } from "../warnings/ram";
 import { Content } from "./content";
+import { isFixedTab } from "./file-tab";
+import { Flyout, FlyoutHeader } from "./flyouts/flyout";
+import { getFlyoutExpanded } from "./flyouts/local-state";
 import HomePageButton from "./home-page/button";
 import { useProjectStatus } from "./project-status-hook";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
-import Tabs, { VerticalFixedTabs } from "./tabs";
+import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
 //import FirstSteps from "@cocalc/frontend/project/explorer/file-listing/first-steps";
 
 const PAGE_STYLE: React.CSSProperties = {
@@ -36,6 +41,13 @@ const PAGE_STYLE: React.CSSProperties = {
   flexDirection: "column",
   flex: 1,
   overflow: "hidden",
+} as const;
+
+export const FIX_BORDER = `1px solid ${COLORS.GRAY_L0}`;
+
+export const FIX_BORDERS: React.CSSProperties = {
+  borderTop: FIX_BORDER,
+  borderRight: FIX_BORDER,
 } as const;
 
 interface Props {
@@ -46,6 +58,7 @@ interface Props {
 export const ProjectPage: React.FC<Props> = (props: Props) => {
   const { project_id, is_active } = props;
   const hideActionButtons = useTypedRedux({ project_id }, "hideActionButtons");
+  const flyout = useTypedRedux({ project_id }, "flyout");
   const actions = useActions({ project_id });
   const is_deleted = useRedux([
     "projects",
@@ -62,6 +75,15 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     { project_id },
     "active_project_tab"
   );
+  const [homePageButtonWidth, setHomePageButtonWidth] =
+    React.useState<number>(80);
+
+  useEffect(() => {
+    const name = getFlyoutExpanded(project_id);
+    if (isFixedTab(name)) {
+      actions?.setFlyoutExpanded(name, true, false);
+    }
+  }, [project_id]);
 
   function renderEditorContent() {
     const v: JSX.Element[] = [];
@@ -140,6 +162,22 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderFlyout() {
+    if (!flyout) return;
+    return <Flyout flyout={flyout} project_id={project_id} />;
+  }
+
+  function renderFlyoutHeader() {
+    if (!flyout) return;
+    return (
+      <FlyoutHeader
+        flyout={flyout}
+        project_id={project_id}
+        narrowerPX={hideActionButtons ? homePageButtonWidth : 0}
+      />
+    );
+  }
+
   if (open_files_order == null) {
     return <Loading />;
   }
@@ -147,7 +185,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   const style = {
     ...PAGE_STYLE,
     ...(!fullscreen ? { paddingTop: "3px" } : undefined),
-  };
+  } as const;
 
   return (
     <div className="container-content" style={style}>
@@ -158,34 +196,37 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       <SoftwareEnvUpgrade project_id={project_id} />
       <ProjectWarningBanner project_id={project_id} />
       {(!fullscreen || fullscreen == "project") && (
-        <div style={{ display: "flex", margin: "2.5px" }}>
+        <div style={{ display: "flex", margin: "0" }}>
           <HomePageButton
             project_id={project_id}
             active={active_project_tab == "home"}
+            width={homePageButtonWidth}
           />
+          {renderFlyoutHeader()}
           <div style={{ flex: 1, overflow: "hidden" }}>
             <Tabs project_id={project_id} />
           </div>
         </div>
       )}
       {is_deleted && <DeletedProjectWarning />}
-      <StartButton project_id={project_id} />
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {!hideActionButtons && (!fullscreen || fullscreen == "project") && (
           <div
             style={{
-              background: "rgba(0, 0, 0, 0.02)",
-              borderTop: "1px solid #eee",
-              borderRight: "1px solid #eee",
-              borderRadius: "5px",
+              background: FIXED_TABS_BG_COLOR,
+              borderRadius: "0",
+              borderTop: FIX_BORDERS.borderTop,
+              borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
             }}
           >
             <VerticalFixedTabs
               project_id={project_id}
               activeTab={active_project_tab}
+              setHomePageButtonWidth={setHomePageButtonWidth}
             />
           </div>
         )}
+        {renderFlyout()}
         <div
           style={{
             flex: 1,
@@ -194,6 +235,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             overflowX: "auto",
           }}
         >
+          <StartButton project_id={project_id} />
           {renderEditorContent()}
           {render_project_content()}
           {render_project_modal()}

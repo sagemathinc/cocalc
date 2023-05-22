@@ -12,11 +12,18 @@ import { createPathSegmentLink } from "./path-segment-link";
 interface Props {
   project_id: string;
   style?: React.CSSProperties;
+  className?: string;
+  mode?: "files" | "flyout";
 }
 
 // This path consists of several PathSegmentLinks
 export const PathNavigator: React.FC<Props> = React.memo((props: Props) => {
-  const { project_id, style } = props;
+  const {
+    project_id,
+    style,
+    className = "cc-path-navigator",
+    mode = "files",
+  } = props;
   const current_path = useTypedRedux({ project_id }, "current_path");
   const history_path = useTypedRedux({ project_id }, "history_path");
   const actions = useActions({ project_id });
@@ -40,15 +47,24 @@ export const PathNavigator: React.FC<Props> = React.memo((props: Props) => {
       })
     );
 
+    const pathLen = current_path_depth;
+    const histLen = history_segments.length;
+    const condense = mode === "flyout";
+
     history_segments.forEach((segment, i) => {
       if (is_root && i === 0) return;
       const is_current = i === current_path_depth;
       const is_history = i > current_path_depth;
+
+      // don't show too much in flyout mode
+      const hide = condense && pathLen > i && i < histLen - 2;
+      if (is_history && i >= 2) return;
+
       v.push(
         // yes, must be called as a normal function.
         createPathSegmentLink({
           path: history_segments.slice(0, i + 1 || undefined).join("/"),
-          display: trunc_middle(segment, 15),
+          display: hide ? <>&middot;</> : trunc_middle(segment, 15),
           full_name: segment,
           key: i + 1,
           on_click: (path) => actions?.open_directory(path, true, false),
@@ -62,11 +78,5 @@ export const PathNavigator: React.FC<Props> = React.memo((props: Props) => {
 
   // Background color is set via .cc-project-files-path-nav > nav
   // so that things look good even for multiline long paths.
-  return (
-    <Breadcrumb
-      style={style}
-      className="cc-path-navigator"
-      items={make_path()}
-    />
-  );
+  return <Breadcrumb style={style} className={className} items={make_path()} />;
 });

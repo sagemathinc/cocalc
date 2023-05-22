@@ -53,6 +53,16 @@ interface Props {
   isRunning?: boolean; // true if this project is running
 }
 
+export function watchFiles({ actions, current_path }): void {
+  const store = actions.get_store();
+  if (store == null) return;
+  try {
+    store.get_listings().watch(current_path);
+  } catch (err) {
+    console.warn("ERROR watching directory", err);
+  }
+}
+
 export const FileListing: React.FC<Props> = (props: Props) => {
   const {
     actions,
@@ -76,24 +86,20 @@ export const FileListing: React.FC<Props> = (props: Props) => {
 
   const prev_current_path = usePrevious(current_path);
 
+  function watch() {
+    watchFiles({ actions, current_path });
+  }
+
   // once after mounting, when changing paths, and in regular intervals call watch()
   useEffect(() => {
     watch();
   }, []);
+
   useEffect(() => {
     if (current_path != prev_current_path) watch();
   }, [current_path, prev_current_path]);
-  useInterval(watch, WATCH_THROTTLE_MS);
 
-  function watch(): void {
-    const store = actions.get_store();
-    if (store == null) return;
-    try {
-      store.get_listings().watch(current_path);
-    } catch (err) {
-      console.warn("ERROR watching directory", err);
-    }
-  }
+  useInterval(watch, WATCH_THROTTLE_MS);
 
   function render_row(
     name,

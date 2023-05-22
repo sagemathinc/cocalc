@@ -19,9 +19,19 @@ const { file_options } = require("@cocalc/frontend/editor");
 
 interface Props {
   create_file: (ext?: string) => void;
+  mode: "project" | "flyout";
+  title?: string;
+  hide_down?: boolean;
+  button?: boolean;
 }
 
-export function NewFileDropdown({ create_file }: Props) {
+export function NewFileDropdown({
+  create_file,
+  mode = "project",
+  title = "More file types...",
+  hide_down=false,
+  button= true
+}: Props) {
   // TODO maybe filter by configuration.get("main", {disabled_ext: undefined}) ?
   const items = React.useMemo((): MenuItems => {
     const list = keys(file_associations).sort();
@@ -55,20 +65,34 @@ export function NewFileDropdown({ create_file }: Props) {
     };
   }
 
-  return (
-    <span
-      className={"pull-right dropdown-splitbutton-left"}
-      style={{ marginRight: "5px" }}
-    >
-      <Button.Group>
-        <Button size="large" onClick={() => create_file()}>
-          <span>
-            <Icon name="file" /> More file types...
-          </span>
-        </Button>
+  switch (mode) {
+    case "project":
+      return (
+        <span
+          className={"pull-right dropdown-splitbutton-left"}
+          style={{ marginRight: "5px" }}
+        >
+          <Button.Group>
+            <Button size="large" onClick={() => create_file()}>
+              <span>
+                <Icon name="file" /> {title}
+              </span>
+            </Button>
 
-        <DropdownMenu size="large" button={true} items={items} />
-      </Button.Group>
-    </span>
-  );
+            <DropdownMenu size="large" button={button} items={items} />
+          </Button.Group>
+        </span>
+      );
+    case "flyout":
+      return (
+        <DropdownMenu
+          title={title}
+          size="medium"
+          button={button}
+          items={items}
+          hide_down={hide_down}
+          style={{ width: "100%" }}
+        />
+      );
+  }
 }
