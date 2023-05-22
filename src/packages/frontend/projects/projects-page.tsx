@@ -3,14 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Map, Set } from "immutable";
+import { useRef } from "react";
+
 // ensure redux stuff (actions and store) are initialized:
 import "./actions";
 
-import { Footer } from "@cocalc/frontend/customize";
-import { Map, Set } from "immutable";
-import { UsersViewing } from "../account/avatar/users-viewing";
-import { Col, Row } from "../antd-bootstrap";
-import { useRef } from "react";
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   redux,
@@ -18,8 +17,10 @@ import {
   useMemo,
   useState,
   useTypedRedux,
-} from "../app-framework";
-import { Icon, Loading, LoginLink } from "../components";
+} from "@cocalc/frontend/app-framework";
+import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
+import { Footer } from "@cocalc/frontend/customize";
+import { UsersViewing } from "../account/avatar/users-viewing";
 import { NewProjectCreator } from "./create-project";
 import { Hashtags } from "./hashtags";
 import ProjectList from "./project-list";
@@ -27,8 +28,8 @@ import { ProjectsListingDescription } from "./project-list-desc";
 import { ProjectsFilterButtons } from "./projects-filter-buttons";
 import { ProjectsSearch } from "./search";
 import { AddToProjectToken } from "./token";
-import { get_visible_hashtags, get_visible_projects } from "./util";
 import ProjectsPageTour from "./tour";
+import { get_visible_hashtags, get_visible_projects } from "./util";
 
 const PROJECTS_TITLE_STYLE: React.CSSProperties = {
   color: "#666",

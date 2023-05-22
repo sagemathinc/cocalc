@@ -9,12 +9,13 @@ about what's going on in a project.
 */
 
 import { delay } from "awaiting";
+import type { DiskUsage as DF_DiskUsage } from "diskusage";
 import { check as df } from "diskusage";
 import { EventEmitter } from "node:events";
 import { readFile, readdir, readlink } from "node:fs/promises";
 import { join } from "node:path";
 
-import { getOptions } from "../init-program";
+// import { getOptions } from "../init-program";
 import { get_kernel_by_pid } from "@cocalc/jupyter/kernel";
 import { pid2path as terminal_pid2path } from "../terminal/server";
 import { get_path_for_pid as x11_pid2path } from "../x11/server";
@@ -35,9 +36,9 @@ import { getLogger } from "../logger";
 
 const L = getLogger("project-info:server").debug;
 
-function is_in_dev_project() {
-  return process.env.SMC_LOCAL_HUB_HOME != null;
-}
+// function is_in_dev_project() {
+//   return process.env.SMC_LOCAL_HUB_HOME != null;
+// }
 
 // this is a hard limit on the number of processes we gather, just to
 // be on the safe side to avoid processing too much data.
@@ -209,56 +210,60 @@ export class ProjectInfoServer extends EventEmitter {
   // you what the whole system is doing, all your processes,…
   // NOTE: most of this replaces kucalc.coffee
   private async cgroup({ timestamp }): Promise<CGroup | undefined> {
-    if (!is_in_dev_project() && !getOptions().kucalc && !this.testing) return;
-    const [mem_stat_raw, cpu_raw, oom_raw, cfs_quota_raw, cfs_period_raw] =
-      await Promise.all([
-        readFile("/sys/fs/cgroup/memory/memory.stat", "utf8"),
-        readFile("/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage", "utf8"),
-        readFile("/sys/fs/cgroup/memory/memory.oom_control", "utf8"),
-        readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us", "utf8"),
-        readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us", "utf8"),
-      ]);
-    const mem_stat_keys = [
-      "total_rss",
-      "total_cache",
-      "hierarchical_memory_limit",
-    ];
-    const cpu_usage = parseFloat(cpu_raw) / Math.pow(10, 9);
-    const dt = this.dt(timestamp);
-    const cpu_usage_rate =
-      this.last?.cgroup != null
-        ? (cpu_usage - this.last.cgroup.cpu_usage) / dt
-        : 0;
-    const [cfs_quota, cfs_period] = [
-      parseInt(cfs_quota_raw),
-      parseInt(cfs_period_raw),
-    ];
-    const mem_stat = mem_stat_raw
-      .split("\n")
-      .map((line) => line.split(" "))
-      .filter(([k, _]) => mem_stat_keys.includes(k))
-      .reduce((stat, [key, val]) => {
-        stat[key] = bytes2MiB(parseInt(val));
-        return stat;
-      }, {});
-    const oom_kills = oom_raw
-      .split("\n")
-      .filter((val) => val.startsWith("oom_kill "))
-      .map((val) => parseInt(val.slice("oom_kill ".length)))[0];
-    return {
-      mem_stat,
-      cpu_usage,
-      cpu_usage_rate,
-      cpu_cores_limit: cfs_quota / cfs_period,
-      oom_kills,
-    };
+    try {
+      const [mem_stat_raw, cpu_raw, oom_raw, cfs_quota_raw, cfs_period_raw] =
+        await Promise.all([
+          readFile("/sys/fs/cgroup/memory/memory.stat", "utf8"),
+          readFile("/sys/fs/cgroup/cpu,cpuacct/cpuacct.usage", "utf8"),
+          readFile("/sys/fs/cgroup/memory/memory.oom_control", "utf8"),
+          readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_quota_us", "utf8"),
+          readFile("/sys/fs/cgroup/cpu,cpuacct/cpu.cfs_period_us", "utf8"),
+        ]);
+      const mem_stat_keys = [
+        "total_rss",
+        "total_cache",
+        "hierarchical_memory_limit",
+      ];
+      const cpu_usage = parseFloat(cpu_raw) / Math.pow(10, 9);
+      const dt = this.dt(timestamp);
+      const cpu_usage_rate =
+        this.last?.cgroup != null
+          ? (cpu_usage - this.last.cgroup.cpu_usage) / dt
+          : 0;
+      const [cfs_quota, cfs_period] = [
+        parseInt(cfs_quota_raw),
+        parseInt(cfs_period_raw),
+      ];
+      const mem_stat = mem_stat_raw
+        .split("\n")
+        .map((line) => line.split(" "))
+        .filter(([k, _]) => mem_stat_keys.includes(k))
+        .reduce((stat, [key, val]) => {
+          stat[key] = bytes2MiB(parseInt(val));
+          return stat;
+        }, {});
+      const oom_kills = oom_raw
+        .split("\n")
+        .filter((val) => val.startsWith("oom_kill "))
+        .map((val) => parseInt(val.slice("oom_kill ".length)))[0];
+      return {
+        mem_stat,
+        cpu_usage,
+        cpu_usage_rate,
+        cpu_cores_limit: cfs_quota / cfs_period,
+        oom_kills,
+      };
+    } catch (err) {
+      this.dbg("cgroup: error", err);
+      return undefined;
+    }
   }
 
   // for cocalc/kucalc we want to know the disk usage + limits of the
   // users home dir and /tmp. /tmp is a ram disk, which will count against
   // the overall memory limit!
   private async disk_usage(): Promise<DiskUsage> {
-    const convert = function (val) {
+    const convert = function (val: DF_DiskUsage) {
       return {
         total: bytes2MiB(val.total),
         free: bytes2MiB(val.free),
@@ -288,23 +293,27 @@ export class ProjectInfoServer extends EventEmitter {
   }
 
   // orchestrating where all the information is bundled up for an update
-  private async get_info(): Promise<ProjectInfo> {
-    const [uptime, boottime] = await this.uptime();
-    const timestamp = new Date().getTime();
-    const [processes, cgroup, disk_usage] = await Promise.all([
-      this.processes({ uptime, timestamp }),
-      this.cgroup({ timestamp }),
-      this.disk_usage(),
-    ]);
-    const info: ProjectInfo = {
-      timestamp,
-      processes,
-      uptime,
-      boottime,
-      cgroup,
-      disk_usage,
-    };
-    return info;
+  private async get_info(): Promise<ProjectInfo | undefined> {
+    try {
+      const [uptime, boottime] = await this.uptime();
+      const timestamp = new Date().getTime();
+      const [processes, cgroup, disk_usage] = await Promise.all([
+        this.processes({ uptime, timestamp }),
+        this.cgroup({ timestamp }),
+        this.disk_usage(),
+      ]);
+      const info: ProjectInfo = {
+        timestamp,
+        processes,
+        uptime,
+        boottime,
+        cgroup,
+        disk_usage,
+      };
+      return info;
+    } catch (err) {
+      this.dbg("get_info: error", err);
+    }
   }
 
   public stop() {
@@ -329,8 +338,8 @@ export class ProjectInfoServer extends EventEmitter {
     while (true) {
       //this.dbg(`listeners on 'info': ${this.listenerCount("info")}`);
       const info = await this.get_info();
-      this.last = info;
-      this.emit("info", info);
+      if (info != null) this.last = info;
+      this.emit("info", info ?? this.last);
       if (this.running) {
         await delay(1000 * this.delay_s);
       } else {

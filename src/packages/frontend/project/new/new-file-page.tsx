@@ -73,6 +73,7 @@ export default function NewFilePage(props: Props) {
   }
 
   const [creatingFile, setCreatingFile] = useState<string>("");
+
   async function createFile(ext?: string) {
     if (!filename) {
       return;
@@ -329,7 +330,7 @@ export default function NewFilePage(props: Props) {
               {renderCreate()}
             </div>
             <div style={{ flex: "0 0 auto" }}>
-              <NewFileDropdown create_file={submit} />
+              <NewFileDropdown create_file={submit} mode="project" />
             </div>
           </div>
           {extensionWarning && renderNoExtensionAlert()}

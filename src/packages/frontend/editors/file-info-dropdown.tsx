@@ -27,11 +27,23 @@ interface Props {
   is_public?: boolean;
   label?: string;
   style?: CSS;
+  title?: JSX.Element;
+  button?: boolean;
+  mode?: "explorer" | "flyout";
 }
 
 export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
   (props: Props) => {
-    const { filename, project_id, is_public, label, style } = props;
+    const {
+      filename,
+      project_id,
+      is_public,
+      label,
+      style,
+      title,
+      button = true,
+      mode = "explorer",
+    } = props;
     const actions = useActions({ project_id });
     const student_project_functionality =
       useStudentProjectFunctionality(project_id);
@@ -92,11 +104,14 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
           copy: "files",
         };
       } else {
-        v.push(render_menu_item("new", "plus-circle"));
+        if (mode !== "flyout") {
+          v.push(render_menu_item("new", "plus-circle"));
+        }
         // create a map from name to icon
         items = {};
         for (const k in file_actions) {
-          const { name, icon } = file_actions[k];
+          const { name, icon, hideFlyout } = file_actions[k];
+          if (mode === "flyout" && hideFlyout) continue;
           items[name] = icon;
         }
       }
@@ -124,10 +139,10 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
 
     return (
       <DropdownMenu
-        button={true}
+        button={button}
         style={{ ...{ height: "100%" }, ...style }}
         id="file_info_button"
-        title={render_title()}
+        title={title ?? render_title()}
         items={render_menu_items()}
       />
     );

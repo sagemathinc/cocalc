@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List } from "immutable";
 import React from "react";
 import { Col, Row } from "react-bootstrap";
 
@@ -66,7 +65,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
   const project_actions = useActions({ project_id });
 
   const get_total_upgrades = redux.getStore("account").get_total_upgrades;
-  const groups = useTypedRedux("account", "groups") ?? List<string>();
 
   const kucalc = useTypedRedux("customize", "kucalc");
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
@@ -154,9 +152,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
           <UpgradeUsage
             project_id={id}
             project={project}
-            actions={redux.getActions("projects")}
-            user_map={user_map}
-            account_groups={groups.toJS()}
             upgrades_you_can_use={upgrades_you_can_use}
             upgrades_you_applied_to_all_projects={
               upgrades_you_applied_to_all_projects
@@ -170,6 +165,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             site_license_upgrades={site_license_upgrades}
             site_license_ids={site_license_ids}
             dedicated_resources={dedicated_resources}
+            mode="project"
           />
 
           <HideDeleteBox

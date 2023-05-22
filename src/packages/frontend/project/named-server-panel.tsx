@@ -24,6 +24,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import track from "@cocalc/frontend/user-tracking";
+import { useAvailableFeatures } from "./use-available-features";
 
 interface Server {
   longName: string;
@@ -178,25 +179,28 @@ export function ServerLink({
 }) {
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
+  const available = useAvailableFeatures(project_id);
   const { icon, longName } = getServerInfo(name);
   if (
     name == "jupyterlab" &&
-    student_project_functionality.disableJupyterLabServer
+    (!available.jupyter_lab ||
+      student_project_functionality.disableJupyterLabServer)
   ) {
     return null;
   } else if (
     name == "jupyter" &&
-    student_project_functionality.disableJupyterClassicServer
+    (!available.jupyter_notebook ||
+      student_project_functionality.disableJupyterClassicServer)
   ) {
     return null;
   } else if (
     name == "code" &&
-    student_project_functionality.disableVSCodeServer
+    (!available.vscode || student_project_functionality.disableVSCodeServer)
   ) {
     return null;
   } else if (
     name == "pluto" &&
-    student_project_functionality.disablePlutoServer
+    (!available.julia || student_project_functionality.disablePlutoServer)
   ) {
     return null;
   } else {
@@ -208,7 +212,7 @@ export function ServerLink({
           track("launch-server", { name, project_id });
         }}
       >
-        <Icon name={icon} /> {longName} Server...
+        <Icon name={icon} /> {longName}...
       </LinkRetry>
     );
   }

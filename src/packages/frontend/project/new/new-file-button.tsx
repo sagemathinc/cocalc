@@ -6,6 +6,8 @@
 import { Button } from "antd";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
+import { unreachable } from "@cocalc/util/misc";
+import { NEW_FILETYPE_ICONS, isNewFiletypeIconName } from "./consts";
 
 const STYLE = {
   marginRight: "5px",
@@ -17,35 +19,46 @@ const STYLE = {
 } as const;
 
 const ICON_STYLE = {
-  fontSize: "200%",
   color: COLORS.FILE_ICON,
 } as const;
 
+const ICON_STYLE_LARGE = {
+  ...ICON_STYLE,
+  fontSize: "200%",
+};
+
 interface Props {
   name: string;
-  icon: IconName;
   on_click: (ext?: string) => void;
   ext?: string;
   className?: string;
   disabled?: boolean;
   loading?: boolean;
   active?: boolean;
+  size?: "large" | "small";
+  icon?: IconName;
 }
 
 export function NewFileButton({
   name,
-  icon,
   on_click,
   ext,
+  icon: propsIcon,
   className,
   disabled,
   loading,
   active = false,
+  size = "large",
 }: Props) {
+  const iconStyle = size === "large" ? ICON_STYLE_LARGE : ICON_STYLE;
+  const icon: IconName =
+    propsIcon ??
+    (isNewFiletypeIconName(ext) ? NEW_FILETYPE_ICONS[ext!] : "file");
+
   const displayed_icon = loading ? (
-    <Icon style={ICON_STYLE} name="cocalc-ring" spin />
+    <Icon style={iconStyle} name="cocalc-ring" spin />
   ) : (
-    <Icon style={ICON_STYLE} name={icon} />
+    <Icon style={iconStyle} name={icon} />
   );
 
   const style = {
@@ -58,9 +71,31 @@ export function NewFileButton({
       : {}),
   };
 
+  function renderBody() {
+    switch (size) {
+      case "large":
+        return (
+          <div>
+            {displayed_icon}
+            <br />
+            <span style={{ color: COLORS.GRAY_D }}>{name}</span>
+          </div>
+        );
+      case "small":
+        return (
+          <div>
+            {displayed_icon}{" "}
+            <span style={{ color: COLORS.GRAY_D }}>{name}</span>
+          </div>
+        );
+      default:
+        unreachable(size);
+    }
+  }
+
   return (
     <Button
-      size="large"
+      size={size}
       onClick={(): void => {
         on_click?.(ext);
       }}
@@ -68,11 +103,7 @@ export function NewFileButton({
       className={className}
       disabled={disabled || loading}
     >
-      <div>
-        {displayed_icon}
-        <br />
-        <span style={{ color: COLORS.GRAY_D }}>{name}</span>
-      </div>
+      {renderBody()}
     </Button>
   );
 }

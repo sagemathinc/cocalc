@@ -12,7 +12,11 @@ import { Checkbox, Row, Col } from "@cocalc/frontend/antd-bootstrap";
 import { Button } from "antd";
 
 import { alert_message } from "@cocalc/frontend/alerts";
-import { Rendered, usePrevious } from "@cocalc/frontend/app-framework";
+import {
+  Rendered,
+  usePrevious,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   Icon,
   LabeledRow,
@@ -32,9 +36,8 @@ interface Props {
   project_settings: ProjectSettings; // settings contains the base values for quotas
   project_status?: ProjectStatus;
   project_state?: "opened" | "running" | "starting" | "stopping"; //  -- only show memory usage when project_state == 'running'
-  user_map: object;
   quota_params: object; // from the schema
-  account_groups: string[];
+  account_groups: immutable.List<string>;
   total_project_quotas?: object; // undefined if viewing as admin
   site_license_upgrades?: object;
   all_upgrades_to_this_project?: object;
@@ -65,7 +68,6 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     project_id,
     site_license_upgrades,
     total_project_quotas,
-    user_map,
     is_commercial,
     project_state,
     project_status,
@@ -73,6 +75,8 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     all_upgrades_to_this_project = {},
     expand_admin_only = false,
   } = props;
+
+  const user_map = useTypedRedux("users", "user_map");
 
   const is_admin = account_groups.includes("admin");
 
