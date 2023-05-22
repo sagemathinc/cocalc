@@ -24,14 +24,16 @@ export default async function connectionToProject(
   const server = process.env.PROJECT_SERVER ?? "http://localhost";
 
   const url = `${server}:${port}`;
-  log("connecting to ", url);
+  const pathname = join(appBasePath, project_id, "raw/.smc/ws");
+  const target = `${url}${pathname}`;
+  log("connecting to ", target);
   const opts = {
-    pathname: join(appBasePath, project_id, "raw/.smc/ws"),
+    pathname,
     transformer: "websockets",
     plugin: { responder, multiplex },
   } as const;
-  const primus = Primus.createSocket(opts);
-  const socket = new primus(url) as unknown as ProjectWebsocket;
+  const Socket = Primus.createSocket(opts);
+  const socket: ProjectWebsocket = new Socket(url) as any;
 
   function updateState(state: WebsocketState) {
     if (socket.state == state) {
@@ -45,20 +47,25 @@ export default async function connectionToProject(
   updateState("offline"); // starts offline
 
   socket.on("open", () => {
+    log("open", target);
     updateState("online");
   });
   socket.on("reconnected", () => {
+    log("reconnected", target);
     updateState("online");
   });
 
   socket.on("reconnect", () => {
+    log("reconnect", target);
     updateState("offline");
   });
   socket.on("reconnect scheduled", () => {
+    log("reconnect scheduled", target);
     updateState("offline");
   });
 
   socket.on("end", () => {
+    log("end", target);
     // maybe todo?
     updateState("offline");
   });

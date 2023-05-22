@@ -3,8 +3,9 @@ import { meta_file } from "@cocalc/util/misc";
 import { initJupyterRedux } from "@cocalc/jupyter/kernel";
 import { redux } from "@cocalc/jupyter/redux/app";
 import getLogger from "@cocalc/backend/logger";
-const logger = getLogger("compute");
 import { COMPUTE_THRESH_MS } from "@cocalc/jupyter/redux/project-actions";
+
+const logger = getLogger("compute");
 
 // path should be something like "foo/bar.ipynb"
 export function jupyter({
