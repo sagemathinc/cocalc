@@ -18,7 +18,8 @@ export function getApiKey(req: Request): string {
 }
 
 export async function getAccountIdFromApiKey(
-  req: Request
+  req: Request,
+  project_id?: string
 ): Promise<string | undefined> {
-  return await getAccountWithApiKey(getApiKey(req));
+  return await getAccountWithApiKey(getApiKey(req), project_id);
 }

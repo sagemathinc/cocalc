@@ -11,9 +11,19 @@ import { getRememberMeHash } from "@cocalc/server/auth/remember-me";
 // If not, returns undefined.
 // This is determined by looking in their cookie and checking
 // who it identifies in the database.
+// This also uses their api key.
+// The api key could also be for a project, in which case
+// we ONLY check the explicitly given project_id (i.e., it
+// has to be a key for that project).
 export default async function getAccountId(
   req,
-  noCache: boolean = false
+  {
+    noCache,
+    project_id,
+  }: {
+    noCache?: boolean;
+    project_id?: string; // only used for project_id api key access
+  } = {}
 ): Promise<string | undefined> {
   if (req == null) return;
   // caching a bit --  We thus want the query below to happen rarely.  We also
@@ -25,7 +35,7 @@ export default async function getAccountId(
     // What about an api key?
     if (req.header("Authorization")) {
       try {
-        return await getAccountIdFromApiKey(req);
+        return await getAccountIdFromApiKey(req, project_id);
       } catch (_err) {
         // non-fatal, at least for now...
         return;
