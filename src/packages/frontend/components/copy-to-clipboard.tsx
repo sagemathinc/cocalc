@@ -5,9 +5,10 @@
 
 import { Button, Input, Tooltip } from "antd";
 import { ReactNode, useEffect, useMemo, useState } from "react";
-
+import { CopyOutlined } from "@ant-design/icons";
 import { CSS } from "@cocalc/frontend/app-framework";
 import { CopyToClipboard } from "react-copy-to-clipboard";
+
 interface Props {
   value: string;
   style?: CSS;
@@ -17,7 +18,6 @@ interface Props {
   inputWidth?: string;
   size?: "large" | "middle" | "small";
 }
-import { CopyOutlined } from "@ant-design/icons";
 
 const INPUT_STYLE: CSS = { display: "inline-block", flex: 1 } as const;
 

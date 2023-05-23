@@ -7,8 +7,9 @@ Applications:
  - the keys for an account
 */
 
+import { A } from "./A";
 import { Icon } from "./icon";
-import { TimeAgo } from "./time-ago";
+import TimeAgo from "react-timeago"; // so can use from nextjs
 import CopyToClipBoard from "./copy-to-clipboard";
 import { useState, useEffect } from "react";
 import {
@@ -229,13 +230,14 @@ export default function ApiKeys({ manage }: Props) {
             title="Are you sure you want to delete all these api keys?"
             onConfirm={deleteAllApiKeys}
           >
-            <Button danger>
-              Delete All...
-            </Button>
+            <Button danger>Delete All...</Button>
           </Popconfirm>
         )}
       </Button.Group>
-
+      <p style={{ marginTop: "10px" }}>
+        Read the <A href="https://doc.cocalc.com/api/">API documentation</A>.
+        You can also make project specific api keys in project settings.
+      </p>
       <Modal
         visible={addModalVisible || editModalVisible}
         title={

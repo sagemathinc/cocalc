@@ -12,6 +12,7 @@ import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import register from "../register";
 import { Paragraph, Text } from "components/misc";
+import ApiKeys from "@cocalc/frontend/components/api-keys";
 
 register({
   path: "account/api",
@@ -68,43 +69,60 @@ register({
         setLoading(false);
       }
     }
+    const newConfig = (
+      <div style={{ marginBottom: "15px" }}>
+        <ApiKeys
+          manage={async (opts) => {
+            console.log("manage", opts);
+            return [];
+          }}
+        />
+      </div>
+    );
 
     if (result.hasPassword && !validPassword) {
       return (
         <Space direction="vertical">
-          {apiError && <Alert type="error" message={apiError} showIcon />}
-          <Input.Password
-            value={password}
-            style={{ maxWidth: "50ex" }}
-            placeholder="Enter your password..."
-            onChange={(e) => setPassword(e.target.value)}
-            onPressEnter={() => {
-              if (password.length >= 6) {
-                submitPassword(password);
-              }
-            }}
-          />
-          <Button
-            disabled={password.length < 6}
-            type="primary"
-            onClick={() => submitPassword(password)}
-          >
-            Show API Key
-          </Button>
+          {newConfig}
+          <div>
+            {apiError && <Alert type="error" message={apiError} showIcon />}
+            <Input.Password
+              value={password}
+              style={{ maxWidth: "50ex" }}
+              placeholder="Enter your password..."
+              onChange={(e) => setPassword(e.target.value)}
+              onPressEnter={() => {
+                if (password.length >= 6) {
+                  submitPassword(password);
+                }
+              }}
+            />
+            <Button
+              style={{ marginLeft: "15px" }}
+              disabled={password.length < 6}
+              onClick={() => submitPassword(password)}
+            >
+              Show Older Legacy API Key
+            </Button>
+          </div>
         </Space>
       );
     }
+
     if (!result.hasPassword && !showApi) {
       return (
-        <Button
-          type="primary"
-          onClick={() => {
-            setShowApi(true);
-            apiAction("get");
-          }}
-        >
-          Show API Key
-        </Button>
+        <div>
+          {newConfig}
+          <Button
+            type="primary"
+            onClick={() => {
+              setShowApi(true);
+              apiAction("get");
+            }}
+          >
+            Show Older Legacy API Key
+          </Button>
+        </div>
       );
     }
 
@@ -112,13 +130,12 @@ register({
     if (apiKey) {
       body = (
         <Space direction="vertical">
-          API Key:
+          {newConfig}
+          API Key (old legacy key -- use above instead and delete this if you
+          can):
           <Text code strong style={{ fontSize: "150%" }} copyable>
             {apiKey}
           </Text>
-          <br />
-          <A href="https://doc.cocalc.com/api/">Learn about the API...</A>
-          <br />
           <Popconfirm
             title={
               <>
@@ -140,14 +157,7 @@ register({
         </Space>
       );
     } else {
-      body = (
-        <Space direction="vertical">
-          You do not have an API key.
-          <Button onClick={() => apiAction("regenerate")}>
-            Create API Key
-          </Button>
-        </Space>
-      );
+      body = <Space direction="vertical">{newConfig}</Space>;
     }
 
     return (
