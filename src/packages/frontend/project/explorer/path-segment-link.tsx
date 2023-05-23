@@ -4,6 +4,7 @@
  */
 
 import { Tip } from "@cocalc/frontend/components";
+import { CSS } from "@cocalc/frontend/app-framework";
 
 interface Props {
   path: string;
@@ -13,6 +14,7 @@ interface Props {
   history?: boolean;
   active?: boolean;
   key: number;
+  style?: CSS;
 }
 
 export interface PathSegmentItem {
@@ -20,6 +22,7 @@ export interface PathSegmentItem {
   title: JSX.Element | string | undefined;
   onClick: () => void;
   className: string;
+  style?: CSS;
 }
 
 // One segment of the directory links at the top of the files listing.
@@ -32,6 +35,7 @@ export function createPathSegmentLink(props: Readonly<Props>): PathSegmentItem {
     history,
     active = false,
     key,
+    style,
   } = props;
 
   function render_content(): JSX.Element | string | undefined {
@@ -61,5 +65,6 @@ export function createPathSegmentLink(props: Readonly<Props>): PathSegmentItem {
     className: cls(),
     key,
     title: render_content(),
+    style,
   };
 }

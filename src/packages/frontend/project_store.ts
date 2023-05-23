@@ -42,6 +42,7 @@ import {
 import { deleted_file_variations } from "@cocalc/util/delete-files";
 import * as misc from "@cocalc/util/misc";
 import * as immutable from "immutable";
+import { FixedTab } from "./project/page/file-tab";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -87,6 +88,7 @@ export interface ProjectStoreState {
   active_project_tab: string;
   internet_warning_closed: boolean; // Makes bottom height update
   num_ghost_file_tabs: number;
+  flyout: FixedTab | null;
 
   // Project Files
   activity: any; // immutable,
@@ -256,6 +258,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       active_project_tab: "files",
       internet_warning_closed: false, // Makes bottom height update
       num_ghost_file_tabs: 0,
+      flyout: null,
 
       // Project Files
       activity: undefined,
