@@ -516,4 +516,24 @@ export class ProjectClient {
     const url = ipywidgetsGetBufferUrl(project_id, path, model_id, buffer_path);
     return await (await fetch(url)).arrayBuffer();
   }
+
+  // getting, setting, deleting, etc., the  api keys for a project
+  public async api_keys(opts: {
+    project_id: string;
+    action: "get" | "delete" | "regenerate";
+    password?: string;
+    trunc?: string;
+    name?: string;
+  }): Promise<string> {
+    if (this.client.account_id == null) {
+      throw Error("must be logged in");
+    }
+    if (!is_valid_uuid_string(opts.project_id)) {
+      throw Error("project_id must be a valid uuid");
+    }
+    if (opts.project_id == null && !opts.password) {
+      throw Error("must provide password for non-project api key");
+    }
+    return (await this.call(message.api_key(opts))).api_key;
+  }
 }

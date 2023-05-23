@@ -19,7 +19,7 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import passwordHash from "@cocalc/backend/auth/password-hash";
 import type { ApiKeyInfo } from "@cocalc/util/db-schema/projects";
 
-type Action = "get" | "delete" | "regenerate";
+type Action = "get" | "delete" | "regenerate" | "edit";
 
 interface Options {
   account_id: string;
@@ -42,8 +42,8 @@ export default async function manage({
     throw Error("account_id is not a valid uuid");
   }
 
-  // Check if the user has a password
-  if (await hasPassword(account_id)) {
+  if (project_id == null && (await hasPassword(account_id))) {
+    // Check if the user has a password
     if (!password) {
       throw Error("password must be provided");
     }
@@ -142,7 +142,7 @@ async function manageProjectApiKey({
 
     case "regenerate": // should be called "create"
       // creates a key with given name (if given)
-      const key = `sk_${generate()}`;
+      const key = `sk_${generate(48)}`;
       const api_key = {
         name: name ?? "",
         trunc: key.slice(0, 3) + "..." + key.slice(-4),
@@ -151,6 +151,22 @@ async function manageProjectApiKey({
       api_keys.push(api_key);
       await setProjectApiKeys(project_id, api_keys);
       return key;
+
+    case "edit": // change the name
+      if (!name) {
+        throw Error("must provide the new name");
+      }
+      if (!trunc) {
+        throw Error("must provide trunc so we know which key to change");
+      }
+      for (const key of api_keys) {
+        if (key.trunc == trunc) {
+          key.name = name;
+          await setProjectApiKeys(project_id, api_keys);
+          return;
+        }
+      }
+      break;
   }
 }
 

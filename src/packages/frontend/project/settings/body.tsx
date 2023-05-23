@@ -39,6 +39,7 @@ import SavingProjectSettingsError from "./saving-project-settings-error";
 import { SSHPanel } from "./ssh";
 import { Project } from "./types";
 import { UpgradeUsage } from "./upgrade-usage";
+import { ApiKeys } from "./api-keys";
 
 interface ReactProps {
   project_id: string;
@@ -173,14 +174,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             project={project}
             actions={redux.getActions("projects")}
           />
-          {!student.disableSSH &&
-          (ssh_gateway || kucalc === KUCALC_COCALC_COM) ? (
-            <SSHPanel
-              key="ssh-keys"
-              project={project}
-              account_id={account_id}
-            />
-          ) : undefined}
           <Environment key="environment" project_id={project_id} />
           {showDatastore && (
             <Datastore key="datastore" project_id={project_id} />
@@ -207,6 +200,15 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             </SettingBox>
           )}
           <ProjectControl key="control" project={project} />
+          {!student.disableSSH &&
+            (ssh_gateway || kucalc === KUCALC_COCALC_COM) && (
+              <SSHPanel
+                key="ssh-keys"
+                project={project}
+                account_id={account_id}
+              />
+            )}
+          <ApiKeys project_id={project_id} />
           <SettingBox title="Server Control Moved" icon="move">
             <Paragraph>
               The panel for restarting the Sage Worksheet server and other

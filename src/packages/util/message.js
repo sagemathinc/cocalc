@@ -2721,10 +2721,10 @@ message({
   event: "api_key",
   id: undefined,
   action: required, // 'get', 'delete', 'regenerate'
-  password: required,
+  password: undefined,
   project_id: undefined, // optional - if given then refers to api_key(s) for a project
   trunc: undefined, // truncated key to delete/regenerate
-  name: undefined;
+  name: undefined,
 });
 
 // hub --> client
