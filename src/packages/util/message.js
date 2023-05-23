@@ -2722,9 +2722,6 @@ message({
   id: undefined,
   action: required, // 'get', 'delete', 'regenerate'
   password: undefined,
-  project_id: undefined, // optional - if given then refers to api_key(s) for a project
-  trunc: undefined, // truncated key to delete/regenerate
-  name: undefined,
 });
 
 // hub --> client
@@ -2732,6 +2729,23 @@ message({
   event: "api_key_info",
   id: undefined,
   api_key: required,
+});
+
+// client --> hub
+message({
+  event: "api_keys",
+  id: undefined,
+  action: required, // 'get', 'delete', 'edit', 'create'
+  project_id: undefined, // optional - if given then refers to api_key(s) for a project
+  key_id: undefined, // integer id of the key
+  expire: undefined, // used for setting or changing expiration date
+  name: undefined,
+});
+
+message({
+  event: "api_keys_response",
+  id: undefined,
+  response: undefined,
 });
 
 // client --> hub

@@ -1399,6 +1399,9 @@ importers:
       axios:
         specifier: ^1.4.0
         version: 1.4.0
+      base62:
+        specifier: ^2.0.1
+        version: 2.0.1
       cookies:
         specifier: ^0.8.0
         version: 0.8.0
@@ -6563,6 +6566,11 @@ packages:
 
   /base16@1.0.0:
     resolution: {integrity: sha512-pNdYkNPiJUnEhnfXV56+sQy8+AaPcG3POZAUnwr4EeqCUZFz4u2PePbo3e5Gj4ziYPCWGUZT9RHisvJKnwFuBQ==}
+    dev: false
+
+  /base62@2.0.1:
+    resolution: {integrity: sha512-4t4WQK7mdbcWzqEBiq6tfo2qDCeIZGXvjifJZyxHIVcjQkZJxpFtu/pa2Va69OouCkg6izZ08hKnPxroeDyzew==}
+    engines: {node: '>=6.0.0'}
     dev: false
 
   /base64-js@1.5.1:

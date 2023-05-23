@@ -19,10 +19,8 @@ export default async function getAccountId(
   req,
   {
     noCache,
-    project_id,
   }: {
     noCache?: boolean;
-    project_id?: string; // only used for project_id api key access
   } = {}
 ): Promise<string | undefined> {
   if (req == null) return;
@@ -35,7 +33,7 @@ export default async function getAccountId(
     // What about an api key?
     if (req.header("Authorization")) {
       try {
-        return await getAccountIdFromApiKey(req, project_id);
+        return await getAccountIdFromApiKey(req);
       } catch (_err) {
         // non-fatal, at least for now...
         return;

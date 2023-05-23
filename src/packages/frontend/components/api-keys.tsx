@@ -12,38 +12,33 @@ import CopyToClipBoard from "./copy-to-clipboard";
 import { useState, useEffect } from "react";
 import { Alert, Table, Button, Popconfirm, Form, Input, Modal } from "antd";
 import { ColumnsType } from "antd/es/table";
+import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 const { useForm } = Form;
-
-export interface ApiKeyInfo {
-  name: string;
-  trunc: string;
-  used?: number;
-}
 
 interface Props {
   // Manage is a function that lets you get all api keys, delete a single api key,
   // or create an api key.
-  // - If you call manage with input "get" it will return a Javascript array ApiKeyInfo[]
-  //   of all your api keys, with each api key represented as an object {name, trunc, used?}
+  // - If you call manage with input "get" it will return a Javascript array ApiKey[]
+  //   of all your api keys, with each api key represented as an object {name, id, trunc, last_active?}
   //   as defined above.  The actual key itself is not returned, and trunc is a truncated
   //   version of the key used for display.
-  // - If you call manage with input "delete" and trunc set to the truncated version of an
-  //   api key, then that key will get deleted.
-  // - If you call manage with input "regenerate", then a new api key is created and returned
-  //   as a single string. This is the one and only time the user can see this api key.
-  // - If call with edit and both name and trunc set, changes the key determined by trunc
-  //   to have the given name.
+  // - If you call manage with input "delete" and id set then that key will get deleted.
+  // - If you call manage with input "create", then a new api key is created and returned
+  //   as a single string. This is the one and only time the user can see this *secret*.
+  // - If call with edit and both name and id set, changes the key determined by id
+  //   to have the given name. Similar for expire.
   manage: (opts: {
-    action: "get" | "delete" | "regenerate" | "edit";
-    trunc?: string;
+    action: "get" | "delete" | "create" | "edit";
+    id?: number;
     name?: string;
-  }) => Promise<ApiKeyInfo[] | string | undefined>;
+    expire?: Date;
+  }) => Promise<ApiKey[] | undefined>;
 }
 
 export default function ApiKeys({ manage }: Props) {
-  const [apiKeys, setApiKeys] = useState<ApiKeyInfo[]>([]);
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [editingKey, setEditingKey] = useState<string | undefined>(undefined);
+  const [editingKey, setEditingKey] = useState<number | undefined>(undefined);
   const [addModalVisible, setAddModalVisible] = useState<boolean>(false);
   const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
   const [form] = useForm();
@@ -57,7 +52,7 @@ export default function ApiKeys({ manage }: Props) {
     setLoading(true);
     try {
       const response = await manage({ action: "get" });
-      setApiKeys(response as ApiKeyInfo[]);
+      setApiKeys(response as ApiKey[]);
       setLoading(false);
       setError(null);
     } catch (err) {
@@ -66,18 +61,18 @@ export default function ApiKeys({ manage }: Props) {
     }
   };
 
-  const deleteApiKey = async (trunc: string) => {
+  const deleteApiKey = async (id: number) => {
     try {
-      await manage({ action: "delete", trunc });
+      await manage({ action: "delete", id });
       getAllApiKeys();
     } catch (err) {
       setError(err.message || "An error occurred");
     }
   };
 
-  const editApiKey = async (trunc: string, name: string) => {
+  const editApiKey = async (id: number, name: string) => {
     try {
-      await manage({ action: "edit", trunc, name });
+      await manage({ action: "edit", id, name });
       getAllApiKeys();
     } catch (err) {
       setError(err.message || "An error occurred");
@@ -86,16 +81,15 @@ export default function ApiKeys({ manage }: Props) {
 
   const createApiKey = async (name: string) => {
     try {
-      const response: string = (await manage({
-        action: "regenerate",
+      const response = await manage({
+        action: "create",
         name,
-      })) as any;
+      });
       setAddModalVisible(false);
       getAllApiKeys();
 
       Modal.success({
-        width: "600px",
-        title: "New API key",
+        title: "New Secret API Key",
         content: (
           <>
             <div>
@@ -104,7 +98,11 @@ export default function ApiKeys({ manage }: Props) {
               new one.
             </div>
             <div style={{ marginTop: 16 }}>
-              <strong>New API Key</strong> <CopyToClipBoard value={response} />
+              <strong>Secret API Key</strong>{" "}
+              <CopyToClipBoard
+                style={{ marginTop: "16px" }}
+                value={response?.[0].secret ?? "failed to get secret"}
+              />
             </div>
           </>
         ),
@@ -115,13 +113,21 @@ export default function ApiKeys({ manage }: Props) {
     }
   };
 
-  const columns: ColumnsType<ApiKeyInfo> = [
+  const columns: ColumnsType<ApiKey> = [
     { dataIndex: "name", title: "Name" },
+    { dataIndex: "id", title: "Id" },
     { dataIndex: "trunc", title: "Key" },
     {
-      dataIndex: "used",
+      dataIndex: "last_active",
       title: "Last Used",
-      render: (used) => (used ? new Date(used).toLocaleString() : "Never"),
+      render: (last_active) =>
+        last_active ? new Date(last_active).toLocaleString() : "Never",
+    },
+    {
+      dataIndex: "expire",
+      title: "Expire",
+      render: (expire) =>
+        expire ? new Date(expire).toLocaleString() : "Never",
     },
     {
       dataIndex: "operation",
@@ -130,7 +136,7 @@ export default function ApiKeys({ manage }: Props) {
         <div>
           <Popconfirm
             title="Are you sure you want to delete this key?"
-            onConfirm={() => deleteApiKey(record.trunc)}
+            onConfirm={() => deleteApiKey(record.id)}
           >
             <a>Delete</a>
           </Popconfirm>
@@ -139,7 +145,7 @@ export default function ApiKeys({ manage }: Props) {
               // Set the initial form value as the current key name
               form.setFieldsValue({ name: record.name });
               setEditModalVisible(true);
-              setEditingKey(record.trunc);
+              setEditingKey(record.id);
             }}
             style={{ marginLeft: "1em" }}
           >
@@ -156,7 +162,7 @@ export default function ApiKeys({ manage }: Props) {
 
   const handleModalOK = () => {
     const name = form.getFieldValue("name");
-    if (editingKey) {
+    if (editingKey != null) {
       editApiKey(editingKey, name);
       setEditModalVisible(false);
       setEditingKey(undefined);
@@ -191,7 +197,7 @@ export default function ApiKeys({ manage }: Props) {
           dataSource={apiKeys}
           columns={columns}
           loading={loading}
-          rowKey="trunc"
+          rowKey="id"
           pagination={false}
         />
       )}
@@ -201,8 +207,10 @@ export default function ApiKeys({ manage }: Props) {
 
       <Modal
         visible={addModalVisible || editModalVisible}
-        title={editingKey ? "Edit API Key Name" : "Create a New API Key"}
-        okText={editingKey ? "Save" : "Create"}
+        title={
+          editingKey != null ? "Edit API Key Name" : "Create a New API Key"
+        }
+        okText={editingKey != null ? "Save" : "Create"}
         cancelText="Cancel"
         onCancel={handleModalCancel}
         onOk={handleModalOK}

@@ -19,7 +19,7 @@ export function ApiKeys({ project_id }) {
     [project_id]
   );
   return (
-    <SettingBox title="Project API Keys" icon={"api"}>
+    <SettingBox title="API Keys" icon={"api"}>
       <ApiKeysTables manage={manage} />
     </SettingBox>
   );

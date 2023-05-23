@@ -34,6 +34,7 @@ import { Configuration, ConfigurationAspect } from "../project_configuration";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
+import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 
 export interface ExecOpts {
   project_id: string;
@@ -517,14 +518,15 @@ export class ProjectClient {
     return await (await fetch(url)).arrayBuffer();
   }
 
-  // getting, setting, deleting, etc., the  api keys for a project
+  // getting, setting, editing, deleting, etc., the  api keys for a project
   public async api_keys(opts: {
     project_id: string;
-    action: "get" | "delete" | "regenerate";
+    action: "get" | "delete" | "create" | "edit";
     password?: string;
-    trunc?: string;
     name?: string;
-  }): Promise<string> {
+    id?: number;
+    expire?: Date;
+  }): Promise<ApiKey[] | undefined> {
     if (this.client.account_id == null) {
       throw Error("must be logged in");
     }
@@ -534,6 +536,10 @@ export class ProjectClient {
     if (opts.project_id == null && !opts.password) {
       throw Error("must provide password for non-project api key");
     }
-    return (await this.call(message.api_key(opts))).api_key;
+    // because message always uses id, so we have to use something else!
+    const opts2 : any = { ...opts };
+    delete opts2.id;
+    opts2.key_id = opts.id;
+    return (await this.call(message.api_keys(opts2))).response;
   }
 }

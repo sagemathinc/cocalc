@@ -29,7 +29,8 @@ sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('@cocalc/server/stripe/client')
 {send_email, send_invite_email} = require('./email')
-apiKeyAction = require("@cocalc/server/api/manage").default;
+manageApiKeys        = require("@cocalc/server/api/manage").default
+{legacyManageApiKey} = require("@cocalc/server/api/manage")
 {create_account, delete_account} = require('./client/create-account')
 purchase_license  = require('@cocalc/server/licenses/purchase').default
 db_schema            = require('@cocalc/util/db-schema')
@@ -1876,17 +1877,28 @@ class exports.Client extends EventEmitter
 
     mesg_api_key: (mesg) =>
         try
-            api_key = await apiKeyAction
+            api_key = await legacyManageApiKey
                 account_id : @account_id
                 password   : mesg.password
                 action     : mesg.action
-                project_id : mesg.project_id
-                trunc      : mesg.trunc
-                name       : mesg.name
             if api_key
                 @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
             else
                 @success_to_client(id:mesg.id)
+        catch err
+            @error_to_client(id:mesg.id, error:err)
+
+    mesg_api_keys: (mesg) =>
+        try
+            response = await manageApiKeys
+                account_id : @account_id
+                password   : mesg.password
+                action     : mesg.action
+                project_id : mesg.project_id
+                id         : mesg.key_id
+                expire     : mesg.expire
+                name       : mesg.name
+            @push_to_client(message.api_keys_response(id:mesg.id, response:response))
         catch err
             @error_to_client(id:mesg.id, error:err)
 

@@ -11,7 +11,7 @@ import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
   const { project_id } = getParams(req);
-  const account_id = await getAccountId(req, { project_id });
+  const account_id = await getAccountId(req);
 
   try {
     if (!isValidUUID(project_id)) {
