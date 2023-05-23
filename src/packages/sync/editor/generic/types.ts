@@ -12,6 +12,7 @@
 import { SyncTable } from "@cocalc/sync/table/synctable";
 
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
+import { ISageSession } from "@cocalc/util/types/sage";
 
 export interface Patch {
   time: Date; // timestamp of when patch made
@@ -105,6 +106,8 @@ export interface ProjectClient extends EventEmitter {
     model_id: string, // id of the ipywidgets model
     buffer_path: string // JSON.stringify(['binary','buffer','path'])
   ) => ArrayBuffer;
+
+  sage_session: (opts: { path: string }) => ISageSession;
 }
 
 export interface Client extends ProjectClient {
@@ -129,8 +132,6 @@ export interface Client extends ProjectClient {
   ) => Promise<SyncTable>;
 
   shell: (opts: ExecuteCodeOptionsWithCallback) => void;
-
-  sage_session: (opts: { path: string }) => any;
 }
 
 export interface DocType {

@@ -5,8 +5,10 @@
 
 import { reuseInFlight } from "async-await-utils/hof";
 
+import { executeCode } from "@cocalc/backend/execute-code";
+import { getLogger } from "@cocalc/backend/logger";
 import processKill from "@cocalc/backend/misc/process-kill";
-import { abspath, enable_mesg, execute_code } from "@cocalc/backend/misc_node";
+import { abspath, enable_mesg } from "@cocalc/backend/misc_node";
 import type {
   Type as TCPMesgType,
   Message as TCPMessage,
@@ -24,13 +26,12 @@ import {
   uuid,
 } from "@cocalc/util/misc";
 import { CB } from "@cocalc/util/types/callback";
+import { ExecuteCodeOutput } from "@cocalc/util/types/execute-code";
+import { ISageSession } from "@cocalc/util/types/sage";
 import { Client } from "./client";
 import * as common from "./common";
 import { forget_port, get_port } from "./port_manager";
 import { getSecretToken } from "./servers/secret-token";
-
-import { getLogger } from "@cocalc/backend/logger";
-import { ISageSession } from "@cocalc/util/types/sage";
 const winston = getLogger("sage-session");
 
 //##############################################
@@ -46,44 +47,42 @@ const SAGE_SERVER_MAX_STARTUP_TIME_S = 60;
 let _restarting_sage_server = false;
 let _restarted_sage_server = 0; // time when we last restarted it
 
-function restart_sage_server(cb) {
+async function restart_sage_server() {
   const dbg = (m) => winston.debug(`restart_sage_server: ${to_json(m)}`);
   if (_restarting_sage_server) {
     dbg("hit lock");
-    cb("already restarting sage server");
-    return;
+    throw new Error("already restarting sage server");
   }
   const t = Date.now() - _restarted_sage_server;
   if (t <= SAGE_SERVER_MAX_STARTUP_TIME_S * 1000) {
     const err = `restarted sage server ${t}ms ago: not allowing too many restarts too quickly...`;
     dbg(err);
-    cb(err);
-    return;
+    throw err;
   }
 
   _restarting_sage_server = true;
   dbg("restarting the daemon");
-  execute_code({
-    command: "smc-sage-server restart",
-    timeout: 45,
-    ulimit_timeout: false, // very important -- so doesn't kill after 30 seconds of cpu!
-    err_on_exit: true,
-    bash: true,
-    cb(err, output) {
-      if (err) {
-        dbg(`failed to restart sage server daemon -- ${err}`);
-      } else {
-        dbg(
-          `successfully restarted sage server daemon -- '${JSON.stringify(
-            output
-          )}'`
-        );
-      }
-      _restarting_sage_server = false;
-      _restarted_sage_server = Date.now();
-      cb(err);
-    },
-  });
+  try {
+    const output: ExecuteCodeOutput = await executeCode({
+      command: "smc-sage-server restart",
+      timeout: 45,
+      ulimit_timeout: false, // very important -- so doesn't kill after 30 seconds of cpu!
+      err_on_exit: true,
+      bash: true,
+    });
+    {
+      dbg(
+        `successfully restarted sage server daemon -- '${JSON.stringify(
+          output
+        )}'`
+      );
+    }
+    _restarting_sage_server = false;
+    _restarted_sage_server = Date.now();
+  } catch (err) {
+    dbg(`failed to restart sage server daemon -- ${err}`);
+    throw err;
+  }
 }
 
 // Get a new connection to the Sage server.  If the server
@@ -91,9 +90,12 @@ function restart_sage_server(cb) {
 // attempt to restart it and try to connect.
 async function get_sage_socket(): Promise<CoCalcSocket> {
   let socket: CoCalcSocket | undefined = undefined;
+  const dbg = (m: string) => winston.debug(`get_sage_socket: ${m}`);
+  let n = 0;
 
-  const try_to_connect = async function (cb) {
+  const try_to_connect = async (cb: CB): Promise<void> => {
     try {
+      dbg(`try ${n++} -- calling _get_sage_socket}`);
       socket = await _get_sage_socket();
     } catch (err) {
       // Failed for some reason: try to restart one time, then try again.
@@ -102,23 +104,23 @@ async function get_sage_socket(): Promise<CoCalcSocket> {
       // there is something wrong with a local Sage install.
       // Note that restarting the sage server doesn't impact currently running worksheets (they
       // have their own process that isn't killed).
-      restart_sage_server(async function (err) {
-        // won't actually try to restart if called recently.
-        if (err) {
-          cb(err);
-          return;
-        }
+      try {
+        dbg(`try ${n} -- failed -- calling restart_sage_server`);
+        await restart_sage_server();
         // success at restarting sage server: *IMMEDIATELY* try to connect
-        try {
-          socket = await _get_sage_socket();
-        } catch (err) {
-          cb(err);
-        }
-      });
+        dbg(
+          `try ${n} -- restart_sage_server succeeded -- calling _get_sage_socket`
+        );
+        socket = await _get_sage_socket();
+      } catch (err) {
+        // won't actually try to restart if called too recently.
+        dbg(`try ${n} -- restart_sage_server failed -- calling cb(err)`);
+        cb(err);
+      }
     }
   };
 
-  return new Promise<CoCalcSocket>((resolve, reject) => {
+  await new Promise<CoCalcSocket>((resolve, reject) => {
     retry_until_success({
       f: try_to_connect,
       start_delay: 50,
@@ -128,17 +130,29 @@ async function get_sage_socket(): Promise<CoCalcSocket> {
       log(m) {
         return winston.debug(`get_sage_socket: ${m}`);
       },
-      cb(err) {
+      cb(err?: Error) {
         if (err) {
           reject(err);
         } else if (socket == null) {
           reject(new Error("socket is null"));
         } else {
+          dbg(
+            `try ${n} -- success -- calling resolve(socket) -- ${
+              socket != null
+            }`
+          );
           resolve(socket);
         }
       },
     });
   });
+
+  if (socket == null) {
+    dbg(`socket is null -- throwing error`);
+    throw new Error("socket is null");
+  }
+
+  return socket;
 }
 
 async function _get_sage_socket(): Promise<CoCalcSocket> {
@@ -178,21 +192,21 @@ async function _get_sage_socket(): Promise<CoCalcSocket> {
   );
 
   // TODO: couldn't this just hang forever :-(
-  await new Promise<void>((resolve, _reject) => {
+  return new Promise<CoCalcSocket>((resolve, reject) => {
     if (sage_socket == null) {
-      throw new Error("sage_socket not set");
+      reject("sage_socket not set");
+      return;
     }
     sage_socket.once("mesg", (_type, desc) => {
       winston.debug(`Got message back from Sage server: ${common.json(desc)}`);
       if (sage_socket == null) {
-        throw new Error("sage_socket not set");
+        reject("sage_socket not set");
+        return;
       }
       sage_socket.pid = desc.pid;
-      resolve();
+      resolve(sage_socket);
     });
   });
-
-  return sage_socket;
 }
 
 // we have to make sure to only export the type to avoid error TS4094
@@ -227,6 +241,7 @@ class SageSession implements ISageSession {
     [key: string]: CB<{ done: boolean; error: string }, any>;
   } = {};
   private _socket: CoCalcSocket | undefined;
+  public init_socket: () => Promise<void>;
 
   constructor(opts: Readonly<SageSessionOpts>) {
     const { path, client } = opts;
@@ -235,6 +250,7 @@ class SageSession implements ISageSession {
     this._client = client;
     this._output_cb = {};
     bind_methods(this);
+    this.init_socket = reuseInFlight(this._init_socket).bind(this);
   }
 
   private dbg(f: string) {
@@ -266,12 +282,12 @@ class SageSession implements ISageSession {
   // if e.g., the socket doesn't exist and there are a bunch of calls to @call
   // at the same time.
   // See https://github.com/sagemathinc/cocalc/issues/3506
-  public init_socket = reuseInFlight(async () => {
+  private async _init_socket() {
     const dbg = this.dbg("init_socket()");
     dbg();
 
     try {
-      const socket = await get_sage_socket();
+      const socket: CoCalcSocket = await get_sage_socket();
 
       dbg("successfully opened a sage session");
       this._socket = socket;
@@ -301,12 +317,12 @@ class SageSession implements ISageSession {
       dbg(`fail -- ${err}.`);
       throw err;
     }
-  });
+  }
 
   private async _init_path(): Promise<void> {
     const dbg = this.dbg("_init_path()");
     dbg();
-    await new Promise<void>(async (resolve, reject) => {
+    return new Promise<void>(async (resolve, reject) => {
       await this.call({
         input: {
           event: "execute_code",
@@ -318,6 +334,7 @@ class SageSession implements ISageSession {
           preparse: false,
         },
         cb: (resp) => {
+          dbg(`got response: ${to_json(resp)}`);
           let err: string | undefined = undefined;
           if (resp.stderr) {
             err = resp.stderr;

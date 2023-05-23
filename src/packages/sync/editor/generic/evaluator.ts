@@ -70,7 +70,7 @@ export class Evaluator {
     await Promise.all([i, o]);
 
     if (this.client.is_project()) {
-      this.init_project_evaluator();
+      await this.init_project_evaluator();
     }
     this.set_state("ready");
   }
@@ -434,7 +434,7 @@ export class Evaluator {
   }
 
   // Runs only in the project
-  private init_project_evaluator(): void {
+  private async init_project_evaluator(): Promise<void> {
     this.assert_is_project();
 
     const dbg = this.dbg("init_project_evaluator");
@@ -456,21 +456,21 @@ export class Evaluator {
     const v = this.inputs_table.get();
     if (v != null) {
       dbg(`handle ${v.size} pending evaluations`);
-      v.forEach(async (_, key) => {
+      for (const key of v.keys()) {
         if (key != null) {
           await this.handle_input_change(key);
         }
-      });
+      }
     }
   }
 
-  private ensure_sage_session_exists(): void {
+  private async ensure_sage_session_exists(): Promise<void> {
     if (this.sage_session != null) return;
     this.dbg("ensure_sage_session_exists")();
     // This code only runs in the project, where client
     // has a sage_session method.
     // This could return null, because client.sage_session gets it from a cache
-    this.sage_session = this.client.sage_session({
+    this.sage_session = await this.client.sage_session({
       path: this.syncdoc.get_path(),
     });
   }
@@ -490,11 +490,13 @@ export class Evaluator {
     }
     try {
       await this.ensure_sage_session_exists();
+      dbg("sage session exists");
       if (input.event === "execute_code") {
         // We only need to actually create the socket, which makes a running process,
         // if we are going to execute code.  The other events, e.g., 'status' don't
         // need a running sage session.
         if (!this.sage_session.is_running()) {
+          dbg("sage session is not running, so init socket");
           await this.sage_session.init_socket();
         }
       }

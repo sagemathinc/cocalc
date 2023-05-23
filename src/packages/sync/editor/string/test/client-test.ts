@@ -168,7 +168,7 @@ export class Client extends EventEmitter implements Client0 {
     return this._client_id;
   }
 
-  public sage_session({ path }): void {
+  public sage_session({ path }): any {
     console.log(`sage_session: path=${path}`);
   }
 
