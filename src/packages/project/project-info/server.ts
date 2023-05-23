@@ -31,10 +31,9 @@ import {
   State,
 } from "./types";
 import { exec } from "./utils";
+//import { get_sage_path } from "../sage_session"
+import { getLogger } from "../logger";
 
-//const { get_sage_path } = require("../sage_session");
-
-import getLogger from "../logger";
 const L = getLogger("project-info:server").debug;
 
 // function is_in_dev_project() {

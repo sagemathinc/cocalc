@@ -19,19 +19,19 @@ may be used to enhance the experience of document editing.
 
 const stringify = require("json-stable-stringify");
 
-import { callback } from "awaiting";
-import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { to_key } from "@cocalc/sync/table/util";
-import { Client } from "./types";
-import { sagews, MARKERS, FLAGS } from "@cocalc/util/sagews";
 import {
   close,
+  copy_with,
+  copy_without,
   from_json,
   to_json,
-  copy_without,
-  copy_with,
 } from "@cocalc/util/misc";
+import { FLAGS, MARKERS, sagews } from "@cocalc/util/sagews";
+import { ISageSession } from "@cocalc/util/types/sage";
+import { SyncDoc } from "./sync-doc";
+import { Client } from "./types";
 
 type State = "init" | "ready" | "closed";
 
@@ -41,19 +41,12 @@ type Program = "sage" | "bash";
 // Object whose meaning depends on the program
 type Input = any;
 
-interface SageSession {
-  close: () => void;
-  is_running: () => boolean;
-  init_socket: (cb: Function) => void;
-  call: (obj: { input: object; cb: Function }) => void;
-}
-
 export class Evaluator {
   private syncdoc: SyncDoc;
   private client: Client;
   private inputs_table: SyncTable;
   private outputs_table: SyncTable;
-  private sage_session: SageSession;
+  private sage_session: ISageSession;
   private state: State = "init";
   private table_options: any[] = [];
   private create_synctable: Function;
@@ -344,7 +337,7 @@ export class Evaluator {
     };
   }
 
-  private handle_input_change(key: string): void {
+  private async handle_input_change(key: string): Promise<void> {
     this.assert_not_closed();
     this.assert_is_project();
 
@@ -427,7 +420,7 @@ export class Evaluator {
       hook = (_) => {};
     }
 
-    f(x.input, (output) => {
+    await f(x.input, (output) => {
       if (this.state == "closed") {
         return;
       }
@@ -446,9 +439,9 @@ export class Evaluator {
 
     const dbg = this.dbg("init_project_evaluator");
     dbg("init");
-    this.inputs_table.on("change", (keys) => {
+    this.inputs_table.on("change", async (keys) => {
       for (const key of keys) {
-        this.handle_input_change(key);
+        await this.handle_input_change(key);
       }
     });
     /* CRITICAL: it's very important to handle all the inputs
@@ -463,9 +456,9 @@ export class Evaluator {
     const v = this.inputs_table.get();
     if (v != null) {
       dbg(`handle ${v.size} pending evaluations`);
-      v.forEach((_, key) => {
+      v.forEach(async (_, key) => {
         if (key != null) {
-          this.handle_input_change(key);
+          await this.handle_input_change(key);
         }
       });
     }
@@ -476,6 +469,7 @@ export class Evaluator {
     this.dbg("ensure_sage_session_exists")();
     // This code only runs in the project, where client
     // has a sage_session method.
+    // This could return null, because client.sage_session gets it from a cache
     this.sage_session = this.client.sage_session({
       path: this.syncdoc.get_path(),
     });
@@ -501,7 +495,7 @@ export class Evaluator {
         // if we are going to execute code.  The other events, e.g., 'status' don't
         // need a running sage session.
         if (!this.sage_session.is_running()) {
-          await callback(this.sage_session.init_socket);
+          await this.sage_session.init_socket();
         }
       }
     } catch (error) {
@@ -509,7 +503,7 @@ export class Evaluator {
       return;
     }
     dbg("send call to backend sage session manager", to_json(input));
-    this.sage_session.call({ input, cb });
+    await this.sage_session.call({ input, cb });
   }
 
   // Runs only in the project

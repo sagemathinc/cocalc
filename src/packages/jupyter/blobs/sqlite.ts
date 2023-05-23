@@ -153,16 +153,15 @@ export class BlobStoreSqlite implements BlobStoreInterface {
   // ipynb = (optional) text that is also stored and will be
   //         returned when get_ipynb is called
   //         This is used for some iframe support code.
-  save(data, type, ipynb?): string {
-    if (BASE64_TYPES.includes(type)) {
-      data = Buffer.from(data, "base64");
-    } else {
-      data = Buffer.from(data);
-    }
-    const sha1: string = misc_node_sha1(data);
+  save(data: string, type: string, ipynb?: string): string {
+    const buf: Buffer = BASE64_TYPES.includes(type as any)
+      ? Buffer.from(data, "base64")
+      : Buffer.from(data);
+
+    const sha1: string = misc_node_sha1(buf);
     const row = this.stmt_get.get(sha1);
     if (row == null) {
-      this.stmt_insert.run([sha1, data, type, ipynb, Date.now()]);
+      this.stmt_insert.run([sha1, buf, type, ipynb, Date.now()]);
     } else {
       this.stmt_update.run([Date.now(), sha1]);
     }
@@ -172,7 +171,14 @@ export class BlobStoreSqlite implements BlobStoreInterface {
   // Read a file from disk and save it in the database.
   // Returns the sha1 hash of the file.
   async readFile(path: string, type: string): Promise<string> {
-    return await this.save(await readFile(path), type);
+    const content = await readFile(path);
+    if (typeof content === "string") {
+      return await this.save(content, type);
+    } else {
+      // This case never happens, because readFile without encoding returns a string.
+      // We include it to make TypeScript happy.
+      return await this.save(content.toString(), type);
+    }
   }
 
   /*
@@ -189,7 +195,7 @@ export class BlobStoreSqlite implements BlobStoreInterface {
     }
   }
 
-  get_ipynb(sha1: string): any {
+  get_ipynb(sha1: string): string | undefined {
     const row = this.stmt_ipynb.get(sha1);
     if (row == null) {
       return;

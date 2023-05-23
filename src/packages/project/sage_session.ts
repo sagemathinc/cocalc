@@ -3,16 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { reuseInFlight } from "async-await-utils/hof";
+
+import { getLogger } from "@cocalc/backend/logger";
 import processKill from "@cocalc/backend/misc/process-kill";
 import { abspath, enable_mesg, execute_code } from "@cocalc/backend/misc_node";
+import type {
+  Type as TCPMesgType,
+  Message as TCPMessage,
+} from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { connectToLockedSocket } from "@cocalc/backend/tcp/locked-socket";
 import * as message from "@cocalc/util/message";
 import {
   bind_methods,
-  defaults,
   path_split,
-  required,
   retry_until_success,
   to_json,
   trunc,
@@ -20,12 +25,12 @@ import {
   uuid,
 } from "@cocalc/util/misc";
 import { CB } from "@cocalc/util/types/callback";
+import { ISageSession } from "@cocalc/util/types/sage";
 import { Client } from "./client";
 import * as common from "./common";
 import { forget_port, get_port } from "./port_manager";
-import * as secret_token from "./servers/secret-token";
+import { getSecretToken } from "./servers/secret-token";
 
-import { getLogger } from "@cocalc/backend/logger";
 const winston = getLogger("sage-session");
 
 //##############################################
@@ -139,10 +144,9 @@ async function get_sage_socket(): Promise<CoCalcSocket> {
 async function _get_sage_socket(): Promise<CoCalcSocket> {
   // cb(err, socket that is ready to use)
   let sage_socket: CoCalcSocket | undefined = undefined;
-  let port: number | undefined = undefined;
 
   winston.debug("get sage server port");
-  port = await get_port("sage");
+  const port: number | undefined = await get_port("sage");
 
   if (typeof port !== "number") {
     throw new Error("port not set");
@@ -151,7 +155,7 @@ async function _get_sage_socket(): Promise<CoCalcSocket> {
   try {
     sage_socket = await connectToLockedSocket({
       port,
-      token: secret_token.secretToken,
+      token: getSecretToken(),
     });
     winston.debug("Successfully unlocked a sage session connection.");
   } catch (error) {
@@ -191,22 +195,20 @@ async function _get_sage_socket(): Promise<CoCalcSocket> {
   return sage_socket;
 }
 
+// we have to make sure to only export the type to avoid error TS4094
+export type SageSessionType = InstanceType<typeof SageSession>;
+
 interface SageSessionOpts {
   client: Client;
   path: string; // the path to the *worksheet* file
 }
 
-const cache = {};
+const cache: { [path: string]: SageSessionType } = {};
 
-export function sage_session(opts: SageSessionOpts) {
-  opts = defaults(opts, {
-    client: required,
-    path: required,
-  }); // the path to the *worksheet* file
+export function sage_session(opts: Readonly<SageSessionOpts>): SageSessionType {
+  const { path } = opts;
   // compute and cache if not cached; otherwise, get from cache:
-  return cache[opts.path] != null
-    ? cache[opts.path]
-    : (cache[opts.path] = new SageSession(opts));
+  return (cache[path] = cache[path] ?? new SageSession(opts));
 }
 
 //# TODO for project-info/server we need a function that returns a path to a sage worksheet for a given PID
@@ -218,33 +220,29 @@ Sage Session object
 
 Until you actually try to call it no socket need
 */
-class SageSession {
+class SageSession implements ISageSession {
   private _path: string;
   private _client: Client;
   private _output_cb: {
-    [key: string]: CB<any, any>;
+    [key: string]: CB<{ done: boolean; error: string }, any>;
   } = {};
   private _socket: CoCalcSocket | undefined;
-  private _init_socket_cbs: CB[] | undefined = [];
 
-  constructor(opts: SageSessionOpts) {
-    opts = defaults(opts, {
-      client: required,
-      path: required,
-    });
+  constructor(opts: Readonly<SageSessionOpts>) {
+    const { path, client } = opts;
     this.dbg("constructor")();
-    this._path = opts.path;
-    this._client = opts.client;
+    this._path = path;
+    this._client = client;
     this._output_cb = {};
     bind_methods(this);
   }
 
-  dbg(f) {
-    return (m?) =>
+  private dbg(f: string) {
+    return (m?: string) =>
       winston.debug(`SageSession(path='${this._path}').${f}: ${m ?? ""}`);
   }
 
-  close() {
+  public close() {
     if (this._socket != null) {
       const pid = this._socket.pid;
       if (pid != null) processKill(pid, 9);
@@ -260,7 +258,7 @@ class SageSession {
   }
 
   // return true if there is a socket connection to a sage server process
-  is_running() {
+  public is_running(): boolean {
     return this._socket != null;
   }
 
@@ -268,16 +266,9 @@ class SageSession {
   // if e.g., the socket doesn't exist and there are a bunch of calls to @call
   // at the same time.
   // See https://github.com/sagemathinc/cocalc/issues/3506
-  async init_socket(cb): Promise<void> {
+  public init_socket = reuseInFlight(async () => {
     const dbg = this.dbg("init_socket()");
     dbg();
-
-    if (this._init_socket_cbs != null) {
-      this._init_socket_cbs.push(cb);
-      return;
-    }
-
-    this._init_socket_cbs = [cb];
 
     try {
       const socket = await get_sage_socket();
@@ -293,56 +284,61 @@ class SageSession {
       // CRITICAL: we must define this handler before @_init_path below,
       // or @_init_path can't possibly work... since it would wait for
       // this handler to get the response message!
-      socket.on("mesg", (type, mesg) => {
+      socket.on("mesg", (type: TCPMesgType, mesg: TCPMessage) => {
         dbg(`sage session: received message ${type}`);
-        this[`_handle_mesg_${type}`]?.(mesg);
-      });
-
-      this._init_path((err) => {
-        const cbs = this._init_socket_cbs ?? [];
-        delete this._init_socket_cbs;
-        for (const c of cbs) {
-          c(err);
+        switch (type) {
+          case "json":
+            this._handle_mesg_json(mesg);
+            break;
+          case "blob":
+            this._handle_mesg_blob(mesg);
+            break;
         }
       });
+
+      await this._init_path();
     } catch (err) {
       dbg(`fail -- ${err}.`);
-      const cbs = this._init_socket_cbs ?? [];
-      delete this._init_socket_cbs;
-      for (const c of cbs) {
-        c(err);
-      }
-      return;
+      throw err;
     }
-  }
+  });
 
-  _init_path(cb): void {
+  private async _init_path(): Promise<void> {
     const dbg = this.dbg("_init_path()");
     dbg();
-    this.call({
-      input: {
-        event: "execute_code",
-        code: "os.chdir(salvus.data['path']);__file__=salvus.data['file']",
-        data: {
-          path: abspath(path_split(this._path).head),
-          file: abspath(this._path),
+    await new Promise<void>(async (resolve, reject) => {
+      await this.call({
+        input: {
+          event: "execute_code",
+          code: "os.chdir(salvus.data['path']);__file__=salvus.data['file']",
+          data: {
+            path: abspath(path_split(this._path).head),
+            file: abspath(this._path),
+          },
+          preparse: false,
         },
-        preparse: false,
-      },
-      cb: (resp) => {
-        let err: string | undefined = undefined;
-        if (resp.stderr) {
-          err = resp.stderr;
-          dbg(`error '${err}'`);
-        }
-        if (resp.done) {
-          cb?.(err);
-        }
-      },
+        cb: (resp) => {
+          let err: string | undefined = undefined;
+          if (resp.stderr) {
+            err = resp.stderr;
+            dbg(`error '${err}'`);
+          }
+          if (resp.done) {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          }
+        },
+      });
     });
   }
 
-  async call(opts: {
+  public async call({
+    input,
+    cb,
+  }: {
     input: {
       id?: string;
       signal?: any;
@@ -352,6 +348,7 @@ class SageSession {
       data?: { path: string; file: string };
       preparse?: boolean;
     };
+    // cb(resp) or cb(resp1), cb(resp2), etc. -- posssibly called multiple times when message is execute or 0 times
     cb: (resp: {
       error?: Error;
       pong?: boolean;
@@ -360,30 +357,24 @@ class SageSession {
       done?: boolean;
     }) => void;
   }): Promise<void> {
-    opts = defaults(opts, {
-      input: required,
-      cb: undefined,
-    }); // cb(resp) or cb(resp1), cb(resp2), etc. -- posssibly called multiple times when message is execute or 0 times
     const dbg = this.dbg("call");
-    dbg(`input='${trunc(to_json(opts.input), 300)}'`);
-    switch (opts.input.event) {
+    dbg(`input='${trunc(to_json(input), 300)}'`);
+    switch (input.event) {
       case "ping":
-        opts.cb?.({ pong: true });
+        cb?.({ pong: true });
         return;
 
       case "status":
-        opts.cb?.({ running: this.is_running() });
+        cb?.({ running: this.is_running() });
         return;
 
       case "signal":
         if (this._socket != null) {
-          dbg(
-            `sending signal ${opts.input.signal} to process ${this._socket.pid}`
-          );
+          dbg(`sending signal ${input.signal} to process ${this._socket.pid}`);
           const pid = this._socket.pid;
-          if (pid != null) processKill(pid, opts.input.signal);
+          if (pid != null) processKill(pid, input.signal);
         }
-        opts.cb?.({});
+        cb?.({});
         return;
 
       case "restart":
@@ -391,20 +382,19 @@ class SageSession {
         if (this._socket != null) {
           this.close();
         }
-        this.init_socket((err) => {
-          if (err) {
-            opts.cb?.({ error: err });
-          } else {
-            opts.cb?.({});
-          }
-        });
+        try {
+          await this.init_socket();
+          cb?.({});
+        } catch (err) {
+          cb?.({ error: err });
+        }
         return;
 
       case "raw_input":
         dbg("sending sage_raw_input event");
         this._socket?.write_mesg("json", {
           event: "sage_raw_input",
-          value: opts.input.value,
+          value: input.value,
         });
         return;
 
@@ -412,63 +402,71 @@ class SageSession {
         // send message over socket and get responses
         try {
           if (this._socket != null) {
-            await new Promise<void>((resolve, reject) => {
-              this.init_socket((err) => {
-                if (err) {
-                  reject(err);
-                } else {
-                  resolve();
-                }
-              });
-            });
+            await this.init_socket();
           }
 
           if (this._socket == null) {
             throw new Error("no socket"); // should not happen
           }
 
-          if (opts.input.id == null) {
-            opts.input.id = uuid();
-            dbg(`generated new random uuid for input: '${opts.input.id}' `);
+          if (input.id == null) {
+            input.id = uuid();
+            dbg(`generated new random uuid for input: '${input.id}' `);
           }
 
-          this._socket.write_mesg("json", opts.input);
+          this._socket.write_mesg("json", input);
 
-          if (opts.cb != null) {
-            this._output_cb[opts.input.id] = opts.cb; // this is when opts.cb will get called...
+          if (cb != null) {
+            this._output_cb[input.id] = cb; // this is when opts.cb will get called...
           }
         } catch (err) {
-          opts.cb?.({ done: true, error: err });
+          cb?.({ done: true, error: err });
         }
     }
   }
-  _handle_mesg_blob(mesg) {
-    const { uuid } = mesg;
+
+  private _handle_mesg_blob(mesg: TCPMessage) {
+    let { uuid, blob } = mesg;
     const dbg = this.dbg(`_handle_mesg_blob(uuid='${uuid}')`);
     dbg();
+
+    if (blob == null) {
+      dbg("no blob -- dropping message");
+      return;
+    }
+
+    // This should never happen, typing enforces this to be a Buffer
+    if (typeof blob === "string") {
+      dbg("blob is string -- converting to buffer");
+      blob = Buffer.from(blob, "utf8");
+    }
+
     return this._client.save_blob({
-      blob: mesg.blob,
+      blob,
       uuid,
       cb: (err, resp) => {
         if (err) {
           resp = message.save_blob({
             error: err,
-            sha1: uuid,
-          }); // dumb - that sha1 should be called uuid...
+            sha1: uuid, // dumb - that sha1 should be called uuid...
+          });
         }
         return this._socket?.write_mesg("json", resp);
       },
     });
   }
 
-  _handle_mesg_json(mesg) {
+  private _handle_mesg_json(mesg: TCPMessage) {
     const dbg = this.dbg("_handle_mesg_json");
     dbg(`mesg='${trunc_middle(to_json(mesg), 400)}'`);
-    const c = this._output_cb[mesg?.id];
+    if (mesg == null) return; // should not happen
+    const { id } = mesg;
+    if (id == null) return; // should not happen
+    const c = this._output_cb[id];
     if (c != null) {
       // Must do this check first since it uses done:false.
       if (mesg.done || mesg.done == null) {
-        delete this._output_cb[mesg.id];
+        delete this._output_cb[id];
         mesg.done = true;
       }
       if (mesg.done != null && !mesg.done) {
