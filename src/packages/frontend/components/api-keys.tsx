@@ -8,11 +8,22 @@ Applications:
 */
 
 import { Icon } from "./icon";
+import { TimeAgo } from "./time-ago";
 import CopyToClipBoard from "./copy-to-clipboard";
 import { useState, useEffect } from "react";
-import { Alert, Table, Button, Popconfirm, Form, Input, Modal } from "antd";
+import {
+  Alert,
+  Table,
+  DatePicker,
+  Button,
+  Popconfirm,
+  Form,
+  Input,
+  Modal,
+} from "antd";
 import { ColumnsType } from "antd/es/table";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
+import dayjs from "dayjs";
 const { useForm } = Form;
 
 interface Props {
@@ -70,20 +81,27 @@ export default function ApiKeys({ manage }: Props) {
     }
   };
 
-  const editApiKey = async (id: number, name: string) => {
+  const deleteAllApiKeys = async () => {
+    for (const { id } of apiKeys) {
+      await deleteApiKey(id);
+    }
+  };
+
+  const editApiKey = async (id: number, name: string, expire?: Date) => {
     try {
-      await manage({ action: "edit", id, name });
+      await manage({ action: "edit", id, name, expire });
       getAllApiKeys();
     } catch (err) {
       setError(err.message || "An error occurred");
     }
   };
 
-  const createApiKey = async (name: string) => {
+  const createApiKey = async (name: string, expire?: Date) => {
     try {
       const response = await manage({
         action: "create",
         name,
+        expire,
       });
       setAddModalVisible(false);
       getAllApiKeys();
@@ -121,13 +139,12 @@ export default function ApiKeys({ manage }: Props) {
       dataIndex: "last_active",
       title: "Last Used",
       render: (last_active) =>
-        last_active ? new Date(last_active).toLocaleString() : "Never",
+        last_active ? <TimeAgo date={last_active} /> : "Never",
     },
     {
       dataIndex: "expire",
       title: "Expire",
-      render: (expire) =>
-        expire ? new Date(expire).toLocaleString() : "Never",
+      render: (expire) => (expire ? <TimeAgo date={expire} /> : "Never"),
     },
     {
       dataIndex: "operation",
@@ -162,13 +179,14 @@ export default function ApiKeys({ manage }: Props) {
 
   const handleModalOK = () => {
     const name = form.getFieldValue("name");
+    const expire = form.getFieldValue("expire");
     if (editingKey != null) {
-      editApiKey(editingKey, name);
+      editApiKey(editingKey, name, expire);
       setEditModalVisible(false);
       setEditingKey(undefined);
       form.resetFields();
     } else {
-      createApiKey(name);
+      createApiKey(name, expire);
       form.resetFields();
     }
   };
@@ -201,9 +219,22 @@ export default function ApiKeys({ manage }: Props) {
           pagination={false}
         />
       )}
-      <Button onClick={handleAdd}>
-        <Icon name="plus-circle" /> Add API key...
-      </Button>
+      <Button.Group>
+        <Button onClick={handleAdd}>
+          <Icon name="plus-circle" /> Add API key...
+        </Button>
+        <Button onClick={getAllApiKeys}>Refresh</Button>
+        {apiKeys.length > 0 && (
+          <Popconfirm
+            title="Are you sure you want to delete all these api keys?"
+            onConfirm={deleteAllApiKeys}
+          >
+            <Button danger>
+              Delete All...
+            </Button>
+          </Popconfirm>
+        )}
+      </Button.Group>
 
       <Modal
         visible={addModalVisible || editModalVisible}
@@ -222,6 +253,24 @@ export default function ApiKeys({ manage }: Props) {
             rules={[{ required: true, message: "Please enter a name" }]}
           >
             <Input />
+          </Form.Item>
+          <Form.Item
+            name="expire"
+            label="Expire"
+            rules={[
+              {
+                required: false,
+                message: "Optional date when key will be automatically deleted",
+              },
+            ]}
+          >
+            <DatePicker
+              showTime
+              disabledDate={(current) => {
+                // disable all dates before today
+                return current && current < dayjs();
+              }}
+            />
           </Form.Item>
         </Form>
       </Modal>

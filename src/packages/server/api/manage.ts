@@ -203,7 +203,7 @@ async function updateApiKey({ apiKey, account_id, project_id }) {
     // including account_id and project_id so so you can't edit an api_key
     // for some other random project or user.
     await pool.query(
-      "UPDATE api_keys SET expire=$3,name=$4,last_active=$5 WHERE id=$1 AND account_id=$2",
+      "UPDATE api_keys SET expire=$3,name=$4,last_active=$5 WHERE id=$1 AND project_id=$2",
       [id, project_id, expire, name, last_active]
     );
   } else {
@@ -293,7 +293,7 @@ export async function getAccountWithApiKey(
   // Check new api_keys table
   const id = decode62(secret.slice(-6));
   const { rows } = await pool.query(
-    "SELECT account_id,project_id,hash FROM api_keys WHERE id=$1",
+    "SELECT account_id,project_id,hash,expire FROM api_keys WHERE id=$1",
     [id]
   );
   if (rows.length == 0) return undefined;
@@ -302,6 +302,13 @@ export async function getAccountWithApiKey(
     // I.e., if you reate an api key for a project, then you stop collab on that
     // project, then your api key will automatically stop working.
     if (rows[0].project_id && !(await isCollaborator(rows[0]))) {
+      await deleteApiKey({ ...rows[0], id });
+      return undefined;
+    }
+    const { expire } = rows[0];
+    if (expire != null && expire.valueOf() <= Date.now()) {
+      // expired entries will get automatically deleted eventually by database
+      // maintenance, but we obviously shouldn't depend on that.
       await deleteApiKey({ ...rows[0], id });
       return undefined;
     }
@@ -319,6 +326,10 @@ export async function legacyManageApiKey({
   account_id,
   password,
   action,
+}: {
+  account_id: string;
+  password?: string;
+  action: Action;
 }): Promise<string | undefined> {
   // Check if the user has a password
   if (await hasPassword(account_id)) {

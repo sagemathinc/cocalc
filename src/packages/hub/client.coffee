@@ -893,7 +893,7 @@ class exports.Client extends EventEmitter
                             database       : @database
                             cb             : (err, result) =>
                                 if err
-                                    cb("Internal error determining user permission -- #{err}")
+                                    cb("Read access denied -- #{err}")
                                 else if not result
                                     cb("User #{@account_id} does not have read access to project #{mesg.project_id}")
                                 else
@@ -907,7 +907,7 @@ class exports.Client extends EventEmitter
                             account_id     : @account_id
                             cb             : (err, result) =>
                                 if err
-                                    cb("Internal error determining user permission -- #{err}")
+                                    cb("Write access denied -- #{err}")
                                 else if not result
                                     cb("User #{@account_id} does not have write access to project #{mesg.project_id}")
                                 else

@@ -15,7 +15,7 @@ import passwordHash from "@cocalc/backend/auth/password-hash";
 import { get_server_settings } from "@cocalc/database/postgres/server-settings";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { getLogger } from "@cocalc/hub/logger";
-import apiKeyAction from "@cocalc/server/api/manage";
+import { legacyManageApiKey } from "@cocalc/server/api/manage";
 import { callback2 } from "@cocalc/util/async-utils";
 import * as message from "@cocalc/util/message";
 import { CreateAccount } from "@cocalc/util/message-types";
@@ -403,7 +403,7 @@ export async function create_account(
 
     if (opts.mesg.get_api_key) {
       dbg("get_api_key -- generate key and include in response message");
-      mesg1.api_key = await apiKeyAction({
+      mesg1.api_key = await legacyManageApiKey({
         account_id,
         password: opts.mesg.password,
         action: "regenerate",
