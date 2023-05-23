@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CGroup, DiskUsageInfo } from "../project-info/types";
+import type { CGroup, DiskUsageInfo } from "../project-info/types";
 
 // DiskUsage for /tmp !
 export function cgroup_stats(cg: CGroup, du?: DiskUsageInfo) {

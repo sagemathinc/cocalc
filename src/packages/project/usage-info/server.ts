@@ -12,15 +12,15 @@ from the ProjectInfoServer (which collects data about everything)
 */
 
 import { delay } from "awaiting";
+import { throttle } from "lodash";
 import { EventEmitter } from "node:events";
 
+import type { UsageInfo } from "@cocalc/util/types/project-usage-info";
 import { getLogger } from "../logger";
 import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
 import { Process, ProjectInfo } from "../project-info/types";
-import type { UsageInfo } from "@cocalc/util/types/project-usage-info";
-import { throttle } from "lodash";
 
-const L = getLogger("usage-info:server").debug;
+const L = getLogger("usage-info:server");
 
 function is_diff(prev: UsageInfo, next: UsageInfo, key: keyof UsageInfo) {
   // we assume a,b >= 0, hence we leave out Math.abs operations
@@ -31,7 +31,6 @@ function is_diff(prev: UsageInfo, next: UsageInfo, key: keyof UsageInfo) {
 }
 
 export class UsageInfoServer extends EventEmitter {
-  private readonly dbg: Function;
   private readonly throttled_dbg: Function;
   private running = false;
   private readonly testing: boolean;
@@ -45,10 +44,9 @@ export class UsageInfoServer extends EventEmitter {
     super();
     this.testing = testing;
     this.path = path;
-    this.dbg = L;
-    this.throttled_dbg = throttle((...args) => L(...args), 10000);
+    this.throttled_dbg = throttle((...args) => L.debug(...args), 60000);
     this.project_info = get_ProjectInfoServer();
-    this.dbg("starting");
+    L.info("starting");
   }
 
   private async init(): Promise<void> {
@@ -117,7 +115,7 @@ export class UsageInfoServer extends EventEmitter {
   // at the given path.
   private update(): void {
     if (this.info == null) {
-      L("was told to update, but there is no ProjectInfo");
+      L.warn("was told to update, but there is no ProjectInfo");
       return;
     }
 
@@ -176,14 +174,14 @@ export class UsageInfoServer extends EventEmitter {
 
   public async start(): Promise<void> {
     if (this.running) {
-      this.dbg("UsageInfoServer already running, cannot be started twice");
+      L.info("UsageInfoServer already running, cannot be started twice");
     } else {
       await this._start();
     }
   }
 
   private async _start(): Promise<void> {
-    this.dbg("start");
+    L.info("start");
     if (this.running) {
       throw Error("Cannot start UsageInfoServer twice");
     }

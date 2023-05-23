@@ -83,7 +83,7 @@
   "devDependenicesNotes": "For license and size reasons, we make @cocalc/crm a dev dependency so it is NOT installed unless explicitly installed as a separate step.",
   "devDependencies": {
     "@types/http-proxy": "^1.17.9",
-    "@types/node": "^18.11.18",
+    "@types/node": "^18.16.14",
     "@types/passport": "^1.0.9",
     "@types/react-dom": "^18.0.10",
     "@types/sanitize-html": "^2.3.1",

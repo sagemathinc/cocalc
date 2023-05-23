@@ -17,15 +17,16 @@ import { from_json_socket, to_json_socket, trunc } from "@cocalc/util/misc";
 
 const winston = getLogger("tcp.enable");
 
-type Type = "json" | "blob";
+export type Type = "json" | "blob";
 
-interface Message {
+export interface Message {
   id?: string;
   uuid?: string;
   blob?: Buffer | string;
   ttlSeconds?: number;
   event?: "sage_raw_input" | "hello";
   value?: any;
+  done?: boolean;
 }
 
 interface RecvMesgOpts {

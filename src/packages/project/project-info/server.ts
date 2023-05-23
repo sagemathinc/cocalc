@@ -31,7 +31,7 @@ import {
   State,
 } from "./types";
 import { exec } from "./utils";
-//const { get_sage_path } = require("../sage_session");
+//import { get_sage_path } from "../sage_session"
 import { getLogger } from "../logger";
 
 const L = getLogger("project-info:server").debug;
