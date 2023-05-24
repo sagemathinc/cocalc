@@ -1278,7 +1278,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.error?
-            error = """ERROR: '#{mesg.error}'
+            error = """ERROR: '#{JSON.stringify(mesg.error)}'
 
             Communication with the Sage server is failing.
 
