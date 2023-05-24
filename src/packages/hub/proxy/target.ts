@@ -17,7 +17,7 @@ import { parseReq } from "./parse";
 
 const hub_projects = require("../projects");
 
-const logger = getLogger("proxy: target");
+const logger = getLogger("proxy:target");
 
 // The cached entries expire after 30 seconds.  Caching the target
 // helps enormously when there is a burst of requests.
@@ -38,38 +38,50 @@ export function invalidateTargetCache(remember_me: string, url: string): void {
 
 interface Options {
   remember_me?: string; // undefined = allow; only used for websocket upgrade.
+  api_key?: string;
   url: string;
   isPersonal: boolean;
   projectControl: ProjectControlFunction;
 }
 
-export async function getTarget(opts: Options): Promise<{
+export async function getTarget({
+  remember_me,
+  api_key,
+  url,
+  isPersonal,
+  projectControl,
+}: Options): Promise<{
   host: string;
   port: number;
   internal_url: string | undefined;
 }> {
-  const { remember_me, url, isPersonal, projectControl } = opts;
-
   const { key, type, project_id, port_desc, internal_url } = parseReq(
     url,
-    remember_me
+    remember_me,
+    api_key
   );
 
   if (cache.has(key)) {
     return cache.get(key) as any;
   }
-  const dbg = (...args) => logger.debug("target", key, ...args);
+  const dbg = (...args) => {
+    logger.debug(key, ...args);
+  };
   dbg("url", url);
 
-  if (remember_me != null) {
-    // For now, we always require write access to proxy.
-    // We really haven't implemented a notion of "read access" to projects,
-    // instead focusing on public sharing, cloning, etc.
-    if (
-      !(await hasAccess({ project_id, remember_me, type: "write", isPersonal }))
-    ) {
-      throw Error(`user does not have write access to project`);
-    }
+  // For now, we always require write access to proxy.
+  // We no longer have a notion of "read access" to projects,
+  // instead focusing on public sharing, cloning, etc.
+  if (
+    !(await hasAccess({
+      project_id,
+      remember_me,
+      api_key,
+      type: "write",
+      isPersonal,
+    }))
+  ) {
+    throw Error(`user does not have write access to project`);
   }
 
   const project = projectControl(project_id);

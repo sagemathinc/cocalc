@@ -11,6 +11,10 @@ export const COOKIE_NAME = `${
   basePath.length <= 1 ? "" : encodeURIComponent(basePath)
 }remember_me`;
 
+export const API_COOKIE_NAME = `${
+  basePath.length <= 1 ? "" : encodeURIComponent(basePath)
+}api_key`;
+
 // Create a remember me cookie for the given account_id and store
 // it in the database.  The cookie is similar to using a server
 // assigned random uuid-v4 as a password.  The user knows the

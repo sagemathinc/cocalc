@@ -14,92 +14,52 @@ const logger = getLogger("proxy:has-access");
 
 interface Options {
   project_id: string;
-  remember_me: string;
+  remember_me?: string;
+  api_key?: string;
   type: "write" | "read";
   isPersonal: boolean;
 }
 
-// 5 minute cache: grant "yes" for a while
-const yesCache = new LRU({ max: 20000, ttl: 1000 * 60 * 5 });
-// 10 second cache: recheck "no" more frequently
-const noCache = new LRU({ max: 20000, ttl: 1000 * 10 });
+// 3 minute cache: grant "yes" for a while
+const yesCache = new LRU({ max: 20000, ttl: 1000 * 60 * 3 });
+// 5 second cache: recheck "no" much more frequently
+const noCache = new LRU({ max: 20000, ttl: 1000 * 5 });
 
 export default async function hasAccess(opts: Options): Promise<boolean> {
-  // TODO: remove! return true;
-
   if (opts.isPersonal) {
     // In personal mode, anyone who can access localhost has full
     // access to everything, since this is meant to be used on
-    // single-user personal computer.
+    // single-user personal computer in a context where there is no
+    // security requirement at all.
     return true;
   }
 
-  const { project_id, remember_me, type } = opts;
-
-  const key = project_id + remember_me + type;
+  const { project_id, remember_me, api_key, type } = opts;
+  const key = `${project_id}${remember_me}${api_key}${type}`;
 
   for (const cache of [yesCache, noCache]) {
-    if (cache.has(key)) return !!cache.get(key);
+    if (cache.has(key)) {
+      return !!cache.get(key);
+    }
   }
 
-  // not cached, so we have to determine access.
+  // not cached, so we determine access.
   let access: boolean;
   const dbg = (...args) => {
     logger.debug(type, " access to ", project_id, ...args);
   };
 
   try {
-    dbg("get remember_me message");
-    const x = remember_me.split("$");
-    const hash = generateHash(x[0], x[1], parseInt(x[2]), x[3]);
-    const signed_in_mesg = await callback2(database.get_remember_me, {
-      hash,
-      cache: true,
+    access = await checkForAccess({
+      project_id,
+      remember_me,
+      api_key,
+      type,
+      dbg,
     });
-    if (signed_in_mesg == null) {
-      throw Error("not signed in");
-    }
-    const { account_id, email_address } = signed_in_mesg;
-    dbg({ account_id, email_address });
-
-    dbg(`now check if user has access to project`);
-    if (type === "write") {
-      access = await callback2(user_has_write_access_to_project, {
-        database,
-        project_id,
-        account_id,
-      });
-      if (!access) {
-        // if the project is a sandbox project, we add the user as a collaborator
-        // and grant access.
-        if (await isSandboxProject(project_id)) {
-          dbg("granting sandbox access");
-          await addUserToProject({ project_id, account_id });
-          access = true;
-        }
-      }
-
-      if (access) {
-        // Record that user is going to actively access
-        // this project.  This is important since it resets
-        // the idle timeout.
-        database.touch({
-          account_id,
-          project_id,
-        });
-      }
-    } else if (type == "read") {
-      access = await callback2(user_has_read_access_to_project, {
-        database,
-        project_id,
-        account_id,
-      });
-    } else {
-      throw Error(`invalid access type ${type}`);
-    }
   } catch (err) {
     dbg("error trying to determine access; denying for now", err);
-    access = false;
+    hasAccess = false;
   }
   dbg("determined that access=", access);
 
@@ -109,4 +69,113 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
     noCache.set(key, access);
   }
   return access;
+}
+
+async function checkForAccess({
+  project_id,
+  remember_me,
+  api_key,
+  type,
+  dbg,
+}): Promise<boolean> {
+  if (remember_me) {
+    const { access, error } = await checkForRememberMeAccess({
+      project_id,
+      remember_me,
+      type,
+      dbg,
+    });
+    if (access) {
+      return access;
+    }
+    if (!api_key) {
+      // only finish if no api key:
+      if (error) {
+        throw Error(error);
+      } else {
+        return access;
+      }
+    }
+  }
+
+  if (api_key) {
+    const { access, error } = await checkForApiKeyAccess({
+      project_id,
+      api_key,
+      type,
+      dbg,
+    });
+    if (access) {
+      return access;
+    }
+    if (error) {
+      throw Error(error);
+    }
+    return access;
+  }
+
+  throw Error("you must authenticate with api key or remember me token");
+}
+
+async function checkForRememberMeAccess({
+  project_id,
+  remember_me,
+  type,
+  dbg,
+}): Promise<{ access: boolean; error?: string }> {
+  dbg("get remember_me message");
+  const x = remember_me.split("$");
+  const hash = generateHash(x[0], x[1], parseInt(x[2]), x[3]);
+  const signed_in_mesg = await callback2(database.get_remember_me, {
+    hash,
+    cache: true,
+  });
+  if (signed_in_mesg == null) {
+    return { access: false, error: "not signed in via remember_me" };
+  }
+
+  let access: boolean = false;
+  const { account_id, email_address } = signed_in_mesg;
+  dbg({ account_id, email_address });
+
+  dbg(`now check if user has access to project`);
+  if (type === "write") {
+    access = await callback2(user_has_write_access_to_project, {
+      database,
+      project_id,
+      account_id,
+    });
+    if (!access) {
+      // if the project is a sandbox project, we add the user as a collaborator
+      // and grant access.
+      if (await isSandboxProject(project_id)) {
+        dbg("granting sandbox access");
+        await addUserToProject({ project_id, account_id });
+        access = true;
+      }
+    }
+
+    if (access) {
+      // Record that user is going to actively access
+      // this project.  This is important since it resets
+      // the idle timeout.
+      database.touch({
+        account_id,
+        project_id,
+      });
+    }
+  } else if (type == "read") {
+    access = await callback2(user_has_read_access_to_project, {
+      database,
+      project_id,
+      account_id,
+    });
+  } else {
+    return { access: false, error: `invalid access type ${type}` };
+  }
+  return { access };
+}
+
+async function checkForApiKeyAccess({ project_id, api_key, type, dbg }) {
+  return { access: false, error: "api access not yet implemented" };
 }

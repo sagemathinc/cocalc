@@ -23,6 +23,11 @@ export async function init(): Promise<void> {
 // If res is not null, sends a message. If it is
 // null, just returns true but doesn't send a response.
 export function versionCheckFails(req, res?): boolean {
+  if (minVersion == 0) {
+    // If no minimal version is set, no need to do further work,
+    // since we'll pass it.
+    return false;
+  }
   const cookies = new Cookies(req);
   /* NOTE: The name of the cookie $VERSION_COOKIE_NAME is
      also used in the frontend code file @cocalc/frontend/set-version-cookie.js

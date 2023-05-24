@@ -7,6 +7,8 @@ import { getTarget } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
+import hasAccess from "./check-for-access-to-project";
+import stripRememberMeCookie from "./strip-remember-me-cookie";
 
 const logger = getLogger("proxy:handle-upgrade");
 
@@ -30,24 +32,37 @@ export default function init(
     const dbg = (...args) => {
       logger.silly(req.url, ...args);
     };
-    dbg("got upgrade request", req.headers);
-
-    if (!isPersonal && versionCheckFails(req)) {
-      dbg("version check failed");
-      return;
-    }
-
+    dbg("got upgrade request from url=", req.url);
     if (!req.url.match(re)) {
-      dbg("nothing to do; req.url=", req.url, "doesn't need to be proxied");
-      return;
+      throw Error(`url=${url} does not support upgrade`);
     }
+
+    // Check that minimum version requirement is satisfied (this is in the header).
+    // This is to have a way to stop buggy clients from causing trouble.  It's a purely
+    // honor system sort of thing, but makes it possible for an admin to block clients
+    // until they run newer code.  I used to have to use this a lot long ago...
+    if (versionCheckFails(req)) {
+      throw Error("client version check failed");
+    }
+
     const url = stripBasePath(req.url);
+
+    let remember_me, api_key;
+    if (req.headers["cookie"] != null) {
+      let cookie;
+      ({ cookie, remember_me, api_key } = stripRememberMeCookie(
+        req.headers["cookie"]
+      ));
+      req.headers["cookie"] = cookie;
+    }
 
     dbg("calling getTarget");
     const { host, port, internal_url } = await getTarget({
       url,
       isPersonal,
       projectControl,
+      remember_me,
+      api_key,
     });
     dbg("got ", { host, port });
 
@@ -92,7 +107,7 @@ export default function init(
       cache.delete(target);
     });
     proxy.on("close", () => {
-      dbg("websocket proxy close, so removing from cache");
+      dbg("websocket proxy closed, so removing from cache");
       cache.delete(target);
     });
     proxy.ws(req, socket, head);
@@ -102,7 +117,10 @@ export default function init(
     try {
       await handleProxyUpgradeRequest(req, socket, head);
     } catch (err) {
-      logger.debug(`error upgrading to websocket url=${req.url} -- ${err}`);
+      const msg = `WARNING: error upgrading websocket url=${req.url} -- ${err}`;
+      res.writeHead(426, { "Content-Type": "text/html" });
+      res.end(msg);
+      logger.debug(msg);
     }
   };
 }

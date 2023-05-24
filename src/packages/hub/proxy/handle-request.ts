@@ -49,17 +49,19 @@ export default function init({ projectControl, isPersonal }: Options) {
     if (!isPersonal && versionCheckFails(req, res)) {
       dbg("version check failed");
       // note that the versionCheckFails function already sent back an error response.
-      return;
+      throw Error("version check failed");
     }
 
     // Before doing anything further with the request on to the proxy, we remove **all** cookies whose
     // name contains "remember_me", to prevent the project backend from getting at
     // the user's session cookie, since one project shouldn't be able to get
     // access to any user's account.
-    let remember_me;
+    let remember_me, api_key;
     if (req.headers["cookie"] != null) {
       let cookie;
-      ({ cookie, remember_me } = stripRememberMeCookie(req.headers["cookie"]));
+      ({ cookie, remember_me, api_key } = stripRememberMeCookie(
+        req.headers["cookie"]
+      ));
       req.headers["cookie"] = cookie;
     }
 
@@ -67,17 +69,16 @@ export default function init({ projectControl, isPersonal }: Options) {
       dbg("no rememember me set, so blocking");
       // Not in personal mode and there is no remember me set all, so
       // definitely block access.  4xx since this is a *client* problem.
-      res.writeHead(426, { "Content-Type": "text/html" });
       const url = await siteUrl();
-      res.end(
+      throw Error(
         `Please login to <a target='_blank' href='${url}'>${url}</a> with cookies enabled, then refresh this page.`
       );
-      return;
     }
 
     const url = stripBasePath(req.url);
     const { host, port, internal_url } = await getTarget({
       remember_me,
+      api_key,
       url,
       isPersonal,
       projectControl,
@@ -130,9 +131,9 @@ export default function init({ projectControl, isPersonal }: Options) {
       await handleProxyRequest(req, res);
     } catch (err) {
       const msg = `WARNING: error proxying request ${req.url} -- ${err}`;
-      res.writeHead(500, { "Content-Type": "text/html" });
+      res.writeHead(426, { "Content-Type": "text/html" });
       res.end(msg);
-      // Not something to log as an error; it's normal for it to happen, e.g., when
+      // Not something to log as an error -- just debug; it's normal for it to happen, e.g., when
       // a project isn't running.
       logger.debug(msg);
     }
