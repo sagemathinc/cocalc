@@ -64,9 +64,9 @@ export async function getTarget({
   if (cache.has(key)) {
     return cache.get(key) as any;
   }
-  const dbg = (...args) => {
-    logger.debug(key, ...args);
-  };
+  // NOTE: do not log the key, since then logs leak way for
+  // an attacker to get in.
+  const dbg = logger.debug;
   dbg("url", url);
 
   // For now, we always require write access to proxy.
