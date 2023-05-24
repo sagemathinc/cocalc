@@ -91,7 +91,7 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     order: 1,
     title: "Ubuntu 20.04 (Deprecated)",
     short: "Ubuntu 20.04 (Deprecated)",
-    descr: "Reached of life in May 2023",
+    descr: "Reached end of life in May 2023",
     group: "Main",
   },
   [UBUNTU2004_DEPRECATED]: {
