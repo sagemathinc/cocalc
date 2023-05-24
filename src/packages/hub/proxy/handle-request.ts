@@ -27,6 +27,9 @@ export default function init({ projectControl, isPersonal }: Options) {
    issues.  Invalidating cache entries quickly is also good from
    a permissions and security point of view.
 */
+
+  // TODO: remove!  isPersonal = true;
+
   const cache = new LRU({
     max: 5000,
     ttl: 1000 * 60 * 3,
@@ -43,6 +46,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       logger.silly(req.url, ...args);
     };
     dbg("got request");
+    dbg("headers = ", req.headers);
 
     if (!isPersonal && versionCheckFails(req, res)) {
       dbg("version check failed");

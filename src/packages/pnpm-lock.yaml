@@ -1753,6 +1753,9 @@ importers:
 
   sync-client:
     dependencies:
+      '@cocalc/backend':
+        specifier: workspace:*
+        version: link:../backend
       '@cocalc/primus-multiplex':
         specifier: ^1.1.0
         version: 1.1.0

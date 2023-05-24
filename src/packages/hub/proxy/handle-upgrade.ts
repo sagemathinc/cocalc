@@ -30,7 +30,8 @@ export default function init(
     const dbg = (...args) => {
       logger.silly(req.url, ...args);
     };
-    dbg("got upgrade request");
+    dbg("got upgrade request", req.headers);
+
     if (!isPersonal && versionCheckFails(req)) {
       dbg("version check failed");
       return;

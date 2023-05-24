@@ -25,6 +25,8 @@ const yesCache = new LRU({ max: 20000, ttl: 1000 * 60 * 5 });
 const noCache = new LRU({ max: 20000, ttl: 1000 * 10 });
 
 export default async function hasAccess(opts: Options): Promise<boolean> {
+  // TODO: remove! return true;
+
   if (opts.isPersonal) {
     // In personal mode, anyone who can access localhost has full
     // access to everything, since this is meant to be used on

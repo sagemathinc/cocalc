@@ -24,7 +24,11 @@ export default function init(opts: Options) {
     base_path.length <= 1 ? "" : base_path
   }\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/*`;
   logger.info("creating proxy server with proxy_regexp", proxy_regexp);
+
+  // tcp connections:
   const handleProxy = initProxy(opts);
+
+  // websocket upgrades:
   const handleUpgrade = initUpgrade(opts, proxy_regexp);
 
   opts.app.all(proxy_regexp, handleProxy);

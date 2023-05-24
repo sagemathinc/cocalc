@@ -7,9 +7,10 @@ import type {
   WebsocketState,
 } from "@cocalc/sync/client/types";
 import debug from "debug";
+import { apiKey } from "@cocalc/backend/data";
 
-export default async function connectionToProject(
-  project_id: string
+export default async function connectToProject(
+  project_id
 ): Promise<ProjectWebsocket> {
   const log = debug("cocalc:compute:sync:connect");
 
@@ -33,7 +34,12 @@ export default async function connectionToProject(
     plugin: { responder, multiplex },
   } as const;
   const Socket = Primus.createSocket(opts);
-  const socket: ProjectWebsocket = new Socket(url) as any;
+  const socket: ProjectWebsocket = new Socket(url, {
+    transport: {
+      // TODO: right here put in correct version cookies too
+      headers: { Cookie: `api_key=${apiKey}` },
+    },
+  }) as any;
 
   function updateState(state: WebsocketState) {
     if (socket.state == state) {

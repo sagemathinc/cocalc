@@ -21,7 +21,7 @@ export default class ProjectClient implements Client {
   }
 
   async api(project_id: string): Promise<API> {
-    if(this.apiCache[project_id] != null) {
+    if (this.apiCache[project_id] != null) {
       return this.apiCache[project_id];
     }
     const conn = await this.websocket(project_id);

@@ -13,6 +13,7 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/primus-multiplex": "^1.1.0",
+    "@cocalc/backend": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/primus": "^7.3.6",
