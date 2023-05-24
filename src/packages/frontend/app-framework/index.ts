@@ -136,10 +136,6 @@ export class AppRedux extends AppReduxBase {
     return this._tables[name];
   }
 
-  hasProjectStore(project_id: string): boolean {
-    return this.hasStore(project_redux_name(project_id));
-  }
-
   /**
    * A React Hook to connect a function component to a project store.
    * Opposed to `getProjectStore`, the project store will not initialize
@@ -165,7 +161,7 @@ export class AppRedux extends AppReduxBase {
 
   // getProject... is safe to call any time. All structures will be created
   // if they don't exist
-  getProjectStore = (project_id: string): ProjectStore => {
+  getProjectStore(project_id: string): ProjectStore {
     if (!is_valid_uuid_string(project_id)) {
       console.trace();
       console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
@@ -177,7 +173,7 @@ export class AppRedux extends AppReduxBase {
     } else {
       return this.getStore(project_redux_name(project_id)) as any;
     }
-  };
+  }
 
   // TODO -- Typing: Type project Actions
   // T, C extends Actions<T>
@@ -191,7 +187,6 @@ export class AppRedux extends AppReduxBase {
     }
     return this.getActions(project_redux_name(project_id)) as any;
   }
-
   // TODO -- Typing: Type project Table
   getProjectTable(project_id: string, name: string): any {
     if (!is_valid_uuid_string(project_id)) {
@@ -220,21 +215,6 @@ export class AppRedux extends AppReduxBase {
     this.removeStore(name);
   }
 
-  getEditorStore(project_id: string, path: string) {
-    if (!is_valid_uuid_string(project_id)) {
-      console.trace();
-      console.warn(`getEditorStore: INVALID project_id -- "${project_id}"`);
-    }
-    return this.getStore(redux_name(project_id, path));
-  }
-
-  getEditorActions(project_id: string, path: string) {
-    if (!is_valid_uuid_string(project_id)) {
-      console.trace();
-      console.warn(`getEditorActions: INVALID project_id -- "${project_id}"`);
-    }
-    return this.getActions(redux_name(project_id, path));
-  }
 
   // getEditorActions but for whatever editor  -- this is mainly meant to be used
   // from the console when debugging, e.g., smc.redux.currentEditorActions()

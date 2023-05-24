@@ -91,7 +91,7 @@ interface Channel {
   destroy: Function;
 }
 
-import { Client } from "@cocalc/sync/editor/generic/types";
+import Client from "@cocalc/sync-client";
 
 interface Primus {
   channel: (str: string) => Channel;

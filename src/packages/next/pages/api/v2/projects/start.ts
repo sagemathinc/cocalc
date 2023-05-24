@@ -10,8 +10,8 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
-  const account_id = await getAccountId(req);
   const { project_id } = getParams(req);
+  const account_id = await getAccountId(req);
 
   try {
     if (!isValidUUID(project_id)) {

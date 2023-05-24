@@ -27,7 +27,7 @@ import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
 import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import apiKeyAction from "@cocalc/server/api/manage";
+import { legacyManageApiKey } from "@cocalc/server/api/manage";
 import generateHash from "@cocalc/server/auth/hash";
 import {
   COOKIE_NAME as REMEMBER_ME_COOKIE_NAME,
@@ -523,7 +523,7 @@ export class PassportLogin {
       locals.action = "get";
     }
 
-    locals.api_key = await apiKeyAction({
+    locals.api_key = await legacyManageApiKey({
       account_id: locals.account_id,
       action: locals.action,
     });
@@ -531,7 +531,7 @@ export class PassportLogin {
     // if there is no key
     if (!locals.api_key) {
       L("must generate key, since don't already have it");
-      locals.api_key = await apiKeyAction({
+      locals.api_key = await legacyManageApiKey({
         account_id: locals.account_id,
         action: "regenerate",
       });

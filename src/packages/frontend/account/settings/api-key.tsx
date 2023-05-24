@@ -6,6 +6,7 @@
 // API Key Configuration
 import { Component, Rendered, ReactDOM } from "../../app-framework";
 import {
+  A,
   CloseX,
   CopyToClipBoard,
   ErrorDisplay,
@@ -128,19 +129,14 @@ export class APIKeySetting extends Component<{}, ComponentState> {
             style={{ display: "inline-block", width: "100%" }}
           />
           {this.render_button("delete", "Delete key")}
-          <span style={{ marginRight: "5px" }}></span>
-          {this.render_button("regenerate", "Regenerate key")}
+          <p style={{ marginTop: "10px" }}>
+            If at all possible, you should delete this key and use the new "Api
+            Keys" panel below instead.
+          </p>
         </div>
       );
     } else {
-      return (
-        <div>
-          You do not have an API key.
-          <br />
-          <br />
-          {this.render_button("regenerate", "Create API Key")}
-        </div>
-      );
+      return <div>Please use the new "Api Keys" panel below instead.</div>;
     }
   }
 
@@ -284,9 +280,7 @@ export class APIKeySetting extends Component<{}, ComponentState> {
       <div>
         <hr />
         <span style={{ color: "#666" }}>
-          <a href="https://doc.cocalc.com/api/" target="_blank" rel="noopener">
-            Learn about the API...
-          </a>
+          <A href="https://doc.cocalc.com/api/">API documentation...</A>
           {this.render_workaround()}
         </span>
       </div>
@@ -309,7 +303,13 @@ export class APIKeySetting extends Component<{}, ComponentState> {
 
   public render(): Rendered {
     return (
-      <LabeledRow label="API key">
+      <LabeledRow
+        label={
+          this.state.state === "init"
+            ? "API key"
+            : "API key - NOTE: there is a much better API key configuration panel below"
+        }
+      >
         <div style={{ minHeight: "30px" }}>
           {this.state.state === "init"
             ? this.render_init()

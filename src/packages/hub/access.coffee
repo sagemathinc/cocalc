@@ -27,6 +27,10 @@ user_is_in_project_group = (opts) ->
         dbg("not logged in, so for now we just say 'no' -- this may change soon.")
         opts.cb(undefined, false) # do not have access
         return
+    if opts.account_id == opts.project_id
+        # special case, e.g., project accessing "itself" for a project api key.
+        opts.cb(undefined, true)
+        return
 
     access = false
     async.series([

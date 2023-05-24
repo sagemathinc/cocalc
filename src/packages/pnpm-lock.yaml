@@ -50,6 +50,9 @@ importers:
       debug:
         specifier: ^4.3.2
         version: 4.3.4(supports-color@9.3.1)
+      lru-cache:
+        specifier: ^7.14.1
+        version: 7.14.1
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -93,6 +96,12 @@ importers:
 
   compute:
     dependencies:
+      '@cocalc/backend':
+        specifier: workspace:*
+        version: link:../backend
+      '@cocalc/jupyter':
+        specifier: workspace:*
+        version: link:../jupyter
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync
@@ -985,6 +994,9 @@ importers:
       execa:
         specifier: ^7.1.1
         version: 7.1.1
+      expect:
+        specifier: ^26.6.2
+        version: 26.6.2
       immutable:
         specifier: ^4.3.0
         version: 4.3.0
@@ -1182,6 +1194,9 @@ importers:
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync
+      '@cocalc/sync-client':
+        specifier: workspace:*
+        version: link:../sync-client
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
@@ -1381,6 +1396,9 @@ importers:
       axios:
         specifier: ^1.4.0
         version: 1.4.0
+      base62:
+        specifier: ^2.0.1
+        version: 2.0.1
       cookies:
         specifier: ^0.8.0
         version: 0.8.0
@@ -1981,12 +1999,6 @@ packages:
     dependencies:
       '@babel/highlight': 7.18.6
     dev: true
-
-  /@babel/code-frame@7.18.6:
-    resolution: {integrity: sha512-TDCmlK5eOvH+eH7cdAFlNXeVJqWIQ7gW9tY1GJIpUtFb6CmjVyq2VM3u71bOyR8CRihcCgMUYoDNyLXao3+70Q==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/highlight': 7.18.6
 
   /@babel/code-frame@7.21.4:
     resolution: {integrity: sha512-LYvhNKfwWSPpocw8GI7gpK2nq3HSDuEPC/uSYaALSJu9xjsalaaYFOq0Pwt5KmVqwEbZlDu81aLXwBOmD/Fv9g==}
@@ -6553,6 +6565,11 @@ packages:
     resolution: {integrity: sha512-pNdYkNPiJUnEhnfXV56+sQy8+AaPcG3POZAUnwr4EeqCUZFz4u2PePbo3e5Gj4ziYPCWGUZT9RHisvJKnwFuBQ==}
     dev: false
 
+  /base62@2.0.1:
+    resolution: {integrity: sha512-4t4WQK7mdbcWzqEBiq6tfo2qDCeIZGXvjifJZyxHIVcjQkZJxpFtu/pa2Va69OouCkg6izZ08hKnPxroeDyzew==}
+    engines: {node: '>=6.0.0'}
+    dev: false
+
   /base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
 
@@ -8494,7 +8511,7 @@ packages:
     resolution: {integrity: sha512-QHTXI/sZQmko1cbDoNAa3mJ5qhWUUNAq3vR0/YiD379fWQrcfuoX1+HW2S0MTt7XmoPLapdaDKUtelUSPic7hQ==}
     engines: {node: '>=10.13.0'}
     dependencies:
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.11
       tapable: 2.2.1
     dev: true
 
@@ -11087,7 +11104,7 @@ packages:
     resolution: {integrity: sha512-rGiLePzQ3AzwUshu2+Rn+UMFk0pHN58sOG+IaJbk5Jxuqo3NYO1U2/MIR4S1sKgsoYSXSzdtSa0TgrmtUwEbmA==}
     engines: {node: '>= 10.14.2'}
     dependencies:
-      '@babel/code-frame': 7.18.6
+      '@babel/code-frame': 7.21.4
       '@jest/types': 26.6.2
       '@types/stack-utils': 2.0.1
       chalk: 4.1.2
@@ -17621,7 +17638,7 @@ packages:
     engines: {node: '>=10.13.0'}
     dependencies:
       glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.10
+      graceful-fs: 4.2.11
 
   /weak-map@1.0.8:
     resolution: {integrity: sha512-lNR9aAefbGPpHO7AEnY0hCFjz1eTkWCXYvkTRrTHs9qv8zJp+SkVYpzfLIFXQQiG3tVvbNFQgVg2bQS8YGgxyw==}

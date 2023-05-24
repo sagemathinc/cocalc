@@ -1,9 +1,9 @@
 /*
-v2 API endpoint for managing your legacy API key.
+v2 API endpoint for managing your api keys
 */
 
 import getAccountId from "lib/account/get-account";
-import { legacyManageApiKey } from "@cocalc/server/api/manage";
+import manageApiKeys from "@cocalc/server/api/manage";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
@@ -12,9 +12,16 @@ export default async function handle(req, res) {
     if (!account_id) {
       throw Error("must be signed in");
     }
-    const { action, password } = getParams(req);
-    const api_key = await legacyManageApiKey({ account_id, password, action });
-    res.json({ api_key });
+    const { action, project_id, name, expire, id } = getParams(req);
+    const response = await manageApiKeys({
+      account_id,
+      action,
+      project_id,
+      name,
+      expire,
+      id,
+    });
+    res.json({ response });
   } catch (err) {
     res.json({ error: err.message });
   }

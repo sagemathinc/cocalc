@@ -29,7 +29,8 @@ sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('@cocalc/server/stripe/client')
 {send_email, send_invite_email} = require('./email')
-apiKeyAction = require("@cocalc/server/api/manage").default;
+manageApiKeys        = require("@cocalc/server/api/manage").default
+{legacyManageApiKey} = require("@cocalc/server/api/manage")
 {create_account, delete_account} = require('./client/create-account')
 purchase_license  = require('@cocalc/server/licenses/purchase').default
 db_schema            = require('@cocalc/util/db-schema')
@@ -892,7 +893,7 @@ class exports.Client extends EventEmitter
                             database       : @database
                             cb             : (err, result) =>
                                 if err
-                                    cb("Internal error determining user permission -- #{err}")
+                                    cb("Read access denied -- #{err}")
                                 else if not result
                                     cb("User #{@account_id} does not have read access to project #{mesg.project_id}")
                                 else
@@ -906,7 +907,7 @@ class exports.Client extends EventEmitter
                             account_id     : @account_id
                             cb             : (err, result) =>
                                 if err
-                                    cb("Internal error determining user permission -- #{err}")
+                                    cb("Write access denied -- #{err}")
                                 else if not result
                                     cb("User #{@account_id} does not have write access to project #{mesg.project_id}")
                                 else
@@ -1876,7 +1877,7 @@ class exports.Client extends EventEmitter
 
     mesg_api_key: (mesg) =>
         try
-            api_key = await apiKeyAction
+            api_key = await legacyManageApiKey
                 account_id : @account_id
                 password   : mesg.password
                 action     : mesg.action
@@ -1884,6 +1885,20 @@ class exports.Client extends EventEmitter
                 @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
             else
                 @success_to_client(id:mesg.id)
+        catch err
+            @error_to_client(id:mesg.id, error:err)
+
+    mesg_api_keys: (mesg) =>
+        try
+            response = await manageApiKeys
+                account_id : @account_id
+                password   : mesg.password
+                action     : mesg.action
+                project_id : mesg.project_id
+                id         : mesg.key_id
+                expire     : mesg.expire
+                name       : mesg.name
+            @push_to_client(message.api_keys_response(id:mesg.id, response:response))
         catch err
             @error_to_client(id:mesg.id, error:err)
 

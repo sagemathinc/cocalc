@@ -8,18 +8,10 @@ Jupyter Backend
 
 For interactive testing:
 
-$ ts-node
-> const j = require('@cocalc/project/jupyter/jupyter'); const k = j.kernel({name:'python3', path:'x.ipynb'});
-> k.execute_code({all:true, cb:((x) => console.log(JSON.stringify(x))), code:'2+3'})
+$ node
 
-Interactive testing at the command prompt involving stdin:
-
-let echo=(content, cb) => cb(undefined, '389'+content.prompt)
-k.execute_code({all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'input("a")'})
-
-k.execute_code({all:true, stdin:echo, cb:((x) -> console.log(JSON.stringify(x))), code:'[input("-"+str(i)) for i in range(100)]'})
-
-echo=(content, cb) => setTimeout((->cb(undefined, '389'+content.prompt)), 1000)
+> j = require('./dist/kernel'); k = j.kernel({name:'python3', path:'x.ipynb'});
+> console.log(JSON.stringify(await k.execute_code_now({code:'2+3'}),0,2))
 
 */
 
@@ -82,10 +74,11 @@ import launchJupyterKernel, {
 import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 import type { KernelParams } from "@cocalc/jupyter/types/kernel";
 import { redux_name } from "@cocalc/util/redux/name";
-import { getLogger } from "@cocalc/backend/logger";
 import { redux } from "@cocalc/jupyter/redux/app";
 import { VERSION } from "@cocalc/jupyter/kernel/version";
 import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
+import type Client from "@cocalc/sync-client";
+import { getLogger } from "@cocalc/backend/logger";
 
 const log = getLogger("jupyter");
 
@@ -111,11 +104,22 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
   R_MAKEVARS_USER: `${process.env.HOME}/.sage/R/Makevars.user`,
 });
 
-export function jupyter_backend(syncdb: SyncDB, client: any): void {
-  const dbg = getLogger("jupyter_backend");
+// Initialize the actions and store for working with a specific
+// ipython notebook.  The syncdb is the syncdoc associated to
+// the ipynb file, and this function creates the corresponding
+// actions and store, which make it possible to work with this
+// notebook.
+export function initJupyterRedux(
+  syncdb: SyncDB,
+  client: Client,
+): void {
+  const dbg = getLogger("jupyter-redux");
   dbg.debug();
 
-  const project_id = client.client_id();
+  const project_id = syncdb.project_id;
+  if (project_id == null) {
+    throw Error("project_id must be defined");
+  }
 
   // This path is the file we will watch for changes and save to, which is in the original
   // official ipynb format:
@@ -137,9 +141,9 @@ export function jupyter_backend(syncdb: SyncDB, client: any): void {
   syncdb.once("ready", () => dbg.debug("syncdb ready"));
 }
 
-// Get rid of the store/actions for a given Jupyter notebook,
+// Remove the store/actions for a given Jupyter notebook,
 // and also close the kernel if it is running.
-export async function remove_jupyter_backend(
+export async function removeJupyterRedux(
   path: string,
   project_id: string
 ): Promise<void> {
@@ -212,7 +216,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   private has_ensured_running: boolean = false;
 
   constructor(
-    name: string,
+    name: string | undefined,
     _path: string,
     _actions: JupyterActions | undefined,
     ulimit: string | undefined

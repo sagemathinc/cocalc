@@ -179,7 +179,7 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
 
   function render_open_button() {
     return (
-      <Button type="primary" onClick={() => set_show_panel(true)} style={style}>
+      <Button onClick={() => set_show_panel(true)} style={style}>
         <Icon name="terminal" /> Add SSH Key...
       </Button>
     );

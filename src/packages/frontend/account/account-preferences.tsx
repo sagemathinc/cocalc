@@ -18,6 +18,7 @@ import TableError from "./table-error";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import track from "@cocalc/frontend/user-tracking";
+import ApiKeys from "./settings/api-keys";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
@@ -139,6 +140,7 @@ export const AccountPreferences: React.FC = () => {
               last_name={last_name}
             />
             {render_other_settings()}
+            {!is_anonymous && <ApiKeys />}
           </Col>
           <Col xs={12} md={6}>
             <EditorSettings

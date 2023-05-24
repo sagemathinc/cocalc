@@ -9,6 +9,7 @@ declare const $: any; // jQuery
 import * as message from "@cocalc/util/message";
 import { AsyncCall, WebappClient } from "./client";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 
 export class AccountClient {
   private async_call: AsyncCall;
@@ -204,7 +205,7 @@ export class AccountClient {
     );
   }
 
-  // getting, setting, deleting, etc., the api key for this account
+  // legacy api:  getting, setting, deleting, etc., the api key for this account
   public async api_key(
     action: "get" | "delete" | "regenerate",
     password: string
@@ -220,5 +221,23 @@ export class AccountClient {
         })
       )
     ).api_key;
+  }
+
+  // new interface: getting, setting, editing, deleting, etc., the  api keys for a project
+  public async api_keys(opts: {
+    action: "get" | "delete" | "create" | "edit";
+    password?: string;
+    name?: string;
+    id?: number;
+    expire?: Date;
+  }): Promise<ApiKey[] | undefined> {
+    if (this.client.account_id == null) {
+      throw Error("must be logged in");
+    }
+    // because message always uses id, so we have to use something else!
+    const opts2: any = { ...opts };
+    delete opts2.id;
+    opts2.key_id = opts.id;
+    return (await this.call(message.api_keys(opts2))).response;
   }
 }

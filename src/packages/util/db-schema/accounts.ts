@@ -39,7 +39,7 @@ Table({
     password_hash: {
       type: "string",
       pg_type: "VARCHAR(173)",
-      desc: "hash of the password",
+      desc: "Hash of the password. This is 1000 iterations of sha512 with salt of length 32.",
     },
     deleted: {
       type: "boolean",

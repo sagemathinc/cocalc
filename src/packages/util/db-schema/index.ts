@@ -18,6 +18,7 @@ export { retentionModels } from "./retention";
 import "./account-creation-actions";
 import "./account-profiles";
 import "./accounts";
+import "./api-keys";
 import "./auth";
 import "./blobs";
 import "./central-log";

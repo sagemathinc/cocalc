@@ -25,7 +25,7 @@ auth                 = require('./auth')
 {process_env_int}    = require("@cocalc/backend/misc")
 throttle             = require("@cocalc/server/auth/throttle")
 Bottleneck           = require("bottleneck")
-apiKeyAction = require("@cocalc/server/api/manage").default;
+{legacyManageApiKey} = require("@cocalc/server/api/manage");
 
 # these parameters are per group and per hub!
 bottleneck_opts      =
@@ -167,7 +167,7 @@ _sign_in = (opts, done) ->
                 cb(); return
             dbg("get_api_key -- also get_api_key")
             try
-                signed_in_mesg.api_key = await apiKeyAction({account_id:account.account_id, password:mesg.password, action:'get'})
+                signed_in_mesg.api_key = await legacyManageApiKey({account_id:account.account_id, password:mesg.password, action:'get'})
                 cb()
             catch err
                 cb(err)
@@ -176,7 +176,7 @@ _sign_in = (opts, done) ->
                 cb(); return
             dbg("get_api_key -- must generate key since don't already have it")
             try
-                signed_in_mesg.api_key = await apiKeyAction({account_id:account.account_id, password:mesg.password, action:'regenerate'})
+                signed_in_mesg.api_key = await legacyManageApiKey({account_id:account.account_id, password:mesg.password, action:'regenerate'})
                 cb()
             catch err
                 cb(err)

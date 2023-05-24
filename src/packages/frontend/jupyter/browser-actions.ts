@@ -46,8 +46,7 @@ export class JupyterActions extends JupyterActions0 {
   private update_keyboard_shortcuts: any;
   private usage_info?: UsageInfoWS;
 
-  // Only run this code on the browser frontend (not in project).
-  protected init_client_only(): void {
+  protected init2(): void {
     this.update_contents = debounce(this.update_contents.bind(this), 2000);
     this.setState({
       toolbar: !this.get_local_storage("hide_toolbar"),
@@ -114,7 +113,8 @@ export class JupyterActions extends JupyterActions0 {
       // Stupid hack for now -- this just causes some activity so
       // that the syncdb syncs.
       // This should not be necessary, and may indicate a bug in the sync layer?
-      this.syncdb.set({ type: "user", id: 0, time: new Date().valueOf() });
+      // id has to be set here since it is a primary key
+      this.syncdb.set({ type: "user", id: 0, time: Date.now() });
       this.syncdb.commit();
 
       // If using nbgrader ensure document is fully updated.
@@ -906,5 +906,12 @@ export class JupyterActions extends JupyterActions0 {
     if (cell_list == null) return;
     const contents = fromJS(parse_headings(cells, cell_list));
     this.setState({ contents });
+  }
+
+  protected __syncdb_change_post_hook(_doInit: boolean) {
+    if (this._state === "init") {
+      this._state = "ready";
+    }
+    this.check_select_kernel();
   }
 }

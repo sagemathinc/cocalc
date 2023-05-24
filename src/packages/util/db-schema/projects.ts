@@ -317,6 +317,13 @@ Table({
   },
 });
 
+export interface ApiKeyInfo {
+  name: string;
+  trunc: string;
+  hash?: string;
+  used?: number;
+}
+
 // Same query above, but without the last_edited time constraint.
 schema.projects_all = deep_copy(schema.projects);
 if (

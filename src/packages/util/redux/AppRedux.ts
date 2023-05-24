@@ -5,6 +5,8 @@ import type { ClassMap } from "./types";
 import { bind_methods } from "@cocalc/util/misc";
 import { fromJS, Map } from "immutable";
 import { createStore as createReduxStore } from "redux";
+import { is_valid_uuid_string } from "@cocalc/util/misc";
+import { redux_name, project_redux_name } from "@cocalc/util/redux/name";
 
 type ReduxState = Map<string, Map<string, any>>;
 
@@ -193,13 +195,61 @@ export abstract class AppRedux implements AppReduxInterface {
     }
   }
 
-  abstract getEditorActions(
-    project_id: string,
-    path: string,
-    is_public?: boolean
-  );
-  abstract getProjectActions(project_id: string);
-  abstract getProjectStore(project_id: string);
+  getEditorStore(project_id: string, path: string) {
+    if (!is_valid_uuid_string(project_id)) {
+      console.trace();
+      console.warn(`getEditorStore: INVALID project_id -- "${project_id}"`);
+    }
+    return this.getStore(redux_name(project_id, path));
+  }
+
+  getEditorActions(project_id: string, path: string) {
+    if (!is_valid_uuid_string(project_id)) {
+      console.trace();
+      console.warn(`getEditorActions: INVALID project_id -- "${project_id}"`);
+    }
+    return this.getActions(redux_name(project_id, path));
+  }
+
+  hasProjectStore(project_id: string): boolean {
+    return this.hasStore(project_redux_name(project_id));
+  }
+
+  // getProject... is safe to call any time. All structures will be created
+  // if they don't exist
+  getProjectStore(project_id: string) {
+    if (!is_valid_uuid_string(project_id)) {
+      console.trace();
+      console.warn(`getProjectStore: INVALID project_id -- "${project_id}"`);
+    }
+    if (!this.hasProjectStore(project_id)) {
+      throw Error(`no project store for project_id - ${project_id}`);
+    } else {
+      return this.getStore(project_redux_name(project_id)) as any;
+    }
+  }
+
+  // TODO -- Typing: Type project Actions
+  // T, C extends Actions<T>
+  getProjectActions(project_id: string) {
+    if (!is_valid_uuid_string(project_id)) {
+      console.trace();
+      console.warn(`getProjectActions: INVALID project_id -- "${project_id}"`);
+    }
+    if (!this.hasProjectStore(project_id)) {
+      throw Error(`no project actions for project_id - ${project_id}`);
+    }
+    return this.getActions(project_redux_name(project_id)) as any;
+  }
+
+  //   abstract getEditorActions(
+  //     project_id: string,
+  //     path: string,
+  //     is_public?: boolean
+  //   );
+  //   abstract getProjectActions(project_id: string);
+  //   abstract getProjectStore(project_id: string);
+
   abstract getProjectTable(project_id: string, name: string);
   abstract getTable(name: string);
   abstract removeTable(name: string): void;
