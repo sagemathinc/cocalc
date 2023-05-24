@@ -17,7 +17,7 @@ import { parseReq } from "./parse";
 
 const hub_projects = require("../projects");
 
-const winston = getLogger("proxy: target");
+const logger = getLogger("proxy: target");
 
 // The cached entries expire after 30 seconds.  Caching the target
 // helps enormously when there is a burst of requests.
@@ -32,7 +32,7 @@ const cache = new LRU({ max: 20000, ttl: 1000 * 30 });
 // This gets explicitly called from outside when certain errors occur.
 export function invalidateTargetCache(remember_me: string, url: string): void {
   const { key } = parseReq(url, remember_me);
-  winston.debug(`invalidateCache: ${url}`);
+  logger.debug("invalidateCache:", url);
   cache.delete(key);
 }
 
@@ -58,8 +58,8 @@ export async function getTarget(opts: Options): Promise<{
   if (cache.has(key)) {
     return cache.get(key) as any;
   }
-  const dbg = (m) => winston.debug(`target(${key}): ${m}`);
-  dbg(`url=${url}`);
+  const dbg = (...args) => logger.debug("target", key, ...args);
+  dbg("url", url);
 
   if (remember_me != null) {
     // For now, we always require write access to proxy.
@@ -75,7 +75,7 @@ export async function getTarget(opts: Options): Promise<{
   const project = projectControl(project_id);
   let state = await project.state();
   let host = state.ip;
-  dbg(`host=${host}`);
+  dbg("host", host);
   if (
     port_desc == "jupyter" || // Jupyter Classic
     port_desc == "jupyterlab" || // JupyterLab
@@ -87,7 +87,8 @@ export async function getTarget(opts: Options): Promise<{
       // easier to continually use Jupyter/Lab without having
       // to worry about the cocalc project.
       dbg(
-        `project not running and jupyter requested, so starting to run ${port_desc}`
+        "project not running and jupyter requested, so starting to run",
+        port_desc
       );
       await project.start();
       state = await project.state();
@@ -109,9 +110,9 @@ export async function getTarget(opts: Options): Promise<{
   if (type === "port" || type === "server") {
     port = parseInt(port_desc);
     if (!Number.isInteger(port)) {
-      dbg(`determining name=${port_desc} server port...`);
+      dbg("determining name=", port_desc, "server port...");
       port = await namedServerPort(project_id, port_desc, projectControl);
-      dbg(`got named server name=${port_desc} port=${port}`);
+      dbg("got named server name=", port_desc, " port=", port);
     }
   } else if (type === "raw") {
     const status = await project.status();
@@ -127,7 +128,7 @@ export async function getTarget(opts: Options): Promise<{
     throw Error(`unknown url type -- ${type}`);
   }
 
-  dbg(`finished: host=${host}; port=${port}; type=${type}`);
+  dbg("finished: ", { host, port, type });
   const target = { host, port, internal_url };
   cache.set(key, target);
   return target;

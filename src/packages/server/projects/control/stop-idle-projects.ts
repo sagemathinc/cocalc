@@ -27,7 +27,7 @@ async function stopIdleProjects(stopProject: (string) => Promise<void>) {
          WHERE state ->> 'state' = 'running'`,
     })
   ).rows;
-  logger.debug("got ", runningProjects);
+  logger.debug("got ", runningProjects.size, " running projects");
   for (const project of runningProjects) {
     const { project_id, idle_time, settings, run_quota } = project;
     // take the run_quota or the admin setting into account (if nothing, then the default)

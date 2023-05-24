@@ -10,7 +10,7 @@ import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/server/settings/site-url";
 
-const winston = getLogger("proxy: handle-request");
+const logger = getLogger("proxy:handle-request");
 
 interface Options {
   projectControl: ProjectControlFunction;
@@ -38,9 +38,9 @@ export default function init({ projectControl, isPersonal }: Options) {
   });
 
   async function handleProxyRequest(req, res): Promise<void> {
-    const dbg = (m) => {
+    const dbg = (...args) => {
       // for low level debugging -- silly isn't logged by default
-      winston.silly(`${req.url}: ${m}`);
+      logger.silly(req.url, ...args);
     };
     dbg("got request");
 
@@ -83,7 +83,7 @@ export default function init({ projectControl, isPersonal }: Options) {
 
     // It's http here because we've already got past the ssl layer.  This is all internal.
     const target = `http://${host}:${port}`;
-    dbg(`target resolves to ${target}`);
+    dbg("target resolves to", target);
 
     let proxy;
     if (cache.has(target)) {
@@ -91,7 +91,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       dbg("using cached proxy");
       proxy = cache.get(target);
     } else {
-      dbg(`make a new proxy server to ${target}`);
+      dbg("make a new proxy server to", target);
       proxy = createProxyServer({
         ws: false,
         target,
@@ -108,7 +108,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       };
 
       proxy.on("error", (e) => {
-        dbg(`http proxy error event (ending proxy) -- ${e}`);
+        dbg("http proxy error event (ending proxy)", e);
         remove_from_cache();
       });
 
@@ -116,7 +116,7 @@ export default function init({ projectControl, isPersonal }: Options) {
     }
 
     if (internal_url != null) {
-      dbg(`changing req url from ${req.url} to ${internal_url}`);
+      dbg("changing req url from ", req.url, " to ", internal_url);
       req.url = internal_url;
     }
     dbg("handling the request using the proxy");
@@ -132,7 +132,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       res.end(msg);
       // Not something to log as an error; it's normal for it to happen, e.g., when
       // a project isn't running.
-      winston.debug(msg);
+      logger.debug(msg);
     }
   };
 }

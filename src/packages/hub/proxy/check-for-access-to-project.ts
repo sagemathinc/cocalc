@@ -10,7 +10,7 @@ import generateHash from "@cocalc/server/auth/hash";
 import addUserToProject from "@cocalc/server/projects/add-user-to-project";
 import isSandboxProject from "@cocalc/server/projects/is-sandbox";
 
-const winston = getLogger("proxy: has-access");
+const logger = getLogger("proxy:has-access");
 
 interface Options {
   project_id: string;
@@ -42,8 +42,8 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
 
   // not cached, so we have to determine access.
   let access: boolean;
-  const dbg = (m) => {
-    winston.debug(`(${type} access to ${project_id}): ${m}`);
+  const dbg = (...args) => {
+    logger.debug(type, " access to ", project_id, ...args);
   };
 
   try {
@@ -58,9 +58,9 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
       throw Error("not signed in");
     }
     const { account_id, email_address } = signed_in_mesg;
-    dbg(`account_id="${account_id}", email_address="${email_address}"`);
+    dbg({ account_id, email_address });
 
-    dbg(`now check if user has ${type} access to project`);
+    dbg(`now check if user has access to project`);
     if (type === "write") {
       access = await callback2(user_has_write_access_to_project, {
         database,
@@ -96,10 +96,10 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
       throw Error(`invalid access type ${type}`);
     }
   } catch (err) {
-    dbg(`error trying to determine access; denying for now -- ${err}`);
+    dbg("error trying to determine access; denying for now", err);
     access = false;
   }
-  dbg(`determined that access=${access}`);
+  dbg("determined that access=", access);
 
   if (access) {
     yesCache.set(key, access);

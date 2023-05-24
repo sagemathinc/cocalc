@@ -315,7 +315,7 @@ export class API {
   // do the query, so the identity used to access the database is that
   // of the project.  This isn't useful in the browser, where the user
   // always has more power to directly use the database.  It is *is*
-  // very useful the @cocalc/compute though.
+  // very useful when using a project-specific api key.
   async query(opts: any): Promise<any> {
     if (opts.timeout == null) {
       opts.timeout = 30000;

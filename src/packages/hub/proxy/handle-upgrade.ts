@@ -8,7 +8,7 @@ import getLogger from "../logger";
 import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 
-const winston = getLogger("proxy: handle-upgrade");
+const logger = getLogger("proxy:handle-upgrade");
 
 interface Options {
   projectControl: ProjectControlFunction;
@@ -27,8 +27,8 @@ export default function init(
   const re = new RegExp(proxy_regexp);
 
   async function handleProxyUpgradeRequest(req, socket, head): Promise<void> {
-    const dbg = (m) => {
-      winston.silly(`${req.url}: ${m}`);
+    const dbg = (...args) => {
+      logger.silly(req.url, ...args);
     };
     dbg("got upgrade request");
     if (!isPersonal && versionCheckFails(req)) {
@@ -37,7 +37,7 @@ export default function init(
     }
 
     if (!req.url.match(re)) {
-      dbg(`nothing to do; req.url="${req.url}" doesn't need to be proxied`);
+      dbg("nothing to do; req.url=", req.url, "doesn't need to be proxied");
       return;
     }
     const url = stripBasePath(req.url);
@@ -48,7 +48,7 @@ export default function init(
       isPersonal,
       projectControl,
     });
-    dbg(`got ${host}, ${port}`);
+    dbg("got ", { host, port });
 
     const target = `ws://${host}:${port}`;
     if (internal_url != null) {
@@ -61,7 +61,7 @@ export default function init(
       return;
     }
 
-    dbg(`target = ${target}`);
+    dbg("target", target);
     dbg("not using cache");
     const proxy = createProxyServer({
       ws: true,
@@ -87,7 +87,7 @@ export default function init(
     });
 
     proxy.on("error", (err) => {
-      winston.debug(`websocket proxy error, so clearing cache -- ${err}`);
+      logger.debug(`websocket proxy error, so clearing cache -- ${err}`);
       cache.delete(target);
     });
     proxy.on("close", () => {
@@ -101,7 +101,7 @@ export default function init(
     try {
       await handleProxyUpgradeRequest(req, socket, head);
     } catch (err) {
-      winston.debug(`error upgrading to websocket url=${req.url} -- ${err}`);
+      logger.debug(`error upgrading to websocket url=${req.url} -- ${err}`);
     }
   };
 }

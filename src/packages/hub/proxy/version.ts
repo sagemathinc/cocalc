@@ -8,7 +8,7 @@ import getLogger from "../logger";
 
 let minVersion: number = 0;
 
-const winston = getLogger("proxy: version");
+const logger = getLogger("proxy:version");
 
 // Import to wait until we know the valid min_version before serving.
 export async function init(): Promise<void> {
@@ -33,7 +33,7 @@ export function versionCheckFails(req, res?): boolean {
     return true;
   }
   const version = parseInt(rawVal);
-  winston.debug(`version check version=${version}, minVersion=${minVersion}`);
+  logger.debug("version check", { version, minVersion });
   if (isNaN(version) || version < minVersion) {
     if (res != null) {
       // status code 4xx to indicate this is a client problem and not
