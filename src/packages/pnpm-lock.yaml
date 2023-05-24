@@ -1768,6 +1768,9 @@ importers:
       '@types/primus':
         specifier: ^7.3.6
         version: 7.3.6
+      cookie:
+        specifier: ^0.5.0
+        version: 0.5.0
       debug:
         specifier: ^4.3.2
         version: 4.3.4(supports-color@8.1.1)

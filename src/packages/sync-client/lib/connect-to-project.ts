@@ -8,6 +8,8 @@ import type {
 } from "@cocalc/sync/client/types";
 import debug from "debug";
 import { apiKey } from "@cocalc/backend/data";
+import versionCookie from "./version-cookie";
+import { toCookieHeader } from "./cookies";
 
 export default async function connectToProject(
   project_id
@@ -34,10 +36,10 @@ export default async function connectToProject(
     plugin: { responder, multiplex },
   } as const;
   const Socket = Primus.createSocket(opts);
+  const Cookie = toCookieHeader({ ...versionCookie(), api_key: apiKey });
   const socket: ProjectWebsocket = new Socket(url, {
     transport: {
-      // TODO: right here put in correct version cookies too
-      headers: { Cookie: `api_key=${apiKey}` },
+      headers: { Cookie },
     },
   }) as any;
 

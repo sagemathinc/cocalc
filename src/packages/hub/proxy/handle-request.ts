@@ -28,8 +28,6 @@ export default function init({ projectControl, isPersonal }: Options) {
    a permissions and security point of view.
 */
 
-  // TODO: remove!  isPersonal = true;
-
   const cache = new LRU({
     max: 5000,
     ttl: 1000 * 60 * 3,

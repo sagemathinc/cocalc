@@ -9,14 +9,18 @@
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/primus-multiplex": "^1.1.0",
     "@cocalc/backend": "workspace:*",
+    "@cocalc/primus-multiplex": "^1.1.0",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/primus": "^7.3.6",
+    "cookie": "^0.5.0",
     "debug": "^4.3.2",
     "primus": "^8.0.7",
     "primus-responder": "^1.0.4",
