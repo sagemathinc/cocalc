@@ -139,3 +139,5 @@ tsconfig.tsbuildinfo
 **/.successful-build
 src/packages/next/cache
 src/packages/next/software-inventory/*.json
+
+src/packages/project/dist/project.esbuild.js

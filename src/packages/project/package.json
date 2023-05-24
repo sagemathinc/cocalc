@@ -72,11 +72,14 @@
     "@types/body-parser": "^1.19.0",
     "@types/express": "^4.17.13",
     "@types/jquery": "^3.5.5",
-    "@types/node": "^18.16.14"
+    "@types/node": "^18.16.14",
+    "esbuild": "^0.17.19"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "bundle": "rm -f project.esbuild.js && pnpx esbuild ./dist/project.js --bundle --platform=node '--outfile=./dist/project.esbuild.js'  '--external:emitter' '--external:*.node' '--external:node-uuid' --minify-syntax --minify-identifiers --tree-shaking=true",
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' pnpm cocalc-project",
+    "start-bundle": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' pnpm cocalc-bundle",
     "build": "npx tsc",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput",
     "test": "COCALC_PROJECT_ID=812abe34-a382-4bd1-9071-29b6f4334f03 COCALC_USERNAME=user npx jest dist/",
@@ -97,6 +100,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "bin": {
-    "cocalc-project": "./bin/cocalc-project.js"
+    "cocalc-project": "./bin/cocalc-project.js",
+    "cocalc-bundle": "./bin/cocalc-bundle.js"
   }
 }
