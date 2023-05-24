@@ -236,7 +236,6 @@ export default function ApiKeys({ manage }: Props) {
       </Button.Group>
       <p style={{ marginTop: "10px" }}>
         Read the <A href="https://doc.cocalc.com/api/">API documentation</A>.
-        You can also make project specific api keys in project settings.
       </p>
       <Modal
         visible={addModalVisible || editModalVisible}

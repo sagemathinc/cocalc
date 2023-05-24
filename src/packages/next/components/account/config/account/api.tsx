@@ -16,7 +16,7 @@ import ApiKeys from "@cocalc/frontend/components/api-keys";
 
 register({
   path: "account/api",
-  title: "API Key",
+  title: "API Keys",
   icon: "key",
   desc: "View, create, remove or regenerate the API key for accessing your account.  If you want API access only to a specific list of projects, create a new CoCalc account, add that account as a collaborator to those projects, and create an API key for that account.",
   Component: () => {
@@ -73,10 +73,15 @@ register({
       <div style={{ marginBottom: "15px" }}>
         <ApiKeys
           manage={async (opts) => {
-            console.log("manage", opts);
-            return [];
+            const { response } = await apiPost("api-keys", opts);
+            return response;
           }}
         />
+        <p>
+          You can also make project specific api keys in any project's settings.
+          If you only need to use the API to access one project, these are
+          safer.
+        </p>
       </div>
     );
 

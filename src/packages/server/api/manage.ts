@@ -53,6 +53,7 @@ interface Options {
   id?: number;
 }
 
+// this does NOT trust its input.
 export default async function manageApiKeys({
   account_id,
   action,
