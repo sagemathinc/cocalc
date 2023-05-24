@@ -6,7 +6,6 @@
 import { Alert, Button, Input, Popconfirm, Space } from "antd";
 import { useState } from "react";
 
-import A from "components/misc/A";
 import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
