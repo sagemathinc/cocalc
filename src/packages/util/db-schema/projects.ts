@@ -314,12 +314,6 @@ Table({
       render: { type: "image" },
     },
     notes: NOTES,
-    api_keys: {
-      title: "API Keys",
-      type: "array",
-      pg_type: "JSONB[]",
-      desc: "Array of api keys that grant access to this project.  Similar to an account api key, but restricted to only some operations that apply to one specific project.  Each key is of the form 'sk_9QabcrqJFy7JIhvAGih5c6Nb', where the random part is 24 characters (base 62).  The JSONB objects in this array are of the form {name:string; hash:string; trunc:'sk_...c6Nb',used?:ms_since_epoch}",
-    },
   },
 });
 
