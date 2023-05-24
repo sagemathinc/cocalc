@@ -1,4 +1,3 @@
-import basePath from "@cocalc/backend/base-path";
 import { v4 } from "uuid";
 import passwordHash from "@cocalc/backend/auth/password-hash";
 import getPool from "@cocalc/database/pool";
@@ -6,14 +5,7 @@ import { expireTime } from "@cocalc/database/pool/util";
 import Cookies from "cookies";
 import type { Request } from "express";
 import generateHash from "@cocalc/server/auth/hash";
-
-export const COOKIE_NAME = `${
-  basePath.length <= 1 ? "" : encodeURIComponent(basePath)
-}remember_me`;
-
-export const API_COOKIE_NAME = `${
-  basePath.length <= 1 ? "" : encodeURIComponent(basePath)
-}api_key`;
+import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 
 // Create a remember me cookie for the given account_id and store
 // it in the database.  The cookie is similar to using a server
@@ -67,7 +59,7 @@ export async function deleteAllRememberMe(account_id: string): Promise<void> {
 
 export function getRememberMeHash(req: Request): string | undefined {
   const cookies = new Cookies(req);
-  const rememberMe = cookies.get(COOKIE_NAME);
+  const rememberMe = cookies.get(REMEMBER_ME_COOKIE_NAME);
   if (!rememberMe) {
     return;
   }

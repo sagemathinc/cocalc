@@ -29,10 +29,8 @@ import { set_email_address_verified } from "@cocalc/database/postgres/account-qu
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { legacyManageApiKey } from "@cocalc/server/api/manage";
 import generateHash from "@cocalc/server/auth/hash";
-import {
-  COOKIE_NAME as REMEMBER_ME_COOKIE_NAME,
-  createRememberMeCookie,
-} from "@cocalc/server/auth/remember-me";
+import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
+import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
 import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
 import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import {
@@ -44,7 +42,7 @@ import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { HELP_EMAIL } from "@cocalc/util/theme";
 import getEmailAddress from "../../accounts/get-email-address";
 import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
-import { API_KEY_COOKIE_NAME } from "./consts";
+import { SSO_API_KEY_COOKIE_NAME } from "./consts";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -110,7 +108,7 @@ export class PassportLogin {
       email_address: undefined,
       target: base_path,
       remember_me_cookie: cookies.get(REMEMBER_ME_COOKIE_NAME),
-      get_api_key: cookies.get(API_KEY_COOKIE_NAME),
+      get_api_key: cookies.get(SSO_API_KEY_COOKIE_NAME),
       action: undefined,
       api_key: undefined,
     };
@@ -123,7 +121,7 @@ export class PassportLogin {
       L("user is just trying to get api_key");
       // Set with no value **deletes** the cookie when the response is set. It's very important
       // to delete this cookie ASAP, since otherwise the user can't sign in normally.
-      locals.cookies.set(API_KEY_COOKIE_NAME);
+      locals.cookies.set(SSO_API_KEY_COOKIE_NAME);
     }
 
     sanitizeProfile(this.opts, logger.extend("sanitizeProfile").debug);

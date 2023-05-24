@@ -28,4 +28,4 @@ export const BLACKLISTED_STRATEGIES = [
   "password-reset",
 ] as const;
 
-export const API_KEY_COOKIE_NAME = base_path + "get_api_key";
+export const SSO_API_KEY_COOKIE_NAME = base_path + "get_api_key";

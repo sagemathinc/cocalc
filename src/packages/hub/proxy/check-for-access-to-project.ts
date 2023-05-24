@@ -9,6 +9,8 @@ const {
 import generateHash from "@cocalc/server/auth/hash";
 import addUserToProject from "@cocalc/server/projects/add-user-to-project";
 import isSandboxProject from "@cocalc/server/projects/is-sandbox";
+import { getAccountWithApiKey } from "@cocalc/server/api/manage";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 const logger = getLogger("proxy:has-access");
 
@@ -59,7 +61,7 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
     });
   } catch (err) {
     dbg("error trying to determine access; denying for now", err);
-    hasAccess = false;
+    access = false;
   }
   dbg("determined that access=", access);
 
@@ -114,7 +116,9 @@ async function checkForAccess({
     return access;
   }
 
-  throw Error("you must authenticate with api key or remember me token");
+  throw Error(
+    "you must authenticate with either an api_key or remember_me cookie, but neither is set"
+  );
 }
 
 async function checkForRememberMeAccess({
@@ -177,5 +181,12 @@ async function checkForRememberMeAccess({
 }
 
 async function checkForApiKeyAccess({ project_id, api_key, type, dbg }) {
-  return { access: false, error: "api access not yet implemented" };
+  // we don't have a notion of "read" access, for type.
+  dbg("checkForApiKeyAccess", { project_id, type });
+  const account_id = await getAccountWithApiKey(api_key);
+  if (!account_id) {
+    dbg("api key is not valid (probably expired)");
+    return { access: false, error: "invalid or expired api key" };
+  }
+  return { access: await isCollaborator({ account_id, project_id }) };
 }

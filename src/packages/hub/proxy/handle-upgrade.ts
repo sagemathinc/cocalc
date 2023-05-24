@@ -7,7 +7,6 @@ import { getTarget } from "./target";
 import getLogger from "../logger";
 import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
-import hasAccess from "./check-for-access-to-project";
 import stripRememberMeCookie from "./strip-remember-me-cookie";
 
 const logger = getLogger("proxy:handle-upgrade");
@@ -34,7 +33,7 @@ export default function init(
     };
     dbg("got upgrade request from url=", req.url);
     if (!req.url.match(re)) {
-      throw Error(`url=${url} does not support upgrade`);
+      throw Error(`url=${req.url} does not support upgrade`);
     }
 
     // Check that minimum version requirement is satisfied (this is in the header).
@@ -118,9 +117,14 @@ export default function init(
       await handleProxyUpgradeRequest(req, socket, head);
     } catch (err) {
       const msg = `WARNING: error upgrading websocket url=${req.url} -- ${err}`;
-      res.writeHead(426, { "Content-Type": "text/html" });
-      res.end(msg);
       logger.debug(msg);
+      denyUpgrade(socket);
     }
   };
+}
+
+// this was suggested by GPT4...
+function denyUpgrade(socket) {
+  socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+  socket.destroy();
 }
