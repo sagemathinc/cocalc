@@ -17,14 +17,9 @@ export default async function connectToProject(
 ): Promise<ProjectWebsocket> {
   const log = debug("cocalc:compute:sync:connect");
 
-  // temporary for a proof of concept!
-  const port = parseInt(process.env.PROJECT_PORT ?? "0");
-  const appBasePath = process.env.PROJECT_BASE_PATH ?? "/";
-  const server = process.env.PROJECT_SERVER ?? "http://localhost";
-
-  const url = `${server}${port ? `:${port}` : ""}`;
-  const pathname = join(appBasePath, project_id, "raw/.smc/ws");
-  const target = `${url}${pathname}`;
+  const server = process.env.API_SERVER;
+  const pathname = join(process.env.API_BASE_PATH ?? "/", project_id, "raw/.smc/ws");
+  const target = `${server}${pathname}`;
   log("connecting to ", target);
   const opts = {
     pathname,
@@ -36,7 +31,7 @@ export default async function connectToProject(
     ...versionCookie(),
     [API_COOKIE_NAME]: apiKey,
   });
-  const socket: ProjectWebsocket = new Socket(url, {
+  const socket: ProjectWebsocket = new Socket(server, {
     transport: {
       headers: { Cookie },
     },
