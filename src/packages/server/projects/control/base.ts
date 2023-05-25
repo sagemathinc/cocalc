@@ -66,8 +66,12 @@ export abstract class BaseProject extends EventEmitter {
   }
 
   async touch(account_id?: string): Promise<void> {
+    const d = db();
     if (account_id) {
-      await callback2(db().touch({ project_id: this.project_id, account_id }));
+      await callback2(d.touch.bind(d), {
+        project_id: this.project_id,
+        account_id,
+      });
     } else {
       const pool = getPool();
       await pool.query(
