@@ -20,7 +20,7 @@ import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIX_BORDER } from "../page";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { FLYOUT_WIDTH_PX } from "./consts";
-import { LSFlyout, lsKey, storeFlyoutState } from "./local-state";
+import { LSFlyout, lsKey, storeFlyoutState } from "./state";
 
 export function FlyoutHeader({
   flyout,

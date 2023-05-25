@@ -35,6 +35,7 @@ import { ProjectSearchBody } from "../search/body";
 import { NewFlyout } from "./flyouts/new";
 import { ProjectInfoFlyout } from "./flyouts/info";
 import { SettingsFlyout } from "./flyouts/control";
+import { LogFlyout } from "./flyouts/log";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -431,12 +432,6 @@ function LogPopover({ project_id }) {
       <hr />
       <HomeRecentFiles project_id={project_id} style={{ maxHeight: "125px" }} />
     </div>
-  );
-}
-
-function LogFlyout({ project_id, wrap }) {
-  return (
-    <HomeRecentFiles project_id={project_id} mode={"flyout"} wrap={wrap} />
   );
 }
 

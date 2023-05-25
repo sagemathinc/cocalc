@@ -7,6 +7,8 @@ export interface ListingItem {
   name: string;
   isdir: boolean;
   isopen?: boolean;
+  mtime?: number;
+  size?: number; // bytes
 }
 
 export interface DirectoryListingEntry {

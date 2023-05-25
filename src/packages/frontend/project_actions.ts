@@ -38,7 +38,7 @@ import { ProjectEvent } from "./project/history/types";
 import { log_file_open, log_opened_time, open_file } from "./project/open-file";
 import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
-import { storeFlyoutState } from "./project/page/flyouts/local-state";
+import { storeFlyoutState } from "./project/page/flyouts/state";
 import { ensure_project_running } from "./project/project-start-warning";
 import { transform_get_url } from "./project/transform-get-url";
 import {

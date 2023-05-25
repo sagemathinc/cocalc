@@ -3,27 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Input, List, Space } from "antd";
+import { Input } from "antd";
 
 import {
   CSS,
   redux,
+  useActions,
   useMemo,
+  useRef,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import {
-  Icon,
-  IconName,
-  Loading,
-  PathLink,
-  Text,
-  TimeAgo,
-} from "@cocalc/frontend/components";
+import { Icon, IconName, Loading, TimeAgo } from "@cocalc/frontend/components";
 import { handle_log_click } from "@cocalc/frontend/components/path-link";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { FileListItem, itemAgeStyle } from "./components";
 
 interface OpenedFile {
   filename: string;
@@ -33,16 +31,18 @@ interface OpenedFile {
 interface Props {
   project_id: string;
   max?: number;
-  style?: CSS;
+  wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
 }
 
-export function HomeRecentFiles({
-  max = 100,
-  project_id,
-  style,
-}: Props): JSX.Element {
+export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
+  const actions = useActions({ project_id });
   const project_log = useTypedRedux({ project_id }, "project_log");
+  const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const user_map = useTypedRedux("users", "user_map");
+  const virtuosoScroll = useVirtuosoScrollHook({
+    cacheId: `${project_id}::flyout::log`,
+  });
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
 
   const [searchTerm, setSearchTerm] = useState<string>("");
 
@@ -82,40 +82,31 @@ export function HomeRecentFiles({
       .toJS() as any;
   }, [project_log, searchTerm]);
 
-  function renderItemInfo({ account_id, time }) {
-    return (
-      <>
-        {" "}
-        {/* this space is intentional! */}
-        <Text type="secondary">
-          by <User user_map={user_map} account_id={account_id} />{" "}
-          <TimeAgo date={time} />
-        </Text>
-      </>
-    );
-  }
-
   function renderItem(entry: OpenedFile) {
     const time = entry.time;
     const account_id = entry.account_id;
     const path = entry.filename;
     const info = file_options(path);
     const name: IconName = info.icon ?? "file";
+    const isOpened: boolean = openFiles.some((p) => p === path);
+
     return (
-      <List.Item
+      <FileListItem
+        item={{ name: path, isopen: isOpened }}
+        itemStyle={itemAgeStyle(time?.getTime())}
+        renderIcon={(_item, style) => <Icon style={style} name={name} />}
         onClick={(e) => handle_log_click(e, path, project_id)}
-        className="cc-project-home-recent-files"
-      >
-        <Icon name={name} />{" "}
-        <PathLink
-          trunc={48}
-          full={true}
-          style={{ fontWeight: "bold" }}
-          path={path}
-          project_id={project_id}
-        />
-        {renderItemInfo({ account_id, time })}
-      </List.Item>
+        onClose={(e: React.MouseEvent, path: string) => {
+          e.stopPropagation();
+          actions?.close_tab(path);
+        }}
+        tooltip={
+          <>
+            Last opened <TimeAgo date={time} /> by{" "}
+            <User account_id={account_id} user_map={user_map} />
+          </>
+        }
+      />
     );
   }
 
@@ -131,31 +122,38 @@ export function HomeRecentFiles({
     }
   }
 
-  function renderHeader(): JSX.Element | undefined {
+  function list(): JSX.Element {
     return (
-      <>
-        <Space style={{ width: "100%" }}>
-          Recent Files{" "}
-          <Input
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyUp={onKeyUpHandler}
-            style={{ width: "350px" }}
-          />
-        </Space>
-      </>
+      <Virtuoso
+        ref={virtuosoRef}
+        style={{}}
+        increaseViewportBy={10}
+        totalCount={log.length}
+        itemContent={(index) => {
+          const entry = log[index];
+          if (entry == null) {
+            // shouldn't happen
+            return <div key={index} style={{ height: "1px" }}></div>;
+          }
+          return renderItem(entry);
+        }}
+        {...virtuosoScroll}
+      />
     );
   }
 
   return (
-    <List
-      style={{ maxHeight: "500px", overflow: "auto", ...style }}
-      size="small"
-      header={renderHeader()}
-      bordered={true}
-      dataSource={log}
-      renderItem={renderItem}
-    />
+    <>
+      <Input
+        placeholder="Search..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        onKeyUp={onKeyUpHandler}
+        style={{ width: "100%" }}
+        allowClear
+        prefix={<Icon name="search" />}
+      />
+      {wrap(list(), { marginTop: "10px" })}
+    </>
   );
 }
