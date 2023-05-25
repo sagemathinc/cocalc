@@ -65,9 +65,9 @@ export default function init({ projectControl, isPersonal }: Options) {
       req.headers["cookie"] = cookie;
     }
 
-    if (!isPersonal && !remember_me) {
+    if (!isPersonal && !remember_me && !api_key) {
       dbg("no rememember me set, so blocking");
-      // Not in personal mode and there is no remember me set all, so
+      // Not in personal mode and there is no remember_me or api_key set all, so
       // definitely block access.  4xx since this is a *client* problem.
       const url = await siteUrl();
       throw Error(
