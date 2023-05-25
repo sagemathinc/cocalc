@@ -10,6 +10,7 @@ import {
   React,
   useActions,
   useEffect,
+  useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -60,6 +61,7 @@ export function NewFlyout({
 
   const [filename, setFilename] = useState<string>("");
   const [ext, setExt] = useState<string>(defaultExt);
+  const [manualExt, setManualExt] = useState<boolean>(false);
   const [manual, setManual] = useState<boolean>(false);
   const [creating, setCreating] = useState<boolean>(false);
 
@@ -85,7 +87,10 @@ export function NewFlyout({
     }
   }, [ext, manual, selected]);
 
-  const isFile = !(filename && filename.endsWith("/"));
+  const isFile = useMemo(
+    () => !(filename && filename.endsWith("/")),
+    [filename]
+  );
 
   // if name is entered manual and contains an extension, set the ext to it
   useEffect(() => {
@@ -94,29 +99,47 @@ export function NewFlyout({
         const { ext: newExt } = separate_file_extension(filename);
         if (newExt) {
           setExt(newExt);
+          setManualExt(true);
         } else {
           setExt(DEFAULT_EXT);
+          setManualExt(false);
         }
       } else {
         setExt("/");
+        setManualExt(true);
       }
+    } else {
+      setManualExt(false);
     }
   }, [filename, manual]);
 
+  function newFilename(): string {
+    if (isFile) {
+      if (manualExt) {
+        // extension is typed in explicitly
+        return filename;
+      } else {
+        return `${filename}.${ext}`;
+      }
+    } else {
+      return `${filename}/`;
+    }
+  }
+
   async function createFile() {
     if (!filename) return;
-    const name = isFile ? `${filename}.${ext}` : `${filename}/`;
+    const newName = newFilename();
     try {
       setCreating(true);
       if (isFile) {
         await actions?.create_file({
-          name,
+          name: newName,
           ext,
           current_path,
         });
       } else {
         await actions?.create_folder({
-          name,
+          name: newName,
           current_path,
         });
       }
@@ -238,7 +261,7 @@ export function NewFlyout({
             Create {isFile ? "File" : "Folder"}
           </Button>
           <Text type="secondary" style={{ textAlign: "center" }}>
-            (or click the type button twice)
+            {manualExt ? <>&nbsp;</> : "(or click the file-type button twice)"}
           </Text>
         </div>
       </Space>
