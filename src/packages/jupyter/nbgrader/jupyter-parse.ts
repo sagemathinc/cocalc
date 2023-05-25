@@ -3,15 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { readFile } from "fs";
-import { callback } from "awaiting";
+import { readFile } from "node:fs/promises";
 
 // Strip output and attachments from all cells.
 export async function jupyter_strip_notebook(
   ipynb_path: string
 ): Promise<string> {
   // Load the file
-  const contents = (await callback(readFile, ipynb_path)).toString();
+  const contents = (await readFile(ipynb_path)).toString();
 
   // Parse as JSON
   const obj: any = JSON.parse(contents);

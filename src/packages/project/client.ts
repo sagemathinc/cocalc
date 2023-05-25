@@ -33,6 +33,7 @@ import { join, join as path_join } from "node:path";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
+import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 import { KernelSpec } from "@cocalc/jupyter/types";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
@@ -43,22 +44,19 @@ import { PROJECT_HUB_HEARTBEAT_INTERVAL_S } from "@cocalc/util/heartbeat";
 import * as message from "@cocalc/util/message";
 import * as misc from "@cocalc/util/misc";
 import type { CB } from "@cocalc/util/types/callback";
+import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 import * as blobs from "./blobs";
 import { symmetric_channel } from "./browser-websocket/symmetric_channel";
 import { json } from "./common";
 import * as data from "./data";
-import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
+import initJupyter from "./jupyter/init";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
+import * as sage_session from "./sage_session";
 import { get_listings_table } from "./sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
 import { Watcher } from "./watcher";
-import initJupyter from "./jupyter/init";
-
-import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
-
-const sage_session = require("./sage_session");
 
 const winston = getLogger("client");
 
@@ -683,7 +681,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     path,
   }: {
     path: string; // the path to the *worksheet* file
-  }) {
+  }): sage_session.SageSessionType {
     return sage_session.sage_session({ path, client: this });
   }
 
