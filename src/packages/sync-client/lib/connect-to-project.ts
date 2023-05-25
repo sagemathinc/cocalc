@@ -18,7 +18,11 @@ export default async function connectToProject(
   const log = debug("cocalc:compute:sync:connect");
 
   const server = process.env.API_SERVER;
-  const pathname = join(process.env.API_BASE_PATH ?? "/", project_id, "raw/.smc/ws");
+  const pathname = join(
+    process.env.API_BASE_PATH ?? "/",
+    project_id,
+    "raw/.smc/ws"
+  );
   const target = `${server}${pathname}`;
   log("connecting to ", target);
   const opts = {
@@ -33,6 +37,9 @@ export default async function connectToProject(
   });
   const socket: ProjectWebsocket = new Socket(server, {
     transport: {
+      // rejectUnauthorized is useful for testing and connecting to a cocalc-docker; it allows connecting to
+      // server with self-signed cert; obviously a slight risk to allow this.
+      rejectUnauthorized: false,
       headers: { Cookie },
     },
   }) as any;
