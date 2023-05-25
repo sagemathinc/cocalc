@@ -3,6 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+/*
+!!!! IMPORTANT WARNING FOR ANYBODY WHO EVER OPENS THIS FILE !!!!
+
+The duration -- i.e., the number of days -- must be PART OF THE product id!!
+
+There.   We had a huge bug that costs us a ton due to not realizing this.
+*/
+
 import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/site-license";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
@@ -115,6 +123,9 @@ export function getProductId(info: PurchaseInfo): string {
         throw new Error(`VM of type ${info.dedicated_vm.machine} not found`);
       }
       pid.push(vm.stripeID);
+      // NOTE -- we need to take into account how long the dedicated is being rented for. That's
+      // part of the product id.
+      pid.push(`p${period()}`);
       break;
 
     default:
