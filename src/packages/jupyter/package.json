@@ -57,7 +57,7 @@
     "node-cleanup": "^2.1.2",
     "portfinder": "^1.0.32",
     "shell-escape": "^0.2.0",
-    "tsimportlib": "^0.0.3",
+    "tsimportlib": "^0.0.5",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

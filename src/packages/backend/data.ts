@@ -46,9 +46,34 @@ export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
 export const logs: string = process.env.LOGS ?? join(data, "logs");
 export const blobstore: "disk" | "sqlite" =
   (process.env.COCALC_JUPYTER_BLOBSTORE_IMPL as any) ?? "sqlite";
-export const apiKey: string = process.env.API_KEY ?? "";
 
-delete process.env.API_KEY;
+export let apiKey: string = process.env.API_KEY ?? "";
+export let apiServer: string = process.env.API_SERVER ?? "";
+export let apiBasePath: string = process.env.API_BASE_PATH
+  ? process.env.API_BASE_PATH
+  : "/";
+delete process.env.API_KEY; // reduce chances of it leaking.
+export function setApi({
+  key,
+  server,
+  basePath,
+}: {
+  key?: string;
+  server?: string;
+  basePath?: string;
+}) {
+  if (key != null) {
+    apiKey = key;
+  }
+  if (server != null) {
+    checkApiServer(server);
+    apiServer = server;
+  }
+  if (basePath != null) {
+    checkBasePath(basePath);
+    apiBasePath = basePath ? basePath : "/";
+  }
+}
 
 function sanityChecks() {
   // Do a sanity check on projects:
@@ -61,6 +86,25 @@ function sanityChecks() {
     throw Error(
       "If set, COCALC_JUPYTER_BLOBSTORE_IMPL must be 'sqlite' or 'disk'"
     );
+  }
+  checkApiServer(apiServer);
+  checkBasePath(apiBasePath);
+}
+
+function checkApiServer(server) {
+  if (!server) return;
+  if (server.endsWith("/")) {
+    throw Error("API_SERVER must not end in /");
+  }
+  if (!server.startsWith("http://") && !server.startsWith("https://")) {
+    throw Error("API_SERVER must start with http:// or https://");
+  }
+}
+
+function checkBasePath(basePath) {
+  if (!basePath) return;
+  if (!basePath.startsWith("/")) {
+    throw Error("base path must start with a slash");
   }
 }
 

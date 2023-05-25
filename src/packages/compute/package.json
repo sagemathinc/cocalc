@@ -14,15 +14,17 @@
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
-    "@cocalc/util": "workspace:*",
-    "short-uuid": "^4.2.2"
+    "@cocalc/util": "workspace:*"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
   "repository": {

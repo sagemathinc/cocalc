@@ -7,7 +7,7 @@ import type {
   WebsocketState,
 } from "@cocalc/sync/client/types";
 import debug from "debug";
-import { apiKey } from "@cocalc/backend/data";
+import { apiKey, apiServer, apiBasePath } from "@cocalc/backend/data";
 import versionCookie from "./version-cookie";
 import { toCookieHeader } from "./cookies";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
@@ -16,13 +16,11 @@ export default async function connectToProject(
   project_id
 ): Promise<ProjectWebsocket> {
   const log = debug("cocalc:compute:sync:connect");
-
-  const server = process.env.API_SERVER;
-  const pathname = join(
-    process.env.API_BASE_PATH ?? "/",
-    project_id,
-    "raw/.smc/ws"
-  );
+  if (!apiServer) {
+    throw Error("API_SERVER must be set");
+  }
+  const server = apiServer;
+  const pathname = join(apiBasePath, project_id, "raw/.smc/ws");
   const target = `${server}${pathname}`;
   log("connecting to ", target);
   const opts = {
