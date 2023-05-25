@@ -214,7 +214,7 @@ export function NewFlyout({
     return (
       <NewFileDropdown
         mode="flyout"
-        create_file={(ext) => ext && ext}
+        create_file={(ext) => ext && setExt(ext)}
         title={`.${ext}`}
         hide_down={true}
         button={false}
@@ -251,7 +251,6 @@ export function NewFlyout({
             justifyContent: "space-between",
           }}
         >
-          {creating && <ProgressEstimate seconds={5} />}
           <Button
             style={{ flex: "1 0 auto" }}
             type="primary"
@@ -260,9 +259,17 @@ export function NewFlyout({
           >
             Create {isFile ? "File" : "Folder"}
           </Button>
-          <Text type="secondary" style={{ textAlign: "center" }}>
-            {manualExt ? <>&nbsp;</> : "(or click the file-type button twice)"}
-          </Text>
+          {creating ? (
+            <ProgressEstimate seconds={5} />
+          ) : (
+            <Text type="secondary" style={{ textAlign: "center" }}>
+              {manualExt ? (
+                <>&nbsp;</>
+              ) : (
+                "(or click the file-type button twice)"
+              )}
+            </Text>
+          )}
         </div>
       </Space>
     );
