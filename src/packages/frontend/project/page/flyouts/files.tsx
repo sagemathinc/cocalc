@@ -27,7 +27,12 @@ import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropd
 import { ListingItem } from "@cocalc/frontend/project/explorer/types";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
 import track from "@cocalc/frontend/user-tracking";
-import { path_to_file, should_open_in_foreground } from "@cocalc/util/misc";
+import {
+  path_to_file,
+  search_match,
+  search_split,
+  should_open_in_foreground,
+} from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 const ITEM_LINE_STYLE: CSS = {
@@ -102,14 +107,16 @@ export function FilesFlyout({ project_id }): JSX.Element {
     const files = directoryListings.get(current_path);
     if (files == null) return [[], true];
     if (typeof files === "string") return [[], true];
+    const searchWords = search_split(search.toLowerCase());
     const procFiles = files
-      .filter(
-        (file: TypedMap<ListingItem>) =>
-          search == "" ||
-          (allLowerCase
-            ? file.get("name").toLowerCase().includes(search)
-            : file.get("name").includes(search))
-      )
+      .filter((file: TypedMap<ListingItem>) => {
+        if (search === "") return true;
+        const fName = file.get("name", "").toLowerCase();
+        return (
+          search_match(fName, searchWords) ||
+          (file.get("isdir", false) && search_match(`${fName}/`, searchWords))
+        );
+      })
       .filter(
         (file: TypedMap<ListingItem>) =>
           hidden || !file.get("name").startsWith(".")
@@ -183,9 +190,6 @@ export function FilesFlyout({ project_id }): JSX.Element {
     })();
     return <Loading />;
   }
-
-  // if there are no uppercase chars in search
-  const allLowerCase = search === search.toLowerCase();
 
   function open(e: React.MouseEvent, index: number) {
     const file = directoryFiles[index];
