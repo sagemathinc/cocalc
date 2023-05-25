@@ -46,6 +46,9 @@ export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
 export const logs: string = process.env.LOGS ?? join(data, "logs");
 export const blobstore: "disk" | "sqlite" =
   (process.env.COCALC_JUPYTER_BLOBSTORE_IMPL as any) ?? "sqlite";
+export const apiKey: string = process.env.API_KEY ?? "";
+
+delete process.env.API_KEY;
 
 function sanityChecks() {
   // Do a sanity check on projects:

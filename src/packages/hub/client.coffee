@@ -36,7 +36,7 @@ purchase_license  = require('@cocalc/server/licenses/purchase').default
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
-{ COOKIE_NAME }=require("@cocalc/server/auth/remember-me");
+{ REMEMBER_ME_COOKIE_NAME }=require("@cocalc/backend/auth/cookie-names");
 generateHash =require("@cocalc/server/auth/hash").default;
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 chatgpt        = require('@cocalc/server/openai/chatgpt');
@@ -175,7 +175,7 @@ class exports.Client extends EventEmitter
         # Setup remember-me related cookie handling
         @cookies = {}
         c = new Cookies(@conn.request, COOKIE_OPTIONS)
-        @_remember_me_value = c.get(COOKIE_NAME)
+        @_remember_me_value = c.get(REMEMBER_ME_COOKIE_NAME)
 
         @check_for_remember_me()
 
@@ -513,7 +513,7 @@ class exports.Client extends EventEmitter
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie  # same name also hardcoded in the client!
-            name  : COOKIE_NAME
+            name  : REMEMBER_ME_COOKIE_NAME
             value : @_remember_me_value
             ttl   : ttl
 
