@@ -29,7 +29,7 @@ import { RamWarning } from "../warnings/ram";
 import { Content } from "./content";
 import { isFixedTab } from "./file-tab";
 import { Flyout, FlyoutHeader } from "./flyouts/flyout";
-import { getFlyoutExpanded } from "./flyouts/local-state";
+import { getFlyoutExpanded } from "./flyouts/state";
 import HomePageButton from "./home-page/button";
 import { useProjectStatus } from "./project-status-hook";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";

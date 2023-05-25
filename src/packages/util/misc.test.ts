@@ -137,3 +137,10 @@ test("firstLetterUppercase", () => {
   expect(s("ABC")).toBe("ABC");
   expect(s("aBC")).toBe("ABC");
 });
+
+test("hexColorToRGBA", () => {
+  const c1 = misc.hexColorToRGBA("#000000");
+  expect(c1).toEqual("rgb(0,0,0)");
+  const c2 = misc.hexColorToRGBA("#ffffff", 0.5);
+  expect(c2).toEqual("rgba(255,255,255,0.5)");
+});

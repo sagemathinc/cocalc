@@ -2210,7 +2210,8 @@ export function closest_kernel_match(
     }
     // filter out kernels with negative priority (using the priority
     // would be great, though)
-    if ((k.getIn(["metadata", "cocalc", "priority"], 0) as number) < 0) continue;
+    if ((k.getIn(["metadata", "cocalc", "priority"], 0) as number) < 0)
+      continue;
     const kernel_name = k.get("name")?.toLowerCase();
     if (!kernel_name) continue;
     let v = 0;
@@ -2401,4 +2402,16 @@ export function getRandomColor(
   const g = (((hash >> 8) & 0xff) % mod) + min;
   const b = (((hash >> 16) & 0xff) % mod) + min;
   return `rgb(${r}, ${g}, ${b})`;
+}
+
+export function hexColorToRGBA(col: string, opacity?: number): string {
+  const r = parseInt(col.slice(1, 3), 16);
+  const g = parseInt(col.slice(3, 5), 16);
+  const b = parseInt(col.slice(5, 7), 16);
+
+  if (opacity && opacity <= 1 && opacity >= 0) {
+    return `rgba(${r},${g},${b},${opacity})`;
+  } else {
+    return `rgb(${r},${g},${b})`;
+  }
 }

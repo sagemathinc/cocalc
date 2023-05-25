@@ -20,37 +20,23 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading } from "@cocalc/frontend/components";
+import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { ListingItem } from "@cocalc/frontend/project/explorer/types";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
 import track from "@cocalc/frontend/user-tracking";
-import { path_to_file, should_open_in_foreground } from "@cocalc/util/misc";
+import {
+  human_readable_size,
+  path_to_file,
+  plural,
+  search_match,
+  search_split,
+  should_open_in_foreground,
+} from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-
-const ITEM_LINE_STYLE: CSS = {
-  display: "flex",
-  flexDirection: "row",
-  width: "100%",
-  cursor: "pointer",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  paddingBottom: "5px",
-  paddingTop: "5px",
-  paddingLeft: "5px",
-  paddingRight: "5px",
-  color: COLORS.GRAY_D,
-} as const;
-
-const ITEM_STYLE: CSS = {
-  flex: "1 1 auto",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-};
+import { FileListItem, itemAgeStyle } from "./components";
 
 export function FilesFlyout({ project_id }): JSX.Element {
   const isMountedRef = useIsMountedRef();
@@ -92,7 +78,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   }, [project_id, current_path]);
 
   const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `${project_id}::${current_path}`,
+    cacheId: `${project_id}::flyout::files::${current_path}`,
   });
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
@@ -102,14 +88,16 @@ export function FilesFlyout({ project_id }): JSX.Element {
     const files = directoryListings.get(current_path);
     if (files == null) return [[], true];
     if (typeof files === "string") return [[], true];
+    const searchWords = search_split(search.toLowerCase());
     const procFiles = files
-      .filter(
-        (file: TypedMap<ListingItem>) =>
-          search == "" ||
-          (allLowerCase
-            ? file.get("name").toLowerCase().includes(search)
-            : file.get("name").includes(search))
-      )
+      .filter((file: TypedMap<ListingItem>) => {
+        if (search === "") return true;
+        const fName = file.get("name", "").toLowerCase();
+        return (
+          search_match(fName, searchWords) ||
+          (file.get("isdir", false) && search_match(`${fName}/`, searchWords))
+        );
+      })
       .filter(
         (file: TypedMap<ListingItem>) =>
           hidden || !file.get("name").startsWith(".")
@@ -183,9 +171,6 @@ export function FilesFlyout({ project_id }): JSX.Element {
     })();
     return <Loading />;
   }
-
-  // if there are no uppercase chars in search
-  const allLowerCase = search === search.toLowerCase();
 
   function open(e: React.MouseEvent, index: number) {
     const file = directoryFiles[index];
@@ -292,8 +277,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     );
   }
 
-  function renderItemIcon(item: ListingItem): JSX.Element {
-    const style = { fontSize: "120%", marginRight: "5px" };
+  function renderItemIcon(item: ListingItem, style: CSS): JSX.Element {
     if (item.isdir) {
       return <Icon name="folder-open" style={style} />;
     } else {
@@ -312,43 +296,33 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
   }
 
-  function renderCloseItem(item: ListingItem): JSX.Element {
-    const { name } = item;
+  function renderListItem(index: number, item: ListingItem) {
+    const { mtime, size = 0, isdir = false } = item;
+    const age = typeof mtime === "number" ? 1000 * mtime : null;
     return (
-      <Icon
-        name="times-circle"
-        style={{ flex: "0", fontSize: "120%" }}
-        onClick={(e: React.MouseEvent) => {
+      <FileListItem
+        item={item}
+        onClick={(e) => open(e, index)}
+        renderIcon={renderItemIcon}
+        itemStyle={itemAgeStyle(age ?? 0)}
+        onClose={(e: React.MouseEvent, name: string) => {
           e.stopPropagation();
           actions?.close_tab(path_to_file(current_path, name));
         }}
+        tooltip={
+          <>
+            {age ? (
+              <>
+                Last modified <TimeAgo date={new Date(age)} />
+                <br />
+              </>
+            ) : undefined}
+            {isdir
+              ? `Contains ${size} ${plural(size, "item")}`
+              : `Size: ${human_readable_size(size)}`}
+          </>
+        }
       />
-    );
-  }
-
-  function renderListItem(index: number, item: ListingItem) {
-    return (
-      <>
-        <div
-          className="cc-project-flyout-file-item"
-          style={{
-            ...ITEM_LINE_STYLE,
-            ...(item.isopen
-              ? {
-                  fontWeight: "bold",
-                  color: COLORS.PROJECT.FIXED_LEFT_ACTIVE,
-                  backgroundColor: COLORS.GRAY_LL,
-                }
-              : {}),
-          }}
-        >
-          {renderItemIcon(item)}{" "}
-          <div style={ITEM_STYLE} onClick={(e) => open(e, index)}>
-            {item.name}
-          </div>
-          {item.isopen ? renderCloseItem(item) : null}
-        </div>
-      </>
     );
   }
 
