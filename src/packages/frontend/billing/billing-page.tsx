@@ -194,13 +194,16 @@ export const BillingPage = rclass<ReactProps>(
               license upgrades, boosts, dedicated resources, etc.
             </li>
             <li>
-              <A href={join(appBasePath, "pricing")}>Pricing Overview</A>: get an
-              overview about all offered products.
+              <A href={join(appBasePath, "pricing")}>Pricing Overview</A>: get
+              an overview about all offered products.
             </li>
             <li>
-              <A href={join(appBasePath, "billing")}>Billing Information</A>: information
-              about your purchases, ongoing subscriptions, credit cards,
-              invoices, etc.
+              <A href={join(appBasePath, "billing")}>Billing Information</A>:
+              information about your purchases,{" "}
+              <A href={join(appBasePath, "billing", "subscriptions")}>
+                cancelling subscriptions
+              </A>
+              , credit cards, invoices, etc.
             </li>
           </ul>
         </div>

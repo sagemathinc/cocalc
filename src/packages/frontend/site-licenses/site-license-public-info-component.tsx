@@ -3,6 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert, Button, Input, Popconfirm, Popover } from "antd";
+import { fromJS } from "immutable";
+import { DebounceInput } from "react-debounce-input";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
@@ -26,9 +30,6 @@ import {
   LicenseStatus,
   licenseStatusProvidesUpgrades,
 } from "@cocalc/util/upgrades/quota";
-import { Alert, Button, Input, Popconfirm, Popover } from "antd";
-import { fromJS } from "immutable";
-import { DebounceInput } from "react-debounce-input";
 import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
