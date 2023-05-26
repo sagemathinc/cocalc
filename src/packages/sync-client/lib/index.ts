@@ -26,6 +26,7 @@ import { SyncClient } from "@cocalc/sync/client/sync-client";
 import ProjectClient from "./project-client";
 import debug from "debug";
 import { bind_methods } from "@cocalc/util/misc";
+import { project } from "@cocalc/api-client";
 
 export default class Client extends EventEmitter implements AppClient {
   project_client: ProjectClient;
@@ -87,9 +88,13 @@ export default class Client extends EventEmitter implements AppClient {
       );
     }
     (async () => {
-      const api = await this.project_client.api(project_id);
-      const result = await api.query(opts);
-      opts.cb?.(undefined, result);
+      try {
+        const api = await this.project_client.api(project_id);
+        const result = await api.query(opts);
+        opts.cb?.(undefined, result);
+      } catch (err) {
+        opts.cb?.(`${err}`);
+      }
     })();
   }
 
@@ -109,6 +114,15 @@ export default class Client extends EventEmitter implements AppClient {
     return true;
   }
 
-  touch_project(_project_id: string): void {}
+  touch_project(project_id: string): void {
+    const dbg = this.dbg("touch_project");
+    dbg(project_id);
+    (async () => {
+      try {
+        await project.touch({ project_id });
+      } catch (err) {
+        dbg("error ", err);
+      }
+    })();
+  }
 }
-

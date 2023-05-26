@@ -24,6 +24,7 @@
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
+    "@cocalc/api-client": "workspace:*",
     "@cocalc/util": "workspace:*"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",

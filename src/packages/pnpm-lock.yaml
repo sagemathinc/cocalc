@@ -112,6 +112,9 @@ importers:
 
   compute:
     dependencies:
+      '@cocalc/api-client':
+        specifier: workspace:*
+        version: link:../api-client
       '@cocalc/backend':
         specifier: workspace:*
         version: link:../backend
@@ -1760,6 +1763,9 @@ importers:
 
   sync-client:
     dependencies:
+      '@cocalc/api-client':
+        specifier: workspace:*
+        version: link:../api-client
       '@cocalc/backend':
         specifier: workspace:*
         version: link:../backend

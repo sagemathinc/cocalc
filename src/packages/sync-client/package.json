@@ -9,12 +9,10 @@
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
+    "@cocalc/api-client": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/primus-multiplex": "^1.1.0",
     "@cocalc/sync": "workspace:*",
