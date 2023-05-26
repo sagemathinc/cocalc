@@ -1418,6 +1418,9 @@ importers:
       dayjs:
         specifier: ^1.11.7
         version: 1.11.7
+      gpt3-tokenizer:
+        specifier: ^1.1.5
+        version: 1.1.5
       json-stable-stringify:
         specifier: ^1.0.1
         version: 1.0.1

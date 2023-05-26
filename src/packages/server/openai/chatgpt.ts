@@ -10,6 +10,9 @@ import { delay } from "awaiting";
 import getClient from "./client";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
+import GPT3Tokenizer from "gpt3-tokenizer";
+import { EventEmitter } from "events";
+import { once } from "@cocalc/util/async-utils";
 
 const log = getLogger("chatgpt");
 
@@ -23,6 +26,13 @@ interface ChatOptions {
   history?: { role: "assistant" | "user" | "system"; content: string }[];
   model?: Model; // default is gpt-3.5-turbo
   tag?: string;
+  // If stream is set, then everything works as normal with two exceptions:
+  // - The stream function is called with bits of the output as they are produced,
+  //   until the output is done and then it is called with undefined.
+  // - Maybe the total_tokens, which is stored in the database for analytics,
+  //   might be off: https://community.openai.com/t/openai-api-get-usage-tokens-in-response-when-set-stream-true/141866
+  stream?: (output?: string) => void;
+  maxTokens?: number;
 }
 
 export async function evaluate({
@@ -35,6 +45,8 @@ export async function evaluate({
   history,
   model = "gpt-3.5-turbo",
   tag,
+  stream,
+  maxTokens,
 }: ChatOptions): Promise<string> {
   log.debug("evaluate", {
     input,
@@ -46,6 +58,8 @@ export async function evaluate({
     path,
     model,
     tag,
+    stream: stream != null,
+    maxTokens,
   });
   const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie, model });
@@ -62,17 +76,15 @@ export async function evaluate({
     }
   }
   messages.push({ role: "user", content: input });
-  const completion = await callOpenaiAPI({
+  const { output, total_tokens } = await callOpenaiAPI({
     openai,
     model,
     messages,
     maxAttempts: 3,
+    maxTokens,
+    stream,
   });
-  log.debug("response: ", completion.data);
-  const output = (
-    completion.data.choices[0].message?.content ?? "No Output"
-  ).trim();
-  const total_tokens = completion.data.usage?.total_tokens;
+  log.debug("response: ", { output, total_tokens });
   const total_time_s = (Date.now() - start) / 1000;
 
   let expire;
@@ -167,13 +179,82 @@ async function saveResponse({
 // list of messages, and number maxAttempts, this will try to make the
 // call up to maxAttempts times, then throw an error if it fails
 // maxAttempts times.
-async function callOpenaiAPI({ openai, model, messages, maxAttempts }) {
+
+class GatherOutput extends EventEmitter {
+  private output: string = "";
+  private total_tokens: number;
+  private stream: (text?: string) => void;
+
+  constructor(messages, stream) {
+    super();
+    this.total_tokens = totalNumTokens(messages);
+    this.stream = stream;
+  }
+
+  process(data: Buffer) {
+    const text = data.toString();
+    const lines = text.split("\n");
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) {
+        continue;
+      }
+      const s = line.slice(6);
+      if (s == "[DONE]") {
+        this.emit("done", {
+          output: this.output,
+          total_tokens: this.total_tokens,
+        });
+        this.stream();
+      } else {
+        const mesg = JSON.parse(s);
+        const token = mesg.choices[0].delta.content;
+        if (token != null) {
+          this.output += token;
+          this.stream(token);
+          this.total_tokens += 1;
+        }
+      }
+    }
+  }
+}
+
+async function callOpenaiAPI({
+  openai,
+  model,
+  messages,
+  maxAttempts,
+  stream,
+  maxTokens,
+}): Promise<{ output: string; total_tokens: number }> {
+  const doStream = stream != null;
+  const gather = doStream ? new GatherOutput(messages, stream) : undefined;
+  const axiosOptions = doStream ? { responseType: "stream" } : {};
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      return await openai.createChatCompletion({
-        model,
-        messages,
-      });
+      const completion = await openai.createChatCompletion(
+        {
+          max_tokens: maxTokens,
+          model,
+          messages,
+          stream: doStream,
+        },
+        axiosOptions
+      );
+      if (!doStream) {
+        const output = (
+          completion.data.choices[0].message?.content ?? "No Output"
+        ).trim();
+        const total_tokens = completion.data.usage?.total_tokens;
+        return { output, total_tokens };
+      } else {
+        if (gather == null) {
+          throw Error("bug");
+        }
+        completion.data.on("data", gather.process.bind(gather));
+        // collect up the results and return result.
+        const x = await once(gather, "done");
+        return x[0];
+      }
     } catch (err) {
       const retry = i < maxAttempts - 1;
       log.debug(
@@ -189,4 +270,22 @@ async function callOpenaiAPI({ openai, model, messages, maxAttempts }) {
       await delay(1000);
     }
   }
+  throw Error("chatgpt api called failed"); // this should never get reached.
+}
+
+// a little bit of this code is replicated in
+// packages/frontend/misc/openai.ts
+const APPROX_CHARACTERS_PER_TOKEN = 8;
+const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
+function numTokens(content: string): number {
+  // slice to avoid extreme slowdown "attack".
+  return tokenizer.encode(content.slice(0, 8000 * APPROX_CHARACTERS_PER_TOKEN))
+    .text.length;
+}
+function totalNumTokens(messages: { content: string }[]): number {
+  let s = 0;
+  for (const { content } of messages) {
+    s += numTokens(content);
+  }
+  return s;
 }
