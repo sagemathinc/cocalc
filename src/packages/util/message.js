@@ -1079,7 +1079,7 @@ message({
 // project_server to tell the project_server to write a file to a
 // project.  If the path includes directories that don't exists,
 // they are automatically created (this is in fact the only way
-// to make a new directory).
+// to make a new directory except of course project_exec).
 // hub --> project_server
 message({
   event: "write_file_to_project",
@@ -3146,7 +3146,7 @@ API(
     path: undefined, // optional path where execution happens
     tag: undefined,
     pool: undefined, // {size?: number; timeout_s?: number;}
-    limits: undefined, // see packages/project/nbgrader/jupyter-run.ts
+    limits: undefined, // see packages/jupyter/nbgrader/jupyter-run.ts
   })
 );
 

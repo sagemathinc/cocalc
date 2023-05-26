@@ -19,6 +19,7 @@ export async function apiCall(endpoint: string, params: object): Promise<any> {
   if (response?.event == "error") {
     throw Error(response.error ?? "error");
   }
+  return response;
   delete response.id;
   delete response.event;
   return response;
@@ -53,7 +54,7 @@ export async function pingProject(opts: { project_id: string }) {
   return await callProject({ ...opts, mesg: { event: "ping" } });
 }
 
-export async function execInProject(opts: {
+export async function exec(opts: {
   project_id: string;
   path?: string;
   command?: string;
@@ -73,7 +74,8 @@ export async function execInProject(opts: {
 // Returns URL of the file or directory, which you can
 // download (from the postgres blob store).  It gets autodeleted.
 // There is a limit of about 10MB for this.
-export async function readFileFromProject(opts: {
+// For text use readTextFileToProject
+export async function readFile(opts: {
   project_id: string;
   path: string; // file or directory
   archive?: "tar" | "tar.bz2" | "tar.gz" | "zip" | "7z";
@@ -86,4 +88,60 @@ export async function readFileFromProject(opts: {
   return siteUrl(
     `blobs/${opts.path}${archive ? `.${archive}` : ""}?uuid=${data_uuid}`
   );
+}
+
+// export async function writeFileToProject(opts: {
+//   project_id: string;
+//   path: string; // file or directory
+//   archive?: "tar" | "tar.bz2" | "tar.gz" | "zip" | "7z";
+//   ttlSeconds?: number;
+// }): Promise<string> {
+
+// }
+
+export async function writeTextFile(opts: {
+  project_id: string;
+  path: string;
+  content: string;
+}): Promise<void> {
+  await callProject({
+    project_id: opts.project_id,
+    mesg: { event: "write_text_file_to_project", ...opts },
+  });
+}
+
+export async function readTextFile(opts: {
+  project_id: string;
+  path: string;
+}): Promise<void> {
+  return await callProject({
+    project_id: opts.project_id,
+    mesg: { event: "read_text_file_from_project", ...opts },
+  });
+}
+
+export async function jupyterExec(opts: {
+  project_id: string;
+  hash?: string; // give either hash *or* kernel, input, history, etc.
+  kernel: string; // jupyter kernel
+  input: string; // input code to execute
+  history?: string[]; // optional history of this conversation as a list of input strings.  Do not include output
+  path?: string; // optional path where execution happens
+  pool?: { size?: number; timeout_s?: number };
+  limits?: {
+    // see packages/jupyter/nbgrader/jupyter-run.ts
+    timeout_ms_per_cell: number;
+    max_output_per_cell: number;
+    max_output: number;
+    total_output: number;
+    timeout_ms?: number;
+    start_time?: number;
+  };
+}): Promise<void> {
+  return (
+    await callProject({
+      project_id: opts.project_id,
+      mesg: { event: "jupyter_execute", ...opts },
+    })
+  ).output;
 }

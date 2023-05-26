@@ -42,7 +42,7 @@ const L = getLogger("project-info:server").debug;
 
 // this is a hard limit on the number of processes we gather, just to
 // be on the safe side to avoid processing too much data.
-const LIMIT = 100;
+const LIMIT = 200;
 const bytes2MiB = (bytes) => bytes / (1024 * 1024);
 
 export class ProjectInfoServer extends EventEmitter {

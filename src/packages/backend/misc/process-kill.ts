@@ -1,5 +1,5 @@
 import getLogger from "@cocalc/backend/logger";
-const winston = getLogger("process-kill");
+const logger = getLogger("process-kill");
 
 // sends kill 2,3,9 signal to pid.
 // never raises an exception.
@@ -16,12 +16,13 @@ export default function processKill(pid: number, signal: 2 | 3 | 9) {
       s = "SIGKILL";
       break;
     default:
-      winston.debug(
+      logger.debug(
         "WARNING -- process_kill: only signals 2 (SIGINT), 3 (SIGQUIT), and 9 (SIGKILL) are supported"
       );
       return;
   }
   try {
+    logger.debug("process.kill -- pid=", pid, " signal=", signal);
     process.kill(pid, s);
   } catch (_err) {}
 }
