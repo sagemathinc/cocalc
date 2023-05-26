@@ -7,6 +7,7 @@ import { Button, Input, Radio, Space, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
+import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   React,
@@ -24,7 +25,10 @@ import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
-import { ListingItem } from "@cocalc/frontend/project/explorer/types";
+import {
+  DirectoryListing,
+  DirectoryListingEntry,
+} from "@cocalc/frontend/project/explorer/types";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
 import track from "@cocalc/frontend/user-tracking";
 import {
@@ -36,7 +40,8 @@ import {
   should_open_in_foreground,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { FileListItem, itemAgeStyle } from "./components";
+import { compute_file_masks } from "../../explorer/compute-file-masks";
+import { FileListItem, fileItemStyle } from "./components";
 
 export function FilesFlyout({ project_id }): JSX.Element {
   const isMountedRef = useIsMountedRef();
@@ -48,6 +53,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     is_descending: boolean;
   }> = useTypedRedux({ project_id }, "active_file_sort");
   const hidden = useTypedRedux({ project_id }, "show_hidden");
+  const show_masked = useTypedRedux({ project_id }, "show_masked");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const [search, setSearch] = useState<string>("");
 
@@ -83,69 +89,89 @@ export function FilesFlyout({ project_id }): JSX.Element {
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
-  const [directoryFiles, _] = useMemo((): [ListingItem[], boolean] => {
+  const [directoryFiles, _] = useMemo((): [DirectoryListing, boolean] => {
     if (directoryListings == null) return [[], true];
-    const files = directoryListings.get(current_path);
-    if (files == null) return [[], true];
-    if (typeof files === "string") return [[], true];
+    const filesStore = directoryListings.get(current_path);
+    if (filesStore == null) return [[], true];
+
+    // TODO this is an error, process it
+    if (typeof filesStore === "string") return [[], true];
+
+    const files: DirectoryListing = filesStore.toJS();
+    compute_file_masks(files);
     const searchWords = search_split(search.toLowerCase());
+
     const procFiles = files
-      .filter((file: TypedMap<ListingItem>) => {
+      .filter((file: DirectoryListingEntry) => {
+        file.name ??= ""; // sanitization
+
         if (search === "") return true;
-        const fName = file.get("name", "").toLowerCase();
+        const fName = file.name.toLowerCase();
         return (
           search_match(fName, searchWords) ||
-          (file.get("isdir", false) && search_match(`${fName}/`, searchWords))
+          ((file.isdir ?? false) && search_match(`${fName}/`, searchWords))
         );
       })
       .filter(
-        (file: TypedMap<ListingItem>) =>
-          hidden || !file.get("name").startsWith(".")
+        (file: DirectoryListingEntry) => show_masked || !(file.mask === true)
       )
-      .sort((a, b) => {
-        // This replicated what project_store is doing
-        const col = activeFileSort.get("column_name");
-        switch (col) {
-          case "name":
-            return a.get("name").localeCompare(b.get("name"));
-          case "size":
-            return a.get("size", 0) - b.get("size", 0);
-          case "time":
-            return b.get("mtime", 0) - a.get("mtime", 0);
-          case "type":
-            const aDir = a.get("isdir", false);
-            const bDir = b.get("isdir", false);
-            if (aDir && !bDir) return -1;
-            if (!aDir && bDir) return 1;
-            const aExt = a.get("name", "").split(".").pop();
-            const bExt = b.get("name", "").split(".").pop();
-            return aExt.localeCompare(bExt);
-        }
-      })
-      .map((file: TypedMap<ListingItem>) => {
-        const fullPath = path_to_file(current_path, file.get("name"));
-        if (openFiles.some((path) => path == fullPath)) {
-          return file.set("isopen", true);
-        } else {
-          return file;
-        }
-      });
+      .filter(
+        (file: DirectoryListingEntry) => hidden || !file.name.startsWith(".")
+      );
 
-    const ordered = activeFileSort.get("is_descending")
-      ? procFiles.reverse().toJS()
-      : procFiles.toJS();
+    procFiles.sort((a, b) => {
+      // This replicated what project_store is doing
+      const col = activeFileSort.get("column_name");
+      switch (col) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "size":
+          return (a.size ?? 0) - (b.size ?? 0);
+        case "time":
+          return (b.mtime ?? 0) - (a.mtime ?? 0);
+        case "type":
+          const aDir = a.isdir ?? false;
+          const bDir = b.isdir ?? false;
+          if (aDir && !bDir) return -1;
+          if (!aDir && bDir) return 1;
+          const aExt = a.name.split(".").pop() ?? "";
+          const bExt = b.name.split(".").pop() ?? "";
+          return aExt.localeCompare(bExt);
+        default:
+          console.warn(`flyout/files: unknown sort column ${col}`);
+          return 0;
+      }
+    });
 
-    const isEmpty = ordered.length === 0;
+    for (const file of procFiles) {
+      const fullPath = path_to_file(current_path, file.name);
+      if (openFiles.some((path) => path == fullPath)) {
+        file.isopen = true;
+      }
+    }
+
+    if (activeFileSort.get("is_descending")) {
+      procFiles.reverse(); // inplace op
+    }
+
+    const isEmpty = procFiles.length === 0;
 
     if (current_path != "") {
-      ordered.unshift({
+      procFiles.unshift({
         name: "..",
         isdir: true,
       });
     }
 
-    return [ordered, isEmpty];
-  }, [directoryListings, activeFileSort, hidden, search, openFiles]);
+    return [procFiles, isEmpty];
+  }, [
+    directoryListings,
+    activeFileSort,
+    hidden,
+    search,
+    openFiles,
+    show_masked,
+  ]);
 
   // *** END HOOKS ***
 
@@ -230,7 +256,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
             justifyContent: "space-between",
           }}
         >
-          <Radio.Group defaultValue="a" size="small">
+          <Radio.Group size="small">
             {renderSortButton("name", "Name")}
             {renderSortButton("size", "Size")}
             {renderSortButton("time", "Time")}
@@ -265,19 +291,32 @@ export function FilesFlyout({ project_id }): JSX.Element {
             allowClear
             prefix={<Icon name="search" />}
           />
-          <Button
-            size="small"
-            style={{ flex: "0" }}
-            onClick={() => actions?.setState({ show_hidden: !hidden })}
-          >
-            <Icon name={hidden ? "eye" : "eye-slash"} />
-          </Button>
+          <Space direction="horizontal" size="small">
+            <BootstrapButton
+              bsSize="xsmall"
+              style={{ flex: "0" }}
+              onClick={() => actions?.setState({ show_hidden: !hidden })}
+            >
+              <Icon name={hidden ? "eye" : "eye-slash"} />
+            </BootstrapButton>
+            <BootstrapButton
+              bsSize="xsmall"
+              style={{ flex: "0" }}
+              active={!show_masked}
+              onClick={() => actions?.setState({ show_masked: !show_masked })}
+            >
+              <Icon name={"mask"} />
+            </BootstrapButton>
+          </Space>
         </div>
       </Space>
     );
   }
 
-  function renderItemIcon(item: ListingItem, style: CSS): JSX.Element {
+  function renderItemIcon(
+    item: DirectoryListingEntry,
+    style: CSS
+  ): JSX.Element {
     if (item.isdir) {
       return <Icon name="folder-open" style={style} />;
     } else {
@@ -296,32 +335,36 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
   }
 
-  function renderListItem(index: number, item: ListingItem) {
-    const { mtime, size = 0, isdir = false } = item;
+  function renderTooltip(age, { isdir = false, size = 0 }): JSX.Element {
+    return (
+      <>
+        {age ? (
+          <>
+            Last modified <TimeAgo date={new Date(age)} />
+            <br />
+          </>
+        ) : undefined}
+        {isdir
+          ? `Contains ${size} ${plural(size, "item")}`
+          : `Size: ${human_readable_size(size)}`}
+      </>
+    );
+  }
+
+  function renderListItem(index: number, item: DirectoryListingEntry) {
+    const { mtime, mask = false } = item;
     const age = typeof mtime === "number" ? 1000 * mtime : null;
     return (
       <FileListItem
         item={item}
         onClick={(e) => open(e, index)}
         renderIcon={renderItemIcon}
-        itemStyle={itemAgeStyle(age ?? 0)}
+        itemStyle={fileItemStyle(age ?? 0, mask)}
         onClose={(e: React.MouseEvent, name: string) => {
           e.stopPropagation();
           actions?.close_tab(path_to_file(current_path, name));
         }}
-        tooltip={
-          <>
-            {age ? (
-              <>
-                Last modified <TimeAgo date={new Date(age)} />
-                <br />
-              </>
-            ) : undefined}
-            {isdir
-              ? `Contains ${size} ${plural(size, "item")}`
-              : `Size: ${human_readable_size(size)}`}
-          </>
-        }
+        tooltip={renderTooltip(age, item)}
       />
     );
   }

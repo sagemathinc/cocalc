@@ -4,37 +4,38 @@
  */
 
 import {
-  CSS,
-  React,
-  useEffect,
-  useState,
-  useActions,
-  useTypedRedux,
-  TypedMap,
-} from "../../app-framework";
-import {
   Collapse,
   Descriptions,
   Divider,
   Switch,
-  Typography,
   Table,
+  Typography,
 } from "antd";
+import { List, Map } from "immutable";
+
 import {
+  ControlOutlined,
+  FileOutlined,
   FolderOpenOutlined,
   InfoCircleOutlined,
-  FileOutlined,
-  ControlOutlined,
   QuestionCircleOutlined,
 } from "@ant-design/icons";
-const { Panel } = Collapse;
-// import { delay } from "awaiting";
-import { Map, List } from "immutable";
-import { Icon } from "../../components";
+import {
+  CSS,
+  React,
+  TypedMap,
+  useActions,
+  useEffect,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
 import { plural, round1 } from "@cocalc/util/misc";
-import { TerminalActions } from "./actions";
 import { DirectoryListingEntry } from "../../project/explorer/types";
+import { TerminalActions } from "./actions";
 import { Command, SelectFile } from "./commands-guide-components";
+
+const { Panel } = Collapse;
 
 interface Props {
   font_size: number;
@@ -146,7 +147,7 @@ export const CommandsGuide: React.FC<Props> = React.memo((props: Props) => {
     const total = all_files.size;
     const size_red = grouped
       .get(false)
-      ?.reduce((cur, val) => cur + val.get("size"), 0);
+      ?.reduce((cur, val) => cur + val.get("size", 0), 0);
     const size = (size_red ?? 0) / (1024 * 1024);
     set_listing_stats({
       total,

@@ -21,7 +21,7 @@ import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import { FileListItem, itemAgeStyle } from "./components";
+import { FileListItem, fileItemStyle } from "./components";
 
 interface OpenedFile {
   filename: string;
@@ -93,7 +93,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
     return (
       <FileListItem
         item={{ name: path, isopen: isOpened }}
-        itemStyle={itemAgeStyle(time?.getTime())}
+        itemStyle={fileItemStyle(time?.getTime())}
         renderIcon={(_item, style) => <Icon style={style} name={name} />}
         onClick={(e) => handle_log_click(e, path, project_id)}
         onClose={(e: React.MouseEvent, path: string) => {

@@ -111,7 +111,7 @@ export function FileListItem({
 }
 
 // Depending on age, highlight  entries from the past past 24 hours and week
-export function itemAgeStyle(time: number = 0): CSS {
+export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {
   const diff = server_time().getTime() - time;
   const days = Math.max(0, diff / 1000 / 60 / 60 / 24);
   let col = "rgba(1, 1, 1, 0)";
@@ -126,5 +126,6 @@ export function itemAgeStyle(time: number = 0): CSS {
   }
   return {
     borderLeft: `4px solid ${col}`,
+    ...(masked ? { color: COLORS.GRAY_L } : {}),
   };
 }
