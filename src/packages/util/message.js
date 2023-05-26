@@ -3071,13 +3071,15 @@ API(
     path: undefined,
     model: undefined,
     tag: undefined,
+    stream: undefined, // if true, instead sends many little chatgpt_response messages with the last text value undefined.
   })
 );
 
 message({
   event: "chatgpt_response",
   id: undefined,
-  text: required, // text of the response
+  text: undefined, // text of the response
+  multi_response: undefined, // used for streaming
 });
 
 API(

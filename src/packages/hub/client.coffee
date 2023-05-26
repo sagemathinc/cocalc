@@ -2103,12 +2103,21 @@ class exports.Client extends EventEmitter
         if not @account_id?
             @error_to_client(id:mesg.id, error:"not signed in")
             return
-        try
-            output = await chatgpt.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag)
-            @push_to_client(message.chatgpt_response(id:mesg.id, text:output))
-        catch err
-            dbg("failed -- #{err}")
-            @error_to_client(id:mesg.id, error:"#{err}")
+        if mesg.stream
+            try
+                stream = (text) =>
+                    @push_to_client(message.chatgpt_response(id:mesg.id, text:text, multi_response:text?))
+                await chatgpt.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag, stream:stream)
+            catch err
+                dbg("failed -- #{err}")
+                @error_to_client(id:mesg.id, error:"#{err}")
+        else
+            try
+                output = await chatgpt.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag)
+                @push_to_client(message.chatgpt_response(id:mesg.id, text:output))
+            catch err
+                dbg("failed -- #{err}")
+                @error_to_client(id:mesg.id, error:"#{err}")
 
     mesg_openai_embeddings_search: (mesg) =>
         dbg = @dbg("mesg_openai_embeddings_search")

@@ -154,7 +154,7 @@ class Client extends EventEmitter implements WebappClient {
   query: typeof QueryClient.prototype.query;
   query_cancel: Function;
 
-  is_deleted: (filename: string, project_id: string)=> boolean;
+  is_deleted: (filename: string, project_id: string) => boolean;
   mark_file: (opts: any) => Promise<void>;
 
   idle_reset: Function;
@@ -194,9 +194,7 @@ class Client extends EventEmitter implements WebappClient {
     this.admin_client = bind_methods(
       new AdminClient(this.async_call.bind(this))
     );
-    this.openai_client = bind_methods(
-      new OpenAIClient(this.async_call.bind(this))
-    );
+    this.openai_client = bind_methods(new OpenAIClient(this));
     this.jupyter_client = bind_methods(
       new JupyterClient(this.async_call.bind(this))
     );

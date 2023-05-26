@@ -4,7 +4,6 @@
  */
 
 import * as message from "@cocalc/util/message";
-import { AsyncCall } from "./client";
 import { redux } from "../app-framework";
 import { delay } from "awaiting";
 import type { History } from "@cocalc/frontend/misc/openai"; // do not import until needed -- it is HUGE!
@@ -15,6 +14,8 @@ import {
   MAX_REMOVE_LIMIT,
   MAX_EMBEDDINGS_TOKENS,
 } from "@cocalc/util/db-schema/openai";
+import { EventEmitter } from "events";
+import type { WebappClient } from "./client";
 
 const DEFAULT_SYSTEM_PROMPT =
   "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.  ENCLOSE ALL MATH IN $.  INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.  BE BRIEF.";
@@ -29,19 +30,32 @@ interface EmbeddingsQuery {
 }
 
 export class OpenAIClient {
-  private async_call: AsyncCall;
+  private client: WebappClient;
 
-  constructor(async_call: AsyncCall) {
-    this.async_call = async_call;
+  constructor(client: WebappClient) {
+    this.client = client;
   }
 
-  public async chatgpt({
+  public async chatgpt(opts): Promise<string> {
+    return await this.implementChatgpt(opts);
+  }
+
+  public chatgptStream(opts): ChatStream {
+    const chatStream = new ChatStream();
+    (async () => {
+      await this.implementChatgpt({ ...opts, chatStream });
+    })();
+    return chatStream;
+  }
+
+  private async implementChatgpt({
     input,
     system = DEFAULT_SYSTEM_PROMPT,
     history,
     project_id,
     path,
     model,
+    chatStream,
     tag = "",
   }: {
     input: string;
@@ -50,6 +64,7 @@ export class OpenAIClient {
     project_id?: string;
     path?: string;
     model?: Model;
+    chatStream?: ChatStream; // if given, uses chat stream
     tag?: string;
   }): Promise<string> {
     if (!redux.getStore("projects").hasOpenAI(project_id, tag)) {
@@ -83,18 +98,32 @@ export class OpenAIClient {
       history = truncateHistory(history, maxTokens - n);
     }
     // console.log("chatgpt", { input, system, history, project_id, path });
-    const resp = await this.async_call({
-      message: message.chatgpt({
-        text: input,
-        system,
-        project_id,
-        path,
-        history,
-        model,
-        tag: `app:${tag}`,
-      }),
+    const mesg = message.chatgpt({
+      text: input,
+      system,
+      project_id,
+      path,
+      history,
+      model,
+      tag: `app:${tag}`,
+      stream: chatStream != null,
     });
-    return resp.text;
+    if (chatStream == null) {
+      return (await this.client.async_call({ message: mesg })).text;
+    }
+    // streaming version
+    this.client.call({
+      message: mesg,
+      error_event: true,
+      cb: (err, resp) => {
+        if (err) {
+          chatStream.error(err);
+        } else {
+          chatStream.process(resp.text);
+        }
+      },
+    });
+    return "see stream for output";
   }
 
   public async embeddings_search(
@@ -133,7 +162,7 @@ export class OpenAIClient {
     offset,
   }: EmbeddingsQuery) {
     text = text?.trim();
-    const resp = await this.async_call({
+    const resp = await this.client.async_call({
       message: message.openai_embeddings_search({
         scope,
         text,
@@ -178,7 +207,7 @@ export class OpenAIClient {
     const ids: string[] = [];
     let v = data;
     while (v.length > 0) {
-      const resp = await this.async_call({
+      const resp = await this.client.async_call({
         message: message.openai_embeddings_save({
           project_id,
           path,
@@ -206,7 +235,7 @@ export class OpenAIClient {
     const ids: string[] = [];
     let v = data;
     while (v.length > 0) {
-      const resp = await this.async_call({
+      const resp = await this.client.async_call({
         message: message.openai_embeddings_remove({
           project_id,
           path,
@@ -228,5 +257,21 @@ export class OpenAIClient {
     if (!this.neuralSearchIsEnabled()) {
       throw Error("OpenAI support is not currently enabled on this server");
     }
+  }
+}
+
+class ChatStream extends EventEmitter {
+  constructor() {
+    super();
+  }
+  process(text?: string) {
+    if (text != null) {
+      this.emit("token", text);
+    } else {
+      this.emit("done");
+    }
+  }
+  error(err) {
+    this.emit("error", err);
   }
 }
