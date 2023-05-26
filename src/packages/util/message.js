@@ -1012,14 +1012,7 @@ message({
   event: "file_read_from_project",
   id: required,
   data_uuid: required, // The project_server will send the raw data of the file as a blob with this uuid.
-  archive: undefined,
-}); // if defined, means that file (or directory) was archived (tarred up) and this string was added to end of filename.
-
-// hub --> client
-message({
-  event: "temporary_link_to_file_read_from_project",
-  id: required,
-  url: required,
+  archive: undefined, // if defined, means that file (or directory) was archived (tarred up) and this string was added to end of filename.
 });
 
 // The client sends this message to the hub in order to read

@@ -49,6 +49,7 @@ export async function read_file_from_project(socket: CoCalcSocket, mesg) {
   let path = abspath(mesg.path);
   let is_dir: boolean | undefined = undefined;
   let id: string | undefined = undefined;
+  let target: string | undefined = undefined;
   let archive = undefined;
   let stats: Stats | undefined = undefined;
 
@@ -70,7 +71,7 @@ export async function read_file_from_project(socket: CoCalcSocket, mesg) {
           "The only supported directory archive format is tar.bz2"
         );
       }
-      const target = temp.path({ suffix: "." + mesg.archive });
+      target = temp.path({ suffix: "." + mesg.archive });
       //dbg("'#{path}' is a directory, so archive it to '#{target}', change path, and read that file")
       archive = mesg.archive;
       if (path[path.length - 1] === "/") {
@@ -78,7 +79,6 @@ export async function read_file_from_project(socket: CoCalcSocket, mesg) {
         path = path.slice(0, path.length - 1);
       }
       const split = path_split(path);
-      path = target;
       // TODO same patterns also in project.ts
       const args = [
         "--exclude=.sagemathcloud*",
@@ -87,7 +87,7 @@ export async function read_file_from_project(socket: CoCalcSocket, mesg) {
         "--exclude=.npm",
         "--exclude=.sage",
         "-jcf",
-        target,
+        target as string,
         split.tail,
       ];
       //dbg("tar #{args.join(' ')}")
@@ -110,16 +110,20 @@ export async function read_file_from_project(socket: CoCalcSocket, mesg) {
       });
     } else {
       //Nothing to do, it is a file.
+      target = path;
+    }
+    if (!target) {
+      throw Error("bug -- target must be set");
     }
 
     //dbg("Read the file into memory.")
-    data = await readFileAsync(path);
+    data = await readFileAsync(target);
 
     // get SHA1 of contents
     if (data == null) {
       throw new Error("data is null");
     }
-    id = uuidsha1(data)
+    id = uuidsha1(data);
     //dbg("sha1 hash = '#{id}'")
 
     //dbg("send the file as a blob back to the hub.")
@@ -139,18 +143,21 @@ export async function read_file_from_project(socket: CoCalcSocket, mesg) {
     });
   } catch (err) {
     if (err && err !== "file already known") {
-      socket.write_mesg("json", message.error({ id: mesg.id, error: err }));
+      socket.write_mesg(
+        "json",
+        message.error({ id: mesg.id, error: `${err}` })
+      );
     }
   }
 
   // in any case, clean up the temporary archive
-  if (is_dir) {
+  if (is_dir && target) {
     try {
-      await access(path, constants.F_OK);
+      await access(target, constants.F_OK);
       //dbg("It was a directory, so remove the temporary archive '#{path}'.")
-      await unlink(path);
+      await unlink(target);
     } catch (err) {
-      winston.debug(`Error removing temporary archive '${path}': ${err}`);
+      winston.debug(`Error removing temporary archive '${target}': ${err}`);
     }
   }
 }

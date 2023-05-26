@@ -2,21 +2,26 @@ import { apiKey, apiServer, apiBasePath } from "@cocalc/backend/data";
 import { join } from "path";
 import { dynamicImport } from "tsimportlib";
 
-function apiUrl(path: string): string {
+function siteUrl(path: string): string {
   if (!apiServer) {
     throw Error("API_SERVER must be specified");
   }
   return `${apiServer}${join(apiBasePath, path)}`;
 }
 
-export async function apiCall(
-  endpoint: string,
-  params: object
-): Promise<object> {
+export async function apiCall(endpoint: string, params: object): Promise<any> {
   const got = (await dynamicImport("got", module))
     .default as typeof import("got").default;
-  const url = apiUrl(join("api", endpoint));
-  return await got.post(url, { username: apiKey, json: params }).json();
+  const url = siteUrl(join("api", endpoint));
+  const response = (await got
+    .post(url, { username: apiKey, json: params })
+    .json()) as any;
+  if (response?.event == "error") {
+    throw Error(response.error ?? "error");
+  }
+  delete response.id;
+  delete response.event;
+  return response;
 }
 
 // Starts a project running.
@@ -48,4 +53,37 @@ export async function pingProject(opts: { project_id: string }) {
   return await callProject({ ...opts, mesg: { event: "ping" } });
 }
 
-//export async function execInProject(opts:{project_id:string, })
+export async function execInProject(opts: {
+  project_id: string;
+  path?: string;
+  command?: string;
+  args?: string[];
+  timeout?: number; // in seconds; default 10
+  aggregate?: any;
+  max_output?: number;
+  bash?: boolean;
+  err_on_exit?: boolean; // default true
+}) {
+  return await callProject({
+    project_id: opts.project_id,
+    mesg: { event: "project_exec", ...opts },
+  });
+}
+
+// Returns URL of the file or directory, which you can
+// download (from the postgres blob store).  It gets autodeleted.
+// There is a limit of about 10MB for this.
+export async function readFileFromProject(opts: {
+  project_id: string;
+  path: string; // file or directory
+  archive?: "tar" | "tar.bz2" | "tar.gz" | "zip" | "7z";
+  ttlSeconds?: number;
+}): Promise<string> {
+  const { archive, data_uuid } = await callProject({
+    project_id: opts.project_id,
+    mesg: { event: "read_file_from_project", ...opts },
+  });
+  return siteUrl(
+    `blobs/${opts.path}${archive ? `.${archive}` : ""}?uuid=${data_uuid}`
+  );
+}
