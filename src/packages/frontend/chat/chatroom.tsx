@@ -94,10 +94,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const submitMentionsRef = useRef<Function>();
   const scrollToBottomRef = useRef<any>(null);
 
-  useEffect(() => {
-    scrollToBottomRef.current?.();
-  }, [messages]);
-
   // The act of opening/displaying the chat marks it as seen...
   useEffect(() => {
     mark_as_read();

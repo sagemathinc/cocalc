@@ -327,8 +327,7 @@ export default function Message(props: Props) {
               }}
             >
               <div>
-                {new Date().valueOf() -
-                  new Date(props.message.get("date")).valueOf() <
+                {Date.now() - new Date(props.message.get("date")).valueOf() <
                   SHOW_EDIT_BUTTON_MS && (
                   <Tooltip
                     title="Edit this message. You can edit any past message by anybody at any time by double clicking on it."

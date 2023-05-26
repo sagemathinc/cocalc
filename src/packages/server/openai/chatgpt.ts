@@ -206,7 +206,12 @@ class GatherOutput extends EventEmitter {
         });
         this.stream();
       } else {
-        const mesg = JSON.parse(s);
+        let mesg;
+        try {
+          mesg = JSON.parse(s);
+        } catch (err) {
+          log.error(`chatgpt -- could not parse s='${s}'`, { text });
+        }
         const token = mesg.choices[0].delta.content;
         if (token != null) {
           this.output += token;

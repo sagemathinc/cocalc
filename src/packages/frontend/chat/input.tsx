@@ -111,7 +111,7 @@ export default function ChatInput({
           sender_id,
           input,
           date, // it's a primary key so can't use this to represent when user last edited this; use other date for editing past chats.
-          active: new Date().valueOf(),
+          active: Date.now(),
         });
         syncdb.commit();
       }

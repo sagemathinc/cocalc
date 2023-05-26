@@ -41,10 +41,6 @@ export default function SideChat({ project_id, path, style }: Props) {
     markAsRead();
   }, []);
 
-  useEffect(() => {
-    scrollToBottomRef.current?.();
-  }, [messages]);
-
   const sendChat = useCallback(() => {
     const value = submitMentionsRef.current?.();
     actions.send_chat(value);

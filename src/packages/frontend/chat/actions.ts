@@ -115,7 +115,7 @@ export class ChatActions extends Actions<ChatState> {
       if (this.syncdb == null) return;
       obj = obj.toJS();
       if (obj.event == "draft") {
-        let drafts = this.store?.get("drafts") ?? fromJS({}) as any;
+        let drafts = this.store?.get("drafts") ?? (fromJS({}) as any);
         // used to show that another user is editing a message.
         const record = this.syncdb.get_one(obj);
         if (record == null) {
@@ -129,7 +129,7 @@ export class ChatActions extends Actions<ChatState> {
       }
       if (obj.event == "chat") {
         let changed: boolean = false;
-        let messages = this.store?.get("messages") ?? fromJS({}) as any;
+        let messages = this.store?.get("messages") ?? (fromJS({}) as any);
         obj.date = new Date(obj.date);
         const record = this.syncdb.get_one(obj);
         let x: any = record?.toJS();
@@ -155,16 +155,16 @@ export class ChatActions extends Actions<ChatState> {
   // chatgpt, which is currently managed by the frontend
   // (not the project).  Also the async doesn't finish until
   // chatgpt is totally done.
-  async send_chat(
+  send_chat(
     input?: string,
     sender_id?: string,
     reply_to?: Date,
     tag?: string
-  ): Promise<void> {
+  ): string {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to send_chat before chat actions initialized");
       // WARNING: give an error or try again later?
-      return;
+      return "";
     }
     if (input == null) {
       input = this.store.get("input");
@@ -172,7 +172,7 @@ export class ChatActions extends Actions<ChatState> {
     input = input.trim();
     if (input.length == 0 || this.store.get("is_uploading")) {
       // do not send while uploading or there is nothing to send.
-      return;
+      return "";
     }
     if (sender_id == null) {
       sender_id = this.redux.getStore("account").get_account_id();
@@ -211,7 +211,10 @@ export class ChatActions extends Actions<ChatState> {
       track("send_chat", { project_id, path });
     }
     this.save_to_disk();
-    await this.processChatGPT(fromJS(message), reply_to, tag);
+    (async () => {
+      await this.processChatGPT(fromJS(message), reply_to, tag);
+    })();
+    return time_stamp;
   }
 
   public set_editing(message, is_editing) {
@@ -259,7 +262,7 @@ export class ChatActions extends Actions<ChatState> {
     this.save_to_disk();
   }
 
-  send_reply(message, reply: string, from?: string) {
+  send_reply(message, reply: string, from?: string): string {
     // the reply_to field of the message is *always* the root.
     // the order of the replies is by timestamp.  This is meant
     // to make sure chat is just 1 layer deep, rather than a
@@ -270,7 +273,7 @@ export class ChatActions extends Actions<ChatState> {
     );
     const time = reply_to?.valueOf() ?? 0;
     this.delete_draft(-time);
-    this.send_chat(
+    return this.send_chat(
       reply,
       from ?? this.redux.getStore("account").get_account_id(),
       reply_to
@@ -409,7 +412,7 @@ export class ChatActions extends Actions<ChatState> {
     const sender_id = this.redux.getStore("account").get_account_id();
     this.syncdb.set({
       event: "draft",
-      active: new Date().valueOf(),
+      active: Date.now(),
       sender_id,
       input,
       date: 0,
@@ -492,10 +495,10 @@ export class ChatActions extends Actions<ChatState> {
     // also important to strip details, since they tend to confuse chatgpt:
     //input = stripDetails(input);
     const sender_id = model == "gpt-4" ? "chatgpt4" : "chatgpt";
-    const start = new Date().valueOf();
+    const start = Date.now();
     const draft = () => {
-      if (new Date().valueOf() - start > 3 * 60 * 1000) {
-        // no matter what, stop updating after 3 minutes.
+      if (Date.now() - start > 60 * 1000) {
+        // no matter what, stop updating after 1 minutes.
         clearInterval(interval);
       }
       this.syncdb?.set({
@@ -523,25 +526,59 @@ export class ChatActions extends Actions<ChatState> {
       is_reply: !!reply_to,
       tag,
     });
-    let resp;
-    try {
-      resp = await webapp_client.openai_client.chatgpt({
-        input,
-        history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
-        project_id,
-        path,
-        model,
-        tag,
-      });
-    } catch (err) {
-      resp = `<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
-    } finally {
-      // until it isn't.
-      clearInterval(interval);
+
+    const stream = webapp_client.openai_client.chatgptStream({
+      input,
+      history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
+      project_id,
+      path,
+      model,
+      tag,
+    });
+    let first: boolean = true;
+    let date: string = "";
+    let content: string = "";
+    const handleFirst = () => {
+      if (this.syncdb == null) return;
+      first = false;
       this.delete_draft(0, true, sender_id);
-    }
-    // insert the answer as a chat message from chatgpt
-    this.send_reply(message, resp, sender_id);
+      clearInterval(interval);
+      // insert the answer as a chat message from chatgpt
+      date = this.send_reply(message, ":robot:", sender_id);
+    };
+    stream.on("token", (token) => {
+      if (this.syncdb == null) return;
+      if (first) {
+        handleFirst();
+      }
+      if (token != null) {
+        content += token;
+        this.syncdb?.set({
+          event: "chat",
+          sender_id,
+          date,
+          history: [{ author_id: sender_id, content, date }],
+        });
+      } else {
+        this.save_to_disk();
+        this.scrollToBottom();
+      }
+    });
+    stream.on("error", (err) => {
+      if (this.syncdb == null) return;
+      if (first) {
+        handleFirst();
+      }
+      content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
+      this.syncdb?.set({
+        date,
+        history: [{ author_id: sender_id, content, date }],
+        event: "chat",
+        sender_id,
+      });
+      this.save_to_disk();
+      this.scrollToBottom();
+    });
   }
 
   // the input and output for the thread ending in the
