@@ -265,11 +265,7 @@ class ChatStream extends EventEmitter {
     super();
   }
   process(text?: string) {
-    if (text != null) {
-      this.emit("token", text);
-    } else {
-      this.emit("done");
-    }
+    this.emit("token", text);
   }
   error(err) {
     this.emit("error", err);

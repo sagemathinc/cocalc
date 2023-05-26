@@ -2439,6 +2439,7 @@ export class SyncDoc extends EventEmitter {
     if (this.last == null || this.doc == null || this.last.is_equal(this.doc)) {
       return false;
     }
+    // console.trace('commit');
 
     if (emitChangeImmediately) {
       // used for local clients.   NOTE: don't do this without explicit

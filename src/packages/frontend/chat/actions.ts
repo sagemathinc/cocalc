@@ -495,23 +495,7 @@ export class ChatActions extends Actions<ChatState> {
     // also important to strip details, since they tend to confuse chatgpt:
     //input = stripDetails(input);
     const sender_id = model == "gpt-4" ? "chatgpt4" : "chatgpt";
-    const start = Date.now();
-    const draft = () => {
-      if (Date.now() - start > 60 * 1000) {
-        // no matter what, stop updating after 1 minutes.
-        clearInterval(interval);
-      }
-      this.syncdb?.set({
-        event: "draft",
-        active: webapp_client.server_time(),
-        sender_id,
-        input: "...",
-        date: 0,
-      });
-    };
-    draft();
     // keep updating that chatgpt is doing something:
-    const interval = setInterval(draft, 25000);
     const project_id = store.get("project_id");
     const path = store.get("path");
     if (!tag && reply_to) {
@@ -535,49 +519,45 @@ export class ChatActions extends Actions<ChatState> {
       model,
       tag,
     });
-    let first: boolean = true;
-    let date: string = "";
+    let date: string = this.send_reply(
+      message,
+      ":robot: Thinking...",
+      sender_id
+    );
+    this.scrollToBottom();
     let content: string = "";
-    const handleFirst = () => {
-      if (this.syncdb == null) return;
-      first = false;
-      this.delete_draft(0, true, sender_id);
-      clearInterval(interval);
-      // insert the answer as a chat message from chatgpt
-      date = this.send_reply(message, ":robot:", sender_id);
-    };
     stream.on("token", (token) => {
       if (this.syncdb == null) return;
-      if (first) {
-        handleFirst();
-      }
       if (token != null) {
         content += token;
-        this.syncdb?.set({
+        this.syncdb.set({
           event: "chat",
           sender_id,
           date,
           history: [{ author_id: sender_id, content, date }],
+          generating: true,
         });
       } else {
-        this.save_to_disk();
-        this.scrollToBottom();
+        this.syncdb.set({
+          event: "chat",
+          sender_id,
+          date,
+          history: [{ author_id: sender_id, content, date }],
+          generating: false,
+        });
+        this.syncdb.commit();
       }
     });
     stream.on("error", (err) => {
       if (this.syncdb == null) return;
-      if (first) {
-        handleFirst();
-      }
       content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
-      this.syncdb?.set({
+      this.syncdb.set({
         date,
         history: [{ author_id: sender_id, content, date }],
         event: "chat",
         sender_id,
       });
-      this.save_to_disk();
-      this.scrollToBottom();
+      this.syncdb.commit();
     });
   }
 
