@@ -108,6 +108,7 @@ def all_packages() -> List[str]:
         'packages/sync',
         'packages/sync-client',
         'packages/backend',
+        'packages/api-client',
         'packages/jupyter',
         'packages/compute',
         'packages/project',  # frontend depends on project (and project on frontend!) right now...

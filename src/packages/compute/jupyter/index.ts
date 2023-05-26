@@ -65,7 +65,10 @@ export async function jupyter({
   const actions = redux.getEditorActions(project_id, path);
   const store = redux.getEditorStore(project_id, path);
 
-  // keep project alive
+  // keep project alive.
+  // TODO: I'm concerned that this sort of api call
+  // will round robbin across all next servers, and they all end up
+  // connected to the project as a result.  Maybe that isn't so bad?
   setInterval(async () => {
     await project.ping({ project_id });
   }, 60000);
