@@ -526,8 +526,14 @@ export class ChatActions extends Actions<ChatState> {
     );
     this.scrollToBottom();
     let content: string = "";
+    let halted = false;
     stream.on("token", (token) => {
-      if (this.syncdb == null) return;
+      if (halted || this.syncdb == null) return;
+      const cur = this.syncdb.get_one({ event: "chat", sender_id, date });
+      if (cur?.get("generating") === false) {
+        halted = true;
+        return;
+      }
       if (token != null) {
         content += token;
         this.syncdb.set({
@@ -549,7 +555,7 @@ export class ChatActions extends Actions<ChatState> {
       }
     });
     stream.on("error", (err) => {
-      if (this.syncdb == null) return;
+      if (this.syncdb == null || halted) return;
       content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
       this.syncdb.set({
         date,
@@ -589,6 +595,32 @@ export class ChatActions extends Actions<ChatState> {
     }
 
     return history;
+  }
+
+  chatgptStopGenerating(date: Date) {
+    if (this.syncdb == null) return;
+    this.syncdb.set({
+      event: "chat",
+      date: date.toISOString(),
+      generating: false,
+    });
+    this.syncdb.commit();
+  }
+
+  chatgptRegenerate(date0: Date) {
+    if (this.syncdb == null) return;
+    const date = date0.toISOString();
+    const cur = this.syncdb.get_one({ event: "chat", date });
+    if (cur == null) return;
+    const reply_to = cur.get("reply_to");
+    if (!reply_to) return;
+    const message = this.syncdb.get_one({ event: "chat", date: reply_to });
+    if (!message) return;
+    this.syncdb.delete({
+      event: "chat",
+      date,
+    });
+    this.processChatGPT(message, undefined, "regenerate");
   }
 }
 
