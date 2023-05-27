@@ -73,15 +73,15 @@ export class OpenAIClient {
       }.`;
     }
     input = input.trim();
-    if (!input || input == "test") {
-      return "Great! What can I assist you with today?";
+    if (chatStream == null) {
+      if (!input || input == "test") {
+        return "Great! What can I assist you with today?";
+      }
+      if (input == "ping") {
+        await delay(1000);
+        return "Pong";
+      }
     }
-    if (input == "ping") {
-      await delay(1000);
-      return "Pong";
-    }
-    // await delay(5000);
-    // return "Test";
     const {
       numTokensUpperBound,
       truncateHistory,
