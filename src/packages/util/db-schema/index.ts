@@ -50,6 +50,7 @@ import "./project-status";
 import "./projects";
 import "./public-path-stars";
 import "./public-paths";
+import "./purchases";
 import "./registration-tokens";
 import "./retention";
 import "./server-settings";
