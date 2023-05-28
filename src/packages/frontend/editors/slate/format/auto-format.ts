@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
 import { withInsertText } from "./insert-text";
 import { withDeleteBackward } from "./delete-backward";
 import { SlateEditor } from "../editable-markdown";
@@ -23,14 +22,20 @@ export const withAutoFormat = (editor) => {
   return editor;
 };
 
-
 // Use conversion back and forth to markdown to autoformat
 // what is right before the cursor in the current text node.
 // Returns true if autoformat actually happens.
 export function markdownAutoformat(editor: SlateEditor): boolean {
   const { selection } = editor;
   if (!selection) return false;
-  const [node] = Editor.node(editor, selection.focus.path);
+  let node;
+  try {
+    [node] = Editor.node(editor, selection.focus.path);
+  } catch (_) {
+    // this can happen in case selection is messed up, which could happen
+    // in rare cases still.  I saw it in production once.
+    return false;
+  }
 
   // Must be a text node
   if (!Text.isText(node)) return false;
@@ -257,7 +262,6 @@ function shift_path(op: Operation, shift: number): void {
   path[path.length - 1] += shift;
   op["path"] = path;
 }
-
 
 // This is pretty scary, but I need it especially in the weird case
 // where you insert a checkbox in an empty document and everything
