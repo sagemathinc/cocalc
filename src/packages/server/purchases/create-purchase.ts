@@ -3,34 +3,59 @@ import type { Description } from "@cocalc/util/db-schema/purchases";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import getQuota from "./get-quota";
 import getBalance from "./get-balance";
+import getLogger from "@cocalc/backend/logger";
+import { delay } from "awaiting";
+
+const logger = getLogger("purchase:create-purchase");
 
 /*
 Creates the requested purchase if possible, given the user's quota.  If not, throws an exception.
 */
 export default async function createPurchase({
   account_id,
+  project_id,
   cost,
   description,
   notes,
   tag,
 }: {
   account_id: string;
+  project_id?: string;
   cost: number;
   description: Description;
   notes?: string;
   tag?: string;
 }): Promise<number> {
-  await assertPurchaseAllowed({ account_id, cost });
-  // OK, we can do the purchase
   const pool = getPool();
-  const { rows } = await pool.query(
-    "INSERT INTO purchases (time, account_id, cost, description, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5) RETURNING id",
-    [account_id, cost, description, notes, tag]
-  );
-  return rows[0].id;
+  let eps = 3000;
+  let error = Error("unable to create purchase");
+  for (let i = 0; i < 10; i++) {
+    try {
+      const { rows } = await pool.query(
+        "INSERT INTO purchases (time, account_id, project_id, cost, description, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6) RETURNING id",
+        [account_id, project_id, cost, description, notes, tag]
+      );
+      return rows[0].id;
+    } catch (err) {
+      error = err;
+      // could be ill-timed database outage...?
+      logger.debug("Failed to insert purchase into purchases table.", {
+        account_id,
+        cost,
+        description,
+        err,
+      });
+      await delay(eps);
+      eps *= 1.2;
+    }
+  }
+  throw error;
 }
 
-// Throws an exception if purchase is not allowed.
+// Throws an exception if purchase is not allowed.  Code should
+// call this before giving the thing and doing createPurchase.
+// This is NOT part of createPurchase, since we could easily call
+// createPurchase after providing the service.
 export async function assertPurchaseAllowed({
   account_id,
   cost,
@@ -48,7 +73,7 @@ export async function assertPurchaseAllowed({
   const balance = await getBalance({ account_id });
   if (balance + cost > quota) {
     throw Error(
-      `Insufficient quota.  balance + cost > quota.   $${balance} + $${cost} > $${quota}.  Verify your email address, add credit, or contact support to incrase your quota.`
+      `Insufficient quota.  balance + potential_cost > quota.   $${balance} + $${cost} > $${quota}.  Verify your email address, add credit, or contact support to increase your quota.`
     );
   }
 }

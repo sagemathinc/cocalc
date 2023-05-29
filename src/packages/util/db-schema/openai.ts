@@ -2,7 +2,8 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 
-export type Model = "gpt-3.5-turbo" | "gpt-4";
+export const MODELS = ["gpt-3.5-turbo", "gpt-4"] as const;
+export type Model = typeof MODELS[number];
 
 export interface ChatGPTLogEntry {
   id: number;
@@ -10,6 +11,7 @@ export interface ChatGPTLogEntry {
   input: string;
   output: string;
   total_tokens: number;
+  prompt_tokens: number;
   total_time_s: number; // how long the request took in s
   analytics_cookie?: string; // at least one of analytics_cookie or account_id will be set
   account_id?: string;
@@ -68,6 +70,10 @@ Table({
       type: "integer",
       desc: "The total number of tokens involved in this API call.",
     },
+    prompt_tokens: {
+      type: "integer",
+      desc: "The number of tokens in the prompt.",
+    },
     total_time_s: {
       type: "number",
       desc: "Total amount of time the API call took in seconds.",
@@ -106,6 +112,7 @@ Table({
           system: null,
           output: null,
           total_tokens: null,
+          prompt_tokens: null,
           total_time_s: null,
           project_id: null,
           path: null,
@@ -146,6 +153,7 @@ Table({
           system: null,
           output: null,
           total_tokens: null,
+          prompt_tokens: null,
           total_time_s: null,
           project_id: null,
           path: null,

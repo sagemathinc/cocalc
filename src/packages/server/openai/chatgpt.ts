@@ -13,6 +13,13 @@ import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import GPT3Tokenizer from "gpt3-tokenizer";
 import { EventEmitter } from "events";
 import { once } from "@cocalc/util/async-utils";
+import createPurchase from "@cocalc/server/purchases/create-purchase";
+
+const GPT4_MARKUP = 1 / 0.7; // 30% cut, same as apple app store
+export const GPT4_COST = {
+  prompt_tokens: (GPT4_MARKUP * 0.03) / 1000,
+  completion_tokens: (GPT4_MARKUP * 0.06) / 1000,
+};
 
 const log = getLogger("chatgpt");
 
@@ -76,16 +83,47 @@ export async function evaluate({
     }
   }
   messages.push({ role: "user", content: input });
-  const { output, total_tokens } = await callOpenaiAPI({
-    openai,
-    model,
-    messages,
-    maxAttempts: 3,
-    maxTokens,
-    stream,
-  });
-  log.debug("response: ", { output, total_tokens });
+  const { output, total_tokens, prompt_tokens, completion_tokens } =
+    await callOpenaiAPI({
+      openai,
+      model,
+      messages,
+      maxAttempts: 3,
+      maxTokens,
+      stream,
+    });
+  log.debug("response: ", { output, total_tokens, prompt_tokens });
   const total_time_s = (Date.now() - start) / 1000;
+
+  if (account_id) {
+    if (model == "gpt-3.5-turbo") {
+      // no charge for now
+    } else if (model == "gpt-4") {
+      // charge the current rate
+      const cost =
+        prompt_tokens * GPT4_COST.prompt_tokens +
+        completion_tokens * GPT4_COST.completion_tokens;
+      try {
+        await createPurchase({
+          account_id,
+          project_id,
+          cost,
+          description: { type: "openai-gpt4", prompt_tokens, completion_tokens },
+          tag: `openai:${tag ?? ""}`,
+        });
+      } catch (err) {
+        // we maybe just lost some money?!
+        log.error(
+          `FAILED to CREATE a purchase for something the user just got: cost=${cost}, account_id=${account_id}`
+        );
+        // we might send an email or something...?
+      }
+    } else {
+      log.error(
+        `BUG -- there should be no way that model isn't gpt-3.5-turbo or gpt-4, but it is '${model}'`
+      );
+    }
+  }
 
   let expire;
   if (account_id == null) {
@@ -107,6 +145,7 @@ export async function evaluate({
     project_id,
     path,
     total_tokens,
+    prompt_tokens,
     total_time_s,
     model,
     tag,
@@ -143,6 +182,7 @@ async function saveResponse({
   project_id,
   path,
   total_tokens,
+  prompt_tokens,
   total_time_s,
   expire,
   model,
@@ -151,7 +191,7 @@ async function saveResponse({
   const pool = getPool();
   try {
     await pool.query(
-      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,total_time_s,expire,model,tag) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
+      "INSERT INTO openai_chatgpt_log(time,input,system,output,history,account_id,analytics_cookie,project_id,path,total_tokens,prompt_tokens,total_time_s,expire,model,tag) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
       [
         input,
         system,
@@ -162,6 +202,7 @@ async function saveResponse({
         project_id,
         path,
         total_tokens,
+        prompt_tokens,
         total_time_s,
         expire,
         model,
@@ -183,11 +224,14 @@ async function saveResponse({
 class GatherOutput extends EventEmitter {
   private output: string = "";
   private total_tokens: number;
+  private prompt_tokens: number;
+  private completion_tokens: number;
   private stream: (text?: string) => void;
 
   constructor(messages, stream) {
     super();
-    this.total_tokens = totalNumTokens(messages);
+    this.prompt_tokens = this.total_tokens = totalNumTokens(messages);
+    this.completion_tokens = 0;
     this.stream = stream;
   }
 
@@ -203,6 +247,8 @@ class GatherOutput extends EventEmitter {
         this.emit("done", {
           output: this.output,
           total_tokens: this.total_tokens,
+          prompt_tokens: this.prompt_tokens,
+          completion_tokens: this.completion_tokens,
         });
         this.stream();
       } else {
@@ -217,6 +263,7 @@ class GatherOutput extends EventEmitter {
           this.output += token;
           this.stream(token);
           this.total_tokens += 1;
+          this.completion_tokens += 1;
         }
       }
     }
@@ -257,7 +304,7 @@ async function callOpenaiAPI({
         const total_tokens = completion.data.usage?.total_tokens;
         const prompt_tokens = completion.data.usage?.prompt_tokens;
         const completion_tokens = completion.data.usage?.completion_tokens;
-        return { output, total_tokens };
+        return { output, total_tokens, prompt_tokens, completion_tokens };
       } else {
         if (gather == null) {
           throw Error("bug");

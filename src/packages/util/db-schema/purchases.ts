@@ -8,7 +8,7 @@ export type Model = "gpt-3.5-turbo" | "gpt-4";
 export interface OpenaiGPT4 {
   type: "openai-gpt4";
   prompt_tokens: number;
-  output_tokens: number;
+  completion_tokens: number;
 }
 
 export interface OpenaiImage {
@@ -45,7 +45,7 @@ Table({
       title: "Cost ($)",
       desc: "The cost in US dollars.",
       type: "number", // actually comes back as string in queries.
-      pg_type: "numeric(10,2)",
+      pg_type: "real",
     },
     invoice_id: {
       title: "Invoice Id",
@@ -61,6 +61,7 @@ Table({
       title: "Project Id",
       desc: "The id of the project where this purchase happened.  Not all purchases necessarily involve a project.",
       type: "uuid",
+      render: { type: "project_link" },
     },
     description: {
       title: "Description",
@@ -123,8 +124,13 @@ Table({
       set: {
         admin: true,
         fields: {
+          id: true,
           cost: true,
+          description: true,
+          tag: true,
           notes: true,
+          paid: true,
+          invoice_id: true,
         },
       },
     },

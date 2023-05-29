@@ -10,5 +10,5 @@ export default async function getBalance({
     "SELECT SUM(cost) as total_cost FROM purchases WHERE account_id=$1 AND paid IS NOT true",
     [account_id]
   );
-  return parseInt(rows[0].total_cost ?? "0");
+  return rows[0].total_cost ?? 0;
 }

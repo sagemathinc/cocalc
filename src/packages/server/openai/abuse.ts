@@ -1,6 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
-import type { Model } from "@cocalc/util/db-schema/openai";
+import { Model, MODELS } from "@cocalc/util/db-schema/openai";
 import { assertPurchaseAllowed } from "@cocalc/server/purchases/create-purchase";
 
 /*
@@ -48,7 +48,7 @@ export async function checkForAbuse({
 }: {
   account_id?: string;
   analytics_cookie?: string;
-  model?: Model;
+  model: Model;
 }): Promise<void> {
   if (!account_id) {
     // Due to assholes like gpt4free, which is why "we can't have nice things".
@@ -58,6 +58,9 @@ export async function checkForAbuse({
   if (!isValidUUID(account_id) && !isValidUUID(analytics_cookie)) {
     // at least some amount of tracking.
     throw Error("at least one of account_id or analytics_cookie must be set");
+  }
+  if (!MODELS.includes(model)) {
+    throw Error(`invalid model "${model}"`);
   }
 
   const usage = await recentUsage({
