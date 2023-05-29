@@ -23,6 +23,7 @@ import "./patches";
 import "./projects";
 import "./project-log";
 import "./public-paths";
+import "./purchases";
 import "./shopping-cart-items";
 import "./syncstrings";
 import "./vouchers";

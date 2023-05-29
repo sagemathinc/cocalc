@@ -5,24 +5,29 @@ import { NOTES } from "./crm";
 
 export type Model = "gpt-3.5-turbo" | "gpt-4";
 
-interface openaiGPT4 {
+export interface OpenaiGPT4 {
   type: "openai-gpt4";
   prompt_tokens: number;
   output_tokens: number;
 }
 
-interface openaiImage {
+export interface OpenaiImage {
   type: "openai-image";
 }
 
-type Description = openaiGPT4 | openaiImage;
+export interface Credit {
+  type: "credit";
+  // not sure what else, e.g., if it comes from a voucher, could be the voucher code here.
+}
+
+export type Description = OpenaiGPT4 | OpenaiImage | Credit;
 
 export interface Purchase {
   id: number;
   time: Date;
   account_id: string;
   cost: number;
-  desc: Description;
+  description: Description;
   invoice_id?: string;
   paid?: boolean;
   project_id?: string;
@@ -39,7 +44,7 @@ Table({
     cost: {
       title: "Cost ($)",
       desc: "The cost in US dollars.",
-      type: "number",
+      type: "number", // actually comes back as string in queries.
       pg_type: "numeric(10,2)",
     },
     invoice_id: {
@@ -57,7 +62,7 @@ Table({
       desc: "The id of the project where this purchase happened.  Not all purchases necessarily involve a project.",
       type: "uuid",
     },
-    desc: {
+    description: {
       title: "Description",
       desc: "An object that describes what was purchased.",
       type: "map",
@@ -82,7 +87,7 @@ Table({
           time: null,
           account_id: null,
           cost: null,
-          desc: null,
+          description: null,
           invoice_id: null,
           paid: null,
           project_id: null,
@@ -107,7 +112,7 @@ Table({
           time: null,
           account_id: null,
           cost: null,
-          desc: null,
+          description: null,
           invoice_id: null,
           paid: null,
           project_id: null,

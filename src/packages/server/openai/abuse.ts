@@ -1,7 +1,7 @@
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import type { Model } from "@cocalc/util/db-schema/openai";
-import userIsInGroup from "@cocalc/server/accounts/is-in-group";
+import { assertPurchaseAllowed } from "@cocalc/server/purchases/create-purchase";
 
 /*
 We initially just implement some very simple rate limitations to prevent very
@@ -90,15 +90,11 @@ export async function checkForAbuse({
   }
 
   if (model == "gpt-4") {
-    // For now, only admins can use gpt-4.
-    // It's too expensive to just make free right now, unfortunately.
-    if (
-      !account_id ||
-      !isValidUUID(account_id) ||
-      !(await userIsInGroup(account_id, "admin"))
-    ) {
-      throw Error("only admins can currently use GPT-4");
-    }
+    // This is a for-pay product, so let's make sure user can purchase it.
+    // The maximum cost for one single GPT-4 api call is $0.06*8 = $0.48,
+    // so we make sure that much is available; a typical call cost about
+    // $0.05.
+    await assertPurchaseAllowed({ account_id, cost: 0.48 });
   }
 }
 

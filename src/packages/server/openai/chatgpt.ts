@@ -230,7 +230,12 @@ async function callOpenaiAPI({
   maxAttempts,
   stream,
   maxTokens,
-}): Promise<{ output: string; total_tokens: number }> {
+}): Promise<{
+  output: string;
+  total_tokens: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+}> {
   const doStream = stream != null;
   const gather = doStream ? new GatherOutput(messages, stream) : undefined;
   const axiosOptions = doStream ? { responseType: "stream" } : {};
@@ -250,6 +255,8 @@ async function callOpenaiAPI({
           completion.data.choices[0].message?.content ?? "No Output"
         ).trim();
         const total_tokens = completion.data.usage?.total_tokens;
+        const prompt_tokens = completion.data.usage?.prompt_tokens;
+        const completion_tokens = completion.data.usage?.completion_tokens;
         return { output, total_tokens };
       } else {
         if (gather == null) {

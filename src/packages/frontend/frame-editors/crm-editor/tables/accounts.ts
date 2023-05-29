@@ -22,6 +22,7 @@ register({
         banned: null,
         unlisted: null,
         salesloft_id: null,
+        purchase_quota: null,
       },
     ],
   },

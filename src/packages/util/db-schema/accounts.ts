@@ -199,6 +199,11 @@ Table({
         min: 1,
       },
     },
+    purchase_quota: {
+      type: "number", // actually comes back as string in queries.
+      pg_type: "numeric(10,2)",
+      desc: "The maximum amount of purchases that the user is allowed to have unpaid. This is a quota we impose for safety, not something they set.",
+    },
   },
   rules: {
     desc: "All user accounts.",
@@ -324,6 +329,7 @@ Table({
           unlisted: false,
           tags: null,
           tours: null,
+          purchase_quota: null,
         },
       },
       set: {
@@ -478,6 +484,7 @@ Table({
           unlisted: true,
           notes: true,
           salesloft_id: true,
+          purchase_quota: true,
         },
       },
     },
