@@ -11,9 +11,9 @@ import {
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 import { hexColorToRGBA } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
+import { COLORS } from "@cocalc/util/theme";
 import { Tooltip } from "antd";
 
 export const FILE_ITEM_OPENED_STYLE: CSS = {
@@ -118,10 +118,10 @@ export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {
   if (days < 1 / 24) {
     col = hexColorToRGBA(ANTD_GREEN[3], 1);
   } else if (days < 1) {
-    const opacity = 1 - days / 2;
+    const opacity = 1 - days / 2; // only fade to 50%
     col = hexColorToRGBA(ANTD_ORANGE[3], opacity);
-  } else if (days < 7) {
-    const opacity = 1 - (days - 1) / 7;
+  } else if (days < 14) {
+    const opacity = 1 - (days - 1) / 14;
     col = hexColorToRGBA(ANTD_YELLOW[5], opacity);
   }
   return {
