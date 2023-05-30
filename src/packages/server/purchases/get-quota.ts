@@ -1,8 +1,5 @@
 import getPool from "@cocalc/database/pool";
-
-// Hard code this for the very first release.
-// We are ONLY offering GPT-4, so low is fine.
-const DEFAULT_PURCHASE_QUOTA = 25;
+import { getServerSettings } from "@cocalc/server/settings/server-settings";
 
 export default async function getQuota({ account_id }: { account_id: string }) {
   const pool = getPool("medium");
@@ -32,5 +29,6 @@ export default async function getQuota({ account_id }: { account_id: string }) {
     // email not verified
     return 0;
   }
-  return DEFAULT_PURCHASE_QUOTA;
+  const { default_pay_as_you_go_quota } = await getServerSettings();
+  return default_pay_as_you_go_quota;
 }
