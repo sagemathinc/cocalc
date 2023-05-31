@@ -120,8 +120,6 @@ function toSalesloft({
   };
   // TODO: this is because the custom fields must be explicitly manually
   // entered into salesloft via the web ui!
-  // @ts-ignore
-  delete data.custom_fields;
   return data;
 }
 

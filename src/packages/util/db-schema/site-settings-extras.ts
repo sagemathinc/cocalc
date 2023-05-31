@@ -103,7 +103,9 @@ export type SiteSettingsExtrasKeys =
   | "github_project_id"
   | "github_username"
   | "github_token"
-  | "prometheus_metrics";
+  | "prometheus_metrics"
+  | "pay_as_you_go_section"
+  | "default_pay_as_you_go_quota";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -395,5 +397,20 @@ export const EXTRAS: SettingsExtras = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+  },
+  pay_as_you_go_section: {
+    name: "Pay As You Go",
+    desc: "",
+    default: "",
+    show: only_commercial,
+    type: "header",
+  },
+  default_pay_as_you_go_quota: {
+    name: "Default Pay-As-You-Go Quota",
+    desc: "The default pay-as-you-go purchase quota, in dollars.",
+    default: "0",
+    show: only_commercial,
+    to_val: to_int,
+    valid: only_nonneg_int,
   },
 } as const;
