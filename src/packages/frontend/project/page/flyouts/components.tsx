@@ -16,10 +16,14 @@ import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
 import { Tooltip } from "antd";
 
-export const FILE_ITEM_OPENED_STYLE: CSS = {
+const FILE_ITEM_SELECTED_STYLE: CSS = {
+  backgroundColor: COLORS.GRAY_LL,
+} as const;
+
+const FILE_ITEM_OPENED_STYLE: CSS = {
+  ...FILE_ITEM_SELECTED_STYLE,
   fontWeight: "bold",
   color: COLORS.PROJECT.FIXED_LEFT_ACTIVE,
-  backgroundColor: COLORS.GRAY_LL,
 } as const;
 
 const FILE_ITEM_STYLE: CSS = {
@@ -66,6 +70,7 @@ interface FileListItemProps {
   item: Item;
   renderIcon: (item: Item, style: CSS) => JSX.Element;
   tooltip?: JSX.Element | string;
+  selected?: boolean;
 }
 
 export function FileListItem({
@@ -75,6 +80,7 @@ export function FileListItem({
   renderIcon,
   itemStyle,
   tooltip,
+  selected,
 }: FileListItemProps): JSX.Element {
   function renderCloseItem(item: Item): JSX.Element {
     const { name } = item;
@@ -95,9 +101,21 @@ export function FileListItem({
     );
   }
 
+  // caret icon to indicated selected item
+  function renderSelected(): JSX.Element {
+    if (!selected) return <></>;
+    return (
+      <Icon
+        name="caret-right"
+        style={{ flex: "0", fontSize: "120%", marginRight: "5px" }}
+      />
+    );
+  }
+
   function renderBody(): JSX.Element {
     const el = (
       <div style={FILE_ITEM_BODY_STYLE}>
+        {renderSelected()}
         {renderIcon(item, ICON_STYLE)} {renderItem()}
         {item.isopen ? renderCloseItem(item) : null}
       </div>
@@ -121,6 +139,7 @@ export function FileListItem({
       className="cc-project-flyout-file-item"
       style={{
         ...FILE_ITEM_LINE_STYLE,
+        ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
         ...(item.isopen ? FILE_ITEM_OPENED_STYLE : {}),
         ...itemStyle,
       }}

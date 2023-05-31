@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Input, Radio, Space, Tooltip } from "antd";
+import { Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
@@ -38,6 +38,7 @@ import {
   search_match,
   search_split,
   should_open_in_foreground,
+  strictMod,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { compute_file_masks } from "../../explorer/compute-file-masks";
@@ -45,6 +46,7 @@ import { FileListItem, fileItemStyle } from "./components";
 
 export function FilesFlyout({ project_id }): JSX.Element {
   const isMountedRef = useIsMountedRef();
+  const refInput = useRef<InputRef>(null);
   const actions = useActions({ project_id });
   const current_path = useTypedRedux({ project_id }, "current_path");
   const directoryListings = useTypedRedux({ project_id }, "directory_listings");
@@ -56,6 +58,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   const show_masked = useTypedRedux({ project_id }, "show_masked");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const [search, setSearch] = useState<string>("");
+  const [scrollIdx, setScrollIdx] = useState<number | null>(null);
 
   // TODO: display_listing is usually undefined. WHY?
   // const displayed_listing: {
@@ -89,13 +92,13 @@ export function FilesFlyout({ project_id }): JSX.Element {
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
-  const [directoryFiles, _] = useMemo((): [DirectoryListing, boolean] => {
-    if (directoryListings == null) return [[], true];
+  const directoryFiles = useMemo((): DirectoryListing => {
+    if (directoryListings == null) return [];
     const filesStore = directoryListings.get(current_path);
-    if (filesStore == null) return [[], true];
+    if (filesStore == null) return [];
 
     // TODO this is an error, process it
-    if (typeof filesStore === "string") return [[], true];
+    if (typeof filesStore === "string") return [];
 
     const files: DirectoryListing = filesStore.toJS();
     compute_file_masks(files);
@@ -154,8 +157,6 @@ export function FilesFlyout({ project_id }): JSX.Element {
       procFiles.reverse(); // inplace op
     }
 
-    const isEmpty = procFiles.length === 0;
-
     if (current_path != "") {
       procFiles.unshift({
         name: "..",
@@ -163,7 +164,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
       });
     }
 
-    return [procFiles, isEmpty];
+    return procFiles;
   }, [
     directoryListings,
     activeFileSort,
@@ -171,7 +172,16 @@ export function FilesFlyout({ project_id }): JSX.Element {
     search,
     openFiles,
     show_masked,
+    current_path,
   ]);
+
+  useEffect(() => {
+    // if we change directory *and* use the keyboard, we re-focus the input
+    if (scrollIdx != null) {
+      refInput.current?.focus();
+    }
+    setScrollIdx(null);
+  }, [current_path]);
 
   // *** END HOOKS ***
 
@@ -198,7 +208,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     return <Loading />;
   }
 
-  function open(e: React.MouseEvent, index: number) {
+  function open(e: React.MouseEvent | React.KeyboardEvent, index: number) {
     const file = directoryFiles[index];
     const fullPath = path_to_file(current_path, file.name);
     if (file.isdir) {
@@ -237,6 +247,43 @@ export function FilesFlyout({ project_id }): JSX.Element {
         {direction}
       </Radio.Button>
     );
+  }
+
+  function doScroll(dx: -1 | 1) {
+    const nextIdx = strictMod(
+      scrollIdx == null ? (dx === 1 ? 0 : -1) : scrollIdx + dx,
+      directoryFiles.length
+    );
+    setScrollIdx(nextIdx);
+    virtuosoRef.current?.scrollToIndex({
+      index: nextIdx,
+      align: "center",
+    });
+  }
+
+  function filterKeyHandler(e: React.KeyboardEvent) {
+    // if arrow key down or up, then scroll to next item
+    const dx = e.code === "ArrowDown" ? 1 : e.code === "ArrowUp" ? -1 : 0;
+    if (dx != 0) {
+      doScroll(dx);
+    }
+
+    // left arrow key: go up a directory
+    if (e.code === "ArrowLeft") {
+      if (current_path != "") {
+        actions?.set_current_path(
+          current_path.split("/").slice(0, -1).join("/")
+        );
+      }
+    }
+
+    // return key pressed
+    if (e.code === "Enter") {
+      if (scrollIdx != null) {
+        open(e, scrollIdx);
+        setScrollIdx(null);
+      }
+    }
   }
 
   function renderHeader(): JSX.Element {
@@ -283,9 +330,11 @@ export function FilesFlyout({ project_id }): JSX.Element {
           }}
         >
           <Input
+            ref={refInput}
             placeholder="Filter..."
             size="small"
             value={search}
+            onKeyDown={filterKeyHandler}
             onChange={(e) => setSearch(e.target.value)}
             style={{ flex: "1", marginRight: "10px" }}
             allowClear
@@ -337,7 +386,10 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
   }
 
-  function renderTooltip(age, { isdir = false, size = 0 }): JSX.Element {
+  function renderTooltip(
+    age: number | null,
+    { isdir = false, size = 0 }
+  ): JSX.Element {
     return (
       <>
         {age ? (
@@ -367,6 +419,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
           actions?.close_tab(path_to_file(current_path, name));
         }}
         tooltip={renderTooltip(age, item)}
+        selected={index === scrollIdx}
       />
     );
   }

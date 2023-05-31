@@ -2415,3 +2415,7 @@ export function hexColorToRGBA(col: string, opacity?: number): string {
     return `rgb(${r},${g},${b})`;
   }
 }
+
+export function strictMod(a: number, b: number): number {
+  return ((a % b) + b) % b;
+}
