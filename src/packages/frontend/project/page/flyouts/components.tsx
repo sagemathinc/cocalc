@@ -24,9 +24,17 @@ export const FILE_ITEM_OPENED_STYLE: CSS = {
 
 const FILE_ITEM_STYLE: CSS = {
   flex: "1 1 auto",
+  display: "flex",
+  flexDirection: "row",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
+} as const;
+
+const FILE_ITEM_BODY_STYLE: CSS = {
+  display: "flex",
+  flexDirection: "row",
+  flex: "1",
 } as const;
 
 const FILE_ITEM_LINE_STYLE: CSS = {
@@ -80,16 +88,29 @@ export function FileListItem({
   }
 
   function renderItem(): JSX.Element {
-    const el = (
+    return (
       <div style={FILE_ITEM_STYLE} onClick={onClick}>
         {item.name}
+      </div>
+    );
+  }
+
+  function renderBody(): JSX.Element {
+    const el = (
+      <div style={FILE_ITEM_BODY_STYLE}>
+        {renderIcon(item, ICON_STYLE)} {renderItem()}
+        {item.isopen ? renderCloseItem(item) : null}
       </div>
     );
 
     if (!tooltip) return el;
 
     return (
-      <Tooltip title={tooltip} placement="rightTop">
+      <Tooltip
+        title={tooltip}
+        placement="rightTop"
+        style={FILE_ITEM_BODY_STYLE}
+      >
         {el}
       </Tooltip>
     );
@@ -104,8 +125,7 @@ export function FileListItem({
         ...itemStyle,
       }}
     >
-      {renderIcon(item, ICON_STYLE)} {renderItem()}
-      {item.isopen ? renderCloseItem(item) : null}
+      {renderBody()}
     </div>
   );
 }

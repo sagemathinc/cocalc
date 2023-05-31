@@ -263,7 +263,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
             {renderSortButton("type", "Type")}
           </Radio.Group>
           <Space direction="horizontal" size={"small"}>
-            <Tooltip title="Create a new file">
+            <Tooltip title="Create a new file" placement="bottom">
               <Button
                 size="small"
                 type="primary"
@@ -293,6 +293,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
           />
           <Space direction="horizontal" size="small">
             <BootstrapButton
+              title={hidden ? "Hide hidden files" : "Show hidden files"}
               bsSize="xsmall"
               style={{ flex: "0" }}
               onClick={() => actions?.setState({ show_hidden: !hidden })}
@@ -300,6 +301,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
               <Icon name={hidden ? "eye" : "eye-slash"} />
             </BootstrapButton>
             <BootstrapButton
+              title={show_masked ? "Hide masked files" : "Show masked files"}
               bsSize="xsmall"
               style={{ flex: "0" }}
               active={!show_masked}
