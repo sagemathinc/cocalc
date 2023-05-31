@@ -14,17 +14,15 @@ import { FIX_BORDER } from "../page";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { LogHeader } from "./log";
 
-export function FlyoutHeader({
-  flyout,
-  flyoutWidth,
-  project_id,
-  narrowerPX = 0,
-}: {
+interface Props {
   project_id: string;
   flyoutWidth: number;
   flyout: FixedTab;
   narrowerPX: number;
-}) {
+}
+
+export function FlyoutHeader(_: Readonly<Props>) {
+  const { flyout, flyoutWidth, project_id, narrowerPX = 0 } = _;
   const actions = useActions({ project_id });
 
   function renderDefaultTitle() {
@@ -76,7 +74,30 @@ export function FlyoutHeader({
           />
         );
       case "log":
-        return <LogHeader project_id= {project_id} />
+        return <LogHeader project_id={project_id} />;
+      case "search":
+        return (
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            <Icon
+              name="search"
+              style={{ fontSize: "120%", marginRight: "10px" }}
+            />{" "}
+            <PathNavigator
+              style={{ flex: "1 0 auto" }}
+              mode={"flyout"}
+              project_id={project_id}
+              className={"cc-project-flyout-path-navigator"}
+            />
+          </div>
+        );
       default:
         return (
           <div style={{ flex: 1 }}>

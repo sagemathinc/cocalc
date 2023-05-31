@@ -10,6 +10,8 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
+import { Button, Card, Col, Row, Tag, Space as AntdSpace } from "antd";
+
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   redux,
@@ -34,17 +36,11 @@ import {
   path_to_file,
   should_open_in_foreground,
 } from "@cocalc/util/misc";
-import { Button, Col, Row, Tag } from "antd";
+import { COLORS } from "@cocalc/util/theme";
 
-const DESC_STYLE: React.CSSProperties = {
-  color: "#666",
-  marginBottom: "5px",
-  border: "1px solid #eee",
-  borderRadius: "5px",
-  maxHeight: "300px",
-  padding: "15px",
-  overflowY: "auto",
-};
+const RESULTS_WELL_STYLE: React.CSSProperties = {
+  backgroundColor: "white",
+} as const;
 
 export const ProjectSearchBody: React.FC<{
   project_id: string;
@@ -61,10 +57,33 @@ export const ProjectSearchBody: React.FC<{
 
   const isFlyout = mode === "flyout";
 
+  function renderResultList() {
+    if (isFlyout) {
+      return (
+        <ProjectSearchOutput project_id={project_id} wrap={wrap} mode={mode} />
+      );
+    } else {
+      return (
+        <Row>
+          <Col sm={24}>
+            <ProjectSearchOutput project_id={project_id} />
+          </Col>
+        </Row>
+      );
+    }
+  }
+
   function renderBody() {
     return (
-      <>
-        <Row>
+      <div
+        style={{
+          flex: "1 1 auto",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Row style={isFlyout ? { padding: "5px" } : undefined}>
           <Col sm={isFlyout ? 24 : 12}>
             <ProjectSearchInput
               project_id={project_id}
@@ -72,7 +91,9 @@ export const ProjectSearchBody: React.FC<{
               git={!neural_search && git_grep}
               small={isFlyout}
             />
-            <ProjectSearchOutputHeader project_id={project_id} />
+            {mode != "flyout" ? (
+              <ProjectSearchOutputHeader project_id={project_id} />
+            ) : undefined}
           </Col>
           <Col
             sm={isFlyout ? 24 : 10}
@@ -132,34 +153,48 @@ export const ProjectSearchBody: React.FC<{
             )}
           </Col>
         </Row>
-        <Row>
-          <Col sm={24}>
-            <ProjectSearchOutput project_id={project_id} />
-          </Col>
-        </Row>
-      </>
+        {renderResultList()}
+      </div>
     );
   }
 
   if (isFlyout) {
-    return wrap?.(<div style={{ padding: "5px" }}>{renderBody()}</div>);
+    return (
+      <div
+        style={{
+          flex: "1 1 auto",
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+        }}
+      >
+        {renderBody()}
+      </div>
+    );
   } else {
     return <Well>{renderBody()}</Well>;
   }
 };
 
-const ProjectSearchInput: React.FC<{
+interface ProjectSearchInputProps {
   project_id: string;
   neural?: boolean;
   git?: boolean;
   small?: boolean;
-}> = ({ neural, project_id, git, small = false }) => {
+}
+
+function ProjectSearchInput({
+  neural,
+  project_id,
+  git,
+  small = false,
+}: ProjectSearchInputProps) {
   const actions = useActions({ project_id });
   const user_input = useTypedRedux({ project_id }, "user_input");
 
   return (
     <SearchInput
-      size="large"
+      size={small ? "medium" : "large"}
       autoFocus={true}
       value={user_input}
       placeholder={`Enter your search ${
@@ -202,11 +237,20 @@ const ProjectSearchInput: React.FC<{
       }
     />
   );
-};
+}
 
-const ProjectSearchOutput: React.FC<{
+interface ProjectSearchOutputProps {
   project_id: string;
-}> = ({ project_id }) => {
+  wrap?: Function;
+  mode?: "project" | "flyout";
+}
+
+function ProjectSearchOutput({
+  project_id,
+  wrap,
+  mode = "project",
+}: ProjectSearchOutputProps) {
+  const isFlyout = mode === "flyout";
   const most_recent_search = useTypedRedux(
     { project_id },
     "most_recent_search"
@@ -255,6 +299,7 @@ const ProjectSearchOutput: React.FC<{
           line_number={result.get("line_number")}
           fragment_id={result.get("fragment_id")?.toJS()}
           most_recent_path={most_recent_path}
+          mode={mode}
         />
       );
       i += 1;
@@ -262,26 +307,39 @@ const ProjectSearchOutput: React.FC<{
     return v;
   }
 
-  const results_well_styles: React.CSSProperties = {
-    backgroundColor: "white",
-  };
+  function renderResultList() {
+    if (isFlyout) {
+      return wrap?.(
+        <AntdSpace
+          direction="vertical"
+          size="small"
+          style={{
+            flex: "1 1 auto",
+            width: "100%",
+          }}
+        >
+          {render_get_results()}
+        </AntdSpace>
+      );
+    } else {
+      return <Well style={RESULTS_WELL_STYLE}>{render_get_results()}</Well>;
+    }
+  }
 
   return (
-    <div>
+    <>
       {too_many_results && (
-        <Alert bsStyle="warning" style={{ margin: "15px 0" }}>
+        <Alert bsStyle="warning" banner={true} style={{ margin: "15px 0" }}>
           There were more results than displayed below. Try making your search
           more specific.
         </Alert>
       )}
-      <Well style={results_well_styles}>{render_get_results()}</Well>
-    </div>
+      {renderResultList()}
+    </>
   );
-};
+}
 
-const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
-  project_id,
-}) => {
+function ProjectSearchOutputHeader({ project_id }: { project_id: string }) {
   const actions = useActions({ project_id });
   const info_visible = useTypedRedux({ project_id }, "info_visible");
   const search_results = useTypedRedux({ project_id }, "search_results");
@@ -317,7 +375,7 @@ const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
   }
   return (
     <div style={{ wordWrap: "break-word" }}>
-      <div style={{ color: "#666", marginTop: "10px" }}>
+      <div style={{ color: COLORS.GRAY_M, marginTop: "10px" }}>
         <a
           onClick={() => actions?.set_active_tab("files")}
           style={{ cursor: "pointer" }}
@@ -344,28 +402,44 @@ const ProjectSearchOutputHeader: React.FC<{ project_id: string }> = ({
       {info_visible && render_get_info()}
     </div>
   );
-};
+}
 
-const ProjectSearchResultLine: React.FC<{
+const DESC_STYLE: React.CSSProperties = {
+  color: COLORS.GRAY_M,
+  marginBottom: "5px",
+  border: "1px solid #eee",
+  borderRadius: "5px",
+  maxHeight: "300px",
+  padding: "15px",
+  overflowY: "auto",
+} as const;
+
+interface ProjectSearchResultLineProps {
   project_id: string;
   filename: string;
   description: string;
   line_number: number;
   fragment_id: string;
   most_recent_path: string;
-}> = ({
-  project_id,
-  filename,
-  description,
-  line_number,
-  fragment_id,
-  most_recent_path,
-}) => {
+  mode?: "project" | "flyout";
+}
+
+function ProjectSearchResultLine(_: Readonly<ProjectSearchResultLineProps>) {
+  const {
+    project_id,
+    filename,
+    description,
+    line_number,
+    fragment_id,
+    most_recent_path,
+    mode = "project",
+  } = _;
+  const isFlyout = mode === "flyout";
   const actions = useActions({ project_id });
   const ext = filename_extension(filename);
   const icon = file_associations[ext]?.icon ?? "file";
 
-  async function click_filename(e): Promise<void> {
+  async function click_filename(e: React.MouseEvent): Promise<void> {
     e.preventDefault();
     let chat;
     let path = path_to_file(most_recent_path, filename);
@@ -385,29 +459,63 @@ const ProjectSearchResultLine: React.FC<{
     });
   }
 
-  return (
-    <div style={{ wordWrap: "break-word", marginBottom: "30px" }}>
+  function renderFileLink() {
+    return (
       <a onClick={click_filename} href="">
         <Icon name={icon} style={{ marginRight: "5px" }} />{" "}
         <strong>{filename}</strong>
       </a>
-      <div style={DESC_STYLE}>
-        <Snippet ext={ext} value={description} />
-      </div>
-    </div>
-  );
-};
+    );
+  }
 
-const MARKDOWN_EXTS = new Set(["tasks", "slides", "board", "sage-chat"]);
-function Snippet({ ext, value }) {
-  if (MARKDOWN_EXTS.has(ext)) {
-    return <StaticMarkdown value={value} />;
+  if (isFlyout) {
+    return (
+      <Card
+        size="small"
+        title={renderFileLink()}
+        style={{ marginRight: "5px", marginLeft: "5px", overflow: "hidden" }}
+        hoverable={true}
+        onClick={click_filename}
+      >
+        <Snippet
+          ext={ext}
+          value={description}
+          style={{ color: COLORS.GRAY_D, fontSize: "80%" }}
+        />
+      </Card>
+    );
+  } else {
+    return (
+      <div style={{ wordWrap: "break-word", marginBottom: "30px" }}>
+        {renderFileLink()}
+        <div style={DESC_STYLE}>
+          <Snippet ext={ext} value={description} />
+        </div>
+      </div>
+    );
+  }
+}
+
+const MARKDOWN_EXTS = ["tasks", "slides", "board", "sage-chat"] as const;
+
+function Snippet({
+  ext,
+  value,
+  style,
+}: {
+  ext: string;
+  value: string;
+  style?: React.CSSProperties;
+}) {
+  if (MARKDOWN_EXTS.includes(ext as any)) {
+    return <StaticMarkdown value={value} style={style} />;
   }
   return (
     <CodeMirrorStatic
       no_border
       options={{ mode: infoToMode(ext) }}
       value={value}
+      style={style}
     />
   );
 }
