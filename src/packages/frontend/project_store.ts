@@ -44,6 +44,7 @@ import * as immutable from "immutable";
 import { compute_file_masks } from "./project/explorer/compute-file-masks";
 import { DirectoryListing } from "./project/explorer/types";
 import { FixedTab } from "./project/page/file-tab";
+import { FLYOUT_LOG_DEFAULT_MODE, FlyoutLogMode } from "./project/page/flyouts/log";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -75,6 +76,7 @@ export interface ProjectStoreState {
   internet_warning_closed: boolean; // Makes bottom height update
   num_ghost_file_tabs: number;
   flyout: FixedTab | null;
+  flyout_log_mode: FlyoutLogMode;
 
   // Project Files
   activity: any; // immutable,
@@ -245,6 +247,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       internet_warning_closed: false, // Makes bottom height update
       num_ghost_file_tabs: 0,
       flyout: null,
+      flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
 
       // Project Files
       activity: undefined,

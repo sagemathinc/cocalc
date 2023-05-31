@@ -269,7 +269,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
 
     // left arrow key: go up a directory
-    if (e.code === "ArrowLeft") {
+    else if (e.code === "ArrowLeft") {
       if (current_path != "") {
         actions?.set_current_path(
           current_path.split("/").slice(0, -1).join("/")
@@ -278,7 +278,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
 
     // return key pressed
-    if (e.code === "Enter") {
+    else if (e.code === "Enter") {
       if (scrollIdx != null) {
         open(e, scrollIdx);
         setScrollIdx(null);

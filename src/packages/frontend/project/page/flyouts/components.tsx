@@ -64,8 +64,8 @@ interface Item {
 }
 
 interface FileListItemProps {
-  onClick: (e: React.MouseEvent) => void;
-  onClose: (e: React.MouseEvent | undefined, name: string) => void;
+  onClick?: (e: React.MouseEvent) => void;
+  onClose?: (e: React.MouseEvent | undefined, name: string) => void;
   itemStyle?: CSS;
   item: Item;
   renderIcon: (item: Item, style: CSS) => JSX.Element;
@@ -88,7 +88,7 @@ export function FileListItem({
       <Icon
         name="times-circle"
         style={{ flex: "0", fontSize: "120%" }}
-        onClick={(e) => onClose(e, name)}
+        onClick={(e) => onClose?.(e, name)}
       />
     );
   }

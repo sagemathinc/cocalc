@@ -12,6 +12,7 @@ import { PathNavigator } from "../../explorer/path-navigator";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIX_BORDER } from "../page";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
+import { LogHeader } from "./log";
 
 export function FlyoutHeader({
   flyout,
@@ -74,6 +75,8 @@ export function FlyoutHeader({
             className={"cc-project-flyout-path-navigator"}
           />
         );
+      case "log":
+        return <LogHeader project_id= {project_id} />
       default:
         return (
           <div style={{ flex: 1 }}>
