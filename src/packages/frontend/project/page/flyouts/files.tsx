@@ -23,8 +23,11 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
+import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
+import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
   DirectoryListing,
   DirectoryListingEntry,
@@ -41,13 +44,15 @@ import {
   strictMod,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { compute_file_masks } from "../../explorer/compute-file-masks";
+import { useProjectState } from "../project-state-hook";
 import { FileListItem, fileItemStyle } from "./components";
 
 export function FilesFlyout({ project_id }): JSX.Element {
   const isMountedRef = useIsMountedRef();
   const refInput = useRef<InputRef>(null);
   const actions = useActions({ project_id });
+  const project_state = useProjectState(project_id);
+  const projectIsRunning = project_state?.get("state") === "running";
   const current_path = useTypedRedux({ project_id }, "current_path");
   const directoryListings = useTypedRedux({ project_id }, "directory_listings");
   const activeFileSort: TypedMap<{
@@ -59,6 +64,8 @@ export function FilesFlyout({ project_id }): JSX.Element {
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const [search, setSearch] = useState<string>("");
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
 
   // TODO: display_listing is usually undefined. WHY?
   // const displayed_listing: {
@@ -286,6 +293,21 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
   }
 
+  function renderUpload() {
+    if (student_project_functionality.disableUploads) return;
+    return (
+      <Tooltip title="Upload a file" placement="bottom">
+        <Button
+          size="small"
+          disabled={!projectIsRunning}
+          className="upload-button-flyout"
+        >
+          <Icon name={"upload"} />
+        </Button>
+      </Tooltip>
+    );
+  }
+
   function renderHeader(): JSX.Element {
     return (
       <Space
@@ -310,6 +332,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
             {renderSortButton("type", "Type")}
           </Radio.Group>
           <Space direction="horizontal" size={"small"}>
+            {renderUpload()}
             <Tooltip title="Create a new file" placement="bottom">
               <Button
                 size="small"
@@ -451,7 +474,22 @@ export function FilesFlyout({ project_id }): JSX.Element {
     return (
       <>
         {renderHeader()}
-        {renderListing()}
+        <FileUploadWrapper
+          project_id={project_id}
+          dest_path={current_path}
+          event_handlers={{
+            complete: () => actions?.fetch_directory_listing(),
+          }}
+          config={{ clickable: ".upload-button-flyout" }}
+          style={{
+            flex: "1 0 auto",
+            display: "flex",
+            flexDirection: "column",
+          }}
+          className="smc-vfill"
+        >
+          {renderListing()}
+        </FileUploadWrapper>
       </>
     );
   }
