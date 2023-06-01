@@ -52,8 +52,6 @@ export function storeFlyoutState(
 
   if (typeof mode === "string") {
     current.mode = mode;
-  } else {
-    delete current.mode;
   }
 
   LS.set(key, current);

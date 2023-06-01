@@ -65,7 +65,7 @@ export function LogHeader({ project_id }: HeaderProps): JSX.Element {
 
   useEffect(() => {
     const modeLS = getFlyoutLogMode(project_id);
-    if (isFlyoutLogMode(modeLS)) setMode(modeLS);
+    if (isFlyoutLogMode(modeLS)) setModeState(modeLS);
   }, []);
 
   function renderToggle() {

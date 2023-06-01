@@ -10,7 +10,7 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
-import { Button, Card, Col, Row, Tag, Space as AntdSpace } from "antd";
+import { Space as AntdSpace, Button, Card, Col, Row, Tag } from "antd";
 
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -284,7 +284,9 @@ function ProjectSearchOutput({
     }
     if (search_results?.size == 0) {
       return (
-        <Alert bsStyle="warning">There were no results for your search.</Alert>
+        <Alert bsStyle="warning" banner={true}>
+          There were no results for your search.
+        </Alert>
       );
     }
     const v: JSX.Element[] = [];
@@ -319,7 +321,8 @@ function ProjectSearchOutput({
           }}
         >
           {render_get_results()}
-        </AntdSpace>
+        </AntdSpace>,
+        { borderTop: `1px solid ${COLORS.GRAY_L}` }
       );
     } else {
       return <Well style={RESULTS_WELL_STYLE}>{render_get_results()}</Well>;

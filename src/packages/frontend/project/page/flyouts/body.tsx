@@ -40,14 +40,15 @@ export function FlyoutBody({
   const onScroll = debounce(
     () => {
       if (bodyDiv) {
-        const val = bodyDiv.scrollTop;
-        storeFlyoutState(project_id, flyout, { scroll: val });
+        const scroll = bodyDiv.scrollTop;
+        storeFlyoutState(project_id, flyout, { scroll });
       }
     },
     1000,
     { leading: false, trailing: true }
   );
 
+  // use this *once* around a vertically scollable content div in the component, e.g. results in a search
   function wrap(content, style: CSS = {}) {
     return (
       <div
