@@ -6,7 +6,7 @@ import { useEffect, useRedux, useState } from "@cocalc/frontend/app-framework";
 import { ProjectStatus } from "@cocalc/frontend/todo-types";
 
 // this is a reasonable default in case we have no information yet or project_id is undefined.
-const init = new ProjectStatus({ state: "opened" });
+export const init = new ProjectStatus({ state: "opened" });
 
 // this tells you what state the project is in
 export function useProjectState(project_id: string | undefined): ProjectStatus {

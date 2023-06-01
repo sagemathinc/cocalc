@@ -16,14 +16,15 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useAppState } from "@cocalc/frontend/app/context";
 import { Loading } from "@cocalc/frontend/components";
 import {
   FrameContext,
   defaultFrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { COLORS } from "@cocalc/util/theme";
-import { useAppState } from "../../app/context";
 import { AnonymousName } from "../anonymous-name";
+import { createProjectContext, useProjectContextProvider } from "../context";
 import { ProjectWarningBanner } from "../project-banner";
 import { StartButton } from "../start-button";
 import { DeletedProjectWarning } from "../warnings/deleted";
@@ -41,7 +42,6 @@ import {
   storeFlyoutState,
 } from "./flyouts/state";
 import HomePageButton from "./home-page/button";
-import { useProjectStatus } from "./project-status-hook";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
 //import FirstSteps from "@cocalc/frontend/project/explorer/file-listing/first-steps";
@@ -76,7 +76,8 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     project_id,
     "deleted",
   ]);
-  useProjectStatus(actions);
+  const ProjectContext = createProjectContext(project_id);
+  const projectCtx = useProjectContextProvider(project_id, is_active);
   const fullscreen = useTypedRedux("page", "fullscreen");
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const modal = useTypedRedux({ project_id }, "modal");
@@ -263,60 +264,63 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   } as const;
 
   return (
-    <div className="container-content" style={style}>
-      <AnonymousName project_id={project_id} />
-      <DiskSpaceWarning project_id={project_id} />
-      <RamWarning project_id={project_id} />
-      <OOMWarning project_id={project_id} />
-      <SoftwareEnvUpgrade project_id={project_id} />
-      <ProjectWarningBanner project_id={project_id} />
-      {(!fullscreen || fullscreen == "project") && (
-        <div style={{ display: "flex", margin: "0" }}>
-          <HomePageButton
-            project_id={project_id}
-            active={active_project_tab == "home"}
-            width={homePageButtonWidth}
-          />
-          {renderFlyoutHeader()}
-          <div style={{ flex: 1, overflow: "hidden" }}>
-            <Tabs project_id={project_id} />
-          </div>
-        </div>
-      )}
-      {is_deleted && <DeletedProjectWarning />}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {!hideActionButtons && (!fullscreen || fullscreen == "project") && (
-          <div
-            style={{
-              background: FIXED_TABS_BG_COLOR,
-              borderRadius: "0",
-              borderTop: FIX_BORDERS.borderTop,
-              borderRight: flyout == null ? FIX_BORDERS.borderRight : undefined,
-            }}
-          >
-            <VerticalFixedTabs
+    <ProjectContext.Provider value={projectCtx}>
+      <div className="container-content" style={style}>
+        <AnonymousName project_id={project_id} />
+        <DiskSpaceWarning project_id={project_id} />
+        <RamWarning project_id={project_id} />
+        <OOMWarning project_id={project_id} />
+        <SoftwareEnvUpgrade project_id={project_id} />
+        <ProjectWarningBanner project_id={project_id} />
+        {(!fullscreen || fullscreen == "project") && (
+          <div style={{ display: "flex", margin: "0" }}>
+            <HomePageButton
               project_id={project_id}
-              activeTab={active_project_tab}
-              setHomePageButtonWidth={setHomePageButtonWidth}
+              active={active_project_tab == "home"}
+              width={homePageButtonWidth}
             />
+            {renderFlyoutHeader()}
+            <div style={{ flex: 1, overflow: "hidden" }}>
+              <Tabs project_id={project_id} />
+            </div>
           </div>
         )}
-        {renderFlyout()}
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            overflowX: "auto",
-          }}
-        >
-          <StartButton project_id={project_id} />
-          {renderEditorContent()}
-          {render_project_content()}
-          {render_project_modal()}
+        {is_deleted && <DeletedProjectWarning />}
+        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+          {!hideActionButtons && (!fullscreen || fullscreen == "project") && (
+            <div
+              style={{
+                background: FIXED_TABS_BG_COLOR,
+                borderRadius: "0",
+                borderTop: FIX_BORDERS.borderTop,
+                borderRight:
+                  flyout == null ? FIX_BORDERS.borderRight : undefined,
+              }}
+            >
+              <VerticalFixedTabs
+                project_id={project_id}
+                activeTab={active_project_tab}
+                setHomePageButtonWidth={setHomePageButtonWidth}
+              />
+            </div>
+          )}
+          {renderFlyout()}
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              overflowX: "auto",
+            }}
+          >
+            <StartButton project_id={project_id} />
+            {renderEditorContent()}
+            {render_project_content()}
+            {render_project_modal()}
+          </div>
         </div>
       </div>
-    </div>
+    </ProjectContext.Provider>
   );
 };
 

@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Set } from "immutable";
+import json_stable from "json-stable-stringify";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
@@ -11,6 +14,7 @@ import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
+import { deleteProjectContext } from "@cocalc/frontend/project/context";
 import { site_license_public_info } from "@cocalc/frontend/site-licenses/util";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { once } from "@cocalc/util/async-utils";
@@ -25,8 +29,6 @@ import {
 import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/types";
-import { Set } from "immutable";
-import json_stable from "json-stable-stringify";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
 
@@ -81,6 +83,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       redux.removeProjectReferences(project_id);
       this.setState({ open_projects: x.delete(index) });
     }
+    deleteProjectContext(project_id);
   }
 
   // Save all open files in all projects to disk
