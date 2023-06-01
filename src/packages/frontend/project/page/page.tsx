@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { DndContext, useDraggable } from "@dnd-kit/core";
 import { Modal } from "antd";
 
 import {
@@ -10,7 +11,9 @@ import {
   redux,
   useActions,
   useEffect,
+  useMemo,
   useRedux,
+  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
@@ -19,6 +22,7 @@ import {
   defaultFrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { COLORS } from "@cocalc/util/theme";
+import { useAppState } from "../../app/context";
 import { AnonymousName } from "../anonymous-name";
 import { ProjectWarningBanner } from "../project-banner";
 import { StartButton } from "../start-button";
@@ -28,8 +32,14 @@ import { OOMWarning } from "../warnings/oom";
 import { RamWarning } from "../warnings/ram";
 import { Content } from "./content";
 import { isFixedTab } from "./file-tab";
-import { Flyout, FlyoutHeader } from "./flyouts/flyout";
-import { getFlyoutExpanded } from "./flyouts/state";
+import { FlyoutBody } from "./flyouts/body";
+import { FLYOUT_DEFAULT_WIDTH_PX } from "./flyouts/consts";
+import { FlyoutHeader } from "./flyouts/header";
+import {
+  getFlyoutExpanded,
+  getFlyoutWidth,
+  storeFlyoutState,
+} from "./flyouts/state";
 import HomePageButton from "./home-page/button";
 import { useProjectStatus } from "./project-status-hook";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
@@ -78,12 +88,57 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   const [homePageButtonWidth, setHomePageButtonWidth] =
     React.useState<number>(80);
 
+  const [flyoutWidth, setFlyoutWidth] = useState<number>(
+    getFlyoutWidth(project_id)
+  );
+  const [oldFlyoutWidth, setOldFlyoutWidth] = useState(flyoutWidth);
+  const { pageWidthPx } = useAppState();
+
+  const narrowerPX = useMemo(() => {
+    return hideActionButtons ? homePageButtonWidth : 0;
+  }, [hideActionButtons, homePageButtonWidth]);
+
   useEffect(() => {
     const name = getFlyoutExpanded(project_id);
     if (isFixedTab(name)) {
+      // if there is one to show, restore its width
+      setFlyoutWidth(getFlyoutWidth(project_id));
       actions?.setFlyoutExpanded(name, true, false);
     }
   }, [project_id]);
+
+  useEffect(() => {
+    if (flyoutWidth > pageWidthPx / 2) {
+      setFlyoutWidth(Math.max(FLYOUT_DEFAULT_WIDTH_PX / 2, pageWidthPx / 2));
+    }
+  }, [pageWidthPx]);
+
+  function setWidth(newWidth: number, reset = false): void {
+    if (flyout == null) return;
+    setFlyoutWidth(newWidth);
+    storeFlyoutState(project_id, flyout, { width: reset ? null : newWidth });
+  }
+
+  async function resetFlyoutWidth() {
+    // brief delay to ignore what dragging does
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    setWidth(FLYOUT_DEFAULT_WIDTH_PX + narrowerPX, true);
+  }
+
+  const flyoutLimit = useMemo(() => {
+    return {
+      left: FLYOUT_DEFAULT_WIDTH_PX / 2,
+      right: pageWidthPx / 2,
+    };
+  }, [pageWidthPx]);
+
+  function updateDrag(e) {
+    const newWidth = Math.max(
+      flyoutLimit.left,
+      Math.min(oldFlyoutWidth + e.delta.x, flyoutLimit.right)
+    );
+    setWidth(newWidth);
+  }
 
   function renderEditorContent() {
     const v: JSX.Element[] = [];
@@ -164,16 +219,36 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 
   function renderFlyout() {
     if (!flyout) return;
-    return <Flyout flyout={flyout} project_id={project_id} />;
+    return (
+      <div style={{ display: "flex", flexDirection: "row" }}>
+        <FlyoutBody
+          flyout={flyout}
+          project_id={project_id}
+          flyoutWidth={flyoutWidth}
+        />
+        <DndContext
+          onDragStart={() => setOldFlyoutWidth(flyoutWidth)}
+          onDragEnd={(e) => updateDrag(e)}
+        >
+          <FlyoutDragbar
+            project_id={project_id}
+            resetFlyoutWidth={resetFlyoutWidth}
+            flyoutLimit={flyoutLimit}
+            oldFlyoutWidth={oldFlyoutWidth}
+          />
+        </DndContext>
+      </div>
+    );
   }
 
   function renderFlyoutHeader() {
     if (!flyout) return;
     return (
       <FlyoutHeader
+        flyoutWidth={flyoutWidth}
         flyout={flyout}
         project_id={project_id}
-        narrowerPX={hideActionButtons ? homePageButtonWidth : 0}
+        narrowerPX={narrowerPX}
       />
     );
   }
@@ -244,3 +319,50 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     </div>
   );
 };
+
+function FlyoutDragbar({
+  project_id,
+  resetFlyoutWidth,
+  flyoutLimit,
+  oldFlyoutWidth,
+}: {
+  project_id: string;
+  resetFlyoutWidth: () => void;
+  flyoutLimit: { left: number; right: number };
+  oldFlyoutWidth: number;
+}) {
+  const { attributes, listeners, setNodeRef, transform, active } = useDraggable(
+    {
+      id: `flyout-drag-${project_id}`,
+    }
+  );
+
+  // limit left-right dx movement
+  const dx = useMemo(() => {
+    if (!transform || !oldFlyoutWidth) return 0;
+    const dx = transform.x;
+    const posX = oldFlyoutWidth + dx;
+    const { left, right } = flyoutLimit;
+    if (posX < left) return -(oldFlyoutWidth - left);
+    if (posX > right) return right - oldFlyoutWidth;
+    return dx;
+  }, [transform, oldFlyoutWidth, flyoutLimit]);
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="cc-project-flyout-dragbar"
+      style={{
+        transform: transform ? `translate3d(${dx}px, 0, 0)` : undefined,
+        flex: "1 0 ",
+        width: "5px",
+        height: "100%",
+        cursor: "col-resize",
+        ...(active ? { zIndex: 1000, backgroundColor: COLORS.GRAY } : {}),
+      }}
+      {...listeners}
+      {...attributes}
+      onDoubleClick={resetFlyoutWidth}
+    />
+  );
+}

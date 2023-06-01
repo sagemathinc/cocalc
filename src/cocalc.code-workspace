@@ -60,7 +60,10 @@
   ],
   "settings": {
     "search.followSymlinks": false,
-    "jest.disabledWorkspaceFolders": [],
+    "jest.disabledWorkspaceFolders": [
+      "compute",
+      "sync-client"
+    ],
     "jest.autoRun": "off",
     "files.exclude": {
       "dist": true,
