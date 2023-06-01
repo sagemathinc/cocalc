@@ -11,22 +11,34 @@ import {
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 import { hexColorToRGBA } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
+import { COLORS } from "@cocalc/util/theme";
 import { Tooltip } from "antd";
 
-export const FILE_ITEM_OPENED_STYLE: CSS = {
+const FILE_ITEM_SELECTED_STYLE: CSS = {
+  backgroundColor: COLORS.GRAY_LL,
+} as const;
+
+const FILE_ITEM_OPENED_STYLE: CSS = {
+  ...FILE_ITEM_SELECTED_STYLE,
   fontWeight: "bold",
   color: COLORS.PROJECT.FIXED_LEFT_ACTIVE,
-  backgroundColor: COLORS.GRAY_LL,
 } as const;
 
 const FILE_ITEM_STYLE: CSS = {
   flex: "1 1 auto",
+  display: "flex",
+  flexDirection: "row",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
+} as const;
+
+const FILE_ITEM_BODY_STYLE: CSS = {
+  display: "flex",
+  flexDirection: "row",
+  flex: "1",
 } as const;
 
 const FILE_ITEM_LINE_STYLE: CSS = {
@@ -52,12 +64,13 @@ interface Item {
 }
 
 interface FileListItemProps {
-  onClick: (e: React.MouseEvent) => void;
-  onClose: (e: React.MouseEvent | undefined, name: string) => void;
+  onClick?: (e: React.MouseEvent) => void;
+  onClose?: (e: React.MouseEvent | undefined, name: string) => void;
   itemStyle?: CSS;
   item: Item;
   renderIcon: (item: Item, style: CSS) => JSX.Element;
   tooltip?: JSX.Element | string;
+  selected?: boolean;
 }
 
 export function FileListItem({
@@ -67,6 +80,7 @@ export function FileListItem({
   renderIcon,
   itemStyle,
   tooltip,
+  selected,
 }: FileListItemProps): JSX.Element {
   function renderCloseItem(item: Item): JSX.Element {
     const { name } = item;
@@ -74,22 +88,47 @@ export function FileListItem({
       <Icon
         name="times-circle"
         style={{ flex: "0", fontSize: "120%" }}
-        onClick={(e) => onClose(e, name)}
+        onClick={(e) => onClose?.(e, name)}
       />
     );
   }
 
   function renderItem(): JSX.Element {
-    const el = (
+    return (
       <div style={FILE_ITEM_STYLE} onClick={onClick}>
         {item.name}
+      </div>
+    );
+  }
+
+  // caret icon to indicated selected item
+  function renderSelected(): JSX.Element {
+    if (!selected) return <></>;
+    return (
+      <Icon
+        name="caret-right"
+        style={{ flex: "0", fontSize: "120%", marginRight: "5px" }}
+      />
+    );
+  }
+
+  function renderBody(): JSX.Element {
+    const el = (
+      <div style={FILE_ITEM_BODY_STYLE}>
+        {renderSelected()}
+        {renderIcon(item, ICON_STYLE)} {renderItem()}
+        {item.isopen ? renderCloseItem(item) : null}
       </div>
     );
 
     if (!tooltip) return el;
 
     return (
-      <Tooltip title={tooltip} placement="rightTop">
+      <Tooltip
+        title={tooltip}
+        placement="rightTop"
+        style={FILE_ITEM_BODY_STYLE}
+      >
         {el}
       </Tooltip>
     );
@@ -100,12 +139,12 @@ export function FileListItem({
       className="cc-project-flyout-file-item"
       style={{
         ...FILE_ITEM_LINE_STYLE,
+        ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
         ...(item.isopen ? FILE_ITEM_OPENED_STYLE : {}),
         ...itemStyle,
       }}
     >
-      {renderIcon(item, ICON_STYLE)} {renderItem()}
-      {item.isopen ? renderCloseItem(item) : null}
+      {renderBody()}
     </div>
   );
 }
@@ -118,10 +157,10 @@ export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {
   if (days < 1 / 24) {
     col = hexColorToRGBA(ANTD_GREEN[3], 1);
   } else if (days < 1) {
-    const opacity = 1 - days / 2;
+    const opacity = 1 - days / 2; // only fade to 50%
     col = hexColorToRGBA(ANTD_ORANGE[3], opacity);
-  } else if (days < 7) {
-    const opacity = 1 - (days - 1) / 7;
+  } else if (days < 14) {
+    const opacity = 1 - (days - 1) / 14;
     col = hexColorToRGBA(ANTD_YELLOW[5], opacity);
   }
   return {

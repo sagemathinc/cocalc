@@ -3,13 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Input, Radio, Space, Tooltip } from "antd";
+import { Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
+  ProjectActions,
   React,
   TypedMap,
   redux,
@@ -23,8 +24,11 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
+import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
+import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
   DirectoryListing,
   DirectoryListingEntry,
@@ -38,31 +42,42 @@ import {
   search_match,
   search_split,
   should_open_in_foreground,
+  strictMod,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { compute_file_masks } from "../../explorer/compute-file-masks";
+import { useProjectState } from "../project-state-hook";
 import { FileListItem, fileItemStyle } from "./components";
+
+type ActiveFileSort = TypedMap<{
+  column_name: string;
+  is_descending: boolean;
+}>;
 
 export function FilesFlyout({ project_id }): JSX.Element {
   const isMountedRef = useIsMountedRef();
-  const actions = useActions({ project_id });
+  const refInput = useRef<InputRef>(null);
+  const actions: ProjectActions | undefined = useActions({ project_id });
+  const project_state = useProjectState(project_id);
+  const projectIsRunning = project_state?.get("state") === "running";
   const current_path = useTypedRedux({ project_id }, "current_path");
   const directoryListings = useTypedRedux({ project_id }, "directory_listings");
-  const activeFileSort: TypedMap<{
-    column_name: string;
-    is_descending: boolean;
-  }> = useTypedRedux({ project_id }, "active_file_sort");
+  const activeFileSort: ActiveFileSort = useTypedRedux(
+    { project_id },
+    "active_file_sort"
+  );
   const hidden = useTypedRedux({ project_id }, "show_hidden");
   const show_masked = useTypedRedux({ project_id }, "show_masked");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const [search, setSearch] = useState<string>("");
-
-  // TODO: display_listing is usually undefined. WHY?
-  // const displayed_listing: {
-  //   listing: ListingItem[];
-  //   error: any;
-  //   file_map: Map<string, any>;
-  // } = useTypedRedux({ project_id }, "displayed_listing");
+  const [scrollIdx, setScrollIdx] = useState<number | null>(null);
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
+  const disableUploads = student_project_functionality.disableUploads ?? false;
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const virtuosoScroll = useVirtuosoScrollHook({
+    cacheId: `${project_id}::flyout::files::${current_path}`,
+  });
+  const uploadClassName = `upload-button-flyout-${project_id}`;
 
   // copied roughly from directoy-selector.tsx
   useEffect(() => {
@@ -83,19 +98,13 @@ export function FilesFlyout({ project_id }): JSX.Element {
     };
   }, [project_id, current_path]);
 
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `${project_id}::flyout::files::${current_path}`,
-  });
-
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
-
-  const [directoryFiles, _] = useMemo((): [DirectoryListing, boolean] => {
-    if (directoryListings == null) return [[], true];
+  const directoryFiles = useMemo((): DirectoryListing => {
+    if (directoryListings == null) return [];
     const filesStore = directoryListings.get(current_path);
-    if (filesStore == null) return [[], true];
+    if (filesStore == null) return [];
 
     // TODO this is an error, process it
-    if (typeof filesStore === "string") return [[], true];
+    if (typeof filesStore === "string") return [];
 
     const files: DirectoryListing = filesStore.toJS();
     compute_file_masks(files);
@@ -154,8 +163,6 @@ export function FilesFlyout({ project_id }): JSX.Element {
       procFiles.reverse(); // inplace op
     }
 
-    const isEmpty = procFiles.length === 0;
-
     if (current_path != "") {
       procFiles.unshift({
         name: "..",
@@ -163,7 +170,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
       });
     }
 
-    return [procFiles, isEmpty];
+    return procFiles;
   }, [
     directoryListings,
     activeFileSort,
@@ -171,7 +178,16 @@ export function FilesFlyout({ project_id }): JSX.Element {
     search,
     openFiles,
     show_masked,
+    current_path,
   ]);
+
+  useEffect(() => {
+    // if we change directory *and* use the keyboard, we re-focus the input
+    if (scrollIdx != null) {
+      refInput.current?.focus();
+    }
+    setScrollIdx(null);
+  }, [current_path]);
 
   // *** END HOOKS ***
 
@@ -183,7 +199,6 @@ export function FilesFlyout({ project_id }): JSX.Element {
       // directory selector before even opening the project.
       redux.getProjectStore(project_id);
     })();
-    return <Loading />;
   }
 
   if (directoryListings.get(current_path) == null) {
@@ -195,10 +210,9 @@ export function FilesFlyout({ project_id }): JSX.Element {
         .getProjectActions(project_id)
         ?.fetch_directory_listing({ path: current_path });
     })();
-    return <Loading />;
   }
 
-  function open(e: React.MouseEvent, index: number) {
+  function open(e: React.MouseEvent | React.KeyboardEvent, index: number) {
     const file = directoryFiles[index];
     const fullPath = path_to_file(current_path, file.name);
     if (file.isdir) {
@@ -218,99 +232,41 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
   }
 
-  function renderSortButton(name: string, display: string): JSX.Element {
-    const isActive = activeFileSort.get("column_name") === name;
-    const direction = isActive ? (
-      <Icon
-        style={{ marginLeft: "5px" }}
-        name={activeFileSort.get("is_descending") ? "caret-up" : "caret-down"}
-      />
-    ) : undefined;
-
-    return (
-      <Radio.Button
-        value={name}
-        style={{ background: isActive ? COLORS.ANTD_BG_BLUE_L : undefined }}
-        onClick={() => actions?.set_sorted_file_column(name)}
-      >
-        {display}
-        {direction}
-      </Radio.Button>
+  function doScroll(dx: -1 | 1) {
+    const nextIdx = strictMod(
+      scrollIdx == null ? (dx === 1 ? 0 : -1) : scrollIdx + dx,
+      directoryFiles.length
     );
+    setScrollIdx(nextIdx);
+    virtuosoRef.current?.scrollToIndex({
+      index: nextIdx,
+      align: "center",
+    });
   }
 
-  function renderHeader(): JSX.Element {
-    return (
-      <Space
-        direction="vertical"
-        style={{
-          paddingBottom: "10px",
-          paddingRight: "5px",
-          borderBottom: `1px solid ${COLORS.GRAY_L}`,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-          }}
-        >
-          <Radio.Group size="small">
-            {renderSortButton("name", "Name")}
-            {renderSortButton("size", "Size")}
-            {renderSortButton("time", "Time")}
-            {renderSortButton("type", "Type")}
-          </Radio.Group>
-          <Space direction="horizontal" size={"small"}>
-            <Tooltip title="Create a new file">
-              <Button
-                size="small"
-                type="primary"
-                onClick={() => actions?.toggleFlyout("new")}
-              >
-                <Icon name={"plus-circle"} />
-              </Button>
-            </Tooltip>
-          </Space>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            width: "100%",
-          }}
-        >
-          <Input
-            placeholder="Filter..."
-            size="small"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ flex: "1", marginRight: "10px" }}
-            allowClear
-            prefix={<Icon name="search" />}
-          />
-          <Space direction="horizontal" size="small">
-            <BootstrapButton
-              bsSize="xsmall"
-              style={{ flex: "0" }}
-              onClick={() => actions?.setState({ show_hidden: !hidden })}
-            >
-              <Icon name={hidden ? "eye" : "eye-slash"} />
-            </BootstrapButton>
-            <BootstrapButton
-              bsSize="xsmall"
-              style={{ flex: "0" }}
-              active={!show_masked}
-              onClick={() => actions?.setState({ show_masked: !show_masked })}
-            >
-              <Icon name={"mask"} />
-            </BootstrapButton>
-          </Space>
-        </div>
-      </Space>
-    );
+  function filterKeyHandler(e: React.KeyboardEvent) {
+    // if arrow key down or up, then scroll to next item
+    const dx = e.code === "ArrowDown" ? 1 : e.code === "ArrowUp" ? -1 : 0;
+    if (dx != 0) {
+      doScroll(dx);
+    }
+
+    // left arrow key: go up a directory
+    else if (e.code === "ArrowLeft") {
+      if (current_path != "") {
+        actions?.set_current_path(
+          current_path.split("/").slice(0, -1).join("/")
+        );
+      }
+    }
+
+    // return key pressed
+    else if (e.code === "Enter") {
+      if (scrollIdx != null) {
+        open(e, scrollIdx);
+        setScrollIdx(null);
+      }
+    }
   }
 
   function renderItemIcon(
@@ -335,7 +291,10 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
   }
 
-  function renderTooltip(age, { isdir = false, size = 0 }): JSX.Element {
+  function renderTooltip(
+    age: number | null,
+    { isdir = false, size = 0 }
+  ): JSX.Element {
     return (
       <>
         {age ? (
@@ -365,11 +324,15 @@ export function FilesFlyout({ project_id }): JSX.Element {
           actions?.close_tab(path_to_file(current_path, name));
         }}
         tooltip={renderTooltip(age, item)}
+        selected={index === scrollIdx}
       />
     );
   }
 
   function renderListing(): JSX.Element {
+    const files = directoryListings.get(current_path);
+    if (files == null) return <Loading />;
+
     return (
       <Virtuoso
         ref={virtuosoRef}
@@ -389,17 +352,158 @@ export function FilesFlyout({ project_id }): JSX.Element {
     );
   }
 
-  function renderList(): JSX.Element {
-    const files = directoryListings.get(current_path);
-    if (files == null) return <Loading />;
+  function wrapDropzone(children: JSX.Element): JSX.Element {
+    if (disableUploads) return children;
+    return (
+      <FileUploadWrapper
+        project_id={project_id}
+        dest_path={current_path}
+        event_handlers={{
+          complete: () => actions?.fetch_directory_listing(),
+        }}
+        config={{ clickable: `.${uploadClassName}` }}
+        className="smc-vfill"
+      >
+        {children}
+      </FileUploadWrapper>
+    );
+  }
 
+  function renderSortButton(name: string, display: string): JSX.Element {
+    const isActive = activeFileSort.get("column_name") === name;
+    const direction = isActive ? (
+      <Icon
+        style={{ marginLeft: "5px" }}
+        name={activeFileSort.get("is_descending") ? "caret-up" : "caret-down"}
+      />
+    ) : undefined;
+
+    return (
+      <Radio.Button
+        value={name}
+        style={{ background: isActive ? COLORS.ANTD_BG_BLUE_L : undefined }}
+        onClick={() => actions?.set_sorted_file_column(name)}
+      >
+        {display}
+        {direction}
+      </Radio.Button>
+    );
+  }
+
+  function renderHeader() {
+    return (
+      <Space
+        direction="vertical"
+        style={{
+          paddingBottom: "10px",
+          paddingRight: "5px",
+          borderBottom: `1px solid ${COLORS.GRAY_L}`,
+        }}
+      >
+        {wrapDropzone(
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+            }}
+          >
+            <Radio.Group size="small">
+              {renderSortButton("name", "Name")}
+              {renderSortButton("size", "Size")}
+              {renderSortButton("time", "Time")}
+              {renderSortButton("type", "Type")}
+            </Radio.Group>
+            <Space direction="horizontal" size={"small"}>
+              <Button
+                className={uploadClassName}
+                size="small"
+                disabled={!projectIsRunning || disableUploads}
+              >
+                <Icon name={"upload"} />
+              </Button>
+              <Tooltip title="Create a new file" placement="bottom">
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => actions?.toggleFlyout("new")}
+                >
+                  <Icon name={"plus-circle"} />
+                </Button>
+              </Tooltip>
+            </Space>
+          </div>
+        )}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            width: "100%",
+          }}
+        >
+          <Input
+            ref={refInput}
+            placeholder="Filter..."
+            size="small"
+            value={search}
+            onKeyDown={filterKeyHandler}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ flex: "1", marginRight: "10px" }}
+            allowClear
+            prefix={<Icon name="search" />}
+          />
+          <Space direction="horizontal" size="small">
+            <BootstrapButton
+              title={hidden ? "Hide hidden files" : "Show hidden files"}
+              bsSize="xsmall"
+              style={{ flex: "0" }}
+              onClick={() => actions?.setState({ show_hidden: !hidden })}
+            >
+              <Icon name={hidden ? "eye" : "eye-slash"} />
+            </BootstrapButton>
+            <BootstrapButton
+              title={show_masked ? "Hide masked files" : "Show masked files"}
+              bsSize="xsmall"
+              style={{ flex: "0" }}
+              active={!show_masked}
+              onClick={() => actions?.setState({ show_masked: !show_masked })}
+            >
+              <Icon name={"mask"} />
+            </BootstrapButton>
+          </Space>
+        </div>
+      </Space>
+    );
+  }
+
+  if (disableUploads) {
     return (
       <>
         {renderHeader()}
         {renderListing()}
       </>
     );
+  } else {
+    return (
+      <>
+        {renderHeader()}
+        <FileUploadWrapper
+          project_id={project_id}
+          dest_path={current_path}
+          event_handlers={{
+            complete: () => actions?.fetch_directory_listing(),
+          }}
+          style={{
+            flex: "1 0 auto",
+            display: "flex",
+            flexDirection: "column",
+          }}
+          className="smc-vfill"
+        >
+          {renderListing()}
+        </FileUploadWrapper>
+      </>
+    );
   }
-
-  return renderList();
 }

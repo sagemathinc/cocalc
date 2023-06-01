@@ -38,6 +38,7 @@ import { ProjectEvent } from "./project/history/types";
 import { log_file_open, log_opened_time, open_file } from "./project/open-file";
 import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
+import { FlyoutLogMode } from "./project/page/flyouts/log";
 import { storeFlyoutState } from "./project/page/flyouts/state";
 import { ensure_project_running } from "./project/project-start-warning";
 import { transform_get_url } from "./project/transform-get-url";
@@ -570,7 +571,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // also store this in local storage
     storeFlyoutState(this.project_id, name, { expanded: flyout != null });
     if (flyout != null) {
-      track("flyout", { name: flyout });
+      track("flyout", { name: flyout, project_id: this.project_id });
     }
   }
 
@@ -580,6 +581,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (save) {
       storeFlyoutState(this.project_id, name, { expanded: name != null });
     }
+  }
+
+  public setFlyoutLogMode(mode: FlyoutLogMode): void {
+    this.setState({ flyout_log_mode: mode });
+    storeFlyoutState(this.project_id, "log", { mode });
   }
 
   add_a_ghost_file_tab(): void {
