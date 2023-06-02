@@ -77,6 +77,7 @@ interface FileListItemProps {
   renderIcon: (item: Item, style: CSS) => JSX.Element;
   tooltip?: JSX.Element | string;
   selected?: boolean;
+  multiline?: boolean;
 }
 
 export function FileListItem({
@@ -87,6 +88,7 @@ export function FileListItem({
   itemStyle,
   tooltip,
   selected,
+  multiline = false,
 }: FileListItemProps): JSX.Element {
   function renderCloseItem(item: Item): JSX.Element {
     const { name } = item;
@@ -101,7 +103,13 @@ export function FileListItem({
 
   function renderItem(): JSX.Element {
     return (
-      <div style={FILE_ITEM_STYLE} onClick={onClick}>
+      <div
+        style={{
+          ...FILE_ITEM_STYLE,
+          ...(multiline ? { whiteSpace: "normal" } : {}),
+        }}
+        onClick={onClick}
+      >
         {item.name}
       </div>
     );

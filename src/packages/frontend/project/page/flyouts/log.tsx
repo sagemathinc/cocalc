@@ -191,6 +191,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
       <FileListItem
         item={{ name: path, isopen: isOpened, isactive: isActive }}
         itemStyle={fileItemStyle(time?.getTime())}
+        multiline={true}
         renderIcon={(_item, style) => <Icon style={style} name={name} />}
         onClick={(e) => handle_log_click(e, path, project_id)}
         onClose={(e: React.MouseEvent, path: string) => {
