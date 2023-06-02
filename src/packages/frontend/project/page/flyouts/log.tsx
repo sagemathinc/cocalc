@@ -25,11 +25,16 @@ import {
   to_search_string,
 } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
-import { search_match, search_split, unreachable } from "@cocalc/util/misc";
+import {
+  search_match,
+  search_split,
+  tab_to_path,
+  unreachable,
+} from "@cocalc/util/misc";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { FileListItem, fileItemStyle } from "./components";
-import { getFlyoutLogMode } from "./state";
+import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
 
 export const FLYOUT_LOG_DEFAULT_MODE = "files";
 
@@ -43,29 +48,22 @@ interface HeaderProps {
   project_id: string;
 }
 
-const LogModes = ["files", "history"] as const;
-export type FlyoutLogMode = (typeof LogModes)[number];
-function isFlyoutLogMode(val?: string): val is FlyoutLogMode {
-  return LogModes.includes(val as any);
-}
-
 export function LogHeader({ project_id }: HeaderProps): JSX.Element {
-  const [mode, setModeState] = useState<FlyoutLogMode>(FLYOUT_LOG_DEFAULT_MODE);
-  const actions = useActions({ project_id });
+  const [mode, setModeState] = useState<FlyoutLogMode>(
+    getFlyoutLogMode(project_id)
+  );
 
   function setMode(mode: FlyoutLogMode) {
     if (isFlyoutLogMode(mode)) {
       setModeState(mode);
-      actions?.setFlyoutLogMode(mode);
     } else {
       console.warn(`Invalid flyout log mode: ${mode}`);
     }
   }
 
-  useEffect(() => {
-    const modeLS = getFlyoutLogMode(project_id);
-    if (isFlyoutLogMode(modeLS)) setModeState(modeLS);
-  }, []);
+  // any mode change triggers an action to compute it
+  const actions = useActions({ project_id });
+  useEffect(() => actions?.setFlyoutLogMode(mode), [mode]);
 
   function renderToggle() {
     return (
@@ -155,12 +153,17 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
   const project_log = useTypedRedux({ project_id }, "project_log");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const user_map = useTypedRedux("users", "user_map");
+  const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `${project_id}::flyout::log`,
   });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
   const [searchTerm, setSearchTerm] = useState<string>("");
+
+  const activePath = useMemo(() => {
+    return tab_to_path(activeTab);
+  }, [activeTab]);
 
   const log: OpenedFile[] = useMemo(() => {
     if (project_log == null) return [];
@@ -182,11 +185,13 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
     const info = file_options(path);
     const name: IconName = info.icon ?? "file";
     const isOpened: boolean = openFiles.some((p) => p === path);
+    const isActive : boolean = activePath === path;
 
     return (
       <FileListItem
-        item={{ name: path, isopen: isOpened }}
+        item={{ name: path, isopen: isOpened, isactive: isActive }}
         itemStyle={fileItemStyle(time?.getTime())}
+        multiline={true}
         renderIcon={(_item, style) => <Icon style={style} name={name} />}
         onClick={(e) => handle_log_click(e, path, project_id)}
         onClose={(e: React.MouseEvent, path: string) => {

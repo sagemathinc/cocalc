@@ -1946,16 +1946,18 @@ export function ensure_bound(x: number, min: number, max: number): number {
   return x < min ? min : x > max ? max : x;
 }
 
+export const EDITOR_PREFIX = "editor-";
+
 // convert a file path to the "name" of the underlying editor tab.
 // needed because otherwise filenames like 'log' would cause problems
 export function path_to_tab(name: string): string {
-  return `editor-${name}`;
+  return `${EDITOR_PREFIX}${name}`;
 }
 
 // assumes a valid editor tab name...
 // If invalid or undefined, returns undefined
 export function tab_to_path(name: string): string | undefined {
-  if (name?.substring(0, 7) === "editor-") {
+  if (name?.substring(0, 7) === EDITOR_PREFIX) {
     return name.substring(7);
   }
   return;
