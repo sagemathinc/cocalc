@@ -29,7 +29,7 @@ import { search_match, search_split, unreachable } from "@cocalc/util/misc";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { FileListItem, fileItemStyle } from "./components";
-import { getFlyoutLogMode } from "./state";
+import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
 
 export const FLYOUT_LOG_DEFAULT_MODE = "files";
 
@@ -43,29 +43,22 @@ interface HeaderProps {
   project_id: string;
 }
 
-const LogModes = ["files", "history"] as const;
-export type FlyoutLogMode = (typeof LogModes)[number];
-function isFlyoutLogMode(val?: string): val is FlyoutLogMode {
-  return LogModes.includes(val as any);
-}
-
 export function LogHeader({ project_id }: HeaderProps): JSX.Element {
-  const [mode, setModeState] = useState<FlyoutLogMode>(FLYOUT_LOG_DEFAULT_MODE);
-  const actions = useActions({ project_id });
+  const [mode, setModeState] = useState<FlyoutLogMode>(
+    getFlyoutLogMode(project_id)
+  );
 
   function setMode(mode: FlyoutLogMode) {
     if (isFlyoutLogMode(mode)) {
       setModeState(mode);
-      actions?.setFlyoutLogMode(mode);
     } else {
       console.warn(`Invalid flyout log mode: ${mode}`);
     }
   }
 
-  useEffect(() => {
-    const modeLS = getFlyoutLogMode(project_id);
-    if (isFlyoutLogMode(modeLS)) setModeState(modeLS);
-  }, []);
+  // any mode change triggers an action to compute it
+  const actions = useActions({ project_id });
+  useEffect(() => actions?.setFlyoutLogMode(mode), [mode]);
 
   function renderToggle() {
     return (
