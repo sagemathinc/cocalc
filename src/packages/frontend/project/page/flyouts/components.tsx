@@ -26,6 +26,11 @@ const FILE_ITEM_OPENED_STYLE: CSS = {
   color: COLORS.PROJECT.FIXED_LEFT_ACTIVE,
 } as const;
 
+const FILE_ITEM_ACTIVE_STYLE: CSS = {
+  ...FILE_ITEM_OPENED_STYLE,
+  color: COLORS.PROJECT.FIXED_LEFT_OPENED,
+};
+
 const FILE_ITEM_STYLE: CSS = {
   flex: "1 1 auto",
   display: "flex",
@@ -60,6 +65,7 @@ const ICON_STYLE: CSS = { fontSize: "120%", marginRight: "5px" } as const;
 
 interface Item {
   isopen?: boolean;
+  isactive?: boolean;
   name: string;
 }
 
@@ -140,7 +146,11 @@ export function FileListItem({
       style={{
         ...FILE_ITEM_LINE_STYLE,
         ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
-        ...(item.isopen ? FILE_ITEM_OPENED_STYLE : {}),
+        ...(item.isopen
+          ? item.isactive
+            ? FILE_ITEM_ACTIVE_STYLE
+            : FILE_ITEM_OPENED_STYLE
+          : {}),
         ...itemStyle,
       }}
     >
