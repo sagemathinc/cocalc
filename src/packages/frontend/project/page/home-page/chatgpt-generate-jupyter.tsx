@@ -183,19 +183,7 @@ export default function ChatGPTGenerateJupyterNotebook({
     const timestamp = getTimestamp();
     const path = `${prefix}${filename}-${timestamp}.ipynb`;
     const nb = {
-      cells: [
-        {
-          cell_type: "markdown",
-          source: [
-            `# ChatGPT generated notebook\n\n`,
-            `This notebook was generated in [CoCalc](https://cocalc.com) by [ChatGPT](https://chat.openai.com/) using the prompt:\n\n`,
-            prompt
-              .split("\n")
-              .map((line) => `> ${line}`)
-              .join("\n") + "\n",
-          ],
-        },
-      ],
+      cells: [],
       metadata: { kernelspec: spec },
     };
 
@@ -233,6 +221,27 @@ export default function ChatGPTGenerateJupyterNotebook({
     return null;
   }
 
+  function insetFirstCell(
+    ja: JupyterActions,
+    jfa: NotebookFrameActions
+  ): string {
+    const id = jfa.insert_cell(1);
+
+    const promptIndented =
+      prompt
+        .split("\n")
+        .map((line) => `> ${line}`)
+        .join("\n") + "\n";
+
+    jfa.set_cell_input(
+      id,
+      `# ChatGPT generated notebook\n\nThis notebook was generated in [CoCalc](https://cocalc.com) by [ChatGPT](https://chat.openai.com/) using the prompt:\n\n${promptIndented}`
+    );
+    ja.set_cell_type(id, "markdown");
+    jfa.set_cur_id(id);
+    return id;
+  }
+
   async function updateNotebook(
     path: string,
     gptStream: ChatStream
@@ -249,9 +258,9 @@ export default function ChatGPTGenerateJupyterNotebook({
       throw new Error(`Unable to create Jupyter Notebook for ${path}`);
     }
 
-    jfa.set_cur_id_last(); // this is important, since there is already one cell
+    let curCellID = insetFirstCell(ja, jfa);
     let numCells = 1;
-    let curCellID = jfa.insert_cell(1);
+    curCellID = jfa.insert_cell(1);
     jfa.set_cur_id(curCellID);
 
     const updateCells = throttle(
@@ -269,6 +278,7 @@ export default function ChatGPTGenerateJupyterNotebook({
             jfa.set_cur_id(curCellID);
             jfa.set_cell_input(curCellID, allCells[i].source.join("\n"));
             ja.set_cell_type(curCellID, allCells[i].cell_type);
+            numCells += 1;
           }
         }
       },
