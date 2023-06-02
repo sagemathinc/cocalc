@@ -26,7 +26,6 @@ import {
 } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
 import { search_match, search_split, unreachable } from "@cocalc/util/misc";
-import { debounce } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { FileListItem, fileItemStyle } from "./components";
@@ -231,14 +230,6 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
     }
   }
 
-  const onChangeHandler = debounce(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchTerm(e.target.value);
-    },
-    50,
-    { leading: false, trailing: true }
-  );
-
   function list(): JSX.Element {
     return (
       <Virtuoso
@@ -270,7 +261,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
         placeholder="Search..."
         style={{ width: "100%" }}
         value={searchTerm}
-        onChange={onChangeHandler}
+        onChange={(e) => setSearchTerm(e.target.value)}
         onKeyUp={onKeyUpHandler}
         allowClear
         prefix={<Icon name="search" />}
