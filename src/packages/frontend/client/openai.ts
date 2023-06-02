@@ -271,3 +271,6 @@ class ChatStream extends EventEmitter {
     this.emit("error", err);
   }
 }
+
+
+export type { ChatStream };

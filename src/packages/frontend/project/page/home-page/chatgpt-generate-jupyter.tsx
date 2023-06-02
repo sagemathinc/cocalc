@@ -9,6 +9,7 @@ TODO:
 
 import { Alert, Button, Input, Modal } from "antd";
 import { delay } from "awaiting";
+import { throttle } from "lodash";
 import { CSSProperties, useEffect, useState } from "react";
 
 import {
@@ -16,6 +17,7 @@ import {
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { ChatStream } from "@cocalc/frontend/client/openai";
 import {
   A,
   HelpIcon,
@@ -30,14 +32,17 @@ import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
-import type { KernelSpec } from "@cocalc/jupyter/types";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { JupyterActions } from "@cocalc/jupyter/redux/actions";
+import type { KernelSpec } from "@cocalc/jupyter/types";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Block } from "./block";
 
-const tag = "generate-jupyter";
+const TAG = "generate-jupyter";
+const TAG_FN = "generate-jupyter-filename";
 
 const PLACEHOLDER = "Describe your notebook in detail...";
 
@@ -136,17 +141,27 @@ export default function ChatGPTGenerateJupyterNotebook({
 
     const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
 
-    const input = `Explain directly and to the point, how to compute the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename for code.\n\n${prompt}`;
+    const input = `Explain directly and to the point, how to compute the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together.\n\n${prompt}`;
 
     try {
       setQuerying(true);
-      const raw = await webapp_client.openai_client.chatgpt({
+      // we launch two queries in parallel and as soon as we have a filename, we create the notebook.
+      const filenameGPT = webapp_client.openai_client.chatgpt({
+        input: `Generate a filename for a Jupyter Notebook using the programming language "${spec.display_name}" and the following description:\n\n${prompt}\n\nOutut only the name ending in '.ipynb'.`,
+        project_id,
+        path: current_path,
+        tag: TAG_FN,
+      });
+      const gptStreamPromise = webapp_client.openai_client.chatgptStream({
         input,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
-        tag,
+        tag: TAG,
       });
-      await writeNotebook(raw);
+
+      const path = await createNotebook(await filenameGPT);
+      setQuerying(false);
+      await updateNotebook(path, await gptStreamPromise);
       onSuccess?.();
     } catch (err) {
       setError(
@@ -157,98 +172,30 @@ export default function ChatGPTGenerateJupyterNotebook({
     }
   }
 
-  /**
-   * The text string contains markdown text with code blocks. This split this into cells of type markdown and code.
-   */
-  function splitCells(
-    text: string
-  ): { cell_type: "markdown" | "code"; source: string[] }[] {
-    const ret: { cell_type: "markdown" | "code"; source: string[] }[] = [
-      {
-        cell_type: "markdown",
-        source: [
-          `# ChatGPT generated notebook\n\n`,
-          `This notebook was generated in [CoCalc](https://cocalc.com) by [ChatGPT](https://chat.openai.com/) using the prompt:\n\n`,
-          prompt
-            .split("\n")
-            .map((line) => `> ${line}`)
-            .join("\n") + "\n",
-        ],
-      },
-    ];
-
-    let lines = text.split("\n");
-    let cell_type: "markdown" | "code" = "markdown";
-    let source: string[] = [];
-    for (const line of lines) {
-      if (line.startsWith("```")) {
-        stripTrailingWhitespace(source);
-        if (source.length > 0) {
-          ret.push({ cell_type, source });
-          source = [];
-        }
-        cell_type = cell_type == "markdown" ? "code" : "markdown";
-      } else {
-        source.push(`${line}\n`);
-      }
-    }
-
-    stripTrailingWhitespace(source);
-    if (source.length > 0) {
-      ret.push({ cell_type, source });
-    }
-
-    return ret;
-  }
-
-  function getTitle(
-    prompt: string,
-    text: string
-  ): { title: string; text: string } {
-    const i = text.toLowerCase().indexOf("filename:");
-    if (i == -1) {
-      return {
-        title: prompt
-          .split("\n")
-          .join("_")
-          .replace(/[^a-zA-Z0-9 ]/g, "")
-          .replace(/\s+/g, "_")
-          .trim()
-          .slice(0, 60),
-        text,
-      };
-    }
-    const j = text.indexOf("\n", i + "filename:".length);
-    let title = text
-      .slice(i + "filename:".length, j)
-      .trim()
-      .replace(/`/g, "");
-    const k = title.indexOf(".");
-    if (k != -1) {
-      title = title.slice(0, k).trim();
-    }
-    return {
-      title,
-      text: text.slice(0, i) + text.slice(j + 1),
-    };
-  }
-
-  function getTimestamp(): string {
-    return to_iso_path(new Date());
-  }
-
-  async function writeNotebook(text: string): Promise<void> {
+  async function createNotebook(filenameGPT: string): Promise<string> {
+    const filename = sanitizeFilename(filenameGPT);
     // constructs a proto jupyter notebook with the given kernel
-    let title;
-    ({ title, text } = getTitle(prompt, text));
     const prefix = current_path ? `${current_path}/` : "";
     const timestamp = getTimestamp();
-    const path = `${prefix}${title}-${timestamp}.ipynb`;
+    const path = `${prefix}${filename}-${timestamp}.ipynb`;
     const nb = {
-      cells: splitCells(text),
+      cells: [
+        {
+          cell_type: "markdown",
+          source: [
+            `# ChatGPT generated notebook\n\n`,
+            `This notebook was generated in [CoCalc](https://cocalc.com) by [ChatGPT](https://chat.openai.com/) using the prompt:\n\n`,
+            prompt
+              .split("\n")
+              .map((line) => `> ${line}`)
+              .join("\n") + "\n",
+          ],
+        },
+      ],
       metadata: { kernelspec: spec },
     };
-    track("chatgpt", { project_id, path, tag, type: "generate" });
+
+    track("chatgpt", { project_id, path, tag: TAG, type: "generate" });
 
     // we don't check if the file exists, because the prompt+timestamp should be unique enough
     await webapp_client.project_client.write_text_file({
@@ -256,24 +203,75 @@ export default function ChatGPTGenerateJupyterNotebook({
       path,
       content: JSON.stringify(nb, null, 2),
     });
+    return path;
+  }
+
+  async function getJupyterFrameActions(
+    path
+  ): Promise<JupyterEditorActions | null> {
+    // first we open the file
     await projectActions?.open_file({
       path,
       foreground: true,
     });
-    // Start it running, so user doesn't have to wait... but actions
-    // might not be immediately available...
+    // and then we try to "activate" it
     for (let i = 0; i < 20; i++) {
       const jupyterFrameActions = redux.getEditorActions(
         project_id,
         path
       ) as JupyterEditorActions;
       if (jupyterFrameActions != null) {
-        jupyterFrameActions.jupyter_actions.run_all_cells();
-        break;
+        return jupyterFrameActions;
       } else {
         await delay(500);
       }
     }
+    return null;
+  }
+
+  async function updateNotebook(
+    path: string,
+    gptStream: ChatStream
+  ): Promise<void> {
+    // Start it running, so user doesn't have to wait... but actions
+    // might not be immediately available...
+    const jea: JupyterEditorActions | null = await getJupyterFrameActions(path);
+    if (jea == null) {
+      throw new Error(`Unable to create Jupyter Notebook for ${path}`);
+    }
+    const ja: JupyterActions = jea.jupyter_actions;
+
+    let lastCell = ja.insert_cell(1);
+
+    const updateCells = throttle(
+      function (answer) {
+        const allCells = splitCells(answer);
+        console.log("allCells", allCells);
+      },
+      750,
+      { leading: true, trailing: true }
+    );
+
+    let answer = "";
+    gptStream.on("token", (token) => {
+      if (token != null) {
+        answer += token;
+        updateCells(answer);
+      } else {
+        // we're done
+        ja.run_all_cells();
+      }
+    });
+
+    gptStream.on("error", (err) => {
+      ja.set_cell_input(
+        lastCell,
+        `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`
+      );
+      ja.set_cell_type(lastCell, "markdown");
+      ja.set_mode("escape");
+      return;
+    });
   }
 
   if (!redux.getStore("projects").hasOpenAI(project_id)) {
@@ -364,7 +362,7 @@ export default function ChatGPTGenerateJupyterNotebook({
                 />
                 <br />
                 {example && (
-                  <div style={{ color: "#444", marginTop: "15px" }}>
+                  <div style={{ color: COLORS.GRAY_D, marginTop: "15px" }}>
                     Example: <i>"{example}"</i>
                   </div>
                 )}
@@ -391,6 +389,38 @@ export default function ChatGPTGenerateJupyterNotebook({
       )}
     </Block>
   );
+}
+
+/**
+ * The text string contains markdown text with code blocks. This split this into cells of type markdown and code.
+ */
+function splitCells(
+  text: string
+): { cell_type: "markdown" | "code"; source: string[] }[] {
+  const ret: { cell_type: "markdown" | "code"; source: string[] }[] = [];
+
+  let lines = text.split("\n");
+  let cell_type: "markdown" | "code" = "markdown";
+  let source: string[] = [];
+  for (const line of lines) {
+    if (line.startsWith("```")) {
+      stripTrailingWhitespace(source);
+      if (source.length > 0) {
+        ret.push({ cell_type, source });
+        source = [];
+      }
+      cell_type = cell_type == "markdown" ? "code" : "markdown";
+    } else {
+      source.push(`${line}\n`);
+    }
+  }
+
+  stripTrailingWhitespace(source);
+  if (source.length > 0) {
+    ret.push({ cell_type, source });
+  }
+
+  return ret;
 }
 
 function stripTrailingWhitespace(source: string[]) {
@@ -443,4 +473,29 @@ export function ChatGPTGenerateNotebookButton({
       </Modal>
     </>
   );
+}
+
+function sanitizeFilename(text: string): string {
+  const fn = text
+    .trim()
+    .split("\n")
+    .join("_")
+    .replace(/`/g, "")
+    .replace(/[^a-zA-Z0-9 ]/g, "")
+    .replace(/\s+/g, "_")
+    .trim()
+    .slice(0, 120);
+
+  // make sure fn ends with ".ipynb"
+  if (!fn.endsWith(".ipynb")) {
+    const parts = fn.split(".");
+    if (parts.length > 1) parts.pop();
+    return parts.join(".") + ".ipynb";
+  } else {
+    return fn;
+  }
+}
+
+function getTimestamp(): string {
+  return to_iso_path(new Date());
 }
