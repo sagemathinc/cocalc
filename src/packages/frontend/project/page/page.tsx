@@ -44,6 +44,8 @@ import HomePageButton from "./home-page/button";
 import { useProjectStatus } from "./project-status-hook";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
+import { path_to_tab } from "@cocalc/util/misc";
+import { EDITOR_PREFIX } from "@cocalc/util/misc";
 //import FirstSteps from "@cocalc/frontend/project/explorer/file-listing/first-steps";
 
 const PAGE_STYLE: React.CSSProperties = {
@@ -147,7 +149,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       if (!path) {
         return;
       }
-      const tab_name = "editor-" + path;
+      const tab_name = path_to_tab(path);
       return v.push(
         <FrameContext.Provider
           key={tab_name}
@@ -185,7 +187,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       // and they are visible.
       return;
     }
-    if (active_project_tab.slice(0, 7) !== "editor-") {
+    if (active_project_tab.slice(0, 7) !== EDITOR_PREFIX) {
       return (
         <Content
           key={active_project_tab}

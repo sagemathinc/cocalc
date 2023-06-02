@@ -23,7 +23,8 @@ export interface DirectoryListingEntry {
   mtime?: number;
   isdir?: boolean;
   mask?: boolean;
-  isopen?: boolean;
+  isopen?: boolean; // opened in an editor
+  isactive?: boolean; // opeend in the currently active editor
 }
 
 export type DirectoryListing = DirectoryListingEntry[];

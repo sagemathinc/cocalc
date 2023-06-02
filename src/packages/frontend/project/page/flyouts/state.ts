@@ -4,16 +4,26 @@
  */
 
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
-import { FixedTab } from "../file-tab";
+import { FixedTab, isFixedTab } from "../file-tab";
 import { FLYOUT_DEFAULT_WIDTH_PX } from "./consts";
 import { FLYOUT_LOG_DEFAULT_MODE } from "./log";
 
+const LogModes = ["files", "history"] as const;
+export type FlyoutLogMode = (typeof LogModes)[number];
+export function isFlyoutLogMode(val?: string): val is FlyoutLogMode {
+  return LogModes.includes(val as any);
+}
+
 export type LSFlyout = {
-  scroll?: { [name in FixedTab]?: number };
-  width?: number;
+  scroll?: { [name in FixedTab]?: number }; // checked using isPositiveNumber
+  width?: number; // checked using isPositiveNumber
   expanded?: FixedTab | null;
-  mode?: string; // used by "log"
+  mode?: FlyoutLogMode; // check using isFlyoutLogMode
 };
+
+function isPositiveNumber(val: any): val is number {
+  return typeof val === "number" && !isNaN(val) && val >= 0;
+}
 
 export const lsKey = (project_id: string) => `${project_id}::flyout`;
 
@@ -24,7 +34,7 @@ export function storeFlyoutState(
     scroll?: number;
     expanded?: boolean;
     width?: number | null;
-    mode?: string;
+    mode?: string; // check using isFlyoutLogMode
   }
 ): void {
   const { scroll, expanded, width, mode } = state;
@@ -32,13 +42,13 @@ export function storeFlyoutState(
   const current = LS.get<LSFlyout>(key) ?? {};
   current.scroll ??= {};
 
-  if (scroll != null && !isNaN(scroll) && scroll > 0) {
+  if (isPositiveNumber(scroll)) {
     current.scroll = { ...current.scroll, [flyout]: scroll };
   } else if (scroll === 0) {
     delete current.scroll[flyout];
   }
 
-  if (width != null && !isNaN(width) && width > 0) {
+  if (isPositiveNumber(width)) {
     current.width = width;
   } else if (width === null) {
     delete current.width;
@@ -50,7 +60,7 @@ export function storeFlyoutState(
     delete current.expanded;
   }
 
-  if (typeof mode === "string") {
+  if (isFlyoutLogMode(mode)) {
     current.mode = mode;
   }
 
@@ -58,16 +68,16 @@ export function storeFlyoutState(
 }
 
 export function getFlyoutExpanded(project_id: string): FixedTab | null {
-  const current = LS.get<LSFlyout>(lsKey(project_id));
-  return current?.expanded ?? null;
+  const expanded = LS.get<LSFlyout>(lsKey(project_id))?.expanded;
+  return isFixedTab(expanded) ? expanded : null;
 }
 
 export function getFlyoutWidth(project_id: string): number {
-  const current = LS.get<LSFlyout>(lsKey(project_id));
-  return current?.width ?? FLYOUT_DEFAULT_WIDTH_PX;
+  const width = LS.get<LSFlyout>(lsKey(project_id))?.width;
+  return isPositiveNumber(width) ? width : FLYOUT_DEFAULT_WIDTH_PX;
 }
 
-export function getFlyoutLogMode(project_id: string): string {
-  const current = LS.get<LSFlyout>(lsKey(project_id));
-  return current?.mode ?? FLYOUT_LOG_DEFAULT_MODE;
+export function getFlyoutLogMode(project_id: string): FlyoutLogMode {
+  const mode = LS.get<LSFlyout>(lsKey(project_id))?.mode;
+  return isFlyoutLogMode(mode) ? mode : FLYOUT_LOG_DEFAULT_MODE;
 }

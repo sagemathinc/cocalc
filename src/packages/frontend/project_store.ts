@@ -14,6 +14,9 @@ if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
   wrapped_editors = require("./editors/react-wrapper");
 }
+
+import * as immutable from "immutable";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   AppRedux,
@@ -40,11 +43,11 @@ import {
 } from "@cocalc/frontend/project_configuration";
 import { deleted_file_variations } from "@cocalc/util/delete-files";
 import * as misc from "@cocalc/util/misc";
-import * as immutable from "immutable";
 import { compute_file_masks } from "./project/explorer/compute-file-masks";
 import { DirectoryListing } from "./project/explorer/types";
 import { FixedTab } from "./project/page/file-tab";
-import { FLYOUT_LOG_DEFAULT_MODE, FlyoutLogMode } from "./project/page/flyouts/log";
+import { FLYOUT_LOG_DEFAULT_MODE } from "./project/page/flyouts/log";
+import { FlyoutLogMode } from "./project/page/flyouts/state";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 

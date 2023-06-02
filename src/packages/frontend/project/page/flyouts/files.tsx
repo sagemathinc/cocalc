@@ -43,6 +43,7 @@ import {
   search_split,
   should_open_in_foreground,
   strictMod,
+  tab_to_path,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectState } from "../project-state-hook";
@@ -61,6 +62,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   const projectIsRunning = project_state?.get("state") === "running";
   const current_path = useTypedRedux({ project_id }, "current_path");
   const directoryListings = useTypedRedux({ project_id }, "directory_listings");
+  const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const activeFileSort: ActiveFileSort = useTypedRedux(
     { project_id },
     "active_file_sort"
@@ -78,6 +80,10 @@ export function FilesFlyout({ project_id }): JSX.Element {
     cacheId: `${project_id}::flyout::files::${current_path}`,
   });
   const uploadClassName = `upload-button-flyout-${project_id}`;
+
+  const activePath = useMemo(() => {
+    return tab_to_path(activeTab);
+  }, [activeTab]);
 
   // copied roughly from directoy-selector.tsx
   useEffect(() => {
@@ -156,6 +162,9 @@ export function FilesFlyout({ project_id }): JSX.Element {
       const fullPath = path_to_file(current_path, file.name);
       if (openFiles.some((path) => path == fullPath)) {
         file.isopen = true;
+      }
+      if (activePath === fullPath) {
+        file.isactive = true;
       }
     }
 
