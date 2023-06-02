@@ -520,6 +520,15 @@ export class NotebookFrameActions {
     this.set_cur_id(cell_list.get(i));
   }
 
+  public set_cur_id_last(): string | undefined {
+    const cell_list = this.jupyter_actions.store.get_cell_list();
+    if (cell_list.size > 0) {
+      const lastID = cell_list.get(cell_list.size - 1);
+      this.set_cur_id(lastID);
+      return lastID;
+    }
+  }
+
   /***
    * Selection
    ***/

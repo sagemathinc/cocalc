@@ -40,6 +40,7 @@ import type { KernelSpec } from "@cocalc/jupyter/types";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Block } from "./block";
+import { NotebookFrameActions } from "../../../frame-editors/jupyter-editor/cell-notebook/actions";
 
 const TAG = "generate-jupyter";
 const TAG_FN = "generate-jupyter-filename";
@@ -145,13 +146,15 @@ export default function ChatGPTGenerateJupyterNotebook({
 
     try {
       setQuerying(true);
+
       // we launch two queries in parallel and as soon as we have a filename, we create the notebook.
       const filenameGPT = webapp_client.openai_client.chatgpt({
-        input: `Generate a filename for a Jupyter Notebook using the programming language "${spec.display_name}" and the following description:\n\n${prompt}\n\nOutut only the name ending in '.ipynb'.`,
+        input: `Suggest a filename for a Jupyter Notebook with following description:\n\n${prompt}`,
         project_id,
         path: current_path,
         tag: TAG_FN,
       });
+
       const gptStreamPromise = webapp_client.openai_client.chatgptStream({
         input,
         project_id,
@@ -161,8 +164,8 @@ export default function ChatGPTGenerateJupyterNotebook({
 
       const path = await createNotebook(await filenameGPT);
       setQuerying(false);
-      await updateNotebook(path, await gptStreamPromise);
       onSuccess?.();
+      await updateNotebook(path, await gptStreamPromise);
     } catch (err) {
       setError(
         `${err}\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`
@@ -174,6 +177,7 @@ export default function ChatGPTGenerateJupyterNotebook({
 
   async function createNotebook(filenameGPT: string): Promise<string> {
     const filename = sanitizeFilename(filenameGPT);
+    console.log("filenameGPT", filenameGPT, "filename", filename);
     // constructs a proto jupyter notebook with the given kernel
     const prefix = current_path ? `${current_path}/` : "";
     const timestamp = getTimestamp();
@@ -240,13 +244,33 @@ export default function ChatGPTGenerateJupyterNotebook({
       throw new Error(`Unable to create Jupyter Notebook for ${path}`);
     }
     const ja: JupyterActions = jea.jupyter_actions;
+    const jfa: NotebookFrameActions | undefined = jea.get_frame_actions();
+    if (jfa == null) {
+      throw new Error(`Unable to create Jupyter Notebook for ${path}`);
+    }
 
-    let lastCell = ja.insert_cell(1);
+    jfa.set_cur_id_last(); // this is important, since there is already one cell
+    let numCells = 1;
+    let curCellID = jfa.insert_cell(1);
+    jfa.set_cur_id(curCellID);
 
     const updateCells = throttle(
       function (answer) {
         const allCells = splitCells(answer);
-        console.log("allCells", allCells);
+        console.log("updateCells", answer, "allCells", allCells);
+        // update the last cell
+        jfa.set_cell_input(curCellID, allCells[numCells - 1].source.join("\n"));
+        ja.set_cell_type(curCellID, allCells[numCells - 1].cell_type);
+
+        if (allCells.length > numCells) {
+          // for all new cells, insert them and update lastCell and numCells
+          for (let i = numCells; i < allCells.length; i++) {
+            curCellID = jfa.insert_cell(1); // insert cell below the current one
+            jfa.set_cur_id(curCellID);
+            jfa.set_cell_input(curCellID, allCells[i].source.join("\n"));
+            ja.set_cell_type(curCellID, allCells[i].cell_type);
+          }
+        }
       },
       750,
       { leading: true, trailing: true }
@@ -265,10 +289,10 @@ export default function ChatGPTGenerateJupyterNotebook({
 
     gptStream.on("error", (err) => {
       ja.set_cell_input(
-        lastCell,
+        curCellID,
         `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`
       );
-      ja.set_cell_type(lastCell, "markdown");
+      ja.set_cell_type(curCellID, "markdown");
       ja.set_mode("escape");
       return;
     });
@@ -476,24 +500,24 @@ export function ChatGPTGenerateNotebookButton({
 }
 
 function sanitizeFilename(text: string): string {
-  const fn = text
-    .trim()
-    .split("\n")
-    .join("_")
-    .replace(/`/g, "")
-    .replace(/[^a-zA-Z0-9 ]/g, "")
+  text = text.trim().split("\n").shift() ?? "";
+  text = text.replace(/["']/g, "");
+  // remove ending, we'll add it back later
+  text = text.replace(/\.ipynb/, "");
+
+  // if there is a "filename:" in the text, remove everything until after it
+  const i = text.indexOf("filename:");
+  if (i >= 0) {
+    text = text.slice(i + "filename:".length);
+  }
+
+  text = text
     .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9-_]/g, "")
     .trim()
     .slice(0, 120);
 
-  // make sure fn ends with ".ipynb"
-  if (!fn.endsWith(".ipynb")) {
-    const parts = fn.split(".");
-    if (parts.length > 1) parts.pop();
-    return parts.join(".") + ".ipynb";
-  } else {
-    return fn;
-  }
+  return text;
 }
 
 function getTimestamp(): string {
