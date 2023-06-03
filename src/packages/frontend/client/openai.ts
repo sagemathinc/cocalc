@@ -40,10 +40,13 @@ export class OpenAIClient {
     return await this.implementChatgpt(opts);
   }
 
-  public chatgptStream(opts): ChatStream {
+  public chatgptStream(opts, startExplicitly = false): ChatStream {
     const chatStream = new ChatStream();
     (async () => {
       await this.implementChatgpt({ ...opts, chatStream });
+      if (!startExplicitly) {
+        chatStream.emit("start");
+      }
     })();
     return chatStream;
   }
@@ -66,6 +69,7 @@ export class OpenAIClient {
     model?: Model;
     chatStream?: ChatStream; // if given, uses chat stream
     tag?: string;
+    startStreamExplicitly?: boolean;
   }): Promise<string> {
     if (!redux.getStore("projects").hasOpenAI(project_id, tag)) {
       return `OpenAI support is not currently enabled ${
@@ -111,18 +115,22 @@ export class OpenAIClient {
     if (chatStream == null) {
       return (await this.client.async_call({ message: mesg })).text;
     }
-    // streaming version
-    this.client.call({
-      message: mesg,
-      error_event: true,
-      cb: (err, resp) => {
-        if (err) {
-          chatStream.error(err);
-        } else {
-          chatStream.process(resp.text);
-        }
-      },
+
+    chatStream.once("start", () => {
+      // streaming version
+      this.client.call({
+        message: mesg,
+        error_event: true,
+        cb: (err, resp) => {
+          if (err) {
+            chatStream.error(err);
+          } else {
+            chatStream.process(resp.text);
+          }
+        },
+      });
     });
+
     return "see stream for output";
   }
 
@@ -271,6 +279,5 @@ class ChatStream extends EventEmitter {
     this.emit("error", err);
   }
 }
-
 
 export type { ChatStream };

@@ -31,6 +31,7 @@ import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
@@ -40,10 +41,8 @@ import type { KernelSpec } from "@cocalc/jupyter/types";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Block } from "./block";
-import { NotebookFrameActions } from "../../../frame-editors/jupyter-editor/cell-notebook/actions";
 
 const TAG = "generate-jupyter";
-const TAG_FN = "generate-jupyter-filename";
 
 const PLACEHOLDER = "Describe your notebook in detail...";
 
@@ -142,42 +141,29 @@ export default function ChatGPTGenerateJupyterNotebook({
 
     const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
 
-    const input = `Explain directly and to the point, how to compute the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together.\n\n${prompt}`;
+    const input = `Explain directly and to the point, how to compute the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename]".\n\n${prompt}`;
 
     try {
       setQuerying(true);
 
-      // we launch two queries in parallel and as soon as we have a filename, we create the notebook.
-      const filenameGPT = webapp_client.openai_client.chatgpt({
-        input: `Suggest a filename for a Jupyter Notebook with following description:\n\n${prompt}`,
-        project_id,
-        path: current_path,
-        tag: TAG_FN,
-      });
-
-      const gptStreamPromise = webapp_client.openai_client.chatgptStream({
+      const gptStream = webapp_client.openai_client.chatgptStream({
         input,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
         tag: TAG,
       });
 
-      const path = await createNotebook(await filenameGPT);
-      setQuerying(false);
-      onSuccess?.();
-      await updateNotebook(path, await gptStreamPromise);
+      await updateNotebook(gptStream);
     } catch (err) {
       setError(
         `${err}\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`
       );
-    } finally {
       setQuerying(false);
     }
   }
 
   async function createNotebook(filenameGPT: string): Promise<string> {
     const filename = sanitizeFilename(filenameGPT);
-    console.log("filenameGPT", filenameGPT, "filename", filename);
     // constructs a proto jupyter notebook with the given kernel
     const prefix = current_path ? `${current_path}/` : "";
     const timestamp = getTimestamp();
@@ -221,68 +207,76 @@ export default function ChatGPTGenerateJupyterNotebook({
     return null;
   }
 
-  function insetFirstCell(
-    ja: JupyterActions,
-    jfa: NotebookFrameActions
-  ): string {
-    const id = jfa.insert_cell(1);
+  async function updateNotebook(gptStream: ChatStream): Promise<void> {
+    // local state, modified when more data comes in
+    let init = false;
+    let ja: JupyterActions;
+    let jfa: NotebookFrameActions;
+    let curCell: string = "";
+    let numCells: number = 0;
 
-    const promptIndented =
-      prompt
-        .split("\n")
-        .map((line) => `> ${line}`)
-        .join("\n") + "\n";
+    async function initNotebook(filenameGPT: string) {
+      let path = await createNotebook(filenameGPT);
+      // Start it running, so user doesn't have to wait... but actions
+      // might not be immediately available...
+      const jea: JupyterEditorActions | null = await getJupyterFrameActions(
+        path
+      );
+      if (jea == null) {
+        throw new Error(`Unable to create Jupyter Notebook for ${path}`);
+      }
+      ja = jea.jupyter_actions;
+      const jfaTmp: NotebookFrameActions | undefined = jea.get_frame_actions();
+      if (jfaTmp == null) {
+        throw new Error(`Unable to create Jupyter Notebook for ${path}`);
+      }
+      jfa = jfaTmp;
 
-    jfa.set_cell_input(
-      id,
-      `# ChatGPT generated notebook\n\nThis notebook was generated in [CoCalc](https://cocalc.com) by [ChatGPT](https://chat.openai.com/) using the prompt:\n\n${promptIndented}`
-    );
-    ja.set_cell_type(id, "markdown");
-    jfa.set_cur_id(id);
-    return id;
-  }
+      // // first cell
+      const fistCell = jfa.insert_cell(1);
 
-  async function updateNotebook(
-    path: string,
-    gptStream: ChatStream
-  ): Promise<void> {
-    // Start it running, so user doesn't have to wait... but actions
-    // might not be immediately available...
-    const jea: JupyterEditorActions | null = await getJupyterFrameActions(path);
-    if (jea == null) {
-      throw new Error(`Unable to create Jupyter Notebook for ${path}`);
+      const promptIndented =
+        prompt
+          .split("\n")
+          .map((line) => `> ${line}`)
+          .join("\n") + "\n";
+
+      jfa.set_cell_input(
+        fistCell,
+        `# ChatGPT generated notebook\n\nThis notebook was generated in [CoCalc](https://cocalc.com) by [ChatGPT](https://chat.openai.com/) using the prompt:\n\n${promptIndented}`
+      );
+      ja.set_cell_type(fistCell, "markdown");
+
+      // and below we insert an empty cell, ready to be updated in updateCells
+      curCell = jfa.insert_cell(1); // insert empty cell below
+      numCells += 1;
+
+      // This closes the modal, since we have a notebook now, and it's open, and has some content
+      setQuerying(false);
+      onSuccess?.();
     }
-    const ja: JupyterActions = jea.jupyter_actions;
-    const jfa: NotebookFrameActions | undefined = jea.get_frame_actions();
-    if (jfa == null) {
-      throw new Error(`Unable to create Jupyter Notebook for ${path}`);
-    }
-
-    let curCellID = insetFirstCell(ja, jfa);
-    let numCells = 1;
-    curCellID = jfa.insert_cell(1);
-    jfa.set_cur_id(curCellID);
 
     const updateCells = throttle(
+      // every update interval, we extract all the answer text,
       function (answer) {
         const allCells = splitCells(answer);
-        console.log("updateCells", answer, "allCells", allCells);
-        // update the last cell
-        jfa.set_cell_input(curCellID, allCells[numCells - 1].source.join("\n"));
-        ja.set_cell_type(curCellID, allCells[numCells - 1].cell_type);
+        console.log("allCells", allCells, "answer", answer);
+
+        // we always have to update the last cell, even if there are more cells ahead
+        jfa.set_cell_input(curCell, allCells[numCells - 1].source.join("\n"));
+        ja.set_cell_type(curCell, allCells[numCells - 1].cell_type);
 
         if (allCells.length > numCells) {
           // for all new cells, insert them and update lastCell and numCells
           for (let i = numCells; i < allCells.length; i++) {
-            curCellID = jfa.insert_cell(1); // insert cell below the current one
-            jfa.set_cur_id(curCellID);
-            jfa.set_cell_input(curCellID, allCells[i].source.join("\n"));
-            ja.set_cell_type(curCellID, allCells[i].cell_type);
+            curCell = jfa.insert_cell(1); // insert cell below the current one
+            jfa.set_cell_input(curCell, allCells[i].source.join("\n"));
+            ja.set_cell_type(curCell, allCells[i].cell_type);
             numCells += 1;
           }
         }
       },
-      750,
+      1000,
       { leading: true, trailing: true }
     );
 
@@ -290,7 +284,15 @@ export default function ChatGPTGenerateJupyterNotebook({
     gptStream.on("token", (token) => {
       if (token != null) {
         answer += token;
-        updateCells(answer);
+        const filenameGPT = getFilename(answer, prompt);
+        if (!init && filenameGPT != null) {
+          init = true;
+          initNotebook(filenameGPT);
+        }
+        // those are != null if we have a notebook open
+        if (ja != null && jfa != null) {
+          updateCells(answer);
+        }
       } else {
         // we're done
         ja.run_all_cells();
@@ -299,13 +301,16 @@ export default function ChatGPTGenerateJupyterNotebook({
 
     gptStream.on("error", (err) => {
       ja.set_cell_input(
-        curCellID,
+        curCell,
         `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`
       );
-      ja.set_cell_type(curCellID, "markdown");
+      ja.set_cell_type(curCell, "markdown");
       ja.set_mode("escape");
       return;
     });
+
+    // after setting up listeners, we start the stream
+    gptStream.emit("start");
   }
 
   if (!redux.getStore("projects").hasOpenAI(project_id)) {
@@ -437,6 +442,7 @@ function splitCells(
   let cell_type: "markdown" | "code" = "markdown";
   let source: string[] = [];
   for (const line of lines) {
+    if (line.startsWith("filename:")) continue;
     if (line.startsWith("```")) {
       stripTrailingWhitespace(source);
       if (source.length > 0) {
@@ -525,11 +531,22 @@ function sanitizeFilename(text: string): string {
     .replace(/\s+/g, "_")
     .replace(/[^a-zA-Z0-9-_]/g, "")
     .trim()
-    .slice(0, 120);
+    .slice(0, 64);
 
   return text;
 }
 
 function getTimestamp(): string {
   return to_iso_path(new Date());
+}
+
+function getFilename(text: string, prompt: string): string | null {
+  // we give up if there are more than 5 lines
+  if (text.split("\n").length > 3) {
+    return sanitizeFilename(prompt.split("\n").join("_"));
+  }
+  // use regex to search for '"filename: [filename]"'
+  const match = text.match(/"filename: (.*)"/);
+  if (match == null) return null;
+  return sanitizeFilename(match[1]);
 }

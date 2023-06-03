@@ -300,7 +300,6 @@ export class NotebookFrameActions {
       this.move_cursor(1);
     }
   }
-  h;
 
   public run_selected_cells(v?: string[]): void {
     this.save_input_editor();
@@ -518,15 +517,6 @@ export class NotebookFrameActions {
       i = cell_list.size - 1;
     }
     this.set_cur_id(cell_list.get(i));
-  }
-
-  public set_cur_id_last(): string | undefined {
-    const cell_list = this.jupyter_actions.store.get_cell_list();
-    if (cell_list.size > 0) {
-      const lastID = cell_list.get(cell_list.size - 1);
-      this.set_cur_id(lastID);
-      return lastID;
-    }
   }
 
   /***
