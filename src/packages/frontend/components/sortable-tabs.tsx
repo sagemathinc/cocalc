@@ -73,12 +73,8 @@ export function SortableTabs(props: Props) {
     width: number;
     length: number;
     itemWidth: number;
-    mouseY: number | null;
   } | null>(null);
-  const { y: mouseY } = useMouse(divRef, {
-    enterDelay: 1000,
-    leaveDelay: 1000,
-  });
+  const { isOver } = useMouse(divRef);
 
   const itemWidth = useMemo(() => {
     if (divRef.current == null) {
@@ -90,7 +86,7 @@ export function SortableTabs(props: Props) {
       last != null &&
       last.width == resize.width &&
       items.length <= last.length &&
-      last.mouseY == mouseY
+      isOver
     ) {
       // @ts-ignore
       lastRef.current.length = items.length;
@@ -105,10 +101,9 @@ export function SortableTabs(props: Props) {
       width: resize.width ?? 0,
       length: items.length,
       itemWidth,
-      mouseY,
     };
     return itemWidth;
-  }, [resize.width, items.length, divRef.current, mouseY]);
+  }, [resize.width, items.length, divRef.current, isOver]);
 
   return (
     <div style={{ width: "100%", ...style }} ref={divRef}>

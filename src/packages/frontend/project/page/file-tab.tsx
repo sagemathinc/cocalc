@@ -325,7 +325,6 @@ export function FileTab(props: Readonly<Props>) {
   );
 
   if (
-    1 == 1 || // disabled for now
     props.noPopover ||
     IS_MOBILE ||
     (isFixedTab && other_settings.get("hide_action_popovers")) ||
