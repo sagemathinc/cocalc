@@ -3,12 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { createTransport } from "nodemailer";
 import type { Transporter } from "nodemailer";
-import type { Message } from "./message";
-import getHelpEmail from "./help";
-import appendFooter from "./footer";
+import { createTransport } from "nodemailer";
+
 import { getServerSettings } from "../settings/server-settings";
+import appendFooter from "./footer";
+import getHelpEmail from "./help";
+import type { Message } from "./message";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 
 type BackendType = "email" | "password_reset";
 
@@ -42,7 +44,8 @@ let cacheSettings = ""; // what settings were used to compute cached server.
 async function getServer(settings): Promise<Transporter> {
   const s = JSON.stringify(settings);
   if (server !== undefined && s == cacheSettings) return server;
-  server = await createTransport({
+  // https://nodemailer.com/smtp/pooled/ -- missing in @types/nodemailer
+  const conf: SMTPTransport.Options & { pool: boolean } = {
     host: settings.server,
     port: settings.port,
     secure: settings.secure,
@@ -50,7 +53,9 @@ async function getServer(settings): Promise<Transporter> {
       user: settings.login,
       pass: settings.password,
     },
-  });
+    pool: settings.pooling === true,
+  };
+  server = await createTransport(conf);
   cacheSettings = s;
   return server;
 }
@@ -61,7 +66,8 @@ interface SMTPSettings {
   password: string;
   secure: boolean;
   from?: string;
-  port?: string;
+  port?: number;
+  pooling?: boolean;
 }
 
 /**
@@ -83,6 +89,7 @@ async function getEmailServerSettings(
     secure: settings.email_smtp_secure,
     from: settings.email_smtp_from,
     port: settings.email_smtp_port,
+    pooling: settings.email_smtp_pooling,
   };
 
   if (type == "email") {
@@ -101,6 +108,7 @@ async function getEmailServerSettings(
         secure: settings.password_reset_smtp_secure,
         from: settings.password_reset_smtp_from,
         port: settings.password_reset_smtp_port,
+        pooling: settings.email_smtp_pooling,
       };
   }
   throw new Error(

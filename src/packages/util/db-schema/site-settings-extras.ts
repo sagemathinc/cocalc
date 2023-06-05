@@ -80,6 +80,7 @@ export type SiteSettingsExtrasKeys =
   | "email_smtp_password"
   | "email_smtp_port"
   | "email_smtp_secure"
+  | "email_smtp_pooling"
   | "openai_section"
   | "openai_api_key"
   | "qdrant_api_key"
@@ -337,6 +338,14 @@ export const EXTRAS: SettingsExtras = {
     name: "SMTP secure (for email)",
     desc: "Usually 'true'",
     default: "true",
+    valid: only_booleans,
+    to_val: to_bool,
+    show: only_for_smtp,
+  },
+  email_smtp_pooling: {
+    name: "Pool connections to SMTP server (for email)",
+    desc: "If true, then we pool connections to the SMTP server.",
+    default: "false",
     valid: only_booleans,
     to_val: to_bool,
     show: only_for_smtp,
