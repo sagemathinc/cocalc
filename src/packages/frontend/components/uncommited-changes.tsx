@@ -5,7 +5,7 @@
 
 // Component that shows a warning message if has_uncommitted_changes is true for more than a few seconds.
 
-import React from "react";
+import { useState, useEffect, memo } from "react";
 
 interface Props {
   has_uncommitted_changes?: boolean;
@@ -14,16 +14,16 @@ interface Props {
   set_show_uncommitted_changes?: any;
 }
 
-const STYLE: React.CSSProperties = {
+const STYLE = {
   backgroundColor: "red",
   color: "white",
-  padding: "5px",
+  padding: "0 5px",
   fontWeight: "bold",
   marginLeft: "5px",
   marginRight: "-5px",
   borderRadius: "3px",
   whiteSpace: "nowrap",
-};
+} as const;
 
 /**
  * Shows `NOT saved!` if `has_uncommitted_changes` is true for ~delay_ms time.
@@ -39,11 +39,11 @@ const UncommittedChangesFC = (props: Props) => {
     delay_ms = 5000,
   } = props;
   const init = has_uncommitted_changes && (show_uncommitted_changes ?? false);
-  const [show_error, set_error] = React.useState(init);
+  const [show_error, set_error] = useState(init);
 
   // A new interval is created iff has_uncommitted_changes or delay_ms change
   // So error is only set to true when the prop doesn't change for ~delay_ms time
-  React.useEffect(() => {
+  useEffect(() => {
     if (!init) {
       set_error(init);
     }
@@ -70,8 +70,8 @@ const UncommittedChangesFC = (props: Props) => {
   if (show_error) {
     return <span style={STYLE}>NOT saved!</span>;
   } else {
-    return <span />; // TODO: return undefined?
+    return null;
   }
 };
 
-export const UncommittedChanges = React.memo(UncommittedChangesFC);
+export const UncommittedChanges = memo(UncommittedChangesFC);

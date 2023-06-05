@@ -1005,8 +1005,8 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           });
         }}
       >
-        <Icon name="history" />{" "}
-        <VisibleMDLG>{labels ? "TimeTravel" : undefined}</VisibleMDLG>
+        <Icon name="history" />
+        <VisibleMDLG>{labels ? " TimeTravel" : undefined}</VisibleMDLG>
       </AntdButton>
     );
   }
