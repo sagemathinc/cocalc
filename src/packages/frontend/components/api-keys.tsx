@@ -7,24 +7,25 @@ Applications:
  - the keys for an account
 */
 
-import { A } from "./A";
-import { Icon } from "./icon";
-import TimeAgo from "react-timeago"; // so can use from nextjs
-import CopyToClipBoard from "./copy-to-clipboard";
-import { useState, useEffect } from "react";
 import {
   Alert,
-  Table,
-  DatePicker,
   Button,
-  Popconfirm,
+  DatePicker,
   Form,
   Input,
   Modal,
+  Popconfirm,
+  Table,
 } from "antd";
-import { ColumnsType } from "antd/es/table";
-import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 import dayjs from "dayjs";
+import { useEffect, useState } from "react";
+import TimeAgo from "react-timeago"; // so can use from nextjs
+
+import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
+import { ColumnsType } from "antd/es/table";
+import { A } from "./A";
+import CopyToClipBoard from "./copy-to-clipboard";
+import { Icon } from "./icon";
 const { useForm } = Form;
 
 interface Props {
@@ -238,7 +239,7 @@ export default function ApiKeys({ manage }: Props) {
         Read the <A href="https://doc.cocalc.com/api/">API documentation</A>.
       </p>
       <Modal
-        visible={addModalVisible || editModalVisible}
+        open={addModalVisible || editModalVisible}
         title={
           editingKey != null ? "Edit API Key Name" : "Create a New API Key"
         }
