@@ -125,8 +125,8 @@ function SignUp0({
     email &&
     isValidEmailAddress(email) &&
     password &&
-    firstName &&
-    lastName
+    firstName?.trim() &&
+    lastName?.trim()
   );
 
   async function signUp() {
@@ -376,7 +376,7 @@ function SignUp0({
             email &&
             password &&
             requiredSSO == null &&
-            firstName && (
+            firstName?.trim() && (
               <div style={LINE}>
                 <p>Last name (Family name)</p>
                 <Input
@@ -410,9 +410,9 @@ function SignUp0({
               ? "You must sign up via SSO"
               : !password || password.length < 6
               ? "Choose password with at least 6 characters"
-              : !firstName
+              : !firstName?.trim()
               ? "Enter your first name above"
-              : !lastName
+              : !lastName?.trim()
               ? "Enter your last name above"
               : !isValidEmailAddress(email)
               ? "Enter a valid email address above"
