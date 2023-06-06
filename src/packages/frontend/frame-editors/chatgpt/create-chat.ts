@@ -78,10 +78,9 @@ ${codegen && input.trim() ? "Show the new version." : ""}`;
   } else {
     message = `${head}\n\n<details><summary>Context</summary>\n\n${message}\n\n</details>`;
   }
-  await chatActions.send_chat(
-    message,
-    undefined,
-    undefined,
-    `code-editor-${tag ?? command}`
-  );
+  await chatActions.send_chat({
+    input: message,
+    tag: `code-editor-${tag ?? command}`,
+    noNotification: true,
+  });
 }

@@ -155,12 +155,19 @@ export class ChatActions extends Actions<ChatState> {
   // chatgpt, which is currently managed by the frontend
   // (not the project).  Also the async doesn't finish until
   // chatgpt is totally done.
-  send_chat(
-    input?: string,
-    sender_id?: string,
-    reply_to?: Date,
-    tag?: string
-  ): string {
+  send_chat({
+    input,
+    sender_id,
+    reply_to,
+    tag,
+    noNotification,
+  }: {
+    input?: string;
+    sender_id?: string;
+    reply_to?: Date;
+    tag?: string;
+    noNotification?: boolean;
+  }): string {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to send_chat before chat actions initialized");
       // WARNING: give an error or try again later?
@@ -202,10 +209,28 @@ export class ChatActions extends Actions<ChatState> {
       const project_id = this.store.get("project_id");
       const path = this.store.get("path");
       // set notification saying that we sent an actual chat
+      let action;
+      console.log({
+        input,
+        noNotification,
+        men: mentionsChatGPT(input),
+        is: this.isChatGPTThread(reply_to),
+      });
+      if (
+        noNotification ||
+        mentionsChatGPT(input) ||
+        this.isChatGPTThread(reply_to)
+      ) {
+        // Note: don't mark it is a chat if it is with chatgpt,
+        // since no point in notifying all collabs of this.
+        action = "edit";
+      } else {
+        action = "chat";
+      }
       webapp_client.mark_file({
         project_id,
         path,
-        action: "chat",
+        action,
         ttl: 10000,
       });
       track("send_chat", { project_id, path });
@@ -262,7 +287,17 @@ export class ChatActions extends Actions<ChatState> {
     this.save_to_disk();
   }
 
-  send_reply(message, reply: string, from?: string): string {
+  send_reply({
+    message,
+    reply,
+    from,
+    noNotification,
+  }: {
+    message: string | immutableMap<string, any>;
+    reply: string;
+    from?: string;
+    noNotification?: boolean;
+  }): string {
     // the reply_to field of the message is *always* the root.
     // the order of the replies is by timestamp.  This is meant
     // to make sure chat is just 1 layer deep, rather than a
@@ -273,11 +308,12 @@ export class ChatActions extends Actions<ChatState> {
     );
     const time = reply_to?.valueOf() ?? 0;
     this.delete_draft(-time);
-    return this.send_chat(
-      reply,
-      from ?? this.redux.getStore("account").get_account_id(),
-      reply_to
-    );
+    return this.send_chat({
+      input: reply,
+      sender_id: from ?? this.redux.getStore("account").get_account_id(),
+      reply_to,
+      noNotification,
+    });
   }
 
   // negative date is used for replies.
@@ -433,7 +469,10 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb?.redo();
   }
 
-  isChatGPTThread(date: Date): false | Model {
+  isChatGPTThread(date?: Date): false | Model {
+    if (date == null) {
+      return false;
+    }
     const messages = this.store?.get("messages");
     if (!messages) return false;
     let message = messages.get(`${date.valueOf()}`);
@@ -478,8 +517,9 @@ export class ChatActions extends Actions<ChatState> {
     if (!store) return;
 
     let thread;
-    if (!input.toLowerCase().includes("@chatgpt")) {
-      // doesn't mention chatgpt explicitly, but is it a reply to something that does?
+    if (!mentionsChatGPT(input)) {
+      // doesn't mention chatgpt explicitly, but might be a reply
+      // to something that does:
       if (reply_to == null) {
         return;
       }
@@ -519,11 +559,12 @@ export class ChatActions extends Actions<ChatState> {
       model,
       tag,
     });
-    let date: string = this.send_reply(
+    let date: string = this.send_reply({
       message,
-      ":robot: Thinking...",
-      sender_id
-    );
+      reply: ":robot: Thinking...",
+      from: sender_id,
+      noNotification: true,
+    });
     this.scrollToBottom();
     let content: string = "";
     let halted = false;
@@ -657,3 +698,7 @@ function stripMentions(value: string): string {
 // function stripDetails(value: string): string {
 //   return value.replace(/<details>/g, "").replace(/<\/details>/g, "");
 // }
+
+function mentionsChatGPT(input?: string): boolean {
+  return !!input?.toLowerCase().includes("@chatgpt");
+}

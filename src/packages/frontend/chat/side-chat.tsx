@@ -42,8 +42,8 @@ export default function SideChat({ project_id, path, style }: Props) {
   }, []);
 
   const sendChat = useCallback(() => {
-    const value = submitMentionsRef.current?.();
-    actions.send_chat(value);
+    const input = submitMentionsRef.current?.();
+    actions.send_chat({ input });
     scrollToBottomRef.current?.(true);
   }, [actions]);
 
@@ -91,7 +91,7 @@ export default function SideChat({ project_id, path, style }: Props) {
                 project_id,
                 path
               ) as ChatActions;
-              actions.send_chat(value);
+              actions.send_chat({ input: value });
             }}
           />{" "}
           <CollabList
