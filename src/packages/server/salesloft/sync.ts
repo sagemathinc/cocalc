@@ -25,16 +25,34 @@ https://help.salesloft.com/s/article/Person-Field-Configuration#Add_Custom_Perso
 
 Later, we will also try to provide more interesting information.  But this should be something
 to get started.
+
+RATE LIMITS:
+
+- Documented here: https://developers.salesloft.com/docs/platform/api-basics/rate-limits/
+
+- The rate limit is "600 costs per minute" where a cost is some weird unit that
+depends on the api endpoint, and can by 1 or 30 or any arbitrarily large number
+below 600! And they have this distopian statement: "Salesloft is able to change
+the cost for an existing endpoint at any time, as the functionality doesn't
+become deprecated from a cost change."  There is no possible way to
+know ahead of time if calls are going to the rate limit or not.  So in
+our code below, we basically space out handling each person by 1s. That
+keeps the number of people per minute to at most 60, which should keep us
+well below the 600 costs per minute limit.  And spending a few hours to update
+10K records is fine for now...
 */
 
 import getPool from "@cocalc/database/pool";
 import { create, list, update } from "./people";
 import getLogger from "@cocalc/backend/logger";
+import { delay } from "awaiting";
+
 const logger = getLogger("salesloft:sync");
 const log = logger.debug.bind(logger);
 
 export async function sync(
-  account_ids: string[]
+  account_ids: string[],
+  delayMs: number = 1000 // wait this long after handling each account_id
 ): Promise<{ update: number; create: number }> {
   const cocalc = getPool("long");
 
@@ -90,6 +108,8 @@ export async function sync(
         [salesloft_id, row.cocalc_account_id]
       );
     }
+    log(`Waiting ${delayMs}ms due to potential rate limits...`);
+    await delay(delayMs);
   }
   return stats;
 }
@@ -123,12 +143,46 @@ function toSalesloft({
   return data;
 }
 
-// account_id's that were active during the given Date range.
-export async function addActiveUsers(howLongAgo: string = "1 day") {
+export async function addNewUsers(
+  howLongAgo: string = "1 day",
+  delayMs: number = 1000
+) {
+  return await sync(
+    await getAccountIds(
+      `created IS NOT NULL AND created >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NULL`
+    ),
+    delayMs
+  );
+}
+
+export async function addActiveUsers(
+  howLongAgo: string = "1 day",
+  delayMs: number = 1000
+) {
+  return await sync(
+    await getAccountIds(
+      `last_active >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NULL`
+    ),
+    delayMs
+  );
+}
+
+export async function updateActiveUsers(
+  howLongAgo: string = "1 day",
+  delayMs: number = 1000
+) {
+  return await sync(
+    await getAccountIds(
+      `last_active >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NOT NULL`
+    ),
+    delayMs
+  );
+}
+
+async function getAccountIds(condition: string): Promise<string[]> {
   const db = getPool("long");
   const { rows } = await db.query(
-    `SELECT account_id FROM accounts WHERE last_active >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NULL`
+    `SELECT account_id FROM accounts WHERE ${condition}`
   );
-  const account_ids = rows.map(({ account_id }) => account_id);
-  return await sync(account_ids);
+  return rows.map(({ account_id }) => account_id);
 }
