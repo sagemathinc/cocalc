@@ -151,6 +151,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
   const project_log = useTypedRedux({ project_id }, "project_log");
+  const project_log_all = useTypedRedux({ project_id }, "project_log_all");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const user_map = useTypedRedux("users", "user_map");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
@@ -166,17 +167,18 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
   }, [activeTab]);
 
   const log: OpenedFile[] = useMemo(() => {
-    if (project_log == null) return [];
+    const log = project_log_all ?? project_log;
+    if (log == null) return [];
 
     switch (mode) {
       case "files":
-        return deriveFiles(project_log, searchTerm, max);
+        return deriveFiles(log, searchTerm, max);
       case "history":
-        return deriveHistory(project_log, searchTerm, max);
+        return deriveHistory(log, searchTerm, max);
       default:
         unreachable(mode);
     }
-  }, [project_log, searchTerm, max, mode]);
+  }, [project_log, project_log_all, searchTerm, max, mode]);
 
   function renderFileItem(entry: OpenedFile) {
     const time = entry.time;
@@ -185,7 +187,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
     const info = file_options(path);
     const name: IconName = info.icon ?? "file";
     const isOpened: boolean = openFiles.some((p) => p === path);
-    const isActive : boolean = activePath === path;
+    const isActive: boolean = activePath === path;
 
     return (
       <FileListItem
