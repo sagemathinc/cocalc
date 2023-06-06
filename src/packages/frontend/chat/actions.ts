@@ -210,12 +210,6 @@ export class ChatActions extends Actions<ChatState> {
       const path = this.store.get("path");
       // set notification saying that we sent an actual chat
       let action;
-      console.log({
-        input,
-        noNotification,
-        men: mentionsChatGPT(input),
-        is: this.isChatGPTThread(reply_to),
-      });
       if (
         noNotification ||
         mentionsChatGPT(input) ||
