@@ -175,6 +175,14 @@ for (const ext in codemirror_associations) {
   };
 }
 
+file_associations["mojo"] = file_associations["🔥"] = {
+  editor: "codemirror",
+  icon: "fire",
+  opts: { mode: "python" }, // TODO: once there is a mojo codemirror mode, change it
+  name: "text/x-mojo",
+  exclude_from_menu: true,
+};
+
 // noext = means file with no extension but the given name.
 file_associations["noext-dockerfile"] = {
   editor: "codemirror",
@@ -491,9 +499,26 @@ file_associations[""] = {
   name: "",
 };
 
-for (const ext of "zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip".split(
-  " "
-)) {
+const archive_extensions = [
+  "bz2",
+  "gz",
+  "lz",
+  "lzip",
+  "lzma",
+  "taz",
+  "tb2",
+  "tbz",
+  "tbz2",
+  "tgz",
+  "tlz",
+  "txz",
+  "tz",
+  "xz",
+  "z",
+  "zip",
+] as const;
+
+for (const ext of archive_extensions) {
   file_associations[ext] = archive_association;
 }
 
