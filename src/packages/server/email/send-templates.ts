@@ -7,6 +7,7 @@ import { path as ASSETS_DIR } from "@cocalc/assets";
 
 import { Email } from "email-templates"; // https://email-templates.js.org/
 import { join } from "node:path";
+import { Message } from "./message";
 
 // set this environment variable for your own set of templates
 const TEMPLATES_ROOT =
@@ -16,7 +17,7 @@ console.log("TEMPLATES_ROOT", TEMPLATES_ROOT);
 
 let templates: Email | null = null;
 
-export function init() {
+export function init(transport) {
   templates = new Email({
     send: true, // since we do not use NODE_ENV
     juice: true,
@@ -31,9 +32,7 @@ export function init() {
         relativeTo: join(TEMPLATES_ROOT, "assets"),
       },
     },
-    transport: {
-      jsonTransport: true,
-    },
+    transport,
     views: {
       root: TEMPLATES_ROOT,
       options: {
@@ -43,11 +42,11 @@ export function init() {
   });
 }
 
-export function sendEmail() {
+export async function send(msg: Message): Promise<any> {
   if (templates == null) {
     throw new Error("email templates not initialized");
   }
-  templates.send({
+  return await templates.send({
     template: "welcome",
     message: {
       to: "hsy@cocalc.com",
@@ -55,6 +54,7 @@ export function sendEmail() {
     locals: {
       name: "Test Name",
       siteName: "CoCalc",
+      ...msg,
     },
   });
 }

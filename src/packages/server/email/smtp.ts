@@ -7,10 +7,12 @@ import type { Transporter } from "nodemailer";
 import { createTransport } from "nodemailer";
 
 import { getServerSettings } from "../settings/server-settings";
-import appendFooter from "./footer";
+// import appendFooter from "./footer";
 import getHelpEmail from "./help";
 import type { Message } from "./message";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
+
+import { init as initTemplates, send as sendTemplates } from "./send-templates";
 
 type BackendType = "email" | "password_reset";
 
@@ -34,14 +36,15 @@ export default async function sendEmail(
       message.from = await getHelpEmail(); // fallback
     }
   }
+
   const server = await getServer(settings);
-  const msg = await appendFooter(message);
-  await server.sendMail(msg);
+  //const msg = await appendFooter(message);
+  await server.sendMail(message);
 }
 
 let server: undefined | Transporter = undefined;
 let cacheSettings = ""; // what settings were used to compute cached server.
-async function getServer(settings): Promise<Transporter> {
+async function getServer(settings): Promise<{ sendMail: (Message) => any }> {
   const s = JSON.stringify(settings);
   if (server !== undefined && s == cacheSettings) return server;
   // https://nodemailer.com/smtp/pooled/ -- missing in @types/nodemailer
@@ -57,7 +60,10 @@ async function getServer(settings): Promise<Transporter> {
   };
   server = await createTransport(conf);
   cacheSettings = s;
-  return server;
+
+  initTemplates({ jsonTransport: true });
+
+  return { sendMail: sendTemplates };
 }
 
 interface SMTPSettings {

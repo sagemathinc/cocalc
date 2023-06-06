@@ -18,7 +18,7 @@ import { SENDGRID_TEMPLATE_ID } from "@cocalc/util/theme";
 // It also updates the key if it changes in at most one minute (?).
 let initialized = 0;
 export async function getSendgrid(): Promise<any> {
-  const now = new Date().valueOf();
+  const now = Date.now();
   if (now - initialized < 1000 * 30) {
     // initialized recently
     return sgMail;
@@ -35,7 +35,7 @@ export async function getSendgrid(): Promise<any> {
     throw Error("no sendgrid key");
   }
   sgMail.setApiKey(rows[0].value);
-  initialized = new Date().valueOf();
+  initialized = Date.now();
   return sgMail;
 }
 

@@ -13,16 +13,17 @@ import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import {
-  AllSiteSettingsCached as ServerSettings,
   AllSiteSettingsKeys,
+  AllSiteSettingsCached as ServerSettings,
 } from "@cocalc/util/db-schema/types";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
+
 export type { ServerSettings };
 
 const L = getLogger("server:server-settings");
 
 // We're just using this to cache this result for a **few seconds**.
-const CACHE_TIME_SECONDS = process.env.NODE_ENV == "development" ? 3 : 15;
+const CACHE_TIME_SECONDS = process.env.NODE_ENV == "development" ? 3 : 60;
 type CacheKeys = "server-settings" | "passports";
 // TODO add something for the passports data type?
 const cache = new LRU<CacheKeys, ServerSettings | PassportStrategyDB[]>({
@@ -32,7 +33,7 @@ const cache = new LRU<CacheKeys, ServerSettings | PassportStrategyDB[]>({
 const KEY: CacheKeys = "server-settings";
 
 export function resetServerSettingsCache() {
-  cache.reset();
+  cache.clear();
 }
 
 export function getPassportsCached(): PassportStrategyDB[] | undefined {
