@@ -178,7 +178,7 @@ for (const ext in codemirror_associations) {
 file_associations["mojo"] = file_associations["🔥"] = {
   editor: "codemirror",
   icon: "fire",
-  opts: { mode: "python" }, // TODO: once there is a mojo codemirror mode, change it
+  opts: { mode: "text/x-mojo" }, // this is a custom type, similar to cython
   name: "text/x-mojo",
   exclude_from_menu: true,
 };
