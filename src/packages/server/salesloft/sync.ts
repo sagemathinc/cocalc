@@ -72,22 +72,23 @@ export async function sync(
   log("got ", rows.length, " records with an email address");
 
   const stats = { update: 0, create: 0 };
+  let currentDelayMs = 2 * delayMs;
   for (const row of rows) {
     log("considering ", row.email_address);
-    let currentDelayMs = delayMs;
-    while (true) {
-      try {
-        await syncOne({ row, stats, cocalc });
-        break;
-      } catch (err) {
-        log(`Failed to sync ${row.email_address}`);
-        log(
-          `Waiting ${currentDelayMs}ms due to rate limits or other issues...`
-        );
-        await delay(currentDelayMs);
-        // exponential delay
-        currentDelayMs = Math.min(currentDelayMs * 1.3, maxDelayMs);
-      }
+    try {
+      await syncOne({ row, stats, cocalc });
+      currentDelayMs = 2 * delayMs; // success - reset this
+    } catch (err) {
+      log(`Failed to sync ${row.email_address}`, err);
+      log(
+        "We do not retry since, e.g., some errors are fatal, e.g., invalid email addresses."
+      );
+      log(
+        `We do wait ${currentDelayMs}ms in case this is due to rate limits or other issues...`
+      );
+      await delay(currentDelayMs);
+      // exponential delay
+      currentDelayMs = Math.min(currentDelayMs * 1.3, maxDelayMs);
     }
     log(`Waiting ${delayMs}ms due to potential rate limits...`);
     await delay(delayMs);
