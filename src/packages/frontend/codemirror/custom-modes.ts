@@ -156,6 +156,14 @@ CodeMirror.defineMode("cython", (config) => {
   );
 });
 
+CodeMirror.defineMode("mojo", (config) => {
+  // FUTURE: need to figure out how to do this so that the name
+  // of the mode is mojo or modular
+  return (CodeMirror as any).multiplexingMode(
+    CodeMirror.getMode(config, "python")
+  );
+});
+
 CodeMirror.defineMode("sagews", function (config) {
   const options: MultiplexOption[] = [];
   const close = new RegExp(`[${MARKERS.output}${MARKERS.cell}]`);
