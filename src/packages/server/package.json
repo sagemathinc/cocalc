@@ -9,6 +9,7 @@
     "./accounts/*": "./dist/accounts/*.js",
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",
+    "./purchases/*": "./dist/purchases/*.js",
     "./stripe/*": "./dist/stripe/*.js",
     "./licenses/purchase": "./dist/licenses/purchase/index.js",
     "./projects/control": "./dist/projects/control/index.js",
@@ -18,10 +19,7 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "npx tsc",

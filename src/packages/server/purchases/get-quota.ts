@@ -19,7 +19,7 @@ export default async function getQuota(account_id: string) {
     email_address_verified,
     email_address,
   } = rows[0];
-  if (purchase_quota) {
+  if (purchase_quota != null) {
     // a quota that was set by an admin, etc.
     return purchase_quota;
   }
@@ -27,10 +27,11 @@ export default async function getQuota(account_id: string) {
     // if no stripe customer info, then definitely no purchases allowed.
     return 0;
   }
-  if (!email_address_verified?.[email_address]) {
+  const { default_pay_as_you_go_quota, verify_emails } =
+    await getServerSettings();
+  if (verify_emails && !email_address_verified?.[email_address]) {
     // email not verified
     return 0;
   }
-  const { default_pay_as_you_go_quota } = await getServerSettings();
   return default_pay_as_you_go_quota;
 }
