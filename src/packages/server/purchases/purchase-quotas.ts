@@ -19,7 +19,7 @@ export async function setPurchaseQuota({
     );
   }
   if (typeof value != "number" || !isFinite(value) || value < 0) {
-    throw Error(`value must be a positive number but it is ${value}`);
+    throw Error(`value must be a nonnegative number but it is ${value}`);
   }
   const overallQuota = await getQuota(account_id);
   const cur = await getPurchaseQuotas(account_id);
@@ -60,5 +60,6 @@ export async function getPurchaseQuotas(
   for (const { name, value } of rows) {
     x[name] = value;
   }
+  x["global"] = await getQuota(account_id);
   return x;
 }
