@@ -2,8 +2,10 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 
-export const QUOTA_NAMES = {
-  gpt4: { display: "GPT-4" },
+import type { Service } from "./purchases";
+
+export const QUOTA_SPEC: { [name: Service]: { display: string } } = {
+  "openai-gpt4": { display: "OpenAI GPT-4" },
   "project-upgrades": { display: "Project Upgrades" },
 };
 
@@ -20,9 +22,9 @@ Table({
   fields: {
     id: ID,
     account_id: CREATED_BY,
-    name: {
-      title: "Name",
-      desc: "The name of the category of item (in the array QUOTA_NAMES in db-schema/purchase-quotas.ts)",
+    service: {
+      title: "Service Category",
+      desc: "The service being charged for, e.g., openai-gpt4, project-upgrades, etc.",
       type: "string",
       pg_type: "varchar(127)",
     },

@@ -3,6 +3,16 @@ import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { NOTES } from "./crm";
 
+// The general categories of services we offer.  These must
+// be at most 127 characters, and users can set an individual
+// monthly quota on each one in purchase-quotas:
+
+export type Service =
+  | "openai-gpt4"
+  | "openai-image"
+  | "credit"
+  | "project-upgrades";
+
 export type Model = "gpt-3.5-turbo" | "gpt-4";
 
 export interface OpenaiGPT4 {
@@ -11,6 +21,7 @@ export interface OpenaiGPT4 {
   completion_tokens: number;
 }
 
+// not used yet.
 export interface OpenaiImage {
   type: "openai-image";
 }
@@ -27,6 +38,7 @@ export interface Purchase {
   time: Date;
   account_id: string;
   cost: number;
+  service: Service;
   description: Description;
   invoice_id?: string;
   paid?: boolean;
@@ -63,9 +75,15 @@ Table({
       type: "uuid",
       render: { type: "project_link" },
     },
+    service: {
+      title: "Service Category",
+      desc: "The service being charged for, e.g., openai-gpt4, project-upgrades, etc.",
+      type: "string",
+      pg_type: "varchar(127)",
+    },
     description: {
       title: "Description",
-      desc: "An object that describes what was purchased.",
+      desc: "An object that provides additional details about what was purchased and can have an arbitrary format.  This is mainly used to provide extra insight when rendering this purchase for users, and its content should not be relied on for queries.",
       type: "map",
       pg_type: "jsonb",
     },

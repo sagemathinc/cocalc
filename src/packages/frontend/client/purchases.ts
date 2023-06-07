@@ -21,4 +21,8 @@ export class PurchasesClient {
   async setQuota(name: string, value: number): Promise<void> {
     await api("purchases/set-quota", { name, value });
   }
+
+  async getPurchases(opts: { limit?: number; offset?: number; paid?: boolean }) {
+    
+  }
 }
