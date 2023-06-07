@@ -43,9 +43,12 @@ export interface QuotaData {
   usage: Usage;
 }
 
-export function renderValueUnit(val, unit): string {
-  val = round2(val);
-  return `${val} ${plural(val, unit)}`;
+export function renderValueUnit(val: number, unit: string): string {
+  if (unit === "MB" && val >= 1000) {
+    return `${round2(val / 1000)} GB`;
+  } else {
+    return `${round2(val)} ${plural(val, unit)}`;
+  }
 }
 
 export function booleanValueStr(quota) {

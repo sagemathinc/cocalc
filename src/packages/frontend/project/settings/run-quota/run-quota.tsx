@@ -52,7 +52,7 @@ export const RunQuota: React.FC<Props> = React.memo(
     const isFlyout = mode === "flyout";
     const projectIsRunning = project_state === "running";
     //const projectStatus = project.get("status");
-    const currentUsage = useCurrentUsage({ project_id });
+    const currentUsage = useCurrentUsage({ project_id, shortStr: isFlyout });
     const kucalc = useTypedRedux("customize", "kucalc");
     const cocalcCom = kucalc === KUCALC_COCALC_COM;
     const runQuota = useRunQuota(project_id, null);
