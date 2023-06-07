@@ -2,7 +2,18 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 
-export const QUOTA_NAMES = ["gpt4"];
+export const QUOTA_NAMES = {
+  gpt4: { display: "GPT-4" },
+  "project-upgrades": { display: "Project Upgrades" },
+};
+
+// export function quotaDisplayNames(): string[] {
+//   const v: string[] = [];
+//   for (const name in QUOTA_NAMES) {
+//     v.push(QUOTA_NAMES[name].display);
+//   }
+//   return v;
+// }
 
 Table({
   name: "purchase_quotas",

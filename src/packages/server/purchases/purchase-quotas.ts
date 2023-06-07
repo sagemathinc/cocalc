@@ -11,9 +11,11 @@ export async function setPurchaseQuota({
   name: string;
   value: number;
 }): Promise<void> {
-  if (!QUOTA_NAMES.includes(name)) {
+  if (!QUOTA_NAMES[name]) {
     throw Error(
-      `"${name}" must be one of the following: ${QUOTA_NAMES.join(", ")}`
+      `"${name}" must be one of the following: ${Object.keys(QUOTA_NAMES).join(
+        ", "
+      )}`
     );
   }
   if (typeof value != "number" || !isFinite(value) || value < 0) {
