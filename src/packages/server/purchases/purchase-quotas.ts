@@ -22,7 +22,7 @@ export async function setPurchaseQuota({
     throw Error(`value must be a positive number but it is ${value}`);
   }
   const overallQuota = await getQuota(account_id);
-  const cur = await getAllPurchaseQuotas(account_id);
+  const cur = await getPurchaseQuotas(account_id);
   let s = value ?? 0;
   for (const key in cur) {
     if (key != name) {
@@ -48,7 +48,7 @@ export async function setPurchaseQuota({
   }
 }
 
-async function getAllPurchaseQuotas(
+export async function getPurchaseQuotas(
   account_id: string
 ): Promise<{ [name: string]: number }> {
   const pool = getPool();
