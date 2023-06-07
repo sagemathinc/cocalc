@@ -69,8 +69,8 @@ export async function assertPurchaseAllowed({
   if (!Number.isFinite(cost) || cost <= 0) {
     throw Error(`cost must be positive`);
   }
-  const quota = await getQuota({ account_id });
-  const balance = await getBalance({ account_id });
+  const quota = await getQuota(account_id);
+  const balance = await getBalance(account_id);
   if (balance + cost > quota) {
     throw Error(
       `Insufficient quota.  balance + potential_cost > quota.   $${balance} + $${cost} > $${quota}.  Verify your email address, add credit, or contact support to increase your quota.`

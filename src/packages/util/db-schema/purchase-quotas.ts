@@ -2,6 +2,8 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 
+export const QUOTA_NAMES = ["gpt4"];
+
 Table({
   name: "purchase_quotas",
   fields: {
@@ -9,7 +11,7 @@ Table({
     account_id: CREATED_BY,
     name: {
       title: "Name",
-      desc: "The name of the category of item, e.g., something like 'gpt4' or 'project-upgrades' or 'dedicated-machine'",
+      desc: "The name of the category of item (in the array QUOTA_NAMES in db-schema/purchase-quotas.ts)",
       type: "string",
       pg_type: "varchar(127)",
     },

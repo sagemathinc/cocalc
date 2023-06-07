@@ -1,7 +1,9 @@
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 
-export default async function getQuota({ account_id }: { account_id: string }) {
+// This is the overall max quota for the user.   The sum of their individual
+// quotas is bounded by this.
+export default async function getQuota(account_id: string) {
   const pool = getPool("medium");
   const { rows } = await pool.query(
     "SELECT purchase_quota, stripe_customer_id, email_address_verified, email_address FROM accounts WHERE account_id=$1",
