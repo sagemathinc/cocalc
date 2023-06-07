@@ -6,6 +6,7 @@ import getBalance from "./get-balance";
 import getLogger from "@cocalc/backend/logger";
 import { delay } from "awaiting";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
+import { to_money } from "@cocalc/util/misc";
 
 const logger = getLogger("purchase:create-purchase");
 
@@ -68,6 +69,9 @@ export default async function createPurchase({
 // call this before giving the thing and doing createPurchase.
 // This is NOT part of createPurchase, since we could easily call
 // createPurchase after providing the service.
+// NOTE: user is not supposed to ever see these errors, in that the
+// frontend should do the same checks and present an error there.
+// This is a backend safety check.
 export async function assertPurchaseAllowed({
   account_id,
   service,
@@ -88,17 +92,43 @@ export async function assertPurchaseAllowed({
   const balance = await getBalance(account_id);
   if (balance + cost > global) {
     throw Error(
-      `Insufficient quota.  balance + potential_cost > global quota.   $${balance} + $${cost} > $${global}.  Verify your email address, add credit, or contact support to increase your global quota.`
+      `Insufficient quota.  balance + potential_cost > global quota.   ${currency(
+        balance
+      )} + ${currency(cost)} > ${currency(
+        global
+      )}.  Verify your email address, add credit, or contact support to increase your global quota.`
     );
   }
   // Next check that the quota for the specific service is not exceeded
-  const specific = services[service];
-  if (specific == null) {
+  const quotaForService = services[service];
+  if (quotaForService == null) {
     throw Error(
       `You must explicitly set a quota for the "${
         QUOTA_SPEC[service]?.display ?? service
       }" service.`
     );
   }
+  // user has set a quota for this service.  is the total unpaid spend within this quota?
+  // NOTE: This does NOT involve credits at all.  Even if the user has $10K in credits,
+  // they can still limit their monthly spend on a particular service, as a safety.
+  const balanceForService = await getBalance(account_id, service);
+  if (balanceForService + cost > quotaForService) {
+    throw Error(
+      `Your quota ${currency(quotaForService)} for "${
+        QUOTA_SPEC[service]?.display ?? service
+      }" is not sufficient to make a purchase of up to ${currency(
+        cost
+      )} since you have a balance of ${currency(
+        balanceForService
+      )}.  Raise your ${
+        QUOTA_SPEC[service]?.display ?? service
+      } service quota or reduce your balance.`
+    );
+  }
+
   // allowed :-)
+}
+
+function currency(n) {
+  return `$${to_money(n)}`;
 }

@@ -7,31 +7,29 @@ import { NOTES } from "./crm";
 // be at most 127 characters, and users can set an individual
 // monthly quota on each one in purchase-quotas:
 
-export type Service =
-  | "openai-gpt4"
-  | "openai-image"
-  | "credit"
-  | "project-upgrades";
+export type Service = "credit" | "openai-gpt-4";
+// | "openai-image"
+// | "project-upgrades";
 
 export type Model = "gpt-3.5-turbo" | "gpt-4";
 
 export interface OpenaiGPT4 {
-  type: "openai-gpt4";
+  type: "openai-gpt-4";
   prompt_tokens: number;
   completion_tokens: number;
 }
 
 // not used yet.
-export interface OpenaiImage {
-  type: "openai-image";
-}
+//export interface OpenaiImage {
+//  type: "openai-image";
+//}
 
 export interface Credit {
   type: "credit";
   // not sure what else, e.g., if it comes from a voucher, could be the voucher code here.
 }
 
-export type Description = OpenaiGPT4 | OpenaiImage | Credit;
+export type Description = OpenaiGPT4 | Credit;
 
 export interface Purchase {
   id: number;
@@ -77,7 +75,7 @@ Table({
     },
     service: {
       title: "Service Category",
-      desc: "The service being charged for, e.g., openai-gpt4, project-upgrades, etc.",
+      desc: "The service being charged for, e.g., openai-gpt-4, etc.",
       type: "string",
       pg_type: "varchar(127)",
     },

@@ -5,6 +5,16 @@ import { SCHEMA as schema } from "./index";
 export const MODELS = ["gpt-3.5-turbo", "gpt-4"] as const;
 export type Model = typeof MODELS[number];
 
+// Map from psuedo account_id to what should be displayed to user.
+// This is used in various places in the frontend.
+export const OPENAI_USERNAMES = {
+  chatgpt: "ChatGPT (3.5-turbo)",
+  chatgpt3: "ChatGPT (3.5-turbo)",
+  chatgpt4: "ChatGPT (4)",
+  "gpt-4": "ChatGPT (3.5-turbo)",
+  "gpt-3.5-turbo": "ChatGPT (3.5-turbo)",
+};
+
 export interface ChatGPTLogEntry {
   id: number;
   time: Date;

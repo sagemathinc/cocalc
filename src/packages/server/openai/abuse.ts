@@ -98,7 +98,7 @@ export async function checkForAbuse({
     await assertPurchaseAllowed({
       account_id,
       cost: GPT4_MAX_COST,
-      service: "openai-gpt4",
+      service: "openai-gpt-4",
     });
   }
 }

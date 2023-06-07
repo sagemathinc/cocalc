@@ -112,9 +112,9 @@ export async function evaluate({
           account_id,
           project_id,
           cost,
-          service: "openai-gpt4",
+          service: "openai-gpt-4",
           description: {
-            type: "openai-gpt4",
+            type: "openai-gpt-4",
             prompt_tokens,
             completion_tokens,
           },

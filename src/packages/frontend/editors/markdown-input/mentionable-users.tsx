@@ -5,10 +5,10 @@
 
 import { redux } from "../../app-framework";
 import { Item } from "./complete";
-
 import { trunc_middle, timestamp_cmp, cmp } from "@cocalc/util/misc";
 import { Avatar } from "../../account/avatar/avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { OPENAI_USERNAMES } from "@cocalc/util/db-schema/openai";
 
 export function mentionableUsers(
   project_id: string,
@@ -50,15 +50,28 @@ export function mentionableUsers(
   const users_store = redux.getStore("users");
   const v: Item[] = [];
   if (chatGPT) {
-    v.push({
-      value: "chatgpt",
-      label: (
-        <span>
-          <OpenAIAvatar size={24} /> ChatGPT
-        </span>
-      ),
-      search: "chatgpt",
-    });
+    if (!search || "chatgpt3".includes(search)) {
+      v.push({
+        value: "chatgpt",
+        label: (
+          <span>
+            <OpenAIAvatar size={24} /> {OPENAI_USERNAMES["chatgpt"]}
+          </span>
+        ),
+        search: "chatgpt3",
+      });
+    }
+    if (!search || "chatgpt4".includes(search)) {
+      v.push({
+        value: "chatgpt4",
+        label: (
+          <span>
+            <OpenAIAvatar size={24} /> {OPENAI_USERNAMES["chatgpt4"]}
+          </span>
+        ),
+        search: "chatgpt4",
+      });
+    }
   }
   for (const { account_id } of project_users) {
     const fullname = users_store.get_name(account_id) ?? "";

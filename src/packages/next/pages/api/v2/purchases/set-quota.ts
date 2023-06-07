@@ -24,7 +24,7 @@ async function get(req): Promise<void> {
     throw Error("must be signed in");
   }
   const { service, value } = getParams(req);
-  await setPurchaseQuota({ account_id, service, value: parseInt(value) });
+  await setPurchaseQuota({ account_id, service, value: parseFloat(value) });
   // it worked, so we return the new quotas
   return await getPurchaseQuotas(account_id);
 }

@@ -474,10 +474,10 @@ export class ChatActions extends Actions<ChatState> {
     while (message != null && i < 1000) {
       i += 1; // just in case some weird corrupted file has a time loop in it.
       const input = message.getIn(["history", 0, "content"])?.toLowerCase();
-      if (input?.includes("@chatgpt4")) {
+      if (input?.includes("account-id=chatgpt4")) {
         return "gpt-4";
       }
-      if (input?.includes("@chatgpt")) {
+      if (input?.includes("account-id=chatgpt")) {
         return "gpt-3.5-turbo";
       }
       const reply_to = message.get("reply_to");
@@ -510,20 +510,22 @@ export class ChatActions extends Actions<ChatState> {
     const store = this.store;
     if (!store) return;
 
-    let thread;
+    let model: Model | false;
     if (!mentionsChatGPT(input)) {
       // doesn't mention chatgpt explicitly, but might be a reply
       // to something that does:
       if (reply_to == null) {
         return;
       }
-      thread = this.isChatGPTThread(reply_to);
-      if (!thread) return;
+      model = this.isChatGPTThread(reply_to);
+      if (!model) {
+        // definitely not a chatgpt situation
+        return;
+      }
+    } else {
+      // it mentions chatgpt -- which model?
+      model = getChatGPTModel(input);
     }
-    // message should get sent to chatgpt.
-    const model: Model =
-      (input.toLowerCase().includes("@chatgpt4") ? "gpt-4" : thread) ??
-      "gpt-3.5-turbo";
     // without any mentions, of course:
     input = stripMentions(input);
     // also important to strip details, since they tend to confuse chatgpt:
@@ -694,5 +696,17 @@ function stripMentions(value: string): string {
 // }
 
 function mentionsChatGPT(input?: string): boolean {
-  return !!input?.toLowerCase().includes("@chatgpt");
+  return !!input?.toLowerCase().includes("account-id=chatgpt");
+}
+
+function getChatGPTModel(input?: string): false | Model {
+  if (!input) return false;
+  const x = input.toLowerCase();
+  if (x.includes("account-id=chatgpt4")) {
+    return "gpt-4";
+  }
+  if (x.includes("account-id=chatgpt")) {
+    return "gpt-3.5-turbo";
+  }
+  return false;
 }

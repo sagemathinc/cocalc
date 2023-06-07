@@ -14,18 +14,11 @@ export type QuotaSpec = Record<Service, Spec>;
 
 export const QUOTA_SPEC: QuotaSpec = {
   credit: { display: "Credit", noSet: true },
-  "openai-gpt4": { display: "OpenAI GPT-4" },
-  "openai-image": { display: "OpenAI Image" },
-  "project-upgrades": { display: "Project Upgrades" },
+  "openai-gpt-4": { display: "OpenAI GPT-4" },
+  //"openai-image": { display: "OpenAI Image" },
+  //"project-upgrades": { display: "Project Upgrades" },
 };
 
-// export function quotaDisplayNames(): string[] {
-//   const v: string[] = [];
-//   for (const name in QUOTA_NAMES) {
-//     v.push(QUOTA_NAMES[name].display);
-//   }
-//   return v;
-// }
 
 Table({
   name: "purchase_quotas",
@@ -34,7 +27,7 @@ Table({
     account_id: CREATED_BY,
     service: {
       title: "Service Category",
-      desc: "The service being charged for, e.g., openai-gpt4, project-upgrades, etc.",
+      desc: "The service being charged for, e.g., openai-gpt-4, credit, etc.",
       type: "string",
       pg_type: "varchar(127)",
     },

@@ -49,7 +49,7 @@ interface Props {
 }
 
 export function Avatar(props) {
-  if (props.account_id == "chatgpt" || props.account_id == "chatgpt4") {
+  if (props.account_id.startsWith("chatgpt")) {
     return <OpenAIAvatar size={props.size} style={props.style} />;
   } else {
     return <Avatar0 {...props} />;

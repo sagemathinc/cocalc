@@ -293,8 +293,8 @@ function cmpMessages([a_time, a_parent], [b_time, b_parent]): number {
 }
 
 export function getUserName(userMap, accountId: string): string {
-  if (accountId == "chatgpt") return "ChatGPT";
-  if (accountId == "chatgpt4") return "ChatGPT4";
+  if (accountId == "chatgpt") return "ChatGPT (3.5-turbo)";
+  if (accountId == "chatgpt4") return "ChatGPT (4)";
   if (userMap == null) return "Unknown";
   const account = userMap.get(accountId);
   if (account == null) return "Unknown";
