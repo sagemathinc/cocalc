@@ -2,6 +2,7 @@ import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import { Model, MODELS } from "@cocalc/util/db-schema/openai";
 import { assertPurchaseAllowed } from "@cocalc/server/purchases/create-purchase";
+import { GPT4_MAX_COST } from "./chatgpt";
 
 /*
 We initially just implement some very simple rate limitations to prevent very
@@ -94,10 +95,11 @@ export async function checkForAbuse({
 
   if (model == "gpt-4") {
     // This is a for-pay product, so let's make sure user can purchase it.
-    // The maximum cost for one single GPT-4 api call is $0.06*8 = $0.48,
-    // so we make sure that much is available; a typical call cost about
-    // $0.05.
-    await assertPurchaseAllowed({ account_id, cost: 0.48 });
+    await assertPurchaseAllowed({
+      account_id,
+      cost: GPT4_MAX_COST,
+      service: "openai-gpt4",
+    });
   }
 }
 

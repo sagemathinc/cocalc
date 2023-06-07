@@ -21,7 +21,7 @@ export default async function createCredit({
   }
   const pool = getPool();
   const { rows } = await pool.query(
-    "INSERT INTO purchases (time, account_id, cost, description, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5) RETURNING id",
+    "INSERT INTO purchases (service, time, account_id, cost, description, notes, tag) VALUES('credit', CURRENT_TIMESTAMP, $1, $2, $3, $4, $5) RETURNING id",
     [account_id, -amount, { type: "credit" } as Credit, notes, tag]
   );
   return rows[0].id;

@@ -20,6 +20,10 @@ export const GPT4_COST = {
   prompt_tokens: (GPT4_MARKUP * 0.03) / 1000,
   completion_tokens: (GPT4_MARKUP * 0.06) / 1000,
 };
+// The maximum cost for one single GPT-4 api call.
+// We can't know the cost until after it happens, so use this bound.
+export const GPT4_MAX_COST =
+  Math.max(GPT4_COST.prompt_tokens, GPT4_COST.completion_tokens) * 8000;
 
 const log = getLogger("chatgpt");
 
@@ -108,7 +112,12 @@ export async function evaluate({
           account_id,
           project_id,
           cost,
-          description: { type: "openai-gpt4", prompt_tokens, completion_tokens },
+          service: "openai-gpt4",
+          description: {
+            type: "openai-gpt4",
+            prompt_tokens,
+            completion_tokens,
+          },
           tag: `openai:${tag ?? ""}`,
         });
       } catch (err) {

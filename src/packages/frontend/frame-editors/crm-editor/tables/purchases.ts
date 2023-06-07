@@ -14,6 +14,7 @@ register({
         time: null,
         account_id: null,
         cost: null,
+        service: null,
         description: null,
         invoice_id: null,
         paid: null,

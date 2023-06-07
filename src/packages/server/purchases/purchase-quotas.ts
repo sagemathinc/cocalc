@@ -1,65 +1,68 @@
 import getPool from "@cocalc/database/pool";
-import { QUOTA_NAMES } from "@cocalc/util/db-schema/purchase-quotas";
-import getQuota from "./get-quota";
+import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
+import getGlobalQuota from "./get-quota";
 
 export async function setPurchaseQuota({
   account_id,
-  name,
+  service,
   value,
 }: {
   account_id: string;
-  name: string;
+  service: Service;
   value: number;
 }): Promise<void> {
-  if (!QUOTA_NAMES[name]) {
+  if (!QUOTA_SPEC[service]) {
     throw Error(
-      `"${name}" must be one of the following: ${Object.keys(QUOTA_NAMES).join(
-        ", "
-      )}`
+      `"${service}" must be one of the following: ${Object.keys(QUOTA_SPEC)
+        .filter((x) => !QUOTA_SPEC[x].noSet)
+        .join(", ")}`
+    );
+  }
+  if (QUOTA_SPEC[service]?.noSet) {
+    throw Error(
+      `you cannot change the quota for the service "${QUOTA_SPEC[service].display}"`
     );
   }
   if (typeof value != "number" || !isFinite(value) || value < 0) {
-    throw Error(`value must be a nonnegative number but it is ${value}`);
+    throw Error(`value must be a nonnegative number but it is "${value}"`);
   }
-  const overallQuota = await getQuota(account_id);
-  const cur = await getPurchaseQuotas(account_id);
+  const { services, global } = await getPurchaseQuotas(account_id);
   let s = value ?? 0;
-  for (const key in cur) {
-    if (key != name) {
-      s += cur[key] ?? 0;
+  for (const key in services) {
+    if (key != service) {
+      s += services[key];
     }
   }
-  if (s > overallQuota) {
+  if (s > global) {
     throw Error(
-      `Your account has an overall quota limit of $${overallQuota} and increasing the ${name} quota to $${value} would exceed this.`
+      `Your account has an global limit of $${global} and increasing the "${QUOTA_SPEC[service].display}" quota to $${value} would exceed this.`
     );
   }
   const pool = getPool();
-  if (cur[name] != null) {
+  if (services[service] != null) {
     await pool.query(
-      "UPDATE purchase_quotas SET value=$3 WHERE name=$2 AND account_id=$1",
-      [account_id, name, value]
+      "UPDATE purchase_quotas SET value=$3 WHERE service=$2 AND account_id=$1",
+      [account_id, service, value]
     );
   } else {
     await pool.query(
-      "INSERT INTO purchase_quotas(account_id,name,value) VALUES($1,$2,$3)",
-      [account_id, name, value]
+      "INSERT INTO purchase_quotas(account_id,service,value) VALUES($1,$2,$3)",
+      [account_id, service, value]
     );
   }
 }
 
 export async function getPurchaseQuotas(
   account_id: string
-): Promise<{ [name: string]: number }> {
+): Promise<{ services: { [service: string]: number }; global: number }> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT name, value FROM purchase_quotas WHERE account_id=$1",
+    "SELECT service, value FROM purchase_quotas WHERE account_id=$1",
     [account_id]
   );
-  const x: { [name: string]: number } = {};
-  for (const { name, value } of rows) {
-    x[name] = value;
+  const services: { [service: string]: number } = {};
+  for (const { service, value } of rows) {
+    services[service] = value ?? 0;
   }
-  x["global"] = await getQuota(account_id);
-  return x;
+  return { services, global: await getGlobalQuota(account_id) };
 }

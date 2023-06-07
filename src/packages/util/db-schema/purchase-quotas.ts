@@ -3,9 +3,19 @@ import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 
 import type { Service } from "./purchases";
+export type { Service };
 
-export const QUOTA_SPEC: { [name: Service]: { display: string } } = {
+interface Spec {
+  display: string; // what to show user to describe this service
+  noSet?: boolean; // if true then this is not a service quota that the user can set.
+}
+
+export type QuotaSpec = Record<Service, Spec>;
+
+export const QUOTA_SPEC: QuotaSpec = {
+  credit: { display: "Credit", noSet: true },
   "openai-gpt4": { display: "OpenAI GPT-4" },
+  "openai-image": { display: "OpenAI Image" },
   "project-upgrades": { display: "Project Upgrades" },
 };
 
@@ -30,7 +40,7 @@ Table({
     },
     value: {
       title: "Value",
-      desc: "The maximum amount that user can be charged for [name] during one month billing period, in US dollars.",
+      desc: "The maximum amount that user can be charged for this service during one month billing period, in US dollars.",
       type: "number", // actually comes back as string in queries.
       pg_type: "REAL CHECK (value >= 0)",
     },
@@ -40,15 +50,16 @@ Table({
     primary_key: "id",
     // make it fast to find all quotas for a given account
     pg_indexes: ["account_id"],
-    // enforce that there is only one quota for each name for a given account
-    pg_unique_indexes: ["(account_id,name)"],
+    // enforce that there is only one quota for each service for a given account
+    pg_unique_indexes: ["(account_id,service)"],
     user_query: {
+      // set happens though v2 api only to enforce global quota
       get: {
         pg_where: [{ "account_id = $::UUID": "account_id" }],
         fields: {
           id: null,
           account_id: null,
-          name: null,
+          service: null,
           value: null,
         },
       },
@@ -68,7 +79,7 @@ Table({
         fields: {
           id: null,
           account_id: null,
-          name: null,
+          service: null,
           value: null,
         },
       },
@@ -76,6 +87,8 @@ Table({
         admin: true,
         fields: {
           id: true,
+          account_id: true,
+          service: true,
           value: true,
         },
       },
