@@ -2,6 +2,8 @@ import { Radio, Tooltip } from "antd";
 import { OPENAI_USERNAMES, Model } from "@cocalc/util/db-schema/openai";
 export type { Model };
 
+export const DEFAULT_MODEL = "gpt-3.5-turbo";
+
 interface Props {
   model: Model;
   setModel: (model: Model) => void;
