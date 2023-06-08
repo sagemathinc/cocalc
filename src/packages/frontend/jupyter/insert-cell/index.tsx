@@ -108,7 +108,7 @@ export function InsertCell({
           : {}),
         ...(showChatGPT ? { backgroundColor: COLORS.FG_BLUE } : {}),
       }}
-      onClick={handleBarClick}
+      onClick={showChatGPT ? undefined : handleBarClick}
     >
       <ChatGPTPopover
         setShowChatGPT={setShowChatGPT}

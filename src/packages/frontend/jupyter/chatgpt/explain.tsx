@@ -55,7 +55,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
           return (
             <div
               style={{
-                width: "450px",
+                width: "550px",
                 overflow: "auto",
                 maxWidth: "90vw",
                 maxHeight: "300px",
