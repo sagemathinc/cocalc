@@ -65,7 +65,7 @@ export default function HelpMeFix({
             <ModelSwitch size="small" model={model} setModel={setModel} />
           </>
         }
-        description={
+        description={() => (
           <div
             style={{
               width: "450px",
@@ -94,8 +94,7 @@ export default function HelpMeFix({
               })}
             />
           </div>
-        }
-        cancelText="Cancel"
+        )}
         okText={
           <>
             <Icon name={"paper-plane"} /> Ask {modelToName(model)} (enter)

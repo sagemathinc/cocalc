@@ -1,4 +1,4 @@
-import { Radio } from "antd";
+import { Radio, Tooltip } from "antd";
 import { OPENAI_USERNAMES, Model } from "@cocalc/util/db-schema/openai";
 export type { Model };
 
@@ -19,10 +19,20 @@ export default function ModelSwitch({ model, setModel, size }: Props) {
         setModel(value);
       }}
     >
-      <Radio.Button value="gpt-3.5-turbo">
-        {OPENAI_USERNAMES["gpt-3.5-turbo"]}
-      </Radio.Button>
-      <Radio.Button value="gpt-4">{OPENAI_USERNAMES["chatgpt4"]}</Radio.Button>
+      <Tooltip
+        title={`${modelToName(
+          "gpt-3.5-turbo"
+        )} is free and fast, but not as intelligent`}
+      >
+        <Radio.Button value="gpt-3.5-turbo">
+          {modelToName("gpt-3.5-turbo")}
+        </Radio.Button>
+      </Tooltip>
+      <Tooltip
+        title={`${modelToName("gpt-4")} is more intelligent, but not free`}
+      >
+        <Radio.Button value="gpt-4">{modelToName("gpt-4")}</Radio.Button>
+      </Tooltip>
     </Radio.Group>
   );
 }
