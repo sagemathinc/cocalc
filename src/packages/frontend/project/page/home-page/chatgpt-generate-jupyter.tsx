@@ -151,6 +151,7 @@ export default function ChatGPTGenerateJupyterNotebook({
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
         tag: TAG,
+        model: "gpt-3.5-turbo",
       });
 
       await updateNotebook(gptStream);

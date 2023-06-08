@@ -53,20 +53,20 @@ export class OpenAIClient {
 
   private async implementChatgpt({
     input,
+    model,
     system = DEFAULT_SYSTEM_PROMPT,
     history,
     project_id,
     path,
-    model,
     chatStream,
     tag = "",
   }: {
     input: string;
+    model: Model;
     system?: string;
     history?: History;
     project_id?: string;
     path?: string;
-    model?: Model;
     chatStream?: ChatStream; // if given, uses chat stream
     tag?: string;
     startStreamExplicitly?: boolean;
@@ -90,16 +90,16 @@ export class OpenAIClient {
       numTokensUpperBound,
       truncateHistory,
       truncateMessage,
-      MAX_CHATGPT_TOKENS,
+      getMaxTokens,
     } = await import("@cocalc/frontend/misc/openai");
     // We leave some room for output, hence about 3000 instead of 4000 here:
-    const maxTokens = MAX_CHATGPT_TOKENS - 1000;
+    const maxTokens = getMaxTokens(model) - 1000;
     input = truncateMessage(input, maxTokens);
-    const n = numTokensUpperBound(input, MAX_CHATGPT_TOKENS);
+    const n = numTokensUpperBound(input, getMaxTokens(model));
     if (n >= maxTokens) {
       history = undefined;
     } else if (history != null) {
-      history = truncateHistory(history, maxTokens - n);
+      history = truncateHistory(history, maxTokens - n, model);
     }
     // console.log("chatgpt", { input, system, history, project_id, path });
     const mesg = message.chatgpt({

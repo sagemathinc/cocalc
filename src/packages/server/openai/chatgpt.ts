@@ -23,7 +23,7 @@ export const GPT4_COST = {
 // The maximum cost for one single GPT-4 api call.
 // We can't know the cost until after it happens, so use this bound.
 export const GPT4_MAX_COST =
-  Math.max(GPT4_COST.prompt_tokens, GPT4_COST.completion_tokens) * 8000;
+  Math.max(GPT4_COST.prompt_tokens, GPT4_COST.completion_tokens) * 8192;
 
 const log = getLogger("chatgpt");
 

@@ -29,6 +29,7 @@ import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-h
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import { newest_content, getSelectedHashtagsSearch } from "./utils";
 import Composing from "./composing";
+import { OPENAI_USERNAMES } from "@cocalc/util/db-schema/openai";
 
 type MessageMap = Map<string, any>;
 
@@ -293,8 +294,9 @@ function cmpMessages([a_time, a_parent], [b_time, b_parent]): number {
 }
 
 export function getUserName(userMap, accountId: string): string {
-  if (accountId == "chatgpt") return "ChatGPT (3.5-turbo)";
-  if (accountId == "chatgpt4") return "ChatGPT (4)";
+  if (accountId.startsWith("chatgpt")) {
+    return OPENAI_USERNAMES[accountId];
+  }
   if (userMap == null) return "Unknown";
   const account = userMap.get(accountId);
   if (account == null) return "Unknown";

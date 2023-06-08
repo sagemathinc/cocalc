@@ -306,6 +306,7 @@ export const InsertCell: React.FC<InsertCellProps> = React.memo(
           path,
           system: `Return a single code block in the language "${lang}".`,
           tag,
+          model: "gpt-3.5-turbo",
         });
 
         const updateCell = throttle(

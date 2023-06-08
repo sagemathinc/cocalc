@@ -20,6 +20,7 @@ import { capitalize } from "@cocalc/util/misc";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useInterval } from "react-interval-hook";
 import TitleBarButtonTour from "./title-bar-button-tour";
+import { OPENAI_USERNAMES, Model } from "@cocalc/util/db-schema/openai";
 
 interface Preset {
   command: string;
@@ -143,6 +144,7 @@ export default function ChatGPT({
   const scopeRef = useRef<any>(null);
   const contextRef = useRef<any>(null);
   const submitRef = useRef<any>(null);
+  const [model, setModel] = useState<Model>("gpt-3.5-turbo");
 
   useEffect(() => {
     if (showChatGPT) {
@@ -169,7 +171,7 @@ export default function ChatGPT({
       // don't waste time on update if it is not visible.
       return;
     }
-    const { input, inputOrig } = await updateInput(actions, id, scope);
+    const { input, inputOrig } = await updateInput(actions, id, scope, model);
     setInput(input);
     setTruncated(
       Math.round(
@@ -213,6 +215,7 @@ export default function ChatGPT({
         command: custom.trim(),
         codegen: false,
         allowEmpty: true,
+        model,
         tag: "custom",
       });
       return;
@@ -223,6 +226,9 @@ export default function ChatGPT({
         break;
       }
     }
+    setShowChatGPT(false);
+    setError("");
+    actions.focus();
   };
 
   return (
@@ -230,7 +236,23 @@ export default function ChatGPT({
       title={
         <div style={{ fontSize: "18px" }}>
           <OpenAIAvatar size={24} style={{ marginRight: "5px" }} />
-          What would you like ChatGPT to do?
+          <Radio.Group
+            size="small"
+            value={model}
+            optionType="button"
+            buttonStyle="solid"
+            onChange={({ target: { value } }) => {
+              setModel(value);
+            }}
+          >
+            <Radio.Button value="gpt-3.5-turbo">
+              {OPENAI_USERNAMES["gpt-3.5-turbo"]}
+            </Radio.Button>
+            <Radio.Button value="gpt-4">
+              {OPENAI_USERNAMES["chatgpt4"]}
+            </Radio.Button>
+          </Radio.Group>{" "}
+          What would you like to do using {OPENAI_USERNAMES[model]}?
           <Button
             onClick={() => {
               setShowChatGPT(false);
@@ -265,7 +287,7 @@ export default function ChatGPT({
                 allowClear
                 autoFocus
                 style={{ flex: 1 }}
-                placeholder="Describe what you want ChatGPT to do..."
+                placeholder={"What you want to do..."}
                 value={custom}
                 onChange={(e) => {
                   setCustom(e.target.value);
@@ -361,7 +383,7 @@ export default function ChatGPT({
                   name={querying ? "spinner" : "paper-plane"}
                   spin={querying}
                 />{" "}
-                Ask ChatGPT (shift+enter)
+                Ask {OPENAI_USERNAMES[model]} (shift+enter)
               </Button>
             </div>
             {error && <Alert type="error" message={error} />}
@@ -392,7 +414,8 @@ export default function ChatGPT({
 async function updateInput(
   actions,
   id,
-  scope
+  scope,
+  model
 ): Promise<{ input: string; inputOrig: string }> {
   if (scope == "none") {
     return { input: "", inputOrig: "" };
@@ -401,10 +424,10 @@ async function updateInput(
   const inputOrig = input;
   if (input.length > 2000) {
     // Truncate input (also this MUST be a lazy import):
-    const { truncateMessage, MAX_CHATGPT_TOKENS } = await import(
+    const { truncateMessage, getMaxTokens } = await import(
       "@cocalc/frontend/misc/openai"
     );
-    const maxTokens = MAX_CHATGPT_TOKENS - 1000; // 1000 tokens reserved for output and the prompt below.
+    const maxTokens = getMaxTokens(model) - 1000; // 1000 tokens reserved for output and the prompt below.
     input = truncateMessage(input, maxTokens);
   }
   return { input, inputOrig };
