@@ -1,8 +1,7 @@
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { capitalize } from "@cocalc/util/misc";
-import type { Model } from "@cocalc/util/db-schema/openai";
-import { OPENAI_USERNAMES } from "@cocalc/util/db-schema/openai";
+import { modelToMention, Model } from "./model-switch";
 
 interface Options {
   codegen?: boolean;
@@ -53,9 +52,7 @@ export default async function createChat({
     actions.path
   );
   const delim = backtickSequence(input);
-  const head = `<span class="user-mention" account-id=${
-    model == "gpt-4" ? "chatgpt4" : "chatgpt"
-  }>@${OPENAI_USERNAMES[model] ?? model}</span> ${capitalize(command)}:\n`;
+  const head = `${modelToMention(model)} ${capitalize(command)}:\n`;
   let message = "";
   if (frameType != "terminal") {
     message += `I am writing in the file ${

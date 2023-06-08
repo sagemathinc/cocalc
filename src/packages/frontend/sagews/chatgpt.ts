@@ -29,5 +29,6 @@ export function helpMeFix({
     extraFileInfo: "SageMath Worksheet",
     redux,
     prioritizeLastInput: true,
+    model: "gpt-3.5-turbo",
   });
 }

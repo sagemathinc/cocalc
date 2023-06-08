@@ -14,13 +14,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
-import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
-import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 import { capitalize } from "@cocalc/util/misc";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useInterval } from "react-interval-hook";
 import TitleBarButtonTour from "./title-bar-button-tour";
-import { OPENAI_USERNAMES, Model } from "@cocalc/util/db-schema/openai";
+import ModelSwitch, { modelToName, Model } from "./model-switch";
+import Context from "./context";
 
 interface Preset {
   command: string;
@@ -236,23 +234,8 @@ export default function ChatGPT({
       title={
         <div style={{ fontSize: "18px" }}>
           <OpenAIAvatar size={24} style={{ marginRight: "5px" }} />
-          <Radio.Group
-            size="small"
-            value={model}
-            optionType="button"
-            buttonStyle="solid"
-            onChange={({ target: { value } }) => {
-              setModel(value);
-            }}
-          >
-            <Radio.Button value="gpt-3.5-turbo">
-              {OPENAI_USERNAMES["gpt-3.5-turbo"]}
-            </Radio.Button>
-            <Radio.Button value="gpt-4">
-              {OPENAI_USERNAMES["chatgpt4"]}
-            </Radio.Button>
-          </Radio.Group>{" "}
-          What would you like to do using {OPENAI_USERNAMES[model]}?
+          <ModelSwitch size="small" model={model} setModel={setModel} /> What
+          would you like to do using {modelToName(model)}?
           <Button
             onClick={() => {
               setShowChatGPT(false);
@@ -383,7 +366,7 @@ export default function ChatGPT({
                   name={querying ? "spinner" : "paper-plane"}
                   spin={querying}
                 />{" "}
-                Ask {OPENAI_USERNAMES[model]} (shift+enter)
+                Ask {modelToName(model)} (shift+enter)
               </Button>
             </div>
             {error && <Alert type="error" message={error} />}
@@ -433,44 +416,6 @@ async function updateInput(
   return { input, inputOrig };
 }
 
-const contextStyle = {
-  overflowY: "auto",
-  margin: "5px",
-  padding: "5px",
-  width: undefined,
-} as const;
-
-function Context({ value, info }) {
-  if (!value?.trim()) {
-    return (
-      <b style={{ fontSize: "12pt" }}>
-        No context from your file will be included.
-      </b>
-    );
-  }
-  if (info == "md" || info == "markdown") {
-    return (
-      <StaticMarkdown
-        value={value}
-        style={{
-          ...contextStyle,
-          border: "1px solid #ddd",
-          borderRadius: "5px",
-        }}
-      />
-    );
-  } else {
-    return (
-      <CodeMirrorStatic
-        style={contextStyle}
-        options={{
-          mode: infoToMode(info),
-        }}
-        value={value}
-      />
-    );
-  }
-}
 
 function getScope(id, actions): Scope {
   const scopes = actions.chatgptGetScopes();
