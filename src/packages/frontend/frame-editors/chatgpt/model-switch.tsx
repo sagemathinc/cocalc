@@ -8,11 +8,13 @@ interface Props {
   model: Model;
   setModel: (model: Model) => void;
   size?;
+  style?;
 }
 
-export default function ModelSwitch({ model, setModel, size }: Props) {
+export default function ModelSwitch({ style, model, setModel, size }: Props) {
   return (
     <Radio.Group
+      style={style}
       size={size}
       value={model}
       optionType="button"

@@ -41,6 +41,11 @@ import type { KernelSpec } from "@cocalc/jupyter/types";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Block } from "./block";
+import ModelSwitch, {
+  modelToName,
+  Model,
+  DEFAULT_MODEL,
+} from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
 
 const TAG = "generate-jupyter";
 
@@ -72,6 +77,7 @@ export default function ChatGPTGenerateJupyterNotebook({
   onSuccess,
   project_id,
 }: Props) {
+  const [model, setModel] = useState<Model>(DEFAULT_MODEL);
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
     null
   );
@@ -151,7 +157,7 @@ export default function ChatGPTGenerateJupyterNotebook({
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual notebook path since the model outputs that.
         tag: TAG,
-        model: "gpt-3.5-turbo",
+        model,
       });
 
       await updateNotebook(gptStream);
@@ -244,7 +250,11 @@ export default function ChatGPTGenerateJupyterNotebook({
 
       jfa.set_cell_input(
         fistCell,
-        `# ChatGPT generated notebook\n\nThis notebook was generated in [CoCalc](https://cocalc.com) by [ChatGPT](https://chat.openai.com/) using the prompt:\n\n${promptIndented}`
+        `# ${modelToName(
+          model
+        )} generated notebook\n\nThis notebook was generated in [CoCalc](https://cocalc.com) by [${modelToName(
+          model
+        )}](https://chat.openai.com/) using the prompt:\n\n${promptIndented}`
       );
       ja.set_cell_type(fistCell, "markdown");
 
@@ -321,14 +331,14 @@ export default function ChatGPTGenerateJupyterNotebook({
   function info() {
     return (
       <HelpIcon title="OpenAI GPT" style={{ float: "right" }}>
-        <Paragraph style={{ minWidth: "300px" }}>
-          This tool sends your message to{" "}
-          <A href={"https://chat.openai.com/"}>ChatGPT</A> in order to get a
-          well structured answer back. This reply will be post-processed and
-          turned into a Jupyter Notebook. When it opens up, check the result and
-          evaluate the cells. Not everything might work on first try, but it
-          should give you some ideas towards your given task. If it does not
-          work, try again with a better prompt!
+        <Paragraph style={{ minWidth: "300px", maxWidth: "500px" }}>
+          This sends your requst to{" "}
+          <A href={"https://chat.openai.com/"}>{modelToName(model)}</A>, and we
+          turn the response into a Jupyter Notebook. Check the result then
+          evaluate the cells. Some things might now work on the first try, but
+          this should give you some good ideas to help you accomplish your goal.
+          If it does not work, try again with a better prompt, ask in chat, and
+          ask for suggested fixes.
         </Paragraph>
       </HelpIcon>
     );
@@ -336,8 +346,14 @@ export default function ChatGPTGenerateJupyterNotebook({
 
   return (
     <Block style={{ padding: "0 15px" }}>
-      <Title level={2}>
-        <OpenAIAvatar size={30} /> ChatGPT Jupyter Notebook Generator {info()}
+      <Title level={4}>
+        <OpenAIAvatar size={30} /> Create Notebook Using{" "}
+        <ModelSwitch
+          model={model}
+          setModel={setModel}
+          style={{ marginTop: "-5px" }}
+        />
+        {info()}
       </Title>
       {typeof kernelSpecs == "string" && (
         <Alert
@@ -388,8 +404,8 @@ export default function ChatGPTGenerateJupyterNotebook({
               <Paragraph>
                 <Input.TextArea
                   allowClear
-                  autoSize={{ minRows: 2, maxRows: 6 }}
-                  maxLength={2000}
+                  autoSize={{ minRows: 3, maxRows: 6 }}
+                  maxLength={3000}
                   placeholder={PLACEHOLDER}
                   value={prompt}
                   disabled={querying}
@@ -414,7 +430,8 @@ export default function ChatGPTGenerateJupyterNotebook({
                   onClick={generate}
                   disabled={querying || !prompt?.trim() || !spec}
                 >
-                  <Icon name="bolt" /> Generate Notebook (shift+enter)
+                  <Icon name="paper-plane" /> Create Notebook using{" "}
+                  {modelToName(model)} (shift+enter)
                 </Button>
               </Paragraph>
               {!error && querying && <ProgressEstimate seconds={30} />}
@@ -503,6 +520,7 @@ export function ChatGPTGenerateNotebookButton({
       </Button>
       <Modal
         title="Generate Jupyter Notebook"
+        width={600}
         open={show}
         onOk={handleOk}
         onCancel={handleCancel}
