@@ -1,3 +1,5 @@
+import { alert_message } from "@cocalc/frontend/alerts";
+
 export function insertCell({
   frameActions,
   actions,
@@ -38,4 +40,31 @@ export function insertCell({
   }
 
   return new_id;
+}
+
+export async function pasteCell({
+  frameActions,
+  actions,
+  position,
+  id,
+}): Promise<void> {
+  try {
+    // First time around (in Chrome at least), this will require a confirmation by the user
+    // It fails with a "permission denied"
+    const content = await navigator.clipboard.readText();
+    insertCell({
+      frameActions,
+      actions,
+      type: "code",
+      content,
+      id,
+      position,
+    });
+  } catch (err) {
+    alert_message({
+      type: "error",
+      title: "Permission denied",
+      message: `You have to enable clipboard access to make pasting from the clipboard work.\n${err}`,
+    });
+  }
 }
