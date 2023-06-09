@@ -101,7 +101,7 @@ export default function ChatGPT({
                 margin: "5px 0",
                 padding: "10px",
                 overflowY: "auto",
-                height: "200px",
+                maxHeight: "150px",
               }}
             />
             <Paragraph style={{ textAlign: "center", marginTop: "30px" }}>

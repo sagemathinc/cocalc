@@ -4,8 +4,9 @@ Functions for interfacing with the purchases functionality.
 // import type { WebappClient } from "./client";
 
 import api from "./api";
-import type { QuotaSpec } from "@cocalc/util/db-schema/purchase-quotas";
 import type { Service } from "@cocalc/util/db-schema/purchases";
+import { redux } from "@cocalc/frontend/app-framework";
+import { once } from "@cocalc/util/async-utils";
 
 export class PurchasesClient {
   //private client: WebappClient;
@@ -16,12 +17,18 @@ export class PurchasesClient {
 
   // Returns quotas for each category of purchase, along with
   // a 'global' quota.
-  async getQuotas(): Promise<Partial<QuotaSpec>> {
+  async getQuotas(): Promise<{
+    global: number;
+    services: { [service: string]: number };
+  }> {
     return await api("purchases/get-quotas");
   }
 
   // returns the quotas after being changed.
-  async setQuota(service: Service, value: number): Promise<Partial<QuotaSpec>> {
+  async setQuota(
+    service: Service,
+    value: number
+  ): Promise<{ global: number; services: { [service: string]: number } }> {
     return await api("purchases/set-quota", { service, value });
   }
 
@@ -38,5 +45,33 @@ export class PurchasesClient {
     paid?: boolean;
   }) {
     console.log("opts = ", opts);
+  }
+
+  async quotaModal({
+    service,
+    cost,
+    allowed,
+    reason,
+  }: {
+    service?: Service;
+    cost?: number;
+    allowed?: boolean;
+    reason?: string;
+  } = {}): Promise<void> {
+    const actions = redux.getActions("billing");
+    actions.setState({
+      pay_as_you_go: { showModal: true, service, cost, reason, allowed } as any,
+    });
+    await waitUntilPayAsYouGoModalCloses();
+  }
+}
+
+async function waitUntilPayAsYouGoModalCloses() {
+  const store = redux.getStore("billing");
+  while (true) {
+    await once(store, "change");
+    if (!store.getIn(["pay_as_you_go", "showModal"])) {
+      return;
+    }
   }
 }

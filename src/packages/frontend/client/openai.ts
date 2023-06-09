@@ -43,9 +43,13 @@ export class OpenAIClient {
   public chatgptStream(opts, startExplicitly = false): ChatStream {
     const chatStream = new ChatStream();
     (async () => {
-      await this.implementChatgpt({ ...opts, chatStream });
-      if (!startExplicitly) {
-        chatStream.emit("start");
+      try {
+        await this.implementChatgpt({ ...opts, chatStream });
+        if (!startExplicitly) {
+          chatStream.emit("start");
+        }
+      } catch (err) {
+        chatStream.emit("error", err);
       }
     })();
     return chatStream;
@@ -86,13 +90,33 @@ export class OpenAIClient {
         return "Pong";
       }
     }
+
+    // when client gets gpt4 request, check if allowed.  If not, show quota modal.
+    const { allowed, reason } =
+      await this.client.purchases_client.isPurchaseAllowed("openai-gpt-4");
+
+    if (!allowed) {
+      await this.client.purchases_client.quotaModal({
+        service: "openai-gpt-4",
+        reason,
+        allowed,
+      });
+    }
+    // Now check again after modal dismissed...
+    const x = await this.client.purchases_client.isPurchaseAllowed(
+      "openai-gpt-4"
+    );
+    if (!x.allowed) {
+      throw Error(reason);
+    }
+
     const {
       numTokensUpperBound,
       truncateHistory,
       truncateMessage,
       getMaxTokens,
     } = await import("@cocalc/frontend/misc/openai");
-    // We leave some room for output, hence about 3000 instead of 4000 here:
+    // We always leave some room for output:
     const maxTokens = getMaxTokens(model) - 1000;
     input = truncateMessage(input, maxTokens);
     const n = numTokensUpperBound(input, getMaxTokens(model));

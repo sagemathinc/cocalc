@@ -22,6 +22,10 @@ export const QUOTA_SPEC: QuotaSpec = {
   //"project-upgrades": { display: "Project Upgrades" },
 };
 
+export function serviceToDisplay(service: Service): string {
+  return QUOTA_SPEC[service]?.display ?? service;
+}
+
 Table({
   name: "purchase_quotas",
   fields: {
