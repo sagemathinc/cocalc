@@ -271,17 +271,17 @@ export default function ChatGPTGenerateJupyterNotebook({
       // every update interval, we extract all the answer text,
       function (answer) {
         const allCells = splitCells(answer);
-        console.log("allCells", allCells, "answer", answer);
+        // console.log({ allCells, answer });
 
         // we always have to update the last cell, even if there are more cells ahead
-        jfa.set_cell_input(curCell, allCells[numCells - 1].source.join("\n"));
+        jfa.set_cell_input(curCell, allCells[numCells - 1].source.join(""));
         ja.set_cell_type(curCell, allCells[numCells - 1].cell_type);
 
         if (allCells.length > numCells) {
           // for all new cells, insert them and update lastCell and numCells
           for (let i = numCells; i < allCells.length; i++) {
             curCell = jfa.insert_cell(1); // insert cell below the current one
-            jfa.set_cell_input(curCell, allCells[i].source.join("\n"));
+            jfa.set_cell_input(curCell, allCells[i].source.join(""));
             ja.set_cell_type(curCell, allCells[i].cell_type);
             numCells += 1;
           }
@@ -306,6 +306,7 @@ export default function ChatGPTGenerateJupyterNotebook({
         }
       } else {
         // we're done
+        ja.delete_all_blank_code_cells();
         ja.run_all_cells();
       }
     });
