@@ -8,7 +8,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
 */
 
 import {
-  Button as AntdButton,
+  Button as AntdButton0,
   Input,
   InputNumber,
   Popconfirm,
@@ -267,17 +267,33 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
     };
   }
 
-  function StyledButton(props0) {
-    let props;
-    if (hideButtonTooltips) {
-      props = { ...props0 };
-      delete props.title;
-    } else {
-      props = props0;
+  function wrapOnClick(props1, props0) {
+    if (props0.onClick != null) {
+      props1.onClick = async (...args) => {
+        try {
+          await props0.onClick(...args);
+        } catch (err) {
+          console.trace(`${err}`);
+          props.actions.set_error(
+            `${err}. Try reopening this file, refreshing your browser, or restarting your project.  If nothing works, click Help above and make a support request.`
+          );
+        }
+      };
     }
+  }
+
+  function StyledButton(props0) {
+    let props1;
+    if (hideButtonTooltips) {
+      props1 = { ...props0 };
+      delete props1.title;
+    } else {
+      props1 = { ...props0 };
+    }
+    wrapOnClick(props1, props0);
     return (
-      <AntdBootstrapButton {...props} style={button_style(props.style)}>
-        {props.children}
+      <AntdBootstrapButton {...props1} style={button_style(props1.style)}>
+        {props1.children}
       </AntdBootstrapButton>
     );
   }
@@ -285,6 +301,13 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
   function Button(props) {
     return <StyledButton {...props}>{props.children}</StyledButton>;
   }
+
+  function AntdButton(props0) {
+    const props1 = { ...props0 };
+    wrapOnClick(props1, props0);
+    return <AntdButton0 {...props1} />;
+  }
+  AntdButton.Group = AntdButton0.Group;
 
   function is_visible(action_name: string, explicit?: boolean): boolean {
     if (props.editor_actions[action_name] == null) {
