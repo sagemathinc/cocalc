@@ -26,14 +26,16 @@ export default function ModelSwitch({ style, model, setModel, size }: Props) {
       <Tooltip
         title={`${modelToName(
           "gpt-3.5-turbo"
-        )} is free and fast, but not as intelligent`}
+        )} is faster, but not as smart`}
       >
         <Radio.Button value="gpt-3.5-turbo">
           {modelToName("gpt-3.5-turbo")}
         </Radio.Button>
       </Tooltip>
       <Tooltip
-        title={`${modelToName("gpt-4")} is more intelligent, but not free`}
+        title={`${modelToName(
+          "gpt-4"
+        )} is more intelligent with bigger context, but costs more`}
       >
         <Radio.Button value="gpt-4">{modelToName("gpt-4")}</Radio.Button>
       </Tooltip>
