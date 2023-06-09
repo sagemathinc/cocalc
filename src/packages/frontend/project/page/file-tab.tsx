@@ -9,7 +9,7 @@ A single tab in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
 
-import { Button, Popover, Space } from "antd";
+import { Popover } from "antd";
 import { CSSProperties, ReactNode } from "react";
 
 import {
@@ -20,22 +20,18 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { HiddenXSSM, Icon, IconName } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
 import track from "@cocalc/frontend/user-tracking";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
-import { TITLE as SERVERS_TITLE } from "../servers";
-import { RestartProject } from "../settings/restart-project";
-import { StopProject } from "../settings/stop-project";
-import { ChatGPTGenerateNotebookButton } from "./home-page/chatgpt-generate-jupyter";
-import { HomeRecentFiles } from "./home-page/recent-files";
-import { FilesFlyout } from "./flyouts/files";
 import { ProjectSearchBody } from "../search/body";
-import { NewFlyout } from "./flyouts/new";
-import { ProjectInfoFlyout } from "./flyouts/info";
+import { TITLE as SERVERS_TITLE } from "../servers";
 import { SettingsFlyout } from "./flyouts/control";
+import { FilesFlyout } from "./flyouts/files";
+import { ProjectInfoFlyout } from "./flyouts/info";
 import { LogFlyout } from "./flyouts/log";
+import { NewFlyout } from "./flyouts/new";
+import { ServersFlyout } from "./flyouts/servers";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -78,14 +74,14 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: "New",
     flyoutTitle: "New file",
     icon: "plus-circle",
-    tooltip: NewPopover,
+    tooltip: "Create new files",
     flyout: NewFlyout,
     noAnonymous: false,
   },
   log: {
     label: "Log",
     icon: "history",
-    tooltip: LogPopover,
+    tooltip: "Project activity log",
     flyout: LogFlyout,
     flyoutTitle: "Recent Files",
     noAnonymous: false,
@@ -100,8 +96,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   servers: {
     label: SERVERS_TITLE,
     icon: "server",
-    tooltip: ServersPopover,
-    flyout: ({ project_id }) => ServersPopover({ project_id, flyout: true }),
+    flyout: ({ project_id }) => ServersFlyout({ project_id }),
     noAnonymous: false,
   },
   info: {
@@ -114,7 +109,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   settings: {
     label: "Settings",
     icon: "wrench",
-    tooltip: SettingsPopover,
+    tooltip: "Project settings and controls",
     flyout: SettingsFlyout,
     noAnonymous: false,
     flyoutTitle: "Status and controls",
@@ -410,64 +405,6 @@ function DisplayedLabel({ path, label, inline = true }) {
         {label}
         <span style={{ color: COLORS.FILE_EXT }}>{ext}</span>
       </span>
-    </div>
-  );
-}
-
-function NewPopover({ project_id }) {
-  return (
-    <div>
-      Create or Upload New Files (click for more...)
-      <hr />
-      <ChatGPTGenerateNotebookButton project_id={project_id} />
-    </div>
-  );
-}
-
-function LogPopover({ project_id }) {
-  return (
-    <div>
-      Project Activity Log (click for more...)
-      <hr />
-      <HomeRecentFiles project_id={project_id} style={{ maxHeight: "125px" }} />
-    </div>
-  );
-}
-
-function SettingsPopover({ project_id }) {
-  return (
-    <div>
-      Project settings and controls (click for more...)
-      <hr />
-      <Button.Group>
-        <RestartProject project_id={project_id} />
-        <StopProject project_id={project_id} />
-      </Button.Group>
-    </div>
-  );
-}
-
-function ServersPopover({ project_id, flyout = false }) {
-  const servers = [
-    <ServerLink key="jupyterlab" name="jupyterlab" project_id={project_id} />,
-    <ServerLink key="jupyter" name="jupyter" project_id={project_id} />,
-    <ServerLink key="code" name="code" project_id={project_id} />,
-    <ServerLink key="pluto" name="pluto" project_id={project_id} />,
-  ].filter((s) => s != null);
-
-  return (
-    <div>
-      Launch servers
-      {!flyout ? ": Jupyter, Pluto, VS Code (click for more details..." : ""}
-      <hr />
-      <Space direction="vertical">
-        {servers}
-        {servers.length == 0 && (
-          <>
-            No available server has been detected in this project environment.
-          </>
-        )}
-      </Space>
     </div>
   );
 }

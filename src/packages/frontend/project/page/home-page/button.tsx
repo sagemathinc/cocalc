@@ -44,6 +44,7 @@ export default function HomePageButton({ project_id, active, width }) {
         borderRadius: "0",
         fontSize: "24px",
         color: active ? COLORS.ANTD_LINK_BLUE : COLORS.FILE_ICON,
+        transitionDuration: "0s",
       }}
       onClick={() => {
         actions?.set_active_tab("home");

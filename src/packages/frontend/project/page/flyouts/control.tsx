@@ -59,6 +59,9 @@ export function SettingsFlyout(_): JSX.Element {
     "all_projects_have_been_loaded"
   );
 
+  const active_top_tab = useTypedRedux("page", "active_top_tab");
+  const projectIsVisible = active_top_tab === project_id;
+
   function renderState() {
     const s = state?.get("state");
     const iconName = COMPUTE_STATES[s]?.icon;
@@ -90,7 +93,8 @@ export function SettingsFlyout(_): JSX.Element {
     }
   }
 
-  function renderStatus(): JSX.Element {
+  function renderStatus(): JSX.Element | undefined {
+    if (!projectIsVisible) return;
     return (
       <>
         <Title level={4}>
