@@ -46,10 +46,11 @@ import ModelSwitch, {
   Model,
   DEFAULT_MODEL,
 } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 const TAG = "generate-jupyter";
 
-const PLACEHOLDER = "Describe your notebook in detail...";
+const PLACEHOLDER = "Describe your notebook...";
 
 const EXAMPLES: { [language: string]: string } = {
   python:
@@ -144,10 +145,7 @@ export default function ChatGPTGenerateJupyterNotebook({
 
   async function generate() {
     if (spec == null) return;
-
-    const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
-
-    const input = `Explain directly and to the point, how to compute the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename]".\n\n${prompt}`;
+    const input = createInput({ spec, prompt });
 
     try {
       setQuerying(true);
@@ -345,6 +343,8 @@ export default function ChatGPTGenerateJupyterNotebook({
     );
   }
 
+  const input = createInput({ spec, prompt });
+
   return (
     <Block style={{ padding: "0 15px" }}>
       <Title level={4}>
@@ -352,7 +352,7 @@ export default function ChatGPTGenerateJupyterNotebook({
         <ModelSwitch
           model={model}
           setModel={setModel}
-          style={{ marginTop: "-5px" }}
+          style={{ marginTop: "-7.5px" }}
         />
         {info()}
       </Title>
@@ -400,7 +400,7 @@ export default function ChatGPTGenerateJupyterNotebook({
             <>
               <Paragraph>
                 Provide a detailed description of the notebook you want to
-                generate, including as many relevant details as possible.
+                create:
               </Paragraph>
               <Paragraph>
                 <Input.TextArea
@@ -435,6 +435,20 @@ export default function ChatGPTGenerateJupyterNotebook({
                   {modelToName(model)} (shift+enter)
                 </Button>
               </Paragraph>
+              {input && (
+                <div>
+                  The following will be sent to {modelToName(model)}:
+                  <StaticMarkdown
+                    value={input}
+                    style={{
+                      border: "1px solid lightgrey",
+                      borderRadius: "5px",
+                      margin: "5px 0",
+                      padding: "5px",
+                    }}
+                  />
+                </div>
+              )}
               {!error && querying && <ProgressEstimate seconds={30} />}
               {error && (
                 <Paragraph>
@@ -506,10 +520,6 @@ export function ChatGPTGenerateNotebookButton({
   if (!redux.getStore("projects").hasOpenAI(project_id)) {
     return null;
   }
-  const handleOk = () => {
-    setShow(false);
-  };
-
   const handleCancel = () => {
     setShow(false);
   };
@@ -523,8 +533,8 @@ export function ChatGPTGenerateNotebookButton({
         title="Generate Jupyter Notebook"
         width={600}
         open={show}
-        onOk={handleOk}
         onCancel={handleCancel}
+        footer={null}
       >
         <ChatGPTGenerateJupyterNotebook
           project_id={project_id}
@@ -569,4 +579,11 @@ function getFilename(text: string, prompt: string): string | null {
   const match = text.match(/"filename: (.*)"/);
   if (match == null) return null;
   return sanitizeFilename(match[1]);
+}
+
+function createInput({ spec, prompt }): string {
+  if (spec == null || !prompt?.trim()) return "";
+  const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
+
+  return `Explain directly and to the point, how to do the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename]".\n\n${prompt}`;
 }
