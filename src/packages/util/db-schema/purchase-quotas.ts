@@ -1,9 +1,12 @@
 import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
-
 import type { Service } from "./purchases";
+
 export type { Service };
+
+// minimum credit to add is $5:
+export const MIN_CREDIT = 5;
 
 interface Spec {
   display: string; // what to show user to describe this service
@@ -18,7 +21,6 @@ export const QUOTA_SPEC: QuotaSpec = {
   //"openai-image": { display: "OpenAI Image" },
   //"project-upgrades": { display: "Project Upgrades" },
 };
-
 
 Table({
   name: "purchase_quotas",

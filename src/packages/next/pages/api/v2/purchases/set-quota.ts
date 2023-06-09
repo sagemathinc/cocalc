@@ -18,7 +18,9 @@ export default async function handle(req, res) {
   }
 }
 
-async function get(req): Promise<void> {
+async function get(
+  req
+): Promise<{ services: { [service: string]: number }; global: number }> {
   const account_id = await getAccountId(req);
   if (account_id == null) {
     throw Error("must be signed in");

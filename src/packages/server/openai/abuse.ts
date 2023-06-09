@@ -1,9 +1,3 @@
-import getPool from "@cocalc/database/pool";
-import { isValidUUID } from "@cocalc/util/misc";
-import { Model, MODELS } from "@cocalc/util/db-schema/openai";
-import { assertPurchaseAllowed } from "@cocalc/server/purchases/create-purchase";
-import { GPT4_MAX_COST } from "./chatgpt";
-
 /*
 We initially just implement some very simple rate limitations to prevent very
 blatant abuse.
@@ -26,6 +20,11 @@ where they limit per minute, not per hour (like below):
     RPM = requests per minute
     TPM = tokens per minute
 */
+
+import getPool from "@cocalc/database/pool";
+import { isValidUUID } from "@cocalc/util/misc";
+import { Model, MODELS } from "@cocalc/util/db-schema/openai";
+import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 
 const QUOTAS = {
   noAccount: 0,
@@ -97,7 +96,6 @@ export async function checkForAbuse({
     // This is a for-pay product, so let's make sure user can purchase it.
     await assertPurchaseAllowed({
       account_id,
-      cost: GPT4_MAX_COST,
       service: "openai-gpt-4",
     });
   }
