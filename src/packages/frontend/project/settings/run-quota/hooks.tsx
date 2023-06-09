@@ -110,7 +110,10 @@ function pct(val, total, unit) {
   };
 }
 
-export function useCurrentUsage({ project_id }): CurrentUsage {
+export function useCurrentUsage({
+  project_id,
+  shortStr = false,
+}): CurrentUsage {
   const project_status = useTypedRedux({ project_id }, "status");
 
   const project_map = useTypedRedux("projects", "project_map");
@@ -158,7 +161,8 @@ export function useCurrentUsage({ project_id }): CurrentUsage {
     const pct = usage.cpu_pct;
     if (typeof cpu === "number" && typeof pct === "number") {
       const hms = seconds2hms(cpu, false, true);
-      const txt = `${pct}% (${hms})`;
+      // In a flyout, hms overlaps with the quota value column next to it
+      const txt = `${pct}%${shortStr ? "" : ` (${hms})`}`;
       return {
         element: <PercentBar percent={pct} format={() => txt} />,
         display: `${pct}% (in total ${hms} of CPU time)`,
