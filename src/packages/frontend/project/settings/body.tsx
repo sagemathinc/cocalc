@@ -8,14 +8,13 @@ import { Col, Row } from "react-bootstrap";
 
 import {
   redux,
-  useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
   AddCollaborators,
   CurrentCollaboratorsPanel,
 } from "@cocalc/frontend/collaborators";
-import { Icon, Paragraph, SettingBox } from "@cocalc/frontend/components";
+import { Icon, SettingBox } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { commercial } from "@cocalc/frontend/customize";
 import { Customer, ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
@@ -25,8 +24,6 @@ import {
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
 import { is_different } from "@cocalc/util/misc";
-import { NewFileButton } from "../new/new-file-button";
-import { ICON_NAME as SERVERS_ICON, TITLE as TITLE_SERVERS } from "../servers";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { NonMemberProjectWarning } from "../warnings/non-member";
 import { AboutBox } from "./about-box";
@@ -40,6 +37,7 @@ import { SSHPanel } from "./ssh";
 import { Project } from "./types";
 import { UpgradeUsage } from "./upgrade-usage";
 import { ApiKeys } from "./api-keys";
+import PayAsYouGo from "@cocalc/frontend/billing/pay-as-you-go/purchases";
 
 interface ReactProps {
   project_id: string;
@@ -62,11 +60,7 @@ const is_same = (prev: ReactProps, next: ReactProps) => {
 export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
   const { project_id, account_id, project, user_map, email_address, name } =
     props;
-
-  const project_actions = useActions({ project_id });
-
   const get_total_upgrades = redux.getStore("account").get_total_upgrades;
-
   const kucalc = useTypedRedux("customize", "kucalc");
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const datastore = useTypedRedux("customize", "datastore");
@@ -209,22 +203,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
               />
             )}
           <ApiKeys project_id={project_id} />
-          <SettingBox title="Server Control Moved" icon="move">
-            <Paragraph>
-              The panel for restarting the Sage Worksheet server and other
-              servers like Jupyter Classic, JupyterLab, and VS Code have been
-              moved to the "{TITLE_SERVERS}" tab.
-            </Paragraph>
-            <NewFileButton
-              name={`Moved to "${TITLE_SERVERS}" tab.`}
-              icon={SERVERS_ICON}
-              on_click={() => {
-                project_actions?.set_active_tab("servers", {
-                  change_history: true,
-                });
-              }}
-            />
-          </SettingBox>
+          <PayAsYouGo project_id={project_id} />
         </Col>
       </Row>
     </div>

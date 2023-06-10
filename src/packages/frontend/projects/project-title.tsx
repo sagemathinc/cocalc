@@ -7,17 +7,23 @@ import { Avatar } from "antd";
 
 import { React, redux, useRedux } from "@cocalc/frontend/app-framework";
 import { html_to_text } from "../misc";
+import * as misc from "@cocalc/util/misc";
 
 interface Props {
   project_id: string;
   handle_click?: (e?) => void;
   style?: React.CSSProperties;
   noClick?: boolean;
+  trunc?: number;
 }
 
-export const ProjectTitle: React.FC<Props> = (props: Props) => {
-  const { project_id, handle_click, style, noClick = false } = props;
-
+export const ProjectTitle: React.FC<Props> = ({
+  project_id,
+  handle_click,
+  style,
+  noClick = false,
+  trunc,
+}: Props) => {
   const title = useRedux(["projects", "project_map", project_id, "title"]);
 
   const avatar = useRedux([
@@ -47,7 +53,7 @@ export const ProjectTitle: React.FC<Props> = (props: Props) => {
       {avatar && (
         <Avatar shape="circle" icon={<img src={avatar} />} size={20} />
       )}{" "}
-      {html_to_text(title)}
+      {html_to_text(trunc ? misc.trunc(title, trunc) : title)}
     </>
   );
 
