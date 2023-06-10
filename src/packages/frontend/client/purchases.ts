@@ -44,6 +44,8 @@ export class PurchasesClient {
     offset?: number;
     paid?: boolean;
     service?: Service;
+    project_id?: string;
+    group?: boolean;
   }) {
     return await api("purchases/get-purchases", opts);
   }
