@@ -98,16 +98,16 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
         Refresh
       </Button>
       <Checkbox
-        checked={group}
-        onChange={(e) => handleGroupChange(e.target.checked)}
-      >
-        Group
-      </Checkbox>
-      <Checkbox
         checked={paid}
         onChange={(e) => handlePaidChange(e.target.checked)}
       >
         Paid
+      </Checkbox>
+      <Checkbox
+        checked={group}
+        onChange={(e) => handleGroupChange(e.target.checked)}
+      >
+        Combine Charges by Service{project_id ? "" : " and Project"}
       </Checkbox>
       <div
         style={{
@@ -192,9 +192,10 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
               title: "Project",
               dataIndex: "project_id",
               key: "project_id",
-              render: (project_id) => (
-                <ProjectTitle project_id={project_id} trunc={15} />
-              ),
+              render: (project_id) =>
+                project_id ? (
+                  <ProjectTitle project_id={project_id} trunc={15} />
+                ) : null,
             },
           ]}
         />
@@ -204,7 +205,7 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
           scroll={{ y: 400 }}
           pagination={false}
           dataSource={purchases ?? []}
-          rowKey="id"
+          rowKey={({service,project_id, paid}) => `${service}-${project_id}-${paid}`}
           columns={[
             {
               title: "Service",
@@ -232,7 +233,10 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
               title: "Project",
               dataIndex: "project_id",
               key: "project_id",
-              render: (project_id) => <ProjectTitle project_id={project_id} />,
+              render: (project_id) =>
+                project_id ? (
+                  <ProjectTitle project_id={project_id} trunc={15} />
+                ) : null,
             },
           ]}
         />

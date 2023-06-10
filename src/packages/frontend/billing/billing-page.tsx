@@ -29,6 +29,7 @@ import { Map } from "immutable";
 import { join } from "path";
 import { PaymentMethods } from "./payment-methods";
 import { Customer, InvoicesMap } from "./types";
+import PayAsYouGo from "@cocalc/frontend/billing/pay-as-you-go/purchases";
 
 interface ReactProps {
   is_simplified?: boolean;
@@ -117,7 +118,7 @@ export const BillingPage = rclass<ReactProps>(
 
     private render_help_suggestion(): Rendered {
       return (
-        <>
+        <li>
           <p>
             <b>Questions: </b>
             If you have any questions at all, read the{" "}
@@ -134,7 +135,7 @@ export const BillingPage = rclass<ReactProps>(
           </p>
           {this.render_enterprise_support()}
           {this.render_on_prem()}
-        </>
+        </li>
       );
     }
 
@@ -187,7 +188,7 @@ export const BillingPage = rclass<ReactProps>(
       if (this.props.for_course) return;
       return (
         <div style={{ fontSize: "14pt" }}>
-          <h3>Purchases</h3>
+          <h3>Prepaid Licenses</h3>
           <ul>
             <li>
               <A href={join(appBasePath, "store")}>Visit the Store</A>: purchase
@@ -206,6 +207,8 @@ export const BillingPage = rclass<ReactProps>(
               , credit cards, invoices, etc.
             </li>
           </ul>
+          <h3>Pay As You Go Purchases</h3>
+          <PayAsYouGo />
         </div>
       );
     }
@@ -213,13 +216,13 @@ export const BillingPage = rclass<ReactProps>(
     public render(): Rendered {
       return (
         <>
-          {this.render_alert()}
-          <div>
+          <ul>
             {!this.props.for_course ? this.render_help_suggestion() : undefined}
             {!this.props.no_stripe ? this.render_action() : undefined}
             {this.render_error()}
             {!this.props.no_stripe ? this.render_page() : undefined}
-          </div>
+          </ul>
+          {this.render_alert()}
           {!this.props.is_simplified ? <Footer /> : undefined}
         </>
       );
