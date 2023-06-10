@@ -31,6 +31,9 @@ export interface Credit {
 
 export type Description = OpenaiGPT4 | Credit;
 
+// max number of purchases a user can get in one query.
+export const MAX_API_LIMIT = 500;
+
 export interface Purchase {
   id: number;
   time: Date;

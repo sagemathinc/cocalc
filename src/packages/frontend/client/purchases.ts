@@ -43,8 +43,9 @@ export class PurchasesClient {
     limit?: number;
     offset?: number;
     paid?: boolean;
+    service?: Service;
   }) {
-    console.log("opts = ", opts);
+    return await api("purchases/get-purchases", opts);
   }
 
   async quotaModal({
