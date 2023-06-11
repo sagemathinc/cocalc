@@ -4,7 +4,6 @@
  */
 
 import { join } from "path";
-
 import { React } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components";
 import { Footer } from "@cocalc/frontend/customize";
@@ -17,20 +16,38 @@ import { ProjectsWithLicenses } from "./projects-with-licenses";
 export const LicensesPage: React.FC = () => {
   return (
     <div>
-      <h3>
-        <A href={join(appBasePath, "licenses")}>
-          Visit the License Management Center...
-        </A>
-      </h3>
-      <div>
-        <BuyLicenseForProject />
-      </div>
-      <br />
       <div style={{ fontSize: "12pt" }}>
         <h3>About</h3>
         <A href={DOC_LICENSE_URL}>Licenses</A> allow you to automatically
         upgrade projects whenever they start up, so that they have more memory,
         better hosting, run faster, etc.
+      </div>
+      <br />
+      <div>
+        <BuyLicenseForProject />
+      </div>
+      <div>
+        <h3>Links</h3>
+        <ul style={{ fontSize: "12pt" }}>
+          <li>
+            <A href={join(appBasePath, "licenses")}>
+              License Management Center
+            </A>
+            : manage your licenses
+          </li>
+          <li>
+            <A href={join(appBasePath, "pricing")}>Pricing</A>: an overview of
+            all offered products.
+          </li>
+          <li>
+            <A href={join(appBasePath, "billing")}>Billing</A>: information
+            about your purchases,{" "}
+            <A href={join(appBasePath, "billing", "subscriptions")}>
+              cancelling subscriptions
+            </A>
+            , credit cards, invoices, etc.
+          </li>
+        </ul>
       </div>
       <br />
       <ManagedLicenses />

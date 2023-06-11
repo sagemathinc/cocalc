@@ -21,12 +21,12 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { BillingPage } from "../billing/billing-page";
 import { AccountPreferences } from "./account-preferences";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { UpgradesPage } from "./upgrades/upgrades-page";
+import PayAsYouGo from "@cocalc/frontend/billing/pay-as-you-go/purchases";
 
 export const AccountPage: React.FC = () => {
   const active_page = useTypedRedux("account", "active_page");
@@ -146,15 +146,13 @@ export const AccountPage: React.FC = () => {
 
     if (is_commercial) {
       items.push({
-        key: "billing",
+        key: "purchases",
         label: (
           <span>
             <Icon name="money" /> Purchases
           </span>
         ),
-        children: active_page === "billing" && (
-          <BillingPage is_simplified={false} />
-        ),
+        children: active_page === "purchases" && <PayAsYouGo />,
       });
     }
     if (ssh_gateway || kucalc === KUCALC_COCALC_COM) {

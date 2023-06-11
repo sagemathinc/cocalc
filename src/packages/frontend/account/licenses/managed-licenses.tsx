@@ -143,6 +143,7 @@ export const ManagedLicenses: React.FC = () => {
   );
 };
 
+// TODO: obviously this should only be shown if the user *has* a subscription!
 function CancelSubscriptionBanner() {
   return (
     <Alert
@@ -150,7 +151,7 @@ function CancelSubscriptionBanner() {
       type="info"
       message={
         <>
-          To cancel a subscription, visit the{" "}
+          To cancel a subscription, visit{" "}
           <A href={join(appBasePath, "billing", "subscriptions")}>
             Subscription Management
           </A>

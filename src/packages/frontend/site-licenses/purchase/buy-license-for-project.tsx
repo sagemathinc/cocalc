@@ -55,7 +55,7 @@ export const BuyLicenseForProject: React.FC<Props> = ({
           open_new_tab(url("store/site-license"));
         }}
       >
-        {buyText}
+        {buyText}...
       </Button>
     );
   }
@@ -71,7 +71,7 @@ export const BuyLicenseForProject: React.FC<Props> = ({
           open_new_tab(url("redeem"));
         }}
       >
-        {voucherText}
+        {voucherText}...
       </Button>
     );
   }
