@@ -19,6 +19,9 @@ import {
   only_booleans,
   to_int,
   only_nonneg_int,
+  toFloat,
+  onlyNonnegFloat,
+  onlyPosFloat,
   only_pos_int,
   only_commercial,
   only_cocalc_com,
@@ -105,7 +108,8 @@ export type SiteSettingsExtrasKeys =
   | "github_token"
   | "prometheus_metrics"
   | "pay_as_you_go_section"
-  | "default_pay_as_you_go_quota";
+  | "default_pay_as_you_go_quota"
+  | "pay_as_you_go_min_payment";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -406,11 +410,19 @@ export const EXTRAS: SettingsExtras = {
     type: "header",
   },
   default_pay_as_you_go_quota: {
-    name: "Default Pay-As-You-Go Quota",
-    desc: "The default pay-as-you-go purchase quota, in dollars.",
+    name: "Default Pay As You Go Quota",
+    desc: "The default pay as you go purchase quota, in dollars.",
     default: "0",
     show: only_commercial,
-    to_val: to_int,
-    valid: only_nonneg_int,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  pay_as_you_go_min_payment: {
+    name: "Pay As You Go Minimum Payment",
+    desc: "The minimum transaction size that a user can pay towards their pay-as-you-go balance, in dollars.",
+    default: "5",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyPosFloat,
   },
 } as const;

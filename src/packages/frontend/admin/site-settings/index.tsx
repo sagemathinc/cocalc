@@ -490,6 +490,7 @@ export default function SiteSettings({}) {
               "captcha",
               "zendesk",
               "github",
+              "pay as you go",
             ].map((name) => (
               <CheckableTag
                 key={name}

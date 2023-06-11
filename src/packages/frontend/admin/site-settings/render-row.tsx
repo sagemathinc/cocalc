@@ -43,7 +43,9 @@ export function RenderRow({
   if (data == null) return null;
   if (filter) {
     // dumb
-    if (!JSON.stringify(conf).toLowerCase().includes(filter.toLowerCase())) {
+    const x = JSON.stringify(conf).toLowerCase().replace(/-/g, " ");
+    const f = filter.toLowerCase();
+    if (!x.includes(f)) {
       return null;
     }
   }

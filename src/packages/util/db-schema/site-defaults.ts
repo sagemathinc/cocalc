@@ -127,6 +127,15 @@ export const only_nonneg_int = (val) =>
   ((v) => only_ints(v) && v >= 0)(to_int(val));
 export const only_pos_int = (val) =>
   ((v) => only_ints(v) && v > 0)(to_int(val));
+
+export const toFloat = (val): number => parseFloat(val);
+export const onlyFloats = (val) =>
+  ((v) => !isNaN(v) && Number.isFinite(v))(toFloat(val));
+export const onlyNonnegFloat = (val) =>
+  ((v) => onlyFloats(v) && v >= 0)(toFloat(val));
+export const onlyPosFloat = (val) =>
+  ((v) => onlyFloats(v) && v > 0)(toFloat(val));
+
 export const from_json = (conf): Mapping => {
   try {
     if (conf !== null) return JSON.parse(conf) ?? {};

@@ -135,11 +135,13 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
             </Button>
           )}
         </Button.Group>
-        {purchases && purchases.length > 0 && (
-          <div style={{ marginLeft: "10px" }}>
-            Page {Math.floor(offset / limit) + 1}
-          </div>
-        )}
+        {purchases &&
+          purchases.length > 0 &&
+          (purchases.length >= limit || offset > 0) && (
+            <div style={{ marginLeft: "10px" }}>
+              Page {Math.floor(offset / limit) + 1}
+            </div>
+          )}
       </div>
       {total != null && <div>Total: ${total?.toFixed(2)}</div>}
       <div style={{ textAlign: "center" }}>
