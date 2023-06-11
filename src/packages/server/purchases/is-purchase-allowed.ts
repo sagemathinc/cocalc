@@ -98,11 +98,11 @@ export async function isPurchaseAllowed({
         QUOTA_SPEC[service]?.display ?? service
       }" is not sufficient to make a purchase of up to ${currency(
         cost
-      )} since you have a balance of ${currency(
+      )} (note: you have a balance of ${currency(
         balanceForService
-      )}.  Raise your ${
+      )}).  You need to raise your ${
         QUOTA_SPEC[service]?.display ?? service
-      } service quota or reduce your balance.`,
+      } service quota and/or reduce your balance.`,
     };
   }
 

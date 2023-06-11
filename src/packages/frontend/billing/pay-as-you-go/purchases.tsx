@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Alert, Checkbox, Button, Spin, Table } from "antd";
+import { Alert, Checkbox, Button, Spin, Table, Tooltip } from "antd";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
+import { serviceToDisplay } from "@cocalc/util/db-schema/purchase-quotas";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -25,6 +26,7 @@ export default function PayAsYouGoPurchases(props: Props) {
 
 function PayAsYouGoPurchases0({ project_id }: Props) {
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
   const [group, setGroup] = useState<boolean>(true);
   const [paid, setPaid] = useState<boolean>(false);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
@@ -52,8 +54,19 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
     setOffset((prevOffset) => Math.max(prevOffset - limit, 0));
   };
 
+  const getBalance = async () => {
+    try {
+      setBalance(null);
+      setBalance(await webapp_client.purchases_client.getBalance());
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+  useEffect(() => {
+    getBalance();
+  }, []);
+
   const getPurchases = async () => {
-    setError("");
     try {
       setTotal(null);
       setPurchases(null);
@@ -101,7 +114,20 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
           closable
         />
       )}
-      <Button style={{ marginRight: "15px" }} onClick={() => getPurchases()}>
+      {balance != null && (
+        <Tooltip title="Total balance for all pay as you go purchases across all projects.">
+          <div style={{ float: "right", fontSize: "12pt" }}>
+            Balance: ${balance.toFixed(2)}
+          </div>
+        </Tooltip>
+      )}
+      <Button
+        style={{ marginRight: "15px" }}
+        onClick={() => {
+          getBalance();
+          getPurchases();
+        }}
+      >
         <Icon name="refresh" /> Refresh
       </Button>
       <Checkbox
@@ -114,7 +140,7 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
         checked={group}
         onChange={(e) => handleGroupChange(e.target.checked)}
       >
-        Combine Charges by Service{project_id ? "" : " and Project"}
+        Combine by Service{project_id ? "" : " and Project"}
       </Checkbox>
       <div
         style={{
@@ -143,11 +169,15 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
             </div>
           )}
       </div>
-      {total != null && <div>Total: ${total?.toFixed(2)}</div>}
-      <div style={{ textAlign: "center" }}>
+      <div style={{ textAlign: "center", marginTop: "15px" }}>
         {!group && <DetailedPurchaseTable purchases={purchases} />}
         {group && <GroupedPurchaseTable purchases={purchases} />}
       </div>
+      {total != null && (
+        <div style={{ fontSize: "12pt", marginTop: "15px" }}>
+          Total Displayed Costs: ${total.toFixed(2)}
+        </div>
+      )}
     </SettingBox>
   );
 }
@@ -172,6 +202,7 @@ function GroupedPurchaseTable({ purchases }) {
           sorter: (a, b) =>
             (a.service ?? "").localeCompare(b.service ?? "") ?? -1,
           sortDirections: ["ascend", "descend"],
+          render: serviceToDisplay,
         },
         {
           title: "Total Cost",
@@ -227,6 +258,7 @@ function DetailedPurchaseTable({ purchases }) {
           key: "service",
           sorter: (a, b) => (a.service ?? "").localeCompare(b.service ?? ""),
           sortDirections: ["ascend", "descend"],
+          render: serviceToDisplay,
         },
         {
           title: "Cost",

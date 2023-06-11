@@ -7,7 +7,7 @@ export type { Service };
 
 interface Spec {
   display: string; // what to show user to describe this service
-  noSet?: boolean; // if true then this is not a service quota that the user can set.
+  noSet?: boolean; // if true, then this is not a service quota that the user can set.
 }
 
 export type QuotaSpec = Record<Service, Spec>;
@@ -15,8 +15,8 @@ export type QuotaSpec = Record<Service, Spec>;
 export const QUOTA_SPEC: QuotaSpec = {
   credit: { display: "Credit", noSet: true },
   "openai-gpt-4": { display: "OpenAI GPT-4" },
+  "project-upgrade": { display: "Project Upgrade" },
   //"openai-image": { display: "OpenAI Image" },
-  //"project-upgrades": { display: "Project Upgrades" },
 };
 
 export function serviceToDisplay(service: Service): string {
@@ -30,7 +30,7 @@ Table({
     account_id: CREATED_BY,
     service: {
       title: "Service Category",
-      desc: "The service being charged for, e.g., openai-gpt-4, credit, etc.",
+      desc: "The service being charged for, e.g., openai-gpt-4, project-upgrade, etc.",
       type: "string",
       pg_type: "varchar(127)",
     },

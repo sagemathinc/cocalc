@@ -27,16 +27,14 @@ export async function setPurchaseQuota({
     throw Error(`value must be a nonnegative number but it is "${value}"`);
   }
   const { services, global } = await getPurchaseQuotas(account_id);
-  let s = value ?? 0;
   for (const key in services) {
     if (key != service) {
-      s += services[key];
+      if (services[key] > global) {
+        throw Error(
+          `Your account has an global limit of $${global} and increasing the "${QUOTA_SPEC[service].display}" quota to $${value} would exceed this.`
+        );
+      }
     }
-  }
-  if (s > global) {
-    throw Error(
-      `Your account has an global limit of $${global} and increasing the "${QUOTA_SPEC[service].display}" quota to $${value} would exceed this.`
-    );
   }
   const pool = getPool();
   if (services[service] != null) {

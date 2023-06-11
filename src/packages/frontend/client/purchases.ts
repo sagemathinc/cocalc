@@ -24,6 +24,10 @@ export class PurchasesClient {
     return await api("purchases/get-quotas");
   }
 
+  async getBalance(): Promise<number> {
+    return await api("purchases/get-balance");
+  }
+
   // returns the quotas after being changed.
   async setQuota(
     service: Service,

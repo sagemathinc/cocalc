@@ -1,3 +1,9 @@
+/*
+Configure quota for a specific service.  This is something that happens
+in a modal on demand when you try to use a specific service and don't
+have sufficient quota.
+*/
+
 import { useEffect, useState } from "react";
 import { Alert, Button, Card, InputNumber, Space } from "antd";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -47,7 +53,7 @@ export default function QuotaConfig({
   };
 
   return (
-    <Card title="Configure Your Quotas">
+    <Card title={<>Configure Your {serviceToDisplay(service)} Service Quota</>}>
       {quotas?.global && <div>Global Quota: {currency(quotas.global)}</div>}
       {quotas?.services && (
         <Space>
