@@ -5,9 +5,6 @@ import type { Service } from "./purchases";
 
 export type { Service };
 
-// minimum credit to add is $5:
-export const MIN_CREDIT = 5;
-
 interface Spec {
   display: string; // what to show user to describe this service
   noSet?: boolean; // if true then this is not a service quota that the user can set.

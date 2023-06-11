@@ -1,13 +1,10 @@
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { getPurchaseQuotas } from "./purchase-quotas";
 import getBalance from "./get-balance";
-import {
-  Service,
-  QUOTA_SPEC,
-  MIN_CREDIT,
-} from "@cocalc/util/db-schema/purchase-quotas";
+import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { GPT4_MAX_COST } from "@cocalc/server/openai/chatgpt";
 import { currency } from "./util";
+import { getServerSettings } from "@cocalc/server/settings/server-settings";
 
 // Throws an exception if purchase is not allowed.  Code should
 // call this before giving the thing and doing createPurchase.
@@ -39,7 +36,7 @@ export async function isPurchaseAllowed({
     };
   }
   if (cost == null) {
-    cost = getCostEstimate(service);
+    cost = await getCostEstimate(service);
   }
   if (cost == null) {
     return {
@@ -51,11 +48,12 @@ export async function isPurchaseAllowed({
     return { allowed: false, reason: `cost must be finite` };
   }
   if (service == "credit") {
-    if (cost > -MIN_CREDIT) {
+    const { pay_as_you_go_min_payment } = await getServerSettings();
+    if (cost > -pay_as_you_go_min_payment) {
       return {
         allowed: false,
         reason: `must credit account with at least ${currency(
-          MIN_CREDIT
+          pay_as_you_go_min_payment
         )}, but you're trying to credit ${currency(-cost)}`,
       };
     }
@@ -119,12 +117,13 @@ export async function assertPurchaseAllowed(opts: Options) {
   }
 }
 
-function getCostEstimate(service: Service): number | undefined {
+async function getCostEstimate(service: Service): Promise<number | undefined> {
   switch (service) {
     case "openai-gpt-4":
       return GPT4_MAX_COST;
     case "credit":
-      return -MIN_CREDIT;
+      const { pay_as_you_go_min_payment } = await getServerSettings();
+      return -pay_as_you_go_min_payment;
     default:
       return undefined;
   }
