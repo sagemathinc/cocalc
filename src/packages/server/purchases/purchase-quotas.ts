@@ -29,9 +29,9 @@ export async function setPurchaseQuota({
   const { services, global } = await getPurchaseQuotas(account_id);
   for (const key in services) {
     if (key != service) {
-      if (services[key] > global) {
+      if (value > global.quota) {
         throw Error(
-          `Your account has an global limit of $${global} and increasing the "${QUOTA_SPEC[service].display}" quota to $${value} would exceed this.`
+          `You have a global limit of $${global.quota}.  Increasing the "${QUOTA_SPEC[service].display}" limit to $${value} would exceed this.`
         );
       }
     }
@@ -50,9 +50,10 @@ export async function setPurchaseQuota({
   }
 }
 
-export async function getPurchaseQuotas(
-  account_id: string
-): Promise<{ services: { [service: string]: number }; global: number }> {
+export async function getPurchaseQuotas(account_id: string): Promise<{
+  services: { [service: string]: number };
+  global: { quota: number; why: string; increase: string };
+}> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT service, value FROM purchase_quotas WHERE account_id=$1",

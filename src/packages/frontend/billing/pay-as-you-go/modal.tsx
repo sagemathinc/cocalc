@@ -37,7 +37,7 @@ export default function PayAsYouGoModal({}) {
   // destroyOnClose so values in quota input get updated
   return (
     <Modal
-      width={'600px'}
+      width={"600px"}
       destroyOnClose
       zIndex={
         100000 /* must be big! 1000 for e.g., the jupyter generate modal */
@@ -48,17 +48,26 @@ export default function PayAsYouGoModal({}) {
         <>
           <Icon name="credit-card" style={{ marginRight: "15px" }} /> Pay As You
           Go for{" "}
-          <ServiceTag service={storeState.service as Service} style={{fontSize:'16px'}} />
+          <ServiceTag
+            service={storeState.service as Service}
+            style={{ fontSize: "16px" }}
+          />
         </>
       }
       onCancel={handleCancel}
       onOk={handleOk}
     >
       {!storeState.allowed && (
-        <Alert showIcon type="warning" description={storeState.reason} />
+        <Alert
+          showIcon
+          type="warning"
+          style={{ marginTop: "15px" }}
+          description={storeState.reason}
+        />
       )}
       {storeState.allowed && (
         <Alert
+          style={{ marginTop: "15px" }}
           showIcon
           type="success"
           description={

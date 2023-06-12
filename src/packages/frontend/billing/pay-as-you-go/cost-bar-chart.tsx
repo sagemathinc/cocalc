@@ -48,7 +48,7 @@ export default function CostBarChart({}) {
           </Button>
         </Button.Group>
       )}
-      {costPerDay == null && <Spin />}
+      {costPerDay == null && <Spin delay={500} />}
       {costPerDay != null && <PlotCostPerDay costPerDay={costPerDay} />}
       {error && (
         <Alert type="error" description={error} onClose={updateData} closable />

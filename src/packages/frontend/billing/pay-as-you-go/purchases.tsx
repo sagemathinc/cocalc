@@ -184,7 +184,7 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
 
 function GroupedPurchaseTable({ purchases }) {
   if (purchases == null) {
-    return <Spin size="large" />;
+    return <Spin size="large" delay={500} />;
   }
   return (
     <Table
@@ -224,7 +224,7 @@ function GroupedPurchaseTable({ purchases }) {
           key: "project_id",
           render: (project_id) =>
             project_id ? (
-              <ProjectTitle project_id={project_id} trunc={15} />
+              <ProjectTitle project_id={project_id} trunc={20} />
             ) : null,
         },
       ]}
@@ -234,7 +234,7 @@ function GroupedPurchaseTable({ purchases }) {
 
 function DetailedPurchaseTable({ purchases }) {
   if (purchases == null) {
-    return <Spin size="large" />;
+    return <Spin size="large" delay={500} />;
   }
   return (
     <Table
@@ -244,6 +244,14 @@ function DetailedPurchaseTable({ purchases }) {
       rowKey="id"
       columns={[
         {
+          title: "Service",
+          dataIndex: "service",
+          key: "service",
+          sorter: (a, b) => (a.service ?? "").localeCompare(b.service ?? ""),
+          sortDirections: ["ascend", "descend"],
+          render: (service) => <ServiceTag service={service} />,
+        },
+        {
           title: "Time",
           dataIndex: "time",
           key: "time",
@@ -251,14 +259,6 @@ function DetailedPurchaseTable({ purchases }) {
           sorter: (a, b) =>
             new Date(a.time ?? 0).getTime() - new Date(b.time ?? 0).getTime(),
           sortDirections: ["ascend", "descend"],
-        },
-        {
-          title: "Service",
-          dataIndex: "service",
-          key: "service",
-          sorter: (a, b) => (a.service ?? "").localeCompare(b.service ?? ""),
-          sortDirections: ["ascend", "descend"],
-          render: (service) => <ServiceTag service={service} />,
         },
         {
           title: "Cost",
@@ -275,7 +275,13 @@ function DetailedPurchaseTable({ purchases }) {
         //               render: (_, record) => JSON.stringify(record.description),
         //             },
         {
-          title: "Invoice ID",
+          title: "Paid",
+          dataIndex: "paid",
+          key: "paid",
+          render: (text) => (text ? "Yes" : "No"),
+        },
+        {
+          title: "Invoice",
           dataIndex: "invoice_id",
           key: "invoice_id",
           sorter: (a, b) =>
@@ -283,18 +289,12 @@ function DetailedPurchaseTable({ purchases }) {
           sortDirections: ["ascend", "descend"],
         },
         {
-          title: "Paid",
-          dataIndex: "paid",
-          key: "paid",
-          render: (text) => (text ? "Yes" : "No"),
-        },
-        {
           title: "Project",
           dataIndex: "project_id",
           key: "project_id",
           render: (project_id) =>
             project_id ? (
-              <ProjectTitle project_id={project_id} trunc={15} />
+              <ProjectTitle project_id={project_id} trunc={20} />
             ) : null,
         },
         {

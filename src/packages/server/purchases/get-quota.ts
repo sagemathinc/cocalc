@@ -1,37 +1,73 @@
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 
-// This is the overall max quota for the user.   The sum of their individual
-// quotas is bounded by this.
-export default async function getQuota(account_id: string) {
+// This is the overall max quota for the user.   Their
+// quota for each service is also bounded by this value.
+export default async function getQuota(account_id: string): Promise<{
+  quota: number;
+  why: string;
+  increase: "account" | "support" | "add-card" | "verify-email"; // used in frontend ui, so don't change willy nilly!
+}> {
   const pool = getPool("medium");
   const { rows } = await pool.query(
-    "SELECT purchase_quota, stripe_customer_id, email_address_verified, email_address FROM accounts WHERE account_id=$1",
+    "SELECT purchase_quota, stripe_customer#>'{sources,data}' as stripe_sources, email_address_verified, email_address FROM accounts WHERE account_id=$1",
     [account_id]
   );
   if (rows.length == 0) {
-    // no such account
-    return 0;
+    return {
+      quota: 0,
+      why: "Invalid account.",
+      increase: "account",
+    };
   }
   const {
     purchase_quota,
-    stripe_customer_id,
+    stripe_sources,
     email_address_verified,
     email_address,
   } = rows[0];
   if (purchase_quota != null) {
     // a quota that was set by an admin, etc.
-    return purchase_quota;
+    return {
+      quota: purchase_quota,
+      why: "This is an explicit quota set by an admin or the system.",
+      increase: "support",
+    };
   }
-  if (!stripe_customer_id) {
-    // if no stripe customer info, then definitely no purchases allowed.
-    return 0;
+  if (!hasValidCard(stripe_sources)) {
+    // if no stripe credit card on file that passes a check, so definitely no purchases allowed.
+    return {
+      quota: 0,
+      why: "You have no credit card on file that passes a check.  Add a valid credit card.",
+      increase: "add-card",
+    };
   }
   const { default_pay_as_you_go_quota, verify_emails } =
     await getServerSettings();
   if (verify_emails && !email_address_verified?.[email_address]) {
-    // email not verified
-    return 0;
+    return {
+      quota: 0,
+      why: "Your email is not verified. Verify your email to increase your quota.",
+      increase: "verify-email",
+    };
   }
-  return default_pay_as_you_go_quota;
+  return {
+    quota: default_pay_as_you_go_quota,
+    why: "This is the default starting quota for verified users with a card on file.",
+    increase: "support",
+  };
+}
+
+function hasValidCard(stripe_sources) {
+  if (!stripe_sources || stripe_sources.length == 0) {
+    // if no stripe credit card on file, then definitely no purchases allowed.
+    return false;
+  }
+  for (const source of stripe_sources) {
+    if (source.cvc_check == "pass") {
+      // have a card and it passes the cvc check
+      return true;
+    }
+  }
+  return false;
 }

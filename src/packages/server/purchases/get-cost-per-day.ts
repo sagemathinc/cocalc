@@ -17,7 +17,7 @@ export default async function getCostPerDay({
   account_id,
   limit = 100,
   offset = 0,
-}: Options): Promise<{ [day: string]: number }> {
+}: Options): Promise<{ date: Date; total_cost: number }[]> {
   const db = getPool("long");
   const { rows } = await db.query(
     `SELECT date_trunc('day', "time" AT TIME ZONE 'UTC') AS date, sum(cost) AS total_cost

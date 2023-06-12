@@ -647,7 +647,7 @@ export class StripeClient {
     dbg("get a list of all the payment sources that this customer has");
     const customer = await this.need_customer_id();
     const conn = await getConn();
-    await conn.paymentMethods.list({ customer, type: "card" });
+    return await conn.paymentMethods.list({ customer, type: "card" });
   }
 
   public async setDefaultSource(default_source: string): Promise<void> {

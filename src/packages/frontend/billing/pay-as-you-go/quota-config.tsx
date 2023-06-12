@@ -5,7 +5,7 @@ have sufficient quota.
 */
 
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, InputNumber, Space } from "antd";
+import { Alert, Button, Card, InputNumber, Space, Spin } from "antd";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   serviceToDisplay,
@@ -14,6 +14,7 @@ import {
 import ServiceTag from "./service";
 import { to_money } from "@cocalc/util/misc";
 import Quotas from "./all-quotas-config";
+import GlobalQuota from "./global-quota";
 
 export function currency(n) {
   return `$${to_money(n)}`;
@@ -31,7 +32,7 @@ export default function QuotaConfig({
   const [savedValue, setSavedValue] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
   const [quotas, setQuotas] = useState<{
-    global: number;
+    global: { quota: number; why: string; increase: string };
     services: { [service: string]: number };
   } | null>(null);
 
@@ -56,15 +57,18 @@ export default function QuotaConfig({
   };
 
   return (
-    <Card title={<>Configure Your {serviceToDisplay(service)} Limit</>}>
-      {quotas?.global && <div>Global Limit: {currency(quotas.global)}</div>}
+    <Card
+      title={<>Configure Your {serviceToDisplay(service)} Spending Limit</>}
+    >
+      {quotas == null && <Spin delay={500} />}
+      <GlobalQuota global={quotas?.global} />
       {quotas?.services && (
         <Space>
           <ServiceTag service={service} />{" "}
           <InputNumber
             style={{ width: "200px" }}
             min={0}
-            max={quotas?.global}
+            max={quotas?.global?.quota ?? 99999}
             defaultValue={quotas.services[service] ?? 0}
             formatter={(value) =>
               `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")

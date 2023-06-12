@@ -18,7 +18,11 @@ export class PurchasesClient {
   // Returns quotas for each category of purchase, along with
   // a 'global' quota.
   async getQuotas(): Promise<{
-    global: number;
+    global: {
+      quota: number;
+      why: string;
+      increase: string;
+    };
     services: { [service: string]: number };
   }> {
     return await api("purchases/get-quotas");
@@ -74,6 +78,13 @@ export class PurchasesClient {
       pay_as_you_go: { showModal: true, service, cost, reason, allowed } as any,
     });
     await waitUntilPayAsYouGoModalCloses();
+  }
+
+  async getPaymentMethods() {
+    return await api("billing/get-payment-methods");
+  }
+  async getCustomer() {
+    return await api("billing/get-customer");
   }
 }
 

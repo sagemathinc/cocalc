@@ -6,14 +6,14 @@ and lets you adjust any of them.
 */
 
 import { useEffect, useRef, useState } from "react";
-import { Alert, Button, InputNumber, Spin, Table, Tooltip } from "antd";
+import { Alert, Button, InputNumber, Spin, Table } from "antd";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import { currency } from "./quota-config";
 import { cloneDeep, isEqual } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
+import GlobalQuota from "./global-quota";
 
 interface ServiceQuota {
   service: Service;
@@ -23,7 +23,11 @@ interface ServiceQuota {
 export default function AllQuotasConfig({}) {
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [globalQuota, setGlobalQuota] = useState<number | null>(null);
+  const [globalQuota, setGlobalQuota] = useState<{
+    quota: number;
+    why: string;
+    increase: string;
+  } | null>(null);
   const [serviceQuotas, setServiceQuotas] = useState<ServiceQuota[] | null>(
     null
   );
@@ -111,7 +115,7 @@ export default function AllQuotasConfig({}) {
       render: (quota: number, _record: ServiceQuota, index: number) => (
         <InputNumber
           min={0}
-          max={globalQuota ?? 999999999}
+          max={globalQuota?.quota ?? 999999999}
           value={quota}
           onChange={(newQuota) => handleQuotaChange(index, newQuota as number)}
           formatter={(value) => `$${value}`}
@@ -132,15 +136,10 @@ export default function AllQuotasConfig({}) {
           style={{ marginBottom: "15px" }}
         />
       )}
-      {globalQuota != null && (
-        <Tooltip title="No service limit can exceed this. You can't spend more than this per billing period without making an extra payment.  Contact support to increase your global limit.">
-          <div
-            style={{ fontSize: "12pt", float: "right", marginBottom: "15px" }}
-          >
-            Global Limit: {currency(globalQuota)}
-          </div>
-        </Tooltip>
-      )}
+      <GlobalQuota
+        global={globalQuota}
+        style={{ fontSize: "12pt", float: "right", marginBottom: "15px" }}
+      />
       <Button.Group>
         <Button
           type="primary"
@@ -149,7 +148,7 @@ export default function AllQuotasConfig({}) {
         >
           <Icon name="save" />{" "}
           {saving ? "Saving..." : changed ? "Save Changes" : "Saved"}
-          {saving && <Spin style={{ marginLeft: "15px" }} />}
+          {saving && <Spin style={{ marginLeft: "15px" }}  delay={500} />}
         </Button>
         <Button onClick={handleCancel} disabled={!changed || saving}>
           Cancel
@@ -167,7 +166,9 @@ export default function AllQuotasConfig({}) {
           rowKey="service"
         />
       ) : (
-        <Spin size="large" />
+        <div style={{ textAlign: "center" }}>
+          <Spin size="large" delay={500} />
+        </div>
       )}
     </SettingBox>
   );

@@ -67,13 +67,13 @@ export async function isPurchaseAllowed({
   const { services, global } = await getPurchaseQuotas(account_id);
   // First check that the overall quota is not exceeded
   const balance = await getBalance(account_id);
-  if (balance + cost > global) {
+  if (balance + cost > global.quota) {
     return {
       allowed: false,
       reason: `Insufficient quota.  balance + potential_cost > global quota.   ${currency(
         balance
       )} + ${currency(cost)} > ${currency(
-        global
+        global.quota
       )}.  Verify your email address, add credit, or contact support to increase your global quota.`,
     };
   }
@@ -94,15 +94,13 @@ export async function isPurchaseAllowed({
   if (balanceForService + cost > quotaForService) {
     return {
       allowed: false,
-      reason: `Your quota ${currency(quotaForService)} for "${
+      reason: `You need to increase your ${
         QUOTA_SPEC[service]?.display ?? service
-      }" is not sufficient to make a purchase of up to ${currency(
-        cost
-      )} (note: you have a balance of ${currency(
+      } service limit and/or reduce your balance (current balance: ${currency(
         balanceForService
-      )}).  You need to raise your ${
+      )}).  Your limit ${currency(quotaForService)} for "${
         QUOTA_SPEC[service]?.display ?? service
-      } service quota and/or reduce your balance.`,
+      }" is not sufficient to make a purchase of up to ${currency(cost)}.`,
     };
   }
 
