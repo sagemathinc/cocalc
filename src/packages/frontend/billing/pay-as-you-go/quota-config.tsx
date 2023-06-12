@@ -13,7 +13,7 @@ import {
 } from "@cocalc/util/db-schema/purchase-quotas";
 import ServiceTag from "./service";
 import { to_money } from "@cocalc/util/misc";
-import PayAsYouGoAccountPage from "./account-page";
+import Quotas from "./all-quotas-config";
 
 export function currency(n) {
   return `$${to_money(n)}`;
@@ -91,13 +91,13 @@ export default function QuotaConfig({
       {!showAll && (
         <div style={{ marginTop: "15px", textAlign: "center" }}>
           <Button type="link" onClick={() => setShowAll(true)}>
-            (show your purchases and quotas...)
+            (show all limits...)
           </Button>
         </div>
       )}
       {showAll && (
         <div style={{ marginTop: "30px" }}>
-          <PayAsYouGoAccountPage />
+          <Quotas />
         </div>
       )}
     </Card>
