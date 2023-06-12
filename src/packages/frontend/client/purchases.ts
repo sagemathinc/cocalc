@@ -54,6 +54,10 @@ export class PurchasesClient {
     return await api("purchases/get-purchases", opts);
   }
 
+  async getCostPerDay(opts: { limit?: number; offset?: number }) {
+    return await api("purchases/get-cost-per-day", opts);
+  }
+
   async quotaModal({
     service,
     cost,

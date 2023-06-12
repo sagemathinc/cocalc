@@ -11,7 +11,9 @@ import {
   serviceToDisplay,
   Service,
 } from "@cocalc/util/db-schema/purchase-quotas";
+import ServiceTag from "./service";
 import { to_money } from "@cocalc/util/misc";
+import PayAsYouGoAccountPage from "./account-page";
 
 export function currency(n) {
   return `$${to_money(n)}`;
@@ -24,6 +26,7 @@ export default function QuotaConfig({
   service: Service;
   updateAllowed: () => Promise<void>;
 }) {
+  const [showAll, setShowAll] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<number | null>(null);
   const [savedValue, setSavedValue] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
@@ -53,11 +56,11 @@ export default function QuotaConfig({
   };
 
   return (
-    <Card title={<>Configure Your {serviceToDisplay(service)} Service Quota</>}>
-      {quotas?.global && <div>Global Quota: {currency(quotas.global)}</div>}
+    <Card title={<>Configure Your {serviceToDisplay(service)} Limit</>}>
+      {quotas?.global && <div>Global Limit: {currency(quotas.global)}</div>}
       {quotas?.services && (
         <Space>
-          {serviceToDisplay(service)} Quota:{" "}
+          <ServiceTag service={service} />{" "}
           <InputNumber
             style={{ width: "200px" }}
             min={0}
@@ -85,6 +88,18 @@ export default function QuotaConfig({
         </Space>
       )}
       {error && <Alert type="error" description={error} />}
+      {!showAll && (
+        <div style={{ marginTop: "15px", textAlign: "center" }}>
+          <Button type="link" onClick={() => setShowAll(true)}>
+            (show your purchases and quotas...)
+          </Button>
+        </div>
+      )}
+      {showAll && (
+        <div style={{ marginTop: "30px" }}>
+          <PayAsYouGoAccountPage />
+        </div>
+      )}
     </Card>
   );
 }

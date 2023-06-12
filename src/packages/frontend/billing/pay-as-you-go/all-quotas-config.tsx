@@ -13,14 +13,15 @@ import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "./quota-config";
 import { cloneDeep, isEqual } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
+import ServiceTag from "./service";
 
 interface ServiceQuota {
   service: Service;
-  display: string;
   quota: number;
 }
 
 export default function AllQuotasConfig({}) {
+  const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [globalQuota, setGlobalQuota] = useState<number | null>(null);
   const [serviceQuotas, setServiceQuotas] = useState<ServiceQuota[] | null>(
@@ -43,7 +44,6 @@ export default function AllQuotasConfig({}) {
       const spec = QUOTA_SPEC[service];
       if (spec.noSet) continue;
       v.push({
-        display: spec.display,
         service: service as Service,
         quota: services[service] ?? 0,
       });
@@ -58,11 +58,10 @@ export default function AllQuotasConfig({}) {
     getQuotas();
   }, []);
 
-  if (serviceQuotas == null) {
-    return <Spin size="large" />;
-  }
-
   const handleQuotaChange = (index: number, newQuota: number) => {
+    if (serviceQuotas == null) {
+      throw Error("serviceQuotas must not be null");
+    }
     const updated = [...serviceQuotas];
     updated[index].quota = newQuota;
     setServiceQuotas(updated);
@@ -71,19 +70,24 @@ export default function AllQuotasConfig({}) {
 
   const handleSave = async () => {
     if (lastFetchedQuotasRef.current == null || serviceQuotas == null) return;
-    for (let i = 0; i < lastFetchedQuotasRef.current.length; i++) {
-      if (!isEqual(lastFetchedQuotasRef.current[i], serviceQuotas[i])) {
-        try {
-          await webapp_client.purchases_client.setQuota(
-            serviceQuotas[i].service,
-            serviceQuotas[i].quota
-          );
-        } catch (err) {
-          setError(`${err}`);
+    try {
+      setSaving(true);
+      for (let i = 0; i < lastFetchedQuotasRef.current.length; i++) {
+        if (!isEqual(lastFetchedQuotasRef.current[i], serviceQuotas[i])) {
+          try {
+            await webapp_client.purchases_client.setQuota(
+              serviceQuotas[i].service,
+              serviceQuotas[i].quota
+            );
+          } catch (err) {
+            setError(`${err}`);
+          }
         }
       }
+      getQuotas();
+    } finally {
+      setSaving(false);
     }
-    getQuotas();
   };
 
   const handleCancel = () => {
@@ -91,10 +95,15 @@ export default function AllQuotasConfig({}) {
     setChanged(false);
   };
 
+  const handleRefresh = () => {
+    getQuotas();
+  };
+
   const columns = [
     {
-      title: "Service Name",
-      dataIndex: "display",
+      title: "Service",
+      dataIndex: "service",
+      render: (service) => <ServiceTag service={service} />,
     },
     {
       title: "Limit (USD)",
@@ -133,19 +142,32 @@ export default function AllQuotasConfig({}) {
         </Tooltip>
       )}
       <Button.Group>
-        <Button type="primary" onClick={handleSave} disabled={!changed}>
-          <Icon name="save" /> {changed ? "Save Changes" : "Saved"}
+        <Button
+          type="primary"
+          onClick={handleSave}
+          disabled={!changed || saving}
+        >
+          <Icon name="save" />{" "}
+          {saving ? "Saving..." : changed ? "Save Changes" : "Saved"}
+          {saving && <Spin style={{ marginLeft: "15px" }} />}
         </Button>
-        <Button onClick={handleCancel} disabled={!changed}>
+        <Button onClick={handleCancel} disabled={!changed || saving}>
           Cancel
         </Button>
+        <Button onClick={handleRefresh} disabled={saving}>
+          <Icon name="refresh" />
+          Refresh
+        </Button>
       </Button.Group>
-      {serviceQuotas != null && (
+      {serviceQuotas != null ? (
         <Table
           dataSource={serviceQuotas}
           columns={columns}
           pagination={false}
+          rowKey="service"
         />
+      ) : (
+        <Spin size="large" />
       )}
     </SettingBox>
   );

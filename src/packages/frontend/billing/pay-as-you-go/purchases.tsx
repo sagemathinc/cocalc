@@ -4,11 +4,11 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
-import { serviceToDisplay } from "@cocalc/util/db-schema/purchase-quotas";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
+import ServiceTag from "./service";
 
 const DEFAULT_LIMIT = 20;
 
@@ -202,7 +202,7 @@ function GroupedPurchaseTable({ purchases }) {
           sorter: (a, b) =>
             (a.service ?? "").localeCompare(b.service ?? "") ?? -1,
           sortDirections: ["ascend", "descend"],
-          render: serviceToDisplay,
+          render: (service) => <ServiceTag service={service} />,
         },
         {
           title: "Total Cost",
@@ -258,7 +258,7 @@ function DetailedPurchaseTable({ purchases }) {
           key: "service",
           sorter: (a, b) => (a.service ?? "").localeCompare(b.service ?? ""),
           sortDirections: ["ascend", "descend"],
-          render: serviceToDisplay,
+          render: (service) => <ServiceTag service={service} />,
         },
         {
           title: "Cost",
@@ -296,6 +296,11 @@ function DetailedPurchaseTable({ purchases }) {
             project_id ? (
               <ProjectTitle project_id={project_id} trunc={15} />
             ) : null,
+        },
+        {
+          title: "Id",
+          dataIndex: "id",
+          key: "id",
         },
       ]}
     />

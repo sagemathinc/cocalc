@@ -7,6 +7,7 @@ import {
 import { Icon } from "@cocalc/frontend/components/icon";
 import QuotaConfig from "./quota-config";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import ServiceTag from "./service";
 
 export default function PayAsYouGoModal({}) {
   const actions = useActions("billing");
@@ -36,6 +37,7 @@ export default function PayAsYouGoModal({}) {
   // destroyOnClose so values in quota input get updated
   return (
     <Modal
+      width={'600px'}
       destroyOnClose
       zIndex={
         100000 /* must be big! 1000 for e.g., the jupyter generate modal */
@@ -45,7 +47,8 @@ export default function PayAsYouGoModal({}) {
       title={
         <>
           <Icon name="credit-card" style={{ marginRight: "15px" }} /> Pay As You
-          Go for the {serviceToDisplay(storeState.service as Service)} Service
+          Go for{" "}
+          <ServiceTag service={storeState.service as Service} style={{fontSize:'16px'}} />
         </>
       }
       onCancel={handleCancel}

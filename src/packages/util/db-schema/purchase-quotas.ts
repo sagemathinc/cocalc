@@ -8,14 +8,15 @@ export type { Service };
 interface Spec {
   display: string; // what to show user to describe this service
   noSet?: boolean; // if true, then this is not a service quota that the user can set.
+  color: string;
 }
 
 export type QuotaSpec = Record<Service, Spec>;
 
 export const QUOTA_SPEC: QuotaSpec = {
-  credit: { display: "Credit", noSet: true },
-  "openai-gpt-4": { display: "OpenAI GPT-4" },
-  "project-upgrade": { display: "Project Upgrade" },
+  credit: { display: "Credit", noSet: true, color: "#5cb85c" },
+  "openai-gpt-4": { display: "OpenAI GPT-4", color: "#10a37f" },
+  "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
   //"openai-image": { display: "OpenAI Image" },
 };
 
