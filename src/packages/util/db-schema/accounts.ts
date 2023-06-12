@@ -200,9 +200,16 @@ Table({
       },
     },
     purchase_quota: {
-      type: "number", // actually comes back as string in queries.
-      pg_type: "numeric(10,2)",
-      desc: "The maximum amount of purchases that the user is allowed to have unpaid. This is a quota we impose for safety, not something they set.",
+      type: "number",
+      pg_type: "REAL",
+      desc: "The maximum amount of purchases that the user is allowed to have unpaid. This is a quota we impose for safety, not something they set. Admins may increase this in response to a support request.",
+      render: {
+        title: "Purchase Quota (USD)",
+        type: "number",
+        integer: false,
+        editable: true,
+        min: 0,
+      },
     },
   },
   rules: {

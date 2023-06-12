@@ -1,6 +1,7 @@
 import getPool from "@cocalc/database/pool";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import getGlobalQuota from "./get-quota";
+import type { QuotaDescription } from "./get-quota";
 
 export async function setPurchaseQuota({
   account_id,
@@ -50,10 +51,14 @@ export async function setPurchaseQuota({
   }
 }
 
-export async function getPurchaseQuotas(account_id: string): Promise<{
+export interface PurchaseQuotas {
   services: { [service: string]: number };
-  global: { quota: number; why: string; increase: string };
-}> {
+  global: QuotaDescription;
+}
+
+export async function getPurchaseQuotas(
+  account_id: string
+): Promise<PurchaseQuotas> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT service, value FROM purchase_quotas WHERE account_id=$1",

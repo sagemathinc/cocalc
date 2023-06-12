@@ -1,14 +1,19 @@
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
-// This is the overall max quota for the user.   Their
-// quota for each service is also bounded by this value.
-export default async function getQuota(account_id: string): Promise<{
+export interface QuotaDescription {
   quota: number;
   why: string;
   increase: "account" | "support" | "add-card" | "verify-email"; // used in frontend ui, so don't change willy nilly!
-}> {
-  const pool = getPool("medium");
+}
+
+// This is the overall max quota for the user.   Their
+// quota for each service is also bounded by this value.
+export default async function getQuota(
+  account_id: string
+): Promise<QuotaDescription> {
+  const pool = getPool("short");
   const { rows } = await pool.query(
     "SELECT purchase_quota, stripe_customer#>'{sources,data}' as stripe_sources, email_address_verified, email_address FROM accounts WHERE account_id=$1",
     [account_id]
@@ -26,7 +31,7 @@ export default async function getQuota(account_id: string): Promise<{
     email_address_verified,
     email_address,
   } = rows[0];
-  if (purchase_quota != null) {
+  if (purchase_quota) {
     // a quota that was set by an admin, etc.
     return {
       quota: purchase_quota,
@@ -70,4 +75,18 @@ function hasValidCard(stripe_sources) {
     }
   }
   return false;
+}
+
+// Allow admin to get quota of another user.
+export async function adminGetQuota({
+  admin_id,
+  account_id,
+}: {
+  admin_id: string;
+  account_id: string;
+}): Promise<QuotaDescription> {
+  if (!(await userIsInGroup(admin_id, "admin"))) {
+    throw Error("must be an admin");
+  }
+  return await getQuota(account_id);
 }

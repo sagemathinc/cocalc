@@ -17,10 +17,11 @@ import { Projects } from "./projects";
 import { Impersonate } from "./impersonate";
 import { PasswordReset } from "./password-reset";
 import { Ban } from "./ban";
+import PayAsYouGoGlobalQuota from "@cocalc/frontend/frame-editors/crm-editor/users/pay-as-you-go-global-quota";
 
 interface State {
   projects: boolean;
-  subscriptions: boolean;
+  billing: boolean;
   activity: boolean;
   impersonate: boolean;
   password: boolean;
@@ -46,7 +47,7 @@ type Props = HeaderProps | UserProps;
 
 type More =
   | "projects"
-  | "subscriptions"
+  | "billing"
   | "activity"
   | "impersonate"
   | "password"
@@ -54,7 +55,7 @@ type More =
 
 const MORE: More[] = [
   "projects",
-  "subscriptions",
+  "billing",
   "activity",
   "impersonate",
   "password",
@@ -85,11 +86,16 @@ export class UserResult extends Component<Props, State> {
     return <TimeAgo date={this.props.last_active} />;
   }
 
-  render_subscriptions(): Rendered {
-    if (!this.state.subscriptions) {
+  render_billing(): Rendered {
+    if (!this.state.billing) {
       return;
     }
-    return <Subscriptions account_id={this.props.account_id} />;
+    return (
+      <div style={{ margin: "15px 0" }}>
+        <Subscriptions account_id={this.props.account_id} />
+        <PayAsYouGoGlobalQuota account_id={this.props.account_id} />
+      </div>
+    );
   }
 
   render_projects(): Rendered {
@@ -159,7 +165,7 @@ export class UserResult extends Component<Props, State> {
         {this.render_more_link("projects")}
         <Space />
         <Space />
-        {this.render_more_link("subscriptions")}
+        {this.render_more_link("billing")}
         <Space />
         <Space />
         {this.render_more_link("impersonate")}
@@ -219,7 +225,7 @@ export class UserResult extends Component<Props, State> {
             </span>
           </Col>
         </Row>
-        {this.render_subscriptions()}
+        {this.render_billing()}
         {this.render_projects()}
         {this.render_impersonate()}
         {this.render_password()}

@@ -80,11 +80,33 @@ export class PurchasesClient {
     await waitUntilPayAsYouGoModalCloses();
   }
 
+  // Get all the stripe payment info about a given user.
   async getPaymentMethods() {
     return await api("billing/get-payment-methods");
   }
+
+  // Get all the stripe information about a given user.
   async getCustomer() {
     return await api("billing/get-customer");
+  }
+
+  // Get the global purchase quota of user with given account_id.  This is only
+  // for use by admins.  This quota is computed via rules, and may be overridden
+  // based on the adminSetQuota below, but usually isn't.
+  async adminGetQuota(account_id: string): Promise<{
+    quota: number;
+    why: string;
+    increase: string;
+  }> {
+    return await api("purchases/admin-get-quota", { account_id });
+  }
+
+  // Set the override global purchase quota of user with given account_id.  This is only
+  // for use by admins.
+  async adminSetQuota(account_id: string, purchase_quota: number) {
+    await api("user-query", {
+      query: { crm_accounts: { account_id, purchase_quota } },
+    });
   }
 }
 
