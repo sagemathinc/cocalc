@@ -11,6 +11,8 @@ interface Props {
   style?;
 }
 
+// The tooltips below are adopted from chat.openai.com
+
 export default function ModelSwitch({ style, model, setModel, size }: Props) {
   return (
     <Radio.Group
@@ -23,21 +25,20 @@ export default function ModelSwitch({ style, model, setModel, size }: Props) {
         setModel(value);
       }}
     >
-      <Tooltip
-        title={`${modelToName(
-          "gpt-3.5-turbo"
-        )} is faster, but not as smart`}
-      >
+      <Tooltip title={"OpenAI's fastest model, great for most everyday tasks"}>
         <Radio.Button value="gpt-3.5-turbo">
           {modelToName("gpt-3.5-turbo")}
         </Radio.Button>
       </Tooltip>
       <Tooltip
-        title={`${modelToName(
-          "gpt-4"
-        )} is more intelligent with bigger context, but costs more`}
+        title={
+          "OpenAI's most capable model, great for tasks that require creativity and advanced reasoning."
+        }
       >
-        <Radio.Button value="gpt-4">{modelToName("gpt-4")}</Radio.Button>
+        <Radio.Button value="gpt-4">
+          {modelToName("gpt-4")}
+          {model == "gpt-4" ? " (not free)" : ""}
+        </Radio.Button>
       </Tooltip>
     </Radio.Group>
   );

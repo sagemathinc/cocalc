@@ -8,11 +8,11 @@ export type Model = typeof MODELS[number];
 // Map from psuedo account_id to what should be displayed to user.
 // This is used in various places in the frontend.
 export const OPENAI_USERNAMES = {
-  chatgpt: "ChatGPT",
-  chatgpt3: "ChatGPT",
+  chatgpt: "GPT-3.5",
+  chatgpt3: "GPT-3.5",
   chatgpt4: "GPT-4",
   "gpt-4": "GPT-4",
-  "gpt-3.5-turbo": "ChatGPT",
+  "gpt-3.5-turbo": "GPT-3.5",
 };
 
 export const MAX_CHATGPT_TOKENS = 4096;
@@ -27,7 +27,6 @@ export function getMaxTokens(model?: Model): number {
     throw Error(`unknown model ${model}`);
   }
 }
-
 
 export interface ChatGPTLogEntry {
   id: number;
