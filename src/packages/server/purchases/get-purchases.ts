@@ -5,17 +5,15 @@ interface Options {
   account_id: string;
   limit?: number;
   offset?: number;
-  paid?: boolean;
   service?: Service;
   project_id?: string;
-  group?: boolean; // if true, group all results by service, paid status, project_id together, along with the sum of the cost.  This provides a nice summary without potentially hundreds of rows for every single chat, etc.
+  group?: boolean; // if true, group all results by service, project_id together, along with the sum of the cost.  This provides a nice summary without potentially hundreds of rows for every single chat, etc.
 }
 
 export default async function getPurchases({
   account_id,
   limit = 50,
   offset,
-  paid,
   service,
   project_id,
   group,
@@ -27,10 +25,10 @@ export default async function getPurchases({
   let query;
   if (group) {
     query =
-      "SELECT SUM(cost), service, paid, project_id FROM purchases WHERE account_id=$1";
+      "SELECT SUM(cost), service, project_id FROM purchases WHERE account_id=$1";
   } else {
     query =
-      "SELECT id, time, cost, service, description, invoice_id, paid, project_id FROM purchases WHERE account_id=$1";
+      "SELECT id, time, cost, service, description, invoice_id, project_id FROM purchases WHERE account_id=$1";
   }
   const params: any[] = [account_id];
   if (service != null) {
@@ -41,15 +39,8 @@ export default async function getPurchases({
     params.push(project_id);
     query += ` AND project_id=$${params.length}`;
   }
-  if (paid != null) {
-    if (paid) {
-      query += " AND paid IS true";
-    } else {
-      query += " AND (paid IS null OR paid IS false)";
-    }
-  }
   if (group) {
-    query += " GROUP BY service, paid, project_id";
+    query += " GROUP BY service, project_id";
   }
   if (!group) {
     query += " ORDER BY time DESC";

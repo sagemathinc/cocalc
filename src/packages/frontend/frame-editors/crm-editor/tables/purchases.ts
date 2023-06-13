@@ -17,7 +17,6 @@ register({
         service: null,
         description: null,
         invoice_id: null,
-        paid: null,
         project_id: null,
         tag: null,
         notes: null,

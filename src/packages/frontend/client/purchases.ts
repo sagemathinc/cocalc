@@ -50,7 +50,6 @@ export class PurchasesClient {
   async getPurchases(opts: {
     limit?: number;
     offset?: number;
-    paid?: boolean;
     service?: Service;
     project_id?: string;
     group?: boolean;

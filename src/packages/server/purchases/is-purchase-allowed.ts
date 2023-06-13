@@ -1,6 +1,6 @@
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { getPurchaseQuotas } from "./purchase-quotas";
-import getBalance from "./get-balance";
+import getBalance, { getBalanceThisMonth } from "./get-balance";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { GPT4_MAX_COST } from "@cocalc/server/openai/chatgpt";
 import { currency } from "./util";
@@ -79,18 +79,19 @@ export async function isPurchaseAllowed({
   }
   // Next check that the quota for the specific service is not exceeded
   const quotaForService = services[service];
-  if (quotaForService == null) {
+  if (!quotaForService) {
     return {
       allowed: false,
-      reason: `You must explicitly set a quota for the "${
+      reason: `You must explicitly set a positive quota for the "${
         QUOTA_SPEC[service]?.display ?? service
       }" service.`,
     };
   }
   // user has set a quota for this service.  is the total unpaid spend within this quota?
+
   // NOTE: This does NOT involve credits at all.  Even if the user has $10K in credits,
   // they can still limit their monthly spend on a particular service, as a safety.
-  const balanceForService = await getBalance(account_id, service);
+  const balanceForService = await getBalanceThisMonth(account_id, service);
   if (balanceForService + cost > quotaForService) {
     return {
       allowed: false,

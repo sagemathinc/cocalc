@@ -64,7 +64,6 @@ export interface Purchase {
   service: Service;
   description: Description;
   invoice_id?: string;
-  paid?: boolean;
   project_id?: string;
   tag?: string;
   notes?: string;
@@ -86,11 +85,6 @@ Table({
       title: "Invoice Id",
       desc: "The id of the stripe invoice that was sent that included this item.",
       type: "string",
-    },
-    paid: {
-      title: "Paid",
-      desc: "Whether or not this purchase has been successfully paid for. This gets marked true once the corresponding invoice is created and paid.",
-      type: "boolean",
     },
     project_id: {
       title: "Project Id",
@@ -132,7 +126,6 @@ Table({
           service: null,
           description: null,
           invoice_id: null,
-          paid: null,
           project_id: null,
           tag: null,
         },
@@ -158,7 +151,6 @@ Table({
           service: null,
           description: null,
           invoice_id: null,
-          paid: null,
           project_id: null,
           tag: null,
           notes: null,
@@ -173,7 +165,6 @@ Table({
           description: true,
           tag: true,
           notes: true,
-          paid: true,
           invoice_id: true,
         },
       },

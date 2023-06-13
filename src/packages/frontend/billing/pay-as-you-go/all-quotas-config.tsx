@@ -110,7 +110,7 @@ export default function AllQuotasConfig({}) {
       render: (service) => <ServiceTag service={service} />,
     },
     {
-      title: "Limit (USD)",
+      title: "Monthly Limit (USD)",
       dataIndex: "quota",
       render: (quota: number, _record: ServiceQuota, index: number) => (
         <InputNumber
@@ -148,7 +148,7 @@ export default function AllQuotasConfig({}) {
         >
           <Icon name="save" />{" "}
           {saving ? "Saving..." : changed ? "Save Changes" : "Saved"}
-          {saving && <Spin style={{ marginLeft: "15px" }}  delay={500} />}
+          {saving && <Spin style={{ marginLeft: "15px" }} delay={500} />}
         </Button>
         <Button onClick={handleCancel} disabled={!changed || saving}>
           Cancel

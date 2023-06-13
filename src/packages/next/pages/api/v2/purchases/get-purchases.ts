@@ -20,11 +20,10 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  const { limit, offset, paid, service, project_id, group } = getParams(req);
+  const { limit, offset, service, project_id, group } = getParams(req);
   return await getPurchases({
     limit,
     offset,
-    paid,
     service,
     account_id,
     project_id,

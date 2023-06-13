@@ -28,7 +28,6 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [group, setGroup] = useState<boolean>(true);
-  const [paid, setPaid] = useState<boolean>(false);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
   const [error, setError] = useState<string>("");
   const [limit /*, setLimit*/] = useState<number>(DEFAULT_LIMIT);
@@ -39,11 +38,6 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
     setTotal(null);
     setPurchases(null);
     setGroup(checked);
-  };
-  const handlePaidChange = (checked: boolean) => {
-    setTotal(null);
-    setPurchases(null);
-    setPaid(checked);
   };
 
   const getNextPage = () => {
@@ -74,7 +68,6 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
         limit,
         offset,
         group,
-        paid,
         service,
         project_id,
       });
@@ -90,7 +83,7 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
   };
   useEffect(() => {
     getPurchases();
-  }, [limit, offset, group, paid, service, project_id]);
+  }, [limit, offset, group, service, project_id]);
 
   return (
     <SettingBox
@@ -130,12 +123,6 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
       >
         <Icon name="refresh" /> Refresh
       </Button>
-      <Checkbox
-        checked={paid}
-        onChange={(e) => handlePaidChange(e.target.checked)}
-      >
-        Paid
-      </Checkbox>
       <Checkbox
         checked={group}
         onChange={(e) => handleGroupChange(e.target.checked)}
@@ -191,9 +178,7 @@ function GroupedPurchaseTable({ purchases }) {
       scroll={{ y: 400 }}
       pagination={false}
       dataSource={purchases}
-      rowKey={({ service, project_id, paid }) =>
-        `${service}-${project_id}-${paid}`
-      }
+      rowKey={({ service, project_id }) => `${service}-${project_id}`}
       columns={[
         {
           title: "Service",
@@ -205,18 +190,12 @@ function GroupedPurchaseTable({ purchases }) {
           render: (service) => <ServiceTag service={service} />,
         },
         {
-          title: "Total Cost",
+          title: "Total Amount (USD)",
           dataIndex: "sum",
           key: "sum",
           render: (text) => `$${text?.toFixed(2)}`,
           sorter: (a: any, b: any) => (a.sum ?? 0) - (b.sum ?? 0),
           sortDirections: ["ascend", "descend"],
-        },
-        {
-          title: "Paid",
-          dataIndex: "paid",
-          key: "paid",
-          render: (text) => (text ? "Yes" : "No"),
         },
         {
           title: "Project",
@@ -261,7 +240,7 @@ function DetailedPurchaseTable({ purchases }) {
           sortDirections: ["ascend", "descend"],
         },
         {
-          title: "Cost",
+          title: "Amount (USD)",
           dataIndex: "cost",
           key: "cost",
           render: (text) => `$${text?.toFixed(2)}`,
@@ -274,12 +253,6 @@ function DetailedPurchaseTable({ purchases }) {
         //               key: "description",
         //               render: (_, record) => JSON.stringify(record.description),
         //             },
-        {
-          title: "Paid",
-          dataIndex: "paid",
-          key: "paid",
-          render: (text) => (text ? "Yes" : "No"),
-        },
         {
           title: "Invoice",
           dataIndex: "invoice_id",
