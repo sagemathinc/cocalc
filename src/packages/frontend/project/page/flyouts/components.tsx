@@ -9,7 +9,7 @@ import {
   yellow as ANTD_YELLOW,
 } from "@ant-design/colors";
 
-import { CSS } from "@cocalc/frontend/app-framework";
+import { CSS, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { hexColorToRGBA } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
@@ -44,6 +44,7 @@ const FILE_ITEM_BODY_STYLE: CSS = {
   display: "flex",
   flexDirection: "row",
   flex: "1",
+  padding: "5px",
 } as const;
 
 const FILE_ITEM_LINE_STYLE: CSS = {
@@ -54,10 +55,8 @@ const FILE_ITEM_LINE_STYLE: CSS = {
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
-  paddingBottom: "5px",
-  paddingTop: "5px",
-  paddingLeft: "5px",
-  paddingRight: "5px",
+  padding: 0,
+  margin: 0,
   color: COLORS.GRAY_D,
 } as const;
 
@@ -90,13 +89,19 @@ export function FileListItem({
   selected,
   multiline = false,
 }: FileListItemProps): JSX.Element {
+  const itemRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
   function renderCloseItem(item: Item): JSX.Element {
     const { name } = item;
     return (
       <Icon
         name="times-circle"
         style={{ flex: "0", fontSize: "120%" }}
-        onClick={(e) => onClose?.(e, name)}
+        onClick={(e) => {
+          e?.stopPropagation();
+          onClose?.(e, name);
+        }}
       />
     );
   }
@@ -104,32 +109,29 @@ export function FileListItem({
   function renderItem(): JSX.Element {
     return (
       <div
+        ref={itemRef}
         style={{
           ...FILE_ITEM_STYLE,
           ...(multiline ? { whiteSpace: "normal" } : {}),
         }}
-        onClick={onClick}
       >
         {item.name}
       </div>
     );
   }
 
-  // caret icon to indicated selected item
-  function renderSelected(): JSX.Element {
-    if (!selected) return <></>;
-    return (
-      <Icon
-        name="caret-right"
-        style={{ flex: "0", fontSize: "120%", marginRight: "5px" }}
-      />
-    );
+  function handleClick(e: React.MouseEvent): void {
+    // this prevents clicks on the dropdown menu (and it its items) from
+    // triggering the onClick handler – TODO will be replaced by something better
+    if (e.target === itemRef.current || e.target === bodyRef.current) {
+      e.stopPropagation();
+      onClick?.(e);
+    }
   }
 
   function renderBody(): JSX.Element {
     const el = (
-      <div style={FILE_ITEM_BODY_STYLE}>
-        {renderSelected()}
+      <div ref={bodyRef} style={FILE_ITEM_BODY_STYLE} onClick={handleClick}>
         {renderIcon(item, ICON_STYLE)} {renderItem()}
         {item.isopen ? renderCloseItem(item) : null}
       </div>
