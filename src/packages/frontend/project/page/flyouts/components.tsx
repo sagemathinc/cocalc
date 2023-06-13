@@ -8,21 +8,24 @@ import {
   orange as ANTD_ORANGE,
   yellow as ANTD_YELLOW,
 } from "@ant-design/colors";
+import { Tooltip } from "antd";
 
 import { CSS, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { hexColorToRGBA } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
-import { Tooltip } from "antd";
+
+// make sure two types of borders are of the same width
+const BORDER_WIDTH_PX = "4px";
 
 const FILE_ITEM_SELECTED_STYLE: CSS = {
-  backgroundColor: COLORS.GRAY_LL,
+  backgroundColor: COLORS.BLUE_LL, // bit darker than .cc-project-flyout-file-item:hover
 } as const;
 
 const FILE_ITEM_OPENED_STYLE: CSS = {
-  ...FILE_ITEM_SELECTED_STYLE,
   fontWeight: "bold",
+  backgroundColor: COLORS.GRAY_LL,
   color: COLORS.PROJECT.FIXED_LEFT_ACTIVE,
 } as const;
 
@@ -155,13 +158,13 @@ export function FileListItem({
       className="cc-project-flyout-file-item"
       style={{
         ...FILE_ITEM_LINE_STYLE,
-        ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
         ...(item.isopen
           ? item.isactive
             ? FILE_ITEM_ACTIVE_STYLE
             : FILE_ITEM_OPENED_STYLE
           : {}),
         ...itemStyle,
+        ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
       }}
     >
       {renderBody()}
@@ -184,7 +187,7 @@ export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {
     col = hexColorToRGBA(ANTD_YELLOW[5], opacity);
   }
   return {
-    borderLeft: `4px solid ${col}`,
+    borderLeft: `${BORDER_WIDTH_PX} solid ${col}`,
     ...(masked ? { color: COLORS.GRAY_L } : {}),
   };
 }
