@@ -61,7 +61,9 @@ export class StripeClient {
 
   constructor(client: Partial<HubClient>) {
     if (!client.account_id) {
-      throw Error("account_id must be specified -- make sure you are signed in");
+      throw Error(
+        "account_id must be specified -- make sure you are signed in"
+      );
     }
     if (!client.database) {
       // TODO: Importing this at the top level doesn't work with

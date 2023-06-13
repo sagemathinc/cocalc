@@ -17,7 +17,12 @@ export const QUOTA_SPEC: QuotaSpec = {
   credit: { display: "Credit", noSet: true, color: "#5cb85c" },
   "openai-gpt-4": { display: "OpenAI GPT-4", color: "#10a37f" },
   "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
-  //"openai-image": { display: "OpenAI Image" },
+  license: {
+    display: "License",
+    color: "#389e0d",
+    noSet:
+      true /* because we don't support pay-later-or-with-credit for licenses _yet_ */,
+  },
 };
 
 export function serviceToDisplay(service: Service): string {

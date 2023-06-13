@@ -15,6 +15,7 @@ export default async function createPurchase({
   cost,
   service,
   description,
+  invoice_id,
   notes,
   tag,
 }: {
@@ -23,6 +24,7 @@ export default async function createPurchase({
   cost: number;
   service: Service;
   description: Description;
+  invoice_id?: string;
   notes?: string;
   tag?: string;
 }): Promise<number> {
@@ -32,8 +34,17 @@ export default async function createPurchase({
   for (let i = 0; i < 10; i++) {
     try {
       const { rows } = await pool.query(
-        "INSERT INTO purchases (time, account_id, project_id, cost, service, description, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7) RETURNING id",
-        [account_id, project_id, cost, service, description, notes, tag]
+        "INSERT INTO purchases (time, account_id, project_id, cost, service, description,invoice_id, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
+        [
+          account_id,
+          project_id,
+          cost,
+          service,
+          description,
+          invoice_id,
+          notes,
+          tag,
+        ]
       );
       logger.debug("Created new purchase", {
         account_id,
@@ -41,6 +52,9 @@ export default async function createPurchase({
         cost,
         service,
         description,
+        invoice_id,
+        notes,
+        tag,
       });
       return rows[0].id;
     } catch (err) {

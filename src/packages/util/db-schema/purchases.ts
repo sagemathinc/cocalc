@@ -2,13 +2,13 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { NOTES } from "./crm";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 
 // The general categories of services we offer.  These must
 // be at most 127 characters, and users can set an individual
 // monthly quota on each one in purchase-quotas:
 
-export type Service = "credit" | "openai-gpt-4" | "project-upgrade";
-// | "openai-image"
+export type Service = "credit" | "openai-gpt-4" | "project-upgrade" | "license";
 
 export type Model = "gpt-3.5-turbo" | "gpt-4";
 
@@ -34,6 +34,11 @@ export interface ProjectUpgrade {
     always_running?: number;
     memory_request?: number;
   };
+}
+
+export interface License {
+  type: "license";
+  info: PurchaseInfo;
 }
 
 // not used yet.

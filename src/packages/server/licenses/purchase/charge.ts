@@ -12,6 +12,7 @@ import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { getProductId } from "./product-id";
 import { getProductMetadata } from "./product-metadata";
 import { getProductName } from "./product-name";
+// import createPurchaseFromInvoiceId from "@cocalc/server/purchases/create-purchase-from-invoice";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = {
@@ -25,11 +26,28 @@ export async function chargeUser(
 ): Promise<Purchase> {
   logger.debug("getting product_id");
   const product_id = await stripeGetProduct(info);
+  let purchase;
   if (info.type == "vouchers" || info.subscription == "no") {
-    return await stripePurchaseProduct(stripe, product_id, info);
+    purchase = await stripePurchaseProduct(stripe, product_id, info);
   } else {
-    return await stripeCreateSubscription(stripe, product_id, info);
+    purchase = await stripeCreateSubscription(stripe, product_id, info);
   }
+
+  /*
+  // mirror whatever was purchased in the purchased table, with both
+  // the item purchased and a credit for the paid invoice:
+  try {
+    await createPurchaseFromInvoiceId(purchase.id);
+  } catch (err) {
+    // not fatal, since this is entirely for bookkeeping and so the
+    // user can see it in the transaction log.
+    // Also, we will sync stripe with cocalc periodically and that
+    // would also create this purchase if it doesn't already exist.
+    logger.debug("Nonfatal -- Error creating purchase from invoice.", err);
+  }
+  */
+
+  return purchase;
 }
 
 export function unitAmount(info: PurchaseInfo): number {
@@ -211,7 +229,7 @@ async function stripePurchaseProduct(
       );
     }
   }
-  logger.debug("stripePurchaseProduct: got price", JSON.stringify(price));
+  logger.debug("stripePurchaseProduct: got price", price);
   let tax_percent;
   if (info.type == "vouchers") {
     // (1) there is no period for a voucher, (2) we charge them the tax

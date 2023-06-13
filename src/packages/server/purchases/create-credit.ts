@@ -6,11 +6,13 @@ import { getServerSettings } from "@cocalc/server/settings/server-settings";
 
 export default async function createCredit({
   account_id,
+  invoice_id,
   amount,
   notes,
   tag,
 }: {
   account_id: string;
+  invoice_id?: string;
   amount: number;
   notes?: string;
   tag?: string;
@@ -23,12 +25,14 @@ export default async function createCredit({
   }
   const { pay_as_you_go_min_payment } = await getServerSettings();
   if (amount <= pay_as_you_go_min_payment) {
-    throw Error(`minimum credit you can add is ${currency(pay_as_you_go_min_payment)}.`);
+    throw Error(
+      `minimum credit you can add is ${currency(pay_as_you_go_min_payment)}.`
+    );
   }
   const pool = getPool();
   const { rows } = await pool.query(
-    "INSERT INTO purchases (service, time, account_id, cost, description, notes, tag) VALUES('credit', CURRENT_TIMESTAMP, $1, $2, $3, $4, $5) RETURNING id",
-    [account_id, -amount, { type: "credit" } as Credit, notes, tag]
+    "INSERT INTO purchases (service, time, account_id, cost, description, invoice_id, notes, tag) VALUES('credit', CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6) RETURNING id",
+    [account_id, -amount, { type: "credit" } as Credit, invoice_id, notes, tag]
   );
   return rows[0].id;
 }
