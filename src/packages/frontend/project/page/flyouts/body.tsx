@@ -82,7 +82,9 @@ export function FlyoutBody({
       }}
     >
       {Body == null ? (
-        <Loading />
+        <div style={{ textAlign: "center", marginTop: "50px" }}>
+          <Loading />
+        </div>
       ) : (
         <Body project_id={project_id} wrap={wrap} />
       )}

@@ -277,6 +277,11 @@ export function FilesFlyout({ project_id }): JSX.Element {
         setScrollIdx(null);
       }
     }
+
+    // if esc key is pressed, clear search and reset
+    else if (e.key === "Escape") {
+      setSearch("");
+    }
   }
 
   function renderItemIcon(

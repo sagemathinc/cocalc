@@ -20,14 +20,18 @@ import { handle_log_click } from "@cocalc/frontend/components/path-link";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { LogEntry } from "@cocalc/frontend/project/history/log-entry";
+import track from "@cocalc/frontend/user-tracking";
 import {
   EventRecordMap,
   to_search_string,
 } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
 import {
+  path_to_file,
   search_match,
   search_split,
+  should_open_in_foreground,
+  strictMod,
   tab_to_path,
   unreachable,
 } from "@cocalc/util/misc";
@@ -35,6 +39,7 @@ import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { FileListItem, fileItemStyle } from "./components";
 import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
+import { COLORS } from "@cocalc/util/theme";
 
 export const FLYOUT_LOG_DEFAULT_MODE = "files";
 
@@ -155,12 +160,15 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const user_map = useTypedRedux("users", "user_map");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
+  const current_path = useTypedRedux({ project_id }, "current_path");
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `${project_id}::flyout::log`,
   });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [scrollIdx, setScrollIdx] = useState<number | null>(null);
+  const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
 
   const activePath = useMemo(() => {
     return tab_to_path(activeTab);
@@ -180,7 +188,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
     }
   }, [project_log, project_log_all, searchTerm, max, mode]);
 
-  function renderFileItem(entry: OpenedFile) {
+  function renderFileItem(index: number, entry: OpenedFile) {
     const time = entry.time;
     const account_id = entry.account_id;
     const path = entry.filename;
@@ -194,6 +202,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
         item={{ name: path, isopen: isOpened, isactive: isActive }}
         itemStyle={fileItemStyle(time?.getTime())}
         multiline={true}
+        selected={!scollIdxHide && index === scrollIdx}
         renderIcon={(_item, style) => <Icon style={style} name={name} />}
         onClick={(e) => handle_log_click(e, path, project_id)}
         onClose={(e: React.MouseEvent, path: string) => {
@@ -210,7 +219,13 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
     );
   }
 
-  function renderHistoryItem(entry: any) {
+  function renderHistoryItem(index: number, entry: any) {
+    const highlight = !scollIdxHide && index === scrollIdx;
+    const bgStyle = {
+      ...fileItemStyle(entry.time?.getTime()),
+      ...(highlight ? { background: COLORS.BLUE_LL } : {}),
+    };
+
     return (
       <LogEntry
         mode="flyout"
@@ -220,7 +235,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
         account_id={entry.account_id}
         event={entry.event}
         user_map={user_map}
-        backgroundStyle={fileItemStyle(entry.time?.getTime())}
+        backgroundStyle={bgStyle}
       />
     );
   }
@@ -230,7 +245,49 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
     return <Loading />;
   }
 
+  function doScroll(dx: -1 | 1) {
+    const nextIdx = strictMod(
+      scrollIdx == null ? (dx === 1 ? 0 : -1) : scrollIdx + dx,
+      log.length
+    );
+    setScrollIdx(nextIdx);
+    virtuosoRef.current?.scrollToIndex({
+      index: nextIdx,
+      align: "center",
+    });
+  }
+
+  function open(e: React.MouseEvent | React.KeyboardEvent, index: number) {
+    if (mode !== "files") return;
+    const file: OpenedFile = log[index];
+    const fullPath = path_to_file(current_path, file.filename);
+    const foreground = should_open_in_foreground(e);
+    track("open-file", {
+      project_id,
+      path: fullPath,
+      how: "click-on-log-file-flyout",
+    });
+    actions?.open_file({
+      path: fullPath,
+      foreground,
+    });
+  }
+
   function onKeyUpHandler(e) {
+    // if arrow key down or up, then scroll to next item
+    const dx = e.code === "ArrowDown" ? 1 : e.code === "ArrowUp" ? -1 : 0;
+    if (dx != 0) {
+      doScroll(dx);
+    }
+
+    // return key pressed
+    else if (e.code === "Enter" && mode === "files") {
+      if (scrollIdx != null) {
+        open(e, scrollIdx);
+        setScrollIdx(null);
+      }
+    }
+
     // if esc key is pressed, empty the search term
     if (e.key === "Escape") {
       setSearchTerm("");
@@ -252,9 +309,9 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
           }
           switch (mode) {
             case "files":
-              return renderFileItem(entry);
+              return renderFileItem(index, entry);
             case "history":
-              return renderHistoryItem(entry);
+              return renderHistoryItem(index, entry);
           }
         }}
         {...virtuosoScroll}
@@ -266,10 +323,13 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
     <>
       <Input
         placeholder="Search..."
-        style={{ width: "100%" }}
+        style={{ flex: "1", marginRight: "10px" }}
+        size="small"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         onKeyUp={onKeyUpHandler}
+        onFocus={() => setScrollIdxHide(false)}
+        onBlur={() => setScrollIdxHide(true)}
         allowClear
         prefix={<Icon name="search" />}
       />
