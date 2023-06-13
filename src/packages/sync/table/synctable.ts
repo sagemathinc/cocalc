@@ -269,8 +269,19 @@ export class SyncTable extends EventEmitter {
   locally.
   */
   public async save(): Promise<void> {
+    const dbg = this.dbg("save");
     //console.log("synctable SAVE");
-    this.assert_not_closed("save");
+    if (this.state === "closed") {
+      // Not possible to save.  save is wrapped in
+      // reuseInFlight, which debounces, so it's very
+      // reasonable that an attempt to call this would
+      // finally fire after a close (which is sync).
+      // Throwing an error hit would (and did) actually
+      // crash projects on the backend in production,
+      // so this has to be a warning.
+      dbg("WARNING: called save on closed synctable");
+      return;
+    }
     if (this.value == null) {
       // nothing to save yet
       return;
@@ -280,7 +291,7 @@ export class SyncTable extends EventEmitter {
       if (this.error) {
         // do not try to save when there's an error since that
         // won't help.  Need to attempt to fix it first.
-        console.warn("WARNING -- not saving ", this.error);
+        dbg("WARNING: not saving ", this.error);
         return;
       }
       //console.log("SAVE -- has uncommitted changes, so trying again.");
