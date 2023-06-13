@@ -49,7 +49,7 @@ export function FlyoutBody({
   );
 
   // use this *once* around a vertically scollable content div in the component, e.g. results in a search
-  function wrap(content, style: CSS = {}) {
+  function wrap(content: React.ReactNode, style: CSS = {}) {
     return (
       <div
         ref={setBodyDiv}

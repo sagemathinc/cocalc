@@ -132,19 +132,6 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-  private render_hide_action_popovers(): Rendered {
-    return (
-      <Checkbox
-        checked={!!this.props.other_settings.get("hide_action_popovers")}
-        onChange={(e) =>
-          this.on_change("hide_action_popovers", e.target.checked)
-        }
-      >
-        Hide Action Button Popovers: do not show the popovers over the action
-        buttons (Explorer, New, Log, etc.)
-      </Checkbox>
-    );
-  }
 
   private render_hide_project_popovers(): Rendered {
     return (
@@ -328,7 +315,6 @@ export class OtherSettings extends Component<Props> {
         {this.render_time_ago_absolute()}
         {this.render_global_banner()}
         {this.render_mask_files()}
-        {this.render_hide_action_popovers()}
         {this.render_hide_project_popovers()}
         {this.render_hide_file_popovers()}
         {this.render_hide_button_tooltips()}
