@@ -1,49 +1,99 @@
-// [ ] TODO: rewrite this to have the closing date be an integer 1-28 in the database!
+/*
+
+
+*/
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("purchase:closing-date");
 
-// Get the purchase closing date for the account, or set it today if none is set.
-// Returns midnight UTC.
-export async function getClosingDate(account_id: string): Promise<Date> {
+// Get the most recent closing date that is in the past.
+export async function getLastClosingDate(account_id: string): Promise<Date> {
+  // day is a number between 1 and 28 and the closing date is the day-th day of the month.
+  const day = await getClosingDay(account_id);
+  // Compute the most recent Date that is in the past, is
+  // at midnight UTC, and lies on the given day of the month.
+  const today = new Date();
+  const month = today.getMonth();
+  const year = today.getFullYear();
+  const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+  const lastClosingDayOfMonth =
+    day > lastDayOfMonth
+      ? new Date(year, month - 1, lastDayOfMonth)
+      : new Date(year, month, day);
+  while (lastClosingDayOfMonth.valueOf() > today.valueOf()) {
+    lastClosingDayOfMonth.setMonth(lastClosingDayOfMonth.getMonth() - 1);
+  }
+  return new Date(
+    Date.UTC(
+      lastClosingDayOfMonth.getFullYear(),
+      lastClosingDayOfMonth.getMonth(),
+      lastClosingDayOfMonth.getDate()
+    )
+  );
+}
+
+// Get the next upcoming closing date in the future.
+export async function getNextClosingDate(account_id: string): Promise<Date> {
+  const day = await getClosingDay(account_id);
+  // Compute the next Date that is in the future, is at midnight UTC,
+  // and lies on the given day of the month.
+  const today = new Date();
+  const month = today.getMonth();
+  const year = today.getFullYear();
+  let nextDate = new Date(Date.UTC(year, month, day));
+  if (nextDate <= today) {
+    nextDate = new Date(Date.UTC(year, month + 1, day));
+  }
+  return nextDate;
+}
+
+// Get the closing day for this account.  If not set, we set it to a few days ago.
+export async function getClosingDay(account_id: string): Promise<number> {
   const pool = getPool("medium");
-  let closingDate: Date;
+  let closingDay: number;
 
   try {
     const result = await pool.query(
-      "SELECT purchase_closing_date FROM accounts WHERE account_id = $1",
+      "SELECT purchase_closing_day FROM accounts WHERE account_id = $1",
       [account_id]
     );
-    closingDate = result.rows?.[0]?.["purchase_closing_date"];
-    if (closingDate == null) {
-      // If no closing date exists, set it to today (midnight UTC)
-      closingDate = new Date();
-      closingDate.setUTCHours(0, 0, 0, 0);
-      await setClosingDate(account_id, closingDate);
+    closingDay = result.rows?.[0]?.["purchase_closing_day"];
+    if (closingDay == null) {
+      // If no closing day exists, set it to a few days ago.
+      // We compute the current day of the month, then subtract 3,
+      // and normalize to be between 1 and 28.
+
+      const today = new Date();
+      const currentDayOfMonth = today.getDate();
+      const closingDay = (Math.max(currentDayOfMonth - 3, 1) % 28) + 1;
+
+      await setClosingDay(account_id, closingDay);
     }
   } catch (e) {
-    logger.error(`Error getting closing date: ${e.message}`);
+    logger.error(`Error getting closing day: ${e.message}`);
     throw e;
   }
 
-  return closingDate;
+  return closingDay;
 }
 
-export async function setClosingDate(
+export async function setClosingDay(
   account_id: string,
-  date: Date
+  day: number
 ): Promise<void> {
   const pool = getPool("medium");
-  date.setUTCHours(0, 0, 0, 0);
+  if (day < 1 || day > 28) {
+    throw Error("day must be between 1 and 28");
+  }
   try {
     await pool.query(
-      "UPDATE accounts SET purchase_closing_date = $1 WHERE account_id = $2",
-      [date, account_id]
+      "UPDATE accounts SET purchase_closing_day = $1 WHERE account_id = $2",
+      [day, account_id]
     );
   } catch (e) {
-    logger.error(`Error setting closing date: ${e.message}`);
+    logger.error(`Error setting closing day: ${e.message}`);
     throw e;
   }
 }

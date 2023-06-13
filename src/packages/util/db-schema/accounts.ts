@@ -211,7 +211,7 @@ Table({
         min: 0,
       },
     },
-    purchase_closing_date: {
+    purchase_closing_day: {
       type: "integer",
       desc: "Day of the month when pay-as-you-go purchases are cutoff and charged for this user. The monthly spend limit also resets on this day.  It happens at midnight UTC on this day.  This should be an integer between 1 and 28.",
       render: {
@@ -347,7 +347,7 @@ Table({
           tags: null,
           tours: null,
           purchase_quota: null,
-          purchase_closing_date: null,
+          purchase_closing_day: null,
         },
       },
       set: {
@@ -503,7 +503,7 @@ Table({
           notes: true,
           salesloft_id: true,
           purchase_quota: true,
-          purchase_closing_date: true,
+          purchase_closing_day: true,
         },
       },
     },
