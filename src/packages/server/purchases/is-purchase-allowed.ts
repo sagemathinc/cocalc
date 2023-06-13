@@ -1,6 +1,7 @@
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { getPurchaseQuotas } from "./purchase-quotas";
-import getBalance, { getBalanceThisMonth } from "./get-balance";
+import getBalance from "./get-balance";
+import { getTotalChargesThisMonth } from "./get-charges";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { GPT4_MAX_COST } from "@cocalc/server/openai/chatgpt";
 import { currency } from "./util";
@@ -77,7 +78,9 @@ export async function isPurchaseAllowed({
       )}.  Verify your email address, add credit, or contact support to increase your global quota.`,
     };
   }
-  // Next check that the quota for the specific service is not exceeded
+  // Next check that the quota for the specific service is not exceeded.
+  // This is a self-imposed limit by the user to control what they
+  // explicitly authorized.
   const quotaForService = services[service];
   if (!quotaForService) {
     return {
@@ -91,14 +94,14 @@ export async function isPurchaseAllowed({
 
   // NOTE: This does NOT involve credits at all.  Even if the user has $10K in credits,
   // they can still limit their monthly spend on a particular service, as a safety.
-  const balanceForService = await getBalanceThisMonth(account_id, service);
-  if (balanceForService + cost > quotaForService) {
+  const chargesForService = await getTotalChargesThisMonth(account_id, service);
+  if (chargesForService + cost > quotaForService) {
     return {
       allowed: false,
       reason: `You need to increase your ${
         QUOTA_SPEC[service]?.display ?? service
-      } service limit and/or reduce your balance (current balance: ${currency(
-        balanceForService
+      } monthly service limit and/or reduce your balance (this month charges: ${currency(
+        chargesForService
       )}).  Your limit ${currency(quotaForService)} for "${
         QUOTA_SPEC[service]?.display ?? service
       }" is not sufficient to make a purchase of up to ${currency(cost)}.`,

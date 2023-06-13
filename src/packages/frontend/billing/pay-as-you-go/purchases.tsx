@@ -10,7 +10,7 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
 
-const DEFAULT_LIMIT = 20;
+const DEFAULT_LIMIT = 100;
 
 interface Props {
   project_id?: string; // if given, restrict to only purchases that are for things in this project
@@ -109,7 +109,13 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
       )}
       {balance != null && (
         <Tooltip title="Total balance for all pay as you go purchases across all projects.">
-          <div style={{ float: "right", fontSize: "12pt" }}>
+          <div
+            style={{
+              float: "right",
+              fontSize: "12pt",
+              color: balance <= 0 ? "darkgreen" : "darkred",
+            }}
+          >
             Balance: ${balance.toFixed(2)}
           </div>
         </Tooltip>
@@ -124,10 +130,10 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
         <Icon name="refresh" /> Refresh
       </Button>
       <Checkbox
-        checked={group}
-        onChange={(e) => handleGroupChange(e.target.checked)}
+        checked={!group}
+        onChange={(e) => handleGroupChange(!e.target.checked)}
       >
-        Combine by Service{project_id ? "" : " and Project"}
+        Show individual purchases
       </Checkbox>
       <div
         style={{

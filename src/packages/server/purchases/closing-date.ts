@@ -1,8 +1,3 @@
-/*
-
-
-*/
-
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 
