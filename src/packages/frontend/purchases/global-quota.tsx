@@ -12,9 +12,9 @@ export default function GlobalQuota({ global, style }: Props) {
   }
   const { quota, why, increase } = global;
   return (
-    <Tooltip title="No service limit can exceed the global limit, and you can't spend more than this amount per billing period without making an extra payment.  Contact support to increase this limit.">
+    <Tooltip title="You can't spend more than the global limit per billing period without making an extra payment.  Contact support to increase this limit.">
       <Card style={style}>
-        Global Spending Limit: {currency(quota)}
+        Global Limit: {currency(quota)}
         <br />
         {why}
         <br />

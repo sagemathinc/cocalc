@@ -16,15 +16,15 @@ interface Props {
   project_id?: string; // if given, restrict to only purchases that are for things in this project
 }
 
-export default function PayAsYouGoPurchases(props: Props) {
+export default function Purchases(props: Props) {
   const is_commercial = useTypedRedux("customize", "is_commercial");
   if (!is_commercial) {
     return null;
   }
-  return <PayAsYouGoPurchases0 {...props} />;
+  return <Purchases0 {...props} />;
 }
 
-function PayAsYouGoPurchases0({ project_id }: Props) {
+function Purchases0({ project_id }: Props) {
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [group, setGroup] = useState<boolean>(true);
@@ -90,11 +90,11 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
       title={
         project_id ? (
           <span style={{ marginLeft: "5px" }}>
-            Pay-as-you-go purchases for the project{" "}
+            Purchases specific to{" "}
             <ProjectTitle project_id={project_id} trunc={30} />
           </span>
         ) : (
-          <span style={{ marginLeft: "5px" }}>Pay as you go purchases</span>
+          <span style={{ marginLeft: "5px" }}>Purchases</span>
         )
       }
       icon="credit-card"
@@ -108,7 +108,7 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
         />
       )}
       {balance != null && (
-        <Tooltip title="Total balance for all pay as you go purchases across all projects.">
+        <Tooltip title="Total balance for all purchases across all projects.">
           <div
             style={{
               float: "right",

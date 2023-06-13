@@ -31,10 +31,6 @@ export class PurchasesClient {
   async getBalance(): Promise<number> {
     return await api("purchases/get-balance");
   }
-  
-  async getBalance(): Promise<number> {
-    return await api("purchases/get-balance");
-  }
 
   async getClosingDates(): Promise<{ last: Date; next: Date }> {
     return await api("purchases/get-closing-dates");

@@ -127,7 +127,7 @@ export default function AllQuotasConfig({}) {
   return (
     <SettingBox
       icon="dashboard"
-      title={<span style={{ marginLeft: "5px" }}>Pay as you go limits</span>}
+      title={<span style={{ marginLeft: "5px" }}>Monthly Limits</span>}
     >
       {error && (
         <Alert

@@ -6,10 +6,7 @@
 import React from "react";
 import { Col, Row } from "react-bootstrap";
 
-import {
-  redux,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   AddCollaborators,
   CurrentCollaboratorsPanel,
@@ -37,7 +34,7 @@ import { SSHPanel } from "./ssh";
 import { Project } from "./types";
 import { UpgradeUsage } from "./upgrade-usage";
 import { ApiKeys } from "./api-keys";
-import PayAsYouGo from "@cocalc/frontend/billing/pay-as-you-go/purchases";
+import Purchases from "@cocalc/frontend/purchases/purchases";
 
 interface ReactProps {
   project_id: string;
@@ -203,7 +200,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
               />
             )}
           <ApiKeys project_id={project_id} />
-          <PayAsYouGo project_id={project_id} />
+          <Purchases project_id={project_id} />
         </Col>
       </Row>
     </div>

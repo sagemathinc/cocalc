@@ -26,7 +26,7 @@ import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { UpgradesPage } from "./upgrades/upgrades-page";
-import PayAsYouAccountPage from "@cocalc/frontend/billing/pay-as-you-go/account-page";
+import PurchasesPage from "@cocalc/frontend/purchases/account-page";
 
 export const AccountPage: React.FC = () => {
   const active_page = useTypedRedux("account", "active_page");
@@ -146,13 +146,13 @@ export const AccountPage: React.FC = () => {
 
     if (is_commercial) {
       items.push({
-        key: "pay-as-you-go",
+        key: "purchases",
         label: (
           <span>
-            <Icon name="money" /> Pay As You Go
+            <Icon name="money" /> Purchases
           </span>
         ),
-        children: active_page === "pay-as-you-go" && <PayAsYouAccountPage />,
+        children: active_page === "purchases" && <PurchasesPage />,
       });
     }
     if (ssh_gateway || kucalc === KUCALC_COCALC_COM) {

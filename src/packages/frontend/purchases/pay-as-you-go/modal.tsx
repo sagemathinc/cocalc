@@ -5,9 +5,9 @@ import {
   serviceToDisplay,
 } from "@cocalc/util/db-schema/purchase-quotas";
 import { Icon } from "@cocalc/frontend/components/icon";
-import QuotaConfig from "./quota-config";
+import QuotaConfig from "../quota-config";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import ServiceTag from "./service";
+import ServiceTag from "../service";
 
 export default function PayAsYouGoModal({}) {
   const actions = useActions("billing");

@@ -35,7 +35,7 @@ export default async function getQuota(
     // a quota that was set by an admin, etc.
     return {
       quota: purchase_quota,
-      why: "This is a quota set by an admin or the system.",
+      why: "This was set by an administrator.",
       increase: "support",
     };
   }
@@ -52,13 +52,13 @@ export default async function getQuota(
   if (verify_emails && !email_address_verified?.[email_address]) {
     return {
       quota: 0,
-      why: "Your email is not verified. Verify your email to increase your quota.",
+      why: "Your email is not verified. Verify your email to increase your global limit.",
       increase: "verify-email",
     };
   }
   return {
     quota: default_pay_as_you_go_quota,
-    why: "This is the default starting quota for verified users with a card on file.",
+    why: "This is the default starting limit for verified users with a card on file.",
     increase: "support",
   };
 }
