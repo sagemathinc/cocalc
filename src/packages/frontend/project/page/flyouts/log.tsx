@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Input, Radio } from "antd";
+import { Button, Input, Radio } from "antd";
 
 import {
   CSS,
@@ -319,6 +319,23 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
     );
   }
 
+  function renderBottom() {
+    if (project_log_all != null) return null;
+    return (
+      <div style={{ flex: "1 1 auto", borderTop: `1px solid ${COLORS.GRAY}` }}>
+        <Button
+          block
+          type="ghost"
+          onClick={() => {
+            actions?.project_log_load_all();
+          }}
+        >
+          Load all log entries...
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <>
       <Input
@@ -334,6 +351,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
         prefix={<Icon name="search" />}
       />
       {wrap(list(), { marginTop: "10px" })}
+      {renderBottom()}
     </>
   );
 }
