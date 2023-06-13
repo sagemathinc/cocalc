@@ -98,6 +98,10 @@ export class StripeClient {
     return this.client.dbg(`stripe.${f}`);
   }
 
+  public get_account_id(): string {
+    return this.client.account_id;
+  }
+
   // Returns the stripe customer id for this account from our database,
   // or undefined if there is no known stripe customer id.
   // Throws an error if something goes wrong.

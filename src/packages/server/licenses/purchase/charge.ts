@@ -12,7 +12,8 @@ import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { getProductId } from "./product-id";
 import { getProductMetadata } from "./product-metadata";
 import { getProductName } from "./product-name";
-// import createPurchaseFromInvoiceId from "@cocalc/server/purchases/create-purchase-from-invoice";
+import createPurchase from "@cocalc/server/purchases/create-purchase";
+import createCredit from "@cocalc/server/purchases/create-credit";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = {
@@ -32,20 +33,25 @@ export async function chargeUser(
   } else {
     purchase = await stripeCreateSubscription(stripe, product_id, info);
   }
-
-  /*
-  // mirror whatever was purchased in the purchased table, with both
-  // the item purchased and a credit for the paid invoice:
-  try {
-    await createPurchaseFromInvoiceId(purchase.id);
-  } catch (err) {
-    // not fatal, since this is entirely for bookkeeping and so the
-    // user can see it in the transaction log.
-    // Also, we will sync stripe with cocalc periodically and that
-    // would also create this purchase if it doesn't already exist.
-    logger.debug("Nonfatal -- Error creating purchase from invoice.", err);
+  if (info.cost != null) {
+    let cost = typeof info.cost == "number" ? info.cost : info.cost.cost;
+    const account_id = stripe.get_account_id();
+    const invoice_id = purchase.id;
+    await createPurchase({
+      account_id,
+      cost,
+      service: "license",
+      description: { type: "license", info },
+      invoice_id,
+      tag: "license-purchase",
+    });
+    await createCredit({
+      account_id,
+      amount: cost,
+      invoice_id,
+      tag: "license-purchase",
+    });
   }
-  */
 
   return purchase;
 }

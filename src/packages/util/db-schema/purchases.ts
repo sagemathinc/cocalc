@@ -51,7 +51,7 @@ export interface Credit {
   // not sure what else, e.g., if it comes from a voucher, could be the voucher code here.
 }
 
-export type Description = OpenaiGPT4 | ProjectUpgrade | Credit;
+export type Description = OpenaiGPT4 | ProjectUpgrade | Credit | License;
 
 // max number of purchases a user can get in one query.
 export const MAX_API_LIMIT = 500;

@@ -133,7 +133,7 @@ function PayAsYouGoPurchases0({ project_id }: Props) {
         checked={!group}
         onChange={(e) => handleGroupChange(!e.target.checked)}
       >
-        Show individual purchases
+        Show individual items
       </Checkbox>
       <div
         style={{
@@ -253,12 +253,14 @@ function DetailedPurchaseTable({ purchases }) {
           sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
           sortDirections: ["ascend", "descend"],
         },
-        //             {
-        //               title: "Description",
-        //               dataIndex: "description",
-        //               key: "description",
-        //               render: (_, record) => JSON.stringify(record.description),
-        //             },
+        {
+          title: "Description",
+          dataIndex: "description",
+          key: "description",
+          render: (_, record) => (
+            <pre>{JSON.stringify(record.description, undefined, 2)}</pre>
+          ),
+        },
         {
           title: "Invoice",
           dataIndex: "invoice_id",

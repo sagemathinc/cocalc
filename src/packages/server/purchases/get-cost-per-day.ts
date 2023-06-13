@@ -22,7 +22,7 @@ export default async function getCostPerDay({
   const { rows } = await db.query(
     `SELECT date_trunc('day', "time" AT TIME ZONE 'UTC') AS date, sum(cost) AS total_cost
 FROM purchases
-WHERE account_id = $1
+WHERE account_id = $1 AND cost > 0
 GROUP BY date_trunc('day', "time" AT TIME ZONE 'UTC')
 ORDER BY date DESC LIMIT ${limit ?? DEFAULT_LIMIT} OFFSET ${offset ?? 0}`,
     [account_id]
