@@ -11,14 +11,10 @@ import {
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import {
-  AddCollaborators,
-  CurrentCollaboratorsPanel,
-} from "@cocalc/frontend/collaborators";
 import { Icon, Paragraph, SettingBox } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { commercial } from "@cocalc/frontend/customize";
-import { Customer, ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
+import { Customer, ProjectMap } from "@cocalc/frontend/todo-types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   KUCALC_COCALC_COM,
@@ -27,9 +23,11 @@ import {
 import { is_different } from "@cocalc/util/misc";
 import { NewFileButton } from "../new/new-file-button";
 import { ICON_NAME as SERVERS_ICON, TITLE as TITLE_SERVERS } from "../servers";
+import { ICON_COLLABORATORS, TITLE_COLLABORATORS } from "../servers/consts";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { NonMemberProjectWarning } from "../warnings/non-member";
 import { AboutBox } from "./about-box";
+import { ApiKeys } from "./api-keys";
 import { Datastore } from "./datastore";
 import { Environment } from "./environment";
 import { HideDeleteBox } from "./hide-delete-box";
@@ -39,13 +37,11 @@ import SavingProjectSettingsError from "./saving-project-settings-error";
 import { SSHPanel } from "./ssh";
 import { Project } from "./types";
 import { UpgradeUsage } from "./upgrade-usage";
-import { ApiKeys } from "./api-keys";
 
 interface ReactProps {
   project_id: string;
   account_id?: string;
   project: Project;
-  user_map: UserMap;
   customer?: Customer;
   email_address?: string;
   project_map?: ProjectMap; // if this changes, then available upgrades change, so we may have to re-render, if editing upgrades.
@@ -54,14 +50,13 @@ interface ReactProps {
 
 const is_same = (prev: ReactProps, next: ReactProps) => {
   return !(
-    is_different(prev, next, ["project", "user_map", "project_map"]) ||
+    is_different(prev, next, ["project", "project_map"]) ||
     (next.customer != null && !next.customer.equals(prev.customer))
   );
 };
 
 export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
-  const { project_id, account_id, project, user_map, email_address, name } =
-    props;
+  const { project_id, account_id, project, email_address, name } = props;
 
   const project_actions = useActions({ project_id });
 
@@ -186,19 +181,21 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
           />
         </Col>
         <Col sm={6}>
-          <CurrentCollaboratorsPanel
-            key="current-collabs"
-            project={project}
-            user_map={user_map}
-          />
-          {!student.disableCollaborators && (
-            <SettingBox title="Add new collaborators" icon="UserAddOutlined">
-              <AddCollaborators
-                project_id={project.get("project_id")}
-                where="project-settings"
-              />
-            </SettingBox>
-          )}
+          <SettingBox title="Collaborators moved" icon="move">
+            <Paragraph>
+              The panel for configuring collaborators has been moved to the
+              "Collaborators" tab.
+            </Paragraph>
+            <NewFileButton
+              name={`Moved to "${TITLE_COLLABORATORS}" tab.`}
+              icon={ICON_COLLABORATORS}
+              on_click={() => {
+                project_actions?.set_active_tab("collaborators", {
+                  change_history: true,
+                });
+              }}
+            />
+          </SettingBox>
           <ProjectControl key="control" project={project} />
           {!student.disableSSH &&
             (ssh_gateway || kucalc === KUCALC_COCALC_COM) && (

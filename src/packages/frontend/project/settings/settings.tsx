@@ -200,7 +200,6 @@ const ProjectSettings0 = rclass<ReactProps>(
               project_id={this.props.project_id}
               account_id={this.props.account_id}
               project={project}
-              user_map={this.props.user_map}
               customer={this.props.customer}
               email_address={this.props.email_address}
               project_map={this.props.project_map}
