@@ -10,21 +10,19 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
-import { Space as AntdSpace, Button, Card, Col, Row, Tag } from "antd";
+import { Space as AntdSpace, Button, Card, Col, Row, Switch, Tag } from "antd";
 
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
-import {
-  redux,
-  useActions,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
+  HelpIcon,
   Icon,
   Loading,
   SearchInput,
   Space,
 } from "@cocalc/frontend/components";
+import CopyButton from "@cocalc/frontend/components/copy-button";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { file_associations } from "@cocalc/frontend/file-associations";
@@ -35,6 +33,7 @@ import {
   path_split,
   path_to_file,
   should_open_in_foreground,
+  unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -52,6 +51,10 @@ export const ProjectSearchBody: React.FC<{
   const hidden_files = useTypedRedux({ project_id }, "hidden_files");
   const git_grep = useTypedRedux({ project_id }, "git_grep");
   const neural_search = useTypedRedux({ project_id }, "neural_search");
+  const neural_search_enabled = useTypedRedux(
+    "customize",
+    "neural_search_enabled"
+  );
 
   const actions = useActions({ project_id });
 
@@ -73,86 +76,178 @@ export const ProjectSearchBody: React.FC<{
     }
   }
 
-  function renderBody() {
+  function renderHeaderProject() {
+    return (
+      <Row>
+        <Col sm={12}>
+          <ProjectSearchInput
+            project_id={project_id}
+            neural={neural_search}
+            git={!neural_search && git_grep}
+          />
+          {mode != "flyout" ? (
+            <ProjectSearchOutputHeader project_id={project_id} />
+          ) : undefined}
+        </Col>
+        <Col sm={10} offset={2} style={{ fontSize: "16px" }}>
+          <Checkbox
+            disabled={neural_search}
+            checked={subdirectories}
+            onChange={() => actions?.toggle_search_checkbox_subdirectories()}
+          >
+            <Icon name="folder-open" /> Include <b>subdirectories</b>
+          </Checkbox>
+          <Checkbox
+            disabled={neural_search}
+            checked={case_sensitive}
+            onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
+          >
+            <Icon name="font-size" /> <b>Case sensitive</b> search
+          </Checkbox>
+          <Checkbox
+            disabled={neural_search}
+            checked={hidden_files}
+            onChange={() => actions?.toggle_search_checkbox_hidden_files()}
+          >
+            <Icon name="eye-slash" /> Include <b>hidden files</b>
+          </Checkbox>
+          <Checkbox
+            disabled={neural_search}
+            checked={git_grep}
+            onChange={() => actions?.toggle_search_checkbox_git_grep()}
+          >
+            <Icon name="git" /> <b>Git search</b>: in GIT repo, use "git grep"
+            to only search files in the git repo.
+          </Checkbox>
+          {neural_search_enabled && (
+            <Checkbox
+              checked={neural_search}
+              onChange={() =>
+                actions?.setState({ neural_search: !neural_search })
+              }
+            >
+              <Tag color="green" style={{ float: "right" }}>
+                New
+              </Tag>
+              <div>
+                <Icon name="robot" /> <b>Neural search</b> using{" "}
+                <A href="https://platform.openai.com/docs/guides/embeddings/what-are-embeddings">
+                  OpenAI Embeddings
+                </A>{" "}
+                and <A href="https://qdrant.tech/">Qdrant</A>: search recently
+                edited files using a neural network similarity algorithm.
+                Indexed file types: jupyter, tasks, chat, whiteboards, and
+                slides.
+              </div>
+            </Checkbox>
+          )}
+        </Col>
+      </Row>
+    );
+  }
+
+  function renderHeaderFlyout() {
+    const divStyle = { cursor: "pointer", padding: "2px 5px" };
+    return (
+      <AntdSpace style={{ padding: "5px" }} direction="vertical">
+        <ProjectSearchInput
+          project_id={project_id}
+          neural={neural_search}
+          git={!neural_search && git_grep}
+          small={true}
+        />
+        <div
+          onClick={() => actions?.toggle_search_checkbox_subdirectories()}
+          style={divStyle}
+        >
+          <Switch
+            size="small"
+            disabled={neural_search}
+            checked={subdirectories}
+          />{" "}
+          <Icon name="folder-open" /> Sub-directories
+        </div>
+        <div
+          onClick={() => actions?.toggle_search_checkbox_case_sensitive()}
+          style={divStyle}
+        >
+          <Switch
+            size="small"
+            disabled={neural_search}
+            checked={case_sensitive}
+          />{" "}
+          <Icon name="font-size" /> Case-sensitive
+        </div>
+        <div
+          onClick={() => actions?.toggle_search_checkbox_hidden_files()}
+          style={divStyle}
+        >
+          <Switch
+            size="small"
+            disabled={neural_search}
+            checked={hidden_files}
+          />{" "}
+          <Icon name="eye-slash" /> Hidden files{" "}
+          <HelpIcon title="Hidden files">
+            On Linux, hidden files start with a dot, e.g., ".bashrc".
+          </HelpIcon>
+        </div>
+        <div
+          onClick={() => actions?.toggle_search_checkbox_git_grep()}
+          style={divStyle}
+        >
+          <Switch size="small" disabled={neural_search} checked={git_grep} />{" "}
+          <Icon name="git" /> Git search{" "}
+          <HelpIcon title="Git search">
+            If directory is in a Git repository, uses "git grep" to search for
+            files.
+          </HelpIcon>
+        </div>
+        {neural_search_enabled && (
+          <div
+            onClick={() => actions?.setState({ neural_search: !neural_search })}
+            style={divStyle}
+          >
+            <Switch size="small" checked={neural_search} />{" "}
+            <Icon name="robot" /> Neural search <Tag color="green">New</Tag>{" "}
+            <HelpIcon title="Neural search">
+              This novel search uses{" "}
+              <A href="https://platform.openai.com/docs/guides/embeddings/what-are-embeddings">
+                OpenAI Embeddings
+              </A>{" "}
+              and <A href="https://qdrant.tech/">Qdrant</A>. It searches
+              recently edited files using a neural network similarity algorithm.
+              Indexed file types: jupyter, tasks, chat, whiteboards, and slides.
+            </HelpIcon>
+          </div>
+        )}
+      </AntdSpace>
+    );
+  }
+
+  function renderHeader() {
+    switch (mode) {
+      case "project":
+        return renderHeaderProject();
+      case "flyout":
+        return renderHeaderFlyout();
+      default:
+        unreachable(mode);
+    }
+  }
+
+  function renderContent() {
     return (
       <div
         style={{
           flex: "1 1 auto",
           height: "100%",
+          minHeight: "400px",
           display: "flex",
           flexDirection: "column",
         }}
       >
-        <Row style={isFlyout ? { padding: "5px" } : undefined}>
-          <Col sm={isFlyout ? 24 : 12}>
-            <ProjectSearchInput
-              project_id={project_id}
-              neural={neural_search}
-              git={!neural_search && git_grep}
-              small={isFlyout}
-            />
-            {mode != "flyout" ? (
-              <ProjectSearchOutputHeader project_id={project_id} />
-            ) : undefined}
-          </Col>
-          <Col
-            sm={isFlyout ? 24 : 10}
-            offset={isFlyout ? 0 : 2}
-            style={{ fontSize: "16px" }}
-          >
-            <Checkbox
-              disabled={neural_search}
-              checked={subdirectories}
-              onChange={() => actions?.toggle_search_checkbox_subdirectories()}
-            >
-              <Icon name="folder-open" /> Include <b>subdirectories</b>
-            </Checkbox>
-            <Checkbox
-              disabled={neural_search}
-              checked={case_sensitive}
-              onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
-            >
-              <Icon name="font-size" /> <b>Case sensitive</b> search
-            </Checkbox>
-            <Checkbox
-              disabled={neural_search}
-              checked={hidden_files}
-              onChange={() => actions?.toggle_search_checkbox_hidden_files()}
-            >
-              <Icon name="eye-slash" /> Include <b>hidden files</b>
-            </Checkbox>
-            <Checkbox
-              disabled={neural_search}
-              checked={git_grep}
-              onChange={() => actions?.toggle_search_checkbox_git_grep()}
-            >
-              <Icon name="git" /> <b>Git search</b>: in GIT repo, use "git grep"
-              to only search files in the git repo.
-            </Checkbox>
-            {redux.getStore("customize").get("neural_search_enabled") && (
-              <Checkbox
-                checked={neural_search}
-                onChange={() =>
-                  actions?.setState({ neural_search: !neural_search })
-                }
-              >
-                <Tag color="green" style={{ float: "right" }}>
-                  New
-                </Tag>
-                <div>
-                  <Icon name="robot" /> <b>Neural search</b> using{" "}
-                  <A href="https://platform.openai.com/docs/guides/embeddings/what-are-embeddings">
-                    OpenAI Embeddings
-                  </A>{" "}
-                  and <A href="https://qdrant.tech/">Qdrant</A>: search recently
-                  edited files using a neural network similarity algorithm.
-                  Indexed file types: jupyter, tasks, chat, whiteboards, and
-                  slides.
-                </div>
-              </Checkbox>
-            )}
-          </Col>
-        </Row>
+        {renderHeader()}
         {renderResultList()}
       </div>
     );
@@ -166,13 +261,14 @@ export const ProjectSearchBody: React.FC<{
           display: "flex",
           flexDirection: "column",
           height: "100%",
+          overflowY: "auto",
         }}
       >
-        {renderBody()}
+        {renderContent()}
       </div>
     );
   } else {
-    return <Well>{renderBody()}</Well>;
+    return <Well>{renderContent()}</Well>;
   }
 };
 
@@ -444,6 +540,12 @@ function ProjectSearchResultLine(_: Readonly<ProjectSearchResultLineProps>) {
 
   async function click_filename(e: React.MouseEvent): Promise<void> {
     e.preventDefault();
+
+    // prevent a click if user is selecting text
+    if (window.getSelection()?.toString()) {
+      return;
+    }
+
     let chat;
     let path = path_to_file(most_recent_path, filename);
     const { tail } = path_split(path);
@@ -479,6 +581,14 @@ function ProjectSearchResultLine(_: Readonly<ProjectSearchResultLineProps>) {
         style={{ marginRight: "5px", marginLeft: "5px", overflow: "hidden" }}
         hoverable={true}
         onClick={click_filename}
+        extra={
+          <CopyButton
+            value={description}
+            noText
+            size="small"
+            style={{ padding: "0 5px" }}
+          />
+        }
       >
         <Snippet
           ext={ext}

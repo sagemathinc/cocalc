@@ -72,6 +72,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const [search, setSearch] = useState<string>("");
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
+  const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const disableUploads = student_project_functionality.disableUploads ?? false;
@@ -276,6 +277,11 @@ export function FilesFlyout({ project_id }): JSX.Element {
         setScrollIdx(null);
       }
     }
+
+    // if esc key is pressed, clear search and reset
+    else if (e.key === "Escape") {
+      setSearch("");
+    }
   }
 
   function renderItemIcon(
@@ -333,7 +339,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
           actions?.close_tab(path_to_file(current_path, name));
         }}
         tooltip={renderTooltip(age, item)}
-        selected={index === scrollIdx}
+        selected={!scollIdxHide && index === scrollIdx}
       />
     );
   }
@@ -458,6 +464,8 @@ export function FilesFlyout({ project_id }): JSX.Element {
             value={search}
             onKeyDown={filterKeyHandler}
             onChange={(e) => setSearch(e.target.value)}
+            onFocus={() => setScrollIdxHide(false)}
+            onBlur={() => setScrollIdxHide(true)}
             style={{ flex: "1", marginRight: "10px" }}
             allowClear
             prefix={<Icon name="search" />}

@@ -52,7 +52,6 @@ type FixedTabs = {
   [name in FixedTab]: {
     label: string;
     icon: IconName;
-    tooltip?: string | ((props: { project_id: string }) => ReactNode);
     flyout: (props: { project_id: string; wrap: Function }) => JSX.Element;
     flyoutTitle?: string | ReactNode;
     noAnonymous?: boolean;
@@ -66,7 +65,6 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   files: {
     label: "Explorer",
     icon: "folder-open",
-    tooltip: "Browse files",
     flyout: FilesFlyout,
     noAnonymous: false,
   },
@@ -74,14 +72,12 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: "New",
     flyoutTitle: "New file",
     icon: "plus-circle",
-    tooltip: "Create new files",
     flyout: NewFlyout,
     noAnonymous: false,
   },
   log: {
     label: "Log",
     icon: "history",
-    tooltip: "Project activity log",
     flyout: LogFlyout,
     flyoutTitle: "Recent Files",
     noAnonymous: false,
@@ -89,7 +85,6 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   search: {
     label: "Find",
     icon: "search",
-    tooltip: "Search files in the project",
     flyout: SearchFlyout,
     noAnonymous: false,
   },
@@ -102,14 +97,12 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   info: {
     label: PROJECT_INFO_TITLE,
     icon: "microchip",
-    tooltip: "Running processes, resource usage, …",
     flyout: ProjectInfoFlyout,
     noAnonymous: false,
   },
   settings: {
     label: "Settings",
     icon: "wrench",
-    tooltip: "Project settings and controls",
     flyout: SettingsFlyout,
     noAnonymous: false,
     flyoutTitle: "Status and controls",
@@ -322,7 +315,7 @@ export function FileTab(props: Readonly<Props>) {
   if (
     props.noPopover ||
     IS_MOBILE ||
-    (isFixedTab && other_settings.get("hide_action_popovers")) ||
+    isFixedTab ||
     (!isFixedTab && other_settings.get("hide_file_popovers"))
   ) {
     return body;

@@ -103,7 +103,8 @@ function areEqual(prev: Props, next: Props): boolean {
   return (
     prev.id == next.id &&
     prev.user_map == next.user_map &&
-    prev.cursor == next.cursor
+    prev.cursor == next.cursor &&
+    prev.backgroundStyle == next.backgroundStyle
   );
 }
 
@@ -672,7 +673,6 @@ export const LogEntry: React.FC<Props> = React.memo(
               display: "flex",
               flexDirection: "row",
               justifyContent: "space-between",
-
               ...backgroundStyle,
             }}
           >

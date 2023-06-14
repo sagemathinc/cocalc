@@ -9,8 +9,8 @@ import { useActions } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
 import { PathNavigator } from "../../explorer/path-navigator";
+import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
-import { FIX_BORDER } from "../page";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { LogHeader } from "./log";
 
