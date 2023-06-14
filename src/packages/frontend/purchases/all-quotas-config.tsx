@@ -6,7 +6,7 @@ and lets you adjust any of them.
 */
 
 import { useEffect, useRef, useState } from "react";
-import { Alert, Button, InputNumber, Spin, Table } from "antd";
+import { Alert, Button, InputNumber, Progress, Spin, Table } from "antd";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
@@ -131,7 +131,15 @@ export default function AllQuotasConfig({}) {
       title: "This Month Spend (USD)",
       dataIndex: "current",
       align: "center" as "center",
-      render: (current: number) => currency(current),
+      render: (current: number, record: ServiceQuota) => (
+        <div>
+          {currency(current)}{" "}
+          <Progress
+            percent={Math.round((current / record.quota) * 100)}
+            strokeColor={current / record.quota > 0.9 ? "#ff4d4f" : undefined}
+          />
+        </div>
+      ),
     },
   ];
 
