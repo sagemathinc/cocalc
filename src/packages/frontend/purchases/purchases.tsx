@@ -11,6 +11,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
 import { capitalize } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
+import Next from "@cocalc/frontend/components/next";
 
 const DEFAULT_LIMIT = 100;
 
@@ -28,7 +29,6 @@ export default function Purchases(props: Props) {
 
 function Purchases0({ project_id }: Props) {
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
   const [group, setGroup] = useState<boolean>(true);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
   const [error, setError] = useState<string>("");
@@ -56,18 +56,6 @@ function Purchases0({ project_id }: Props) {
   const getPrevPage = () => {
     setOffset((prevOffset) => Math.max(prevOffset - limit, 0));
   };
-
-  const getBalance = async () => {
-    try {
-      setBalance(null);
-      setBalance(await webapp_client.purchases_client.getBalance());
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
-  useEffect(() => {
-    getBalance();
-  }, []);
 
   const getPurchases = async () => {
     try {
@@ -98,23 +86,27 @@ function Purchases0({ project_id }: Props) {
   return (
     <SettingBox
       title={
-        project_id ? (
-          <span style={{ marginLeft: "5px" }}>
-            Purchases specific to{" "}
-            <ProjectTitle project_id={project_id} trunc={30} />
-          </span>
-        ) : (
-          <span style={{ marginLeft: "5px" }}>
-            Purchases and Credits{" "}
-            {thisMonth
-              ? " (this billing month)"
-              : purchases?.length == limit
-              ? ` (most recent ${limit} transactions)`
-              : " (all time)"}
-          </span>
-        )
+        <>
+          <Next style={{ float: "right" }} href={"billing/receipts"}>
+            Invoices and Receipts...
+          </Next>
+          {project_id ? (
+            <span>
+              Purchases specific to{" "}
+              <ProjectTitle project_id={project_id} trunc={30} />
+            </span>
+          ) : (
+            <span>
+              Transactions{" "}
+              {thisMonth
+                ? " (this billing month)"
+                : purchases?.length == limit
+                ? ` (most recent ${limit} transactions)`
+                : " (all time)"}
+            </span>
+          )}
+        </>
       }
-      icon="credit-card"
     >
       {error && (
         <Alert
@@ -124,23 +116,9 @@ function Purchases0({ project_id }: Props) {
           closable
         />
       )}
-      {balance != null && (
-        <Tooltip title="Total balance for all purchases across all projects.">
-          <div
-            style={{
-              float: "right",
-              fontSize: "12pt",
-              color: balance <= 0 ? "darkgreen" : "darkred",
-            }}
-          >
-            Balance: ${balance.toFixed(2)}
-          </div>
-        </Tooltip>
-      )}
       <Button
         style={{ marginRight: "15px" }}
         onClick={() => {
-          getBalance();
           getPurchases();
         }}
       >
@@ -150,7 +128,7 @@ function Purchases0({ project_id }: Props) {
         checked={!group}
         onChange={(e) => handleGroupChange(!e.target.checked)}
       >
-        Show individual items
+        All transactions
       </Checkbox>
       <Checkbox
         checked={thisMonth}
@@ -219,21 +197,23 @@ function GroupedPurchaseTable({ purchases }) {
           render: (service) => <ServiceTag service={service} />,
         },
         {
+          title: "Project",
+          dataIndex: "project_id",
+          key: "project_id",
+          render: (project_id) =>
+            project_id ? (
+              <ProjectTitle project_id={project_id} trunc={30} />
+            ) : (
+              "-"
+            ),
+        },
+        {
           title: "Total Amount (USD)",
           dataIndex: "sum",
           key: "sum",
           render: (text) => `$${text?.toFixed(2)}`,
           sorter: (a: any, b: any) => (a.sum ?? 0) - (b.sum ?? 0),
           sortDirections: ["ascend", "descend"],
-        },
-        {
-          title: "Project",
-          dataIndex: "project_id",
-          key: "project_id",
-          render: (project_id) =>
-            project_id ? (
-              <ProjectTitle project_id={project_id} trunc={20} />
-            ) : null,
         },
       ]}
     />

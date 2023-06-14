@@ -6,7 +6,16 @@ and lets you adjust any of them.
 */
 
 import { useEffect, useRef, useState } from "react";
-import { Alert, Button, InputNumber, Progress, Spin, Table } from "antd";
+import {
+  Alert,
+  Button,
+  Card,
+  InputNumber,
+  Progress,
+  Spin,
+  Table,
+  Tooltip,
+} from "antd";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
@@ -23,6 +32,7 @@ interface ServiceQuota {
 }
 
 export default function AllQuotasConfig({}) {
+  const [balance, setBalance] = useState<number | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [globalQuota, setGlobalQuota] = useState<{
@@ -35,6 +45,17 @@ export default function AllQuotasConfig({}) {
   );
   const lastFetchedQuotasRef = useRef<ServiceQuota[] | null>(null);
   const [changed, setChanged] = useState<boolean>(false);
+  const getBalance = async () => {
+    try {
+      setBalance(null);
+      setBalance(await webapp_client.purchases_client.getBalance());
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+  useEffect(() => {
+    getBalance();
+  }, []);
 
   const getQuotas = async () => {
     let x, y;
@@ -105,6 +126,7 @@ export default function AllQuotasConfig({}) {
 
   const handleRefresh = () => {
     getQuotas();
+    getBalance();
   };
 
   const columns = [
@@ -146,7 +168,7 @@ export default function AllQuotasConfig({}) {
   return (
     <SettingBox
       icon="dashboard"
-      title={<span style={{ marginLeft: "5px" }}>Monthly Limits</span>}
+      title={<span style={{ marginLeft: "5px" }}>Balance and Limits</span>}
     >
       {error && (
         <Alert
@@ -155,40 +177,91 @@ export default function AllQuotasConfig({}) {
           style={{ marginBottom: "15px" }}
         />
       )}
-      <GlobalQuota
-        global={globalQuota}
-        style={{ fontSize: "12pt", float: "right", marginBottom: "15px" }}
-      />
-      <Button.Group>
-        <Button
-          type="primary"
-          onClick={handleSave}
-          disabled={!changed || saving}
+      <div>
+        <div
+          style={{
+            fontSize: "12pt",
+            float: "right",
+            marginBottom: "15px",
+            display: "flex",
+          }}
         >
-          <Icon name="save" />{" "}
-          {saving ? "Saving..." : changed ? "Save Changes" : "Saved"}
-          {saving && <Spin style={{ marginLeft: "15px" }} delay={500} />}
-        </Button>
-        <Button onClick={handleCancel} disabled={!changed || saving}>
-          Cancel
-        </Button>
-        <Button onClick={handleRefresh} disabled={saving}>
-          <Icon name="refresh" />
-          Refresh
-        </Button>
-      </Button.Group>
-      {serviceQuotas != null ? (
-        <Table
-          dataSource={serviceQuotas}
-          columns={columns}
-          pagination={false}
-          rowKey="service"
-        />
-      ) : (
-        <div style={{ textAlign: "center" }}>
-          <Spin size="large" delay={500} />
+          <Balance balance={balance} quota={globalQuota?.quota} />
+          <GlobalQuota
+            global={globalQuota}
+            style={{ fontSize: "12pt", marginLeft: "15px", width: "300px" }}
+          />
         </div>
-      )}
+        Your <b>global spending limit</b> is a cap on your balance.
+      </div>
+      <br />
+      <b>Monthly limits</b> are caps you set to prevent spending more than you
+      intend.
+      <br />
+      <div>
+        <br />
+        <br />
+        <Button.Group>
+          <Button
+            type="primary"
+            onClick={handleSave}
+            disabled={!changed || saving}
+          >
+            <Icon name="save" />{" "}
+            {saving ? "Saving..." : changed ? "Save Changes" : "Saved"}
+            {saving && <Spin style={{ marginLeft: "15px" }} delay={500} />}
+          </Button>
+          <Button onClick={handleCancel} disabled={!changed || saving}>
+            Cancel
+          </Button>
+          <Button onClick={handleRefresh} disabled={saving}>
+            <Icon name="refresh" />
+            Refresh
+          </Button>
+        </Button.Group>
+        {serviceQuotas != null ? (
+          <Table
+            dataSource={serviceQuotas}
+            columns={columns}
+            pagination={false}
+            rowKey="service"
+          />
+        ) : (
+          <div style={{ textAlign: "center" }}>
+            <Spin size="large" delay={500} />
+          </div>
+        )}
+      </div>
     </SettingBox>
+  );
+}
+
+function Balance({ balance, quota }) {
+  if (balance == null) return null;
+  return (
+    <Card
+      title={"Balance"}
+      style={{
+        fontSize: "12pt",
+        color:
+          balance / Math.max(1, quota ?? 99999999) > 0.75
+            ? "darkred"
+            : "darkblue",
+        width: "300px",
+      }}
+    >
+      ${balance.toFixed(2)}
+      <br />
+      {quota && (
+        <Tooltip title={"Percent of your global limit"}>
+          <Progress
+            percent={Math.round((balance / Math.max(1, quota)) * 100)}
+            strokeColor={
+              balance / Math.max(1, quota) > 0.75 ? "#ff4d4f" : undefined
+            }
+          />
+        </Tooltip>
+      )}
+    </Card>
   );
 }
