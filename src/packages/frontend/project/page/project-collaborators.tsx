@@ -23,11 +23,11 @@ import {
   TITLE_COLLABORATORS,
 } from "../servers/consts";
 import { useProject } from "./common";
+import { SandboxProjectSettingsWarning } from "../settings/settings";
 
 export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
   const user_map = useTypedRedux("users", "user_map");
   const student = getStudentProjectFunctionality(project_id);
-
   const { project, group } = useProject(project_id);
 
   function renderSettings() {
@@ -64,6 +64,10 @@ export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
         </h4>
       </Alert>
     );
+  }
+
+  if (group != "admin" && group != "owner" && project?.get("sandbox")) {
+    return <SandboxProjectSettingsWarning />;
   }
 
   return (

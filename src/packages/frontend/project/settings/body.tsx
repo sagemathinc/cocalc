@@ -22,8 +22,12 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { is_different } from "@cocalc/util/misc";
 import { NewFileButton } from "../new/new-file-button";
-import { ICON_NAME as SERVERS_ICON, TITLE as TITLE_SERVERS } from "../servers";
-import { ICON_COLLABORATORS, TITLE_COLLABORATORS } from "../servers/consts";
+import {
+  ICON_COLLABORATORS,
+  ICON_LICENSES,
+  TITLE_COLLABORATORS,
+  TITLE_LICENSES,
+} from "../servers/consts";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { NonMemberProjectWarning } from "../warnings/non-member";
 import { AboutBox } from "./about-box";
@@ -36,7 +40,6 @@ import { ProjectControl } from "./project-control";
 import SavingProjectSettingsError from "./saving-project-settings-error";
 import { SSHPanel } from "./ssh";
 import { Project } from "./types";
-import { UpgradeUsage } from "./upgrade-usage";
 
 interface ReactProps {
   project_id: string;
@@ -70,15 +73,8 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
   const {
     get_course_info,
     get_total_upgrades_you_have_applied,
-    get_upgrades_you_applied_to_project,
     get_total_project_quotas,
-    get_upgrades_to_project,
   } = projects_store;
-
-  const all_projects_have_been_loaded = useTypedRedux(
-    "projects",
-    "all_projects_have_been_loaded"
-  );
 
   // get the description of the share, in case the project is being shared
   const id = project_id;
@@ -88,16 +84,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
   const course_info = get_course_info(project_id);
   const upgrades_you_applied_to_all_projects =
     get_total_upgrades_you_have_applied();
-  const upgrades_you_applied_to_this_project =
-    get_upgrades_you_applied_to_project(id);
   const total_project_quotas = get_total_project_quotas(id); // only available for non-admin for now.
-  const all_upgrades_to_this_project = get_upgrades_to_project(id);
-  const store = redux.getStore("projects");
-  const site_license_upgrades =
-    store.get_total_site_license_upgrades_to_project(project_id);
-  const site_license_ids: string[] = store.get_site_license_ids(project_id);
-  const dedicated_resources =
-    store.get_total_site_license_dedicated(project_id);
 
   const student = getStudentProjectFunctionality(project_id);
   const showDatastore =
@@ -145,25 +132,21 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             name={project.get("name")}
             actions={redux.getActions("projects")}
           />
-          <UpgradeUsage
-            project_id={id}
-            project={project}
-            upgrades_you_can_use={upgrades_you_can_use}
-            upgrades_you_applied_to_all_projects={
-              upgrades_you_applied_to_all_projects
-            }
-            upgrades_you_applied_to_this_project={
-              upgrades_you_applied_to_this_project
-            }
-            total_project_quotas={total_project_quotas}
-            all_upgrades_to_this_project={all_upgrades_to_this_project}
-            all_projects_have_been_loaded={all_projects_have_been_loaded}
-            site_license_upgrades={site_license_upgrades}
-            site_license_ids={site_license_ids}
-            dedicated_resources={dedicated_resources}
-            mode="project"
-          />
-
+          <SettingBox title="Quotas and Licenses moved" icon="move">
+            <Paragraph>
+              The panel for checking up on quotas, adding licenses and
+              configuring updates has been moved to the "Licenses" tab.
+            </Paragraph>
+            <NewFileButton
+              name={`Moved to "${TITLE_LICENSES}" tab.`}
+              icon={ICON_LICENSES}
+              on_click={() => {
+                project_actions?.set_active_tab("licenses", {
+                  change_history: true,
+                });
+              }}
+            />
+          </SettingBox>
           <HideDeleteBox
             key="hidedelete"
             project={project}
@@ -206,22 +189,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
               />
             )}
           <ApiKeys project_id={project_id} />
-          <SettingBox title="Server Control Moved" icon="move">
-            <Paragraph>
-              The panel for restarting the Sage Worksheet server and other
-              servers like Jupyter Classic, JupyterLab, and VS Code have been
-              moved to the "{TITLE_SERVERS}" tab.
-            </Paragraph>
-            <NewFileButton
-              name={`Moved to "${TITLE_SERVERS}" tab.`}
-              icon={SERVERS_ICON}
-              on_click={() => {
-                project_actions?.set_active_tab("servers", {
-                  change_history: true,
-                });
-              }}
-            />
-          </SettingBox>
         </Col>
       </Row>
     </div>
