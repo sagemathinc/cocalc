@@ -29,7 +29,9 @@ import { ChatActions } from "./actions";
 import { Time } from "./time";
 import { Name } from "./name";
 
-const regenerateCutoff = 1000 * 60 * 3; // how long to show the "regenerate button" for chatgpt.
+// 5 minutes -- how long to show the "regenerate button" for chatgpt.
+// Don't show it forever, since we want to avoid clutter.
+const regenerateCutoff = 1000 * 60 * 5;
 
 const BLANK_COLUMN = <Col key={"blankcolumn"} xs={1}></Col>;
 
@@ -605,7 +607,7 @@ export default function Message(props: Props) {
               >
                 <Icon name="reply" /> Reply
                 {isChatGPTThread
-                  ? ` to ChatGPT${isChatGPTThread == "gpt-4" ? "4" : ""}`
+                  ? ` to GPT-${isChatGPTThread == "gpt-4" ? "4" : ""}`
                   : ""}
                 {isChatGPTThread && (
                   <Avatar
@@ -617,7 +619,7 @@ export default function Message(props: Props) {
               </Button>
             </Tooltip>
           )}
-          {generating === false &&
+          {!generating &&
             props.actions &&
             Date.now() - date <= regenerateCutoff && (
               <Button

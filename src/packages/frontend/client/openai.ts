@@ -91,23 +91,24 @@ export class OpenAIClient {
       }
     }
 
-    // when client gets gpt4 request, check if allowed.  If not, show quota modal.
-    const { allowed, reason } =
-      await this.client.purchases_client.isPurchaseAllowed("openai-gpt-4");
+    if (model == "gpt-4") {
+      const service = "openai-gpt-4";
+      // when client gets gpt4 request, check if allowed.  If not, show quota modal.
+      const { allowed, reason } =
+        await this.client.purchases_client.isPurchaseAllowed(service);
 
-    if (!allowed) {
-      await this.client.purchases_client.quotaModal({
-        service: "openai-gpt-4",
-        reason,
-        allowed,
-      });
-    }
-    // Now check again after modal dismissed...
-    const x = await this.client.purchases_client.isPurchaseAllowed(
-      "openai-gpt-4"
-    );
-    if (!x.allowed) {
-      throw Error(reason);
+      if (!allowed) {
+        await this.client.purchases_client.quotaModal({
+          service,
+          reason,
+          allowed,
+        });
+      }
+      // Now check again after modal dismissed...
+      const x = await this.client.purchases_client.isPurchaseAllowed(service);
+      if (!x.allowed) {
+        throw Error(reason);
+      }
     }
 
     const {
