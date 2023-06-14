@@ -32,6 +32,8 @@ import { ProjectInfoFlyout } from "./flyouts/info";
 import { LogFlyout } from "./flyouts/log";
 import { NewFlyout } from "./flyouts/new";
 import { ServersFlyout } from "./flyouts/servers";
+import { CollabsFlyout } from "./flyouts/collabs";
+import { LicensesFlyout } from "./flyouts/licenses";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -42,7 +44,9 @@ export type FixedTab =
   | "search"
   | "servers"
   | "settings"
-  | "info";
+  | "info"
+  | "collaborators"
+  | "licenses";
 
 export function isFixedTab(tab?: any): tab is FixedTab {
   return typeof tab === "string" && tab in FIXED_PROJECT_TABS;
@@ -98,6 +102,18 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: PROJECT_INFO_TITLE,
     icon: "microchip",
     flyout: ProjectInfoFlyout,
+    noAnonymous: false,
+  },
+  collaborators: {
+    label: "Collaborators",
+    icon: "users",
+    flyout: CollabsFlyout,
+    noAnonymous: false,
+  },
+  licenses: {
+    label: "Licenses",
+    icon: "key",
+    flyout: LicensesFlyout,
     noAnonymous: false,
   },
   settings: {
