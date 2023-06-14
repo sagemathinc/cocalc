@@ -20,10 +20,10 @@ import {
   Text,
   TimeAgo,
 } from "@cocalc/frontend/components";
-import { handle_log_click } from "@cocalc/frontend/components/path-link";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
+import { handle_log_click } from "../../history/utils";
 
 interface OpenedFile {
   filename: string;

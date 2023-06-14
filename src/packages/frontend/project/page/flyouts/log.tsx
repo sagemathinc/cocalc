@@ -4,6 +4,7 @@
  */
 
 import { Button, Input, Radio } from "antd";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import {
   CSS,
@@ -16,30 +17,28 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, Loading, TimeAgo } from "@cocalc/frontend/components";
-import { handle_log_click } from "@cocalc/frontend/components/path-link";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { LogEntry } from "@cocalc/frontend/project/history/log-entry";
-import track from "@cocalc/frontend/user-tracking";
 import {
   EventRecordMap,
   to_search_string,
 } from "@cocalc/frontend/project/history/types";
+import track from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
 import {
-  path_to_file,
   search_match,
   search_split,
-  should_open_in_foreground,
   strictMod,
   tab_to_path,
   unreachable,
 } from "@cocalc/util/misc";
-import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { COLORS } from "@cocalc/util/theme";
+import { handle_log_click } from "../../history/utils";
+import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { FileListItem, fileItemStyle } from "./components";
 import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
-import { COLORS } from "@cocalc/util/theme";
 
 export const FLYOUT_LOG_DEFAULT_MODE = "files";
 
@@ -160,7 +159,6 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const user_map = useTypedRedux("users", "user_map");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
-  const current_path = useTypedRedux({ project_id }, "current_path");
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `${project_id}::flyout::log`,
   });
@@ -260,17 +258,12 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
   function open(e: React.MouseEvent | React.KeyboardEvent, index: number) {
     if (mode !== "files") return;
     const file: OpenedFile = log[index];
-    const fullPath = path_to_file(current_path, file.filename);
-    const foreground = should_open_in_foreground(e);
     track("open-file", {
       project_id,
-      path: fullPath,
+      path: file.filename,
       how: "click-on-log-file-flyout",
     });
-    actions?.open_file({
-      path: fullPath,
-      foreground,
-    });
+    handle_log_click(e, file.filename, project_id);
   }
 
   function onKeyUpHandler(e) {
@@ -322,7 +315,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
   function renderBottom() {
     if (project_log_all != null) return null;
     return (
-      <div style={{ flex: "1 1 auto", borderTop: `1px solid ${COLORS.GRAY}` }}>
+      <div style={{ flex: "1 1 auto", borderTop: FIX_BORDER }}>
         <Button
           block
           type="ghost"

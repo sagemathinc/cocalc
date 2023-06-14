@@ -20,7 +20,7 @@ import { COLORS } from "@cocalc/util/theme";
 const BORDER_WIDTH_PX = "4px";
 
 const FILE_ITEM_SELECTED_STYLE: CSS = {
-  backgroundColor: COLORS.BLUE_LL, // bit darker than .cc-project-flyout-file-item:hover
+  backgroundColor: COLORS.BLUE_LLL, // bit lighter than .cc-project-flyout-file-item:hover
 } as const;
 
 const FILE_ITEM_OPENED_STYLE: CSS = {

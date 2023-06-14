@@ -9,9 +9,9 @@ import { CSS, useEffect, useState } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
-import { FIX_BORDER } from "../page";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { LSFlyout, lsKey, storeFlyoutState } from "./state";
+import { FIX_BORDER } from "../common";
 
 export function FlyoutBody({
   flyout,
