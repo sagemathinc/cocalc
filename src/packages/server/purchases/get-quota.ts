@@ -35,7 +35,7 @@ export default async function getQuota(
     // a quota that was set by an admin, etc.
     return {
       quota: purchase_quota,
-      why: "This was set by an administrator.",
+      why: "This limit was set by an administrator.",
       increase: "support",
     };
   }

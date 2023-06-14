@@ -3,15 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { join } from "path";
 import { React } from "@cocalc/frontend/app-framework";
-import { A } from "@cocalc/frontend/components";
 import { Footer } from "@cocalc/frontend/customize";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { DOC_LICENSE_URL } from "../../billing/data";
 import { ManagedLicenses } from "./managed-licenses";
 import { ProjectsWithLicenses } from "./projects-with-licenses";
+import Next from "@cocalc/frontend/components/next";
+import { A } from "@cocalc/frontend/components/A";
 
 export const LicensesPage: React.FC = () => {
   return (
@@ -30,23 +29,19 @@ export const LicensesPage: React.FC = () => {
         <h3>Links</h3>
         <ul style={{ fontSize: "12pt" }}>
           <li>
-            <A href={join(appBasePath, "licenses")}>
-              License Management Center
-            </A>
-            : manage your licenses
+            <Next href={"licenses"}>License Management Center</Next>: manage
+            your licenses
           </li>
           <li>
-            <A href={join(appBasePath, "pricing")}>Pricing</A>: an overview of
-            all offered products.
+            <Next href={"pricing"}>Pricing</Next>: an overview of all offered
+            products.
           </li>
           <li>
-            <A href={join(appBasePath, "billing")}>Billing</A>:{" "}
-            <A href={join(appBasePath, "billing/receipts")}>your purchases</A>,{" "}
-            <A href={join(appBasePath, "billing", "subscriptions")}>
-              subscriptions
-            </A>
-            , <A href={join(appBasePath, "billing/cards")}>credit cards</A>,{" "}
-            <A href={join(appBasePath, "billing/receipts")}>invoices</A>, etc.
+            <Next href={"billing"}>Billing</Next>:{" "}
+            <Next href={"billing/receipts"}>your purchases</Next>,{" "}
+            <Next href={"billing/subscriptions"}>subscriptions</Next>,{" "}
+            <Next href={"billing/cards"}>credit cards</Next>,{" "}
+            <Next href={"billing/receipts"}>invoices</Next>, etc.
           </li>
         </ul>
       </div>
