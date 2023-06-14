@@ -14,10 +14,12 @@ import { cloneDeep, isEqual } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
 import GlobalQuota from "./global-quota";
+import { currency } from "./quota-config";
 
 interface ServiceQuota {
   service: Service;
   quota: number;
+  current: number;
 }
 
 export default function AllQuotasConfig({}) {
@@ -35,9 +37,10 @@ export default function AllQuotasConfig({}) {
   const [changed, setChanged] = useState<boolean>(false);
 
   const getQuotas = async () => {
-    let x;
+    let x, y;
     try {
       x = await webapp_client.purchases_client.getQuotas();
+      y = await webapp_client.purchases_client.getChargesByService();
     } catch (err) {
       setError(`${err}`);
       return;
@@ -48,6 +51,7 @@ export default function AllQuotasConfig({}) {
       const spec = QUOTA_SPEC[service];
       if (spec.noSet) continue;
       v.push({
+        current: y[service] ?? 0,
         service: service as Service,
         quota: services[service] ?? 0,
       });
@@ -112,6 +116,7 @@ export default function AllQuotasConfig({}) {
     {
       title: "Monthly Limit (USD)",
       dataIndex: "quota",
+      align: "center" as "center",
       render: (quota: number, _record: ServiceQuota, index: number) => (
         <InputNumber
           min={0}
@@ -121,6 +126,12 @@ export default function AllQuotasConfig({}) {
           formatter={(value) => `$${value}`}
         />
       ),
+    },
+    {
+      title: "This Month Spend (USD)",
+      dataIndex: "current",
+      align: "center" as "center",
+      render: (current: number) => currency(current),
     },
   ];
 

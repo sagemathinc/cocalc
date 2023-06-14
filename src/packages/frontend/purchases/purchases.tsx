@@ -32,12 +32,19 @@ function Purchases0({ project_id }: Props) {
   const [error, setError] = useState<string>("");
   const [limit /*, setLimit*/] = useState<number>(DEFAULT_LIMIT);
   const [offset, setOffset] = useState<number>(0);
+  const [thisMonth, setThisMonth] = useState<boolean>(true);
   const [total, setTotal] = useState<number | null>(null);
 
   const handleGroupChange = (checked: boolean) => {
     setTotal(null);
     setPurchases(null);
     setGroup(checked);
+  };
+
+  const handleThisMonthChange = (checked: boolean) => {
+    setTotal(null);
+    setPurchases(null);
+    setThisMonth(checked);
   };
 
   const getNextPage = () => {
@@ -65,6 +72,7 @@ function Purchases0({ project_id }: Props) {
       setTotal(null);
       setPurchases(null);
       const x = await webapp_client.purchases_client.getPurchases({
+        thisMonth, // if true used instead of limit/offset
         limit,
         offset,
         group,
@@ -83,7 +91,7 @@ function Purchases0({ project_id }: Props) {
   };
   useEffect(() => {
     getPurchases();
-  }, [limit, offset, group, service, project_id]);
+  }, [limit, offset, group, service, project_id, thisMonth]);
 
   return (
     <SettingBox
@@ -94,7 +102,14 @@ function Purchases0({ project_id }: Props) {
             <ProjectTitle project_id={project_id} trunc={30} />
           </span>
         ) : (
-          <span style={{ marginLeft: "5px" }}>Purchases</span>
+          <span style={{ marginLeft: "5px" }}>
+            Purchases and Credits{" "}
+            {thisMonth
+              ? " (this billing month)"
+              : purchases?.length == limit
+              ? ` (most recent ${limit} transactions)`
+              : " (all time)"}
+          </span>
         )
       }
       icon="credit-card"
@@ -135,6 +150,12 @@ function Purchases0({ project_id }: Props) {
       >
         Show individual items
       </Checkbox>
+      <Checkbox
+        checked={thisMonth}
+        onChange={(e) => handleThisMonthChange(e.target.checked)}
+      >
+        Current billing month
+      </Checkbox>
       <div
         style={{
           display: "flex",
@@ -168,7 +189,7 @@ function Purchases0({ project_id }: Props) {
       </div>
       {total != null && (
         <div style={{ fontSize: "12pt", marginTop: "15px" }}>
-          Total Displayed Costs: ${total.toFixed(2)}
+          Total of Displayed Costs: ${total.toFixed(2)}
         </div>
       )}
     </SettingBox>

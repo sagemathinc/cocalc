@@ -1,8 +1,10 @@
 import getPool from "@cocalc/database/pool";
 import { Service, MAX_API_LIMIT } from "@cocalc/util/db-schema/purchases";
+import { getLastClosingDate } from "./closing-date";
 
 interface Options {
   account_id: string;
+  thisMonth?: boolean; // if true, returns all purchases during this billing cycle; limit/offset are ignored.
   limit?: number;
   offset?: number;
   service?: Service;
@@ -12,6 +14,7 @@ interface Options {
 
 export default async function getPurchases({
   account_id,
+  thisMonth,
   limit = 50,
   offset,
   service,
@@ -39,18 +42,25 @@ export default async function getPurchases({
     params.push(project_id);
     query += ` AND project_id=$${params.length}`;
   }
+  if (thisMonth) {
+    const date = await getLastClosingDate(account_id);
+    params.push(date);
+    query += ` AND time >= $${params.length}`;
+  }
   if (group) {
     query += " GROUP BY service, project_id";
   }
   if (!group) {
     query += " ORDER BY time DESC";
-    if (limit != null) {
-      params.push(limit);
-      query += ` limit $${params.length}`;
-    }
-    if (offset != null) {
-      params.push(offset);
-      query += ` offset $${params.length}`;
+    if (!thisMonth) {
+      if (limit != null) {
+        params.push(limit);
+        query += ` limit $${params.length}`;
+      }
+      if (offset != null) {
+        params.push(offset);
+        query += ` offset $${params.length}`;
+      }
     }
   }
 

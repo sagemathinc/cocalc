@@ -52,6 +52,7 @@ export class PurchasesClient {
   }
 
   async getPurchases(opts: {
+    thisMonth?: boolean; // if true, limit and offset are ignored
     limit?: number;
     offset?: number;
     service?: Service;
@@ -91,6 +92,11 @@ export class PurchasesClient {
   // Get all the stripe information about a given user.
   async getCustomer() {
     return await api("billing/get-customer");
+  }
+
+  // Get this month's outstanding charges by service.
+  async getChargesByService() {
+    return await api("purchases/get-charges-by-service");
   }
 
   // Get the global purchase quota of user with given account_id.  This is only
