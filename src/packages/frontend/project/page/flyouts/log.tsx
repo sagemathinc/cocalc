@@ -89,6 +89,10 @@ export function LogHeader({ project_id }: HeaderProps): JSX.Element {
   );
 }
 
+export function getTime(a): number {
+  return a?.get("time")?.getTime() ?? 0;
+}
+
 function deriveFiles(project_log, searchTerm: string, max: number) {
   const dedupe: string[] = [];
   const searchWords = search_split(searchTerm);
@@ -100,7 +104,7 @@ function deriveFiles(project_log, searchTerm: string, max: number) {
         entry.getIn(["event", "filename"]) &&
         entry.getIn(["event", "event"]) === "open"
     )
-    .sort((a, b) => b.get("time").getTime() - a.get("time").getTime())
+    .sort((a, b) => getTime(b) - getTime(a))
     .filter((entry: EventRecordMap) => {
       const fn = entry.getIn(["event", "filename"]);
       if (dedupe.includes(fn)) return false;
@@ -140,7 +144,7 @@ function deriveHistory(project_log, searchTerm: string, max: number) {
       const searchStr = to_search_string(entry.toJS());
       return search_match(searchStr, searchWords);
     })
-    .sort((a, b) => b.get("time").getTime() - a.get("time").getTime())
+    .sort((a, b) => getTime(b.get("time")) - getTime(a.get("time")))
     .slice(0, max)
     .toJS() as any;
 }
@@ -318,7 +322,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
       <div style={{ flex: "1 1 auto", borderTop: FIX_BORDER }}>
         <Button
           block
-          type="ghost"
+          type="text"
           onClick={() => {
             actions?.project_log_load_all();
           }}
