@@ -5,7 +5,6 @@
 
 import { COLORS } from "@cocalc/util/theme";
 
-
 export const FIX_BORDER = `1px solid ${COLORS.GRAY_L0}`;
 
 export const FIX_BORDERS: React.CSSProperties = {

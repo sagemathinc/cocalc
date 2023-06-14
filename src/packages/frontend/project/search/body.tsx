@@ -22,6 +22,7 @@ import {
   SearchInput,
   Space,
 } from "@cocalc/frontend/components";
+import CopyButton from "@cocalc/frontend/components/copy-button";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { file_associations } from "@cocalc/frontend/file-associations";
@@ -539,6 +540,12 @@ function ProjectSearchResultLine(_: Readonly<ProjectSearchResultLineProps>) {
 
   async function click_filename(e: React.MouseEvent): Promise<void> {
     e.preventDefault();
+
+    // prevent a click if user is selecting text
+    if (window.getSelection()?.toString()) {
+      return;
+    }
+
     let chat;
     let path = path_to_file(most_recent_path, filename);
     const { tail } = path_split(path);
@@ -574,6 +581,14 @@ function ProjectSearchResultLine(_: Readonly<ProjectSearchResultLineProps>) {
         style={{ marginRight: "5px", marginLeft: "5px", overflow: "hidden" }}
         hoverable={true}
         onClick={click_filename}
+        extra={
+          <CopyButton
+            value={description}
+            noText
+            size="small"
+            style={{ padding: "0 5px" }}
+          />
+        }
       >
         <Snippet
           ext={ext}
