@@ -262,6 +262,12 @@ function Balance({ balance, quota }) {
           />
         </Tooltip>
       )}
+      {balance < 0 && (
+        <div>
+          <Icon name="check" style={{ color: "darkgreen" }} /> A negative
+          balance is a credit.
+        </div>
+      )}
     </Card>
   );
 }
