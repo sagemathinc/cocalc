@@ -44,7 +44,7 @@ import {
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { IS_MACOS } from "@cocalc/frontend/feature";
-import { capitalize, copy, path_split } from "@cocalc/util/misc";
+import { capitalize, copy, path_split, trunc_middle } from "@cocalc/util/misc";
 import { Actions } from "../code-editor/actions";
 import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { is_safari } from "../generic/browser";
@@ -97,15 +97,15 @@ const title_bar_style: CSS = {
   display: "flex",
 } as const;
 
+const MAX_TITLE_WIDTH = 25;
+
 const TITLE_STYLE: CSS = {
-  background: COL_BAR_BACKGROUND_DARK,
-  padding: "8px 5px 0 5px",
-  color: COLORS.GRAY_DD,
+  background: COL_BAR_BACKGROUND,
+  margin: "8px 5px 0px 5px",
   fontSize: "10pt",
   whiteSpace: "nowrap",
   display: "inline-block",
-  textOverflow: "ellipsis",
-  overflow: "hidden",
+  maxWidth: `${MAX_TITLE_WIDTH}ex`,
 } as const;
 
 const CONNECTION_STATUS_STYLE: CSS = {
@@ -1924,24 +1924,22 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
       }
     }
 
-    return (
-      <Tooltip title={title}>
-        <div
-          ref={getTourRef("title")}
-          style={{
-            ...TITLE_STYLE,
-            ...{
-              background: COL_BAR_BACKGROUND,
-              maxWidth: "10em",
-            },
-            color: is_active ? undefined : "#777",
-          }}
-        >
-          {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
-          {title}
-        </div>
-      </Tooltip>
+    const body = (
+      <div
+        ref={getTourRef("title")}
+        style={{
+          ...TITLE_STYLE,
+          color: is_active ? undefined : "#777",
+        }}
+      >
+        {icon && <Icon name={icon} style={{ marginRight: "5px" }} />}
+        {trunc_middle(title, MAX_TITLE_WIDTH)}
+      </div>
     );
+    if (title.length >= MAX_TITLE_WIDTH) {
+      return <Tooltip title={title}>{body}</Tooltip>;
+    }
+    return body;
   }
 
   function render_close_and_halt_confirm(): Rendered {

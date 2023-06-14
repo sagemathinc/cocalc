@@ -148,8 +148,11 @@ export default function TaskList({
   }
 
   function on_click(e) {
-    // test, if e.target is a child of mainDivRef.current
-    if (mainDivRef.current.contains(e.target)) {
+    if (e.target === mainDivRef.current) {
+      // The following from https://github.com/sagemathinc/cocalc/pull/6779 is definitely wrong.  E.g., open the find side
+      // panel, then open a task list and try to edit a task and type e.g., "s" and saves the tasks file.
+      // test, if e.target is a child of mainDivRef.current
+      //if (mainDivRef.current.contains(e.target)) {
       actions?.enable_key_handler();
     }
   }
