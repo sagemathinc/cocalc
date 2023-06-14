@@ -45,6 +45,7 @@ import HomePageButton from "./home-page/button";
 import { useProjectStatus } from "./project-status-hook";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
+import { FIX_BORDERS } from "./common";
 //import FirstSteps from "@cocalc/frontend/project/explorer/file-listing/first-steps";
 
 const PAGE_STYLE: React.CSSProperties = {
@@ -52,13 +53,6 @@ const PAGE_STYLE: React.CSSProperties = {
   flexDirection: "column",
   flex: 1,
   overflow: "hidden",
-} as const;
-
-export const FIX_BORDER = `1px solid ${COLORS.GRAY_L0}`;
-
-export const FIX_BORDERS: React.CSSProperties = {
-  borderTop: FIX_BORDER,
-  borderRight: FIX_BORDER,
 } as const;
 
 interface Props {

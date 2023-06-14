@@ -299,7 +299,6 @@ Table({
             dark_mode_sepia: 0,
             dark_mode_grayscale: 0,
             news_read_until: 0,
-            hide_action_popovers: false,
             hide_project_popovers: false,
             hide_file_popovers: false,
             hide_button_tooltips: false,

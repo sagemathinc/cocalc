@@ -7,13 +7,14 @@
 Searching for tasks by full text search and done/deleted status.
 */
 
-import { useEffect, useRef } from "../../app-framework";
 import { Input } from "antd";
-import { ShowToggle } from "./show-toggle";
-import { EmptyTrash } from "./empty-trash";
-import { TaskActions } from "./actions";
-import { Counts, LocalViewStateMap } from "./types";
 import { CSSProperties } from "react";
+
+import { useEffect, useRef } from "@cocalc/frontend/app-framework";
+import { TaskActions } from "./actions";
+import { EmptyTrash } from "./empty-trash";
+import { ShowToggle } from "./show-toggle";
+import { Counts, LocalViewStateMap } from "./types";
 
 interface Props {
   actions: TaskActions;

@@ -163,7 +163,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         : undefined;
 
     const style: CSS = {
-      margin: "5px 0px",
+      padding: "0",
       ...color,
       borderLeft: `4px solid ${
         activeTab == name ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
@@ -181,7 +181,8 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         isFixedTab={true}
         iconStyle={{
           fontSize: "24px",
-          margin: "0px 6px",
+          margin: "0",
+          padding: "5px 0px",
           ...color,
         }}
         flyout={name}
