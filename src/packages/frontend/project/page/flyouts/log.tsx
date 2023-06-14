@@ -90,7 +90,11 @@ export function LogHeader({ project_id }: HeaderProps): JSX.Element {
 }
 
 export function getTime(a): number {
-  return a?.get("time")?.getTime() ?? 0;
+  try {
+    return a?.get("time")?.getTime() ?? 0;
+  } catch (_err) {
+    return 0;
+  }
 }
 
 function deriveFiles(project_log, searchTerm: string, max: number) {
