@@ -3,15 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux } from "@cocalc/frontend/app-framework";
-import { redux_name } from "../app-framework";
-import { webapp_client } from "../webapp-client";
-import { alert_message } from "../alerts";
-import { register_file_editor } from "../file-editors";
-import { startswith, path_split } from "@cocalc/util/misc";
-import { ChatStore } from "./store";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { redux, redux_name } from "@cocalc/frontend/app-framework";
+import { register_file_editor } from "@cocalc/frontend/file-editors";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { path_split, startswith } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
 import { ChatRoom } from "./chatroom";
+import { ChatStore } from "./store";
 
 // it is fine to call this more than once.
 export function init(project_id: string, path: string): string {

@@ -5,13 +5,18 @@
 
 import { debounce } from "lodash";
 
-import { CSS, useEffect, useState } from "@cocalc/frontend/app-framework";
+import {
+  CSS,
+  redux,
+  useEffect,
+  useState,
+} from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { LSFlyout, lsKey, storeFlyoutState } from "./state";
-import { FIX_BORDER } from "../common";
 
 export function FlyoutBody({
   flyout,
@@ -79,6 +84,11 @@ export function FlyoutBody({
         backgroundColor: FIXED_TABS_BG_COLOR,
         overflowY: "hidden",
         overflowX: "hidden",
+      }}
+      onFocus={() => {
+        // Remove any active key handler that is next to this side chat.
+        // E.g, this is critical for taks lists...
+        redux.getActions("page").erase_active_key_handler();
       }}
     >
       {Body == null ? (

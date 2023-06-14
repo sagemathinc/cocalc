@@ -8,9 +8,10 @@ Top-level react component for editing markdown documents
 */
 
 import { createElement } from "react";
-import { createEditor } from "../frame-tree/editor";
+
 import { TaskEditor } from "@cocalc/frontend/editors/task-editor/editor";
 import { set } from "@cocalc/util/misc";
+import { createEditor } from "../frame-tree/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 
