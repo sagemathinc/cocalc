@@ -12,6 +12,7 @@ import ServiceTag from "./service";
 import { capitalize } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import Next from "@cocalc/frontend/components/next";
+import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 
 const DEFAULT_LIMIT = 100;
 
@@ -271,6 +272,22 @@ function DetailedPurchaseTable({ purchases }) {
           sorter: (a, b) =>
             (a.invoice_id ?? "").localeCompare(b.invoice_id ?? "") ?? -1,
           sortDirections: ["ascend", "descend"],
+          render: (invoice_id) => {
+            if (!invoice_id) return null;
+            return (
+              <Button
+                type="link"
+                onClick={async () => {
+                  const invoiceUrl = (
+                    await webapp_client.purchases_client.getInvoice(invoice_id)
+                  ).hosted_invoice_url;
+                  open_new_tab(invoiceUrl, false);
+                }}
+              >
+                <Icon name="external-link" /> Invoice
+              </Button>
+            );
+          },
         },
         {
           title: "Project",

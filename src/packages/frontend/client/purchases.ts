@@ -62,6 +62,10 @@ export class PurchasesClient {
     return await api("purchases/get-purchases", opts);
   }
 
+  async getInvoice(invoice_id: string) {
+    return await api("billing/get-invoice", { invoice_id });
+  }
+
   async getCostPerDay(opts: { limit?: number; offset?: number }) {
     return await api("purchases/get-cost-per-day", opts);
   }
