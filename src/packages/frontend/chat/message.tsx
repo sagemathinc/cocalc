@@ -607,7 +607,7 @@ export default function Message(props: Props) {
               >
                 <Icon name="reply" /> Reply
                 {isChatGPTThread
-                  ? ` to GPT-${isChatGPTThread == "gpt-4" ? "4" : ""}`
+                  ? ` to GPT-${isChatGPTThread == "gpt-4" ? "4" : "3.5"}`
                   : ""}
                 {isChatGPTThread && (
                   <Avatar
