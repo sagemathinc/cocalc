@@ -1,5 +1,4 @@
-import { Card } from "antd";
-import { currency } from "./quota-config";
+import { Card, Statistic } from "antd";
 import { A } from "@cocalc/frontend/components/A";
 import getSupportURL from "@cocalc/frontend/support/url";
 
@@ -14,17 +13,21 @@ export default function GlobalQuota({ global, style }: Props) {
   }
   const { quota, why, increase } = global;
   return (
-    <Card style={style} title="Global Spending Limit">
-      {currency(quota)}
-      <br />
+    <Card style={style} title="Total Spending Limit">
+      <Statistic
+        title={"Total spending Limit (USD)"}
+        value={quota}
+        precision={2}
+        prefix={"$"}
+      />
       {why}
       <br />
       {increase == "add-card" && "TODO: add a card here"}
       {increase == "support" && (
         <A
           href={getSupportURL({
-            body: "Please raise my global spending limit.\n\nTELL US WHO YOU ARE AND EXPLAIN YOUR USE CASE.  THANKS!",
-            subject: "Global Spending Limit Increase",
+            body: "Please raise my total spending limit.\n\nTELL US WHO YOU ARE AND EXPLAIN YOUR USE CASE.  THANKS!",
+            subject: "Total Spending Limit Increase Request",
             type: "question",
             hideExtra: true,
           })}

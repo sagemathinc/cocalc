@@ -38,10 +38,10 @@ export default function PayAsYouGoModal({}) {
   return (
     <Modal
       width={"600px"}
-      destroyOnClose
       zIndex={
         100000 /* must be big! 1000 for e.g., the jupyter generate modal */
       }
+      destroyOnClose
       maskClosable={false}
       open={storeState.showModal}
       title={

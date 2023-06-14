@@ -6,16 +6,7 @@ and lets you adjust any of them.
 */
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  Button,
-  Card,
-  InputNumber,
-  Progress,
-  Spin,
-  Table,
-  Tooltip,
-} from "antd";
+import { Alert, Button, InputNumber, Progress, Space, Spin, Table } from "antd";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
@@ -24,6 +15,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
 import GlobalQuota from "./global-quota";
 import { currency } from "./quota-config";
+import Balance from "./balance";
 
 interface ServiceQuota {
   service: Service;
@@ -31,7 +23,7 @@ interface ServiceQuota {
   current: number;
 }
 
-export default function AllQuotasConfig({}) {
+export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
   const [balance, setBalance] = useState<number | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -158,7 +150,7 @@ export default function AllQuotasConfig({}) {
           {currency(current)}{" "}
           <Progress
             percent={Math.round((current / record.quota) * 100)}
-            strokeColor={current / record.quota > 0.9 ? "#ff4d4f" : undefined}
+            strokeColor={current / record.quota > 0.8 ? "#ff4d4f" : undefined}
           />
         </div>
       ),
@@ -177,31 +169,28 @@ export default function AllQuotasConfig({}) {
           style={{ marginBottom: "15px" }}
         />
       )}
-      <div>
-        <div
-          style={{
-            fontSize: "12pt",
-            float: "right",
-            marginBottom: "15px",
-            display: "flex",
-          }}
-        >
-          <Balance balance={balance} quota={globalQuota?.quota} />
+      {!noStats && (
+        <Space>
+          <Balance
+            balance={balance}
+            quota={globalQuota?.quota}
+            style={{ width: "300px", height: "250px" }}
+          />
           <GlobalQuota
             global={globalQuota}
-            style={{ fontSize: "12pt", marginLeft: "15px", width: "300px" }}
+            style={{
+              width: "300px",
+              height: "250px",
+            }}
           />
-        </div>
-        Your <b>global spending limit</b> is a cap on your balance.
-      </div>
+        </Space>
+      )}
+      <br />
       <br />
       <b>Monthly limits</b> are caps you set to prevent spending more than you
       intend.
-      <br />
       <div>
-        <br />
-        <br />
-        <Button.Group>
+        <Button.Group style={{ margin: "15px 0" }}>
           <Button
             type="primary"
             onClick={handleSave}
@@ -233,41 +222,5 @@ export default function AllQuotasConfig({}) {
         )}
       </div>
     </SettingBox>
-  );
-}
-
-function Balance({ balance, quota }) {
-  if (balance == null) return null;
-  return (
-    <Card
-      title={"Balance"}
-      style={{
-        fontSize: "12pt",
-        color:
-          balance / Math.max(1, quota ?? 99999999) > 0.75
-            ? "darkred"
-            : "darkblue",
-        width: "300px",
-      }}
-    >
-      ${balance.toFixed(2)}
-      <br />
-      {quota && (
-        <Tooltip title={"Percent of your global limit"}>
-          <Progress
-            percent={Math.round((balance / Math.max(1, quota)) * 100)}
-            strokeColor={
-              balance / Math.max(1, quota) > 0.75 ? "#ff4d4f" : undefined
-            }
-          />
-        </Tooltip>
-      )}
-      {balance < 0 && (
-        <div>
-          <Icon name="check" style={{ color: "darkgreen" }} /> A negative
-          balance is a credit.
-        </div>
-      )}
-    </Card>
   );
 }
