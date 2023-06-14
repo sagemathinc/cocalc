@@ -19,6 +19,7 @@ const logger = getLogger("licenses-charge");
 export type Purchase = {
   type: "invoice" | "subscription"; // what was purchased
   id: string; // the id of the *invoice* in stripe
+  tax_percent: number; // tax rate (e.g., 0.085)
 };
 
 export async function chargeUser(
@@ -33,26 +34,6 @@ export async function chargeUser(
   } else {
     purchase = await stripeCreateSubscription(stripe, product_id, info);
   }
-  if (info.cost != null) {
-    let cost = typeof info.cost == "number" ? info.cost : info.cost.cost;
-    const account_id = stripe.get_account_id();
-    const invoice_id = purchase.id;
-    await createPurchase({
-      account_id,
-      cost,
-      service: "license",
-      description: { type: "license", info },
-      invoice_id,
-      tag: "license-purchase",
-    });
-    await createCredit({
-      account_id,
-      amount: cost,
-      invoice_id,
-      tag: "license-purchase",
-    });
-  }
-
   return purchase;
 }
 
@@ -334,7 +315,7 @@ async function stripePurchaseProduct(
   );
   await stripe.update_database();
 
-  return { type: "invoice", id: invoice_id };
+  return { type: "invoice", id: invoice_id, tax_percent };
 }
 
 /**
@@ -413,7 +394,7 @@ async function stripeCreateSubscription(
   const { id } = await conn.subscriptions.create(options);
   await stripe.update_database();
 
-  return { type: "subscription", id };
+  return { type: "subscription", id, tax_percent };
 }
 
 // Gets a coupon that matches the current online discount.
@@ -440,8 +421,9 @@ async function getSelfServiceDiscountCoupon(conn: Stripe): Promise<string> {
 }
 
 export async function setPurchaseMetadata(
+  info: PurchaseInfo,
   purchase: Purchase,
-  metadata
+  metadata: { account_id: string; license_id: string }
 ): Promise<void> {
   const conn = await getConn();
   switch (purchase.type) {
@@ -453,5 +435,36 @@ export async function setPurchaseMetadata(
       break;
     default:
       throw new Error(`unexpected purchase type ${purchase.type}`);
+  }
+
+  if (info.cost != null) {
+    let cost;
+    if (typeof info.cost == "number") {
+      cost = info.cost;
+    } else {
+      if (info.cost.discounted_cost) {
+        cost = info.cost.discounted_cost;
+      } else {
+        cost = info.cost.cost;
+      }
+      // sales tax
+      cost *= 1 + purchase.tax_percent;
+    }
+    const { account_id, license_id } = metadata;
+    const invoice_id = purchase.id;
+    await createPurchase({
+      account_id,
+      cost,
+      service: "license",
+      description: { type: "license", info, license_id },
+      invoice_id,
+      tag: "license-purchase",
+    });
+    await createCredit({
+      account_id,
+      amount: cost,
+      invoice_id,
+      tag: "license-purchase",
+    });
   }
 }

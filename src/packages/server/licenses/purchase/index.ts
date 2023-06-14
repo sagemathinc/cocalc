@@ -80,7 +80,7 @@ export default async function purchaseLicense(
 
   if (purchase != null) {
     logger.debug("set metadata on purchase...");
-    await setPurchaseMetadata(purchase, { license_id, account_id });
+    await setPurchaseMetadata(info, purchase, { license_id, account_id });
   }
 
   // We have to try a few times, since the metadata sometimes doesn't appear

@@ -40,12 +40,13 @@ export const LicensesPage: React.FC = () => {
             all offered products.
           </li>
           <li>
-            <A href={join(appBasePath, "billing")}>Billing</A>: information
-            about your purchases,{" "}
+            <A href={join(appBasePath, "billing")}>Billing</A>:{" "}
+            <A href={join(appBasePath, "billing/receipts")}>your purchases</A>,{" "}
             <A href={join(appBasePath, "billing", "subscriptions")}>
-              cancelling subscriptions
+              subscriptions
             </A>
-            , credit cards, invoices, etc.
+            , <A href={join(appBasePath, "billing/cards")}>credit cards</A>,{" "}
+            <A href={join(appBasePath, "billing/receipts")}>invoices</A>, etc.
           </li>
         </ul>
       </div>

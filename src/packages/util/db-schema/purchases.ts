@@ -39,6 +39,7 @@ export interface ProjectUpgrade {
 export interface License {
   type: "license";
   info: PurchaseInfo;
+  license_id: string;
 }
 
 // not used yet.

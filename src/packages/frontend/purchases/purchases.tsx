@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { Alert, Checkbox, Button, Spin, Table, Tooltip } from "antd";
+import { Alert, Checkbox, Button, Popover, Spin, Table, Tooltip } from "antd";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
-import type { Purchase } from "@cocalc/util/db-schema/purchases";
+import type { Purchase, Description } from "@cocalc/util/db-schema/purchases";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
+import { capitalize } from "@cocalc/util/misc";
+import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 
 const DEFAULT_LIMIT = 100;
 
@@ -279,7 +281,7 @@ function DetailedPurchaseTable({ purchases }) {
           dataIndex: "description",
           key: "description",
           render: (_, record) => (
-            <pre>{JSON.stringify(record.description, undefined, 2)}</pre>
+            <Description description={record.description} />
           ),
         },
         {
@@ -306,5 +308,58 @@ function DetailedPurchaseTable({ purchases }) {
         },
       ]}
     />
+  );
+}
+
+// "credit" | "openai-gpt-4" | "project-upgrade" | "license"
+
+function Description({ description }: { description?: Description }) {
+  if (description == null) {
+    return null;
+  }
+  if (description.type == "openai-gpt-4") {
+    return (
+      <Tooltip
+        title={() => (
+          <div>
+            Prompt tokens: {description.prompt_tokens}
+            <br />
+            Completion tokens: {description.completion_tokens}
+          </div>
+        )}
+      >
+        GPT-4
+      </Tooltip>
+    );
+  }
+  //             <pre>{JSON.stringify(description, undefined, 2)}</pre>
+  if (description.type == "license") {
+    return (
+      <Popover
+        title="License"
+        content={() => (
+          <>
+            {description.license_id && (
+              <License license_id={description.license_id} />
+            )}
+          </>
+        )}
+      >
+        License
+      </Popover>
+    );
+  }
+  if (description.type == "credit") {
+    return <Tooltip title="Thank you!">Credit</Tooltip>;
+  }
+  // generic fallback...
+  return (
+    <>
+      <Popover
+        title={() => <pre>{JSON.stringify(description, undefined, 2)}</pre>}
+      >
+        {capitalize(description.type)}
+      </Popover>
+    </>
   );
 }
