@@ -24,6 +24,7 @@ import { file_options } from "@cocalc/frontend/editor-tmp";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
 import { User } from "@cocalc/frontend/users";
 import { handle_log_click } from "../../history/utils";
+import { getTime } from "@cocalc/frontend/project/page/flyouts/log";
 
 interface OpenedFile {
   filename: string;
@@ -58,7 +59,7 @@ export function HomeRecentFiles({
           entry.getIn(["event", "filename"]) &&
           entry.getIn(["event", "event"]) === "open"
       )
-      .sort((a, b) => b.get("time").getTime() - a.get("time").getTime())
+      .sort((a, b) => getTime(b) - getTime(a))
       .filter((entry: EventRecordMap) => {
         const fn = entry.getIn(["event", "filename"]);
         if (dedupe.includes(fn)) return false;
