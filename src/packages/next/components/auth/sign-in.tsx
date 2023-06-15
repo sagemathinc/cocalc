@@ -4,7 +4,7 @@
  */
 
 import { Alert, Button, Input } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
@@ -13,11 +13,14 @@ import {
 import { Icon } from "@cocalc/frontend/components/icon";
 import Contact from "components/landing/contact";
 import Logo from "components/logo";
+import { CSS } from "components/misc";
 import A from "components/misc/A";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
 import { LOGIN_STYLE } from "./shared";
 import SSO, { RequiredSSO, useRequiredSSO } from "./sso";
+
+export const BODY_STYLE: CSS = { margin: "30px", minHeight: "50vh" };
 
 interface Props {
   minimal?: boolean;
@@ -47,9 +50,12 @@ function SignIn0(props: Props) {
   const [password, setPassword] = useState<string>("");
   const [signingIn, setSigningIn] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [haveSSO, setHaveSSO] = useState<boolean>(false);
   const { executeRecaptcha } = useGoogleReCaptcha();
 
-  const haveSSO = strategies != null && strategies.length > 0;
+  useEffect(() => {
+    setHaveSSO(strategies != null && strategies.length > 0);
+  }, []);
 
   // based on email: if user has to sign up via SSO, this will tell which strategy to use.
   const requiredSSO = useRequiredSSO(strategies, email);
@@ -82,7 +88,7 @@ function SignIn0(props: Props) {
   }
 
   return (
-    <div style={{ margin: "30px", minHeight: "50vh" }}>
+    <div style={BODY_STYLE}>
       {!minimal && (
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <Logo

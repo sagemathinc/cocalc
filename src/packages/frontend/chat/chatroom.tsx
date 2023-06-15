@@ -244,7 +244,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
       <VideoChatButton
         project_id={project_id}
         path={path}
-        sendChat={(value) => actions.send_chat(value)}
+        sendChat={(value) => actions.send_chat({ input: value })}
       />
     );
   }
@@ -309,9 +309,9 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function on_send(): void {
-    const value = submitMentionsRef.current?.({ chatgpt: true });
+    const input = submitMentionsRef.current?.({ chatgpt: true });
     scrollToBottomRef.current?.(true);
-    actions.send_chat(value);
+    actions.send_chat({ input });
   }
 
   function render_body(): JSX.Element {

@@ -197,7 +197,8 @@ export function NewFlyout({
     }
     return (
       <ErrorDisplay
-        style={{ marginBottom: "20px" }}
+        style={{ margin: 0, flex: "1 0 auto" }}
+        banner={true}
         error={message}
         onClose={(): void => {
           actions?.setState({ file_creation_error: "" });
@@ -223,9 +224,10 @@ export function NewFlyout({
   }
 
   function renderHead() {
+    const padding = { padding: "5px" };
     return (
-      <Space style={{ padding: "10px" }} direction="vertical">
-        <Space direction="horizontal">
+      <Space direction="vertical">
+        <Space direction="horizontal" style={padding}>
           Location:{" "}
           <PathNavigator
             mode={"flyout"}
@@ -239,7 +241,7 @@ export function NewFlyout({
           onChange={onChangeHandler}
           onKeyUp={onKeyUpHandler}
           onFocus={inputOnFocus}
-          style={{ width: "100%" }}
+          style={{ width: "100%", ...padding }}
           addonBefore={fileIcon()}
           addonAfter={renderExtAddon()}
         />
@@ -247,8 +249,8 @@ export function NewFlyout({
           style={{
             display: "flex",
             flexDirection: "column",
-            marginBottom: "10px",
             justifyContent: "space-between",
+            ...padding,
           }}
         >
           <Button
@@ -271,6 +273,7 @@ export function NewFlyout({
             </Text>
           )}
         </div>
+        {file_creation_error && renderError()}
       </Space>
     );
   }
@@ -281,7 +284,6 @@ export function NewFlyout({
         style={{ width: "100%", overflowX: "hidden", padding: "5px" }}
         direction="vertical"
       >
-        {file_creation_error && renderError()}
         <FileTypeSelector
           mode="flyout"
           selectedExt={ext}

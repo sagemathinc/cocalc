@@ -38,7 +38,6 @@ export default function NBViewer({
       return error;
     }
   }, [content]);
-
   if (x instanceof Error) {
     return (
       <div>

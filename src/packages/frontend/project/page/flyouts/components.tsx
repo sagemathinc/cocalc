@@ -8,23 +8,31 @@ import {
   orange as ANTD_ORANGE,
   yellow as ANTD_YELLOW,
 } from "@ant-design/colors";
+import { Tooltip } from "antd";
 
-import { CSS } from "@cocalc/frontend/app-framework";
+import { CSS, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { hexColorToRGBA } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
-import { Tooltip } from "antd";
+
+// make sure two types of borders are of the same width
+const BORDER_WIDTH_PX = "4px";
 
 const FILE_ITEM_SELECTED_STYLE: CSS = {
-  backgroundColor: COLORS.GRAY_LL,
+  backgroundColor: COLORS.BLUE_LLL, // bit lighter than .cc-project-flyout-file-item:hover
 } as const;
 
 const FILE_ITEM_OPENED_STYLE: CSS = {
-  ...FILE_ITEM_SELECTED_STYLE,
   fontWeight: "bold",
+  backgroundColor: COLORS.GRAY_LL,
   color: COLORS.PROJECT.FIXED_LEFT_ACTIVE,
 } as const;
+
+const FILE_ITEM_ACTIVE_STYLE: CSS = {
+  ...FILE_ITEM_OPENED_STYLE,
+  color: COLORS.PROJECT.FIXED_LEFT_OPENED,
+};
 
 const FILE_ITEM_STYLE: CSS = {
   flex: "1 1 auto",
@@ -39,6 +47,7 @@ const FILE_ITEM_BODY_STYLE: CSS = {
   display: "flex",
   flexDirection: "row",
   flex: "1",
+  padding: "5px",
 } as const;
 
 const FILE_ITEM_LINE_STYLE: CSS = {
@@ -49,10 +58,8 @@ const FILE_ITEM_LINE_STYLE: CSS = {
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
-  paddingBottom: "5px",
-  paddingTop: "5px",
-  paddingLeft: "5px",
-  paddingRight: "5px",
+  padding: 0,
+  margin: 0,
   color: COLORS.GRAY_D,
 } as const;
 
@@ -60,6 +67,7 @@ const ICON_STYLE: CSS = { fontSize: "120%", marginRight: "5px" } as const;
 
 interface Item {
   isopen?: boolean;
+  isactive?: boolean;
   name: string;
 }
 
@@ -71,6 +79,7 @@ interface FileListItemProps {
   renderIcon: (item: Item, style: CSS) => JSX.Element;
   tooltip?: JSX.Element | string;
   selected?: boolean;
+  multiline?: boolean;
 }
 
 export function FileListItem({
@@ -81,41 +90,51 @@ export function FileListItem({
   itemStyle,
   tooltip,
   selected,
+  multiline = false,
 }: FileListItemProps): JSX.Element {
+  const itemRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
   function renderCloseItem(item: Item): JSX.Element {
     const { name } = item;
     return (
       <Icon
         name="times-circle"
         style={{ flex: "0", fontSize: "120%" }}
-        onClick={(e) => onClose?.(e, name)}
+        onClick={(e) => {
+          e?.stopPropagation();
+          onClose?.(e, name);
+        }}
       />
     );
   }
 
   function renderItem(): JSX.Element {
     return (
-      <div style={FILE_ITEM_STYLE} onClick={onClick}>
+      <div
+        ref={itemRef}
+        style={{
+          ...FILE_ITEM_STYLE,
+          ...(multiline ? { whiteSpace: "normal" } : {}),
+        }}
+      >
         {item.name}
       </div>
     );
   }
 
-  // caret icon to indicated selected item
-  function renderSelected(): JSX.Element {
-    if (!selected) return <></>;
-    return (
-      <Icon
-        name="caret-right"
-        style={{ flex: "0", fontSize: "120%", marginRight: "5px" }}
-      />
-    );
+  function handleClick(e: React.MouseEvent): void {
+    // this prevents clicks on the dropdown menu (and it its items) from
+    // triggering the onClick handler – TODO will be replaced by something better
+    if (e.target === itemRef.current || e.target === bodyRef.current) {
+      e.stopPropagation();
+      onClick?.(e);
+    }
   }
 
   function renderBody(): JSX.Element {
     const el = (
-      <div style={FILE_ITEM_BODY_STYLE}>
-        {renderSelected()}
+      <div ref={bodyRef} style={FILE_ITEM_BODY_STYLE} onClick={handleClick}>
         {renderIcon(item, ICON_STYLE)} {renderItem()}
         {item.isopen ? renderCloseItem(item) : null}
       </div>
@@ -139,9 +158,13 @@ export function FileListItem({
       className="cc-project-flyout-file-item"
       style={{
         ...FILE_ITEM_LINE_STYLE,
-        ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
-        ...(item.isopen ? FILE_ITEM_OPENED_STYLE : {}),
+        ...(item.isopen
+          ? item.isactive
+            ? FILE_ITEM_ACTIVE_STYLE
+            : FILE_ITEM_OPENED_STYLE
+          : {}),
         ...itemStyle,
+        ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
       }}
     >
       {renderBody()}
@@ -164,7 +187,7 @@ export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {
     col = hexColorToRGBA(ANTD_YELLOW[5], opacity);
   }
   return {
-    borderLeft: `4px solid ${col}`,
+    borderLeft: `${BORDER_WIDTH_PX} solid ${col}`,
     ...(masked ? { color: COLORS.GRAY_L } : {}),
   };
 }

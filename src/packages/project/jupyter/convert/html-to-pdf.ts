@@ -11,8 +11,11 @@ https://stackoverflow.com/questions/48358556/firefox-headless-print-to-pdf-optio
 import which from "which";
 import { join, parse } from "path";
 import { executeCode } from "@cocalc/backend/execute-code";
+import { getLogger } from "@cocalc/project/logger";
 
-// time google-chrome --headless --disable-gpu --no-sandbox --print-to-pdf=a.pdf --run-all-compositor-stages-before-draw --virtual-time-budget=10000 a.html
+const log = getLogger("jupyter:html-to-pdf");
+
+// time google-chrome --headless --disable-gpu --no-sandbox --print-to-pdf=a.pdf --run-all-compositor-stages-before-draw --virtual-time-budget=10000 --disable-dev-shm-usage --disable-setuid-sandbox a.html
 
 export default async function htmlToPDF(
   path: string,
@@ -28,9 +31,14 @@ export default async function htmlToPDF(
     "--no-sandbox",
     `--print-to-pdf=${outfile}`,
     "--run-all-compositor-stages-before-draw",
+    // I added --disable-dev-shm-usage --disable-setuid-sandbox because printing large complicated documents was failing,
+    // and GPT-4 suggested these options.  There are security implications, but that is OK given the application.
+    "--disable-dev-shm-usage",
+    "--disable-setuid-sandbox",
     `--virtual-time-budget=${timeout * 1000}`,
     path,
   ];
+  log.debug(`htmlToPDF: ${command} ${args.join(" ")}`);
   const output = await executeCode({
     command,
     args,

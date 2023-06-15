@@ -153,3 +153,8 @@ test("strictMod", () => {
   expect(mod(-3, 3)).toBe(0);
   expect(mod(-1, 10)).toBe(9);
 });
+
+test("EDITOR_PREFIX", () => {
+  // don't change it, because codebase is not using the global variable everywhere
+  expect(misc.EDITOR_PREFIX).toBe("editor-");
+});

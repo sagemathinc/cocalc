@@ -775,6 +775,8 @@ export class SyncDoc extends EventEmitter {
   // Close synchronized editing of this string; this stops listening
   // for changes and stops broadcasting changes.
   public async close(): Promise<void> {
+    const dbg = this.dbg("close");
+    dbg("close");
     if (this.state == "closed") {
       return;
     }
@@ -787,6 +789,10 @@ export class SyncDoc extends EventEmitter {
         // Do nothing here.
       }
     }
+    //
+    // SYNC STUFF
+    //
+
     // WARNING: that 'closed' is emitted at the beginning of the
     // close function (before anything async) for the project is
     // assumed in src/packages/project/sync/sync-doc.ts, because
@@ -819,36 +825,67 @@ export class SyncDoc extends EventEmitter {
 
     this.patch_update_queue = [];
 
-    if (this.syncstring_table != null) {
-      await this.syncstring_table.close();
-    }
-
-    if (this.patches_table != null) {
-      await this.patches_table.close();
-    }
-
-    if (this.patch_list != null) {
-      await this.patch_list.close();
-    }
-
-    if (this.cursors_table != null) {
-      await this.cursors_table.close();
-    }
-
+    // Stop watching for file changes.  It's important to
+    // do this *before* all the await's below, since
+    // this syncdoc can't do anything in response to a
+    // a file change in its current state.
     if (this.client.is_project()) {
       this.update_watch_path(); // no input = closes it
     }
 
+    if (this.patch_list != null) {
+      // not async -- just a data structure in memory
+      this.patch_list.close();
+    }
+
+    //
+    // ASYNC STUFF - in particular, these may all
+    // attempt to do some last attempt to send changes
+    // to the database.
+    //
+    try {
+      await this.async_close();
+      dbg("async_close -- successfully saved all data to database");
+    } catch (err) {
+      dbg("async_close -- ERROR -- ", err);
+    }
+    // this avoids memory leaks:
+    close(this);
+
+    // after doing that close, we need to keep the state (which just got deleted) as 'closed'
+    this.set_state("closed");
+  }
+
+  private async async_close() {
+    const promises: Promise<any>[] = [];
+
+    if (this.syncstring_table != null) {
+      promises.push(this.syncstring_table.close());
+    }
+
+    if (this.patches_table != null) {
+      promises.push(this.patches_table.close());
+    }
+
+    if (this.cursors_table != null) {
+      promises.push(this.cursors_table.close());
+    }
+
     if (this.evaluator != null) {
-      await this.evaluator.close();
+      promises.push(this.evaluator.close());
     }
 
     if (this.ipywidgets_state != null) {
-      await this.ipywidgets_state.close();
+      promises.push(this.ipywidgets_state.close());
     }
 
-    close(this);
-    this.set_state("closed");
+    const results = await Promise.allSettled(promises);
+
+    results.forEach((result) => {
+      if (result.status === "rejected") {
+        throw Error(result.reason);
+      }
+    });
   }
 
   // TODO: We **have** to do this on the client, since the backend
@@ -1001,11 +1038,11 @@ export class SyncDoc extends EventEmitter {
   }
 
   // Used for internal debug logging
-  private dbg(_f: string = ""): Function {
+  private dbg(f: string = ""): Function {
     if (!this.client?.is_project() || this.state == "closed") {
       return (..._) => {};
     }
-    return this.client.dbg(`sync-doc("${this.path}").${_f}`);
+    return this.client.dbg(`sync-doc("${this.path}").${f}`);
   }
 
   private async init_all(): Promise<void> {
@@ -1630,6 +1667,10 @@ export class SyncDoc extends EventEmitter {
         dbg("no change during loop -- done!");
         break;
       }
+    }
+    if (this.state != "ready") {
+      // above async waits could have resulted in state change.
+      return;
     }
     // Ensure all patches are saved to backend.
     // We do this after the above, so that creating the newest patch
@@ -2328,7 +2369,7 @@ export class SyncDoc extends EventEmitter {
         hash: hash_string(data),
       });
     }
-    // save new version (just set via from_str) to database.
+    // save new version to database, which we just set via from_str.
     await this.save();
     return size;
   }
@@ -2566,7 +2607,7 @@ export class SyncDoc extends EventEmitter {
       return done;
     }
 
-    let last_err : string | undefined = undefined;
+    let last_err: string | undefined = undefined;
     const f = async () => {
       dbg("f");
       if (

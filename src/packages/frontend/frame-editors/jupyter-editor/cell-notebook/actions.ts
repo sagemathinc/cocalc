@@ -300,7 +300,6 @@ export class NotebookFrameActions {
       this.move_cursor(1);
     }
   }
-  h;
 
   public run_selected_cells(v?: string[]): void {
     this.save_input_editor();

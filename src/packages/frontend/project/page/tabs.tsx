@@ -6,8 +6,8 @@
 /*
 Tabs in a particular project.
 */
-import { Switch, Tooltip } from "antd";
 
+import { Switch, Tooltip } from "antd";
 import { debounce, throttle } from "lodash";
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -134,8 +134,10 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
     const observer = new ResizeObserver(
       debounce(
         () => {
-          if (parent.current == null) return;
-          setHomePageButtonWidth(parent.current.scrollWidth);
+          const width = parent.current?.offsetWidth;
+          // we ignore zero width, which happens when not visible
+          if (width == null || width == 0) return;
+          setHomePageButtonWidth(width);
         },
         50,
         { trailing: true, leading: false }
@@ -161,7 +163,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         : undefined;
 
     const style: CSS = {
-      margin: "5px 0px",
+      padding: "0",
       ...color,
       borderLeft: `4px solid ${
         activeTab == name ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
@@ -179,7 +181,8 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         isFixedTab={true}
         iconStyle={{
           fontSize: "24px",
-          margin: "0px 6px",
+          margin: "0",
+          padding: "5px 0px",
           ...color,
         }}
         flyout={name}

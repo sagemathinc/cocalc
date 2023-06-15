@@ -38,8 +38,7 @@ import { ProjectEvent } from "./project/history/types";
 import { log_file_open, log_opened_time, open_file } from "./project/open-file";
 import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
-import { FlyoutLogMode } from "./project/page/flyouts/log";
-import { storeFlyoutState } from "./project/page/flyouts/state";
+import { FlyoutLogMode, storeFlyoutState } from "./project/page/flyouts/state";
 import { ensure_project_running } from "./project/project-start-warning";
 import { transform_get_url } from "./project/transform-get-url";
 import {
@@ -3089,9 +3088,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == null) return; // no store
     if (store.get("project_log_all") != null) return; // already done
-    this.setState({ project_log: undefined });
+    // Dear future dev: don't delete the project_log table
+    // https://github.com/sagemathinc/cocalc/issues/6765
     store.init_table("project_log_all");
-    this.remove_table("project_log");
   }
 
   // called when project page is shown

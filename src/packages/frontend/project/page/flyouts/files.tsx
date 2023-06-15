@@ -43,6 +43,7 @@ import {
   search_split,
   should_open_in_foreground,
   strictMod,
+  tab_to_path,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectState } from "../project-state-hook";
@@ -61,6 +62,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   const projectIsRunning = project_state?.get("state") === "running";
   const current_path = useTypedRedux({ project_id }, "current_path");
   const directoryListings = useTypedRedux({ project_id }, "directory_listings");
+  const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const activeFileSort: ActiveFileSort = useTypedRedux(
     { project_id },
     "active_file_sort"
@@ -70,6 +72,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const [search, setSearch] = useState<string>("");
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
+  const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const disableUploads = student_project_functionality.disableUploads ?? false;
@@ -78,6 +81,10 @@ export function FilesFlyout({ project_id }): JSX.Element {
     cacheId: `${project_id}::flyout::files::${current_path}`,
   });
   const uploadClassName = `upload-button-flyout-${project_id}`;
+
+  const activePath = useMemo(() => {
+    return tab_to_path(activeTab);
+  }, [activeTab]);
 
   // copied roughly from directoy-selector.tsx
   useEffect(() => {
@@ -156,6 +163,9 @@ export function FilesFlyout({ project_id }): JSX.Element {
       const fullPath = path_to_file(current_path, file.name);
       if (openFiles.some((path) => path == fullPath)) {
         file.isopen = true;
+      }
+      if (activePath === fullPath) {
+        file.isactive = true;
       }
     }
 
@@ -267,6 +277,11 @@ export function FilesFlyout({ project_id }): JSX.Element {
         setScrollIdx(null);
       }
     }
+
+    // if esc key is pressed, clear search and reset
+    else if (e.key === "Escape") {
+      setSearch("");
+    }
   }
 
   function renderItemIcon(
@@ -324,7 +339,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
           actions?.close_tab(path_to_file(current_path, name));
         }}
         tooltip={renderTooltip(age, item)}
-        selected={index === scrollIdx}
+        selected={!scollIdxHide && index === scrollIdx}
       />
     );
   }
@@ -449,6 +464,8 @@ export function FilesFlyout({ project_id }): JSX.Element {
             value={search}
             onKeyDown={filterKeyHandler}
             onChange={(e) => setSearch(e.target.value)}
+            onFocus={() => setScrollIdxHide(false)}
+            onBlur={() => setScrollIdxHide(true)}
             style={{ flex: "1", marginRight: "10px" }}
             allowClear
             prefix={<Icon name="search" />}

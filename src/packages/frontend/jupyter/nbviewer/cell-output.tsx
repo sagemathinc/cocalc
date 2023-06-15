@@ -17,8 +17,10 @@ export default function NBViewerCellOutput({
   more_output,
   hidePrompt,
 }: Props) {
-  const [iCell, setICell] = useState<Map<string, any> | null>(null);
-  
+  const [iCell, setICell] = useState<Map<string, any> | null>(
+    cell == null ? null : fromJS(cell)
+  );
+
   useEffect(() => {
     setICell(fromJS(cell));
   }, [cell]);

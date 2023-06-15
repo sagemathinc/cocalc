@@ -494,7 +494,7 @@ export default function Message(props: Props) {
   function sendReply() {
     if (props.actions == null) return;
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
-    props.actions.send_reply(props.message, reply);
+    props.actions.send_reply({ message: props.message, reply });
     setReplying(false);
   }
 
