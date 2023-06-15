@@ -8,7 +8,7 @@ import {
   orange as ANTD_ORANGE,
   yellow as ANTD_YELLOW,
 } from "@ant-design/colors";
-import { Tooltip } from "antd";
+import { Tag, Tooltip } from "antd";
 
 import { CSS, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -74,6 +74,7 @@ interface Item {
 interface FileListItemProps {
   onClick?: (e: React.MouseEvent) => void;
   onClose?: (e: React.MouseEvent | undefined, name: string) => void;
+  onOpen?: (e: React.MouseEvent) => void;
   itemStyle?: CSS;
   item: Item;
   renderIcon: (item: Item, style: CSS) => JSX.Element;
@@ -85,6 +86,7 @@ interface FileListItemProps {
 export function FileListItem({
   onClick,
   onClose,
+  onOpen,
   item,
   renderIcon,
   itemStyle,
@@ -109,6 +111,22 @@ export function FileListItem({
     );
   }
 
+  function renderOpenItem(): JSX.Element {
+    return (
+      <Tag
+        bordered={false}
+        icon={<Icon name="external-link" />}
+        color={COLORS.ANTD_GREEN}
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpen?.(e);
+        }}
+      >
+        Open
+      </Tag>
+    );
+  }
+
   function renderItem(): JSX.Element {
     return (
       <div
@@ -124,8 +142,6 @@ export function FileListItem({
   }
 
   function handleClick(e: React.MouseEvent): void {
-    // this prevents clicks on the dropdown menu (and it its items) from
-    // triggering the onClick handler – TODO will be replaced by something better
     if (e.target === itemRef.current || e.target === bodyRef.current) {
       e.stopPropagation();
       onClick?.(e);
@@ -136,7 +152,11 @@ export function FileListItem({
     const el = (
       <div ref={bodyRef} style={FILE_ITEM_BODY_STYLE} onClick={handleClick}>
         {renderIcon(item, ICON_STYLE)} {renderItem()}
-        {item.isopen ? renderCloseItem(item) : null}
+        {item.isopen
+          ? renderCloseItem(item)
+          : selected
+          ? renderOpenItem()
+          : undefined}
       </div>
     );
 
