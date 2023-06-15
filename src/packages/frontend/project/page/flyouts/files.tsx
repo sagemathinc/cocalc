@@ -15,6 +15,8 @@ import {
   Tooltip,
 } from "antd";
 import { delay } from "awaiting";
+import { List } from "immutable";
+import { throttle } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
@@ -22,9 +24,11 @@ import {
   CSS,
   ProjectActions,
   React,
+  ReactDOM,
   TypedMap,
   redux,
   useActions,
+  useCallback,
   useEffect,
   useIsMountedRef,
   useMemo,
@@ -37,6 +41,8 @@ import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-h
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
+import { Terminal } from "@cocalc/frontend/frame-editors/terminal-editor/connected-terminal";
+import { background_color } from "@cocalc/frontend/frame-editors/terminal-editor/themes";
 import {
   ACTION_BUTTONS_DIR,
   ACTION_BUTTONS_FILE,
@@ -62,7 +68,6 @@ import {
   tab_to_path,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { List } from "immutable";
 import { FIX_BORDER } from "../common";
 import { useProjectState } from "../project-state-hook";
 import { FileListItem, fileItemStyle } from "./components";
@@ -633,7 +638,16 @@ function FilesBottom({
   }, [checked_files]);
 
   function renderTerminal() {
-    return <div>terminal</div>;
+    return (
+      <TerminalFlyout
+        project_id={project_id}
+        id={`flyout::${project_id}::${current_path}`}
+        path={current_path}
+        font_size={10}
+        resize={0}
+        is_visible={activeKey.includes("terminal")}
+      />
+    );
   }
 
   function renderButtons(names) {
@@ -716,6 +730,7 @@ function FilesBottom({
     >
       {n > 0 ? (
         <Collapse.Panel
+        className="cc-project-flyout-files-panel"
           header={<>{n} selected</>}
           key="selected"
           style={style}
@@ -735,9 +750,181 @@ function FilesBottom({
           {renderSelected()}
         </Collapse.Panel>
       ) : undefined}
-      <Collapse.Panel header="Terminal" key="terminal" style={style}>
+      <Collapse.Panel className="cc-project-flyout-files-panel" header="Terminal" key="terminal" style={style}>
         {renderTerminal()}
       </Collapse.Panel>
     </Collapse>
+  );
+}
+
+// This is modeled after frame-editors/terminal-editor/terminal.tsx
+function TerminalFlyout({
+  project_id,
+  id,
+  font_size,
+  resize,
+  is_visible,
+  path,
+}) {
+  const terminal = useTypedRedux("account", "terminal");
+  const terminalRef = useRef<Terminal | undefined>(undefined);
+  const terminalDOMRef = useRef<any>(null);
+  const isMountedRef = useIsMountedRef();
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
+
+  function delete_terminal(): void {
+    if (terminalRef.current == null) return; // already deleted or never created
+    terminalRef.current.element?.remove();
+    terminalRef.current.is_visible = false;
+    // Ignore size for this terminal.
+    terminalRef.current.conn_write({ cmd: "size", rows: 0, cols: 0 });
+    terminalRef.current.close();
+    terminalRef.current = undefined;
+  }
+
+  function get_terminal(
+    id: string,
+    path: string,
+    parent: HTMLElement
+  ): Terminal {
+    const ourActions = {
+      project_id,
+      path,
+      get_term_env() {
+        return {};
+      },
+      flag_file_activity() {},
+      set_title(_id, _title) {},
+      set_connection_status(_id, _status) {},
+      decrease_font_size() {},
+      increase_font_size() {},
+      set_terminal_cwd(_id, _payload) {},
+    };
+    const newTerminal = new Terminal(
+      ourActions as any,
+      0,
+      id,
+      parent,
+      "bash",
+      []
+    );
+    newTerminal.connect();
+    return newTerminal;
+  }
+
+  function init_terminal(): void {
+    if (!is_visible) return;
+    const node: any = ReactDOM.findDOMNode(terminalDOMRef.current);
+    if (node == null) {
+      // happens, e.g., when terminals are disabled.
+      return;
+    }
+    try {
+      terminalRef.current = get_terminal(id, path, node);
+    } catch (err) {
+      return; // not yet ready -- might be ok; will try again.
+    }
+    if (terminalRef.current == null) return; // should be impossible.
+    terminalRef.current.is_visible = true;
+    set_font_size();
+    measure_size();
+    terminalRef.current.focus();
+    // Get rid of browser context menu, which makes no sense on a canvas.
+    // See https://stackoverflow.com/questions/10864249/disabling-right-click-context-menu-on-a-html-canvas
+    // NOTE: this would probably make sense in DOM mode instead of canvas mode;
+    // if we switch, disable ..
+    // Well, this context menu is still silly. Always disable it.
+    $(node).on("contextmenu", function () {
+      return false;
+    });
+
+    terminalRef.current.scroll_to_bottom();
+  }
+
+  useEffect(() => {
+    terminalRef.current?.focus();
+    return delete_terminal; // clean up on unmount
+  }, []);
+
+  useEffect(() => {
+    if (terminalRef.current != null) {
+      terminalRef.current.is_visible = is_visible;
+    }
+    // We *only* init the terminal if it is visible
+    // or switches to being visible and was not initialized.
+    // See https://github.com/sagemathinc/cocalc/issues/5133
+    if (terminalRef.current != null || !is_visible) return;
+    init_terminal();
+  }, [is_visible]);
+
+  useEffect(() => {
+    // yes, this can change!! -- see https://github.com/sagemathinc/cocalc/issues/3819
+    if (terminalRef.current == null) return;
+    delete_terminal();
+    init_terminal();
+  }, [id]);
+
+  useEffect(() => {
+    measure_size();
+  }, [resize]);
+
+  const set_font_size = useCallback(
+    throttle(() => {
+      if (terminalRef.current == null || !isMountedRef.current) {
+        return;
+      }
+      if (terminalRef.current.getOption("fontSize") !== font_size) {
+        terminalRef.current.set_font_size(font_size);
+        measure_size();
+      }
+    }, 200),
+    []
+  );
+
+  useEffect(set_font_size, [font_size]);
+
+  function measure_size(): void {
+    if (isMountedRef.current) {
+      terminalRef.current?.measure_size();
+    }
+  }
+
+  if (student_project_functionality.disableTerminals) {
+    return (
+      <b style={{ margin: "auto", fontSize: "14pt", padding: "15px" }}>
+        Terminals are currently disabled in this project. Please contact your
+        instructor if you have questions.
+      </b>
+    );
+  }
+
+  const backgroundColor = background_color(terminal.get("color_scheme"));
+
+  return (
+    <div
+      style={{
+        flex: "1 0 auto",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor,
+        padding: "0",
+      }}
+      onClick={() => {
+        // Focus on click, since otherwise, clicking right outside term defocuses,
+        // which is confusing.
+        terminalRef.current?.focus();
+      }}
+    >
+      <div
+        style={{
+          flex: "1 0 auto",
+          background: COLORS.GRAY_LLL,
+          height: "200px",
+        }}
+        className={"cocalc-xtermjs"}
+        ref={terminalDOMRef}
+      />
+    </div>
   );
 }

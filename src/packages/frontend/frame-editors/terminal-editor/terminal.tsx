@@ -6,19 +6,20 @@
 // A single terminal frame.
 
 import { Map } from "immutable";
-import { Terminal } from "./connected-terminal";
 import { throttle } from "lodash";
-import { background_color } from "./themes";
+
 import {
   CSS,
   React,
-  Rendered,
   ReactDOM,
+  Rendered,
   useEffect,
   useIsMountedRef,
   useRef,
-} from "../../app-framework";
+} from "@cocalc/frontend/app-framework";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { Terminal } from "./connected-terminal";
+import { background_color } from "./themes";
 
 interface Props {
   actions: any;
@@ -42,7 +43,7 @@ const COMMAND_STYLE = {
   overflow: "hidden",
 } as CSS;
 
-export const TerminalFrame: React.FC<Props> = React.memo((props) => {
+export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   const terminalRef = useRef<Terminal | undefined>(undefined);
   const terminalDOMRef = useRef<any>(null);
   const isMountedRef = useIsMountedRef();

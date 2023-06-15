@@ -13,7 +13,7 @@ extra support for being connected to:
 
 import { Map } from "immutable";
 import { callback, delay } from "awaiting";
-import { redux, ProjectActions } from "../../app-framework";
+import { redux, ProjectActions } from "@cocalc/frontend/app-framework";
 import { debounce } from "lodash";
 import { aux_file } from "@cocalc/util/misc";
 import { Terminal as XTerminal } from "xterm";
