@@ -125,6 +125,9 @@ export class PurchasesClient {
   async createCredit(amount: number): Promise<any> {
     return await api("purchases/create-credit", { amount });
   }
+  async getUnpaidInvoices(): Promise<any[]> {
+    return await api("purchases/get-unpaid-invoices");
+  }
 }
 
 async function waitUntilPayAsYouGoModalCloses() {

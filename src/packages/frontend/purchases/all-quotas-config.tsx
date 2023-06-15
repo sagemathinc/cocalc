@@ -6,7 +6,16 @@ and lets you adjust any of them.
 */
 
 import { useEffect, useRef, useState } from "react";
-import { Alert, Button, InputNumber, Progress, Space, Spin, Table } from "antd";
+import {
+  Alert,
+  Button,
+  Card,
+  InputNumber,
+  Progress,
+  Space,
+  Spin,
+  Table,
+} from "antd";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
@@ -170,27 +179,33 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
         />
       )}
       {!noStats && (
-        <Space>
-          <Balance
-            balance={balance}
-            quota={globalQuota?.quota}
-            style={{ width: "300px", height: "250px" }}
-          />
-          <GlobalQuota
-            global={globalQuota}
-            style={{
-              width: "300px",
-              height: "250px",
-            }}
-          />
-        </Space>
+        <div style={{ textAlign: "center" }}>
+          <Space>
+            <Balance
+              balance={balance}
+              quota={globalQuota?.quota}
+              style={{ width: "300px", height: "250px" }}
+            />
+            <GlobalQuota
+              global={globalQuota}
+              style={{
+                width: "300px",
+                height: "250px",
+              }}
+            />
+          </Space>
+        </div>
       )}
-      <br />
-      <br />
-      <b>Monthly limits</b> are caps you set to prevent spending more than you
-      intend.
-      <div>
-        <Button.Group style={{ margin: "15px 0" }}>
+      <Card
+        style={{ margin: "15px 0" }}
+        title={
+          <>
+            <b>Monthly limits</b> are caps you set to prevent spending more than
+            you intend.
+          </>
+        }
+      >
+        <Button.Group>
           <Button
             type="primary"
             onClick={handleSave}
@@ -220,7 +235,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
             <Spin size="large" delay={500} />
           </div>
         )}
-      </div>
+      </Card>
     </SettingBox>
   );
 }

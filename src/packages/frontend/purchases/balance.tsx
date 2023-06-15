@@ -1,6 +1,6 @@
 import { Card, Tooltip, Progress, Space, Statistic, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import Payment from "./payment";
+import UnpaidInvoices from "./unpaid-invoices";
 
 export default function Balance({ balance, quota, style }) {
   return (
@@ -44,7 +44,7 @@ export default function Balance({ balance, quota, style }) {
             </div>
           )}
           <hr />
-          <Payment balance={balance} />
+          <UnpaidInvoices  balance={balance} />
         </>
       )}
     </Card>

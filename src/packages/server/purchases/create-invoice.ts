@@ -44,7 +44,8 @@ export default async function createInvoice({
     throw Error("account must be valid");
   }
   const stripe = await getConn();
-  const customer = await getStripeCustomerId(account_id);
+  const customer = await getStripeCustomerId({ account_id, create: true });
+  if (customer == null) throw Error("bug");
   logger.debug("createInvoice", { customer });
   await stripe.invoiceItems.create({
     customer,
@@ -64,7 +65,13 @@ export default async function createInvoice({
   return sentInvoice as any;
 }
 
-async function getStripeCustomerId(account_id: string): Promise<string> {
+export async function getStripeCustomerId({
+  account_id,
+  create,
+}: {
+  account_id: string;
+  create: boolean;
+}): Promise<string | null> {
   const db = getPool();
   const { rows } = await db.query(
     "SELECT stripe_customer_id FROM accounts WHERE account_id=$1",
@@ -79,7 +86,11 @@ async function getStripeCustomerId(account_id: string): Promise<string> {
     );
     return stripe_customer_id;
   }
-  return await createStripeCustomer(account_id);
+  if (create) {
+    return await createStripeCustomer(account_id);
+  } else {
+    return null;
+  }
 }
 
 async function createStripeCustomer(account_id: string): Promise<string> {

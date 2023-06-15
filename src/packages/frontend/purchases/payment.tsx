@@ -1,8 +1,9 @@
 import { Button, InputNumber, Modal, Space, Tooltip, Statistic } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useState } from "react";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
-export default function Payment({ balance }) {
+export default function Payment({ balance, update }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number | null>(0);
 
@@ -11,16 +12,14 @@ export default function Payment({ balance }) {
     setIsModalVisible(true);
   };
 
-  const handleOk = () => {
+  const handleOk = async () => {
     setIsModalVisible(false);
     setPaymentAmount(0);
-    if (!paymentAmount) {
+    if (!paymentAmount || paymentAmount < 0) {
       return;
     }
-    const invoiceAmount = paymentAmount < 0 ? -paymentAmount : paymentAmount;
-    console.log(`Creating invoice for ${invoiceAmount} USD...`);
-    // Code here to create an invoice for the payment amount
-    // Once the invoice is paid, the account balance can be updated
+    await webapp_client.purchases_client.createCredit(paymentAmount);
+    update();
   };
 
   const handleCancel = () => {
