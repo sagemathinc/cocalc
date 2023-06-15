@@ -121,6 +121,10 @@ export class PurchasesClient {
       query: { crm_accounts: { account_id, purchase_quota } },
     });
   }
+
+  async createCredit(amount: number): Promise<any> {
+    return await api("purchases/create-credit", { amount });
+  }
 }
 
 async function waitUntilPayAsYouGoModalCloses() {

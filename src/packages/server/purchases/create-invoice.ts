@@ -20,12 +20,14 @@ interface Options {
   account_id: string;
   amount: number; // amount in US Dollars
   description: string;
+  metadata?: any;
 }
 
 export default async function createInvoice({
   account_id,
   amount,
   description,
+  metadata,
 }: Options): Promise<{
   id: string;
   paid: boolean;
@@ -54,11 +56,12 @@ export default async function createInvoice({
     customer,
     auto_advance: true,
     collection_method: "send_invoice",
-    days_until_due: 15,
+    days_until_due: 21,
+    metadata,
   });
   logger.debug("createInvoice", { invoice });
   const sentInvoice = await stripe.invoices.sendInvoice(invoice.id);
-  return sentInvoice;
+  return sentInvoice as any;
 }
 
 async function getStripeCustomerId(account_id: string): Promise<string> {

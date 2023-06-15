@@ -19,7 +19,10 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "npx tsc",
@@ -44,6 +47,7 @@
     "@types/nodemailer": "^6.4.4",
     "@types/passport": "^1.0.9",
     "@types/passport-google-oauth20": "^2.0.11",
+    "@types/stripe": "^8.0.417",
     "async-await-utils": "^3.0.1",
     "await-spawn": "^4.0.2",
     "awaiting": "^3.0.0",
