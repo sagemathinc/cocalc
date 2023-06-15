@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Tooltip } from "antd";
+import React from "react";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { CSS, redux, Rendered } from "@cocalc/frontend/app-framework";
 import {
@@ -22,8 +25,6 @@ import track from "@cocalc/frontend/user-tracking";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import * as misc from "@cocalc/util/misc";
 import { round1 } from "@cocalc/util/misc";
-import { Tooltip } from "antd";
-import React from "react";
 import { Col, Grid, Row } from "react-bootstrap";
 import { SystemProcess } from "./system-process";
 import {
@@ -69,7 +70,7 @@ const file_action_icons: {
 
 interface Props {
   id: string;
-  time: Date;
+  time?: Date;
   event: ProjectEvent | string;
   account_id: string;
   user_map?: UserMap;
