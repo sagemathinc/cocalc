@@ -1,16 +1,16 @@
 import { Router } from "express";
 import { getLogger } from "@cocalc/hub/logger";
-import bodyParser from "body-parser";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getConn from "@cocalc/server/stripe/connection";
 import { createCreditFromPaidStripeInvoice } from "@cocalc/server/purchases/create-invoice";
+import * as express from "express";
 
 const logger = getLogger("hub:stripe-webhook");
 
 export default function init(app_router: Router) {
   const router = Router();
 
-  router.use(bodyParser.raw({ type: "application/json" }));
+  router.use(express.json({ type: "application/json" }));
   // return uuid-indexed blobs (mainly used for graphics)
   router.post("", async (req, res) => {
     logger.debug("POST");
