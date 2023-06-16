@@ -198,6 +198,13 @@ function GroupedPurchaseTable({ purchases }) {
           render: (service) => <ServiceTag service={service} />,
         },
         {
+          title: "Transactions",
+          dataIndex: "count",
+          key: "count",
+          sorter: (a: any, b: any) => (a.count ?? 0) - (b.count ?? 0),
+          sortDirections: ["ascend", "descend"],
+        },
+        {
           title: "Project",
           dataIndex: "project_id",
           key: "project_id",

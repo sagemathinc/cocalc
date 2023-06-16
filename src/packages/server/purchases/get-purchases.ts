@@ -28,7 +28,7 @@ export default async function getPurchases({
   let query;
   if (group) {
     query =
-      "SELECT SUM(cost), service, project_id FROM purchases WHERE account_id=$1";
+      "SELECT SUM(cost), service, project_id, CAST(COUNT(*) AS INTEGER) AS count FROM purchases WHERE account_id=$1";
   } else {
     query =
       "SELECT id, time, cost, service, description, invoice_id, project_id FROM purchases WHERE account_id=$1";
