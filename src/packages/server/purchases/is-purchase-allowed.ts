@@ -5,7 +5,7 @@ import { getTotalChargesThisMonth } from "./get-charges";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "./util";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import { getMaxCost } from "@cocalc/util/db-schema/openai";
+import { getMaxCost, Model } from "@cocalc/util/db-schema/openai";
 
 // Throws an exception if purchase is not allowed.  Code should
 // call this before giving the thing and doing createPurchase.
@@ -85,7 +85,7 @@ export async function isPurchaseAllowed({
   if (!quotaForService) {
     return {
       allowed: false,
-      reason: `You must explicitly set a positive quota for the "${
+      reason: `Please set a spending limit for the "${
         QUOTA_SPEC[service]?.display ?? service
       }" service.`,
     };
@@ -120,10 +120,11 @@ export async function assertPurchaseAllowed(opts: Options) {
 }
 
 async function getCostEstimate(service: Service): Promise<number | undefined> {
-  if (service?.startsWith("openai")) {
+  if (service?.startsWith("openai-")) {
     const { pay_as_you_go_openai_markup_percentage } =
       await getServerSettings();
-    return getMaxCost(service.slice(6), pay_as_you_go_openai_markup_percentage);
+    const model = service.slice(7) as Model;
+    return getMaxCost(model, pay_as_you_go_openai_markup_percentage);
   }
 
   switch (service) {

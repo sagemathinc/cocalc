@@ -6,14 +6,38 @@ import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 
 // The general categories of services we offer.  These must
 // be at most 127 characters, and users can set an individual
-// monthly quota on each one in purchase-quotas:
+// monthly quota on each one in purchase-quotas.
+// The service names for openai are of the form "openai-[model name]"
 
-export type Service = "credit" | "openai-gpt-4" | "project-upgrade" | "license";
-
-export type Model = "gpt-3.5-turbo" | "gpt-4";
+export type Service =
+  | "credit"
+  | "openai-gpt-4"
+  | "openai-gpt-4-32k"
+  | "openai-gpt-3.5-turbo"
+  | "openai-gpt-3.5-turbo-16k"
+  | "project-upgrade"
+  | "license";
 
 export interface OpenaiGPT4 {
   type: "openai-gpt-4";
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface OpenaiGPT4_32k {
+  type: "openai-gpt-4-32k";
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface OpenaiGPT35 {
+  type: "openai-gpt-3.5-turbo";
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface OpenaiGPT35_16k {
+  type: "openai-gpt-3.5-turbo-16k";
   prompt_tokens: number;
   completion_tokens: number;
 }
@@ -52,7 +76,14 @@ export interface Credit {
   // not sure what else, e.g., if it comes from a voucher, could be the voucher code here.
 }
 
-export type Description = OpenaiGPT4 | ProjectUpgrade | Credit | License;
+export type Description =
+  | OpenaiGPT4
+  | OpenaiGPT4_32k
+  | OpenaiGPT35
+  | OpenaiGPT35_16k
+  | ProjectUpgrade
+  | Credit
+  | License;
 
 // max number of purchases a user can get in one query.
 export const MAX_API_LIMIT = 500;

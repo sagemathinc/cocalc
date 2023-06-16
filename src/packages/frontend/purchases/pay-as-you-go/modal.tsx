@@ -8,6 +8,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import QuotaConfig from "../quota-config";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ServiceTag from "../service";
+import Cost from "./cost";
 
 export default function PayAsYouGoModal({}) {
   const actions = useActions("billing");
@@ -61,13 +62,13 @@ export default function PayAsYouGoModal({}) {
         <Alert
           showIcon
           type="warning"
-          style={{ marginTop: "15px" }}
+          style={{ margin: "15px 0" }}
           description={storeState.reason}
         />
       )}
       {storeState.allowed && (
         <Alert
-          style={{ marginTop: "15px" }}
+          style={{ margin: "15px 0" }}
           showIcon
           type="success"
           description={
@@ -78,6 +79,15 @@ export default function PayAsYouGoModal({}) {
             </>
           }
         />
+      )}
+      {storeState.service != null && (
+        <div>
+          <div style={{ color: "#666", marginBottom: "5px" }}>
+            This service is charged on a pay-as-you-go basis according to the
+            following rates:
+          </div>
+          <Cost service={storeState.service} />
+        </div>
       )}
       <div style={{ marginBottom: "15px" }} />
       <QuotaConfig

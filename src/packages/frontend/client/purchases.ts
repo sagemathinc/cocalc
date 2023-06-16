@@ -128,6 +128,13 @@ export class PurchasesClient {
   async getUnpaidInvoices(): Promise<any[]> {
     return await api("purchases/get-unpaid-invoices");
   }
+
+  // OUTPUT:
+  //   If service is 'credit', then returns the min allowed credit.
+  //   If service is 'openai...' it returns an object {prompt_tokens: number; completion_tokens: number} with the current cost per token in USD.
+  async getServiceCost(service: Service): Promise<any> {
+    return await api("purchases/get-service-cost", { service });
+  }
 }
 
 async function waitUntilPayAsYouGoModalCloses() {

@@ -2,6 +2,15 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 
+export const GPT_MODELS = [
+  "gpt-3.5-turbo",
+  "gpt-3.5-turbo-16k",
+  "gpt-4",
+  "gpt-4-32k",
+] as const;
+
+export type GPTModel = typeof GPT_MODELS[number];
+
 export const MODELS = [
   "gpt-3.5-turbo",
   "gpt-3.5-turbo-16k",
@@ -9,6 +18,7 @@ export const MODELS = [
   "gpt-4-32k",
   "text-embedding-ada-002",
 ] as const;
+
 export type Model = typeof MODELS[number];
 
 // Map from psuedo account_id to what should be displayed to user.

@@ -25,6 +25,7 @@ import ServiceTag from "./service";
 import GlobalQuota from "./global-quota";
 import { currency } from "./quota-config";
 import Balance from "./balance";
+import Cost from "./pay-as-you-go/cost";
 
 interface ServiceQuota {
   service: Service;
@@ -150,6 +151,11 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       ),
     },
     {
+      title: "Cost",
+      align: "center" as "center",
+      render: (_, { service }: ServiceQuota) => <Cost service={service} />,
+    },
+    {
       title: "This Month Spend (USD)",
       dataIndex: "current",
       align: "center" as "center",
@@ -205,7 +211,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
         </div>
       )}
       <Card
-        style={{ margin: "15px 0" }}
+        style={{ margin: "15px 0", overflow: "auto" }}
         title={
           <>
             Monthly limits are self-imposed caps you set to prevent overspending

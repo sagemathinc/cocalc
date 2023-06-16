@@ -5,7 +5,7 @@ Backend server side part of ChatGPT integration with CoCalc.
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { checkForAbuse } from "./abuse";
-import { Model, getCost, isValidModel } from "@cocalc/util/db-schema/openai";
+import { GPTModel, getCost, isValidModel } from "@cocalc/util/db-schema/openai";
 import { delay } from "awaiting";
 import getClient from "./client";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
@@ -25,7 +25,7 @@ interface ChatOptions {
   path?: string;
   analytics_cookie?: string;
   history?: { role: "assistant" | "user" | "system"; content: string }[];
-  model?: Model; // default is gpt-3.5-turbo
+  model?: GPTModel; // default is gpt-3.5-turbo
   tag?: string;
   // If stream is set, then everything works as normal with two exceptions:
   // - The stream function is called with bits of the output as they are produced,

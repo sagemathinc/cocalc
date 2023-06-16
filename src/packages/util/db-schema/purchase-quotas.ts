@@ -16,6 +16,21 @@ export type QuotaSpec = Record<Service, Spec>;
 export const QUOTA_SPEC: QuotaSpec = {
   credit: { display: "Credit", noSet: true, color: "#5cb85c" },
   "openai-gpt-4": { display: "OpenAI GPT-4", color: "#10a37f" },
+  "openai-gpt-3.5-turbo": {
+    display: "OpenAI GPT-3.5",
+    color: "#10a37f",
+    noSet: true, // because this model is not charged for
+  },
+  "openai-gpt-3.5-turbo-16k": {
+    display: "OpenAI GPT-3.5 16k",
+    color: "#10a37f",
+    noSet: true, // because this model is not user visible yet
+  },
+  "openai-gpt-4-32k": {
+    display: "OpenAI GPT-4 32k",
+    color: "#10a37f",
+    noSet: true, // because this model is not user visible yet
+  },
   "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
   license: {
     display: "License",
