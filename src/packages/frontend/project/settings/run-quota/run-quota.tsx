@@ -32,6 +32,7 @@ import {
   Usage,
   Value,
 } from "./misc";
+import PayAsYouGoProjectUpgrade from "./pay-as-you-go";
 
 const { Text } = Typography;
 const PARAMS = PROJECT_UPGRADES.params;
@@ -216,6 +217,7 @@ export const RunQuota: React.FC<Props> = React.memo(
           <>
             {record.desc} {renderQuotaValue(record)}{" "}
             {renderExtraMaximum(record)} {renderExtraExplanation(record)}
+            <PayAsYouGoProjectUpgrade record={record} />
           </>
         );
       }
