@@ -3,6 +3,10 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency } from "./quota-config";
+import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/modal";
+
+const zIndex = zIndexPayAsGo + 1;
+export const zIndexTip = zIndex + 1;
 
 export default function Payment({ balance, update }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -46,7 +50,7 @@ export default function Payment({ balance, update }) {
         okText={"Create Invoice"}
         destroyOnClose
         maskClosable={false}
-        zIndex={100000}
+        zIndex={zIndex}
         title={
           <>
             <Icon name="credit-card" style={{ marginRight: "5px" }} /> Make
@@ -83,7 +87,7 @@ export default function Payment({ balance, update }) {
             <br />+ tax and fees
           </div>
           <Tooltip
-            zIndex={9999999}
+            zIndex={zIndexTip}
             title="If your payment exceeds your balance, then you will have a negative balance, which can be used for purchases beyond your global spend limit and to buy licenses in the store. Credits are nonrefundable, but do not expire."
           >
             <Icon name="question-circle" style={{ marginLeft: "10px" }} />

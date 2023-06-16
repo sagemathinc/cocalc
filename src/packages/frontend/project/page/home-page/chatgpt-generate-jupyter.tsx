@@ -310,12 +310,15 @@ export default function ChatGPTGenerateJupyterNotebook({
     });
 
     gptStream.on("error", (err) => {
-      ja.set_cell_input(
-        curCell,
-        `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`
-      );
-      ja.set_cell_type(curCell, "markdown");
-      ja.set_mode("escape");
+      setError(`${err}`);
+      if (ja != null) {
+        ja.set_cell_input(
+          curCell,
+          `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`
+        );
+        ja.set_cell_type(curCell, "markdown");
+        ja.set_mode("escape");
+      }
       return;
     });
 
@@ -435,6 +438,14 @@ export default function ChatGPTGenerateJupyterNotebook({
                   {modelToName(model)} (shift+enter)
                 </Button>
               </Paragraph>
+              {error && (
+                <Alert
+                  style={{ marginBottom: "15px" }}
+                  showIcon
+                  type="error"
+                  description={<Markdown value={error} />}
+                />
+              )}
               {input && (
                 <div>
                   The following will be sent to {modelToName(model)}:
@@ -450,11 +461,6 @@ export default function ChatGPTGenerateJupyterNotebook({
                 </div>
               )}
               {!error && querying && <ProgressEstimate seconds={30} />}
-              {error && (
-                <Paragraph>
-                  <Markdown value={error} />
-                </Paragraph>
-              )}
             </>
           )}
         </>

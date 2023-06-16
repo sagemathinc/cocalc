@@ -10,6 +10,9 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ServiceTag from "../service";
 import Cost from "./cost";
 
+/* must be big! 1000 for e.g., the jupyter generate modal */
+export const zIndex = 2000;
+
 export default function PayAsYouGoModal({}) {
   const actions = useActions("billing");
 
@@ -39,9 +42,7 @@ export default function PayAsYouGoModal({}) {
   return (
     <Modal
       width={"600px"}
-      zIndex={
-        100000 /* must be big! 1000 for e.g., the jupyter generate modal */
-      }
+      zIndex={zIndex}
       destroyOnClose
       maskClosable={false}
       open={storeState.showModal}

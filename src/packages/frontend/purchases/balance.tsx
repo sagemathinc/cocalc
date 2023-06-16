@@ -1,5 +1,6 @@
 import { Card, Tooltip, Progress, Space, Statistic, Spin } from "antd";
 import UnpaidInvoices from "./unpaid-invoices";
+import { zIndexTip } from "./payment";
 
 export default function Balance({ balance, quota, style }) {
   let body;
@@ -28,7 +29,7 @@ export default function Balance({ balance, quota, style }) {
     if (balance < 0) {
       stat = (
         <Tooltip
-          zIndex={99999999}
+          zIndex={zIndexTip}
           title="You have a negative balance.  This is money that you can spend anywhere in CoCalc."
         >
           {stat}
@@ -42,7 +43,7 @@ export default function Balance({ balance, quota, style }) {
           {quota != null && quota > 0 && (
             <Tooltip
               title={"Percent of your total spending limit"}
-              zIndex={99999999}
+              zIndex={zIndexTip}
             >
               <Progress
                 style={{ marginLeft: "30px" }}
