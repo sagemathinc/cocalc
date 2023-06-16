@@ -1,13 +1,21 @@
 import { Button, InputNumber, Modal, Space, Tooltip, Statistic } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { currency } from "./quota-config";
 
 export default function Payment({ balance, update }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number | null>(
     Math.max(5, balance ?? 0)
   );
+  const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    (async () => {
+      setMinPayment(await webapp_client.purchases_client.getMinimumPayment());
+    })();
+  }, []);
 
   const showModal = () => {
     setPaymentAmount(Math.max(5, balance ?? 0));
@@ -35,6 +43,7 @@ export default function Payment({ balance, update }) {
         Make Payment...
       </Button>
       <Modal
+        okText={"Create Invoice"}
         destroyOnClose
         maskClosable={false}
         zIndex={100000}
@@ -48,27 +57,41 @@ export default function Payment({ balance, update }) {
         onOk={handleOk}
         onCancel={handleCancel}
       >
-        <Statistic
-          title={"Current balance (USD)"}
-          value={balance}
-          precision={2}
-          prefix={"$"}
-        />
-        <Space>
-          <div>Enter payment amount (USD):</div>
-          <InputNumber
-            min={2 /* TODO? */}
-            max={100000} // maximum payment amount is $100,000
-            precision={2} // for two decimal places
-            step={0.01} // smallest possible increment is one cent
-            value={paymentAmount}
-            onChange={(value) => setPaymentAmount(value)}
+        <div style={{ textAlign: "center" }}>
+          <Statistic
+            title={"Current balance (USD)"}
+            value={balance}
+            precision={2}
+            prefix={"$"}
           />
-
-          <Tooltip title="You can pay more than the balance to create a negative balance, which can be used for pay-as-you-go purchases beyond your global limit or to buy licenses in the store without a credit card.">
+        </div>
+        <hr />
+        <Space>
+          <div style={{ marginRight: "30px" }}>
+            Enter payment amount (USD):
+            {minPayment != null && <div>Minimum: {currency(minPayment)}</div>}
+          </div>
+          <div>
+            <InputNumber
+              min={minPayment}
+              max={100000} // maximum payment amount is $100,000
+              precision={2} // for two decimal places
+              step={0.01} // smallest possible increment is one cent
+              value={paymentAmount}
+              onChange={(value) => setPaymentAmount(value)}
+            />
+            <br />+ tax and fees
+          </div>
+          <Tooltip
+            zIndex={9999999}
+            title="If your payment exceeds your balance, then you will have a negative balance, which can be used for purchases beyond your global spend limit and to buy licenses in the store. Credits are nonrefundable, but do not expire."
+          >
             <Icon name="question-circle" style={{ marginLeft: "10px" }} />
           </Tooltip>
         </Space>
+        <hr />
+        An invoice will be created, which you can pay using a wide range of
+        methods. Once you pay the invoice, your account will be credited.
       </Modal>
     </div>
   );

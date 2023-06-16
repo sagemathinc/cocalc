@@ -100,7 +100,14 @@ function OpenAiCost({ prompt_tokens, completion_tokens }) {
     },
   ];
 
-  return <Table columns={columns} dataSource={data} pagination={false} />;
+  return (
+    <Table
+      rowKey={"input"}
+      columns={columns}
+      dataSource={data}
+      pagination={false}
+    />
+  );
 }
 
 function PriceWithToken({ text }) {

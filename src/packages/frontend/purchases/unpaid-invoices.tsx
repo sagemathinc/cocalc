@@ -66,6 +66,7 @@ export default function UnpaidInvoices({ balance }) {
         {title}...
       </Button>
       <Modal
+        okText="Done"
         title={
           <Space>
             {title}{" "}
@@ -79,7 +80,7 @@ export default function UnpaidInvoices({ balance }) {
         onOk={handleClose}
         onCancel={handleClose}
       >
-        Please click on each invoice below and pay it to complete your purchase.
+        Click on each invoice below and pay it to complete your purchase.
         Thanks!
         {unpaidInvoices.map((invoice) => (
           <Invoice key={invoice.id} invoice={invoice} />

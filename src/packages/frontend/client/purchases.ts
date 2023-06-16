@@ -9,6 +9,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { once } from "@cocalc/util/async-utils";
 
 export class PurchasesClient {
+  private minPayment: number | null = null;
   //private client: WebappClient;
 
   //   constructor(client: WebappClient) {
@@ -134,6 +135,14 @@ export class PurchasesClient {
   //   If service is 'openai...' it returns an object {prompt_tokens: number; completion_tokens: number} with the current cost per token in USD.
   async getServiceCost(service: Service): Promise<any> {
     return await api("purchases/get-service-cost", { service });
+  }
+
+  async getMinimumPayment(): Promise<number> {
+    if (this.minPayment != null) {
+      return this.minPayment;
+    }
+    this.minPayment = (await this.getServiceCost("credit")) as number;  
+    return this.minPayment;
   }
 }
 
