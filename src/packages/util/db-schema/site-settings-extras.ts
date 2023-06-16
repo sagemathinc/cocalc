@@ -71,6 +71,7 @@ export type SiteSettingsExtrasKeys =
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
+  | "stripe_webhook_secret"
   | "re_captcha_v3_heading"
   | "re_captcha_v3_publishable_key"
   | "re_captcha_v3_secret_key"
@@ -207,6 +208,13 @@ export const EXTRAS: SettingsExtras = {
   stripe_secret_key: {
     name: "Stripe Secret",
     desc: "Stripe calls this key 'secret'",
+    default: "",
+    show: only_commercial,
+    password: true,
+  },
+  stripe_webhook_secret: {
+    name: "Stripe Webhook Secret",
+    desc: "The stripe webhook secret, which is used to verify the signature for stripe webhooks events.  For this to work, you must enable stripe webhooks at https://dashboard.stripe.com/webhooks with a URL like `https://my-cocalc-server/webhooks/stripe`.  At this point it would also be nice to list exactly which webhooks you should listen for, but I just haven't implemented this yet, and explain to what extent this is used.    invoice.paid is one.",
     default: "",
     show: only_commercial,
     password: true,
