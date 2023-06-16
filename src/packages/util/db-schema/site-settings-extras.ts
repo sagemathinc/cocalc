@@ -110,7 +110,8 @@ export type SiteSettingsExtrasKeys =
   | "prometheus_metrics"
   | "pay_as_you_go_section"
   | "default_pay_as_you_go_quota"
-  | "pay_as_you_go_min_payment";
+  | "pay_as_you_go_min_payment"
+  | "pay_as_you_go_openai_markup_percentage";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -426,11 +427,19 @@ export const EXTRAS: SettingsExtras = {
     valid: onlyNonnegFloat,
   },
   pay_as_you_go_min_payment: {
-    name: "Pay As You Go Minimum Payment",
+    name: "Pay As You Go - Minimum Payment",
     desc: "The minimum transaction size that a user can pay towards their pay-as-you-go balance, in dollars.",
-    default: "5",
+    default: "2.50",
     show: only_commercial,
     to_val: toFloat,
     valid: onlyPosFloat,
+  },
+  pay_as_you_go_openai_markup_percentage: {
+    name: "Pay As You Go - OpenAI Markup Percentage",
+    desc: "The markup percentage that we add to the OpenAI API call rate.  This accounts for maintenance, dev, servers, and bandwidth. For example, '30' would mean we add 30% to the price that OpenAI charges us.",
+    default: "30",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
   },
 } as const;

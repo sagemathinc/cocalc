@@ -3,9 +3,9 @@ import { getPurchaseQuotas } from "./purchase-quotas";
 import getBalance from "./get-balance";
 import { getTotalChargesThisMonth } from "./get-charges";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import { GPT4_MAX_COST } from "@cocalc/server/openai/chatgpt";
 import { currency } from "./util";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getMaxCost } from "@cocalc/util/db-schema/openai";
 
 // Throws an exception if purchase is not allowed.  Code should
 // call this before giving the thing and doing createPurchase.
@@ -120,9 +120,13 @@ export async function assertPurchaseAllowed(opts: Options) {
 }
 
 async function getCostEstimate(service: Service): Promise<number | undefined> {
+  if (service?.startsWith("openai")) {
+    const { pay_as_you_go_openai_markup_percentage } =
+      await getServerSettings();
+    return getMaxCost(service.slice(6), pay_as_you_go_openai_markup_percentage);
+  }
+
   switch (service) {
-    case "openai-gpt-4":
-      return GPT4_MAX_COST;
     case "credit":
       const { pay_as_you_go_min_payment } = await getServerSettings();
       return -pay_as_you_go_min_payment;

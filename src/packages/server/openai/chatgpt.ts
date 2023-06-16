@@ -5,7 +5,7 @@ Backend server side part of ChatGPT integration with CoCalc.
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { checkForAbuse } from "./abuse";
-import type { Model } from "@cocalc/util/db-schema/openai";
+import { Model, getCost, isValidModel } from "@cocalc/util/db-schema/openai";
 import { delay } from "awaiting";
 import getClient from "./client";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
@@ -14,16 +14,6 @@ import GPT3Tokenizer from "gpt3-tokenizer";
 import { EventEmitter } from "events";
 import { once } from "@cocalc/util/async-utils";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
-
-const GPT4_MARKUP = 1 / 0.7; // 30% cut, same as apple app store
-export const GPT4_COST = {
-  prompt_tokens: (GPT4_MARKUP * 0.03) / 1000,
-  completion_tokens: (GPT4_MARKUP * 0.06) / 1000,
-};
-// The maximum cost for one single GPT-4 api call.
-// We can't know the cost until after it happens, so use this bound.
-export const GPT4_MAX_COST =
-  Math.max(GPT4_COST.prompt_tokens, GPT4_COST.completion_tokens) * 8192;
 
 const log = getLogger("chatgpt");
 
@@ -72,6 +62,9 @@ export async function evaluate({
     stream: stream != null,
     maxTokens,
   });
+  if (!isValidModel(model) || !model.startsWith("gpt")) {
+    throw Error(`unsupported model "${model}"`);
+  }
   const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie, model });
   const openai = await getClient();
@@ -101,20 +94,24 @@ export async function evaluate({
 
   if (account_id) {
     if (model == "gpt-3.5-turbo") {
-      // no charge for now
-    } else if (model == "gpt-4") {
-      // charge the current rate
+      // no charge for now...
+    } else {
+      // charge for ALL other models.
+      const { pay_as_you_go_openai_markup_percentage } =
+        await getServerSettings();
+      const c = getCost(model, pay_as_you_go_openai_markup_percentage);
       const cost =
-        prompt_tokens * GPT4_COST.prompt_tokens +
-        completion_tokens * GPT4_COST.completion_tokens;
+        c.prompt_tokens * prompt_tokens +
+        c.completion_tokens * completion_tokens;
+
       try {
         await createPurchase({
           account_id,
           project_id,
           cost,
-          service: "openai-gpt-4",
+          service: `openai-${model}`,
           description: {
-            type: "openai-gpt-4",
+            type: `openai-${model}`,
             prompt_tokens,
             completion_tokens,
           },
@@ -127,10 +124,6 @@ export async function evaluate({
         );
         // we might send an email or something...?
       }
-    } else {
-      log.error(
-        `BUG -- there should be no way that model isn't gpt-3.5-turbo or gpt-4, but it is '${model}'`
-      );
     }
   }
 
