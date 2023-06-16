@@ -3,17 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CaretRightOutlined } from "@ant-design/icons";
-import {
-  Button,
-  Collapse,
-  Input,
-  InputRef,
-  Popover,
-  Radio,
-  Space,
-  Tooltip,
-} from "antd";
+import { Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { List } from "immutable";
 import { debounce } from "lodash";
@@ -35,31 +25,20 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { ConnectionStatus } from "@cocalc/frontend/app/store";
-import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
-import { ConnectionStatusIcon } from "@cocalc/frontend/frame-editors/frame-tree/title-bar";
-import {
-  ACTION_BUTTONS_DIR,
-  ACTION_BUTTONS_FILE,
-  ACTION_BUTTONS_MULTI,
-} from "@cocalc/frontend/project/explorer/action-bar";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
   DirectoryListing,
   DirectoryListingEntry,
 } from "@cocalc/frontend/project/explorer/types";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
-import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import track from "@cocalc/frontend/user-tracking";
 import {
-  human_readable_size,
-  path_split,
   path_to_file,
-  plural,
   search_match,
   search_split,
   should_open_in_foreground,
@@ -67,10 +46,9 @@ import {
   tab_to_path,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { FIX_BORDER } from "../common";
 import { useProjectState } from "../project-state-hook";
 import { FileListItem, fileItemStyle } from "./components";
-import { TerminalFlyout } from "./files-terminal";
+import { FilesBottom } from "./files-bottom";
 
 type ActiveFileSort = TypedMap<{
   column_name: string;
@@ -79,6 +57,8 @@ type ActiveFileSort = TypedMap<{
 
 export function FilesFlyout({ project_id }): JSX.Element {
   const isMountedRef = useIsMountedRef();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [rootHeightPx, setRootHeightPx] = useState<number>(0);
   const refInput = useRef<InputRef>(null);
   const actions: ProjectActions | undefined = useActions({ project_id });
   const project_state = useProjectState(project_id);
@@ -230,6 +210,20 @@ export function FilesFlyout({ project_id }): JSX.Element {
     setPrevSelected(null);
   }, [current_path]);
 
+  const triggerRootResize = debounce(
+    () => setRootHeightPx(rootRef.current?.clientHeight ?? 0),
+    50,
+    { leading: false, trailing: true }
+  );
+
+  // observe the root element's height
+  useLayoutEffect(() => {
+    if (rootRef.current == null) return;
+    const observer = new ResizeObserver(triggerRootResize);
+    observer.observe(rootRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   // *** END HOOKS ***
 
   if (directoryListings == null) {
@@ -253,32 +247,43 @@ export function FilesFlyout({ project_id }): JSX.Element {
     })();
   }
 
-  function open(e: React.MouseEvent | React.KeyboardEvent, index: number) {
+  function open(
+    e: React.MouseEvent | React.KeyboardEvent,
+    index: number,
+    skip = false // to exclude directories
+  ) {
+    e.stopPropagation();
     const file = directoryFiles[index];
-    const fullPath = path_to_file(current_path, file.name);
-    if (file.isdir) {
-      actions?.set_current_path(fullPath);
-      setSearch("");
-    } else {
-      const foreground = should_open_in_foreground(e);
-      track("open-file", {
-        project_id,
-        path: fullPath,
-        how: "click-on-listing-flyout",
-      });
-      actions?.open_file({
-        path: fullPath,
-        foreground,
-      });
-      const fn = directoryFiles[index].name;
-      if (checked_files.includes(fn)) {
-        actions?.set_file_list_unchecked(List([fn]));
+
+    if (!skip) {
+      const fullPath = path_to_file(current_path, file.name);
+
+      if (file.isdir) {
+        actions?.set_current_path(fullPath);
+        setSearch("");
+      } else {
+        const foreground = should_open_in_foreground(e);
+        track("open-file", {
+          project_id,
+          path: fullPath,
+          how: "click-on-listing-flyout",
+        });
+        actions?.open_file({
+          path: fullPath,
+          foreground,
+        });
       }
+    }
+
+    const fn = file.name;
+    if (checked_files.includes(fn)) {
+      actions?.set_file_list_unchecked(List([fn]));
     }
   }
 
   function toggleSelected(index: number, fn: string) {
-    if (checked_files.includes(fn)) {
+    // never select "..", only calls for trouble
+    if (fn === ".." || checked_files.includes(fn)) {
       actions?.set_file_list_unchecked(List([fn]));
     } else {
       actions?.set_file_list_checked([fn]);
@@ -301,6 +306,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     if (file.isopen) {
       // ... unless active, then select/deselect it
       if (file.isactive) {
+        if (!e.ctrlKey) actions?.set_all_files_unchecked();
         toggleSelected(index, file.name);
       } else {
         open(e, index);
@@ -316,6 +322,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
       let fileNames: string[] = [];
       for (let i = start; i <= end; i++) {
         const fn = directoryFiles[i].name;
+        if (fn === "..") continue; // don't select, just calls for trouble
         fileNames.push(fn);
       }
       if (add) {
@@ -327,6 +334,8 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
 
     // base case: select/de-select single file with a single click
+    // hold ctrl key to select several files one-by-one
+    if (!e.ctrlKey) actions?.set_all_files_unchecked();
     toggleSelected(index, file.name);
   }
 
@@ -382,25 +391,6 @@ export function FilesFlyout({ project_id }): JSX.Element {
     return <Icon name={iconName} style={style} />;
   }
 
-  function renderTooltip(
-    age: number | null,
-    { isdir = false, size = 0 }
-  ): JSX.Element {
-    return (
-      <>
-        {age ? (
-          <>
-            Last modified <TimeAgo date={new Date(age)} />
-            <br />
-          </>
-        ) : undefined}
-        {isdir
-          ? `Contains ${size} ${plural(size, "item")}`
-          : `Size: ${human_readable_size(size)}`}
-      </>
-    );
-  }
-
   function renderListItem(index: number, item: DirectoryListingEntry) {
     const { mtime, mask = false } = item;
     const age = typeof mtime === "number" ? 1000 * mtime : null;
@@ -420,10 +410,8 @@ export function FilesFlyout({ project_id }): JSX.Element {
           actions?.close_tab(path_to_file(current_path, name));
         }}
         onOpen={(e: React.MouseEvent) => {
-          e.stopPropagation();
           open(e, index);
         }}
-        tooltip={renderTooltip(age, item)}
         selected={isSelected}
       />
     );
@@ -580,19 +568,11 @@ export function FilesFlyout({ project_id }): JSX.Element {
     );
   }
 
-  function renderBottom() {
-    return (
-      <FilesBottom
-        project_id={project_id}
-        checked_files={checked_files}
-        directoryFiles={directoryFiles}
-        projectIsRunning={projectIsRunning}
-      />
-    );
-  }
-
   return (
-    <>
+    <div
+      ref={rootRef}
+      style={{ flex: "1 0 auto", flexDirection: "column", display: "flex" }}
+    >
       {renderHeader()}
       {disableUploads ? (
         renderListing()
@@ -613,186 +593,14 @@ export function FilesFlyout({ project_id }): JSX.Element {
           {renderListing()}
         </FileUploadWrapper>
       )}
-      {renderBottom()}
-    </>
-  );
-}
-
-function FilesBottom({
-  project_id,
-  checked_files,
-  directoryFiles,
-  projectIsRunning,
-}) {
-  const current_path = useTypedRedux({ project_id }, "current_path");
-  const actions = useActions({ project_id });
-  const n = checked_files.size;
-  const [activeKey, setActiveKey] = useState<string[]>([]);
-  const [resize, setResize] = useState<number>(0);
-  const [connectionStatus, setConectionStatus] = useState<
-    ConnectionStatus | ""
-  >("");
-
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  const triggerResize = debounce(() => setResize((r) => r + 1), 100);
-
-  // if rootRef changes size, increase resize
-  useLayoutEffect(() => {
-    if (rootRef.current == null) return;
-    const observer = new ResizeObserver(triggerResize);
-    observer.observe(rootRef.current);
-    return () => observer.disconnect();
-  }, [rootRef.current]);
-
-  useEffect(() => {
-    // if any selected, open "selectd" – otherwise close
-    if (checked_files.size > 0) {
-      setActiveKey(["selected", ...activeKey]);
-    } else {
-      setActiveKey(activeKey.filter((x) => x !== "selected"));
-    }
-  }, [checked_files]);
-
-  function renderTerminal() {
-    if (!projectIsRunning) {
-      return (
-        <div>You have to start the project to be able to run a terminal.</div>
-      );
-    }
-    return (
-      <TerminalFlyout
+      <FilesBottom
         project_id={project_id}
-        font_size={10}
-        resize={resize}
-        is_visible={activeKey.includes("terminal")}
-        setConectionStatus={setConectionStatus}
+        checked_files={checked_files}
+        directoryFiles={directoryFiles}
+        projectIsRunning={projectIsRunning}
+        rootHeightPx={rootHeightPx}
+        open={open}
       />
-    );
-  }
-
-  function renderButtons(names) {
-    const filename = path_split(checked_files.first()).tail;
-    return (
-      <Space wrap>
-        {names.map((name) => {
-          const disabled =
-            [
-              "move",
-              "compress",
-              "rename",
-              "delete",
-              "share",
-              "duplicate",
-            ].includes(name) &&
-            (current_path?.startsWith(".snapshots") ?? false);
-
-          const { name: actionName, icon, hideFlyout } = FILE_ACTIONS[name];
-          if (hideFlyout) return;
-          return (
-            <Popover key={name} content={`${actionName}...`}>
-              <Button
-                size="small"
-                key={name}
-                disabled={disabled}
-                onClick={() => {
-                  actions?.show_file_action_panel({
-                    path: filename,
-                    action: name,
-                  });
-                }}
-              >
-                <Icon name={icon} />
-              </Button>
-            </Popover>
-          );
-        })}
-      </Space>
-    );
-  }
-
-  function renderSelected() {
-    if (checked_files.size === 0) {
-      return <div>No files selected.</div>;
-    } else if (checked_files.size === 1) {
-      if (
-        directoryFiles.filter((f) => f.name === checked_files.first()).isdir
-      ) {
-        return renderButtons(ACTION_BUTTONS_DIR);
-      } else {
-        return renderButtons(ACTION_BUTTONS_FILE);
-      }
-    } else if (checked_files.size > 1) {
-      return renderButtons(ACTION_BUTTONS_MULTI);
-    }
-  }
-
-  function terminalHeader() {
-    return (
-      <>
-        <Icon name="terminal" /> Terminal{" "}
-        {connectionStatus !== "" ? (
-          <span style={{ float: "right" }} title={connectionStatus}>
-            <ConnectionStatusIcon status={connectionStatus} />
-          </span>
-        ) : undefined}
-      </>
-    );
-  }
-
-  const style: CSS = {
-    background: COLORS.GRAY_LL,
-    borderRadius: 0,
-    border: "none",
-  };
-
-  return (
-    <Collapse
-      ref={rootRef}
-      bordered={false}
-      activeKey={activeKey}
-      onChange={(key) => Array.isArray(key) && setActiveKey(key)}
-      size="small"
-      expandIcon={({ isActive }) => (
-        <CaretRightOutlined rotate={isActive ? 90 : 0} />
-      )}
-      destroyInactivePanel={true}
-      style={{
-        ...style,
-        flex: "0 0 auto",
-        borderTop: FIX_BORDER,
-      }}
-    >
-      {n > 0 ? (
-        <Collapse.Panel
-          className="cc-project-flyout-files-panel"
-          header={<>{n} selected</>}
-          key="selected"
-          style={{ ...style, paddingLeft: "5px", paddingRight: "5px" }}
-          extra={
-            <Button
-              size="small"
-              disabled={checked_files.size === 0}
-              onClick={(e) => {
-                e.stopPropagation();
-                actions?.set_all_files_unchecked();
-              }}
-            >
-              Deselect all
-            </Button>
-          }
-        >
-          {renderSelected()}
-        </Collapse.Panel>
-      ) : undefined}
-      <Collapse.Panel
-        className="cc-project-flyout-files-panel"
-        header={terminalHeader()}
-        key="terminal"
-        style={style}
-      >
-        {renderTerminal()}
-      </Collapse.Panel>
-    </Collapse>
+    </div>
   );
 }

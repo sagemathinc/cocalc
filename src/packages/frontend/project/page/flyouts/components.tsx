@@ -8,7 +8,7 @@ import {
   orange as ANTD_ORANGE,
   yellow as ANTD_YELLOW,
 } from "@ant-design/colors";
-import { Tag, Tooltip } from "antd";
+import { Button, Tooltip } from "antd";
 
 import { CSS, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -113,17 +113,16 @@ export function FileListItem({
 
   function renderOpenItem(): JSX.Element {
     return (
-      <Tag
-        bordered={false}
+      <Button
+        size="small"
+        type="primary"
+        style={{ fontSize: "11px", height: "20px", width: "20px" }}
         icon={<Icon name="external-link" />}
-        color={COLORS.ANTD_GREEN}
         onClick={(e) => {
           e.stopPropagation();
           onOpen?.(e);
         }}
-      >
-        Open
-      </Tag>
+      />
     );
   }
 

@@ -3,23 +3,29 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert } from "antd";
 import { throttle } from "lodash";
 
 import {
+  CSS,
   ReactDOM,
+  redux,
   useActions,
   useCallback,
   useEffect,
   useIsMountedRef,
   useRef,
+  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { DEFAULT_TERM_ENV } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { Terminal } from "@cocalc/frontend/frame-editors/terminal-editor/connected-terminal";
+import { ConnectedTerminalInterface } from "@cocalc/frontend/frame-editors/terminal-editor/connected-terminal-interface";
 import { background_color } from "@cocalc/frontend/frame-editors/terminal-editor/themes";
+import { escapeBashChangeDirPath } from "@cocalc/util/jupyter-api/chdir-commands";
 import { sha1 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { escapeBashChangeDirPath } from "@cocalc/util/jupyter-api/chdir-commands";
 
 // This is modeled after frame-editors/terminal-editor/terminal.tsx
 export function TerminalFlyout({
@@ -28,6 +34,7 @@ export function TerminalFlyout({
   resize,
   is_visible,
   setConectionStatus,
+  heightPx,
 }) {
   const actions = useActions({ project_id });
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -38,6 +45,8 @@ export function TerminalFlyout({
   const isMountedRef = useIsMountedRef();
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
 
   // Design decision:
   // One terminal per project, one for each user, and persistent across flyout open/close.
@@ -45,7 +54,7 @@ export function TerminalFlyout({
   // The last aspect is why it is per user, not one terminal for everyone.
   // Also, having a different terminal for each directory is a bit confusing.
   const hash = sha1(`${project_id}::${account_id}`);
-  const terminal_path = `/tmp/cocalc/${hash}.term`;
+  const terminal_path = `/tmp/cocalc-${hash}.term`;
   const id = `flyout::${hash}`; // TODO what exactly is the ID? arbitrary or a path?
 
   function delete_terminal(): void {
@@ -60,16 +69,23 @@ export function TerminalFlyout({
   }
 
   function get_terminal(id: string, parent: HTMLElement): Terminal {
-    const mockActions = {
+    const mockActions: ConnectedTerminalInterface = {
       project_id,
-      terminal_path,
+      path: terminal_path,
       get_term_env() {
-        return {};
+        return DEFAULT_TERM_ENV;
       },
-      flag_file_activity() {},
       set_title(_id, _title) {},
       set_connection_status(_id, status) {
         setConectionStatus(status);
+      },
+      pause() {},
+      unpause() {},
+      set_status(mesg) {
+        setStatus(mesg);
+      },
+      set_error(mesg) {
+        setError(mesg);
       },
       decrease_font_size() {},
       increase_font_size() {},
@@ -78,9 +94,21 @@ export function TerminalFlyout({
           actions?.set_current_path(payload);
         }
       },
+      _tree_is_single_leaf() {
+        // makes no sense, though
+        return true;
+      },
+      close_frame() {}, // we use this terminal exclusively
+      _get_project_actions() {
+        return actions ?? redux.getProjectActions(project_id);
+      },
+      open_code_editor_frame(path: string) {
+        // we just open the file
+        actions?.open_file(path);
+      },
     };
     const newTerminal = new Terminal(
-      mockActions as any,
+      mockActions as any, // this is "fine" because of the shared ConnectedTerminalInterface
       0,
       id,
       parent,
@@ -145,9 +173,10 @@ export function TerminalFlyout({
 
   // resize is a counter, increases with debouncing, if size change.
   // This triggers a re-measure of the terminal size, number of cols/rows changes.
+  // Also trigger if status or error is displayed, since that changes the size.
   useEffect(() => {
     measure_size();
-  }, [resize]);
+  }, [resize, status, error, heightPx]);
 
   // the terminal follows changing the directory
   useEffect(() => {
@@ -155,7 +184,8 @@ export function TerminalFlyout({
     // this "line reset" is from the terminal guide,
     // see frame-editors/terminal-editor/actions::run_command
     const clean = "\x05\x15"; // move cursor to end of line, then clear line
-    const cmd = `cd "$HOME/${escapeBashChangeDirPath(current_path)}"`;
+    const nextCwd = escapeBashChangeDirPath(current_path);
+    const cmd = `cd "$HOME/${nextCwd}"`;
     // this will end up in a write buffer, hence it should be ok to do right at the beginning
     terminalRef.current.conn_write(`${clean}${cmd}\n`);
   }, [current_path]);
@@ -190,6 +220,19 @@ export function TerminalFlyout({
     );
   }
 
+  function renderStatusError() {
+    const style: CSS = { fontSize: "12px", padding: "5px", margin: "0px" };
+    if (error) {
+      return (
+        <Alert banner closable type="error" message={error} style={style} />
+      );
+    } else if (status) {
+      return (
+        <Alert banner closable type="info" message={status} style={style} />
+      );
+    }
+  }
+
   const backgroundColor = background_color(terminal.get("color_scheme"));
 
   return (
@@ -207,11 +250,12 @@ export function TerminalFlyout({
         terminalRef.current?.focus();
       }}
     >
+      {renderStatusError()}
       <div
         style={{
           flex: "1 0 auto",
           background: COLORS.GRAY_LLL,
-          height: "200px",
+          height: heightPx,
         }}
         className={"cocalc-xtermjs"}
         ref={terminalDOMRef}
