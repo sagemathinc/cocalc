@@ -208,7 +208,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
         style={{ margin: "15px 0" }}
         title={
           <>
-            Monthly limits are selfimposed caps you set to prevent overspending
+            Monthly limits are self-imposed caps you set to prevent overspending
           </>
         }
       >

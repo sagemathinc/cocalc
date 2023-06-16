@@ -1,8 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import type { Credit } from "@cocalc/util/db-schema/purchases";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
-import { currency } from "./util";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
 
 export default async function createCredit({
   account_id,
@@ -24,12 +22,6 @@ export default async function createCredit({
   }
   if (amount <= 0) {
     throw Error(`credit amount (=${amount}) must be positive`);
-  }
-  const { pay_as_you_go_min_payment } = await getServerSettings();
-  if (amount <= pay_as_you_go_min_payment) {
-    throw Error(
-      `minimum credit you can add is ${currency(pay_as_you_go_min_payment)}.`
-    );
   }
   const pool = getPool();
 

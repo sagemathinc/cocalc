@@ -5,16 +5,18 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export default function Payment({ balance, update }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState<number | null>(0);
+  const [paymentAmount, setPaymentAmount] = useState<number | null>(
+    Math.max(5, balance ?? 0)
+  );
 
   const showModal = () => {
-    setPaymentAmount(0);
+    setPaymentAmount(Math.max(5, balance ?? 0));
     setIsModalVisible(true);
   };
 
   const handleOk = async () => {
     setIsModalVisible(false);
-    setPaymentAmount(0);
+    setPaymentAmount(Math.max(5, balance ?? 0));
     if (!paymentAmount || paymentAmount < 0) {
       return;
     }
@@ -59,7 +61,6 @@ export default function Payment({ balance, update }) {
             max={100000} // maximum payment amount is $100,000
             precision={2} // for two decimal places
             step={0.01} // smallest possible increment is one cent
-            defaultValue={0}
             value={paymentAmount}
             onChange={(value) => setPaymentAmount(value)}
           />

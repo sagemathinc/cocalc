@@ -82,7 +82,7 @@ export default function UnpaidInvoices({ balance }) {
         Please click on each invoice below and pay it to complete your purchase.
         Thanks!
         {unpaidInvoices.map((invoice) => (
-          <Invoice invoice={invoice} />
+          <Invoice key={invoice.id} invoice={invoice} />
         ))}
       </Modal>
     </div>
@@ -112,7 +112,7 @@ function Description({ invoice }) {
   const data = invoice.lines?.data;
   if (data == null || data.length == 0) return null;
   return data.map((x, n) => (
-    <div style={{ width: "100%" }}>
+    <div key={n} style={{ width: "100%" }}>
       {n + 1}. {x.description} ... {currency(x.amount / 100)}
     </div>
   ));

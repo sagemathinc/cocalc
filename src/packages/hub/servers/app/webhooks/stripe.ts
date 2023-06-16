@@ -1,3 +1,18 @@
+/*
+Stripe Webhook to handle some events:
+
+- invoice.paid -- 
+
+
+We *do* check the stripe signature to only handle requests that actually come from stripe.
+See https://stripe.com/docs/webhooks/signatures for where the code comes from.
+
+To test this in dev you need to use the stripe cli, which is a big GO program.
+For some reason the binary just hangs when trying to run it on cocalc.com (maybe
+due to how locked down our Docker containers are?), so it also seems only
+possible to test/debug this in cocalc-docker or somewhere else.
+*/
+
 import { Router } from "express";
 import { getLogger } from "@cocalc/hub/logger";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
@@ -7,31 +22,27 @@ import * as express from "express";
 
 const logger = getLogger("hub:stripe-webhook");
 
-export default function init(app_router: Router) {
-  const router = Router();
+export default function init(router: Router) {
+  router.post(
+    "/webhooks/stripe",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      logger.debug("POST");
 
-  router.use(express.json({ type: "application/json" }));
-  // return uuid-indexed blobs (mainly used for graphics)
-  router.post("", async (req, res) => {
-    logger.debug("POST");
+      try {
+        await handleRequest(req);
+      } catch (err) {
+        const error = `Webhook Error: ${err.message}`;
+        logger.error(error);
+        console.error(error);
+        res.status(400).send(error);
+        return;
+      }
 
-    try {
-      await handleRequest(req);
-    } catch (err) {
-      res.status(400).send(`Webhook Error: ${err.message}`);
-      return;
+      // Return a 200 response to acknowledge receipt of the event
+      res.send();
     }
-
-    // Return a 200 response to acknowledge receipt of the event
-    res.send();
-  });
-
-  router.get("", async (_req, res) => {
-    logger.debug("GET");
-    res.json({ status: "ok", message: "the webhooks/stripe url exists" });
-  });
-
-  app_router.use("/webhooks/stripe", router);
+  );
 }
 
 async function handleRequest(req) {
@@ -43,8 +54,7 @@ async function handleRequest(req) {
     sig,
     stripe_webhook_secret
   );
-  logger.debug("event = ", event);
-  console.log("event = ", event);
+  logger.debug("event.type = ", event.type);
 
   // Handle the event
   switch (event.type) {
@@ -54,8 +64,8 @@ async function handleRequest(req) {
       logger.debug("invoice = ", invoice);
       await createCreditFromPaidStripeInvoice(invoice);
       break;
-    // ... handle other event types
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      // we don't handle any other event types yet.
+      logger.debug(`Unhandled event type ${event.type}`);
   }
 }
