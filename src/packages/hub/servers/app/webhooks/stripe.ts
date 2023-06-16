@@ -3,6 +3,8 @@ import { getLogger } from "@cocalc/hub/logger";
 import bodyParser from "body-parser";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getConn from "@cocalc/server/stripe/connection";
+import { createCreditFromPaidStripeInvoice } from "@cocalc/server/purchases/create-invoice";
+
 const logger = getLogger("hub:stripe-webhook");
 
 export default function init(app_router: Router) {
@@ -42,13 +44,15 @@ async function handleRequest(req) {
     stripe_webhook_secret
   );
   logger.debug("event = ", event);
+  console.log("event = ", event);
 
   // Handle the event
   switch (event.type) {
     case "invoice.paid":
-      const invoicePaid = event.data.object;
+      const invoice = event.data.object;
       // Then define and call a function to handle the event invoice.paid
-      logger.debug("invoicePaid = ", invoicePaid);
+      logger.debug("invoice = ", invoice);
+      await createCreditFromPaidStripeInvoice(invoice);
       break;
     // ... handle other event types
     default:

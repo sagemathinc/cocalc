@@ -27,6 +27,5 @@ async function get(req) {
     account_id,
     amount,
     description: "Payment to Credit Your CoCalc Account",
-    metadata: { type: "purchases", service: "credit", account_id },
   });
 }

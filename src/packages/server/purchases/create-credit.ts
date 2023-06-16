@@ -10,12 +10,14 @@ export default async function createCredit({
   amount,
   notes,
   tag,
+  unique,
 }: {
   account_id: string;
   invoice_id?: string;
   amount: number;
   notes?: string;
   tag?: string;
+  unique?: boolean;
 }): Promise<number> {
   if (!(await isValidAccount(account_id))) {
     throw Error(`${account_id} is not a valid account`);
@@ -30,6 +32,17 @@ export default async function createCredit({
     );
   }
   const pool = getPool();
+
+  if (unique && invoice_id) {
+    const x = await pool.query(
+      "SELECT COUNT(*) as count FROM purchases WHERE invoice_id=$1",
+      [invoice_id]
+    );
+    if (x.rows[0].count > 0) {
+      throw Error(`there is already a credit with invoice_id=$1`);
+    }
+  }
+
   const { rows } = await pool.query(
     "INSERT INTO purchases (service, time, account_id, cost, description, invoice_id, notes, tag) VALUES('credit', CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6) RETURNING id",
     [account_id, -amount, { type: "credit" } as Credit, invoice_id, notes, tag]

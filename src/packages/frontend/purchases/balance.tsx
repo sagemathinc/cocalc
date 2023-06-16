@@ -25,7 +25,7 @@ export default function Balance({ balance, quota, style }) {
               precision={2}
               prefix={"$"}
             />
-            {quota && (
+            {quota != null && quota > 0 && (
               <Tooltip title={"Percent of your total spending limit"}>
                 <Progress
                   style={{ marginLeft: "30px" }}
@@ -44,7 +44,7 @@ export default function Balance({ balance, quota, style }) {
             </div>
           )}
           <hr />
-          <UnpaidInvoices  balance={balance} />
+          <UnpaidInvoices balance={balance} />
         </>
       )}
     </Card>
