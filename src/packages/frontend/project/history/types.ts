@@ -3,16 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Map } from "immutable";
-import { TypedMap } from "../../app-framework";
+
+import { TypedMap } from "@cocalc/frontend/app-framework";
+import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
 export type EventRecord = {
   id: string;
   event: TypedMap<ProjectEvent>;
   account_id: string;
   project_id?: string;
-  time: Date;
+  time?: Date;
 };
 
 export type EventRecordMap = TypedMap<EventRecord>;
