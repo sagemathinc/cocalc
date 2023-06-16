@@ -250,9 +250,9 @@ export default function SiteSettings({}) {
   function Buttons() {
     return (
       <div>
-        <SaveButton />
-        <Space />
         <CancelButton />
+        <Space />
+        <SaveButton />
       </div>
     );
   }

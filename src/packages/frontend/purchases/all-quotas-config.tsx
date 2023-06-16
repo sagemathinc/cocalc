@@ -143,7 +143,6 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       render: (quota: number, _record: ServiceQuota, index: number) => (
         <InputNumber
           min={0}
-          max={globalQuota?.quota ?? 999999999}
           value={quota}
           onChange={(newQuota) => handleQuotaChange(index, newQuota as number)}
           formatter={(value) => `$${value}`}
@@ -193,6 +192,15 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
                 height: "250px",
               }}
             />
+            <Card
+              title="Balance ≤ Spending Limit"
+              style={{ width: "300px", height: "250px", color: "#666" }}
+            >
+              You balance is not allowed to exceed your total spending limit.
+              You can reduce your balance by making a payment, and you can raise
+              your total spending limit by adding a credit card, verifying your
+              email address, or making a support request.
+            </Card>
           </Space>
         </div>
       )}
@@ -200,29 +208,30 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
         style={{ margin: "15px 0" }}
         title={
           <>
-            <b>Monthly limits</b> are caps you set to prevent spending more than
-            you intend.
+            Monthly limits are selfimposed caps you set to prevent overspending
           </>
         }
       >
-        <Button.Group>
-          <Button
-            type="primary"
-            onClick={handleSave}
-            disabled={!changed || saving}
-          >
-            <Icon name="save" />{" "}
-            {saving ? "Saving..." : changed ? "Save Changes" : "Saved"}
-            {saving && <Spin style={{ marginLeft: "15px" }} delay={500} />}
-          </Button>
-          <Button onClick={handleCancel} disabled={!changed || saving}>
-            Cancel
-          </Button>
+        <div style={{ marginBottom: "15px" }}>
+          <Button.Group style={{ marginRight: "5px" }}>
+            <Button onClick={handleCancel} disabled={!changed || saving}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleSave}
+              disabled={!changed || saving}
+            >
+              <Icon name="save" />{" "}
+              {saving ? "Saving..." : changed ? "Save Changes" : "Saved"}
+              {saving && <Spin style={{ marginLeft: "15px" }} delay={500} />}
+            </Button>
+          </Button.Group>
           <Button onClick={handleRefresh} disabled={saving}>
             <Icon name="refresh" />
             Refresh
           </Button>
-        </Button.Group>
+        </div>
         {serviceQuotas != null ? (
           <Table
             dataSource={serviceQuotas}

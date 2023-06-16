@@ -73,7 +73,6 @@ export default function QuotaConfig({
             <InputNumber
               style={{ width: "200px" }}
               min={0}
-              max={quotas?.global?.quota ?? 99999}
               defaultValue={quotas.services[service] ?? 0}
               formatter={(value) =>
                 `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
