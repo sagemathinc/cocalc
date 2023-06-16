@@ -127,6 +127,17 @@ function connection_status_color(status: ConnectionStatus): string {
   }
 }
 
+export function ConnectionStatusIcon({ status }: { status: ConnectionStatus }) {
+  return (
+    <Icon
+      style={{
+        color: connection_status_color(status),
+      }}
+      name={"wifi"}
+    />
+  );
+}
+
 const ICON_STYLE: CSS = {
   width: "20px",
   display: "inline-block",
@@ -1894,12 +1905,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
     return (
       <span style={style} title={props.connection_status}>
-        <Icon
-          style={{
-            color: connection_status_color(props.connection_status),
-          }}
-          name={"wifi"}
-        />
+        <ConnectionStatusIcon status={props.connection_status} />
       </span>
     );
   }
