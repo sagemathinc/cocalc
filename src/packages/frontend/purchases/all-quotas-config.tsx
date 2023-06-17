@@ -204,7 +204,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
             >
               You balance is not allowed to exceed your total spending limit.
               You can reduce your balance by making a payment, and you can raise
-              your total spending limit by adding a credit card, verifying your
+              your spending limit by adding a credit card, verifying your
               email address, or making a support request.
             </Card>
           </Space>

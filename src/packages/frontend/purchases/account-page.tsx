@@ -6,8 +6,8 @@ export default function PayAsYouGoAccountPage({}) {
   return (
     <div>
       <Quotas />
-      <CostBarChart />
       <Purchases />
+      <CostBarChart />
     </div>
   );
 }

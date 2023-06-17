@@ -13,9 +13,9 @@ export default function GlobalQuota({ global, style }: Props) {
   }
   const { quota, why, increase } = global;
   return (
-    <Card style={style} title="Total Spending Limit">
+    <Card style={style} title="Spending Limit">
       <Statistic
-        title={"Total spending Limit (USD)"}
+        title={"Spending Limit (USD)"}
         value={quota}
         precision={2}
         prefix={"$"}
@@ -26,8 +26,8 @@ export default function GlobalQuota({ global, style }: Props) {
       {increase == "support" && (
         <A
           href={getSupportURL({
-            body: "Please raise my total spending limit.\n\nTELL US WHO YOU ARE AND EXPLAIN YOUR USE CASE.  THANKS!",
-            subject: "Total Spending Limit Increase Request",
+            body: "Please raise my spending limit.\n\nTELL US WHO YOU ARE AND EXPLAIN YOUR USE CASE.  THANKS!",
+            subject: "Spending Limit Increase Request",
             type: "question",
             hideExtra: true,
           })}

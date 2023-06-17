@@ -36,7 +36,8 @@ import {
 } from "@cocalc/util/types/dedicated";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
-import { QuotaConsole } from "./quota-console";
+import AdminQuotas from "./quota-editor/admin-quotas";
+import QuotaEditor from "./quota-editor";
 import { RunQuota } from "./run-quota";
 import { SiteLicense } from "./site-license";
 import { Project } from "./types";
@@ -167,8 +168,8 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         <div style={UPGRADE_BUTTON_STYLE}>
           {noUpgrades ? (
             <Typography.Text type="secondary">
-              <Typography.Text strong>Note:</Typography.Text> You can increase
-              these quotas by adding a license below.
+              <Typography.Text strong>Note:</Typography.Text> Increase the above
+              quotas using the quota editor or by adding a license.
             </Typography.Text>
           ) : (
             <>{render_contributions()}</>
@@ -202,29 +203,34 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       );
     }
 
-    function render_quota_console(): Rendered {
-      // Since 2022-03, we only render this for admins – the whole info is in the "run quota" box,
+    function renderQuotaEditor(): Rendered {
+      // The whole info is in the "run quota" box,
       // below are upgrade contributions (deprecated), and then the license quota upgrades.
-      // Not showsn if this runs on a dedicated VM – where the back-end manages the fixed quotas.
+      // Also not shown if project runs on a dedicated VM – where the back-end manages the fixed quotas.
       if (dedicated_resources?.vm !== false) {
         return render_dedicated_vm();
       }
-      if (!account_groups.includes("admin")) return;
       return (
-        <QuotaConsole
-          project_id={project_id}
-          project_settings={project.get("settings")}
-          project_status={project.get("status")}
-          project_state={project.getIn(["state", "state"])}
-          quota_params={PROJECT_UPGRADES.params}
-          account_groups={account_groups}
-          total_project_quotas={total_project_quotas}
-          all_upgrades_to_this_project={all_upgrades_to_this_project}
-          kucalc={kucalc}
-          is_commercial={is_commercial}
-          site_license_upgrades={site_license_upgrades}
-          expand_admin_only={true}
-        />
+        <>
+          {account_groups.includes("admin") && (
+            <AdminQuotas
+              project_id={project_id}
+              project_settings={project.get("settings")}
+              project_status={project.get("status")}
+              project_state={project.getIn(["state", "state"])}
+              quota_params={PROJECT_UPGRADES.params}
+              account_groups={account_groups}
+              total_project_quotas={total_project_quotas}
+              all_upgrades_to_this_project={all_upgrades_to_this_project}
+              kucalc={kucalc}
+              is_commercial={is_commercial}
+              site_license_upgrades={site_license_upgrades}
+              expand_admin_only={true}
+            />
+          )}
+
+          <QuotaEditor project_id={project_id} style={{ marginTop: "15px" }} />
+        </>
       );
     }
 
@@ -355,7 +361,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
             {render_run_quota()}
             <div style={{ padding: "16px" }}>
               {render_upgrades_button()}
-              {render_quota_console()}
+              {renderQuotaEditor()}
               {render_dedicated_disks()}
               {render_site_license()}
               {render_support()}

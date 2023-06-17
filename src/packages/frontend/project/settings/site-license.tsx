@@ -168,9 +168,9 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
 
   function render_title(): Rendered {
     return (
-      <h4>
+      <span>
         <Icon name="key" /> Licenses
-      </h4>
+      </span>
     );
   }
 

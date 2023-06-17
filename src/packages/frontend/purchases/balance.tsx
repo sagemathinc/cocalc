@@ -42,7 +42,7 @@ export default function Balance({ balance, quota, style }) {
           {stat}
           {quota != null && quota > 0 && (
             <Tooltip
-              title={"Percent of your total spending limit"}
+              title={"Percent of your spending limit"}
               zIndex={zIndexTip}
             >
               <Progress

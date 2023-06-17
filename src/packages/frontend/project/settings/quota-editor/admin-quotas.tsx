@@ -28,7 +28,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 import * as misc from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { ProjectSettings, ProjectStatus } from "./types";
+import { ProjectSettings, ProjectStatus } from "../types";
 const { User } = require("@cocalc/frontend/users"); // TODO fix typing error when importing properly
 
 interface Props {
@@ -60,22 +60,20 @@ interface QuotaParams {
   always_running?: number;
 }
 
-export const QuotaConsole: React.FC<Props> = (props: Props) => {
-  const {
-    project_settings,
-    account_groups,
-    quota_params,
-    project_id,
-    site_license_upgrades,
-    total_project_quotas,
-    is_commercial,
-    project_state,
-    project_status,
-    kucalc,
-    all_upgrades_to_this_project = {},
-    expand_admin_only = false,
-  } = props;
-
+export default function QuotaConsole({
+  project_settings,
+  account_groups,
+  quota_params,
+  project_id,
+  site_license_upgrades,
+  total_project_quotas,
+  is_commercial,
+  project_state,
+  project_status,
+  kucalc,
+  all_upgrades_to_this_project = {},
+  expand_admin_only = false,
+}: Props) {
   const user_map = useTypedRedux("users", "user_map");
 
   const is_admin = account_groups.includes("admin");
@@ -593,4 +591,4 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
       {render_quota_rows()}
     </div>
   );
-};
+}

@@ -88,8 +88,13 @@ function Purchases0({ project_id }: Props) {
     <SettingBox
       title={
         <>
-          <Next style={{ float: "right" }} href={"billing/receipts"}>
-            Invoices and Receipts...
+          <Next
+            style={{ float: "right", fontSize: "11pt" }}
+            href={"billing/receipts"}
+          >
+            <Button>
+              <Icon name="external-link" /> Receipts
+            </Button>
           </Next>
           {project_id ? (
             <span>
