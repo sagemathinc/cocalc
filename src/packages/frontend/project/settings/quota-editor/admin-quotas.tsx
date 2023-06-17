@@ -4,17 +4,18 @@
  */
 
 import * as immutable from "immutable";
-import React, { useEffect, useState } from "react";
-import { Checkbox, Row, Col } from "@cocalc/frontend/antd-bootstrap";
+import { useEffect, useState } from "react";
+import { Row, Col } from "@cocalc/frontend/antd-bootstrap";
 import { Button } from "antd";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { Rendered, usePrevious } from "@cocalc/frontend/app-framework";
+import { usePrevious } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Space } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import * as misc from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { ProjectSettings, ProjectStatus } from "../types";
 import QuotaRow from "./quota-row";
+import QuotaControl from "./quota-control";
 import type { QuotaParams } from "./types";
 
 interface Props {
@@ -44,7 +45,7 @@ export default function QuotaConsole({
 }: Props) {
   const is_admin = account_groups.includes("admin");
   const [editing, setEditing] = useState<boolean>(false);
-  const [quota_state, setQuotaState] = useState<QuotaParams>();
+  const [quotaState, setQuotaState] = useState<QuotaParams | null>(null);
   const previous_project_settings = usePrevious(project_settings);
 
   useEffect(() => {
@@ -68,19 +69,19 @@ export default function QuotaConsole({
   }
 
   async function save_admin_editing(): Promise<void> {
-    if (quota_state == null) return;
+    if (quotaState == null) return;
     try {
       await webapp_client.project_client.set_quotas({
         project_id: project_id,
-        cores: quota_state.cores,
-        cpu_shares: Math.round(quota_state.cpu_shares * 256),
-        disk_quota: quota_state.disk_quota,
-        memory: quota_state.memory,
-        memory_request: quota_state.memory_request,
-        mintime: Math.floor(quota_state.mintime * 3600),
-        network: quota_state.network ? 1 : 0,
-        member_host: quota_state.member_host ? 1 : 0,
-        always_running: quota_state.always_running ? 1 : 0,
+        cores: quotaState.cores,
+        cpu_shares: Math.round(quotaState.cpu_shares * 256),
+        disk_quota: quotaState.disk_quota,
+        memory: quotaState.memory,
+        memory_request: quotaState.memory_request,
+        mintime: Math.floor(quotaState.mintime * 3600),
+        network: quotaState.network ? 1 : 0,
+        member_host: quotaState.member_host ? 1 : 0,
+        always_running: quotaState.always_running ? 1 : 0,
       });
       alert_message({
         type: "success",
@@ -119,7 +120,7 @@ export default function QuotaConsole({
     if (settings == undefined) {
       return false;
     }
-    if (quota_state == null) return false;
+    if (quotaState == null) return false;
 
     for (const name in quota_params) {
       if (quota_params[name] == null) {
@@ -128,7 +129,7 @@ export default function QuotaConsole({
       const data = quota_params[name];
       const factor = data.display_factor ?? 1;
       const cur_val = (settings.get(name) ?? 0) * factor;
-      const new_val = misc.parse_number_input(quota_state[name]);
+      const new_val = misc.parse_number_input(quotaState[name]);
       if (new_val == null) {
         continue;
       }
@@ -139,7 +140,7 @@ export default function QuotaConsole({
     return changed;
   }
 
-  function render_admin_edit_buttons(): Rendered {
+  function render_admin_edit_buttons() {
     if (is_admin) {
       if (editing) {
         return (
@@ -172,61 +173,17 @@ export default function QuotaConsole({
     }
   }
 
-  function admin_input_validation_styles(
-    input: number
-  ): React.CSSProperties | undefined {
-    if (misc.parse_number_input(input) == null) {
-      return {
-        outline: "none",
-        borderColor: "red",
-        boxShadow: "0 0 10px red",
-      };
-    } else {
-      return {
-        border: "1px solid lightgrey",
-        borderRadius: "3px",
-        padding: "5px",
-      };
-    }
+  function renderInput(label: keyof QuotaParams) {
+    return (
+      <QuotaControl
+        label={label}
+        quotaState={quotaState}
+        setQuotaState={setQuotaState}
+      />
+    );
   }
 
-  function render_input(label: keyof QuotaParams): Rendered {
-    if (quota_state == null) return;
-    if (
-      label === "network" ||
-      label === "member_host" ||
-      label === "always_running"
-    ) {
-      return (
-        <Checkbox
-          key={label}
-          checked={!!quota_state[label]}
-          style={{ marginLeft: 0 }}
-          onChange={(e) =>
-            setQuotaState({ ...quota_state, [label]: e.target.checked ? 1 : 0 })
-          }
-        >
-          {quota_state[label] ? "Enabled" : "Disabled"}
-        </Checkbox>
-      );
-    } else {
-      // not using react component so the input stays inline
-      return (
-        <input
-          size={5}
-          type="text"
-          key={label}
-          value={quota_state[label]}
-          style={admin_input_validation_styles(quota_state[label])}
-          onChange={(e) => {
-            setQuotaState({ ...quota_state, [label]: e.target.value });
-          }}
-        />
-      );
-    }
-  }
-
-  function render_disk_used(disk: number | string): Rendered {
+  function render_disk_used(disk: number | string) {
     if (!disk) {
       return;
     }
@@ -237,8 +194,8 @@ export default function QuotaConsole({
     );
   }
 
-  function render_memory_used(memory: number | string): Rendered {
-    if (!["running", "saving"].includes(project_state ?? "") || memory == '?') {
+  function render_memory_used(memory: number | string) {
+    if (!["running", "saving"].includes(project_state ?? "") || memory == "?") {
       return;
     }
     return (
@@ -293,7 +250,7 @@ export default function QuotaConsole({
       ),
       edit: (
         <span>
-          <b>{render_input("disk_quota")} MB</b> disk space limit <Space />{" "}
+          <b>{renderInput("disk_quota")} MB</b> disk space limit <Space />{" "}
           {render_disk_used(disk)}
         </span>
       ),
@@ -312,7 +269,7 @@ export default function QuotaConsole({
       ),
       edit: (
         <span>
-          <b>{render_input("memory")} MB</b> RAM memory limit{" "}
+          <b>{renderInput("memory")} MB</b> RAM memory limit{" "}
           {render_memory_used(memory)}{" "}
         </span>
       ),
@@ -332,7 +289,7 @@ export default function QuotaConsole({
       ),
       edit: (
         <span>
-          <b>{render_input("memory_request")} MB</b> dedicated RAM memory
+          <b>{renderInput("memory_request")} MB</b> dedicated RAM memory
         </span>
       ),
     },
@@ -350,7 +307,7 @@ export default function QuotaConsole({
           </b>
         </span>
       ),
-      edit: <b>{render_input("cores")} cores</b>,
+      edit: <b>{renderInput("cores")} cores</b>,
     },
     cpu_shares: {
       view: (
@@ -368,7 +325,7 @@ export default function QuotaConsole({
       ),
       edit: (
         <b>
-          {render_input("cpu_shares")}{" "}
+          {renderInput("cpu_shares")}{" "}
           {misc.plural(total_quotas["cpu_shares"], "core")}
         </b>
       ),
@@ -383,7 +340,7 @@ export default function QuotaConsole({
       ),
       edit: (
         <span>
-          <b>{render_input("mintime")} hours</b> of non-interactive use before
+          <b>{renderInput("mintime")} hours</b> of non-interactive use before
           project stops
         </span>
       ),
@@ -396,7 +353,7 @@ export default function QuotaConsole({
             : "Blocked"}
         </b>
       ),
-      edit: render_input("network"),
+      edit: renderInput("network"),
     },
     member_host: {
       view: (
@@ -406,7 +363,7 @@ export default function QuotaConsole({
             : "No"}
         </b>
       ),
-      edit: render_input("member_host"),
+      edit: renderInput("member_host"),
     },
     always_running: {
       view: (
@@ -417,7 +374,7 @@ export default function QuotaConsole({
             : "No"}
         </b>
       ),
-      edit: render_input("always_running"),
+      edit: renderInput("always_running"),
     },
   } as const;
 
@@ -427,6 +384,7 @@ export default function QuotaConsole({
 
     return PROJECT_UPGRADES.field_order.map((name) => (
       <QuotaRow
+        key={name}
         name={name}
         quota={quotas_edit_config[name]}
         base_value={settings.get(name)}
