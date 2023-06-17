@@ -134,7 +134,7 @@ upgrades.params = {
     pricing_unit: "project",
     pricing_factor: 1,
     input_type: "checkbox",
-    desc: "Full internet access enables a project to connect to the computers outside of CoCalc, download data, software packages, etc.",
+    desc: "Full internet access enables a project to connect to the computers outside of CoCalc, download data, install software packages, etc.",
   },
   member_host: {
     display: "Member hosting",
@@ -145,7 +145,7 @@ upgrades.params = {
     pricing_unit: "project",
     pricing_factor: 1,
     input_type: "checkbox",
-    desc: "Runs this project on a machine hosting less projects, without no free trial projects and random reboots.",
+    desc: "Runs this project on a machine that hosts less projects, has no free trial projects, and is not randomly rebooted.",
   },
   always_running: {
     display: "Always running",
@@ -196,7 +196,7 @@ upgrades.params = {
     pricing_factor: 1,
     input_type: "string",
     desc: "Modifies the project's specification how it runs in the cluster.",
-  }
+  },
 };
 
 upgrades.field_order = [

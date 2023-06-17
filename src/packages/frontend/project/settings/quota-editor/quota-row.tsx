@@ -1,19 +1,21 @@
-import type { ReactNode } from "react";
 import type { QuotaParams } from "./types";
 import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { LabeledRow, Tip } from "@cocalc/frontend/components";
-import QuotaControl from "./quota-control";
+import EditQuota from "./edit-quota";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+
+const UNITS = {
+  disk_quota: "MB",
+  memory: "MB",
+  memory_request: "MB",
+  cores: "cores",
+  cpu_shares: "cores",
+  mintime: "hours",
+};
 
 interface Props {
   name: keyof QuotaParams;
-  quota: { view: ReactNode; units?: string } | undefined;
-  params_data: {
-    display_factor: number;
-    display_unit: string;
-    display: string;
-    desc: string;
-  };
   editing?: boolean;
   quotaState: QuotaParams | null;
   setQuotaState: (state: QuotaParams | null) => void;
@@ -21,18 +23,13 @@ interface Props {
 
 export default function QuotaRow({
   name,
-  quota,
-  params_data,
   editing,
   quotaState,
   setQuotaState,
 }: Props) {
   const kucalc: string = useTypedRedux("customize", "kucalc");
+  const params_data = PROJECT_UPGRADES.params[name];
 
-  if (quota == null) {
-    // happens for cocalc-cloud only params
-    return null;
-  }
   if (
     kucalc == KUCALC_DISABLED &&
     name != "mintime" &&
@@ -61,16 +58,12 @@ export default function QuotaRow({
         paddingBottom: "8px",
       }}
     >
-      {editing ? (
-        <QuotaControl
-          label={name}
-          quotaState={quotaState}
-          setQuotaState={setQuotaState}
-          units={quota.units}
-        />
-      ) : (
-        quota.view
-      )}
+      <EditQuota
+        name={name}
+        quotaState={quotaState}
+        setQuotaState={setQuotaState}
+        units={UNITS[name]}
+      />
     </LabeledRow>
   );
 }

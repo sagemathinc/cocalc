@@ -3,59 +3,40 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import * as immutable from "immutable";
 import { useEffect, useState } from "react";
 import { Button, Card, Popconfirm, Popover } from "antd";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { usePrevious } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Space } from "@cocalc/frontend/components";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import * as misc from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { ProjectSettings, ProjectStatus } from "../types";
+import type { ProjectSettings } from "../types";
 import QuotaRow from "./quota-row";
 import type { QuotaParams } from "./types";
+import { isEqual } from "lodash";
+
+const QUOTA_PARAMS = PROJECT_UPGRADES.params;
 
 interface Props {
   project_id: string;
-  project_settings: ProjectSettings; // settings contains the base values for quotas
-  project_status?: ProjectStatus;
-  project_state?: "opened" | "running" | "starting" | "stopping"; //  -- only show memory usage when project_state == 'running'
-  quota_params: object; // from the schema
-  account_groups: immutable.List<string>;
-  total_project_quotas?: object; // undefined if viewing as admin
-  all_upgrades_to_this_project?: object;
-  expand_admin_only?: boolean;
+  project_settings?: ProjectSettings; // settings contains the base values for quotas
 }
 
-export default function QuotaConsole({
-  project_settings,
-  account_groups,
-  quota_params,
-  project_id,
-  total_project_quotas,
-  project_state,
-  project_status,
-  expand_admin_only = false,
-}: Props) {
-  const is_admin = account_groups.includes("admin");
+export default function AdminQuotas({ project_settings, project_id }: Props) {
   const [editing, setEditing] = useState<boolean>(false);
   const [quotaState, setQuotaState] = useState<QuotaParams | null>(null);
-  const previous_project_settings = usePrevious(project_settings);
 
   useEffect(() => {
-    if (!immutable.is(project_settings, previous_project_settings)) {
-      const settings = project_settings;
-      if (settings != undefined) {
-        const new_state: any = {};
-        for (const name in quota_params) {
-          const data = quota_params[name];
-          new_state[name] = misc.round2(
-            (settings.get(name) ?? 0) * data.display_factor
-          );
-        }
-        setQuotaState(new_state);
-      }
+    if (project_settings == null) return;
+    const newState: any = {};
+    for (const name in QUOTA_PARAMS) {
+      const data = QUOTA_PARAMS[name];
+      newState[name] = misc.round2(
+        (project_settings.get(name) ?? 0) * data.display_factor
+      );
+    }
+    if (!isEqual(quotaState, newState)) {
+      setQuotaState(newState);
     }
   }, [project_settings]);
 
@@ -63,7 +44,7 @@ export default function QuotaConsole({
     setEditing(true);
   }
 
-  async function save_admin_editing(): Promise<void> {
+  async function handleSave(): Promise<void> {
     if (quotaState == null) return;
     try {
       await webapp_client.project_client.set_quotas({
@@ -89,13 +70,13 @@ export default function QuotaConsole({
     }
   }
 
-  function cancel_admin_editing(): void {
+  function handleCancel(): void {
     const settings = project_settings;
     if (settings != undefined) {
       // reset user input states
       const state: any = {};
-      for (const name in quota_params) {
-        const data = quota_params[name];
+      for (const name in QUOTA_PARAMS) {
+        const data = QUOTA_PARAMS[name];
         const factor = data.display_factor;
         const base_value = settings.get(name) || 0;
         state[name] = misc.round2(base_value * factor);
@@ -110,42 +91,39 @@ export default function QuotaConsole({
   //    - none are negative
   //    - none are empty
   function isModifiedValidInput(): boolean {
-    let changed = false;
-    const settings = project_settings;
-    if (settings == undefined) {
+    if (project_settings == null || quotaState == null) {
       return false;
     }
-    if (quotaState == null) return false;
-
-    for (const name in quota_params) {
-      if (quota_params[name] == null) {
+    for (const name in QUOTA_PARAMS) {
+      if (QUOTA_PARAMS[name] == null) {
         throw Error("bug -- invalid quota schema");
       }
-      const data = quota_params[name];
+      const data = QUOTA_PARAMS[name];
       const factor = data.display_factor ?? 1;
-      const cur_val = (settings.get(name) ?? 0) * factor;
+      const cur_val = (project_settings.get(name) ?? 0) * factor;
       const new_val = misc.parse_number_input(quotaState[name]);
       if (new_val == null) {
-        continue;
+        // not valid
+        return false;
       }
       if (cur_val !== new_val) {
-        console.log(name, cur_val, new_val);
-        changed = true;
+        return true;
       }
     }
-    return changed;
+    return false;
   }
 
   function render_admin_edit_buttons() {
     if (editing) {
       return (
         <>
-          <Button style={{ marginRight: "8px" }} onClick={cancel_admin_editing}>
+          <Button style={{ marginRight: "8px" }} onClick={handleCancel}>
             Cancel
           </Button>
           <Popconfirm
             disabled={!isModifiedValidInput()}
-            onConfirm={save_admin_editing}
+            onConfirm={handleSave}
+            onCancel={handleCancel}
             title="Change Quotas?"
             description="This will modify the base free quotas and restart the project."
           >
@@ -164,190 +142,8 @@ export default function QuotaConsole({
     }
   }
 
-  function render_disk_used(disk: number | string) {
-    if (!disk) {
-      return;
-    }
-    return (
-      <span>
-        (<b>{disk} MB</b> used)
-      </span>
-    );
-  }
-
-  function render_memory_used(memory: number | string) {
-    if (!["running", "saving"].includes(project_state ?? "") || memory == "?") {
-      return;
-    }
-    return (
-      <span>
-        <Space /> (<b>{memory} MB</b> used)
-      </span>
-    );
-  }
-
-  const settings = project_settings;
-  if (settings == undefined) {
+  if (project_settings == null) {
     return <Loading />;
-  }
-  const status = project_status;
-  let total_quotas = total_project_quotas;
-  if (total_quotas == undefined) {
-    // this happens for the admin -- just ignore any upgrades from the users
-    total_quotas = {};
-    for (const name in quota_params) {
-      total_quotas[name] = settings.get(name);
-    }
-  }
-  let memory: string | number = "?";
-  let disk: string | number = "?";
-
-  if (status != undefined) {
-    const rss = status.getIn(["memory", "rss"]);
-    if (rss != undefined) {
-      memory = Math.round(rss / 1000);
-    }
-    disk = status.get("disk_MB");
-    if (typeof disk == "number") {
-      disk = Math.ceil(disk);
-    }
-  }
-
-  const round = misc.round2;
-  // the keys in quotas have to match those in PROJECT_UPGRADES.field_order
-  const quotas_edit_config = {
-    disk_quota: {
-      view: (
-        <span>
-          <b>
-            {round(
-              total_quotas["disk_quota"] *
-                quota_params["disk_quota"].display_factor
-            )}{" "}
-            MB
-          </b>{" "}
-          disk usage limit {render_disk_used(disk)}
-        </span>
-      ),
-      units: "MB",
-    },
-    memory: {
-      view: (
-        <span>
-          <b>
-            {round(
-              total_quotas["memory"] * quota_params["memory"].display_factor
-            )}{" "}
-            MB
-          </b>{" "}
-          shared RAM memory limit {render_memory_used(memory)}
-        </span>
-      ),
-      units: "MB",
-    },
-    memory_request: {
-      view: (
-        <span>
-          <b>
-            {round(
-              total_quotas["memory_request"] *
-                quota_params["memory_request"].display_factor
-            )}{" "}
-            MB
-          </b>{" "}
-          dedicated RAM
-        </span>
-      ),
-      units: "MB",
-    },
-    cores: {
-      view: (
-        <span>
-          <b>
-            {round(
-              total_quotas["cores"] * quota_params["cores"].display_factor
-            )}{" "}
-            {misc.plural(
-              total_quotas["cores"] * quota_params["cores"].display_factor,
-              "core"
-            )}
-          </b>
-        </span>
-      ),
-      units: "cores",
-    },
-    cpu_shares: {
-      view: (
-        <b>
-          {round(
-            total_quotas["cpu_shares"] *
-              quota_params["cpu_shares"].display_factor
-          )}{" "}
-          {misc.plural(
-            total_quotas["cpu_shares"] *
-              quota_params["cpu_shares"].display_factor,
-            "core"
-          )}
-        </b>
-      ),
-      units: misc.plural(total_quotas["cpu_shares"], "core"),
-    },
-    mintime: {
-      // no display factor multiplication, because mintime is in seconds
-      view: (
-        <span>
-          <b>{misc.seconds2hm(total_quotas["mintime"], true)}</b> of
-          non-interactive use before project stops
-        </span>
-      ),
-      units: "hours",
-    },
-    network: {
-      view: (
-        <b>
-          {project_settings.get("network") || total_quotas["network"]
-            ? "Yes"
-            : "Blocked"}
-        </b>
-      ),
-    },
-    member_host: {
-      view: (
-        <b>
-          {project_settings.get("member_host") || total_quotas["member_host"]
-            ? "Yes"
-            : "No"}
-        </b>
-      ),
-    },
-    always_running: {
-      view: (
-        <b>
-          {project_settings.get("always_running") ||
-          total_quotas["always_running"]
-            ? "Yes"
-            : "No"}
-        </b>
-      ),
-    },
-  } as const;
-
-  function render_quota_rows() {
-    // we only show all the entries if this is an admin actively editing the settings quotas
-    if (is_admin && expand_admin_only && !editing) return;
-
-    return PROJECT_UPGRADES.field_order.map((name) => (
-      <QuotaRow
-        key={name}
-        name={name}
-        quota={quotas_edit_config[name]}
-        params_data={quota_params[name]}
-        total_quotas={total_quotas}
-        editing={editing}
-        quotaState={quotaState}
-        setQuotaState={setQuotaState}
-      />
-    ));
   }
 
   return (
@@ -378,7 +174,16 @@ export default function QuotaConsole({
         </Popover>
       }
     >
-      {render_quota_rows()}
+      {editing &&
+        PROJECT_UPGRADES.field_order.map((name) => (
+          <QuotaRow
+            key={name}
+            name={name}
+            editing={editing}
+            quotaState={quotaState}
+            setQuotaState={setQuotaState}
+          />
+        ))}
     </Card>
   );
 }

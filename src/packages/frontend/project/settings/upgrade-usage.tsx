@@ -210,12 +210,6 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
             <AdminQuotas
               project_id={project_id}
               project_settings={project.get("settings")}
-              project_status={project.get("status")}
-              project_state={project.getIn(["state", "state"])}
-              quota_params={PROJECT_UPGRADES.params}
-              account_groups={account_groups}
-              total_project_quotas={total_project_quotas}
-              expand_admin_only={true}
             />
           )}
           {is_commercial && (
