@@ -14,34 +14,42 @@ import type { ProjectSettings } from "../types";
 import QuotaRow from "./quota-row";
 import type { QuotaParams } from "./types";
 import { isEqual } from "lodash";
+import { useRedux } from "@cocalc/frontend/app-framework";
 
 const QUOTA_PARAMS = PROJECT_UPGRADES.params;
 
 interface Props {
   project_id: string;
-  project_settings?: ProjectSettings; // settings contains the base values for quotas
 }
 
-export default function AdminQuotas({ project_settings, project_id }: Props) {
+export default function AdminQuotas({ project_id }: Props) {
+  const projectSettings: ProjectSettings | undefined = useRedux([
+    "projects",
+    "project_map",
+    project_id,
+    "settings",
+  ]);
   const [editing, setEditing] = useState<boolean>(false);
   const [quotaState, setQuotaState] = useState<QuotaParams | null>(null);
 
-  useEffect(() => {
-    if (project_settings == null) return;
+  function setQuotaStateToProjectSettings() {
+    if (projectSettings == null) return;
     const newState: any = {};
     for (const name in QUOTA_PARAMS) {
       const data = QUOTA_PARAMS[name];
       newState[name] = misc.round2(
-        (project_settings.get(name) ?? 0) * data.display_factor
+        (projectSettings.get(name) ?? 0) * data.display_factor
       );
     }
     if (!isEqual(quotaState, newState)) {
       setQuotaState(newState);
     }
-  }, [project_settings]);
+  }
 
-  function start_admin_editing(): void {
-    setEditing(true);
+  useEffect(setQuotaStateToProjectSettings, [projectSettings]);
+
+  if (projectSettings == null) {
+    return <Loading />;
   }
 
   async function handleSave(): Promise<void> {
@@ -71,18 +79,7 @@ export default function AdminQuotas({ project_settings, project_id }: Props) {
   }
 
   function handleCancel(): void {
-    const settings = project_settings;
-    if (settings != undefined) {
-      // reset user input states
-      const state: any = {};
-      for (const name in QUOTA_PARAMS) {
-        const data = QUOTA_PARAMS[name];
-        const factor = data.display_factor;
-        const base_value = settings.get(name) || 0;
-        state[name] = misc.round2(base_value * factor);
-      }
-      setQuotaState(state);
-    }
+    setQuotaStateToProjectSettings();
     setEditing(false);
   }
 
@@ -90,8 +87,8 @@ export default function AdminQuotas({ project_settings, project_id }: Props) {
   //    - at least one has changed
   //    - none are negative
   //    - none are empty
-  function isModifiedValidInput(): boolean {
-    if (project_settings == null || quotaState == null) {
+  function isModified(): boolean {
+    if (projectSettings == null || quotaState == null) {
       return false;
     }
     for (const name in QUOTA_PARAMS) {
@@ -100,7 +97,7 @@ export default function AdminQuotas({ project_settings, project_id }: Props) {
       }
       const data = QUOTA_PARAMS[name];
       const factor = data.display_factor ?? 1;
-      const cur_val = (project_settings.get(name) ?? 0) * factor;
+      const cur_val = (projectSettings.get(name) ?? 0) * factor;
       const new_val = misc.parse_number_input(quotaState[name]);
       if (new_val == null) {
         // not valid
@@ -113,46 +110,35 @@ export default function AdminQuotas({ project_settings, project_id }: Props) {
     return false;
   }
 
-  function render_admin_edit_buttons() {
-    if (editing) {
-      return (
-        <>
-          <Button style={{ marginRight: "8px" }} onClick={handleCancel}>
-            Cancel
-          </Button>
-          <Popconfirm
-            disabled={!isModifiedValidInput()}
-            onConfirm={handleSave}
-            onCancel={handleCancel}
-            title="Change Quotas?"
-            description="This will modify the base free quotas and restart the project."
-          >
-            <Button type="primary" disabled={!isModifiedValidInput()}>
-              <Icon name="save" /> Save
-            </Button>
-          </Popconfirm>
-        </>
-      );
-    } else {
-      return (
-        <Button onClick={start_admin_editing} type="text">
-          <Icon name="pencil" /> Edit
-        </Button>
-      );
-    }
-  }
-
-  if (project_settings == null) {
-    return <Loading />;
-  }
-
   return (
     <Card
       title={
         <>
           <Icon name="user-plus" /> Admin Quota Editor
           <span style={{ margin: "0 15px", float: "right" }}>
-            {render_admin_edit_buttons()}
+            {editing && (
+              <>
+                <Button style={{ marginRight: "8px" }} onClick={handleCancel}>
+                  Cancel
+                </Button>
+                <Popconfirm
+                  disabled={!isModified()}
+                  onConfirm={handleSave}
+                  onCancel={handleCancel}
+                  title="Change Quotas?"
+                  description="This will modify the base free quotas and restart the project."
+                >
+                  <Button type="primary" disabled={!isModified()}>
+                    <Icon name="save" /> Save
+                  </Button>
+                </Popconfirm>
+              </>
+            )}
+            {!editing && (
+              <Button onClick={() => setEditing(true)} type="text">
+                <Icon name="pencil" /> Edit
+              </Button>
+            )}
           </span>
         </>
       }
@@ -179,7 +165,6 @@ export default function AdminQuotas({ project_settings, project_id }: Props) {
           <QuotaRow
             key={name}
             name={name}
-            editing={editing}
             quotaState={quotaState}
             setQuotaState={setQuotaState}
           />

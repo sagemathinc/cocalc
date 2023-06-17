@@ -207,10 +207,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       return (
         <>
           {account_groups.includes("admin") && (
-            <AdminQuotas
-              project_id={project_id}
-              project_settings={project.get("settings")}
-            />
+            <AdminQuotas project_id={project_id} />
           )}
           {is_commercial && (
             <QuotaEditor

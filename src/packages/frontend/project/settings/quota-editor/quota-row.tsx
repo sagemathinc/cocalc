@@ -16,14 +16,12 @@ const UNITS = {
 
 interface Props {
   name: keyof QuotaParams;
-  editing?: boolean;
   quotaState: QuotaParams | null;
   setQuotaState: (state: QuotaParams | null) => void;
 }
 
 export default function QuotaRow({
   name,
-  editing,
   quotaState,
   setQuotaState,
 }: Props) {
@@ -41,7 +39,7 @@ export default function QuotaRow({
   }
 
   // if always_running is true, don't show idle timeout row, since not relevant
-  if (name == "mintime" && editing && quotaState?.always_running) {
+  if (name == "mintime" && quotaState?.always_running) {
     return null;
   }
 
