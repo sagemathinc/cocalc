@@ -3,33 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// TODO: Remove `as any`s in this file.
-// Refer to https://github.com/microsoft/TypeScript/issues/13948
-
 import * as immutable from "immutable";
 import React, { useEffect, useState } from "react";
 import { Checkbox, Row, Col } from "@cocalc/frontend/antd-bootstrap";
 import { Button } from "antd";
-
 import { alert_message } from "@cocalc/frontend/alerts";
-import {
-  Rendered,
-  usePrevious,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
-import {
-  Icon,
-  LabeledRow,
-  Loading,
-  Space,
-  Tip,
-} from "@cocalc/frontend/components";
+import { Rendered, usePrevious } from "@cocalc/frontend/app-framework";
+import { Icon, Loading, Space } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 import * as misc from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { ProjectSettings, ProjectStatus } from "../types";
-const { User } = require("@cocalc/frontend/users"); // TODO fix typing error when importing properly
+import QuotaRow from "./quota-row";
+import type { QuotaParams } from "./types";
 
 interface Props {
   project_id: string;
@@ -41,23 +27,7 @@ interface Props {
   total_project_quotas?: object; // undefined if viewing as admin
   site_license_upgrades?: object;
   all_upgrades_to_this_project?: object;
-  is_commercial?: boolean;
-  kucalc?: string;
   expand_admin_only?: boolean;
-}
-
-// the typing is very sloppy. parts of the UI use 0/1 for boolean, other parts
-// a string like "1000" as a number 1000.
-interface QuotaParams {
-  cores: number;
-  cpu_shares: number;
-  disk_quota: number;
-  memory: number;
-  memory_request: number;
-  mintime: number;
-  network: number;
-  member_host: number;
-  always_running?: number;
 }
 
 export default function QuotaConsole({
@@ -67,30 +37,14 @@ export default function QuotaConsole({
   project_id,
   site_license_upgrades,
   total_project_quotas,
-  is_commercial,
   project_state,
   project_status,
-  kucalc,
   all_upgrades_to_this_project = {},
   expand_admin_only = false,
 }: Props) {
-  const user_map = useTypedRedux("users", "user_map");
-
   const is_admin = account_groups.includes("admin");
-
   const [editing, setEditing] = useState<boolean>(false);
-
-  // const initQuota: QuotaParams = {}
-  //     if (project_settings != undefined) {
-  //       for (const name in quota_params) {
-  //         const data = quota_params[name];
-  //         const factor = data.display_factor;
-  //         const base_value = project_settings.get(name) || 0;
-  //         initQuota[name] = misc.round2(base_value * factor);
-  //       }
-  //     }
   const [quota_state, setQuotaState] = useState<QuotaParams>();
-
   const previous_project_settings = usePrevious(project_settings);
 
   useEffect(() => {
@@ -108,101 +62,6 @@ export default function QuotaConsole({
       }
     }
   }, [project_settings]);
-
-  function render_quota_row(
-    name: keyof QuotaParams,
-    quota: { edit: string; view: string } | undefined,
-    base_value: number,
-    upgrades: QuotaParams,
-    params_data: {
-      display_factor: number;
-      display_unit: string;
-      display: string;
-      desc: string;
-    },
-    site_license: number
-  ): Rendered {
-    if (quota == null) {
-      // happens for cocalc-cloud only params
-      return;
-    }
-    if (
-      kucalc == KUCALC_DISABLED &&
-      name != "mintime" &&
-      name != "always_running"
-    ) {
-      // In anything except KuCalc, only the mintime and always_on quota is implemented.
-      // NONE of the other quotas are.
-      return;
-    }
-
-    // if always_running is true, don't show idle timeout row, since not relevant
-    if (
-      name == "mintime" &&
-      ((quota["always_running"] && quota["editing"]) ||
-        total_project_quotas?.["always_running"])
-    )
-      return;
-
-    if (base_value == undefined) {
-      base_value = 0;
-    }
-    const factor = params_data.display_factor;
-    const unit = params_data.display_unit;
-
-    function text(val) {
-      const amount = misc.round2(val * factor);
-      if (name === "mintime") {
-        return misc.seconds2hm(val);
-      } else {
-        return `${amount} ${misc.plural(amount, unit)}`;
-      }
-    }
-
-    const upgrade_list: JSX.Element[] = [];
-    if (upgrades != undefined) {
-      for (const id in upgrades) {
-        const val = upgrades[id];
-        const li = (
-          <li key={id}>
-            {text(val)} given by <User account_id={id} user_map={user_map} />
-          </li>
-        );
-        upgrade_list.push(li);
-      }
-    }
-
-    if (base_value && is_commercial) {
-      // amount given by free project
-      upgrade_list.unshift(
-        <li key="free">{text(base_value)} included for free</li>
-      );
-    }
-
-    if (site_license) {
-      // amount given by site licenses
-      upgrade_list.unshift(
-        <li key="site-license">
-          {text(site_license)} provided by site license (see below)
-        </li>
-      );
-    }
-
-    return (
-      <LabeledRow
-        label={
-          <Tip title={params_data.display} tip={params_data.desc}>
-            {params_data.display}
-          </Tip>
-        }
-        key={params_data.display}
-        style={{ borderBottom: "1px solid #ccc" }}
-      >
-        {editing ? quota.edit : quota.view}
-        <ul style={{ color: "#666" }}>{upgrade_list}</ul>
-      </LabeledRow>
-    );
-  }
 
   function start_admin_editing(): void {
     setEditing(true);
@@ -379,7 +238,7 @@ export default function QuotaConsole({
   }
 
   function render_memory_used(memory: number | string): Rendered {
-    if (!["running", "saving"].includes(project_state ?? "")) {
+    if (!["running", "saving"].includes(project_state ?? "") || memory == '?') {
       return;
     }
     return (
@@ -399,13 +258,9 @@ export default function QuotaConsole({
     // this happens for the admin -- just ignore any upgrades from the users
     total_quotas = {};
     for (const name in quota_params) {
-      // Unused?? Found while typescripting. Could be a bug.
-      // const data = quota_params[name];
       total_quotas[name] = settings.get(name);
     }
   }
-  // Unused?? Found while typescripting. Could be a bug.
-  // const disk_quota = <b>{settings.get("disk_quota")}</b>;
   let memory: string | number = "?";
   let disk: string | number = "?";
 
@@ -570,16 +425,18 @@ export default function QuotaConsole({
     // we only show all the entries if this is an admin actively editing the settings quotas
     if (is_admin && expand_admin_only && !editing) return;
 
-    return PROJECT_UPGRADES.field_order.map((name) => {
-      return render_quota_row(
-        name,
-        quotas_edit_config[name],
-        settings.get(name),
-        upgrades[name],
-        quota_params[name],
-        site_license[name]
-      );
-    });
+    return PROJECT_UPGRADES.field_order.map((name) => (
+      <QuotaRow
+        name={name}
+        quota={quotas_edit_config[name]}
+        base_value={settings.get(name)}
+        upgrades={upgrades[name]}
+        params_data={quota_params[name]}
+        site_license={site_license[name]}
+        total_quotas={total_quotas}
+        editing={editing}
+      />
+    ));
   }
 
   const upgrades = all_upgrades_to_this_project;

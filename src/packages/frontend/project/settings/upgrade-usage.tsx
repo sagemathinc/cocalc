@@ -222,14 +222,16 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
               account_groups={account_groups}
               total_project_quotas={total_project_quotas}
               all_upgrades_to_this_project={all_upgrades_to_this_project}
-              kucalc={kucalc}
-              is_commercial={is_commercial}
               site_license_upgrades={site_license_upgrades}
               expand_admin_only={true}
             />
           )}
-
-          <QuotaEditor project_id={project_id} style={{ marginTop: "15px" }} />
+          {is_commercial && (
+            <QuotaEditor
+              project_id={project_id}
+              style={{ marginTop: "15px" }}
+            />
+          )}
         </>
       );
     }
