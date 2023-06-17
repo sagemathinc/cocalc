@@ -6,12 +6,14 @@ interface Props {
   label: keyof QuotaParams;
   quotaState: QuotaParams | null;
   setQuotaState: (state: QuotaParams | null) => void;
+  units?: string;
 }
 
 export default function QuotaControl({
   label,
   quotaState,
   setQuotaState,
+  units,
 }: Props) {
   if (quotaState == null) {
     return null;
@@ -36,9 +38,15 @@ export default function QuotaControl({
   } else {
     return (
       <InputNumber
+        status={
+          // is this even a problem given InputNumber...?
+          parse_number_input(quotaState[label]) == null ? "error" : undefined
+        }
+        addonAfter={units ? <b>{units}</b> : undefined}
+        style={{ width: "150px" }}
         key={label}
+        min={0}
         value={quotaState[label]}
-        style={validationStyle(quotaState[label])}
         step={getStepSize(label)}
         onChange={(value) => {
           setQuotaState({ ...quotaState, [label]: value });
@@ -53,20 +61,4 @@ function getStepSize(label) {
     return 1000;
   }
   return 1;
-}
-
-function validationStyle(input: number) {
-  if (parse_number_input(input) == null) {
-    return {
-      outline: "none",
-      borderColor: "red",
-      boxShadow: "0 0 10px red",
-    };
-  } else {
-    return {
-      border: "1px solid lightgrey",
-      borderRadius: "3px",
-      padding: "5px",
-    };
-  }
 }

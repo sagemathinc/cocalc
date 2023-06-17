@@ -173,12 +173,13 @@ export default function QuotaConsole({
     }
   }
 
-  function renderInput(label: keyof QuotaParams) {
+  function renderInput(label: keyof QuotaParams, units?: string) {
     return (
       <QuotaControl
         label={label}
         quotaState={quotaState}
         setQuotaState={setQuotaState}
+        units={units}
       />
     );
   }
@@ -189,7 +190,7 @@ export default function QuotaConsole({
     }
     return (
       <span>
-        <Space /> (<b>{disk} MB</b> used)
+        (<b>{disk} MB</b> used)
       </span>
     );
   }
@@ -248,12 +249,7 @@ export default function QuotaConsole({
           disk usage limit {render_disk_used(disk)}
         </span>
       ),
-      edit: (
-        <span>
-          <b>{renderInput("disk_quota")} MB</b> disk space limit <Space />{" "}
-          {render_disk_used(disk)}
-        </span>
-      ),
+      edit: renderInput("disk_quota", "MB"),
     },
     memory: {
       view: (
@@ -267,12 +263,7 @@ export default function QuotaConsole({
           shared RAM memory limit {render_memory_used(memory)}
         </span>
       ),
-      edit: (
-        <span>
-          <b>{renderInput("memory")} MB</b> RAM memory limit{" "}
-          {render_memory_used(memory)}{" "}
-        </span>
-      ),
+      edit: renderInput("memory", "MB"),
     },
     memory_request: {
       view: (
@@ -287,11 +278,7 @@ export default function QuotaConsole({
           dedicated RAM
         </span>
       ),
-      edit: (
-        <span>
-          <b>{renderInput("memory_request")} MB</b> dedicated RAM memory
-        </span>
-      ),
+      edit: renderInput("memory_request", "MB"),
     },
     cores: {
       view: (
@@ -307,7 +294,7 @@ export default function QuotaConsole({
           </b>
         </span>
       ),
-      edit: <b>{renderInput("cores")} cores</b>,
+      edit: renderInput("cores", "cores"),
     },
     cpu_shares: {
       view: (
@@ -323,11 +310,9 @@ export default function QuotaConsole({
           )}
         </b>
       ),
-      edit: (
-        <b>
-          {renderInput("cpu_shares")}{" "}
-          {misc.plural(total_quotas["cpu_shares"], "core")}
-        </b>
+      edit: renderInput(
+        "cpu_shares",
+        misc.plural(total_quotas["cpu_shares"], "core")
       ),
     },
     mintime: {
@@ -338,12 +323,7 @@ export default function QuotaConsole({
           non-interactive use before project stops
         </span>
       ),
-      edit: (
-        <span>
-          <b>{renderInput("mintime")} hours</b> of non-interactive use before
-          project stops
-        </span>
-      ),
+      edit: renderInput("mintime", "hours"),
     },
     network: {
       view: (
