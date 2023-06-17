@@ -37,7 +37,7 @@ import {
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
 import AdminQuotas from "./quota-editor/admin-quotas";
-import QuotaEditor from "./quota-editor";
+import PayAsYouGoQuotaEditor from "./quota-editor/pay-as-you-go";
 import { RunQuota } from "./run-quota";
 import { SiteLicense } from "./site-license";
 import { Project } from "./types";
@@ -210,7 +210,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
             <AdminQuotas project_id={project_id} />
           )}
           {is_commercial && (
-            <QuotaEditor
+            <PayAsYouGoQuotaEditor
               project_id={project_id}
               style={{ marginTop: "15px" }}
             />

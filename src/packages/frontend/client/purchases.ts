@@ -141,8 +141,16 @@ export class PurchasesClient {
     if (this.minPayment != null) {
       return this.minPayment;
     }
-    this.minPayment = (await this.getServiceCost("credit")) as number;  
+    this.minPayment = (await this.getServiceCost("credit")) as number;
     return this.minPayment;
+  }
+
+  async setPayAsYouGoQuotas(project_id: string, quota) {
+    console.log("setPayAsYouGoQuotas", project_id, quota);
+  }
+  async getPayAsYouGoQuotas(project_id): Promise<any> {
+    console.log("getPayAsYouGoQuotas", project_id);
+    return {};
   }
 }
 

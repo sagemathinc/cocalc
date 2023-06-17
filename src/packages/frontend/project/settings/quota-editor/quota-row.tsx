@@ -16,15 +16,11 @@ const UNITS = {
 
 interface Props {
   name: keyof QuotaParams;
-  quotaState: QuotaParams | null;
-  setQuotaState: (state: QuotaParams | null) => void;
+  quotaState: Partial<QuotaParams> | null;
+  setQuotaState: (state: Partial<QuotaParams> | null) => void;
 }
 
-export default function QuotaRow({
-  name,
-  quotaState,
-  setQuotaState,
-}: Props) {
+export default function QuotaRow({ name, quotaState, setQuotaState }: Props) {
   const kucalc: string = useTypedRedux("customize", "kucalc");
   const params_data = PROJECT_UPGRADES.params[name];
 

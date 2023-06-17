@@ -6,7 +6,6 @@ export default function Information() {
     <Popover
       content={
         <div style={{ width: "550px", maxWidth: "90vw" }}>
-          <b>More Details:</b>
           <p>
             Set quotas here. When this project starts, any licenses and upgrades
             are applied, then the quotas of the project are increased to at
@@ -30,13 +29,7 @@ export default function Information() {
       }
       trigger={["click"]}
       placement="rightTop"
-      title={
-        <>
-          Quotas will be increased to at least the listed values upon project
-          start, with charges incurred for usage beyond any licenses and
-          upgrades.
-        </>
-      }
+      title={"Pay As You Go Quotas"}
     >
       <Icon name="question-circle" />
     </Popover>

@@ -4,8 +4,8 @@ import { parse_number_input } from "@cocalc/util/misc";
 
 interface Props {
   name: keyof QuotaParams;
-  quotaState: QuotaParams | null;
-  setQuotaState: (state: QuotaParams | null) => void;
+  quotaState: Partial<QuotaParams> | null;
+  setQuotaState: (state: Partial<QuotaParams> | null) => void;
   units?: string;
 }
 
@@ -42,8 +42,14 @@ export default function EditQuota({
           // is this even a problem given InputNumber...?
           parse_number_input(quotaState[name]) == null ? "error" : undefined
         }
-        addonAfter={units ? <b>{units}</b> : undefined}
-        style={{ width: "150px" }}
+        addonAfter={
+          units ? (
+            <div style={{ width: "50px" }}>
+              <b>{units}</b>
+            </div>
+          ) : undefined
+        }
+        style={{ width: "175px" }}
         key={name}
         min={0}
         value={quotaState[name]}

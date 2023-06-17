@@ -30,7 +30,9 @@ export default function AdminQuotas({ project_id }: Props) {
     "settings",
   ]);
   const [editing, setEditing] = useState<boolean>(false);
-  const [quotaState, setQuotaState] = useState<QuotaParams | null>(null);
+  const [quotaState, setQuotaState] = useState<Partial<QuotaParams> | null>(
+    null
+  );
 
   function setQuotaStateToProjectSettings() {
     if (projectSettings == null) return;
@@ -48,7 +50,7 @@ export default function AdminQuotas({ project_id }: Props) {
 
   useEffect(setQuotaStateToProjectSettings, [projectSettings]);
 
-  if (projectSettings == null) {
+  if (editing && projectSettings == null) {
     return <Loading />;
   }
 
@@ -58,11 +60,11 @@ export default function AdminQuotas({ project_id }: Props) {
       await webapp_client.project_client.set_quotas({
         project_id: project_id,
         cores: quotaState.cores,
-        cpu_shares: Math.round(quotaState.cpu_shares * 1024),
+        cpu_shares: Math.round((quotaState.cpu_shares ?? 0) * 1024),
         disk_quota: quotaState.disk_quota,
         memory: quotaState.memory,
         memory_request: quotaState.memory_request,
-        mintime: Math.floor(quotaState.mintime * 3600),
+        mintime: Math.floor((quotaState.mintime ?? 1800) * 3600),
         network: quotaState.network ? 1 : 0,
         member_host: quotaState.member_host ? 1 : 0,
         always_running: quotaState.always_running ? 1 : 0,
