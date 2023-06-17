@@ -5,7 +5,7 @@
 
 import * as immutable from "immutable";
 import { useEffect, useState } from "react";
-import { Button, Card, Popover } from "antd";
+import { Button, Card, Popconfirm, Popover } from "antd";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { usePrevious } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Space } from "@cocalc/frontend/components";
@@ -14,7 +14,6 @@ import * as misc from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { ProjectSettings, ProjectStatus } from "../types";
 import QuotaRow from "./quota-row";
-import QuotaControl from "./quota-control";
 import type { QuotaParams } from "./types";
 
 interface Props {
@@ -70,7 +69,7 @@ export default function QuotaConsole({
       await webapp_client.project_client.set_quotas({
         project_id: project_id,
         cores: quotaState.cores,
-        cpu_shares: Math.round(quotaState.cpu_shares * 256),
+        cpu_shares: Math.round(quotaState.cpu_shares * 1024),
         disk_quota: quotaState.disk_quota,
         memory: quotaState.memory,
         memory_request: quotaState.memory_request,
@@ -110,8 +109,8 @@ export default function QuotaConsole({
   //    - at least one has changed
   //    - none are negative
   //    - none are empty
-  function valid_admin_inputs(): boolean {
-    let changed;
+  function isModifiedValidInput(): boolean {
+    let changed = false;
     const settings = project_settings;
     if (settings == undefined) {
       return false;
@@ -130,6 +129,7 @@ export default function QuotaConsole({
         continue;
       }
       if (cur_val !== new_val) {
+        console.log(name, cur_val, new_val);
         changed = true;
       }
     }
@@ -143,13 +143,16 @@ export default function QuotaConsole({
           <Button style={{ marginRight: "8px" }} onClick={cancel_admin_editing}>
             Cancel
           </Button>
-          <Button
-            onClick={save_admin_editing}
-            danger
-            disabled={!valid_admin_inputs()}
+          <Popconfirm
+            disabled={!isModifiedValidInput()}
+            onConfirm={save_admin_editing}
+            title="Change Quotas?"
+            description="This will modify the base free quotas and restart the project."
           >
-            <Icon name="thumbs-up" /> Done
-          </Button>
+            <Button type="primary" disabled={!isModifiedValidInput()}>
+              <Icon name="save" /> Save
+            </Button>
+          </Popconfirm>
         </>
       );
     } else {
@@ -159,17 +162,6 @@ export default function QuotaConsole({
         </Button>
       );
     }
-  }
-
-  function renderInput(label: keyof QuotaParams, units?: string) {
-    return (
-      <QuotaControl
-        label={label}
-        quotaState={quotaState}
-        setQuotaState={setQuotaState}
-        units={units}
-      />
-    );
   }
 
   function render_disk_used(disk: number | string) {
@@ -237,7 +229,7 @@ export default function QuotaConsole({
           disk usage limit {render_disk_used(disk)}
         </span>
       ),
-      edit: renderInput("disk_quota", "MB"),
+      units: "MB",
     },
     memory: {
       view: (
@@ -251,7 +243,7 @@ export default function QuotaConsole({
           shared RAM memory limit {render_memory_used(memory)}
         </span>
       ),
-      edit: renderInput("memory", "MB"),
+      units: "MB",
     },
     memory_request: {
       view: (
@@ -266,7 +258,7 @@ export default function QuotaConsole({
           dedicated RAM
         </span>
       ),
-      edit: renderInput("memory_request", "MB"),
+      units: "MB",
     },
     cores: {
       view: (
@@ -282,7 +274,7 @@ export default function QuotaConsole({
           </b>
         </span>
       ),
-      edit: renderInput("cores", "cores"),
+      units: "cores",
     },
     cpu_shares: {
       view: (
@@ -298,10 +290,7 @@ export default function QuotaConsole({
           )}
         </b>
       ),
-      edit: renderInput(
-        "cpu_shares",
-        misc.plural(total_quotas["cpu_shares"], "core")
-      ),
+      units: misc.plural(total_quotas["cpu_shares"], "core"),
     },
     mintime: {
       // no display factor multiplication, because mintime is in seconds
@@ -311,7 +300,7 @@ export default function QuotaConsole({
           non-interactive use before project stops
         </span>
       ),
-      edit: renderInput("mintime", "hours"),
+      units: "hours",
     },
     network: {
       view: (
@@ -321,7 +310,6 @@ export default function QuotaConsole({
             : "Blocked"}
         </b>
       ),
-      edit: renderInput("network"),
     },
     member_host: {
       view: (
@@ -331,7 +319,6 @@ export default function QuotaConsole({
             : "No"}
         </b>
       ),
-      edit: renderInput("member_host"),
     },
     always_running: {
       view: (
@@ -342,7 +329,6 @@ export default function QuotaConsole({
             : "No"}
         </b>
       ),
-      edit: renderInput("always_running"),
     },
   } as const;
 
@@ -358,6 +344,8 @@ export default function QuotaConsole({
         params_data={quota_params[name]}
         total_quotas={total_quotas}
         editing={editing}
+        quotaState={quotaState}
+        setQuotaState={setQuotaState}
       />
     ));
   }

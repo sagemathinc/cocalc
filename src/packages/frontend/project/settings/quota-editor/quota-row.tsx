@@ -3,26 +3,29 @@ import type { QuotaParams } from "./types";
 import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { LabeledRow, Tip } from "@cocalc/frontend/components";
+import QuotaControl from "./quota-control";
 
 interface Props {
   name: keyof QuotaParams;
-  quota: { edit: ReactNode; view: ReactNode } | undefined;
+  quota: { view: ReactNode; units?: string } | undefined;
   params_data: {
     display_factor: number;
     display_unit: string;
     display: string;
     desc: string;
   };
-  total_quotas?: object;
   editing?: boolean;
+  quotaState: QuotaParams | null;
+  setQuotaState: (state: QuotaParams | null) => void;
 }
 
 export default function QuotaRow({
   name,
   quota,
   params_data,
-  total_quotas,
   editing,
+  quotaState,
+  setQuotaState,
 }: Props) {
   const kucalc: string = useTypedRedux("customize", "kucalc");
 
@@ -41,11 +44,7 @@ export default function QuotaRow({
   }
 
   // if always_running is true, don't show idle timeout row, since not relevant
-  if (
-    name == "mintime" &&
-    ((quota["always_running"] && quota["editing"]) ||
-      total_quotas?.["always_running"])
-  ) {
+  if (name == "mintime" && editing && quotaState?.always_running) {
     return null;
   }
 
@@ -62,7 +61,16 @@ export default function QuotaRow({
         paddingBottom: "8px",
       }}
     >
-      {editing ? quota.edit : quota.view}
+      {editing ? (
+        <QuotaControl
+          label={name}
+          quotaState={quotaState}
+          setQuotaState={setQuotaState}
+          units={quota.units}
+        />
+      ) : (
+        quota.view
+      )}
     </LabeledRow>
   );
 }
