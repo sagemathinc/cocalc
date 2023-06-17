@@ -54,8 +54,6 @@ interface Props {
   upgrades_you_applied_to_all_projects?: object;
   upgrades_you_applied_to_this_project?: object;
   total_project_quotas?: object;
-  all_upgrades_to_this_project?: object;
-  site_license_upgrades?: object;
   all_projects_have_been_loaded?: boolean;
   site_license_ids: string[];
   dedicated_resources?: DedicatedResources;
@@ -63,21 +61,17 @@ interface Props {
 }
 
 export const UpgradeUsage: React.FC<Props> = React.memo(
-  (props: Readonly<Props>) => {
-    const {
-      project_id,
-      project,
-      upgrades_you_can_use,
-      upgrades_you_applied_to_all_projects,
-      upgrades_you_applied_to_this_project,
-      total_project_quotas,
-      all_upgrades_to_this_project,
-      site_license_upgrades,
-      all_projects_have_been_loaded,
-      //site_license_ids,
-      dedicated_resources,
-      mode,
-    } = props;
+  ({
+    project_id,
+    project,
+    upgrades_you_can_use,
+    upgrades_you_applied_to_all_projects,
+    upgrades_you_applied_to_this_project,
+    total_project_quotas,
+    all_projects_have_been_loaded,
+    dedicated_resources,
+    mode,
+  }: Readonly<Props>) => {
     const actions: ProjectsActions = useActions("projects");
     const project_actions = useActions({ project_id });
     const account_groups: List<string> =
@@ -221,8 +215,6 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
               quota_params={PROJECT_UPGRADES.params}
               account_groups={account_groups}
               total_project_quotas={total_project_quotas}
-              all_upgrades_to_this_project={all_upgrades_to_this_project}
-              site_license_upgrades={site_license_upgrades}
               expand_admin_only={true}
             />
           )}

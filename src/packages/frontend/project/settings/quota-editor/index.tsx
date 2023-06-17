@@ -7,7 +7,7 @@ export default function QuotaEditor({ project_id, style }) {
     <Card
       title={
         <>
-          <Icon name="compass" /> Quota Editor
+          <Icon name="compass" /> Quota Editor (pay as you go)
         </>
       }
       type="inner"

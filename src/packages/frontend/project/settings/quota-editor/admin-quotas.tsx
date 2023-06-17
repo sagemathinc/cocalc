@@ -5,8 +5,7 @@
 
 import * as immutable from "immutable";
 import { useEffect, useState } from "react";
-import { Row, Col } from "@cocalc/frontend/antd-bootstrap";
-import { Button } from "antd";
+import { Button, Card, Popover } from "antd";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { usePrevious } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Space } from "@cocalc/frontend/components";
@@ -26,7 +25,6 @@ interface Props {
   quota_params: object; // from the schema
   account_groups: immutable.List<string>;
   total_project_quotas?: object; // undefined if viewing as admin
-  site_license_upgrades?: object;
   all_upgrades_to_this_project?: object;
   expand_admin_only?: boolean;
 }
@@ -36,11 +34,9 @@ export default function QuotaConsole({
   account_groups,
   quota_params,
   project_id,
-  site_license_upgrades,
   total_project_quotas,
   project_state,
   project_status,
-  all_upgrades_to_this_project = {},
   expand_admin_only = false,
 }: Props) {
   const is_admin = account_groups.includes("admin");
@@ -141,35 +137,27 @@ export default function QuotaConsole({
   }
 
   function render_admin_edit_buttons() {
-    if (is_admin) {
-      if (editing) {
-        return (
-          <Row>
-            <Col sm={6} smOffset={6}>
-              <Button.Group style={{ float: "right" }}>
-                <Button
-                  onClick={save_admin_editing}
-                  danger
-                  disabled={!valid_admin_inputs()}
-                >
-                  <Icon name="thumbs-up" /> Done
-                </Button>
-                <Button onClick={cancel_admin_editing}>Cancel</Button>
-              </Button.Group>
-            </Col>
-          </Row>
-        );
-      } else {
-        return (
-          <Row>
-            <Col sm={6} smOffset={6}>
-              <Button onClick={start_admin_editing} style={{ float: "right" }}>
-                <Icon name="pencil" /> Admin Quotas...
-              </Button>
-            </Col>
-          </Row>
-        );
-      }
+    if (editing) {
+      return (
+        <>
+          <Button style={{ marginRight: "8px" }} onClick={cancel_admin_editing}>
+            Cancel
+          </Button>
+          <Button
+            onClick={save_admin_editing}
+            danger
+            disabled={!valid_admin_inputs()}
+          >
+            <Icon name="thumbs-up" /> Done
+          </Button>
+        </>
+      );
+    } else {
+      return (
+        <Button onClick={start_admin_editing} type="text">
+          <Icon name="pencil" /> Edit
+        </Button>
+      );
     }
   }
 
@@ -367,23 +355,42 @@ export default function QuotaConsole({
         key={name}
         name={name}
         quota={quotas_edit_config[name]}
-        base_value={settings.get(name)}
-        upgrades={upgrades[name]}
         params_data={quota_params[name]}
-        site_license={site_license[name]}
         total_quotas={total_quotas}
         editing={editing}
       />
     ));
   }
 
-  const upgrades = all_upgrades_to_this_project;
-  const site_license = site_license_upgrades ?? {};
-
   return (
-    <div>
-      {render_admin_edit_buttons()}
+    <Card
+      title={
+        <>
+          <Icon name="user-plus" /> Admin Quota Editor
+          <span style={{ margin: "0 15px", float: "right" }}>
+            {render_admin_edit_buttons()}
+          </span>
+        </>
+      }
+      type="inner"
+      extra={
+        <Popover
+          content={
+            <div style={{ maxWidth: "400px" }}>
+              Use your admin privileges to set the <b>base free quotas</b> for
+              this project to anything you want. Licenses, user upgrades, etc.,
+              are combined with these base free quotas.
+            </div>
+          }
+          trigger={["click"]}
+          placement="rightTop"
+          title="Admin Quota Editor Information"
+        >
+          <Icon name="question-circle" />
+        </Popover>
+      }
+    >
       {render_quota_rows()}
-    </div>
+    </Card>
   );
 }
