@@ -9,9 +9,11 @@ import { Icon, Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import QuotaRow from "./quota-row";
-import { isEqual } from "lodash";
 import Information from "./information";
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import {
+  ProjectQuota,
+  PROJECT_QUOTA_KEYS,
+} from "@cocalc/util/db-schema/purchase-quotas";
 import { useRedux } from "@cocalc/frontend/app-framework";
 
 // These correspond to dedicated RAM and dedicated CPU, and we
@@ -69,7 +71,12 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   //    - none are negative
   //    - none are empty
   function isModified(): boolean {
-    return !isEqual(savedQuotaState, quotaState);
+    for (const key of PROJECT_QUOTA_KEYS) {
+      if ((savedQuotaState?.[key] ?? 0) != (quotaState?.[key] ?? 0)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   if (editing && (quotaState == null || savedQuotaState == null)) {
@@ -110,14 +117,52 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       type="inner"
       extra={<Information />}
     >
+      {!editing && (
+        <Alert
+          onClick={() => setEditing(true)}
+          style={{ cursor: "pointer" }}
+          showIcon
+          type={!!quotaState?.enabled ? "success" : "info"}
+          message={quotaState?.enabled ? <>Enabled</> : <>Disabled</>}
+        />
+      )}
       {editing && (
         <>
           {error && <Alert type="error" showIcon description={error} />}
-          <div>
-            Quotas are increased to at least the following values upon project
-            start, with charges incurred for usage beyond any licenses and
-            upgrades.
-          </div>
+          <Alert
+            type={!!quotaState?.enabled ? "success" : "info"}
+            message={!!quotaState?.enabled ? "Enabled" : "Not Enabled"}
+            description={
+              <>
+                <Checkbox
+                  checked={!!quotaState?.enabled}
+                  onChange={(e) =>
+                    setQuotaState({
+                      ...quotaState,
+                      enabled: e.target.checked ? 1 : 0,
+                    })
+                  }
+                >
+                  Increase quotas to at least the following values upon project
+                  start. I agree to pay charges for usage beyond any licenses
+                  and upgrades.
+                </Checkbox>
+                <br />
+                <Checkbox
+                  style={{ marginTop: "15px" }}
+                  checked={!!quotaState?.allow_any}
+                  onChange={(e) =>
+                    setQuotaState({
+                      ...quotaState,
+                      allow_any: e.target.checked ? 1 : 0,
+                    })
+                  }
+                >
+                  Upgrade quotas for anybody who starts this project
+                </Checkbox>
+              </>
+            }
+          />
           {PROJECT_UPGRADES.field_order
             .filter((name) => !EXCLUDE.has(name))
             .map((name) => (
@@ -128,18 +173,6 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                 setQuotaState={setQuotaState}
               />
             ))}
-          <Checkbox
-            style={{ marginTop: "15px" }}
-            checked={!quotaState?.allow_any}
-            onChange={(e) =>
-              setQuotaState({
-                ...quotaState,
-                allow_any: !e.target.checked ? 1 : 0,
-              })
-            }
-          >
-            Upgrade quotas only when I start this project
-          </Checkbox>
         </>
       )}
     </Card>

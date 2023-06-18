@@ -42,6 +42,7 @@ export const QUOTA_SPEC: QuotaSpec = {
 
 // For pay-as-you-go project quota upgrades
 export interface ProjectQuota {
+  enabled?: number; // do not use in any way if not true.
   allow_any?: number;
   cores?: number;
   disk_quota?: number;
@@ -53,6 +54,7 @@ export interface ProjectQuota {
 }
 
 export const PROJECT_QUOTA_KEYS = new Set<string>([
+  "enabled",
   "allow_any",
   "cores",
   "disk_quota",

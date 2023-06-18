@@ -41,6 +41,7 @@ export default function QuotaRow({ name, quotaState, setQuotaState }: Props) {
 
   return (
     <LabeledRow
+      label_cols={6}
       label={
         <Tip title={params_data.display} tip={params_data.desc}>
           {params_data.display}
