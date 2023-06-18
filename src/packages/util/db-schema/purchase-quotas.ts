@@ -40,6 +40,29 @@ export const QUOTA_SPEC: QuotaSpec = {
   },
 };
 
+// For pay-as-you-go project quota upgrades
+export interface ProjectQuota {
+  allow_any?: number;
+  cores?: number;
+  disk_quota?: number;
+  memory?: number;
+  mintime?: number;
+  network?: number;
+  member_host?: number;
+  always_running?: number;
+}
+
+export const PROJECT_QUOTA_KEYS = new Set<string>([
+  "allow_any",
+  "cores",
+  "disk_quota",
+  "memory",
+  "mintime",
+  "network",
+  "member_host",
+  "always_running",
+]);
+
 export function serviceToDisplay(service: Service): string {
   return QUOTA_SPEC[service]?.display ?? service;
 }

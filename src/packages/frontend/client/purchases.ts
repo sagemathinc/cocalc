@@ -7,6 +7,7 @@ import api from "./api";
 import type { Service } from "@cocalc/util/db-schema/purchases";
 import { redux } from "@cocalc/frontend/app-framework";
 import { once } from "@cocalc/util/async-utils";
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 
 export class PurchasesClient {
   private minPayment: number | null = null;
@@ -145,12 +146,8 @@ export class PurchasesClient {
     return this.minPayment;
   }
 
-  async setPayAsYouGoQuotas(project_id: string, quota) {
-    console.log("setPayAsYouGoQuotas", project_id, quota);
-  }
-  async getPayAsYouGoQuotas(project_id): Promise<any> {
-    console.log("getPayAsYouGoQuotas", project_id);
-    return {};
+  async setPayAsYouGoProjectQuotas(project_id: string, quota: ProjectQuota) {
+    await api("purchases/set-project-quota", { project_id, quota });
   }
 }
 

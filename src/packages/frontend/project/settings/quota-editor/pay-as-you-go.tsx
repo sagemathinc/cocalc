@@ -4,25 +4,15 @@
  */
 
 import { CSSProperties, useEffect, useState } from "react";
-import { Alert, Button, Card, Checkbox, Popconfirm } from "antd";
-import { alert_message } from "@cocalc/frontend/alerts";
+import { Alert, Button, Card, Checkbox } from "antd";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import QuotaRow from "./quota-row";
 import { isEqual } from "lodash";
 import Information from "./information";
-
-interface PayAsYouGoQuotaParams {
-  allow_any?: number;
-  cores?: number;
-  disk_quota?: number;
-  memory?: number;
-  mintime?: number;
-  network?: number;
-  member_host?: number;
-  always_running?: number;
-}
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import { useRedux } from "@cocalc/frontend/app-framework";
 
 // These correspond to dedicated RAM and dedicated CPU, and we
 // found them too difficult to cost out, so exclude them (only
@@ -35,31 +25,25 @@ interface Props {
 }
 
 export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
+  const project = useRedux(["projects", "project_map", project_id]);
+  // Slightly subtle -- it's null if not loaded but {} or the thing if loaded, even
+  // if there is no data yet in the database.
+  const savedQuotaState: ProjectQuota | null =
+    project == null
+      ? null
+      : project
+          .getIn(["pay_as_you_go_quotas", webapp_client.account_id])
+          ?.toJS() ?? {};
   const [editing, setEditing] = useState<boolean>(false);
-  // one in the database:
-  const [savedQuotaState, setSavedQuotaState] =
-    useState<PayAsYouGoQuotaParams | null>(null);
   // one we are editing:
-  const [quotaState, setQuotaState] = useState<PayAsYouGoQuotaParams | null>(
-    null
+  const [quotaState, setQuotaState] = useState<ProjectQuota | null>(
+    savedQuotaState
   );
   const [error, setError] = useState<string>("");
 
-  const getSavedQuotaState = async () => {
-    try {
-      const state = await webapp_client.purchases_client.getPayAsYouGoQuotas(
-        project_id
-      );
-      setSavedQuotaState(state);
-      setQuotaState(state);
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
-
   useEffect(() => {
     if (editing) {
-      getSavedQuotaState();
+      setQuotaState(savedQuotaState);
     }
   }, [editing]);
 
@@ -67,24 +51,12 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     if (quotaState == null) return;
     try {
       setError("");
-      await webapp_client.purchases_client.setPayAsYouGoQuotas(project_id, {
-        cores: quotaState.cores,
-        disk_quota: quotaState.disk_quota,
-        memory: quotaState.memory,
-        mintime: Math.floor((quotaState.mintime ?? 0) * 3600),
-        network: quotaState.network ? 1 : 0,
-        member_host: quotaState.member_host ? 1 : 0,
-        always_running: quotaState.always_running ? 1 : 0,
-        allow_any: quotaState.allow_any ? 1 : 0,
-      });
-      alert_message({
-        type: "success",
-        message: "Project quotas updated.",
-      });
+      await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
+        project_id,
+        quotaState
+      );
     } catch (err) {
-      alert_message({ type: "error", message: err.message });
-    } finally {
-      setEditing(false);
+      setError(`${err}`);
     }
   }
 
@@ -113,19 +85,15 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
             {editing && (
               <>
                 <Button style={{ marginRight: "8px" }} onClick={handleCancel}>
-                  Cancel
+                  Close
                 </Button>
-                <Popconfirm
+                <Button
+                  type="primary"
                   disabled={!isModified()}
-                  onConfirm={handleSave}
-                  onCancel={handleCancel}
-                  title="Change Quotas?"
-                  description="This will modify the base free quotas and restart the project."
+                  onClick={handleSave}
                 >
-                  <Button type="primary" disabled={!isModified()}>
-                    <Icon name="save" /> Save
-                  </Button>
-                </Popconfirm>
+                  <Icon name="save" /> Save
+                </Button>
               </>
             )}
             {!editing && (
