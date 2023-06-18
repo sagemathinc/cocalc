@@ -41,7 +41,20 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   const [quotaState, setQuotaState] = useState<ProjectQuota | null>(
     savedQuotaState
   );
+  const [maxQuotas, setMaxQuotas] = useState<ProjectQuota | null>(null);
   const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setMaxQuotas(
+          await webapp_client.purchases_client.getPayAsYouGoMaxProjectQuotas()
+        );
+      } catch (err) {
+        setError(`${err}`);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (editing) {
@@ -131,7 +144,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           {error && <Alert type="error" showIcon description={error} />}
           <Alert
             type={!!quotaState?.enabled ? "success" : "info"}
-            message={!!quotaState?.enabled ? "Enabled" : "Not Enabled"}
+            message={!!quotaState?.enabled ? "Enabled" : "Disabled"}
             description={
               <>
                 <Checkbox
@@ -143,9 +156,12 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                     })
                   }
                 >
-                  Increase quotas to at least the following values upon project
-                  start. I agree to pay charges for usage beyond any licenses
-                  and upgrades.
+                  Increase quotas to at least the following values when the
+                  project starts.{" "}
+                  <b>
+                    I agree to pay charges for usage beyond any licenses and
+                    upgrades.
+                  </b>
                 </Checkbox>
                 <br />
                 <Checkbox
@@ -171,6 +187,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                 name={name}
                 quotaState={quotaState}
                 setQuotaState={setQuotaState}
+                maxQuotas={maxQuotas}
               />
             ))}
         </>

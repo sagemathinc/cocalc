@@ -448,9 +448,9 @@ export const EXTRAS: SettingsExtras = {
   },
   pay_as_you_go_max_project_upgrades: {
     name: "Pay As You Go - Max Project Upgrade Quotas",
-    desc: 'Example -- `{"cores": 3, "memory": 16000, "mintime": 1, "network": 1, "disk_quota": 15000, "member_host": 1, "always_running": 1}`. This is a json object, and the units are exactly as in the quota editor (so true/false, cores and megabytes).',
+    desc: 'Example -- `{"network": 1, "member_host": 1, "always_running": 1, "cores": 3, "memory": 16000, "disk_quota": 15000}`. This is a json object, and the units are exactly as in the quota editor (so true/false, cores and megabytes).',
     default:
-      '{"cores": 3, "memory": 16000, "mintime": 1, "network": 1, "disk_quota": 15000, "member_host": 1, "always_running": 1}',
+      '{"network": 1, "member_host": 1, "always_running": 1, "cores": 3, "memory": 16000, "disk_quota": 15000}',
     show: only_commercial,
     to_val: from_json,
     to_display: displayJson,

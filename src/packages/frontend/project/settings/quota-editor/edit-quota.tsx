@@ -7,6 +7,7 @@ interface Props {
   quotaState: Partial<QuotaParams> | null;
   setQuotaState: (state: Partial<QuotaParams> | null) => void;
   units?: string;
+  max?: number;
 }
 
 export default function EditQuota({
@@ -14,6 +15,7 @@ export default function EditQuota({
   quotaState,
   setQuotaState,
   units,
+  max,
 }: Props) {
   if (quotaState == null) {
     return null;
@@ -23,6 +25,17 @@ export default function EditQuota({
     name === "member_host" ||
     name === "always_running"
   ) {
+    if (max != null && max == 0) {
+      return (
+        <Checkbox
+          key={name}
+          disabled
+          style={{ marginLeft: 0 }}
+        >
+          Not supported
+        </Checkbox>
+      );
+    }
     return (
       <Checkbox
         key={name}
@@ -52,6 +65,7 @@ export default function EditQuota({
         style={{ width: "175px" }}
         key={name}
         min={0}
+        max={max}
         value={quotaState[name]}
         step={getStepSize(name)}
         onChange={(value) => {

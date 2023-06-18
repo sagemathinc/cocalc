@@ -8,15 +8,17 @@ import type { Service } from "@cocalc/util/db-schema/purchases";
 import { redux } from "@cocalc/frontend/app-framework";
 import { once } from "@cocalc/util/async-utils";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import LRU from "lru-cache";
+
+// We cache some results below using this cache, since they are general settings
+// that rarely change, and it is nice to not have to worry about how often
+// we call them.
+const cache = new LRU<string, any>({
+  ttl: 15 * 60 * 1000,
+  max: 100,
+});
 
 export class PurchasesClient {
-  private minPayment: number | null = null;
-  //private client: WebappClient;
-
-  //   constructor(client: WebappClient) {
-  //     this.client = client;
-  //   }
-
   // Returns quotas for each category of purchase, along with
   // a 'global' quota.
   async getQuotas(): Promise<{
@@ -139,11 +141,13 @@ export class PurchasesClient {
   }
 
   async getMinimumPayment(): Promise<number> {
-    if (this.minPayment != null) {
-      return this.minPayment;
+    const key = "getMinimumPayment";
+    if (cache.has(key)) {
+      return cache.get(key)!;
     }
-    this.minPayment = (await this.getServiceCost("credit")) as number;
-    return this.minPayment;
+    const minPayment = (await this.getServiceCost("credit")) as number;
+    cache.set(key, minPayment);
+    return minPayment;
   }
 
   async setPayAsYouGoProjectQuotas(project_id: string, quota: ProjectQuota) {
@@ -151,7 +155,13 @@ export class PurchasesClient {
   }
 
   async getPayAsYouGoMaxProjectQuotas(): Promise<ProjectQuota> {
-    return await api("purchases/get-max-project-quotas");
+    const key = "getPayAsYouGoMaxProjectQuotas";
+    if (cache.has(key)) {
+      return cache.get(key)!;
+    }
+    const m = await api("purchases/get-max-project-quotas");
+    cache.set(key, m);
+    return m;
   }
 }
 

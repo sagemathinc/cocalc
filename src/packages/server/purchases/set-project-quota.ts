@@ -4,6 +4,7 @@ import {
 } from "@cocalc/util/db-schema/purchase-quotas";
 import getPool from "@cocalc/database/pool";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { getMaxQuotas } from "./project-quotas";
 
 export default async function setProjectQuota({
   account_id,
@@ -18,6 +19,7 @@ export default async function setProjectQuota({
     throw Error("user must be a collaborator on the project");
   }
 
+  const maxQuotas = await getMaxQuotas();
   // some sanity tests so we don't store weird crap in the database.
   // We store only the positive values in the quota.
   const quota1: ProjectQuota = {};
@@ -35,6 +37,13 @@ export default async function setProjectQuota({
       continue;
     }
     quota1[key] = quota[key];
+    if (maxQuotas?.[key] != null) {
+      quota1[key] = Math.min(quota1[key], maxQuotas?.[key]);
+    }
+    if (!quota1[key]) {
+      // only store positive values -- could have been zeroed about by max quota.
+      delete quota1[key];
+    }
   }
 
   const db = getPool();

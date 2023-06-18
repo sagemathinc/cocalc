@@ -4,6 +4,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { LabeledRow, Tip } from "@cocalc/frontend/components";
 import EditQuota from "./edit-quota";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { Button } from "antd";
 
 const UNITS = {
   disk_quota: "MB",
@@ -18,9 +19,15 @@ interface Props {
   name: keyof QuotaParams;
   quotaState: Partial<QuotaParams> | null;
   setQuotaState: (state: Partial<QuotaParams> | null) => void;
+  maxQuotas?: Partial<QuotaParams> | null;
 }
 
-export default function QuotaRow({ name, quotaState, setQuotaState }: Props) {
+export default function QuotaRow({
+  name,
+  quotaState,
+  setQuotaState,
+  maxQuotas,
+}: Props) {
   const kucalc: string = useTypedRedux("customize", "kucalc");
   const params_data = PROJECT_UPGRADES.params[name];
 
@@ -39,13 +46,36 @@ export default function QuotaRow({ name, quotaState, setQuotaState }: Props) {
     return null;
   }
 
+  const max = maxQuotas?.[name];
+  const units = UNITS[name];
+
   return (
     <LabeledRow
       label_cols={6}
       label={
-        <Tip title={params_data.display} tip={params_data.desc}>
-          {params_data.display}
-        </Tip>
+        <div style={{ marginTop: units != null ? "5px" : undefined }}>
+          <Tip
+            title={params_data.display}
+            tip={params_data.desc}
+            placement="top"
+          >
+            {params_data.display}
+          </Tip>
+          {max != null && units != null && (
+            <>
+              {" "}
+              <Button
+                type="text"
+                size="small"
+                onClick={() => {
+                  setQuotaState({ ...quotaState, [name]: max });
+                }}
+              >
+                (max: {max} {units})
+              </Button>
+            </>
+          )}
+        </div>
       }
       key={params_data.display}
       style={{
@@ -57,7 +87,8 @@ export default function QuotaRow({ name, quotaState, setQuotaState }: Props) {
         name={name}
         quotaState={quotaState}
         setQuotaState={setQuotaState}
-        units={UNITS[name]}
+        units={units}
+        max={max}
       />
     </LabeledRow>
   );
