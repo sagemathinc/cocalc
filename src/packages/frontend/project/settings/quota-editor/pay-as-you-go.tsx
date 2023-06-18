@@ -15,11 +15,12 @@ import {
   PROJECT_QUOTA_KEYS,
 } from "@cocalc/util/db-schema/purchase-quotas";
 import { useRedux } from "@cocalc/frontend/app-framework";
+import CostPerHour from "./cost-per-hour";
 
 // These correspond to dedicated RAM and dedicated CPU, and we
 // found them too difficult to cost out, so exclude them (only
 // admins can set them).
-const EXCLUDE = new Set(["memory_request", "cpu_shares"]);
+const EXCLUDE = new Set(["memory_request", "cpu_shares", "network"]);
 
 interface Props {
   project_id: string;
@@ -130,6 +131,11 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       type="inner"
       extra={<Information />}
     >
+      {quotaState != null && !!(editing || quotaState.enabled) && (
+        <div style={{ float: "right", marginLeft: "30px" }}>
+          <CostPerHour quota={quotaState} />
+        </div>
+      )}
       {!editing && (
         <Alert
           onClick={() => setEditing(true)}
@@ -157,11 +163,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                   }
                 >
                   Increase quotas to at least the following values when the
-                  project starts.{" "}
-                  <b>
-                    I agree to pay charges for usage beyond any licenses and
-                    upgrades.
-                  </b>
+                  project starts. <b>I agree to pay charges for usage.</b>
                 </Checkbox>
                 <br />
                 <Checkbox

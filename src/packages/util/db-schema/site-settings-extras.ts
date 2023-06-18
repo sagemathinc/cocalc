@@ -115,7 +115,8 @@ export type SiteSettingsExtrasKeys =
   | "default_pay_as_you_go_quota"
   | "pay_as_you_go_min_payment"
   | "pay_as_you_go_openai_markup_percentage"
-  | "pay_as_you_go_max_project_upgrades";
+  | "pay_as_you_go_max_project_upgrades"
+  | "pay_as_you_go_price_project_upgrades";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -451,6 +452,15 @@ export const EXTRAS: SettingsExtras = {
     desc: 'Example -- `{"network": 1, "member_host": 1, "always_running": 1, "cores": 3, "memory": 16000, "disk_quota": 15000}`. This is a json object, and the units are exactly as in the quota editor (so true/false, cores and megabytes).',
     default:
       '{"network": 1, "member_host": 1, "always_running": 1, "cores": 3, "memory": 16000, "disk_quota": 15000}',
+    show: only_commercial,
+    to_val: from_json,
+    to_display: displayJson,
+    valid: parsableJson,
+  },
+  pay_as_you_go_price_project_upgrades: {
+    name: "Pay As You Go - Price for Project Upgrades",
+    desc: 'Example -- `{"cores":50, "memory":7, "disk_quota":0.25, "member_host":4}`. This is a json object, where\n\n- cores = price per month for 1 vCPU\n- memory = price per month for 1GB of RAM\n- disk_quota = price per month for 1GB of disk\n- member_host = non-disk part of non-member hosting cost is divided by this',
+    default: '{"cores":50, "memory":7, "disk_quota":0.25, "member_host":4}',
     show: only_commercial,
     to_val: from_json,
     to_display: displayJson,

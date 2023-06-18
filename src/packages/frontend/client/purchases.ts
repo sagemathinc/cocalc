@@ -163,6 +163,16 @@ export class PurchasesClient {
     cache.set(key, m);
     return m;
   }
+
+  async getPayAsYouGoPricesProjectQuotas(): Promise<ProjectQuota> {
+    const key = "getPayAsYouGoPricesProjectQuotas";
+    if (cache.has(key)) {
+      return cache.get(key)!;
+    }
+    const m = await api("purchases/get-prices-project-quotas");
+    cache.set(key, m);
+    return m;
+  }
 }
 
 async function waitUntilPayAsYouGoModalCloses() {
