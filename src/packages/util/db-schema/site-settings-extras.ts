@@ -25,6 +25,9 @@ import {
   only_pos_int,
   only_commercial,
   only_cocalc_com,
+  from_json,
+  parsableJson,
+  displayJson,
 } from "./site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
@@ -111,7 +114,8 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_section"
   | "default_pay_as_you_go_quota"
   | "pay_as_you_go_min_payment"
-  | "pay_as_you_go_openai_markup_percentage";
+  | "pay_as_you_go_openai_markup_percentage"
+  | "pay_as_you_go_max_project_upgrades";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -441,5 +445,15 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     to_val: toFloat,
     valid: onlyNonnegFloat,
+  },
+  pay_as_you_go_max_project_upgrades: {
+    name: "Pay As You Go - Max Project Upgrade Quotas",
+    desc: 'Example -- `{"cores": 3, "memory": 16000, "mintime": 1, "network": 1, "disk_quota": 15000, "member_host": 1, "always_running": 1}`. This is a json object, and the units are exactly as in the quota editor (so true/false, cores and megabytes).',
+    default:
+      '{"cores": 3, "memory": 16000, "mintime": 1, "network": 1, "disk_quota": 15000, "member_host": 1, "always_running": 1}',
+    show: only_commercial,
+    to_val: from_json,
+    to_display: displayJson,
+    valid: parsableJson,
   },
 } as const;

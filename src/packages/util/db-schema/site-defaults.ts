@@ -5,6 +5,7 @@
 
 // Default settings to customize a given site, typically a private install of CoCalc.
 
+import jsonic from "jsonic";
 import { is_valid_email_address } from "@cocalc/util/misc";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
@@ -138,10 +139,22 @@ export const onlyPosFloat = (val) =>
 
 export const from_json = (conf): Mapping => {
   try {
-    if (conf !== null) return JSON.parse(conf) ?? {};
+    if (conf !== null) {
+      return jsonic(conf) ?? {};
+    }
   } catch (_) {}
   return {};
 };
+export const parsableJson = (conf): boolean => {
+  try {
+    jsonic(conf ?? "{}");
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
+
+export const displayJson = (conf) => JSON.stringify(from_json(conf), undefined, 2);
 
 // TODO a cheap'n'dirty validation is good enough
 const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
@@ -443,6 +456,8 @@ export const site_settings_conf: SiteSettings = {
     help: DEFAULT_QUOTAS_HELP,
     show: only_onprem,
     to_val: from_json,
+    to_display: displayJson,
+    valid: parsableJson,
   },
   max_upgrades: {
     name: "Maximum Quota Upgrades",
@@ -451,6 +466,8 @@ export const site_settings_conf: SiteSettings = {
     help: MAX_UPGRADES_HELP,
     show: only_onprem,
     to_val: from_json,
+    to_display: displayJson,
+    valid: parsableJson,
   },
   ssh_gateway: {
     name: "SSH Gateway",

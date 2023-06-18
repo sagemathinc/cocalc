@@ -149,6 +149,10 @@ export class PurchasesClient {
   async setPayAsYouGoProjectQuotas(project_id: string, quota: ProjectQuota) {
     await api("purchases/set-project-quota", { project_id, quota });
   }
+
+  async getPayAsYouGoMaxProjectQuotas(): Promise<ProjectQuota> {
+    return await api("purchases/get-max-project-quotas");
+  }
 }
 
 async function waitUntilPayAsYouGoModalCloses() {
