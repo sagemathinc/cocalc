@@ -10,7 +10,8 @@ so they can mostly ignore the frame editor if they want to.
 */
 
 import { Tabs } from "antd";
-const { TabPane } = Tabs;
+
+import { Tab } from "@cocalc/frontend/antd-bootstrap";
 import { CourseEditorActions } from "./actions";
 
 interface Props {
@@ -32,21 +33,22 @@ export const CourseTabBar: React.FC<Props> = (props: Props) => {
       defaultActiveKey={type}
       onChange={select_tab.bind(this)}
       animated={false}
-    >
-      <TabPane
-        tab={`Students (${counts.students})`}
-        key="course_students"
-      ></TabPane>
-      <TabPane
-        tab={`Assignments (${counts.assignments})`}
-        key="course_assignments"
-      ></TabPane>
-      <TabPane
-        tab={`Handouts (${counts.handouts})`}
-        key="course_handouts"
-      ></TabPane>
-      <TabPane tab="Configuration" key="course_configuration"></TabPane>
-      <TabPane tab="Shared Project" key="course_shared_project"></TabPane>
-    </Tabs>
+      items={[
+        Tab({
+          eventKey: "course_students",
+          title: `Students (${counts.students})`,
+        }),
+        Tab({
+          eventKey: "course_assignments",
+          title: `Assignments (${counts.assignments})`,
+        }),
+        Tab({
+          eventKey: "course_handouts",
+          title: `Handouts (${counts.handouts})`,
+        }),
+        Tab({ eventKey: "course_configuration", title: `Configuration` }),
+        Tab({ eventKey: "course_shared_project", title: `Shared Project` }),
+      ]}
+    />
   );
 };

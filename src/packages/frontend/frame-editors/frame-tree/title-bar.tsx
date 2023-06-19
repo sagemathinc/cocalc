@@ -101,11 +101,11 @@ const MAX_TITLE_WIDTH = 25;
 
 const TITLE_STYLE: CSS = {
   background: COL_BAR_BACKGROUND,
-  margin: "8px 5px 0px 5px",
+  margin: "5px",
   fontSize: "10pt",
   whiteSpace: "nowrap",
   display: "inline-block",
-  maxWidth: `${MAX_TITLE_WIDTH}ex`,
+  maxWidth: `${MAX_TITLE_WIDTH + 2}ex`,
 } as const;
 
 const CONNECTION_STATUS_STYLE: CSS = {
