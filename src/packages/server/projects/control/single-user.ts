@@ -163,17 +163,36 @@ class Project extends BaseProject {
   // despite not being used, this is useful for development and
   // the run_quota is shown in the UI (in project settings).
   async setRunQuota(): Promise<void> {
-    const { settings, users, site_license } = await query({
-      db: db(),
-      select: ["site_license", "settings", "users"],
-      table: "projects",
-      where: { project_id: this.project_id },
-      one: true,
-    });
+    const { settings, users, site_license, pay_as_you_go_quotas } = await query(
+      {
+        db: db(),
+        select: ["site_license", "settings", "users", "pay_as_you_go_quotas"],
+        table: "projects",
+        where: { project_id: this.project_id },
+        one: true,
+      }
+    );
 
     const site_settings = await getQuotaSiteSettings(); // quick, usually cached
 
-    const run_quota = quota(settings, users, site_license, site_settings);
+    let run_quota = quota(settings, users, site_license, site_settings);
+
+    if (pay_as_you_go_quotas != null) {
+      const v = Object.values(pay_as_you_go_quotas);
+      if (v.length > 0) {
+        const run_quota_with_pay_as_you_go = quota(
+          settings,
+          users,
+          site_license,
+          site_settings,
+          v as any
+        );
+        console.log(run_quota_with_pay_as_you_go);
+        //         if (!isEqual(run_quota_with_pay_as_you_go, run_quota)) {
+        //           // the pay as you go contributions increase the quota, we activate pay as you go.
+        //         }
+      }
+    }
 
     await query({
       db: db(),

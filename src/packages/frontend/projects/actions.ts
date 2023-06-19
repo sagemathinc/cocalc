@@ -916,7 +916,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
       });
       await this.projects_table_set({
         project_id,
-        action_request: { action: "start", time: webapp_client.server_time() },
+        action_request: {
+          action: "start",
+          time: webapp_client.server_time(),
+        },
       });
       did_start = true;
     }

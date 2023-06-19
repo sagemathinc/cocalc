@@ -20,7 +20,7 @@ import CostPerHour from "./cost-per-hour";
 // These correspond to dedicated RAM and dedicated CPU, and we
 // found them too difficult to cost out, so exclude them (only
 // admins can set them).
-const EXCLUDE = new Set(["memory_request", "cpu_shares", "network"]);
+const EXCLUDE = new Set(["memory_request", "cpu_shares"]);
 
 interface Props {
   project_id: string;
@@ -165,10 +165,8 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                     })
                   }
                 >
-                  Increase quotas to at least the values below when the project
-                  starts.
-                  <br />
-                  <b>You agree to pay for usage.</b>
+                  Increase quotas to at least the values below when you start
+                  this project.
                 </Checkbox>
                 {/*<br />
                 <Checkbox

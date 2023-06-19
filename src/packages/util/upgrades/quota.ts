@@ -967,7 +967,7 @@ export function quota_with_reasons(
 
   if (pay_as_you_go != null) {
     // Include pay-as-you-go quotas.  We just take
-    // the maximum for each quota, with the stupid
+    // the maximum for each given quota, with the stupid
     // complication that the names and units are all
     // different.  pay_as_you_go is an array of objects
     // and the names and units they use are EXACTLY
