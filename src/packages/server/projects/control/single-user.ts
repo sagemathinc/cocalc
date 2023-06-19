@@ -161,7 +161,7 @@ class Project extends BaseProject {
   }
 
   // despite not being used, this is useful for development and
-  // some day in the future the run_quota will be shown in the UI
+  // the run_quota is shown in the UI (in project settings).
   async setRunQuota(): Promise<void> {
     const { settings, users, site_license } = await query({
       db: db(),

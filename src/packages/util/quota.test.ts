@@ -34,7 +34,7 @@ import {
   quota_with_reasons,
   quota_with_reasons as reasons0,
 } from "./upgrades/quota";
-const quota = quota0 as (a?, b?, c?, d?) => ReturnType<typeof quota0>;
+const quota = quota0 as (a?, b?, c?, d?, e?) => ReturnType<typeof quota0>;
 const reasons = reasons0 as (a?, b?, c?, d?) => ReturnType<typeof reasons0>;
 
 import { isBoostLicense } from "./upgrades/utils";
@@ -2451,5 +2451,36 @@ describe("test heuristic to classify a boost license", () => {
       },
     };
     expect(isBoostLicense(l1)).toBe(false);
+  });
+});
+
+describe("test pay-you-go-quota inclusion", () => {
+  it("combines with all the others being empty", () => {
+    const z = quota({}, {}, {}, {}, [
+      {
+        memory: 5000,
+        cores: 2,
+        mintime: 3600,
+        disk_quota: 5500,
+        network: 1,
+        always_running: 1,
+        member_host: 1,
+      },
+      { disk_quota: 7000, cores: 2.5 },
+    ]);
+    expect(z).toStrictEqual({
+      always_running: true,
+      cpu_limit: 2.5,
+      cpu_request: 0.05,
+      dedicated_disks: [],
+      dedicated_vm: false,
+      disk_quota: 7000,
+      idle_timeout: 3600,
+      member_host: true,
+      memory_limit: 5000,
+      memory_request: 300,
+      network: true,
+      privileged: false,
+    });
   });
 });

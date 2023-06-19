@@ -170,7 +170,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                   <br />
                   <b>You agree to pay for usage.</b>
                 </Checkbox>
-                <br />
+                {/*<br />
                 <Checkbox
                   style={{ marginTop: "15px" }}
                   checked={!!quotaState?.allow_any}
@@ -182,7 +182,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                   }
                 >
                   Upgrade for anybody who starts this project
-                </Checkbox>
+                </Checkbox>*/}
               </>
             }
           />

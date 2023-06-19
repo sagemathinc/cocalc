@@ -47,9 +47,7 @@ import {
 } from "../consts/site-license";
 import { deep_copy, len, test_valid_jsonpatch } from "../misc";
 import { SiteLicenseQuota } from "../types/site-licenses";
-// TODO how to use the logger ?
-//import { getLogger } from "@cocalc/backend/logger";
-//const L = getLogger("upgrades:quota");
+import type { ProjectQuota as PayAsYouGoQuota } from "@cocalc/util/db-schema/purchase-quotas";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -676,8 +674,8 @@ function op_quotas(q1: RQuota, q2: RQuota, op: "min" | "max"): RQuota {
     if (typeof v === "boolean") {
       q[k] = op === "min" ? q1[k] && q2[k] : q1[k] || q2[k];
     } else if (typeof v === "number") {
-      const cmp = op === "min" ? Math.min : Math.max;
-      q[k] = cmp(q1[k], q2[k]);
+      const f = op === "min" ? Math.min : Math.max;
+      q[k] = f(q1[k], q2[k]);
     }
   }
   return q as RQuota;
@@ -864,13 +862,15 @@ export function quota(
   settings_arg?: Settings,
   users_arg?: Users,
   site_licenses?: SiteLicenses,
-  site_settings?: SiteSettingsQuotas
+  site_settings?: SiteSettingsQuotas,
+  pay_as_you_go?: PayAsYouGoQuota[]
 ): Quota {
   const { quota } = quota_with_reasons(
     settings_arg,
     users_arg,
     site_licenses,
-    site_settings
+    site_settings,
+    pay_as_you_go
   );
   return quota;
 }
@@ -879,7 +879,8 @@ export function quota_with_reasons(
   settings_arg?: Settings,
   users_arg?: Users,
   site_licenses?: SiteLicenses,
-  site_settings?: SiteSettingsQuotas
+  site_settings?: SiteSettingsQuotas,
+  pay_as_you_go?: PayAsYouGoQuota[]
 ): { quota: Quota; reasons: { [key: string]: string } } {
   // as a precaution (and also since we indeed ARE modifying licenses) we make deep copies of all arguments.
   // tests to catch this are in postgres/site-license/hook.test.ts
@@ -964,7 +965,19 @@ export function quota_with_reasons(
     };
   }
 
-  const total_quota = quota_v2({
+  if (pay_as_you_go != null) {
+    // Include pay-as-you-go quotas.  We just take
+    // the maximum for each quota, with the stupid
+    // complication that the names and units are all
+    // different.  pay_as_you_go is an array of objects
+    // and the names and units they use are EXACTLY
+    // the same as Settings, except some fields aren't used.
+    for (const upgrade of pay_as_you_go) {
+      quota = op_quotas(quota as RQuota, upgrade2quota(upgrade), "max");
+    }
+  }
+
+  let total_quota = quota_v2({
     quota,
     settings: upgrade2quota(settings),
     max_upgrades: upgrade2quota(max_upgrades),
@@ -976,6 +989,7 @@ export function quota_with_reasons(
   total_quota.dedicated_disks = dedicated_disks;
   if (ext_rw === true) total_quota.ext_rw = true;
   if (patch.length > 0) total_quota.patch = patch;
+
   return { quota: total_quota, reasons };
 }
 
