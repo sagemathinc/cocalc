@@ -4,7 +4,7 @@
  */
 
 import { CSSProperties, useEffect, useState } from "react";
-import { Alert, Button, Card, Checkbox } from "antd";
+import { Alert, Button, Card, Checkbox, Tag } from "antd";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
@@ -20,7 +20,12 @@ import CostPerHour from "./cost-per-hour";
 // These correspond to dedicated RAM and dedicated CPU, and we
 // found them too difficult to cost out, so exclude them (only
 // admins can set them).
-const EXCLUDE = new Set(["memory_request", "cpu_shares"]);
+const EXCLUDE = new Set([
+  "memory_request",
+  "cpu_shares",
+  "disk_quota",
+  "mintime",
+]);
 
 interface Props {
   project_id: string;
@@ -124,29 +129,31 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
             )}
           </div>
           <div style={{ marginTop: "5px" }}>
-            <Icon name="compass" /> Quota Editor (pay as you go)
+            <Icon name="compass" /> Pay As You Go
+            {quotaState?.enabled ? (
+              <Tag color="success" style={{ marginLeft: "30px" }}>
+                Configured
+              </Tag>
+            ) : undefined}
           </div>
         </>
       }
       type="inner"
       extra={<Information />}
     >
-      {quotaState != null && !!(editing || quotaState.enabled) && (
-        <div style={{ float: "right", marginLeft: "30px" }}>
+      {quotaState != null && editing && (
+        <div style={{ float: "right", marginLeft: "30px", width: "150px" }}>
           <CostPerHour quota={quotaState} />
-          {editing && (
-            <div style={{ color: "#999" }}>Charged by the second</div>
-          )}
+          <div>
+            You will be charged by the second when you restart your project and
+            confirm. <b>TODO: stateful dialog</b>
+          </div>
         </div>
       )}
       {!editing && (
-        <Alert
-          onClick={() => setEditing(true)}
-          style={{ cursor: "pointer" }}
-          showIcon
-          type={!!quotaState?.enabled ? "success" : "info"}
-          message={quotaState?.enabled ? <>Enabled</> : <>Disabled</>}
-        />
+        <Button type="text" onClick={() => setEditing(true)}>
+          Add RAM, CPU, disk and more...
+        </Button>
       )}
       {editing && (
         <>
