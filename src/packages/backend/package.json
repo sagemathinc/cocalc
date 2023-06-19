@@ -9,7 +9,10 @@
     "./auth/*": "./dist/auth/*.js",
     "./auth/tokens/*": "./dist/auth/tokens/*.js"
   },
-  "keywords": ["utilities", "cocalc"],
+  "keywords": [
+    "utilities",
+    "cocalc"
+  ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf dist node_modules",
@@ -27,6 +30,7 @@
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "debug": "^4.3.2",
+    "lru-cache": "^7.14.1",
     "password-hash": "^1.2.2",
     "shell-escape": "^0.2.0",
     "supports-color": "^9.0.2",
@@ -38,7 +42,7 @@
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
-    "@types/node": "^18.11.18",
+    "@types/node": "^18.16.14",
     "expect": "^26.6.2",
     "nyc": "^15.1.0"
   }

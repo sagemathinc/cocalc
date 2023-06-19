@@ -7,7 +7,7 @@ import { fromJS } from "immutable";
 import { join } from "path";
 
 import { alert_message } from "@cocalc/frontend/alerts";
-import { Actions } from "@cocalc/frontend/app-framework/Actions";
+import { Actions } from "@cocalc/util/redux/Actions";
 import { AccountClient } from "@cocalc/frontend/client/account";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { set_url } from "@cocalc/frontend/history";
@@ -19,6 +19,7 @@ import { encode_path } from "@cocalc/util/misc";
 import { show_announce_end, show_announce_start } from "./dates";
 import { AccountState } from "./types";
 import { AccountStore } from "./store";
+import track from "@cocalc/frontend/user-tracking";
 
 // Define account actions
 export class AccountActions extends Actions<AccountState> {
@@ -148,7 +149,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     } catch (err) {
       // generic error.
       this.setState(
-        fromJS({ sign_up_error: { generic: JSON.stringify(err) } })
+        fromJS({ sign_up_error: { generic: JSON.stringify(err) } }) as any
       );
       return;
     } finally {
@@ -276,6 +277,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
   }
 
   public set_active_tab(tab: string): void {
+    track("settings", { tab });
     this.setState({ active_page: tab });
     this.push_state("/" + tab);
   }
@@ -323,5 +325,27 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     // this controlls the default state of the "buy a license" purchase form in account → licenses
     // by default, it's not showing up
     this.setState({ show_purchase_form: show });
+  }
+
+  setTourDone(tour: string) {
+    const table = this.redux.getTable("account");
+    if (!table) return;
+    const store = this.redux.getStore("account");
+    if (!store) return;
+    const tours: string[] = store.get("tours")?.toJS() ?? [];
+    if (!tours?.includes(tour)) {
+      tours.push(tour);
+      table.set({ tours });
+    }
+  }
+  setTourNotDone(tour: string) {
+    const table = this.redux.getTable("account");
+    if (!table) return;
+    const store = this.redux.getStore("account");
+    if (!store) return;
+    const tours: string[] = store.get("tours")?.toJS() ?? [];
+    if (tours?.includes(tour)) {
+      table.set({ tours: tours.map((x) => x != tour) });
+    }
   }
 }

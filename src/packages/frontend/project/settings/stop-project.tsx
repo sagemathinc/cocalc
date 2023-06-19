@@ -13,9 +13,15 @@ interface Props {
   project_id: string;
   disabled?: boolean;
   size?;
+  short?: boolean;
 }
 
-export function StopProject({ project_id, disabled, size }: Props) {
+export function StopProject({
+  project_id,
+  disabled,
+  size,
+  short = false,
+}: Props) {
   const actions = useActions("projects");
 
   const text = (
@@ -29,7 +35,7 @@ export function StopProject({ project_id, disabled, size }: Props) {
   return (
     <Popconfirm
       placement={"bottom"}
-      arrowPointAtCenter={true}
+      arrow={{ pointAtCenter: true }}
       title={text}
       icon={<StopOutlined />}
       onConfirm={() => actions.stop_project(project_id)}
@@ -37,7 +43,7 @@ export function StopProject({ project_id, disabled, size }: Props) {
       cancelText="Cancel"
     >
       <Button disabled={disabled || actions == null} size={size}>
-        <StopOutlined /> Stop Project...
+        <StopOutlined /> Stop{short ? "" : " Project"}…
       </Button>
     </Popconfirm>
   );

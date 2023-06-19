@@ -1439,6 +1439,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             lti_id      : undefined   # array of strings
             image       : DEFAULT_COMPUTE_IMAGE   # probably ok to leave it undefined
             license     : undefined   # string -- "license_id1,license_id2,..."
+            noPool      : undefined   # if true, don't use pool
             cb          : required    # cb(err, project_id)
         if not @_validate_opts(opts) then return
         try

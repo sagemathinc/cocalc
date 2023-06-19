@@ -91,7 +91,7 @@ interface Channel {
   destroy: Function;
 }
 
-import { Client } from "@cocalc/sync/editor/generic/types";
+import Client from "@cocalc/sync-client";
 
 interface Primus {
   channel: (str: string) => Channel;
@@ -102,7 +102,7 @@ interface Logger {
 }
 
 import stringify from "fast-json-stable-stringify";
-const { sha1 } = require("@cocalc/backend/misc_node");
+import { sha1 } from "@cocalc/backend/sha1";
 
 const COCALC_EPHEMERAL_STATE: boolean =
   process.env.COCALC_EPHEMERAL_STATE === "yes";
@@ -500,15 +500,6 @@ async function synctable_channel0(
 ): Promise<string> {
   const name = channel_name(query, options);
   logger.debug("synctable_channel", JSON.stringify(query), name);
-  if (query?.syncstrings != null) {
-    const path = query?.syncstrings[0]?.path;
-    if (client.is_deleted(path)) {
-      logger.debug(
-        `synctable_channel -- refusing to open "${path}" since it is marked as deleted`
-      );
-      throw Error(`${path} is deleted`);
-    }
-  }
   if (synctable_channels[name] === undefined) {
     synctable_channels[name] = new SyncTableChannel({
       client,

@@ -4,6 +4,10 @@
  */
 
 import { QuestionCircleOutlined } from "@ant-design/icons";
+import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
+import { reuseInFlight } from "async-await-utils/hof";
+import { isEqual } from "lodash";
+
 import {
   React,
   redux,
@@ -17,15 +21,12 @@ import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { trunc, unreachable } from "@cocalc/util/misc";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import {
-  isLicenseStatus,
   LicenseStatus,
   LicenseStatusOptions,
   Reason,
   ReasonsExplanation,
+  isLicenseStatus,
 } from "@cocalc/util/upgrades/quota";
-import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
-import { reuseInFlight } from "async-await-utils/hof";
-import { isEqual } from "lodash";
 import { alert_message } from "../alerts";
 import { SiteLicensePublicInfo } from "./site-license-public-info-component";
 import { SiteLicensePublicInfo as Info, SiteLicenses } from "./types";
@@ -77,7 +78,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   useEffect(() => {
     // Optimization: check in redux store for first approximation of
     // info already available locally
-    let infos = redux.getStore("billing").getIn(["managed_licenses"]);
+    let infos = redux.getStore("billing").get("managed_licenses");
     if (infos != null) {
       const infos2 = infos.toJS() as { [license_id: string]: Info };
       // redux store *only* has entries that are managed.

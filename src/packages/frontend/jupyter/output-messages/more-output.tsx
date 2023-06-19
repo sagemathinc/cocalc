@@ -7,7 +7,7 @@ import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Icon } from "@cocalc/frontend/components/icon";
 import React from "react";
 import { Map } from "immutable";
-import { JupyterActions } from "../actions";
+import type { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import { all_fields_equal } from "@cocalc/util/misc";
 
 interface MoreOutputProps {

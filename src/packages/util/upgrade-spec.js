@@ -65,6 +65,7 @@ exports.ON_PREM_DEFAULT_QUOTAS = {
 upgrades.params = {
   disk_quota: {
     display: "Disk space",
+    display_short: "Disk",
     unit: "MB",
     display_unit: "MB",
     display_factor: 1,
@@ -115,6 +116,7 @@ upgrades.params = {
   },
   mintime: {
     display: "Idle timeout",
+    display_short: "Timeout",
     unit: "second",
     display_unit: "hour",
     display_factor: 1 / 3600, // multiply internal by this to get what should be displayed
@@ -125,6 +127,7 @@ upgrades.params = {
   },
   network: {
     display: "Internet access",
+    display_short: "Internet",
     unit: "internet upgrade",
     display_unit: "internet upgrade",
     display_factor: 1,
@@ -135,6 +138,7 @@ upgrades.params = {
   },
   member_host: {
     display: "Member hosting",
+    display_short: "Hosting",
     unit: "hosting upgrade",
     display_unit: "hosting upgrade",
     display_factor: 1,
@@ -145,6 +149,7 @@ upgrades.params = {
   },
   always_running: {
     display: "Always running",
+    display_short: "Always Up",
     unit: "always running upgrade",
     display_unit: "always running upgrade",
     display_factor: 1,

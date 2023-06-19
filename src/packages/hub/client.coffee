@@ -29,16 +29,18 @@ sign_in              = require('./sign-in')
 hub_projects         = require('./projects')
 {StripeClient}       = require('@cocalc/server/stripe/client')
 {send_email, send_invite_email} = require('./email')
-apiKeyAction = require("@cocalc/server/api/manage").default;
+manageApiKeys        = require("@cocalc/server/api/manage").default
+{legacyManageApiKey} = require("@cocalc/server/api/manage")
 {create_account, delete_account} = require('./client/create-account')
 purchase_license  = require('@cocalc/server/licenses/purchase').default
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
 {CopyPath}           = require('./copy-path')
-{ COOKIE_NAME }=require("@cocalc/server/auth/remember-me");
+{ REMEMBER_ME_COOKIE_NAME }=require("@cocalc/backend/auth/cookie-names");
 generateHash =require("@cocalc/server/auth/hash").default;
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 chatgpt        = require('@cocalc/server/openai/chatgpt');
+embeddings_api   = require('@cocalc/server/openai/embeddings-api');
 jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
 jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
 
@@ -49,7 +51,7 @@ base_path = require('@cocalc/backend/base-path').default
 
 underscore = require('underscore')
 
-{callback} = require('awaiting')
+{callback, delay} = require('awaiting')
 {callback2} = require('@cocalc/util/async-utils')
 
 {record_user_tracking} = require('@cocalc/database/postgres/user-tracking')
@@ -173,7 +175,7 @@ class exports.Client extends EventEmitter
         # Setup remember-me related cookie handling
         @cookies = {}
         c = new Cookies(@conn.request, COOKIE_OPTIONS)
-        @_remember_me_value = c.get(COOKIE_NAME)
+        @_remember_me_value = c.get(REMEMBER_ME_COOKIE_NAME)
 
         @check_for_remember_me()
 
@@ -511,7 +513,7 @@ class exports.Client extends EventEmitter
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie  # same name also hardcoded in the client!
-            name  : COOKIE_NAME
+            name  : REMEMBER_ME_COOKIE_NAME
             value : @_remember_me_value
             ttl   : ttl
 
@@ -891,7 +893,7 @@ class exports.Client extends EventEmitter
                             database       : @database
                             cb             : (err, result) =>
                                 if err
-                                    cb("Internal error determining user permission -- #{err}")
+                                    cb("Read access denied -- #{err}")
                                 else if not result
                                     cb("User #{@account_id} does not have read access to project #{mesg.project_id}")
                                 else
@@ -905,7 +907,7 @@ class exports.Client extends EventEmitter
                             account_id     : @account_id
                             cb             : (err, result) =>
                                 if err
-                                    cb("Internal error determining user permission -- #{err}")
+                                    cb("Write access denied -- #{err}")
                                 else if not result
                                     cb("User #{@account_id} does not have write access to project #{mesg.project_id}")
                                 else
@@ -950,10 +952,11 @@ class exports.Client extends EventEmitter
                     description : mesg.description
                     image       : mesg.image
                     license     : mesg.license
+                    noPool      : mesg.noPool
                     cb          : (err, _project_id) =>
                         project_id = _project_id; cb(err)
             (cb) =>
-                cb() # we don't need to wait for project to open before responding to user that project was created.
+                cb() # we don't need to wait for project to start running before responding to user that project was created.
                 dbg("open project...")
                 # We do the open/start below so that when user tries to open it in a moment it opens more quickly;
                 # also, in single dev mode, this ensures that project path is created, so can copy
@@ -963,6 +966,8 @@ class exports.Client extends EventEmitter
                     project = await @compute_server(project_id)
                     await project.state(force:true, update:true)
                     if mesg.start
+                        await project.start()
+                        await delay(5000) # just in case
                         await project.start()
                     else
                         dbg("not auto-starting the new project")
@@ -1872,7 +1877,7 @@ class exports.Client extends EventEmitter
 
     mesg_api_key: (mesg) =>
         try
-            api_key = await apiKeyAction
+            api_key = await legacyManageApiKey
                 account_id : @account_id
                 password   : mesg.password
                 action     : mesg.action
@@ -1880,6 +1885,20 @@ class exports.Client extends EventEmitter
                 @push_to_client(message.api_key_info(id:mesg.id, api_key:api_key))
             else
                 @success_to_client(id:mesg.id)
+        catch err
+            @error_to_client(id:mesg.id, error:err)
+
+    mesg_api_keys: (mesg) =>
+        try
+            response = await manageApiKeys
+                account_id : @account_id
+                password   : mesg.password
+                action     : mesg.action
+                project_id : mesg.project_id
+                id         : mesg.key_id
+                expire     : mesg.expire
+                name       : mesg.name
+            @push_to_client(message.api_keys_response(id:mesg.id, response:response))
         catch err
             @error_to_client(id:mesg.id, error:err)
 
@@ -2084,9 +2103,57 @@ class exports.Client extends EventEmitter
         if not @account_id?
             @error_to_client(id:mesg.id, error:"not signed in")
             return
+        if mesg.stream
+            try
+                stream = (text) =>
+                    @push_to_client(message.chatgpt_response(id:mesg.id, text:text, multi_response:text?))
+                await chatgpt.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag, stream:stream)
+            catch err
+                dbg("failed -- #{err}")
+                @error_to_client(id:mesg.id, error:"#{err}")
+        else
+            try
+                output = await chatgpt.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag)
+                @push_to_client(message.chatgpt_response(id:mesg.id, text:output))
+            catch err
+                dbg("failed -- #{err}")
+                @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_openai_embeddings_search: (mesg) =>
+        dbg = @dbg("mesg_openai_embeddings_search")
+        dbg(mesg.input)
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"not signed in")
+            return
         try
-            output = await chatgpt.evaluate(input:mesg.text, system:mesg.system, account_id:@account_id, project_id:mesg.project_id, path:mesg.path, history:mesg.history, model:mesg.model, tag:mesg.tag)
-            @push_to_client(message.chatgpt_response(id:mesg.id, text:output))
+            matches = await embeddings_api.search(account_id:@account_id, scope:mesg.scope, text:mesg.text, filter:mesg.filter, limit:mesg.limit, selector:mesg.selector, offset:mesg.offset)
+            @push_to_client(message.openai_embeddings_search_response(id:mesg.id, matches:matches))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_openai_embeddings_save: (mesg) =>
+        dbg = @dbg("mesg_openai_embeddings_save")
+        dbg()
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"not signed in")
+            return
+        try
+            ids = await embeddings_api.save(account_id:@account_id, data:mesg.data, project_id:mesg.project_id, path:mesg.path)
+            @push_to_client(message.openai_embeddings_save_response(id:mesg.id, ids:ids))
+        catch err
+            dbg("failed -- #{err}")
+            @error_to_client(id:mesg.id, error:"#{err}")
+
+    mesg_openai_embeddings_remove: (mesg) =>
+        dbg = @dbg("mesg_openai_embeddings_remove")
+        dbg()
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"not signed in")
+            return
+        try
+            ids = await embeddings_api.remove(account_id:@account_id, data:mesg.data, project_id:mesg.project_id, path:mesg.path)
+            @push_to_client(message.openai_embeddings_remove_response(id:mesg.id, ids:ids))
         catch err
             dbg("failed -- #{err}")
             @error_to_client(id:mesg.id, error:"#{err}")

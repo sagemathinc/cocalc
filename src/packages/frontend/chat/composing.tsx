@@ -11,7 +11,7 @@ export default function Composing({ projectId, path, accountId, userMap }) {
   }
 
   const v: JSX.Element[] = [];
-  const cutoff = new Date().valueOf() - 1000 * 30; // 30s
+  const cutoff = Date.now() - 1000 * 30; // 30s
   for (const [senderId] of drafts) {
     if (accountId == senderId) {
       // this is us
@@ -38,7 +38,7 @@ export default function Composing({ projectId, path, accountId, userMap }) {
         {senderId?.startsWith("chatgpt") && (
           <ProgressEstimate
             style={{ marginLeft: "15px", maxWidth: "600px" }}
-            seconds={45}
+            seconds={5 /* seconds until answer starts stream */}
           />
         )}
       </div>

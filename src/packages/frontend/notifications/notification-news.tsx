@@ -4,9 +4,14 @@
  */
 
 import { Button, Card, List, Space, Tag } from "antd";
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
+import { delay } from "awaiting";
 
-import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  useActions,
+  useAsyncEffect,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   Icon,
@@ -33,13 +38,28 @@ export function NewsPanel(props: NewsPanelProps) {
   const account_other = useTypedRedux("account", "other_settings");
   const news_read_until: number | undefined =
     account_other?.get("news_read_until");
+  const didClickUnread = useRef<boolean>(false);
+
+  // after showing news briefly (short), we mark them as read.
+  // even if they didn't read them, the user saw there is something and
+  // in the future, new news items will show up as (1) annotations
+  // (more visible than changing the number)
+  useAsyncEffect(async (isMounted) => {
+    await delay(1500);
+    if (!isMounted()) return;
+    // we block this in case the user did click "unread" in the meantime, just silly otherwise
+    if (didClickUnread.current) return;
+    // we also abort if no longer looking at news
+    if (!isNewsFilter(filter)) return;
+    news_actions.markNewsRead();
+  }, []);
 
   const newsData: NewsItemWebapp[] = useMemo(() => {
     if (!isNewsFilter(filter)) return [];
     const now = webapp_client.server_time();
     // weird: using news.valueSeq().toJS() makes object reappear, which were overwritten when an update came in!?
-    return Object.values(news.toJS())
-      .filter((n) => {
+    return Object.values(news.toJS() as any)
+      .filter((n:any) => {
         if (n.hide ?? false) return false;
         if (n.date > now) return false;
         if (!isNewsFilter(filter)) return false;
@@ -49,7 +69,7 @@ export function NewsPanel(props: NewsPanelProps) {
           return n.channel === filter;
         }
       })
-      .sort((a, b) => -cmp_Date(a.date, b.date));
+      .sort((a:any, b:any) => -cmp_Date(a.date, b.date)) as any;
   }, [news, filter]);
 
   // If a user clicks on a news item, we assume they saw all news up until that point.
@@ -94,7 +114,12 @@ export function NewsPanel(props: NewsPanelProps) {
             <Icon name="check-square" /> Mark all read
           </Button>
         ) : (
-          <Button onClick={() => news_actions.markNewsUnread()}>
+          <Button
+            onClick={() => {
+              didClickUnread.current = true;
+              news_actions.markNewsUnread();
+            }}
+          >
             <Icon name="square" /> Mark all unread
           </Button>
         )}

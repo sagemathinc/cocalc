@@ -5,10 +5,9 @@
 
 // The "Restart Project" button, which says "Start" like the one at the top if the project isn't running
 
-import { Popconfirm } from "antd";
-
 import { PlayCircleOutlined, SyncOutlined } from "@ant-design/icons";
-import { Button } from "antd";
+import { Button, Popconfirm } from "antd";
+
 import { useActions } from "@cocalc/frontend/app-framework";
 import { useProjectState } from "../page/project-state-hook";
 
@@ -18,6 +17,7 @@ interface Props {
   text?: string;
   size?;
   danger?: boolean;
+  short?: boolean;
 }
 
 export function RestartProject({
@@ -26,13 +26,15 @@ export function RestartProject({
   text,
   size,
   danger,
+  short = false,
 }: Props) {
   const actions = useActions("projects");
   const state = useProjectState(project_id);
   const is_running = state.get("state") === "running";
   const task = is_running ? "Restart" : "Start";
   const icon = is_running ? <SyncOutlined /> : <PlayCircleOutlined />;
-  const description = text != null ? text : `${task} Project…`;
+  const description =
+    text != null ? text : `${task}${short ? "" : " Project"}…`;
 
   const explanation = (
     <div style={{ maxWidth: "300px" }}>
@@ -47,11 +49,11 @@ export function RestartProject({
   return (
     <Popconfirm
       placement={"bottom"}
-      arrowPointAtCenter={true}
+      arrow={{ pointAtCenter: true }}
       title={explanation}
       icon={icon}
       onConfirm={() => actions?.restart_project(project_id)}
-      okText="Yes, restart project"
+      okText={`Yes, ${task.toLocaleLowerCase()} project`}
       cancelText="Cancel"
     >
       <Button

@@ -60,7 +60,7 @@ export interface PassportLoginLocals {
   remember_me_cookie: string;
   get_api_key: string;
   action: "regenerate" | "get" | undefined;
-  api_key: string | undefined;
+  api_key;
 }
 
 // maps the full profile object to a string or list of strings (e.g. "first_name")

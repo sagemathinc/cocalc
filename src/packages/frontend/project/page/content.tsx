@@ -175,9 +175,9 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
               project_id={project_id}
               path={path}
               is_visible={is_visible}
-              chatState={open_files.getIn([path, "chatState"])}
+              chatState={open_files.getIn([path, "chatState"]) as any}
               chat_width={
-                open_files.getIn([path, "chat_width"]) ?? DEFAULT_CHAT_WIDTH
+                (open_files.getIn([path, "chat_width"]) as any) ?? DEFAULT_CHAT_WIDTH
               }
               component={open_files.getIn([path, "component"]) ?? {}}
             />

@@ -14,27 +14,27 @@ Requests must be authenticated using the secret token.
 
 const MAX_REQUESTS_PER_MINUTE = 150;
 
-import express from "express";
-import { writeFile } from "fs";
 import { callback } from "awaiting";
-import { once } from "@cocalc/util/async-utils";
-import { split } from "@cocalc/util/misc";
 import { json, urlencoded } from "body-parser";
 import type { Request } from "express";
+import express from "express";
 import RateLimit from "express-rate-limit";
+import { writeFile } from "node:fs";
+
+import { getClient } from "@cocalc/project/client";
 import { apiServerPortFile } from "@cocalc/project/data";
-const theClient = require("@cocalc/project/client");
-import { secretToken } from "@cocalc/project/servers/secret-token";
+import { getSecretToken } from "@cocalc/project/servers/secret-token";
+import { once } from "@cocalc/util/async-utils";
+import { split } from "@cocalc/util/misc";
+import getSyncdocHistory from "./get-syncdoc-history";
+import readTextFile from "./read-text-file";
+import writeTextFile from "./write-text-file";
 
 let client: any = undefined;
 export { client };
 
-import getSyncdocHistory from "./get-syncdoc-history";
-import writeTextFile from "./write-text-file";
-import readTextFile from "./read-text-file";
-
 export default async function init(): Promise<void> {
-  client = theClient.client;
+  client = getClient();
   if (client == null) throw Error("client must be defined");
   const dbg: Function = client.dbg("api_server");
   const app: express.Application = express();
@@ -107,6 +107,10 @@ function handleAuth(req): void {
     default:
       throw Error(`unknown authorization type '${type}'`);
   }
+
+  // could throw if not initialized yet -- done in ./init.ts via initSecretToken()
+  const secretToken = getSecretToken();
+
   // now check auth
   if (secretToken != providedToken) {
     throw Error(`incorrect secret token "${secretToken}", "${providedToken}"`);

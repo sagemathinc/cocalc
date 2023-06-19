@@ -14,6 +14,7 @@ import A from "components/misc/A";
 import apiPost from "lib/api/post";
 import useCustomize from "lib/use-customize";
 import { LOGIN_STYLE } from "./shared";
+import { BODY_STYLE } from "./sign-in";
 
 export default function PasswordReset() {
   const { siteName } = useCustomize();
@@ -41,8 +42,10 @@ export default function PasswordReset() {
   }
 
   return (
-    <div style={{ padding: "0 15px" }}>
-      <div style={{ textAlign: "center", marginBottom: "15px" }}>
+    <div style={BODY_STYLE}>
+      <div
+        style={{ textAlign: "center", marginBottom: "15px", marginTop: "15px" }}
+      >
         <Logo type="icon" style={{ width: "100px", height: "100px" }} />
         <h1>Reset Your {siteName} Password</h1>
       </div>

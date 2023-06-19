@@ -7,11 +7,12 @@
 React component that represents gutter markers in a codemirror editor.
 */
 
-import { Component, Rendered } from "../../app-framework";
+import { useRef, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { ReactNode } from "react";
-import { is_different } from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
+import { FrameContext } from "../frame-tree/frame-context";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface Props {
   line: number; // line where it is initially placed -- will of course change as doc changes
@@ -21,48 +22,44 @@ interface Props {
   children: ReactNode;
 }
 
-export class GutterMarker extends Component<Props, {}> {
-  private _elt: HTMLElement | undefined;
-  private _handle: CodeMirror.LineHandle | undefined;
-  private root;
+export function GutterMarker(props: Props) {
+  const eltRef = useRef<HTMLElement | null>(null);
+  const handleRef = useRef<CodeMirror.LineHandle | null>(null);
+  const rootRef = useRef<any>(null);
+  const frameContext = useFrameContext();
 
-  shouldComponentUpdate(props): boolean {
-    return is_different(this.props, props, ["line", "gutter_id"]);
-  }
-
-  componentDidMount(): void {
-    this.init_gutter();
-  }
-
-  init_gutter(): void {
-    this._elt = document.createElement("div");
-    this.root = createRoot(this._elt);
-    this.root.render(<div>{this.props.children}</div>);
-    this._handle = this.props.codemirror.setGutterMarker(
-      this.props.line,
-      this.props.gutter_id,
-      this._elt
+  useEffect(() => {
+    const el = (eltRef.current = document.createElement("div"));
+    const root = (rootRef.current = createRoot(el));
+    root.render(
+      <FrameContext.Provider value={frameContext}>
+        <div>{props.children}</div>
+      </FrameContext.Provider>
     );
-    this.props.set_handle(this._handle);
-  }
 
-  componentWillUnmount(): void {
-    if (this._elt !== undefined) {
-      this.root.unmount();
-      this._elt.remove();
-      delete this._elt;
-    }
-    if (this._handle !== undefined) {
-      this.props.codemirror.setGutterMarker(
-        this._handle,
-        this.props.gutter_id,
-        null
-      );
-      delete this._handle;
-    }
-  }
+    const handle = (handleRef.current = props.codemirror.setGutterMarker(
+      props.line,
+      props.gutter_id,
+      el
+    ));
+    props.set_handle(handle);
 
-  render(): Rendered {
-    return <span />;
-  }
+    return () => {
+      if (eltRef.current != null) {
+        rootRef.current?.unmount();
+        eltRef.current.remove();
+        eltRef.current = null;
+      }
+      if (handleRef.current != null) {
+        props.codemirror.setGutterMarker(
+          handleRef.current,
+          props.gutter_id,
+          null
+        );
+        handleRef.current = null;
+      }
+    };
+  }, [props.line, props.gutter_id]);
+
+  return null;
 }

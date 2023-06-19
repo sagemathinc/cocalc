@@ -31,7 +31,7 @@ import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
 import { InsertCell } from "./insert-cell";
-import { NotebookMode, Scroll } from "./types";
+import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
 
 import {
   SortableList,
@@ -545,8 +545,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (!use_windowed_list) return "";
     let value = "";
     cell_list.forEach((id) => {
-      debouncedCells.getIn([id, "output"])?.forEach((output) => {
-        const html = output.getIn(["data", "text/html"]);
+      (debouncedCells.getIn([id, "output"]) as any)?.forEach((output) => {
+        // I hit a case in prod of output not being defined. Given the
+        // debounce and how debouncedCells might not match up with cell_list,
+        // and how output is going from markdown cells or maybe cleared cells,
+        // it seems plausible output could contain an undefined entry.
+        const html = output?.getIn(["data", "text/html"]);
         if (html?.includes("style")) {
           // parse out and include style tags
           for (const x of $("<div>" + html + "</div>").find("style")) {

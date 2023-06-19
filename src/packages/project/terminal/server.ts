@@ -7,14 +7,19 @@
 Terminal server
 */
 
-const { spawn } = require("node-pty");
-import { readFile, writeFile } from "fs";
-import { promises as fsPromises } from "fs";
-const { readlink } = fsPromises;
-import { console_init_filename, len, merge, path_split } from "@cocalc/util/misc";
-import { exists } from "../jupyter/async-utils-node";
-import { isEqual, throttle } from "lodash";
 import { callback, delay } from "awaiting";
+import { isEqual, throttle } from "lodash";
+import { spawn } from "node-pty";
+import { readFile, writeFile } from "node:fs";
+import { readlink } from "node:fs/promises";
+import { envForSpawn } from "@cocalc/backend/misc";
+import {
+  console_init_filename,
+  len,
+  merge,
+  path_split,
+} from "@cocalc/util/misc";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
 
 interface Terminal {
   channel: any;
@@ -94,7 +99,7 @@ export async function terminal(
     }
 
     const s = path_split(path);
-    const env = merge({ COCALC_TERMINAL_FILENAME: s.tail }, process.env);
+    const env = merge({ COCALC_TERMINAL_FILENAME: s.tail }, envForSpawn());
     if (options.env != null) {
       merge(env, options.env);
     }

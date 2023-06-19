@@ -130,7 +130,7 @@ export default function Canvas({ elements, mainFrameType }: Props) {
               if (elementsMap == null) {
                 elementsMap = iMap();
                 for (const elt of elements) {
-                  elementsMap = elementsMap.set(elt.id, fromJS(elt));
+                  elementsMap = elementsMap.set(elt.id, fromJS(elt) as any);
                 }
               }
               if (elementsMap == null) throw Error("impossible");

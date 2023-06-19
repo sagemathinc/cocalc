@@ -11,11 +11,14 @@ export type {
   UserOrProjectQuery,
 } from "./types";
 export type { RenderSpec } from "./render-types";
+export type { RetentionModel } from "./retention";
+export { retentionModels } from "./retention";
 
 // The tables
 import "./account-creation-actions";
 import "./account-profiles";
 import "./accounts";
+import "./api-keys";
 import "./auth";
 import "./blobs";
 import "./central-log";
@@ -47,7 +50,9 @@ import "./project-status";
 import "./projects";
 import "./public-path-stars";
 import "./public-paths";
+import "./purchases";
 import "./registration-tokens";
+import "./retention";
 import "./server-settings";
 import "./shopping-cart-items";
 import "./site-licenses";

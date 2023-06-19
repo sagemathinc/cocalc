@@ -73,6 +73,7 @@ export class StudentProjectsActions {
         title: store.get("settings").get("title"),
         description: store.get("settings").get("description"),
         image: store.get("settings").get("custom_image") ?? dflt_img,
+        noPool: true, // student is unlikely to use the project right *now*
       });
     } catch (err) {
       this.course_actions.set_error(
@@ -253,13 +254,15 @@ export class StudentProjectsActions {
     const store = this.get_store();
     if (store == null) return;
     const currentLicenses: string[] = keys(
-      project_map.getIn([project_id, "site_license"])?.toJS() ?? {}
+      (project_map.getIn([project_id, "site_license"]) as any)?.toJS() ?? {}
     );
     const courseLicenses = new Set(
-      (store.getIn(["settings", "site_license_id"]) ?? "").split(",")
+      ((store.getIn(["settings", "site_license_id"]) as any) ?? "").split(",")
     );
     const removedLicenses = new Set(
-      (store.getIn(["settings", "site_license_removed"]) ?? "").split(",")
+      ((store.getIn(["settings", "site_license_removed"]) as any) ?? "").split(
+        ","
+      )
     );
     const toApply = [...license_ids];
     for (const id of currentLicenses) {

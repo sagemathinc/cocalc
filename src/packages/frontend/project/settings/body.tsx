@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List } from "immutable";
 import React from "react";
 import { Col, Row } from "react-bootstrap";
 
@@ -40,6 +39,7 @@ import SavingProjectSettingsError from "./saving-project-settings-error";
 import { SSHPanel } from "./ssh";
 import { Project } from "./types";
 import { UpgradeUsage } from "./upgrade-usage";
+import { ApiKeys } from "./api-keys";
 
 interface ReactProps {
   project_id: string;
@@ -66,7 +66,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
   const project_actions = useActions({ project_id });
 
   const get_total_upgrades = redux.getStore("account").get_total_upgrades;
-  const groups = useTypedRedux("account", "groups") ?? List<string>();
 
   const kucalc = useTypedRedux("customize", "kucalc");
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
@@ -154,9 +153,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
           <UpgradeUsage
             project_id={id}
             project={project}
-            actions={redux.getActions("projects")}
-            user_map={user_map}
-            account_groups={groups.toJS()}
             upgrades_you_can_use={upgrades_you_can_use}
             upgrades_you_applied_to_all_projects={
               upgrades_you_applied_to_all_projects
@@ -170,6 +166,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             site_license_upgrades={site_license_upgrades}
             site_license_ids={site_license_ids}
             dedicated_resources={dedicated_resources}
+            mode="project"
           />
 
           <HideDeleteBox
@@ -177,14 +174,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             project={project}
             actions={redux.getActions("projects")}
           />
-          {!student.disableSSH &&
-          (ssh_gateway || kucalc === KUCALC_COCALC_COM) ? (
-            <SSHPanel
-              key="ssh-keys"
-              project={project}
-              account_id={account_id}
-            />
-          ) : undefined}
           <Environment key="environment" project_id={project_id} />
           {showDatastore && (
             <Datastore key="datastore" project_id={project_id} />
@@ -204,10 +193,22 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
           />
           {!student.disableCollaborators && (
             <SettingBox title="Add new collaborators" icon="UserAddOutlined">
-              <AddCollaborators project_id={project.get("project_id")} />
+              <AddCollaborators
+                project_id={project.get("project_id")}
+                where="project-settings"
+              />
             </SettingBox>
           )}
           <ProjectControl key="control" project={project} />
+          {!student.disableSSH &&
+            (ssh_gateway || kucalc === KUCALC_COCALC_COM) && (
+              <SSHPanel
+                key="ssh-keys"
+                project={project}
+                account_id={account_id}
+              />
+            )}
+          <ApiKeys project_id={project_id} />
           <SettingBox title="Server Control Moved" icon="move">
             <Paragraph>
               The panel for restarting the Sage Worksheet server and other

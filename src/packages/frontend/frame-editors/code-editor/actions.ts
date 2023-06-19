@@ -21,7 +21,7 @@ const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
 import { reuseInFlight } from "async-await-utils/hof";
-import { fromJS, List, Map, Set } from "immutable";
+import { fromJS, List, Map, Set as iSet } from "immutable";
 import { debounce } from "underscore";
 import { delay } from "awaiting";
 import {
@@ -82,7 +82,10 @@ import { Config as FormatterConfig } from "@cocalc/project/formatters";
 import { SHELLS } from "./editor";
 import type { TimeTravelActions } from "../time-travel-editor/actions";
 import chatgptCreatechat from "../chatgpt/create-chat";
+import type { Scope as ChatGPTScope } from "../chatgpt/types";
 import type { PageActions } from "@cocalc/frontend/app/actions";
+import type { TourProps } from "antd";
+import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 
 interface gutterMarkerParams {
   line: number;
@@ -112,7 +115,7 @@ export interface CodeEditorState {
   local_view_state: any; // Generic use of Actions below makes this entirely befuddling...
   reload: Map<string, any>;
   resize: number;
-  misspelled_words: Set<string> | string;
+  misspelled_words: iSet<string> | string;
   has_unsaved_changes: boolean;
   has_uncommitted_changes: boolean;
   show_uncommitted_changes: boolean;
@@ -130,7 +133,7 @@ export interface CodeEditorState {
   read_only: boolean;
   settings: Map<string, any>; // settings specific to this file (but **not** this user or browser), e.g., spell check language.
   complete: Map<string, any>;
-  derived_file_types: Set<string>;
+  derived_file_types: iSet<string>;
   visible: boolean;
   switch_to_files: string[];
 }
@@ -150,9 +153,20 @@ export class Actions<
   private code_editors: CodeEditorManager<CodeEditorState>;
 
   protected doctype: string = "syncstring";
+
+  ////////
+  // these are for doctype "syncdb":
   protected primary_keys: string[] = [];
   protected string_cols: string[] = [];
   protected disable_cursors: boolean = false;
+  // If this is set, then we get automatic computation of
+  // search embeddings
+  protected searchEmbeddings?: {
+    primaryKey: string;
+    textColumn: string;
+    metaColumns?: string[];
+  };
+  ////////
 
   public project_id: string;
   public path: string;
@@ -211,7 +225,7 @@ export class Actions<
       local_view_state: this._load_local_view_state(),
       reload: Map(),
       resize: 0,
-      misspelled_words: Set(),
+      misspelled_words: iSet(),
       has_unsaved_changes: false,
       has_uncommitted_changes: false,
       show_uncommitted_changes: false,
@@ -282,6 +296,28 @@ export class Actions<
         string_cols: this.string_cols,
         cursors: !this.disable_cursors,
       });
+      if (this.searchEmbeddings != null) {
+        if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
+          throw Error(
+            `search embedding primaryKey must be in ${JSON.stringify(
+              this.primary_keys
+            )}`
+          );
+        }
+        if (!this.string_cols.includes(this.searchEmbeddings.textColumn)) {
+          throw Error(
+            `search embedding textColumn must be in ${JSON.stringify(
+              this.string_cols
+            )}`
+          );
+        }
+        enableSearchEmbeddings({
+          project_id: this.project_id,
+          path: this.path,
+          syncdb: this._syncstring,
+          ...this.searchEmbeddings,
+        });
+      }
     } else {
       throw Error(`invalid doctype="${this.doctype}"`);
     }
@@ -621,8 +657,10 @@ export class Actions<
   // leaf with that id.  If ignore_if_missing is true, then don't write warning.
   // If a different frame is maximized, switch out of maximized mode.
   public set_active_id(active_id: string, ignore_if_missing?: boolean): void {
+    if (this._state === "closed" || this.store == null) return;
     // Set the active_id, if necessary.
     const local = this.store.get("local_view_state");
+    if (local == null) return;
     if (local.get("active_id") === active_id) {
       // already set -- nothing more to do
       return;
@@ -730,7 +768,7 @@ export class Actions<
   }
 
   _default_frame_tree(): Map<string, any> {
-    let frame_tree = fromJS(this._raw_default_frame_tree());
+    let frame_tree = fromJS(this._raw_default_frame_tree()) as Map<string, any>;
     frame_tree = tree_ops.assign_ids(frame_tree);
     frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
     return frame_tree;
@@ -1065,7 +1103,7 @@ export class Actions<
       info.get("locs").forEach((loc) => {
         loc = loc.set("time", info.get("time"));
         const locs = cursors.get(account_id, List()).push(loc);
-        cursors = cursors.set(account_id, locs);
+        cursors = cursors.set(account_id, locs as any);
       });
     });
     if (!cursors.equals(this.store.get("cursors"))) {
@@ -1466,6 +1504,8 @@ export class Actions<
     this.set_syncstring(cm.getValue(), do_not_exit_undo_mode);
   }
 
+  // Do NOT call this outside of this class to set the value - instead call
+  // the public set_value method!
   private set_syncstring(value: string, do_not_exit_undo_mode?: boolean): void {
     // note -- we don't try to set the syncstring if actions are closed
     // or the syncstring isn't initialized yet.  The latter case happens when
@@ -1892,7 +1932,7 @@ export class Actions<
       if (typeof words == "string") {
         this.setState({ misspelled_words: words });
       } else {
-        const x = Set(words);
+        const x = iSet(words);
         if (!x.equals(this.store.get("misspelled_words"))) {
           this.setState({ misspelled_words: x });
         }
@@ -2838,20 +2878,27 @@ export class Actions<
   // This is used by the chatgpt function.
   protected chatgptGetText(
     frameId: string,
-    scope: "selection" | "cell" | "all" = "all"
+    scope: ChatGPTScope = "all"
   ): string {
     switch (scope) {
       case "selection":
-        return this._get_cm(frameId)?.getSelection()?.trim() ?? "";
+        return this._get_cm(frameId)?.getSelection() ?? "";
       default:
-        return this._get_cm(frameId)?.getValue()?.trim() ?? "";
+        return this._get_cm(frameId)?.getValue() ?? "";
     }
   }
 
-  public chatgptGetContext(frameId: string): string {
+  public chatgptGetContext(frameId: string, scope?): string {
+    if (scope) {
+      return this.chatgptGetText(frameId, scope);
+    }
     let input = this.chatgptGetText(frameId, "selection");
     if (input) return input;
     input = this.chatgptGetText(frameId, "cell");
+    if (input) return input;
+    input = this.chatgptGetText(frameId, "section");
+    if (input) return input;
+    input = this.chatgptGetText(frameId, "page");
     if (input) return input;
     return this.chatgptGetText(frameId, "all");
   }
@@ -2867,7 +2914,17 @@ export class Actions<
     return filename_extension(this.path);
   }
 
+  // return the suppoted scopes for this document type.
+  // do not have to include "none" and "all", since they are always supported.
+  chatgptGetScopes(): Set<ChatGPTScope> {
+    return new Set(["selection"]);
+  }
+
   async chatgpt(frameId: string, options, input: string) {
     await chatgptCreatechat({ actions: this, frameId, options, input });
+  }
+
+  tour(_id: string, _refs: any): TourProps["steps"] {
+    return [];
   }
 }

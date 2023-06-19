@@ -6,16 +6,17 @@
 /*
 Tabs in a particular project.
 */
+
 import { Switch, Tooltip } from "antd";
+import { debounce, throttle } from "lodash";
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { throttle } from "lodash";
-import { ReactNode, useLayoutEffect, useRef, useState } from "react";
-
-import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
+import track from "@cocalc/frontend/user-tracking";
 import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { FileTab, FixedTab, FIXED_PROJECT_TABS } from "./file-tab";
+import { FIXED_PROJECT_TABS, FileTab, FixedTab } from "./file-tab";
 import FileTabs from "./file-tabs";
 import { ShareIndicator } from "./share-indicator";
 
@@ -23,6 +24,8 @@ const INDICATOR_STYLE: React.CSSProperties = {
   overflow: "hidden",
   paddingLeft: "5px",
 } as const;
+
+export const FIXED_TABS_BG_COLOR = "rgba(0, 0, 0, 0.02)";
 
 interface PTProps {
   project_id: string;
@@ -76,10 +79,11 @@ export default function ProjectTabs(props: PTProps) {
 interface FVTProps {
   project_id: string;
   activeTab: string;
+  setHomePageButtonWidth: (width: number) => void;
 }
 
-export function VerticalFixedTabs(props: FVTProps) {
-  const { project_id, activeTab } = props;
+export function VerticalFixedTabs(props: Readonly<FVTProps>) {
+  const { project_id, activeTab, setHomePageButtonWidth } = props;
   const actions = useActions({ project_id });
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const parent = useRef<HTMLDivElement>(null);
@@ -124,8 +128,31 @@ export function VerticalFixedTabs(props: FVTProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (parent.current == null) return;
+
+    const observer = new ResizeObserver(
+      debounce(
+        () => {
+          const width = parent.current?.offsetWidth;
+          // we ignore zero width, which happens when not visible
+          if (width == null || width == 0) return;
+          setHomePageButtonWidth(width);
+        },
+        50,
+        { trailing: true, leading: false }
+      )
+    );
+    observer.observe(parent.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [condensed, parent.current]);
+
   const items: ReactNode[] = [];
-  for (const name in FIXED_PROJECT_TABS) {
+  for (const nameStr in FIXED_PROJECT_TABS) {
+    const name: FixedTab = nameStr as FixedTab; // helping TS a little bit
     const v = FIXED_PROJECT_TABS[name];
     if (isAnonymous && v.noAnonymous) {
       continue;
@@ -135,20 +162,17 @@ export function VerticalFixedTabs(props: FVTProps) {
         ? { color: COLORS.PROJECT.FIXED_LEFT_ACTIVE }
         : undefined;
 
-    // uncomment this to move the processes and settings to the bottom like in vscode.
-    // some of us do NOT like that.
-    // if (name == "info") {
-    //   items.push(<div style={{ flex: 1 }}></div>);
-    // }
+    const style: CSS = {
+      padding: "0",
+      ...color,
+      borderLeft: `4px solid ${
+        activeTab == name ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
+      }`,
+    };
+
     items.push(
       <FileTab
-        style={{
-          margin: "5px 0px",
-          ...color,
-          borderLeft: `4px solid ${
-            activeTab == name ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
-          }`,
-        }}
+        style={style}
         placement={"right"}
         key={name}
         project_id={project_id}
@@ -157,12 +181,15 @@ export function VerticalFixedTabs(props: FVTProps) {
         isFixedTab={true}
         iconStyle={{
           fontSize: "24px",
-          margin: "0px 6px",
+          margin: "0",
+          padding: "5px 0px",
           ...color,
         }}
+        flyout={name}
       />
     );
   }
+
   return (
     <div
       ref={parent}
@@ -181,6 +208,7 @@ export function VerticalFixedTabs(props: FVTProps) {
         style={{ display: "flex", flexDirection: "column", flex: "1 1 0" }}
       >
         {items}
+        <div style={{ flex: 1 }}></div> {/* moves hide switch to the bottom */}
         <Tooltip title="Hide the action bar" placement="right">
           <Switch
             style={{ margin: "10px" }}
@@ -188,6 +216,7 @@ export function VerticalFixedTabs(props: FVTProps) {
             checked
             onChange={() => {
               actions?.toggleActionButtons();
+              track("action-bar", { action: "hide" });
             }}
           />
         </Tooltip>
@@ -208,7 +237,7 @@ function ChatIndicatorTab({ activeTab, project_id }): JSX.Element | null {
     // bug -- tab is not a file tab.
     return null;
   }
-  const chatState = openFileInfo.getIn([path, "chatState"]);
+  const chatState = openFileInfo.getIn([path, "chatState"]) as any;
   return (
     <div style={INDICATOR_STYLE}>
       <ChatIndicator

@@ -14,6 +14,9 @@ function Static({ field, obj, spec, value }: Props) {
   if (value == null) {
     value = obj[field];
   }
+  if (value != null && typeof value != "string") {
+    value = JSON.stringify(value);
+  }
   if (!value?.trim()) return null;
   if (spec?.tag) {
     return (

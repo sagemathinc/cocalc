@@ -7,40 +7,41 @@
 // middle of the action, connected to potentially thousands of clients,
 // many Sage sessions, and PostgreSQL database.
 
-import { spawn } from "child_process";
-import { COCALC_MODES } from "@cocalc/server/projects/control";
-import blocked from "blocked";
-import { program as commander, Option } from "commander";
-import { callback2 } from "@cocalc/util/async-utils";
 import { callback } from "awaiting";
-import { getLogger } from "./logger";
+import blocked from "blocked";
+import { spawn } from "child_process";
+import { program as commander, Option } from "commander";
+
 import basePath from "@cocalc/backend/base-path";
-import { retry_until_success } from "@cocalc/util/async-utils";
-const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
-import { init_passport } from "./auth";
-import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
-import { set_agent_endpoint } from "./health-checks";
-import initHandleMentions from "@cocalc/server/mentions/handle";
-const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
-import { start as startHubRegister } from "./hub_register";
-import { getClients } from "./clients";
-import { stripe_sync } from "@cocalc/server/stripe/sync";
-import port from "@cocalc/backend/port";
-import { database } from "./servers/database";
-import initExpressApp from "./servers/express-app";
-import initHttpRedirect from "./servers/http-redirect";
-import initDatabase from "./servers/database";
-import initProjectControl from "@cocalc/server/projects/control";
-import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
-import initVersionServer from "./servers/version";
-import initPrimus from "./servers/primus";
-import { load_server_settings_from_env } from "@cocalc/server/settings/server-settings";
-import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
 import {
-  pguser as DEFAULT_DB_USER,
   pghost as DEFAULT_DB_HOST,
   pgdatabase as DEFAULT_DB_NAME,
+  pguser as DEFAULT_DB_USER,
 } from "@cocalc/backend/data";
+import port from "@cocalc/backend/port";
+import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
+import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
+import initHandleMentions from "@cocalc/server/mentions/handle";
+import initProjectControl, {
+  COCALC_MODES,
+} from "@cocalc/server/projects/control";
+import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
+import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
+import { load_server_settings_from_env } from "@cocalc/server/settings/server-settings";
+import { stripe_sync } from "@cocalc/server/stripe/sync";
+import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import { init_passport } from "./auth";
+import { getClients } from "./clients";
+import { set_agent_endpoint } from "./health-checks";
+import { start as startHubRegister } from "./hub_register";
+import { getLogger } from "./logger";
+import initDatabase, { database } from "./servers/database";
+import initExpressApp from "./servers/express-app";
+import initHttpRedirect from "./servers/http-redirect";
+import initPrimus from "./servers/primus";
+import initVersionServer from "./servers/version";
+const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
+const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 
 // Logger tagged with 'hub' for this file.
 const winston = getLogger("hub");
@@ -276,6 +277,14 @@ async function startServer(): Promise<void> {
     console.log(msg);
   }
 
+  if (program.all || program.mentions) {
+    // kucalc: for now we just have the hub-mentions servers
+    // do the new project pool maintenance, since there is only
+    // one hub-stats.
+    // On non-cocalc it'll get done by *the* hub because of program.all.
+    initNewProjectPoolMaintenanceLoop();
+  }
+
   addErrorListeners(uncaught_exception_total);
 }
 
@@ -324,7 +333,7 @@ async function main(): Promise<void> {
         `REQUIRED mode in which to run CoCalc (${COCALC_MODES.join(
           ", "
         )}) - or set COCALC_MODE env var`
-      ).choices(COCALC_MODES)
+      ).choices(COCALC_MODES as any as string[])
     )
     .option(
       "--all",
@@ -336,8 +345,6 @@ async function main(): Promise<void> {
       "--next-server",
       "run the nextjs server (landing pages, share server, etc.)"
     )
-    .option("--noco-db", "run the NocoDB database server (for admins)")
-    /*.option("--https", "if specified will use (or create selfsigned) data/https/key.pem and data/https/cert.pem and serve https on the port specified by the PORT env variable. Do not combine this with --https-key/--htps-cert options below.")*/
     .option(
       "--https-key [string]",
       "serve over https.  argument should be a key filename (both https-key and https-cert must be specified)"
@@ -393,7 +400,10 @@ async function main(): Promise<void> {
       "Do blob-related maintenance (dump to tarballs, offload to gcloud)",
       "yes"
     )
-    .option("--mentions", "if given, periodically handle mentions")
+    .option(
+      "--mentions",
+      "if given, periodically handle mentions; on kucalc there is only one of these.  It also managed the new project pool.  Maybe this should be renamed --singleton!"
+    )
     .option(
       "--test",
       "terminate after setting up the hub -- used to test if it starts up properly"

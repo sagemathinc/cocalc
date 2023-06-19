@@ -31,7 +31,7 @@ export default function Linux({ customize }) {
     <Customize value={customize}>
       <Head title="Online Linux Environment" />
       <Layout>
-        <Header page="features" subPage="linux" />
+        <Header page="features" subPage="linux"  runnableTag="term" />
         <Layout.Content>
           <Content
             landing

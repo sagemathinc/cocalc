@@ -22,6 +22,9 @@ export interface NewsItem extends NewsProto {
   };
 }
 
+// NewsProto but without hide, text, and url
+export type RecentHeadline = Omit<NewsProto, "hide" | "text" | "url">;
+
 // This is what the frontend gets from the backend
 export interface NewsItemWebapp {
   id: string;
@@ -38,7 +41,7 @@ export const CHANNELS = [
   "about",
 ] as const;
 
-export type Channel = typeof CHANNELS[number];
+export type Channel = (typeof CHANNELS)[number];
 
 export const CHANNELS_DESCRIPTIONS: { [name in Channel]: string } = {
   announcement: "Major announcements, important upcoming changes",

@@ -87,6 +87,7 @@ export type SoftwareEnvironments = TypedMap<{
 export interface CustomizeState {
   is_commercial: boolean;
   openai_enabled: boolean;
+  neural_search_enabled: boolean;
   datastore: boolean;
   ssh_gateway: boolean;
   ssh_gateway_dns: string; // e.g. "ssh.cocalc.com"
@@ -243,7 +244,7 @@ function process_software(software, is_cocalc_com) {
     actions.setState({ software });
   } else {
     if (is_cocalc_com) {
-      actions.setState({ software: fromJS(FALLBACK_SOFTWARE_ENV) });
+      actions.setState({ software: fromJS(FALLBACK_SOFTWARE_ENV) as any});
     } else {
       software = sanitizeSoftwareEnv(
         { software: FALLBACK_ONPREM_ENV, purpose: "webapp" },

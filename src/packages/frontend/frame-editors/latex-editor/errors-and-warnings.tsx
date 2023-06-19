@@ -17,6 +17,7 @@ import { Icon, IconName, Loading } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { use_build_logs } from "./hooks";
 import { EditorState } from "../frame-tree/types";
+import HelpMeFix from "@cocalc/frontend/frame-editors/chatgpt/help-me-fix";
 
 function group_to_level(group: string): string {
   switch (group) {
@@ -84,13 +85,12 @@ interface item {
 interface ItemProps {
   actions: any;
   item: TypedMap<item>;
+  group: string;
 }
 
 // memo has an update function, see bottom
 const Item: React.FC<ItemProps> = React.memo(
-  (props) => {
-    const { actions, item } = props;
-
+  ({ actions, item, group }: ItemProps) => {
     function edit_source(e: React.SyntheticEvent<any>): void {
       e.stopPropagation();
       if (!item.get("file")) return; // not known
@@ -128,27 +128,40 @@ const Item: React.FC<ItemProps> = React.memo(
       }
     }
 
-    function render_message(): React.ReactElement<any> | undefined {
-      const message = item.get("message");
-      if (!message) {
-        return;
-      }
-      return <div>{message}</div>;
-    }
-
-    function render_content(): React.ReactElement<any> | undefined {
-      const content = item.get("content");
-      if (!content) {
-        return;
-      }
-      return <pre>{content}</pre>;
+    function renderGetHelp() {
+      if (!item.get("line") || group != "errors") return;
+      const line = item.get("line");
+      return (
+        <HelpMeFix
+          style={{ float: "right", marginLeft: "10px" }}
+          size="small"
+          task={"ran latex"}
+          error={
+            (item.get("message") ?? "") + "\n" + (item.get("content") ?? "")
+          }
+          input={() => {
+            const s = actions._syncstring.to_str();
+            const v = s
+              .split("\n")
+              .slice(0, line + 1)
+              .join("\n");
+            //line+1 since lines are 1-based
+            return v + `% this is line number ${line + 1}`;
+          }}
+          language={"latex"}
+          extraFileInfo={actions.chatgptExtraFileInfo()}
+          tag={"latex-error-frame"}
+          prioritizeLastInput
+        />
+      );
     }
 
     return (
       <div style={ITEM_STYLES[item.get("level")]}>
+        {renderGetHelp()}
         {render_location()}
-        {render_message()}
-        {render_content()}
+        {item.get("message") && <div>{item.get("message")}</div>}
+        {item.get("content") && <pre>{item.get("content")}</pre>}
       </div>
     );
   },
@@ -213,17 +226,17 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
       }
     }
 
-    function render_item(item, key): Rendered {
-      return <Item key={key} item={item} actions={actions} />;
+    function render_item(item, key, group): Rendered {
+      return <Item key={key} item={item} actions={actions} group={group} />;
     }
 
-    function render_group_content(content): Rendered {
+    function render_group_content(content, group): Rendered {
       if (content.size === 0) {
         return <div>None</div>;
       } else {
         const w: Rendered[] = [];
         content.forEach((item) => {
-          w.push(render_item(item, w.length));
+          w.push(render_item(item, w.length, group));
         });
         return <div>{w}</div>;
       }
@@ -239,7 +252,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
       }
       const level = group_to_level(group);
       const spec: SpecItem = SPEC[level];
-      const content = build_logs.getIn([tool, "parse", group]);
+      const content = build_logs.getIn([tool, "parse", group]) as any;
       if (!content) {
         return;
       }
@@ -252,7 +265,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
       const rendered = (
         <div key={`${group}-${num}`}>
           {content.size == 0 ? <h5>{header}</h5> : <h3>{header}</h3>}
-          {render_group_content(content)}
+          {render_group_content(content, group)}
         </div>
       );
       return { rendered, level, group, size: content.size };

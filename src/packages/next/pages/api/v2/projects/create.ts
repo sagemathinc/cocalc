@@ -10,7 +10,6 @@ import getParams from "lib/api/get-params";
 export default async function handle(req, res) {
   const { title, description, image, license, public_path_id } = getParams(req);
   const account_id = await getAccountId(req);
-
   try {
     const project_id = await createProject(
       account_id,
@@ -36,9 +35,6 @@ async function createProject(
 ): Promise<string> {
   if (!account_id) {
     throw Error("user must be signed in");
-  }
-  if (!title) {
-    throw Error("project title is required");
   }
   return await create({
     account_id,

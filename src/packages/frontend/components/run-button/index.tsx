@@ -1,30 +1,36 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import { Button, Popover, Tooltip } from "antd";
 import {
   CSSProperties,
-  ReactNode,
   MutableRefObject,
+  ReactNode,
   useEffect,
   useRef,
   useState,
 } from "react";
-import { Button, Popover, Tooltip } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { useFileContext } from "@cocalc/frontend/lib/file-context";
-import { path_split } from "@cocalc/util/misc";
-import computeHash from "@cocalc/util/jupyter-api/compute-hash";
-import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 import TimeAgo from "react-timeago";
-import Logo from "@cocalc/frontend/jupyter/logo";
-import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
-import { plural } from "@cocalc/util/misc";
-import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
+import { reuseInFlight } from "async-await-utils/hof";
+
 //import { file_associations } from "@cocalc/frontend/file-associations";
 //import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import { getFromCache, saveToCache } from "./cache";
-import { kernelDisplayName } from "./kernel-info";
+import { Icon } from "@cocalc/frontend/components/icon";
+import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import Logo from "@cocalc/frontend/jupyter/logo";
+import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
+import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import computeHash from "@cocalc/util/jupyter-api/compute-hash";
+import { path_split, plural } from "@cocalc/util/misc";
 import api from "./api";
-import SelectKernel from "./select-kernel";
+import { getFromCache, saveToCache } from "./cache";
 import getKernel from "./get-kernel";
+import { kernelDisplayName, kernelLanguage } from "./kernel-info";
 import Output from "./output";
+import SelectKernel from "./select-kernel";
 
 export type RunFunction = () => Promise<void>;
 type RunRef = MutableRefObject<RunFunction | null>;
@@ -42,6 +48,8 @@ export interface Props {
   // automatically check for known output in database on initial load, e.g.,
   // yes for markdown, but not for a jupyter notebook on the share server.
   auto?: boolean;
+
+  setInfo?: (info: string) => void;
 }
 
 // definitely never show run buttons for text formats that can't possibly be run.
@@ -71,6 +79,7 @@ export default function RunButton({
   tag,
   size,
   auto,
+  setInfo,
 }: Props) {
   const mode = infoToMode(info);
   const noRun = NO_RUN.has(mode);
@@ -238,7 +247,11 @@ export default function RunButton({
           tag,
         });
       } catch (err) {
-        setOutput({ error: resp.error });
+        if (resp?.error != null) {
+          setOutput({ error: resp.error });
+        } else {
+          setOutput({ error: `Timeout or communication problem` });
+        }
         return;
       }
       if (resp.output != null) {
@@ -272,7 +285,7 @@ export default function RunButton({
         title={
           !kernelName
             ? "Select a kernel if you want to run this code."
-            : "Run this code and anything it depends on."
+            : "Run this and anything above in this markdown with the same info string."
         }
       >
         <Button
@@ -360,6 +373,9 @@ export default function RunButton({
                 onSelect={(name) => {
                   setKernelName(name);
                   setShowPopover(false);
+                  setInfo?.(
+                    `${kernelLanguage(name, project_id)} {kernel="${name}"}`
+                  );
                 }}
                 kernel={kernelName}
                 project_id={project_id}
@@ -474,9 +490,11 @@ export default function RunButton({
   );
 }
 
-async function getFromDatabaseCache(hash: string): Promise<{
+type GetFromCache = (hash: string) => Promise<{
   output?: object[];
   created?: Date;
-}> {
-  return await api("execute", { hash });
-}
+}>;
+
+const getFromDatabaseCache: GetFromCache = reuseInFlight(
+  async (hash) => await api("execute", { hash })
+);

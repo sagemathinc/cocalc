@@ -7,31 +7,12 @@ export type { RunFunction };
 
 const buttonStyle = { color: "#666" } as const;
 
-export default function ActionButtons({
-  input,
-  history,
-  setOutput,
-  output,
-  info,
-  runRef,
-  size,
-  auto,
-}: RunButtonProps) {
+export default function ActionButtons(props: RunButtonProps) {
   return (
     <>
-      <CopyButton style={buttonStyle} value={input} size={size} />
+      <CopyButton style={buttonStyle} value={props.input} size={props.size} />
       <div style={{ width: "5px" }} />
-      <RunButton
-        info={info}
-        style={buttonStyle}
-        input={input}
-        history={history}
-        setOutput={setOutput}
-        output={output}
-        runRef={runRef}
-        size={size}
-        auto={auto}
-      />
+      <RunButton {...props} style={buttonStyle} />
     </>
   );
 }

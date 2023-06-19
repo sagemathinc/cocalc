@@ -38,10 +38,10 @@ export class Document extends Component<Props> {
         is_current={true}
         is_public={true}
         value={this.props.doc}
-        misspelled_words={fromJS([])}
+        misspelled_words={fromJS([]) as any}
         resize={0}
         gutters={[]}
-        gutter_markers={fromJS({})}
+        gutter_markers={fromJS({}) as any}
         editor_settings={this.props.editor_settings}
       />
     );

@@ -4,6 +4,7 @@ import { fieldToLabel } from "../util";
 import * as register from "./register";
 import { useViewOnlyContext } from "./context";
 
+import "./account";
 import "./accounts";
 import "./assignee";
 import "./boolean";
@@ -24,6 +25,7 @@ import "./project-link";
 import "./purchased";
 import "./select";
 import "./tags";
+import "./string-tags";
 import "./text";
 import "./timestamp";
 import "./usersmap";

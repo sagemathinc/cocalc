@@ -8,6 +8,8 @@ import Loading from "components/share/loading";
 import A from "components/misc/A";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
+import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
+import { useRouter } from "next/router";
 
 type State = "input" | "wait";
 
@@ -15,6 +17,7 @@ const PROMPT = [
   "ASSUME I HAVE FULL ACCESS TO COCALC.", // otherwise it says things like "as a large language model I don't have access to cocalc."
   "ENCLOSE MATH IN $.", // so math gets typeset nicely
   "INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.", // otherwise often we can't evaluate code.
+  "BE BRIEF.", // since it's slow.
   "How can I do the following using CoCalc?", // give the context of how the question the user asks should be answered.
 ].join(" ");
 
@@ -36,9 +39,10 @@ export default function ChatGPTHelp({
   const [output, setOutput] = useState<string | null>(null);
   const [input, setInput] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const router = useRouter();
 
   const counterRef = useRef<number>(0);
-  const { jupyterApiEnabled, siteName } = useCustomize();
+  const { account, jupyterApiEnabled, siteName } = useCustomize();
 
   const chatgpt = async (value?) => {
     if (value == null) {
@@ -81,6 +85,7 @@ export default function ChatGPTHelp({
         >
           <Input.TextArea
             value={input}
+            maxLength={account?.account_id == null ? 10 : 2000}
             onChange={(e) => setInput(e.target.value)}
             size={size}
             autoSize={{ minRows: focus ? 2 : 1, maxRows: 5 }}
@@ -88,7 +93,7 @@ export default function ChatGPTHelp({
             onFocus={() => setFocus(true)}
             onBlur={() => setFocus(false)}
             placeholder={
-              placeholder ?? `What do you want to do on ${siteName}?`
+              placeholder ?? `Ask ChatGPT: how can I do this on ${siteName}?`
             }
             allowClear
             onPressEnter={(e) => {
@@ -97,6 +102,15 @@ export default function ChatGPTHelp({
               }
             }}
           />
+          {input.trim() && account?.account_id == null && (
+            <InPlaceSignInOrUp
+              title="ChatGPT"
+              why={"to use ChatGPT on " + siteName}
+              onSuccess={() => {
+                router.reload();
+              }}
+            />
+          )}
         </Col>
         <Col
           xs={{ span: 24, offset: 0 }}
@@ -109,6 +123,7 @@ export default function ChatGPTHelp({
           }}
         >
           <Button
+            disabled={account?.account_id == null}
             size={size}
             type="primary"
             onClick={() => {
@@ -122,7 +137,11 @@ export default function ChatGPTHelp({
               backgroundColor="transparent"
               style={{ marginRight: "5px", marginTop: "-4px" }}
             />
-            {input?.trim() && focus ? "Shift+Enter" : "ChatGPT"}
+            {input?.trim() && focus
+              ? "Shift+Enter"
+              : size == "large"
+              ? "Ask ChatGPT"
+              : "ChatGPT"}
           </Button>
         </Col>
         <Col xs={{ span: 24 }} md={{ span: 24 }}>

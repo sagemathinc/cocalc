@@ -3,10 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { React, CSS } from "../../app-framework";
-import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
-import { Button, ButtonSize } from "../../antd-bootstrap";
-import { UncommittedChanges } from "../../components";
+import { FC, CSSProperties, memo, useMemo } from "react";
+import {
+  Icon,
+  UncommittedChanges,
+  VisibleMDLG,
+} from "@cocalc/frontend/components";
+import { Button } from "antd";
 
 interface Props {
   has_unsaved_changes?: boolean;
@@ -15,15 +18,15 @@ interface Props {
   is_public?: boolean;
   is_saving?: boolean;
   no_labels?: boolean;
-  size?: ButtonSize;
+  size?;
   onClick?: (e) => void;
   show_uncommitted_changes?: boolean;
   set_show_uncommitted_changes?: Function;
-  style?: CSS;
+  style?: CSSProperties;
 }
 
-export const SaveButton: React.FC<Props> = React.memo((props: Props) => {
-  const {
+export const SaveButton: FC<Props> = memo(
+  ({
     has_unsaved_changes,
     has_uncommitted_changes,
     read_only,
@@ -35,45 +38,55 @@ export const SaveButton: React.FC<Props> = React.memo((props: Props) => {
     show_uncommitted_changes,
     set_show_uncommitted_changes,
     style,
-  } = props;
-
-  function make_label() {
-    if (!no_labels) {
-      if (is_public) {
-        return "Public";
-      } else if (read_only) {
-        return "Readonly";
+  }: Props) => {
+    const label = useMemo(() => {
+      if (!no_labels) {
+        if (is_public) {
+          return " Public";
+        } else if (read_only) {
+          return " Readonly";
+        } else {
+          return " Save";
+        }
       } else {
-        return "Save";
+        return null;
       }
-    } else {
-      return "";
-    }
+    }, [no_labels, is_public, read_only]);
+
+    const disabled = useMemo(
+      () => !has_unsaved_changes || !!read_only || !!is_public,
+      [has_unsaved_changes, read_only, is_public]
+    );
+    const icon = useMemo(
+      () => (is_saving ? "arrow-circle-o-left" : "save"),
+      [is_saving]
+    );
+
+    // The funny style in the icon below is because the width changes
+    // slightly depending on which icon we are showing.
+    // whiteSpace:"nowrap" due to https://github.com/sagemathinc/cocalc/issues/4434
+    return (
+      <Button
+        title={"Save file to disk"}
+        size={size}
+        disabled={disabled}
+        onClick={onClick}
+        style={{
+          background: "#5cb85c",
+          color: "white",
+          opacity: disabled ? 0.65 : undefined,
+          whiteSpace: "nowrap",
+          ...style,
+        }}
+      >
+        <Icon name={icon} style={{ display: "inline-block" }} />
+        {!no_labels && <VisibleMDLG>{label}</VisibleMDLG>}
+        <UncommittedChanges
+          has_uncommitted_changes={has_uncommitted_changes}
+          show_uncommitted_changes={show_uncommitted_changes}
+          set_show_uncommitted_changes={set_show_uncommitted_changes}
+        />
+      </Button>
+    );
   }
-
-  const disabled: boolean = !has_unsaved_changes || !!read_only || !!is_public;
-  const label = make_label();
-  const icon = is_saving ? "arrow-circle-o-left" : "save";
-
-  // The funny style in the icon below is because the width changes
-  // slightly depending on which icon we are showing.
-  // whiteSpace:"nowrap" due to https://github.com/sagemathinc/cocalc/issues/4434
-  return (
-    <Button
-      title={"Save file to disk"}
-      bsStyle={"success"}
-      bsSize={size}
-      disabled={disabled}
-      onClick={onClick}
-      style={{ ...style, ...{ whiteSpace: "nowrap" } }}
-    >
-      <Icon name={icon} style={{ width: "15px", display: "inline-block" }} />{" "}
-      <VisibleMDLG>{label}</VisibleMDLG>
-      <UncommittedChanges
-        has_uncommitted_changes={has_uncommitted_changes}
-        show_uncommitted_changes={show_uncommitted_changes}
-        set_show_uncommitted_changes={set_show_uncommitted_changes}
-      />
-    </Button>
-  );
-});
+);

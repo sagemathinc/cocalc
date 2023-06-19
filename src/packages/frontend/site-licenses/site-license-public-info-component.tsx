@@ -3,6 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert, Button, Input, Popconfirm, Popover } from "antd";
+import { fromJS } from "immutable";
+import { DebounceInput } from "react-debounce-input";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
@@ -26,9 +30,6 @@ import {
   LicenseStatus,
   licenseStatusProvidesUpgrades,
 } from "@cocalc/util/upgrades/quota";
-import { Alert, Button, Input, Popconfirm, Popover } from "antd";
-import { fromJS } from "immutable";
-import { DebounceInput } from "react-debounce-input";
 import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
@@ -42,7 +43,7 @@ import { site_license_public_info, trunc_license_id } from "./util";
 interface Props {
   license_id: string;
   project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
-  upgrades: TypedMap<SiteLicensePublicInfoType> | null;
+  upgrades?: TypedMap<SiteLicensePublicInfoType> | null;
   onRemove?: () => void; // called *before* the license is removed!
   warn_if?: (info) => void | string;
   restartAfterRemove?: boolean; // default false

@@ -3,13 +3,14 @@ A generic button for helping a user fix problems using chatgpt.
 If chatgpt is disabled or not available it renders as null.
 */
 
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { Alert, Button, Tooltip } from "antd";
-import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { CSSProperties, useState } from "react";
-import { trunc, trunc_middle } from "@cocalc/util/misc";
-//import shortenError from "./shorten-error";
+
+import getChatActions from "@cocalc/frontend/chat/get-actions";
+import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
+import shortenError from "./shorten-error";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
@@ -20,6 +21,7 @@ interface Props {
   extraFileInfo?: string;
   style?: CSSProperties;
   size?;
+  prioritizeLastInput?: boolean; // if true, when truncating input we keep the end rather than truncating the end.
 }
 
 function get(f: undefined | string | (() => string)): string {
@@ -37,11 +39,15 @@ export default function HelpMeFix({
   extraFileInfo,
   style,
   size,
+  prioritizeLastInput,
 }: Props) {
   const { redux, project_id, path } = useFrameContext();
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
   const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
-  if (redux == null || !redux.getStore("projects").hasOpenAI(project_id)) {
+  if (
+    redux == null ||
+    !redux.getStore("projects").hasOpenAI(project_id, "help-me-fix")
+  ) {
     return null;
   }
   return (
@@ -65,6 +71,7 @@ export default function HelpMeFix({
                 language,
                 extraFileInfo,
                 redux,
+                prioritizeLastInput,
               });
             } catch (err) {
               setErrorGettingHelp(`${err}`);
@@ -97,7 +104,7 @@ export default function HelpMeFix({
 
 const CUTOFF = 3000;
 
-async function getHelp({
+export async function getHelp({
   project_id,
   path,
   tag,
@@ -107,9 +114,10 @@ async function getHelp({
   language = "",
   extraFileInfo = "",
   redux,
+  prioritizeLastInput,
 }) {
   let message =
-    '<span class="user-mention" account-id=chatgpt>@ChatGPT</span> help me fix my code.\n\n<details>\n\n';
+    '<span class="user-mention" account-id=chatgpt>@ChatGPT</span> help me fix my code.\n\n<details><summary>Context</summary>\n\n';
 
   if (task) {
     message += `\nI ${task}.\n`;
@@ -118,8 +126,7 @@ async function getHelp({
   if (error.length > 3000) {
     // 3000 is about 500 tokens
     // This uses structure:
-    //error = shortenError(error);
-    // for now JUST do this:
+    error = shortenError(error, language);
     if (error.length > 3000) {
       // this just puts ... in the middle.
       error = trunc_middle(error, 3000);
@@ -135,7 +142,11 @@ async function getHelp({
     if (input.length < CUTOFF) {
       message += `\nMy ${extraFileInfo ?? ""} contains:\n\n`;
     } else {
-      input = trunc(input, CUTOFF);
+      if (prioritizeLastInput) {
+        input = trunc_left(input, CUTOFF);
+      } else {
+        input = trunc(input, CUTOFF);
+      }
       message += `\nMy ${
         extraFileInfo ?? ""
       } code starts as follows, but is too long to fully include here:\n\n`;
@@ -148,10 +159,9 @@ async function getHelp({
   // scroll to bottom *after* the message gets sent.
   const actions = await getChatActions(redux, project_id, path);
   setTimeout(() => actions.scrollToBottom(), 100);
-  await actions.send_chat(
-    message,
-    undefined,
-    undefined,
-    `help-me-fix${tag ? ":" + tag : ""}`
-  );
+  await actions.send_chat({
+    input: message,
+    tag: `help-me-fix${tag ? ":" + tag : ""}`,
+    noNotification: true,
+  });
 }

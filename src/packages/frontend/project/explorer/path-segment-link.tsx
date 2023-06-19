@@ -4,7 +4,7 @@
  */
 
 import { Tip } from "@cocalc/frontend/components";
-import { Breadcrumb } from "antd";
+import { CSS } from "@cocalc/frontend/app-framework";
 
 interface Props {
   path: string;
@@ -14,11 +14,19 @@ interface Props {
   history?: boolean;
   active?: boolean;
   key: number;
+  style?: CSS;
+}
+
+export interface PathSegmentItem {
+  key: number;
+  title: JSX.Element | string | undefined;
+  onClick: () => void;
+  className: string;
+  style?: CSS;
 }
 
 // One segment of the directory links at the top of the files listing.
-// this can't be a react component, because "Breadcrumb" only works with Breadcrumb.Item children!
-export function PathSegmentLink(props: Props) {
+export function createPathSegmentLink(props: Readonly<Props>): PathSegmentItem {
   const {
     path = "",
     display,
@@ -27,6 +35,7 @@ export function PathSegmentLink(props: Props) {
     history,
     active = false,
     key,
+    style,
   } = props;
 
   function render_content(): JSX.Element | string | undefined {
@@ -51,9 +60,11 @@ export function PathSegmentLink(props: Props) {
     }
   }
 
-  return (
-    <Breadcrumb.Item onClick={() => on_click(path)} className={cls()} key={key}>
-      {render_content()}
-    </Breadcrumb.Item>
-  );
+  return {
+    onClick: () => on_click(path),
+    className: cls(),
+    key,
+    title: render_content(),
+    style,
+  };
 }

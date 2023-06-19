@@ -473,7 +473,7 @@ export function trunc_middle(s, max_length = 1024) {
 }
 
 // "foobar" --> "…bar"
-export function trunc_left(s, max_length = 1024): string | undefined {
+export function trunc_left(s, max_length = 1024) {
   if (s == null) {
     return s;
   }
@@ -1946,16 +1946,18 @@ export function ensure_bound(x: number, min: number, max: number): number {
   return x < min ? min : x > max ? max : x;
 }
 
+export const EDITOR_PREFIX = "editor-";
+
 // convert a file path to the "name" of the underlying editor tab.
 // needed because otherwise filenames like 'log' would cause problems
 export function path_to_tab(name: string): string {
-  return `editor-${name}`;
+  return `${EDITOR_PREFIX}${name}`;
 }
 
 // assumes a valid editor tab name...
 // If invalid or undefined, returns undefined
 export function tab_to_path(name: string): string | undefined {
-  if (name?.substring(0, 7) === "editor-") {
+  if (name?.substring(0, 7) === EDITOR_PREFIX) {
     return name.substring(7);
   }
   return;
@@ -2210,7 +2212,8 @@ export function closest_kernel_match(
     }
     // filter out kernels with negative priority (using the priority
     // would be great, though)
-    if (k.getIn(["metadata", "cocalc", "priority"], 0) < 0) continue;
+    if ((k.getIn(["metadata", "cocalc", "priority"], 0) as number) < 0)
+      continue;
     const kernel_name = k.get("name")?.toLowerCase();
     if (!kernel_name) continue;
     let v = 0;
@@ -2401,4 +2404,20 @@ export function getRandomColor(
   const g = (((hash >> 8) & 0xff) % mod) + min;
   const b = (((hash >> 16) & 0xff) % mod) + min;
   return `rgb(${r}, ${g}, ${b})`;
+}
+
+export function hexColorToRGBA(col: string, opacity?: number): string {
+  const r = parseInt(col.slice(1, 3), 16);
+  const g = parseInt(col.slice(3, 5), 16);
+  const b = parseInt(col.slice(5, 7), 16);
+
+  if (opacity && opacity <= 1 && opacity >= 0) {
+    return `rgba(${r},${g},${b},${opacity})`;
+  } else {
+    return `rgb(${r},${g},${b})`;
+  }
+}
+
+export function strictMod(a: number, b: number): number {
+  return ((a % b) + b) % b;
 }

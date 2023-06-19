@@ -3,17 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { isEqual } from "underscore";
-
-import * as lean_client from "lean-client-js-node";
+import { reuseInFlight } from "async-await-utils/hof";
 import { callback, delay } from "awaiting";
+import * as lean_client from "lean-client-js-node";
+import { isEqual } from "lodash";
+import { EventEmitter } from "node:events";
+
+import type { Client } from "@cocalc/project/client";
 import { once } from "@cocalc/util/async-utils";
 import { close } from "@cocalc/util/misc";
-import { reuseInFlight } from "async-await-utils/hof";
-import { EventEmitter } from "events";
 
 type SyncString = any;
-type Client = any;
 type LeanServer = any;
 
 // do not try to sync with lean more frequently than this
@@ -276,12 +276,9 @@ export class Lean extends EventEmitter {
       this.register(path);
       await callback((cb) => this.once(`sync-#{path}`, cb));
     }
-    const resp = await (await this.server()).complete(
-      path,
-      line,
-      column,
-      skipCompletions
-    );
+    const resp = await (
+      await this.server()
+    ).complete(path, line, column, skipCompletions);
     //this.dbg("complete response", path, line, column, resp);
     return resp;
   }
@@ -315,5 +312,5 @@ export function lean_server(client: Client): Lean {
 }
 
 function now(): number {
-  return new Date().valueOf();
+  return Date.now();
 }

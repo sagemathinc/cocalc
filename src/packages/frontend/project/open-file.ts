@@ -242,7 +242,7 @@ export async function open_file(
   }
   const file_info = open_files.getIn([opts.path, "component"], {
     is_public: false,
-  });
+  }) as any;
   if (!alreadyOpened || file_info.is_public !== is_public) {
     const was_public = file_info.is_public;
 

@@ -8,7 +8,7 @@
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
-import { NotebookMode } from "./types";
+import { NotebookMode } from "@cocalc/jupyter/types";
 
 interface ModeProps {
   mode: NotebookMode;

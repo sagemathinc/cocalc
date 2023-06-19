@@ -7,13 +7,13 @@ import { Set } from "immutable";
 import { isEqual } from "lodash";
 import { delay } from "awaiting";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
-import { move_selected_cells } from "@cocalc/frontend/jupyter/cell-utils";
+import { move_selected_cells } from "@cocalc/jupyter/util/cell-utils";
 import {
   CommandDescription,
   commands,
 } from "@cocalc/frontend/jupyter/commands";
 import { create_key_handler } from "@cocalc/frontend/jupyter/keyboard";
-import { Cell, CellType, Scroll } from "@cocalc/frontend/jupyter/types";
+import { Cell, CellType, Scroll } from "@cocalc/jupyter/types";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import {
   bind_methods,
@@ -24,7 +24,6 @@ import {
 } from "@cocalc/util/misc";
 import { JupyterEditorActions } from "../actions";
 import { NotebookFrameStore } from "./store";
-require("@cocalc/frontend/jupyter/types");
 
 export interface EditorFunctions {
   set_cursor: (pos: { x?: number; y?: number }) => void;
@@ -36,6 +35,7 @@ export interface EditorFunctions {
   get_cursor?: () => { line: number; ch: number };
   get_cursor_xy?: () => { x: number; y: number };
   getSelection?: () => string;
+  focus?: () => void;
 }
 
 declare let DEBUG: boolean;
@@ -300,7 +300,6 @@ export class NotebookFrameActions {
       this.move_cursor(1);
     }
   }
-  h;
 
   public run_selected_cells(v?: string[]): void {
     this.save_input_editor();
@@ -339,13 +338,15 @@ export class NotebookFrameActions {
    ***/
 
   set_mode(mode: "escape" | "edit"): void {
-    if (this.store.get("mode") === mode) return; // no-op
     if (mode == "edit") {
       // If we're changing to edit mode and current cell is a markdown
       // cell, switch it to the codemirror editor view.
       const cur_id = this.store.get("cur_id");
       if (this.jupyter_actions.store.get_cell_type(cur_id) === "markdown") {
         this.set_md_cell_editing(cur_id);
+      }
+      if (this.input_editors[cur_id] != null) {
+        this.input_editors[cur_id].focus?.();
       }
     }
     this.enable_key_handler();

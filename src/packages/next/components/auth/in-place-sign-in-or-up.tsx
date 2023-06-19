@@ -17,6 +17,8 @@ interface Props {
   why?: ReactNode;
   onSuccess?: () => void;
   style?: CSSProperties;
+  has_site_license?: boolean;
+  publicPathId?: string;
 }
 
 export default function InPlaceSignInOrUp({
@@ -24,6 +26,8 @@ export default function InPlaceSignInOrUp({
   why,
   onSuccess,
   style,
+  has_site_license,
+  publicPathId,
 }: Props) {
   const router = useRouter();
   const [show, setShow] = useState<"sign-in" | "sign-up" | "">("");
@@ -33,14 +37,16 @@ export default function InPlaceSignInOrUp({
       <Divider>
         <Icon name="sign-in" style={{ marginRight: "10px" }} /> {title}
       </Divider>
-      <a onClick={() => setShow("sign-in")}>Sign In</a> or{" "}
-      <a onClick={() => setShow("sign-up")}>Sign Up</a>
+      <a onClick={() => setShow("sign-up")}>Sign Up</a> or{" "}
+      <a onClick={() => setShow("sign-in")}>Sign In</a>
       {why == null ? "." : <> {why}.</>}
       <br />
       <br />
-      {show == "sign-in" && (
-        <SignInAuth
+      {show == "sign-up" && (
+        <SignUpAuth
           minimal
+          has_site_license={has_site_license}
+          publicPathId={publicPathId}
           onSuccess={
             onSuccess ??
             (() =>
@@ -51,8 +57,8 @@ export default function InPlaceSignInOrUp({
           }
         />
       )}
-      {show == "sign-up" && (
-        <SignUpAuth
+      {show == "sign-in" && (
+        <SignInAuth
           minimal
           onSuccess={
             onSuccess ??

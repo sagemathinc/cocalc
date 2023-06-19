@@ -1,8 +1,3 @@
 React implementation of a Jupyter notebook frontend client.
 
-
-To run the mocha tests:
-    
-    npm install
-    npm run test
-
+Most of the rest of the Jupyter implementation is in the `@cocalc/jupyter` package.

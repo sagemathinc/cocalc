@@ -1,6 +1,6 @@
 import { render } from "./register";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { AVATAR_SIZE } from "./accounts";
+import { AVATAR_SIZE } from "./account";
 import useAgents from "../querydb/use-agents";
 import { useEditableContext } from "./context";
 import { Button, Select, Space } from "antd";

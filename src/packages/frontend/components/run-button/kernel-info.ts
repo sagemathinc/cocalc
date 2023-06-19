@@ -1,7 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
 import LRU from "lru-cache";
-import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
-import api from "./api";
+
+import type { KernelSpec } from "@cocalc/jupyter/types";
 import { capitalize } from "@cocalc/util/misc";
+import api from "./api";
 
 const kernelInfoCache = new LRU<string, KernelSpec[]>({
   ttl: 30000,
@@ -56,4 +62,20 @@ export function kernelDisplayName(
     }
   }
   return capitalize(name);
+}
+
+export function kernelLanguage(
+  name: string,
+  project_id: string | undefined
+): string {
+  const kernelInfo = getKernelInfoCacheOnly(project_id);
+  if (kernelInfo == null) {
+    return name;
+  }
+  for (const k of kernelInfo) {
+    if (k.name == name) {
+      return k.language;
+    }
+  }
+  return name;
 }

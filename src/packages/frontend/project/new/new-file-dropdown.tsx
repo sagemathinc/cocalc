@@ -4,12 +4,14 @@
  */
 
 import { Button } from "antd";
-
 import { React } from "@cocalc/frontend/app-framework";
-import { DropdownMenu, Icon } from "@cocalc/frontend/components";
-import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
+import { Icon } from "@cocalc/frontend/components/icon";
+import {
+  DropdownMenu,
+  MenuItems,
+} from "@cocalc/frontend/components/dropdown-menu";
 import { file_associations } from "@cocalc/frontend/file-associations";
-import * as misc from "@cocalc/util/misc";
+import { keys } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -17,14 +19,22 @@ const { file_options } = require("@cocalc/frontend/editor");
 
 interface Props {
   create_file: (ext?: string) => void;
+  mode: "project" | "flyout";
+  title?: string;
+  hide_down?: boolean;
+  button?: boolean;
 }
 
-export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
-  const { create_file } = props;
-
+export function NewFileDropdown({
+  create_file,
+  mode = "project",
+  title = "More file types...",
+  hide_down=false,
+  button= true
+}: Props) {
   // TODO maybe filter by configuration.get("main", {disabled_ext: undefined}) ?
   const items = React.useMemo((): MenuItems => {
-    const list = misc.keys(file_associations).sort();
+    const list = keys(file_associations).sort();
     const extensions: string[] = [];
     const file_types_so_far = {};
     for (const ext of list) {
@@ -37,7 +47,7 @@ export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
       }
     }
     return extensions.map(dropdown_item);
-  }, misc.keys(file_associations));
+  }, keys(file_associations));
 
   function dropdown_item(ext: string) {
     const data = file_options("x." + ext);
@@ -55,20 +65,34 @@ export const NewFileDropdown: React.FC<Props> = React.memo((props: Props) => {
     };
   }
 
-  return (
-    <span
-      className={"pull-right dropdown-splitbutton-left"}
-      style={{ marginRight: "5px" }}
-    >
-      <Button.Group>
-        <Button size="large" onClick={() => create_file()}>
-          <span>
-            <Icon name="file" /> More file types...
-          </span>
-        </Button>
+  switch (mode) {
+    case "project":
+      return (
+        <span
+          className={"pull-right dropdown-splitbutton-left"}
+          style={{ marginRight: "5px" }}
+        >
+          <Button.Group>
+            <Button size="large" onClick={() => create_file()}>
+              <span>
+                <Icon name="file" /> {title}
+              </span>
+            </Button>
 
-        <DropdownMenu size="large" button={true} items={items} />
-      </Button.Group>
-    </span>
-  );
-});
+            <DropdownMenu size="large" button={button} items={items} />
+          </Button.Group>
+        </span>
+      );
+    case "flyout":
+      return (
+        <DropdownMenu
+          title={title}
+          size="medium"
+          button={button}
+          items={items}
+          hide_down={hide_down}
+          style={{ width: "100%" }}
+        />
+      );
+  }
+}

@@ -18,6 +18,7 @@ register({
         output: null,
         system: null,
         total_tokens: null,
+        prompt_tokens: null,
         total_time_s: null,
         project_id: null,
         path: null,

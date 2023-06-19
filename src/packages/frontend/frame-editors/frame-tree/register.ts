@@ -103,7 +103,7 @@ function register(
     is_public,
 
     remove(path: string, redux, project_id: string): string {
-      const name = redux_name(project_id, path, is_public);
+      const name = redux_name(project_id, path);
       if (reference_count[name] != undefined) {
         reference_count[name] -= 1;
         if (reference_count[name] > 0) return name;
@@ -142,7 +142,7 @@ function register(
 
     save(path: string, redux, project_id: string): void {
       if (is_public) return;
-      const name = redux_name(project_id, path, is_public);
+      const name = redux_name(project_id, path);
       const actions = redux.getActions(name);
       if (actions) {
         actions.save();
@@ -152,7 +152,7 @@ function register(
 
   function init(Actions) {
     return (path: string, redux, project_id: string) => {
-      const name = redux_name(project_id, path, is_public);
+      const name = redux_name(project_id, path);
       if (reference_count[name] == undefined) {
         reference_count[name] = 1;
       } else {

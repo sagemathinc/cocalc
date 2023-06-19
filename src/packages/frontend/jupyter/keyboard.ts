@@ -16,7 +16,7 @@ import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-edi
 import { copy_without, merge } from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import { commands, KeyboardCommand } from "./commands";
-import { NotebookMode } from "./types";
+import { NotebookMode } from "@cocalc/jupyter/types";
 
 export function keyCode_to_chr(keyCode: number): string {
   const chrCode = keyCode - 48 * Math.floor(keyCode / 48);

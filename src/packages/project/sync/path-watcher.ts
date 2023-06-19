@@ -29,7 +29,7 @@ import { FSWatcher } from "fs";
 import { join } from "path";
 import { EventEmitter } from "events";
 import { debounce } from "lodash";
-import { exists } from "../jupyter/async-utils-node";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { close, path_split } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/project/logger";
 const L = getLogger("fs-watcher");

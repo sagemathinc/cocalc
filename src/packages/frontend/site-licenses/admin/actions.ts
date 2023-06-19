@@ -82,7 +82,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
           }
         }
       }
-      this.setState({ site_licenses: fromJS(site_licenses) });
+      this.setState({ site_licenses: fromJS(site_licenses) as any });
       await this.update_usage_stats();
     } catch (err) {
       this.set_error(err);
@@ -125,7 +125,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
   }
 
   public start_editing(license_id: string): void {
-    const editing = store.get("editing", Set()).add(license_id);
+    const editing = store.get("editing", Set<string>()).add(license_id);
     this.setState({ editing });
     // avoid confusion by restricting to only showing the
     // license being edited until user clears or changes search.
@@ -136,7 +136,7 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
   }
 
   public cancel_editing(license_id: string): void {
-    const editing = store.get("editing", Set()).delete(license_id);
+    const editing = store.get("editing", Set<string>()).delete(license_id);
     this.setState({ editing });
     const edits = store.get("edits");
     if (edits == null) return;
@@ -144,12 +144,12 @@ export class SiteLicensesActions extends Actions<SiteLicensesState> {
   }
 
   public start_saving(license_id: string): void {
-    const saving = store.get("saving", Set()).add(license_id);
+    const saving = store.get("saving", Set<string>()).add(license_id);
     this.setState({ saving });
   }
 
   public cancel_saving(license_id: string): void {
-    const saving = store.get("saving", Set()).delete(license_id);
+    const saving = store.get("saving", Set<string>()).delete(license_id);
     this.setState({ saving });
   }
 

@@ -132,10 +132,10 @@ export default function All({ page, publicPaths, customize }) {
             }}
             direction="vertical"
           >
-            <GoogleSearch style={{ width: "450px" }} />
+            <GoogleSearch style={{ width: "450px", maxWidth: "90vw" }} />
             <ChatGPTHelp
               tag={"share"}
-              style={{ width: "450px" }}
+              style={{ width: "450px", maxWidth: "90vw" }}
               prompt={"I am browsing all shared public files."}
             />
           </Space>

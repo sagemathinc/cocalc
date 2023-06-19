@@ -7,7 +7,7 @@
 
 import { fromPairs } from "lodash";
 
-import { SoftwareEnvNames, SOFTWARE_ENV_NAMES } from "./consts";
+import { SoftwareEnvNames, SOFTWARE_ENV_NAMES } from "@cocalc/util/consts/software-envs";
 import { EnvData } from "./types";
 
 import SOFTWARE_1804 from "dist/software-inventory/18.04.json";

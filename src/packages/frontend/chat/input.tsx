@@ -65,7 +65,6 @@ export default function ChatInput({
     () => redux.getStore("account").get_account_id(),
     []
   );
-
   const [input, setInput] = useState<string>(() => {
     const dbInput = syncdb
       .get_one({
@@ -112,7 +111,7 @@ export default function ChatInput({
           sender_id,
           input,
           date, // it's a primary key so can't use this to represent when user last edited this; use other date for editing past chats.
-          active: new Date().valueOf(),
+          active: Date.now(),
         });
         syncdb.commit();
       }
@@ -163,7 +162,7 @@ export default function ChatInput({
         on_send(input);
       }}
       height={height}
-      placeholder={placeholder ?? "Type a new message..."}
+      placeholder={getPlaceholder(project_id, placeholder)}
       extraHelp={
         IS_MOBILE
           ? "Click the date to edit chats."
@@ -185,4 +184,12 @@ export default function ChatInput({
       chatGPT={redux.getStore("projects").hasOpenAI(project_id)}
     />
   );
+}
+
+function getPlaceholder(project_id, placeholder?: string): string {
+  if (placeholder != null) return placeholder;
+  if (redux.getStore("projects").hasOpenAI(project_id)) {
+    return "Type a new message (use @chatgpt for ChatGPT)...";
+  }
+  return "Type a new message...";
 }

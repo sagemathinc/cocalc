@@ -4,11 +4,12 @@
  */
 
 import LRU from "lru-cache";
-import { reuseInFlight } from "async-await-utils/hof";
-import { SiteLicensePublicInfo } from "./types";
-import { query } from "../frame-editors/generic/client";
+
 import { SCHEMA } from "@cocalc/util/db-schema";
 import { copy, trunc_left } from "@cocalc/util/misc";
+import { reuseInFlight } from "async-await-utils/hof";
+import { query } from "../frame-editors/generic/client";
+import { SiteLicensePublicInfo } from "./types";
 
 // To avoid overfetching, we cache results for *a few seconds*.
 const site_license_public_info_cache = new LRU({ ttl: 1000 * 15, max: 1000 });

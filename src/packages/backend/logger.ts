@@ -51,7 +51,7 @@ function defaultTransports(): { console?: boolean; file?: string } {
 
 function initTransports() {
   if (!process.env.DEBUG) {
-    console.log("DEBUG is not set, so not setting up debug logging transport");
+    // console.log("DEBUG is not set, so not setting up debug logging transport");
     return;
   }
   const transports = defaultTransports();
@@ -75,13 +75,16 @@ function initTransports() {
   COCALC.log = (...args) => {
     if (!transports.file && !transports.console) return;
     if (firstLog && transports.file) {
-      console.log(
-        `***\n\nLogging to "${transports.file}"${
-          transports.console ? " and console.log" : ""
-        } via the debug module\nwith  DEBUG='${
-          process.env.DEBUG
-        }'.\nUse   DEBUG_FILE='path' and DEBUG_CONSOLE=[yes|no] to override.\nUsing DEBUG='cocalc:*,-cocalc:silly:*' to control log levels.\n\n***`
-      );
+      const announce = `***\n\nLogging to "${transports.file}"${
+        transports.console ? " and console.log" : ""
+      } via the debug module\nwith  DEBUG='${
+        process.env.DEBUG
+      }'.\nUse   DEBUG_FILE='path' and DEBUG_CONSOLE=[yes|no] to override.\nUsing DEBUG='cocalc:*,-cocalc:silly:*' to control log levels.\n\n***`;
+      console.log(announce);
+      if (transports.file) {
+        // the file transport
+        fileStream.write(announce);
+      }
       firstLog = false;
     }
     // Similar as in debug source code, except I stuck a timestamp

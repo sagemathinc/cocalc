@@ -31,7 +31,7 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
     props;
   const [showNameInfo, setShowNameInfo] = useState<boolean>(false);
   const project_map = useTypedRedux("projects", "project_map");
-  const courseProjectType = project_map?.getIn([project_id, "course", "type"]);
+  const courseProjectType = project_map?.getIn([project_id, "course", "type"]) as any;
   const hasReadonlyFields = ["student", "shared"].includes(courseProjectType);
   const [error, setError] = useState<string>("");
   const [avatarImage, setAvatarImage] = useState<string | undefined>(undefined);

@@ -1,0 +1,35 @@
+{
+  "name": "@cocalc/sync-client",
+  "version": "0.1.0",
+  "description": "CoCalc Lightweight Nodejs Sync Client",
+  "main": "./dist/lib/index.js",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "npx tsc",
+    "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
+  },
+  "author": "SageMath, Inc.",
+  "keywords": ["cocalc", "jupyter"],
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/api-client": "workspace:*",
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/primus-multiplex": "^1.1.0",
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "@types/primus": "^7.3.6",
+    "cookie": "^0.5.0",
+    "debug": "^4.3.2",
+    "primus": "^8.0.7",
+    "primus-responder": "^1.0.4",
+    "ws": "^8.13.0"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync-client",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.14"
+  }
+}

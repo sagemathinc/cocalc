@@ -18,7 +18,6 @@ import {
   React,
   useActions,
   useEffect,
-  useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -33,99 +32,13 @@ import { IS_IOS, IS_MOBILE, IS_SAFARI } from "../feature";
 import { ActiveContent } from "./active-content";
 import { ConnectionIndicator } from "./connection-indicator";
 import { ConnectionInfo } from "./connection-info";
+import { useAppState } from "./context";
 import { FullscreenButton } from "./fullscreen-button";
 import { AppLogo } from "./logo";
 import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
-import {
-  FONT_SIZE_ICONS_NARROW,
-  FONT_SIZE_ICONS_NORMAL,
-  HIDE_LABEL_THRESHOLD,
-  NARROW_THRESHOLD_PX,
-  NAV_CLASS,
-  NAV_HEIGHT_NARROW_PX,
-  NAV_HEIGHT_PX,
-  PageStyle,
-} from "./top-nav-consts";
+import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
-
-function calcStyle(isNarrow: boolean): PageStyle {
-  const fontSizeIcons: string = isNarrow
-    ? FONT_SIZE_ICONS_NARROW
-    : FONT_SIZE_ICONS_NORMAL;
-  const topPaddingIcons: string = isNarrow ? "2px" : "5px";
-  const sidePaddingIcons: string = isNarrow ? "7px" : "14px";
-
-  const height = isNarrow ? NAV_HEIGHT_NARROW_PX : NAV_HEIGHT_PX;
-
-  const topBarStyle: CSS = {
-    height: `${height}px`,
-  } as const;
-
-  const fileUseStyle: CSS = {
-    background: "white",
-    border: `2px solid ${COLORS.GRAY_DDD}`,
-    borderRadius: "5px",
-    boxShadow: "0 0 15px #aaa",
-    fontSize: "10pt",
-    height: "90%",
-    margin: 0,
-    overflowX: "hidden",
-    overflowY: "auto",
-    padding: "4px",
-    position: "fixed",
-    right: "5vw",
-    top: `${height}px`,
-    width: isNarrow ? "90vw" : "50vw",
-    zIndex: 110,
-  } as const;
-
-  const projectsNavStyle: CSS | undefined = isNarrow
-    ? {
-        /* this makes it so the projects tabs are on a separate row; otherwise, there is literally no room for them at all... */
-        width: "100vw",
-        marginTop: "4px",
-        height: `${height}px`,
-        // no flex!
-      }
-    : {
-        flex: "1 1 auto", // necessary to stretch out to the full width
-      };
-
-  return {
-    topBarStyle,
-    fileUseStyle,
-    projectsNavStyle,
-    isNarrow,
-    sidePaddingIcons,
-    topPaddingIcons,
-    fontSizeIcons,
-    height,
-  };
-}
-
-function isNarrow(): boolean {
-  return window.innerWidth != null && window.innerWidth <= NARROW_THRESHOLD_PX;
-}
-
-function usePageStyle(): PageStyle {
-  //const [style, setStyle] = useState<PageStyle>(calcStyle(narrow()));
-
-  const [narrow, setNarrow] = useState<boolean>(isNarrow());
-
-  useEffect(() => {
-    const handleResize = () => {
-      setNarrow(isNarrow());
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // avoid updating the style on every resize event
-  return useMemo(() => {
-    return calcStyle(narrow);
-  }, [narrow]);
-}
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -153,7 +66,7 @@ const PAGE_STYLE: CSS = {
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
 
-  const pageStyle = usePageStyle();
+  const { pageStyle } = useAppState();
   const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
 
   const open_projects = useTypedRedux("projects", "open_projects");
@@ -229,7 +142,7 @@ export const Page: React.FC = () => {
           {mesg}
         </Button>
       );
-      style = { marginTop: "-8px" }; // compensate for using a button
+      style = { marginTop: "-1px" }; // compensate for using a button
       /* We only actually show the button if it is still there a few
         seconds later.  This avoids flickering it for a moment during
         normal sign in.  This feels like a hack, but was super

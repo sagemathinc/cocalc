@@ -62,8 +62,9 @@ import parseTableOfContents from "./table-of-contents";
 import { delay } from "awaiting";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import debug from "debug";
-import { moveCell } from "@cocalc/frontend/jupyter/cell-utils";
+import { moveCell } from "@cocalc/jupyter/util/cell-utils";
 import { migrateToNewPageNumbers } from "./migrate";
+import { toMarkdown, elementToMarkdown } from "./export";
 
 const log = debug("whiteboard:actions");
 
@@ -79,6 +80,11 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   protected doctype: string = "syncdb";
   protected primary_keys: string[] = ["id"];
   protected string_cols: string[] = ["str"];
+  protected searchEmbeddings = {
+    primaryKey: "id",
+    textColumn: "str",
+    metaColumns: ["type"],
+  };
   private keyHandler?: (event) => void;
   readonly mainFrameType: MainFrameType = "whiteboard";
   // fixedElements are on every page automatically.
@@ -173,7 +179,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
           // this is a page
           somePageChanged = true;
           if (!pages.has(id)) {
-            pages = pages.set(id, ImmutableMap(fromJS(this.fixedElements)));
+            pages = pages.set(id, ImmutableMap(fromJS(this.fixedElements)) as any);
           }
           elements = elements.set(id, element);
         } else {
@@ -185,7 +191,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
           if (newPage) {
             const elementsOnNewPage =
               pages.get(newPage) ?? ImmutableMap(fromJS(this.fixedElements));
-            pages = pages.set(newPage, elementsOnNewPage.set(id, element));
+            pages = pages.set(newPage, elementsOnNewPage.set(id, element) as any);
           }
           if (oldPage && oldPage != newPage) {
             // change page, so delete element from the old page
@@ -215,7 +221,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         for (const [id] of pages ?? []) {
           v.push({
             id,
-            pos: elements.getIn([id, "data", "pos"], 0),
+            pos: elements.getIn([id, "data", "pos"], 0) as number,
           });
         }
         v.sort(field_cmp("pos"));
@@ -538,7 +544,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       if (expandGroups) {
         const elements = this.store.get("elements");
         if (elements == null) return;
-        const group = elements.getIn([id, "group"]);
+        const group = elements.getIn([id, "group"]) as string | undefined;
         if (group) {
           const ids = this.getGroup(group).map((e) => e.id);
           if (ids.length > 1) {
@@ -598,7 +604,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       const elements = this.store.get("elements");
       if (elements == null) return;
       for (const id of ids) {
-        const group = elements.getIn([id, "group"]);
+        const group = elements.getIn([id, "group"]) as string | undefined;
         if (group && !groups.has(group)) {
           groups.add(group);
           for (const e of this.getGroup(group)) {
@@ -1364,7 +1370,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
 
     const contents = fromJS(
       parseTableOfContents(elements, this.store.get("sortedPageIds"))
-    );
+    ) as any;
     this.setState({ contents });
   }
 
@@ -1430,12 +1436,12 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         // Complexity: we don't just move the newly inserted page by calling
         // movePage, since the store isn't updated yet (that only happens in
         // response to commit), and movePage works on what is in the store.
-        const curPos = elements.getIn([pages.get(cur) ?? "", "data", "pos"]);
+        const curPos = elements.getIn([pages.get(cur) ?? "", "data", "pos"]) as number;
         const nextPos = elements.getIn([
           pages.get(cur + 1) ?? "",
           "data",
           "pos",
-        ]);
+        ]) as number | undefined;
         const pos = nextPos == null ? curPos + 1 : (curPos + nextPos) / 2;
         this.setElement({
           create: false,
@@ -1505,7 +1511,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     if (sortedPageIds == null) return;
     const positions = sortedPageIds.map((pageId) =>
       elements.getIn([pageId, "data", "pos"])
-    );
+    ) as any;
     let tooClose = false;
     for (let i = 1; i < positions.size; i++) {
       if (positions.get(i) - positions.get(i - 1) < epsilon) {
@@ -1529,8 +1535,50 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   deletePage(pageId: string, commit: boolean = true): void {
     const page = this.store.getIn(["pages", pageId]);
     if (page == null) return;
-    this.deleteElements(Object.values(page.toJS()), false);
+    this.deleteElements(Object.values(page.toJS() as any), false);
     this.delete(pageId, commit);
+  }
+
+  chatgptExtraFileInfo() {
+    return "Whiteboard/Markdown";
+  }
+
+  chatgptGetText(frameId: string, scope): string {
+    const elts = this.store.get("elements")?.toJS() as any;
+    if (elts == null) {
+      return "";
+    }
+    const elements = Object.values(elts) as Element[];
+    if (scope == "all") {
+      return toMarkdown(elements);
+    }
+    const node = this._get_frame_node(frameId);
+    if (node == null) return "";
+    if (scope == "page") {
+      // get the page of frameId
+      const page = node.get("page");
+      const pageId = this.store.getIn(["sortedPageIds", page - 1]) ?? "";
+      return toMarkdown(
+        elements.filter(
+          (element) => element.page == pageId || element.type == "page"
+        )
+      );
+    } else if (scope == "selection") {
+      const selection = node.get("selection");
+      if (selection == null) {
+        return "";
+      }
+      return selection.map((id) => elementToMarkdown(elts[id])).join("\n");
+    }
+    return "";
+  }
+
+  chatgptGetScopes() {
+    return new Set<"selection" | "page">(["selection", "page"]);
+  }
+
+  chatgptGetLanguage() {
+    return "md";
   }
 }
 

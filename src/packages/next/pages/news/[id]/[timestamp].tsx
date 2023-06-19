@@ -60,24 +60,20 @@ export default function NewsPage(props: Props) {
   }
 
   function breadcrumb() {
-    return (
-      <Breadcrumb>
-        <Breadcrumb.Item>
-          <A href="/">{siteName}</A>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>
-          <A href="/news">News</A>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>
-          <A href={permalink}>#{news.id}</A>
-        </Breadcrumb.Item>
-        <Breadcrumb.Item>
+    const items = [
+      { key: "/", title: <A href="/">{siteName}</A> },
+      { key: "/news", title: <A href="/news">News</A> },
+      { key: "permalink", title: <A href={permalink}>#{news.id}</A> },
+      {
+        key: "timestamp",
+        title: (
           <A href={`/news/${news.id}/${timestamp}`}>
             <TimeAgo datetime={1000 * timestamp} />
           </A>
-        </Breadcrumb.Item>
-      </Breadcrumb>
-    );
+        ),
+      },
+    ];
+    return <Breadcrumb items={items} />;
   }
 
   function up() {

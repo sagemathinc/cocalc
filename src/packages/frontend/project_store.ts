@@ -14,6 +14,9 @@ if (typeof window !== "undefined" && window !== null) {
   // don't import in case not in browser (for testing)
   wrapped_editors = require("./editors/react-wrapper");
 }
+
+import * as immutable from "immutable";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   AppRedux,
@@ -23,7 +26,6 @@ import {
   Table,
   TypedMap,
 } from "@cocalc/frontend/app-framework";
-import { derive_rmd_output_filename } from "@cocalc/frontend/frame-editors/rmd-editor/utils";
 import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
 import {
   Listings,
@@ -41,24 +43,13 @@ import {
 } from "@cocalc/frontend/project_configuration";
 import { deleted_file_variations } from "@cocalc/util/delete-files";
 import * as misc from "@cocalc/util/misc";
-import * as immutable from "immutable";
+import { compute_file_masks } from "./project/explorer/compute-file-masks";
+import { DirectoryListing } from "./project/explorer/types";
+import { FixedTab } from "./project/page/file-tab";
+import { FLYOUT_LOG_DEFAULT_MODE } from "./project/page/flyouts/log";
+import { FlyoutLogMode } from "./project/page/flyouts/state";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
-
-const MASKED_FILENAMES = ["__pycache__"] as const;
-
-const MASKED_FILE_EXTENSIONS = {
-  py: ["pyc"],
-  java: ["class"],
-  cs: ["exe"],
-  tex: "aux bbl blg fdb_latexmk fls glo idx ilg ind lof log nav out snm synctex.gz toc xyc synctex.gz(busy) sagetex.sage sagetex.sout sagetex.scmd sagetex.sage.py sage-plots-for-FILENAME pytxcode pythontex-files-BASEDASHNAME pgf-plot.gnuplot pgf-plot.table".split(
-    " "
-  ),
-  rnw: ["tex", "NODOT-concordance.tex"],
-  rtex: ["tex", "NODOT-concordance.tex"],
-  rmd: ["pdf", "html", "nb.html", "md", "NODOT_files", "NODOT_cache"],
-  sage: ["sage.py"],
-} as const;
 
 export type ModalInfo = TypedMap<{
   title: string | JSX.Element;
@@ -73,15 +64,8 @@ export interface ProjectStoreState {
   history_path: string;
   open_files: immutable.Map<string, immutable.Map<string, any>>;
   open_files_order: immutable.List<string>;
-  public_paths?: immutable.List<
-    TypedMap<{
-      disabled?: boolean;
-      path: string;
-      unlisted?: boolean;
-      authenticated?: boolean;
-    }>
-  >;
-  directory_listings: immutable.Map<string, any>; // immutable,
+  public_paths?: immutable.Map<string, immutable.Map<string, any>>;
+  directory_listings: immutable.Map<string, any>;
   show_upload: boolean;
   create_file_alert: boolean;
   displayed_listing?: any; // computed(object),
@@ -94,6 +78,8 @@ export interface ProjectStoreState {
   active_project_tab: string;
   internet_warning_closed: boolean; // Makes bottom height update
   num_ghost_file_tabs: number;
+  flyout: FixedTab | null;
+  flyout_log_mode: FlyoutLogMode;
 
   // Project Files
   activity: any; // immutable,
@@ -141,6 +127,7 @@ export interface ProjectStoreState {
   hidden_files?: boolean;
   git_grep: boolean;
   info_visible?: boolean;
+  neural_search?: boolean;
 
   // Project Settings
   get_public_path_id?: (path: string) => any;
@@ -160,6 +147,9 @@ export interface ProjectStoreState {
 
   // whether to hide the action buttons.
   hideActionButtons?: boolean;
+
+  // if true, show the explorer tour
+  explorerTour?: boolean;
 }
 
 export class ProjectStore extends Store<ProjectStoreState> {
@@ -259,6 +249,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
       active_project_tab: "files",
       internet_warning_closed: false, // Makes bottom height update
       num_ghost_file_tabs: 0,
+      flyout: null,
+      flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
 
       // Project Files
       activity: undefined,
@@ -328,36 +320,38 @@ export class ProjectStore extends Store<ProjectStoreState> {
       ] as const,
       fn: () => {
         const search_escape_char = "/";
-        let listing = this.get("directory_listings").get(
+        const listingStored = this.get("directory_listings").get(
           this.get("current_path")
         );
-        if (typeof listing === "string") {
+        if (typeof listingStored === "string") {
           if (
-            listing.indexOf("ECONNREFUSED") !== -1 ||
-            listing.indexOf("ENOTFOUND") !== -1
+            listingStored.indexOf("ECONNREFUSED") !== -1 ||
+            listingStored.indexOf("ENOTFOUND") !== -1
           ) {
             return { error: "no_instance" }; // the host VM is down
-          } else if (listing.indexOf("o such path") !== -1) {
+          } else if (listingStored.indexOf("o such path") !== -1) {
             return { error: "no_dir" };
-          } else if (listing.indexOf("ot a directory") !== -1) {
+          } else if (listingStored.indexOf("ot a directory") !== -1) {
             return { error: "not_a_dir" };
-          } else if (listing.indexOf("not running") !== -1) {
+          } else if (listingStored.indexOf("not running") !== -1) {
             // yes, no underscore.
             return { error: "not_running" };
           } else {
-            return { error: listing };
+            return { error: listingStored };
           }
         }
-        if (listing == null) {
+        if (listingStored == null) {
           return {};
         }
-        if ((listing != null ? listing.errno : undefined) != null) {
-          return { error: misc.to_json(listing) };
+        if ((listingStored != null ? listingStored.errno : undefined) != null) {
+          return { error: misc.to_json(listingStored) };
         }
-        listing = listing.toJS();
+
+        // We can proceed and get the listing as a JS object.
+        let listing: DirectoryListing = listingStored.toJS();
 
         if (this.get("other_settings").get("mask_files")) {
-          _compute_file_masks(listing);
+          compute_file_masks(listing);
         }
 
         if (this.get("current_path") === ".snapshots") {
@@ -401,7 +395,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
         if (!this.get("show_hidden")) {
           listing = (() => {
-            const result: string[] = [];
+            const result: DirectoryListing = [];
             for (const l of listing) {
               if (!l.name.startsWith(".")) {
                 result.push(l);
@@ -415,10 +409,10 @@ export class ProjectStore extends Store<ProjectStoreState> {
           // if we do not gray out files (and hence haven't computed the file mask yet)
           // we do it now!
           if (!this.get("other_settings").get("mask_files")) {
-            _compute_file_masks(listing);
+            compute_file_masks(listing);
           }
 
-          const filtered: string[] = [];
+          const filtered: DirectoryListing = [];
           for (const f of listing) {
             if (!f.mask) filtered.push(f);
           }
@@ -620,12 +614,12 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 }
 
-function _matched_files(search, listing) {
+function _matched_files(search: string, listing: DirectoryListing) {
   if (listing == null) {
     return [];
   }
   const words = misc.search_split(search);
-  const v: string[] = [];
+  const v: DirectoryListing = [];
   for (const x of listing) {
     const name = (x.display_name ?? x.name ?? "").toLowerCase();
     if (
@@ -636,63 +630,6 @@ function _matched_files(search, listing) {
     }
   }
   return v;
-}
-
-function _compute_file_masks(listing): void {
-  // mask compiled files, e.g. mask 'foo.class' when 'foo.java' exists
-  // the general outcome of this function is to set for some file entry objects
-  // in "listing" the attribute <file>.mask=true
-  const filename_map = misc.dict(listing.map((item) => [item.name, item])); // map filename to file
-  for (const file of listing) {
-    // mask certain known directories
-    if (MASKED_FILENAMES.indexOf(file.name) >= 0) {
-      filename_map[file.name].mask = true;
-    }
-
-    // note: never skip already masked files, because of rnw/rtex->tex
-
-    const ext = misc.filename_extension(file.name).toLowerCase();
-    // some extensions like Rmd modify the basename during compilation
-    const filename = (function () {
-      switch (ext) {
-        case "rmd":
-          // converts .rmd to .rmd, but the basename changes!
-          return derive_rmd_output_filename(file.name, "rmd");
-        default:
-          return file.name;
-      }
-    })();
-
-    const basename = filename.slice(0, filename.length - ext.length);
-
-    for (let mask_ext of MASKED_FILE_EXTENSIONS[ext] ?? []) {
-      // check each possible compiled extension
-      let bn; // derived basename
-      // some uppercase-strings have special meaning
-      if (misc.startswith(mask_ext, "NODOT")) {
-        bn = basename.slice(0, -1); // exclude the trailing dot
-        mask_ext = mask_ext.slice("NODOT".length);
-      } else if (mask_ext.indexOf("FILENAME") >= 0) {
-        bn = mask_ext.replace("FILENAME", filename);
-        mask_ext = "";
-      } else if (mask_ext.indexOf("BASENAME") >= 0) {
-        bn = mask_ext.replace("BASENAME", basename.slice(0, -1));
-        mask_ext = "";
-      } else if (mask_ext.indexOf("BASEDASHNAME") >= 0) {
-        // BASEDASHNAME is like BASENAME, but replaces spaces by dashes
-        // https://github.com/sagemathinc/cocalc/issues/3229
-        const fragment = basename.slice(0, -1).replace(/ /g, "-");
-        bn = mask_ext.replace("BASEDASHNAME", fragment);
-        mask_ext = "";
-      } else {
-        bn = basename;
-      }
-      const mask_fn = `${bn}${mask_ext}`;
-      if (filename_map[mask_fn] != null) {
-        filename_map[mask_fn].mask = true;
-      }
-    }
-  }
 }
 
 function compute_snapshot_display_names(listing): void {

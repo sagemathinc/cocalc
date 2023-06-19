@@ -47,11 +47,23 @@
     {
       "name": "assets",
       "path": "packages/assets"
+    },
+    {
+      "path": "packages/sync-client"
+    },
+    {
+      "path": "packages/jupyter"
+    },
+    {
+      "path": "packages/compute"
     }
   ],
   "settings": {
     "search.followSymlinks": false,
-    "jest.disabledWorkspaceFolders": [],
+    "jest.disabledWorkspaceFolders": [
+      "compute",
+      "sync-client"
+    ],
     "jest.autoRun": "off",
     "files.exclude": {
       "dist": true,

@@ -52,6 +52,7 @@ function useProjectStatusAlerts(project_id: string) {
 function ProjectTab({ project_id }: ProjectTabProps) {
   const { width } = useItemContext();
   const { active } = useSortable({ id: project_id });
+  const other_settings = useTypedRedux("account", "other_settings");
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const project = useRedux(["projects", "project_map", project_id]);
   const pageActions = useActions("page");
@@ -157,7 +158,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
       </div>
     </div>
   );
-  if (IS_MOBILE) {
+  if (IS_MOBILE || other_settings.get("hide_project_popovers")) {
     return body;
   }
   return (

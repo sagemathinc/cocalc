@@ -10,16 +10,17 @@ List of Tasks -- we use windowing via Virtuoso, so that even task lists with 500
 import { List, Set as immutableSet } from "immutable";
 import { useEffect, useMemo, useRef } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import Task from "./task";
-import { TaskActions } from "./actions";
-import { LocalTaskStateMap, SelectedHashtags, Tasks } from "./types";
 import { useDebouncedCallback } from "use-debounce";
+
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
+import { TaskActions } from "./actions";
+import Task from "./task";
+import { LocalTaskStateMap, SelectedHashtags, Tasks } from "./types";
 
 import {
-  SortableList,
   SortableItem,
+  SortableList,
 } from "@cocalc/frontend/components/sortable-list";
 
 interface Props {
@@ -148,6 +149,10 @@ export default function TaskList({
 
   function on_click(e) {
     if (e.target === mainDivRef.current) {
+      // The following from https://github.com/sagemathinc/cocalc/pull/6779 is definitely wrong.  E.g., open the find side
+      // panel, then open a task list and try to edit a task and type e.g., "s" and saves the tasks file.
+      // test, if e.target is a child of mainDivRef.current
+      //if (mainDivRef.current.contains(e.target)) {
       actions?.enable_key_handler();
     }
   }

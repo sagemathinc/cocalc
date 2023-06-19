@@ -13,6 +13,7 @@ import { Input, InputRef } from "antd";
 import { React, useEffect, useState, useRef } from "../app-framework";
 
 interface Props {
+  size?;
   default_value?: string;
   value?: string;
   on_change?: (value: string, opts: { ctrl_down: boolean }) => void;
@@ -116,6 +117,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
 
   return (
     <Input.Search
+      size={props.size}
       allowClear
       style={{ minWidth: "150px", ...props.style }}
       cocalc-test="search-input"
@@ -134,6 +136,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
       onKeyDown={key_down}
       onKeyUp={key_up}
       disabled={props.disabled}
+      enterButton={props.buttonAfter}
     />
   );
 });

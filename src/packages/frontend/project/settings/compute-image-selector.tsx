@@ -70,7 +70,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   const GROUPS: string[] = software_envs.get("groups").toJS();
 
   function compute_image_info(name, type) {
-    return computeEnvs.getIn([name, type]);
+    return computeEnvs.get(name)?.get(type);
   }
 
   function compute_image_title(name) {
@@ -126,7 +126,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
 
   function render_selector() {
     return (
-      <Dropdown menu={getMenu()} trigger={["click", "hover"]}>
+      <Dropdown menu={getMenu()} trigger={["click"]}>
         <Button onBlur={onBlur} onFocus={onFocus}>
           {selected_title} <DownOutlined />
         </Button>
@@ -166,7 +166,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
       return (
         <Col xs={12}>
           <Row style={{ fontSize: "12pt" }}>
-            <Icon name={"hdd"} />
+            <Icon name={"hdd"} style={{ marginTop: "5px" }} />
             <Space />
             Selected image
             <Space />

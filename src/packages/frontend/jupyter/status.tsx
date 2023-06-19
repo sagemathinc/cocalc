@@ -19,13 +19,13 @@ import { ReactNode, useEffect } from "react";
 import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { closest_kernel_match, rpad_html } from "@cocalc/util/misc";
+import { capitalize, closest_kernel_match, rpad_html } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../project/info";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
 import { Mode } from "./mode";
-import { AlertLevel, BackendState, NotebookMode, Usage } from "./types";
+import { AlertLevel, BackendState, NotebookMode, Usage } from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
 import ProgressEstimate from "../components/progress-estimate";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
@@ -173,7 +173,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
           return <span style={KERNEL_ERROR_STYLE}>Unknown kernel</span>;
         } else {
           const closestKernelDisplayName = closestKernel.get("display_name");
-          const closestKernelName = closestKernel.get("name");
+          const closestKernelName = closestKernel.get("name") as string;
           return (
             <span
               style={KERNEL_ERROR_STYLE}
@@ -190,7 +190,7 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         if (display_name == null) {
           display_name = kernel ?? "No Kernel";
         }
-        const style = { ...KERNEL_NAME_STYLE, maxWidth: "8em" };
+        const style = { ...KERNEL_NAME_STYLE, maxWidth: "10em" };
         return (
           <div
             style={style}
@@ -357,12 +357,11 @@ export const Kernel: React.FC<KernelProps> = React.memo(
 
     function get_kernel_name(): JSX.Element {
       if (kernel_info != null) {
-        return (
-          <div>
-            <b>Kernel: </b>
-            {kernel_info.get("display_name", "No Kernel")}
-          </div>
+        const name = kernel_info.get(
+          "display_name",
+          kernel_info.get("name", "No Kernel")
         );
+        return <div>Kernel: {name}</div>;
       } else {
         return <span />;
       }
@@ -392,11 +391,14 @@ export const Kernel: React.FC<KernelProps> = React.memo(
     // a popover information, containin more in depth details about the kernel
     function render_tip(title: any, body: any) {
       const backend_tip =
-        backend_state == null
-          ? ""
-          : `Backend is ${
-              BACKEND_STATE_HUMAN[backend_state] ?? backend_state
-            }.`;
+        backend_state == null ? (
+          ""
+        ) : (
+          <>
+            Backend is {BACKEND_STATE_HUMAN[backend_state] ?? backend_state}.
+            <br />
+          </>
+        );
       const kernel_tip = kernelState();
 
       const usage_tip = (
@@ -426,10 +428,26 @@ export const Kernel: React.FC<KernelProps> = React.memo(
         </>
       );
 
+      const description = kernel_info?.getIn([
+        "metadata",
+        "cocalc",
+        "description",
+      ]);
+      const language = capitalize(kernel_info?.get("language", "Unknown"));
+      const langTxt = `${language}${description ? ` (${description})` : ""}`;
+      const langURL = kernel_info?.getIn(["metadata", "cocalc", "url"]) as string|undefined;
+      const lang = (
+        <>
+          Language:{" "}
+          {langURL != null ? <A href={langURL}>{langTxt}</A> : langTxt}
+          <br />
+        </>
+      );
+
       const tip = (
         <span>
+          {lang}
           {backend_tip}
-          {kernel_tip ? <br /> : undefined}
           {kernel_tip}
           <hr />
           {render_usage_text()}

@@ -45,6 +45,7 @@ export class TaskActions extends Actions<TaskState> {
   public syncdb: SyncDB;
   private project_id: string;
   private path: string;
+  private truePath: string;
   private store: TaskStore;
   _update_visible: Function;
   private is_closed: boolean = false;
@@ -57,11 +58,13 @@ export class TaskActions extends Actions<TaskState> {
     project_id: string,
     path: string,
     syncdb: SyncDB,
-    store: TaskStore
+    store: TaskStore,
+    truePath: string // because above path is auxpath for each frame.
   ): void {
     this._update_visible = throttle(this.__update_visible, 500);
     this.project_id = project_id;
     this.path = path;
+    this.truePath = truePath;
     this.syncdb = syncdb;
     this.store = store;
   }
@@ -305,7 +308,7 @@ export class TaskActions extends Actions<TaskState> {
     if (task_id == null) {
       return;
     }
-    let task = this.store.getIn(["tasks", task_id]);
+    let task = this.store.getIn(["tasks", task_id]) as any;
     // Update last_edited if desc or due date changes
     if (
       task == null ||
@@ -331,7 +334,7 @@ export class TaskActions extends Actions<TaskState> {
       // **immediately**; this would happen
       // eventually as a result of the syncdb set above.
       let tasks = this.store.get("tasks") ?? fromJS({});
-      task = tasks.get(task_id) ?? fromJS({ task_id });
+      task = tasks.get(task_id) ?? fromJS({ task_id }) as any;
       if (task == null) throw Error("bug");
       for (let k in obj) {
         const v = obj[k];
@@ -592,7 +595,7 @@ export class TaskActions extends Actions<TaskState> {
 
   public set_sort_column(column: Headings, dir: HeadingsDir): void {
     let view = this.getFrameData("local_view_state") ?? fromJS({});
-    let sort = view.get("sort") ?? (fromJS({}) as Sort);
+    let sort = view.get("sort") ?? (fromJS({}) as unknown as Sort);
     sort = sort.set("column", column);
     sort = sort.set("dir", dir);
     view = view.set("sort", sort);
@@ -685,23 +688,15 @@ export class TaskActions extends Actions<TaskState> {
     this.enable_key_handler();
   }
 
-  chatgptGetText(scope: "selection" | "cell" | "all" = "all"): string {
+  chatgptGetText(scope: "cell" | "all", current_id?): string {
     if (scope == "all") {
       // TODO: it would be better to uniformly shorten long tasks, rather than just truncating at the end...
       return this.toMarkdown();
     } else if (scope == "cell") {
-      return ""; // for now, since no possible way to select cells in task editor
+      if (current_id == null) return "";
+      return this.store.getIn(["tasks", current_id, "desc"]) ?? "";
     } else {
-      return ""; // for now
-      /*
-      const local = this.getFrameData("local_task_state") ?? fromJS({});
-      for (const [id, state] of local) {
-        if (state.get("editing_desc")) {
-          // we don't have a way to get the selection in the editing task yet.
-          return this.store.getIn(["tasks", id, "desc"]) ?? "";
-        }
-      }
-      return "";*/
+      return "";
     }
   }
 
@@ -733,7 +728,7 @@ export class TaskActions extends Actions<TaskState> {
   // Exports the currently visible tasks to a markdown file and opens it.
   public async export_to_markdown(): Promise<void> {
     const content = this.toMarkdown();
-    const path = this.path + ".md";
+    const path = this.truePath + ".md";
     await webapp_client.project_client.write_text_file({
       project_id: this.project_id,
       path,

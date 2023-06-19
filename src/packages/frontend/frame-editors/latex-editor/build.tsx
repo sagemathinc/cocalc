@@ -8,13 +8,13 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 */
 
 import Ansi from "@cocalc/ansi-to-react";
-import { path_split } from "@cocalc/util/misc";
-import { React, Rendered, useRedux } from "../../app-framework";
-import { BuildCommand } from "./build-command";
+import { AntdTabItem, Tab, Tabs } from "@cocalc/frontend/antd-bootstrap";
+import { React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { IconName, Loading } from "@cocalc/frontend/components";
-import { Tab, Tabs } from "../../antd-bootstrap";
+import { path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { BuildLogs } from "./actions";
+import { BuildCommand } from "./build-command";
 import { use_build_logs } from "./hooks";
 
 interface IBuildSpec {
@@ -108,12 +108,12 @@ export const Build: React.FC<Props> = React.memo((props) => {
   const [error_tab, set_error_tab] = React.useState(null);
   let no_errors = true;
 
-  function render_tab_body(
+  function render_tab_item(
     title: string,
     value: string,
     error?: boolean,
     time_str?: string
-  ) {
+  ): AntdTabItem {
     const style: React.CSSProperties = {
       fontFamily: "monospace",
       whiteSpace: "pre-line",
@@ -128,15 +128,21 @@ export const Build: React.FC<Props> = React.memo((props) => {
     };
     const err_style = error ? { background: COLORS.ATND_BG_RED_L } : undefined;
     const tab_button = <div style={err_style}>{title}</div>;
-    return (
-      <Tab key={title} eventKey={title} title={tab_button} style={style}>
-        {time_str && `Build time: ${time_str}\n\n`}
-        <Ansi>{value}</Ansi>
-      </Tab>
-    );
+    return Tab({
+      key: title,
+      eventKey: title,
+      title: tab_button,
+      style,
+      children: (
+        <>
+          {time_str && `Build time: ${time_str}\n\n`}
+          <Ansi>{value}</Ansi>
+        </>
+      ),
+    });
   }
 
-  function render_log(stage): Rendered {
+  function render_log(stage): AntdTabItem | undefined {
     if (build_logs == null) return;
     const x = build_logs.get(stage);
     if (!x) return;
@@ -146,7 +152,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     const time_str = time ? `(${(time / 1000).toFixed(1)} seconds)` : "";
     const title = BUILD_SPECS[stage].label;
     // highlights tab, if there is at least one parsed error
-    const error = build_logs.getIn([stage, "parse", "errors"]).size > 0;
+    const error = (build_logs.getIn([stage, "parse", "errors"]) as any).size > 0;
     // also show the problematic log to the user
     if (error) {
       no_errors = false;
@@ -155,18 +161,36 @@ export const Build: React.FC<Props> = React.memo((props) => {
         set_error_tab(title);
       }
     }
-    return render_tab_body(title, value, error, time_str);
+    return render_tab_item(title, value, error, time_str);
   }
 
-  function render_clean(): Rendered {
-    const value = build_logs?.getIn(["clean", "output"]);
+  function render_clean(): AntdTabItem | undefined {
+    const value = build_logs?.getIn(["clean", "output"]) as any;
     if (!value) return;
     const title = "Clean Auxiliary Files";
-    return render_tab_body(title, value);
+    return render_tab_item(title, value);
   }
 
   function render_logs(): Rendered {
     if (status) return;
+
+    const items: AntdTabItem[] = [];
+
+    for (const log in BUILD_SPECS) {
+      if (log === "clean" || log === "build") continue; // skip these
+      const item = render_log(log);
+      if (item) items.push(item);
+    }
+    const clean = render_clean();
+    if (clean) items.push(clean);
+
+    // check if active_tab is in the list of items.key
+    if (items.length > 0) {
+      if (!items.some((item) => item.key === active_tab)) {
+        set_active_tab(items[0].key);
+      }
+    }
+
     return (
       <Tabs
         activeKey={active_tab}
@@ -174,14 +198,8 @@ export const Build: React.FC<Props> = React.memo((props) => {
         tabPosition={"left"}
         size={"small"}
         style={{ height: "100%", overflowY: "auto" }}
-      >
-        {render_log("latex")}
-        {render_log("sagetex")}
-        {render_log("pythontex")}
-        {render_log("knitr")}
-        {render_log("bibtex")}
-        {render_clean()}
-      </Tabs>
+        items={items}
+      />
     );
   }
 

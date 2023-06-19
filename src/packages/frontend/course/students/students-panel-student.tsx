@@ -602,7 +602,9 @@ export const Student: React.FC<StudentProps> = React.memo(
             </h6>
           </Col>
           <Col md={4}>
-            <h6 style={{ color: "#666" }}>{render_student_email()}</h6>
+            <h6 style={{ color: "#666", overflow: "auto" }}>
+              {render_student_email()}
+            </h6>
           </Col>
           <Col md={8} style={{ paddingTop: "10px" }}>
             {render_last_active()}

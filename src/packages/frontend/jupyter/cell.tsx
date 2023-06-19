@@ -79,15 +79,15 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   }
 
   function is_editable(): boolean {
-    return props.cell.getIn(["metadata", "editable"], true);
+    return props.cell.getIn(["metadata", "editable"], true) as any;
   }
 
   function is_deletable(): boolean {
-    return props.cell.getIn(["metadata", "deletable"], true);
+    return props.cell.getIn(["metadata", "deletable"], true) as any;
   }
 
   function nbgrader_state(): undefined | Map<string, any> {
-    return props.cell.getIn(["metadata", "nbgrader"]);
+    return props.cell.getIn(["metadata", "nbgrader"]) as any;
   }
 
   function render_cell_input(cell: Map<string, any>): Rendered {

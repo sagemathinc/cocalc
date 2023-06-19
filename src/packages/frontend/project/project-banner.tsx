@@ -83,10 +83,6 @@ export const ProjectWarningBanner: React.FC<Props> = React.memo(
 
     switch (showBanner()) {
       case "trial":
-        // timestamp, when this project was created. won't change over time.
-        const projCreatedTS =
-          project_map?.getIn([project_id, "created"]) ?? new Date(0);
-
         // list of all licenses applied to this project
         const projectSiteLicenses =
           project_map?.get(project_id)?.get("site_license")?.keySeq().toJS() ??
@@ -96,7 +92,7 @@ export const ProjectWarningBanner: React.FC<Props> = React.memo(
           <TrialBanner
             project_id={project_id}
             projectSiteLicenses={projectSiteLicenses}
-            proj_created={projCreatedTS.getTime()}
+            projectCreatedTS={project_map?.get(project_id)?.get("created")}
             host={host}
             internet={internet}
             projectIsRunning={projectIsRunning}

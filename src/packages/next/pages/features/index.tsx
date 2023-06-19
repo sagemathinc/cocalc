@@ -85,8 +85,8 @@ const dataSource = [
     image: ChatGptInChatroom,
     description: (
       <>
-        CoCalc integrates with{" "}
-        <A href="https://openai.com/">OpenAI's ChatGPT</A> in various ways. It
+        CoCalc extensively integrates with{" "}
+        <A href="https://openai.com/">OpenAI's ChatGPT</A> in many ways. It
         participates in a{" "}
         <A href={"https://doc.cocalc.com/chat.html"}>Chatroom</A> as a bot,
         helps you understand your code, deciphers error messages in{" "}

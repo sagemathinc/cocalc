@@ -8,6 +8,7 @@ import { Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { Alert } from "antd";
 
 interface Props {
   account_id: string;
@@ -45,10 +46,7 @@ export class Impersonate extends Component<Props, State> {
     if (this.state.auth_token == null) {
       return <Loading />;
     }
-    const link = join(
-      appBasePath,
-      `app?auth_token=${this.state.auth_token}`
-    );
+    const link = join(appBasePath, `app?auth_token=${this.state.auth_token}`);
     return (
       <div>
         <a href={link} target="_blank" rel="noopener noreferrer">
@@ -78,22 +76,23 @@ export class Impersonate extends Component<Props, State> {
 
   render(): Rendered {
     return (
-      <div
+      <Alert
+        type="warning"
         style={{
-          padding: "15px",
-          border: "1px solid red",
-          borderRadius: "3px",
-          fontSize: "14pt",
           margin: "15px",
         }}
-      >
-        <b>
-          Impersonate user "{this.props.first_name} {this.props.last_name}"
-        </b>
-        <br />
-        {this.render_err()}
-        {this.render_link()}
-      </div>
+        message={
+          <b>
+            Impersonate user "{this.props.first_name} {this.props.last_name}"
+          </b>
+        }
+        description={
+          <>
+            {this.render_err()}
+            {this.render_link()}
+          </>
+        }
+      />
     );
   }
 }

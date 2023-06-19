@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Alert, Upload } from "antd";
-import ImgCrop from "@cocalc/antd-img-crop";
+import ImgCrop from "antd-img-crop";
 import { InboxOutlined } from "@ant-design/icons";
 import imageToDataURL from "@cocalc/frontend/misc/image-to-data";
 
@@ -25,8 +25,8 @@ export default function ProjectImage({ avatarImage, onChange }: Props) {
     <div>
       <ImgCrop
         modalTitle={"Edit Project Image"}
-        shape="rect"
-        rotate
+        cropShape="rect"
+        rotationSlider
         maxZoom={5}
         onModalOk={(file) => {
           const reader = new FileReader();
@@ -64,7 +64,7 @@ export default function ProjectImage({ avatarImage, onChange }: Props) {
             );
             return;
           }
-          reader.readAsDataURL(file);
+          reader.readAsDataURL(file as any); // typing situation is weird, but this does work right now.
         }}
       >
         <Upload.Dragger name="file" showUploadList={false}>

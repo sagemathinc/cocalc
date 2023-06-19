@@ -15,15 +15,15 @@ import { access } from "node:fs/promises";
 
 import { change_filename_extension } from "@cocalc/util/misc";
 
-import { options } from "./init-program";
+import { getOptions } from "./init-program";
 import { getLogger } from "./logger";
 
 const { info } = getLogger("init-script");
 
 export async function run() {
-  if (!options.init) return;
+  if (!getOptions().init) return;
 
-  const initScript = join(homedir(), options.init);
+  const initScript = join(homedir(), getOptions().init);
 
   try {
     await access(initScript, constants.R_OK);

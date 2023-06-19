@@ -10,7 +10,7 @@ import initUpgrade from "./handle-upgrade";
 import base_path from "@cocalc/backend/base-path";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 
-const winston = getLogger("proxy");
+const logger = getLogger("proxy");
 
 interface Options {
   app: Application;
@@ -23,8 +23,12 @@ export default function init(opts: Options) {
   const proxy_regexp = `^${
     base_path.length <= 1 ? "" : base_path
   }\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/*`;
-  winston.info(`creating proxy server with proxy_regexp="${proxy_regexp}"`);
+  logger.info("creating proxy server with proxy_regexp", proxy_regexp);
+
+  // tcp connections:
   const handleProxy = initProxy(opts);
+
+  // websocket upgrades:
   const handleUpgrade = initUpgrade(opts, proxy_regexp);
 
   opts.app.all(proxy_regexp, handleProxy);

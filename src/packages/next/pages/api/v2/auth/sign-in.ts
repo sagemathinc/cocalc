@@ -17,10 +17,8 @@ Sign in works as follows:
 */
 
 import getPool from "@cocalc/database/pool";
-import {
-  COOKIE_NAME,
-  createRememberMeCookie,
-} from "@cocalc/server/auth/remember-me";
+import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
+import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import { recordFail, signInCheck } from "@cocalc/server/auth/throttle";
 import Cookies from "cookies";
 import getParams from "lib/api/get-params";
@@ -82,7 +80,7 @@ export async function signUserIn(req, res, account_id: string): Promise<void> {
   }
   try {
     const cookies = new Cookies(req, res, { maxAge: ttl_s * 1000 });
-    cookies.set(COOKIE_NAME, value);
+    cookies.set(REMEMBER_ME_COOKIE_NAME, value);
   } catch (err) {
     res.json({ error: `Problem setting cookie -- ${err.message}.` });
     return;
