@@ -194,7 +194,7 @@ export const ReasonsExplanation = {
     "This license cannot be activated, because there is at least one other license active, which has a different type of hosting or idle timeout. Only licenses with the same type of hosting and idle timeout can be active at the same time.",
 } as const;
 
-export type Reason = LicenseStatus | keyof typeof ReasonsExplanation;
+export type Reason = LicenseStatus | keyof typeof ReasonsExplanation | string;
 export interface Reasons {
   [license_id: string]: Reason;
 }
@@ -863,7 +863,7 @@ export function quota(
   users_arg?: Users,
   site_licenses?: SiteLicenses,
   site_settings?: SiteSettingsQuotas,
-  pay_as_you_go?: PayAsYouGoQuota[]
+  pay_as_you_go?: { quota: PayAsYouGoQuota; account_id: string }
 ): Quota {
   const { quota } = quota_with_reasons(
     settings_arg,
@@ -880,7 +880,7 @@ export function quota_with_reasons(
   users_arg?: Users,
   site_licenses?: SiteLicenses,
   site_settings?: SiteSettingsQuotas,
-  pay_as_you_go?: PayAsYouGoQuota[]
+  pay_as_you_go?: { quota: PayAsYouGoQuota; account_id: string }
 ): { quota: Quota; reasons: { [key: string]: string } } {
   // as a precaution (and also since we indeed ARE modifying licenses) we make deep copies of all arguments.
   // tests to catch this are in postgres/site-license/hook.test.ts
@@ -972,9 +972,12 @@ export function quota_with_reasons(
     // different.  pay_as_you_go is an array of objects
     // and the names and units they use are EXACTLY
     // the same as Settings, except some fields aren't used.
-    for (const upgrade of pay_as_you_go) {
-      quota = op_quotas(quota as RQuota, upgrade2quota(upgrade), "max");
-    }
+    quota = op_quotas(
+      quota as RQuota,
+      upgrade2quota(pay_as_you_go.quota),
+      "max"
+    );
+    reasons["pay_as_you_go"] = pay_as_you_go.account_id;
   }
 
   let total_quota = quota_v2({

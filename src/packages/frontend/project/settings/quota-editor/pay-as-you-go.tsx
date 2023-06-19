@@ -4,7 +4,7 @@
  */
 
 import { CSSProperties, useEffect, useState } from "react";
-import { Alert, Button, Card, Checkbox, Tag } from "antd";
+import { Alert, Button, Card, Tag } from "antd";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
@@ -14,7 +14,7 @@ import {
   ProjectQuota,
   PROJECT_QUOTA_KEYS,
 } from "@cocalc/util/db-schema/purchase-quotas";
-import { useRedux } from "@cocalc/frontend/app-framework";
+import { useRedux, redux } from "@cocalc/frontend/app-framework";
 import CostPerHour from "./cost-per-hour";
 
 // These correspond to dedicated RAM and dedicated CPU, and we
@@ -68,7 +68,11 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     }
   }, [editing]);
 
-  async function handleSave(): Promise<void> {
+  function handleClose(): void {
+    setEditing(false);
+  }
+
+  async function handleSave() {
     if (quotaState == null) return;
     try {
       setError("");
@@ -81,7 +85,15 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     }
   }
 
-  function handleCancel(): void {
+  async function handleRun() {
+    if (quotaState == null) return;
+    await setQuotaState({
+      ...quotaState,
+      enabled: webapp_client.server_time().valueOf(),
+    });
+    await handleSave();
+    const actions = redux.getActions("projects");
+    await actions.restart_project(project_id);
     setEditing(false);
   }
 
@@ -106,37 +118,14 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     <Card
       style={style}
       title={
-        <>
-          <div style={{ margin: "0 15px", float: "right" }}>
-            {editing && (
-              <>
-                <Button style={{ marginRight: "8px" }} onClick={handleCancel}>
-                  Close
-                </Button>
-                <Button
-                  type="primary"
-                  disabled={!isModified()}
-                  onClick={handleSave}
-                >
-                  <Icon name="save" /> Save
-                </Button>
-              </>
-            )}
-            {!editing && (
-              <Button onClick={() => setEditing(true)} type="text">
-                <Icon name="pencil" /> Edit
-              </Button>
-            )}
-          </div>
-          <div style={{ marginTop: "5px" }}>
-            <Icon name="compass" /> Pay As You Go
-            {quotaState?.enabled ? (
-              <Tag color="success" style={{ marginLeft: "30px" }}>
-                Configured
-              </Tag>
-            ) : undefined}
-          </div>
-        </>
+        <div style={{ marginTop: "5px" }}>
+          <Icon name="compass" /> Pay As You Go
+          {quotaState?.enabled ? (
+            <Tag color="success" style={{ marginLeft: "30px" }}>
+              Configured
+            </Tag>
+          ) : undefined}
+        </div>
       }
       type="inner"
       extra={<Information />}
@@ -144,21 +133,18 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       {quotaState != null && editing && (
         <div style={{ float: "right", marginLeft: "30px", width: "150px" }}>
           <CostPerHour quota={quotaState} />
-          <div>
-            You will be charged by the second when you restart your project and
-            confirm. <b>TODO: stateful dialog</b>
-          </div>
+          <div>You will be charged by the second.</div>
         </div>
       )}
       {!editing && (
-        <Button type="text" onClick={() => setEditing(true)}>
-          Add RAM, CPU, disk and more...
+        <Button onClick={() => setEditing(!editing)}>
+          Temporarily increase your RAM, CPU, or disk...
         </Button>
       )}
       {editing && (
         <>
           {error && <Alert type="error" showIcon description={error} />}
-          <Alert
+          {/*<Alert
             type={!!quotaState?.enabled ? "success" : "info"}
             message={!!quotaState?.enabled ? "Enabled" : "Disabled"}
             description={
@@ -175,7 +161,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                   Increase quotas to at least the values below when you start
                   this project.
                 </Checkbox>
-                {/*<br />
+                <br />
                 <Checkbox
                   style={{ marginTop: "15px" }}
                   checked={!!quotaState?.allow_any}
@@ -187,10 +173,9 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                   }
                 >
                   Upgrade for anybody who starts this project
-                </Checkbox>*/}
-              </>
-            }
-          />
+                </Checkbox>}
+              </>}/>
+            */}
           {PROJECT_UPGRADES.field_order
             .filter((name) => !EXCLUDE.has(name))
             .map((name) => (
@@ -202,6 +187,27 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                 maxQuotas={maxQuotas}
               />
             ))}
+          <div style={{ margin: "15px 0" }}>
+            {editing && (
+              <>
+                <Button onClick={handleClose}>Close</Button>
+                <Button
+                  style={{ marginLeft: "8px" }}
+                  disabled={!isModified()}
+                  onClick={handleSave}
+                >
+                  <Icon name="save" /> Save
+                </Button>
+                <Button
+                  style={{ marginLeft: "8px" }}
+                  type="primary"
+                  onClick={handleRun}
+                >
+                  <Icon name="save" /> Run Upgraded Project
+                </Button>
+              </>
+            )}
+          </div>
         </>
       )}
     </Card>

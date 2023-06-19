@@ -50,6 +50,8 @@ const winston = getLogger("project-control:single-user");
 const MAX_START_TIME_MS = 20000;
 const MAX_STOP_TIME_MS = 10000;
 
+const PAY_AS_YOU_GO_THRESH_MS = 60 * 1000;
+
 class Project extends BaseProject {
   private HOME: string;
 
@@ -178,19 +180,23 @@ class Project extends BaseProject {
     let run_quota = quota(settings, users, site_license, site_settings);
 
     if (pay_as_you_go_quotas != null) {
-      const v = Object.values(pay_as_you_go_quotas);
-      if (v.length > 0) {
-        const run_quota_with_pay_as_you_go = quota(
-          settings,
-          users,
-          site_license,
-          site_settings,
-          v as any
-        );
-        console.log(run_quota_with_pay_as_you_go);
-        //         if (!isEqual(run_quota_with_pay_as_you_go, run_quota)) {
-        //           // the pay as you go contributions increase the quota, we activate pay as you go.
-        //         }
+      let choice: null | { quota: any; account_id: string } = null;
+      const now = Date.now();
+      for (const account_id in pay_as_you_go_quotas) {
+        const quota = pay_as_you_go_quotas[account_id];
+        if (Math.abs(quota.enabled - now) <= PAY_AS_YOU_GO_THRESH_MS) {
+          if (choice == null) {
+            choice = { quota, account_id };
+          } else if (
+            Math.abs(quota.enabled - now) < Math.abs(choice.quota.enabled - now)
+          ) {
+            choice.quota = quota;
+            choice.account_id = account_id;
+          }
+        }
+      }
+      if (choice != null) {
+        run_quota = quota(settings, users, site_license, site_settings, choice);
       }
     }
 

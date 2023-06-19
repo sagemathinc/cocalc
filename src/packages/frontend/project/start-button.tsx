@@ -44,8 +44,7 @@ const STYLE: CSSProperties = {
   color: COLORS.GRAY_M,
 } as const;
 
-export const StartButton: React.FC<Props> = (props: Props) => {
-  const { project_id } = props;
+export const StartButton: React.FC<Props> = ({ project_id }: Props) => {
   const project_websockets = useTypedRedux("projects", "project_websockets");
   const connected = project_websockets?.get(project_id) == "online";
   const project_map = useTypedRedux("projects", "project_map");
@@ -69,9 +68,9 @@ export const StartButton: React.FC<Props> = (props: Props) => {
     if (state?.get("state") == "starting" || state?.get("state") == "opening")
       return true;
     if (state?.get("state") == "running") return false;
-    const action_request = (project_map
-      ?.getIn([project_id, "action_request"]) as any)
-      ?.toJS() as any;
+    const action_request = (
+      project_map?.getIn([project_id, "action_request"]) as any
+    )?.toJS() as any;
     if (action_request == null) {
       return false; // no action request at all
     }
