@@ -28,10 +28,22 @@ import {
   ACTION_BUTTONS_MULTI,
 } from "@cocalc/frontend/project/explorer/action-bar";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
-import { human_readable_size, path_split, plural } from "@cocalc/util/misc";
+import {
+  human_readable_size,
+  path_split,
+  path_to_file,
+  plural,
+} from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { TerminalFlyout } from "./files-terminal";
+
+const PANEL_STYLE: CSS = {
+  width: "100%",
+  paddingLeft: "10px",
+  paddingRight: "10px",
+  paddingBottom: "5px",
+};
 
 interface FilesBottomProps {
   project_id: string;
@@ -56,7 +68,6 @@ export function FilesBottom({
 }: FilesBottomProps) {
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
-  const n = checked_files.size;
   const [activeKey, setActiveKey] = useState<string[]>([]);
   const [resize, setResize] = useState<number>(0);
   const [connectionStatus, setConectionStatus] = useState<
@@ -185,42 +196,64 @@ export function FilesBottom({
   }
 
   function renderFileInfo() {
-    if (singleFile == null) return;
-    const { size, mtime, isdir } = singleFile;
-    const age = typeof mtime === "number" ? 1000 * mtime : null;
-    return (
-      <Descriptions size="small" layout="horizontal" column={1}>
-        {age ? (
-          <Descriptions.Item label="Last modified" span={1}>
-            <TimeAgo date={new Date(age)} />
+    if (singleFile != null) {
+      const { size, mtime, isdir } = singleFile;
+      const age = typeof mtime === "number" ? 1000 * mtime : null;
+      return (
+        <Descriptions size="small" layout="horizontal" column={1}>
+          {age ? (
+            <Descriptions.Item label="Last modified" span={1}>
+              <TimeAgo date={new Date(age)} />
+            </Descriptions.Item>
+          ) : undefined}
+          {isdir ? (
+            <Descriptions.Item label="Contains">
+              {size} {plural(size, "item")}
+            </Descriptions.Item>
+          ) : (
+            <Descriptions.Item label="Size">
+              {human_readable_size(size)}
+            </Descriptions.Item>
+          )}
+        </Descriptions>
+      );
+    }
+
+    // summary of multiple selected files
+    if (checked_files.size > 1) {
+      let [totSize, startDT, endDT] = [0, new Date(0), new Date(0)];
+      for (const f of checked_files) {
+        const file = directoryFiles.find((x) => x.name === f);
+        if (file == null) continue;
+        const { size, mtime } = file;
+        totSize += size;
+        if (typeof mtime === "number") {
+          const dt = new Date(1000 * mtime);
+          if (startDT.getTime() === 0 || dt < startDT) startDT = dt;
+          if (endDT.getTime() === 0 || dt > endDT) endDT = dt;
+        }
+      }
+
+      return (
+        <Descriptions size="small" layout="horizontal" column={1}>
+          <Descriptions.Item label="Total size" span={1}>
+            {human_readable_size(totSize)}
           </Descriptions.Item>
-        ) : undefined}
-        {isdir ? (
-          <Descriptions.Item label="Contains">
-            {size} {plural(size, "item")}
-          </Descriptions.Item>
-        ) : (
-          <Descriptions.Item label="Size">
-            {human_readable_size(size)}
-          </Descriptions.Item>
-        )}
-      </Descriptions>
-    );
+          {startDT.getTime() > 0 ? (
+            <Descriptions.Item label="Modified" span={1}>
+              <div>
+                <TimeAgo date={startDT} /> to <TimeAgo date={endDT} />
+              </div>
+            </Descriptions.Item>
+          ) : undefined}
+        </Descriptions>
+      );
+    }
   }
 
   function renderSelectedControls() {
     return (
-      <Space
-        direction="vertical"
-        size="small"
-        style={{
-          width: "100%",
-          paddingLeft: "10px",
-          paddingRight: "10px",
-          paddingBottom: "5px",
-        }}
-      >
-        {renderFileInfo()}
+      <Space direction="vertical" size="small" style={PANEL_STYLE}>
         {singleFile
           ? singleFile.isdir
             ? renderButtons(ACTION_BUTTONS_DIR)
@@ -228,13 +261,23 @@ export function FilesBottom({
           : checked_files.size > 1
           ? renderButtons(ACTION_BUTTONS_MULTI)
           : undefined}
+        {renderFileInfo()}
       </Space>
     );
   }
 
   function renderSelected() {
     if (checked_files.size === 0) {
-      return <div>No files selected.</div>;
+      let totSize = 0;
+      for (const f of directoryFiles) {
+        if (!f.isdir) totSize += f.size;
+      }
+
+      return (
+        <div style={PANEL_STYLE}>
+          No files selected. Total size {human_readable_size(totSize)}.
+        </div>
+      );
     } else {
       return renderSelectedControls();
     }
@@ -242,7 +285,21 @@ export function FilesBottom({
 
   function renderSelectedHeader() {
     if (checked_files.size === 0) {
-      return <Icon name="file" />;
+      let [nFiles, nDirs] = [0, 0];
+      for (const f of directoryFiles) {
+        if (f.isdir) {
+          nDirs++;
+        } else {
+          nFiles++;
+        }
+      }
+
+      return (
+        <>
+          <Icon name="files" /> {nFiles} {plural(nFiles, "file")}, {nDirs}{" "}
+          {plural(nDirs, "folder")}
+        </>
+      );
     } else if (singleFile) {
       const name = singleFile.name;
       const iconName = singleFile.isdir
@@ -276,6 +333,36 @@ export function FilesBottom({
     );
   }
 
+  function renderSelectDeselectButton() {
+    if (checked_files.size === 0) {
+      return (
+        <Button
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            actions?.set_file_list_checked(
+              directoryFiles.map((f) => path_to_file(current_path, f.name))
+            );
+          }}
+        >
+          Select all
+        </Button>
+      );
+    } else {
+      return (
+        <Button
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            actions?.set_all_files_unchecked();
+          }}
+        >
+          Deselect all
+        </Button>
+      );
+    }
+  }
+
   const style: CSS = {
     background: COLORS.GRAY_LL,
     borderRadius: 0,
@@ -299,28 +386,15 @@ export function FilesBottom({
         borderTop: FIX_BORDER,
       }}
     >
-      {n > 0 ? (
-        <Collapse.Panel
-          className="cc-project-flyout-files-panel"
-          header={renderSelectedHeader()}
-          key="selected"
-          style={style}
-          extra={
-            <Button
-              size="small"
-              disabled={checked_files.size === 0}
-              onClick={(e) => {
-                e.stopPropagation();
-                actions?.set_all_files_unchecked();
-              }}
-            >
-              Deselect all
-            </Button>
-          }
-        >
-          {renderSelected()}
-        </Collapse.Panel>
-      ) : undefined}
+      <Collapse.Panel
+        className="cc-project-flyout-files-panel"
+        header={renderSelectedHeader()}
+        key="selected"
+        style={style}
+        extra={renderSelectDeselectButton()}
+      >
+        {renderSelected()}
+      </Collapse.Panel>
       <Collapse.Panel
         className="cc-project-flyout-files-panel"
         header={terminalHeader()}
