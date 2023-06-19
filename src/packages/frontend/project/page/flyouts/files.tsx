@@ -197,17 +197,14 @@ export function FilesFlyout({ project_id }): JSX.Element {
   ]);
 
   useEffect(() => {
+    // reset prev selection if path changes
+    setPrevSelected(null);
+
     // if we change directory *and* use the keyboard, we re-focus the input
     if (scrollIdx != null) {
       refInput.current?.focus();
     }
     setScrollIdx(null);
-  }, [current_path]);
-
-  // reset selection if path changes
-  useEffect(() => {
-    actions?.set_all_files_unchecked();
-    setPrevSelected(null);
   }, [current_path]);
 
   const triggerRootResize = debounce(
@@ -283,7 +280,9 @@ export function FilesFlyout({ project_id }): JSX.Element {
 
   function toggleSelected(index: number, fn: string) {
     // never select "..", only calls for trouble
-    if (fn === ".." || checked_files.includes(fn)) {
+    if (fn === "..") return;
+    fn = path_to_file(current_path, fn);
+    if (checked_files.includes(fn)) {
       actions?.set_file_list_unchecked(List([fn]));
     } else {
       actions?.set_file_list_checked([fn]);
@@ -318,12 +317,14 @@ export function FilesFlyout({ project_id }): JSX.Element {
     if (e.shiftKey && prevSelected != null) {
       const start = Math.min(prevSelected, index);
       const end = Math.max(prevSelected, index);
-      const add = !checked_files.includes(directoryFiles[index].name);
+      const add = !checked_files.includes(
+        path_to_file(current_path, directoryFiles[index].name)
+      );
       let fileNames: string[] = [];
       for (let i = start; i <= end; i++) {
         const fn = directoryFiles[i].name;
-        if (fn === "..") continue; // don't select, just calls for trouble
-        fileNames.push(fn);
+        if (fn === "..") continue; // don't select parent dir, just calls for trouble
+        fileNames.push(path_to_file(current_path, fn));
       }
       if (add) {
         actions?.set_file_list_checked(fileNames);
@@ -398,7 +399,9 @@ export function FilesFlyout({ project_id }): JSX.Element {
     const isSelected =
       scrollIdx != null
         ? !scollIdxHide && index === scrollIdx
-        : checked_files.includes(directoryFiles[index].name);
+        : checked_files.includes(
+            path_to_file(current_path, directoryFiles[index].name)
+          );
     return (
       <FileListItem
         item={item}

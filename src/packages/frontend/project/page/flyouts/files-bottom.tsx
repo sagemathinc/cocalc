@@ -12,6 +12,7 @@ import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   useActions,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -20,6 +21,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { ConnectionStatus } from "@cocalc/frontend/app/store";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { ConnectionStatusIcon } from "@cocalc/frontend/frame-editors/frame-tree/title-bar";
 import {
@@ -33,10 +35,12 @@ import {
   path_split,
   path_to_file,
   plural,
+  trunc_middle,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { TerminalFlyout } from "./files-terminal";
+import { getFlyoutFiles, storeFlyoutState } from "./state";
 
 const PANEL_STYLE: CSS = {
   width: "100%",
@@ -44,6 +48,9 @@ const PANEL_STYLE: CSS = {
   paddingRight: "10px",
   paddingBottom: "5px",
 };
+
+const PANEL_KEYS = ["selected", "terminal"];
+type PanelKey = (typeof PANEL_KEYS)[number];
 
 interface FilesBottomProps {
   project_id: string;
@@ -68,11 +75,15 @@ export function FilesBottom({
 }: FilesBottomProps) {
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
-  const [activeKey, setActiveKey] = useState<string[]>([]);
+  const [activeKeys, setActiveKeys] = useState<PanelKey[]>([]);
   const [resize, setResize] = useState<number>(0);
   const [connectionStatus, setConectionStatus] = useState<
     ConnectionStatus | ""
   >("");
+  const [terminalFontSize, setTerminalFontSize] = useState<number>(11);
+  const [terminalTitle, setTerminalTitle] = useState<string>("");
+  const [syncPath, setSyncPath] = useState<number>(0);
+  const [sync, setSync] = useState<boolean>(true);
 
   const collapseRef = useRef<HTMLDivElement>(null);
 
@@ -81,19 +92,39 @@ export function FilesBottom({
     trailing: true,
   });
 
-  // useEffect(() => {
-  //   // if any selected, open "selectd" – otherwise close
-  //   if (checked_files.size > 0) {
-  //     setActiveKey(["selected", ...activeKey]);
-  //   } else {
-  //     setActiveKey(activeKey.filter((x) => x !== "selected"));
-  //   }
-  // }, [checked_files]);
+  function getFile(name: string) {
+    // TODO optimize this O(n) search, but for now it's fine, though
+    const basename = path_split(name).tail;
+    return directoryFiles.find((f) => f.name === basename);
+  }
+
+  useEffect(() => {
+    const state = getFlyoutFiles(project_id);
+    // once upon mounting, expand the collapse panels if they were open
+    const next: PanelKey[] = [];
+    if (state.selected?.show === true) {
+      next.push("selected");
+    }
+    if (state.terminal?.show === true) {
+      next.push("terminal");
+    }
+    setActiveKeys([...next, ...activeKeys]);
+  }, []);
+
+  useEffect(() => {
+    // if any selected and nothing in state, open "selected".
+    // this is to teach users this can be expanded.
+    if (
+      checked_files.size > 0 &&
+      getFlyoutFiles(project_id).selected?.show == null
+    ) {
+      setActiveKeys(["selected", ...activeKeys]);
+    }
+  }, [checked_files]);
 
   const singleFile = useMemo(() => {
     if (checked_files.size === 1) {
-      const name = checked_files.first() ?? "";
-      return directoryFiles.filter((f) => f.name === name).pop();
+      return getFile(checked_files.first() ?? "");
     }
   }, [checked_files, directoryFiles]);
 
@@ -115,11 +146,15 @@ export function FilesBottom({
     return (
       <TerminalFlyout
         project_id={project_id}
-        font_size={10}
+        font_size={terminalFontSize}
         resize={resize}
-        is_visible={activeKey.includes("terminal")}
+        is_visible={activeKeys.includes("terminal")}
         setConectionStatus={setConectionStatus}
         heightPx={heightPx}
+        setTerminalFontSize={setTerminalFontSize}
+        setTerminalTitle={setTerminalTitle}
+        syncPath={syncPath}
+        sync={sync}
       />
     );
   }
@@ -172,9 +207,10 @@ export function FilesBottom({
     e.stopPropagation();
     const skipDirs = checked_files.size > 1;
     for (const file of checked_files) {
-      const index = directoryFiles.findIndex((f) => f.name === file);
+      const basename = path_split(file).tail;
+      const index = directoryFiles.findIndex((f) => f.name === basename);
       // skipping directories, because it makes no sense to flip through them rapidly
-      if (skipDirs && directoryFiles.find((f) => f.name === file)?.isdir) {
+      if (skipDirs && getFile(file)?.isdir) {
         open(e, index, true);
         continue;
       }
@@ -306,9 +342,9 @@ export function FilesBottom({
         ? "folder"
         : file_options(name)?.icon ?? "file";
       return (
-        <>
-          <Icon name={iconName} /> {name}
-        </>
+        <div style={{ whiteSpace: "nowrap" }}>
+          <Icon name={iconName} /> {trunc_middle(name, 20)}
+        </div>
       );
     } else if (checked_files.size > 1) {
       return (
@@ -323,13 +359,74 @@ export function FilesBottom({
   function terminalHeader() {
     return (
       <>
-        <Icon name="terminal" /> Terminal{" "}
+        <Icon name="terminal" /> Terminal {trunc_middle(terminalTitle, 20)}
+      </>
+    );
+  }
+
+  function renderTerminalExtra() {
+    const disabled = !activeKeys.includes("terminal");
+    return (
+      <Space size="small" direction="horizontal">
         {connectionStatus !== "" ? (
-          <span style={{ float: "right" }} title={connectionStatus}>
+          <span title={connectionStatus}>
             <ConnectionStatusIcon status={connectionStatus} />
           </span>
         ) : undefined}
-      </>
+        <ButtonGroup>
+          <Popover content="Reduce font size">
+            <Button
+              size="small"
+              disabled={disabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTerminalFontSize((s) => s - 1);
+              }}
+            >
+              <Icon name="minus" />
+            </Button>
+          </Popover>
+          <Popover content="Increase font size">
+            <Button
+              size="small"
+              disabled={disabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTerminalFontSize((s) => s + 1);
+              }}
+            >
+              <Icon name="plus" />
+            </Button>
+          </Popover>
+        </ButtonGroup>
+        <ButtonGroup>
+          <Popover content="Change directory to current one">
+            <Button
+              size="small"
+              disabled={disabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSyncPath((s) => s + 1);
+              }}
+            >
+              <Icon name="arrow-down" />
+            </Button>
+          </Popover>
+          <Popover content="Sync directory">
+            <BSButton
+              bsSize="xsmall"
+              active={sync}
+              disabled={disabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSync((s) => !s);
+              }}
+            >
+              <Icon name="swap" rotate={"90"} />
+            </BSButton>
+          </Popover>
+        </ButtonGroup>
+      </Space>
     );
   }
 
@@ -363,18 +460,28 @@ export function FilesBottom({
     }
   }
 
+  function setActiveKeyHandler(keys: PanelKey[]) {
+    setActiveKeys(keys);
+    storeFlyoutState(project_id, "files", {
+      files: {
+        selected: { show: keys.includes("selected") },
+        terminal: { show: keys.includes("terminal") },
+      },
+    });
+  }
+
   const style: CSS = {
     background: COLORS.GRAY_LL,
     borderRadius: 0,
     border: "none",
-  };
+  } as const;
 
   return (
     <Collapse
       ref={collapseRef}
       bordered={false}
-      activeKey={activeKey}
-      onChange={(key) => Array.isArray(key) && setActiveKey(key)}
+      activeKey={activeKeys}
+      onChange={(key) => setActiveKeyHandler(key as PanelKey[])}
       size="small"
       expandIcon={({ isActive }) => (
         <CaretRightOutlined rotate={isActive ? 90 : 0} />
@@ -398,6 +505,7 @@ export function FilesBottom({
       <Collapse.Panel
         className="cc-project-flyout-files-panel"
         header={terminalHeader()}
+        extra={renderTerminalExtra()}
         key="terminal"
         style={{ ...style, borderTop: FIX_BORDER }}
       >

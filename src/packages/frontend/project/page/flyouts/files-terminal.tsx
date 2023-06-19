@@ -4,16 +4,16 @@
  */
 
 import { Alert } from "antd";
-import { throttle } from "lodash";
+import { debounce } from "lodash";
 
 import {
   CSS,
   ReactDOM,
   redux,
   useActions,
-  useCallback,
   useEffect,
   useIsMountedRef,
+  usePrevious,
   useRef,
   useState,
   useTypedRedux,
@@ -35,9 +35,14 @@ export function TerminalFlyout({
   is_visible,
   setConectionStatus,
   heightPx,
+  setTerminalFontSize,
+  setTerminalTitle,
+  syncPath,
+  sync,
 }) {
   const actions = useActions({ project_id });
   const current_path = useTypedRedux({ project_id }, "current_path");
+  const currentPathRef = useRef<string>(current_path);
   const account_id = useTypedRedux("account", "account_id");
   const terminal = useTypedRedux("account", "terminal");
   const terminalRef = useRef<Terminal | undefined>(undefined);
@@ -47,6 +52,10 @@ export function TerminalFlyout({
     useStudentProjectFunctionality(project_id);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    currentPathRef.current = current_path;
+  }, [current_path]);
 
   // Design decision:
   // One terminal per project, one for each user, and persistent across flyout open/close.
@@ -75,7 +84,9 @@ export function TerminalFlyout({
       get_term_env() {
         return DEFAULT_TERM_ENV;
       },
-      set_title(_id, _title) {},
+      set_title(_id, title) {
+        setTerminalTitle(title);
+      },
       set_connection_status(_id, status) {
         setConectionStatus(status);
       },
@@ -87,11 +98,20 @@ export function TerminalFlyout({
       set_error(mesg) {
         setError(mesg);
       },
-      decrease_font_size() {},
-      increase_font_size() {},
+      decrease_font_size() {
+        setTerminalFontSize((prev) => prev - 1);
+      },
+      increase_font_size() {
+        setTerminalFontSize((prev) => prev + 1);
+      },
       set_terminal_cwd(_id, payload) {
-        if (current_path != payload) {
-          actions?.set_current_path(payload);
+        if (!sync) return;
+        // ignored, default location
+        if (payload === "/tmp") return;
+        if (currentPathRef.current != payload) {
+          const next =
+            payload.charAt(0) === "/" ? ".smc/root" + payload : payload;
+          actions?.set_current_path(next);
         }
       },
       _tree_is_single_leaf() {
@@ -178,9 +198,12 @@ export function TerminalFlyout({
     measure_size();
   }, [resize, status, error, heightPx]);
 
+  const prevSyncPath = usePrevious(syncPath);
+
   // the terminal follows changing the directory
   useEffect(() => {
     if (terminalRef.current == null) return;
+    if (syncPath === prevSyncPath && !sync) return;
     // this "line reset" is from the terminal guide,
     // see frame-editors/terminal-editor/actions::run_command
     const clean = "\x05\x15"; // move cursor to end of line, then clear line
@@ -188,10 +211,10 @@ export function TerminalFlyout({
     const cmd = `cd "$HOME/${nextCwd}"`;
     // this will end up in a write buffer, hence it should be ok to do right at the beginning
     terminalRef.current.conn_write(`${clean}${cmd}\n`);
-  }, [current_path]);
+  }, [current_path, syncPath, sync]);
 
-  const set_font_size = useCallback(
-    throttle(() => {
+  const set_font_size = debounce(
+    () => {
       if (terminalRef.current == null || !isMountedRef.current) {
         return;
       }
@@ -199,8 +222,9 @@ export function TerminalFlyout({
         terminalRef.current.set_font_size(font_size);
         measure_size();
       }
-    }, 200),
-    []
+    },
+    200,
+    { leading: false, trailing: true }
   );
 
   useEffect(set_font_size, [font_size]);

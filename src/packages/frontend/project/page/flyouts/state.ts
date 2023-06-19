@@ -14,11 +14,17 @@ export function isFlyoutLogMode(val?: string): val is FlyoutLogMode {
   return LogModes.includes(val as any);
 }
 
+interface FilesMode {
+  selected?: { show?: boolean };
+  terminal?: { show?: boolean };
+}
+
 export type LSFlyout = {
   scroll?: { [name in FixedTab]?: number }; // checked using isPositiveNumber
   width?: number; // checked using isPositiveNumber
   expanded?: FixedTab | null;
   mode?: FlyoutLogMode; // check using isFlyoutLogMode
+  files?: FilesMode;
 };
 
 function isPositiveNumber(val: any): val is number {
@@ -35,9 +41,10 @@ export function storeFlyoutState(
     expanded?: boolean;
     width?: number | null;
     mode?: string; // check using isFlyoutLogMode
+    files?: FilesMode;
   }
 ): void {
-  const { scroll, expanded, width, mode } = state;
+  const { scroll, expanded, width, mode, files } = state;
   const key = lsKey(project_id);
   const current = LS.get<LSFlyout>(key) ?? {};
   current.scroll ??= {};
@@ -64,6 +71,15 @@ export function storeFlyoutState(
     current.mode = mode;
   }
 
+  if (flyout === "files" && files != null) {
+    const showTerminal = files.terminal?.show === true;
+    const showSelected = files.selected?.show === true;
+    current.files = {
+      terminal: { show: showTerminal },
+      selected: { show: showSelected },
+    };
+  }
+
   LS.set(key, current);
 }
 
@@ -80,4 +96,8 @@ export function getFlyoutWidth(project_id: string): number {
 export function getFlyoutLogMode(project_id: string): FlyoutLogMode {
   const mode = LS.get<LSFlyout>(lsKey(project_id))?.mode;
   return isFlyoutLogMode(mode) ? mode : FLYOUT_LOG_DEFAULT_MODE;
+}
+
+export function getFlyoutFiles(project_id: string): FilesMode {
+  return LS.get<LSFlyout>(lsKey(project_id))?.files ?? {};
 }

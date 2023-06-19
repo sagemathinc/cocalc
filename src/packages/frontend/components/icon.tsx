@@ -424,6 +424,7 @@ const IconSpec = {
   "play-circle": PlayCircleFilled,
   "play-square": PlaySquareOutlined,
   plus: PlusOutlined,
+  minus: MinusOutlined,
   "plus-circle": PlusCircleOutlined,
   "plus-circle-o": PlusCircleOutlined,
   "plus-circle-filled": PlusCircleFilled,
