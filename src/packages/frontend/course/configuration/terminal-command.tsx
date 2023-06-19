@@ -4,20 +4,28 @@
  */
 
 import {
-  React,
+  List as AntdList,
+  Button,
+  Card,
+  Form,
+  Input,
+  Space as AntdSpace,
+} from "antd";
+import { List, Map, fromJS } from "immutable";
+
+import {
   CSS,
-  redux,
+  React,
   Rendered,
+  redux,
   useActions,
   useRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Space } from "@cocalc/frontend/components";
-import { Button, Card, Form, Input, List as AntdList } from "antd";
-import { fromJS, List, Map } from "immutable";
+import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
 import { CourseStore, TerminalCommand, TerminalCommandOutput } from "../store";
 import { Result } from "../student-projects/run-in-all-projects";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   name: string;
@@ -58,10 +66,7 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
             run_terminal_command();
           }}
         >
-          <Input.Group
-            compact
-            style={{ display: "flex", whiteSpace: "nowrap" }}
-          >
+          <AntdSpace.Compact style={{ display: "flex", whiteSpace: "nowrap" }}>
             <Input
               style={{ fontFamily: "monospace" }}
               placeholder="Terminal command..."
@@ -70,7 +75,7 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
               }}
             />
             {render_button(running)}
-          </Input.Group>
+          </AntdSpace.Compact>
         </Form>
       );
     }
