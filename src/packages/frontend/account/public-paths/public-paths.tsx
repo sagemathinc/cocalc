@@ -21,7 +21,7 @@ import {
   ErrorDisplay,
   Icon,
   Loading,
-  Space,
+  Gap,
   TimeAgo,
   A,
 } from "@cocalc/frontend/components";
@@ -247,7 +247,7 @@ export const PublicPaths: React.FC = () => {
       />
       <Button onClick={fetch} disabled={loading} style={{ float: "right" }}>
         <Icon name="redo" />
-        <Space /> <Space /> {loading ? "Loading..." : "Refresh"}
+        <Gap /> <Gap /> {loading ? "Loading..." : "Refresh"}
       </Button>
       <h2>Public files ({paths?.length ?? "?"})</h2>
       Files that have been published in any project that you have actively used.

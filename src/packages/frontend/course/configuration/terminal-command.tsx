@@ -21,7 +21,7 @@ import {
   useActions,
   useRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Space } from "@cocalc/frontend/components";
+import { Icon, Gap } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
 import { CourseStore, TerminalCommand, TerminalCommandOutput } from "../store";
@@ -48,7 +48,7 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
           disabled={running}
         >
           <Icon name={running ? "cocalc-ring" : "play"} spin={running} />{" "}
-          <Space /> Run
+          <Gap /> Run
         </Button>
       );
     }

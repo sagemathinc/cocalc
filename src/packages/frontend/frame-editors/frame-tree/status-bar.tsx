@@ -13,7 +13,7 @@ This is basically used now as "ephemeral messages".
 */
 
 import { CSSProperties } from "react";
-import { Icon, Space } from "@cocalc/frontend/components";
+import { Icon, Gap } from "@cocalc/frontend/components";
 
 const STYLE = {
   opacity: 0.85,
@@ -45,7 +45,7 @@ export default function StatusBar({ status, onClear }: Props) {
         style={{ float: "right", marginTop: "2.5px" }}
       />
       {status}
-      <Space />
+      <Gap />
     </div>
   );
 }

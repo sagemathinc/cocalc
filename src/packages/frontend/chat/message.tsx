@@ -20,7 +20,7 @@ import {
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Space, TimeAgo, Tip } from "@cocalc/frontend/components";
+import { Icon, Gap, TimeAgo, Tip } from "@cocalc/frontend/components";
 import { Button, Tooltip, Row, Col } from "antd";
 import { getUserName } from "./chat-log";
 import { HistoryTitle, HistoryFooter, History } from "./history";
@@ -202,7 +202,7 @@ export default function Message(props: Props) {
         {is_editing ? (
           <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
             <Button onClick={on_cancel}>Cancel</Button>
-            <Space />
+            <Gap />
             <Button onClick={saveEditedMessage} type="primary">
               Save (shift+enter)
             </Button>

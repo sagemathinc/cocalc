@@ -7,7 +7,7 @@ import { List } from "immutable";
 import { redux, useState, useTypedRedux } from "../../app-framework";
 import { ManagerInfo } from "./types";
 import { User } from "../../users";
-import { r_join, Space } from "../../components";
+import { r_join, Gap } from "../../components";
 import { Button } from "../../antd-bootstrap";
 import { Popconfirm } from "antd";
 import { alert_message } from "../../alerts";
@@ -55,7 +55,7 @@ export const Managers: React.FC<Props> = ({
         >
           <Button>Remove this manager...</Button>
         </Popconfirm>
-        <Space />
+        <Gap />
         <Button onClick={() => show_manager_info()}>Close</Button>
       </div>
     );
@@ -120,7 +120,7 @@ export const Managers: React.FC<Props> = ({
             }
           }}
         />
-        <Space />
+        <Gap />
         <Button disabled={!add_value.trim()} onClick={() => add_manager()}>
           Add manager
         </Button>

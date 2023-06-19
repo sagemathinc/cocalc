@@ -25,7 +25,7 @@ import {
   A,
   ErrorDisplay,
   Icon,
-  Space,
+  Gap,
   TimeAgo,
 } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -297,7 +297,7 @@ export class AccountSettings extends Component<Props, State> {
         <Col xs={12}>
           <div className="pull-right">
             <SignOut everywhere={false} highlight={true} />
-            {!this.props.is_anonymous ? <Space /> : undefined}
+            {!this.props.is_anonymous ? <Gap /> : undefined}
             {!this.props.is_anonymous ? (
               <SignOut everywhere={true} />
             ) : undefined}

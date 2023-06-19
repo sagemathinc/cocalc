@@ -20,7 +20,7 @@ import {
   Icon,
   Loading,
   SearchInput,
-  Space,
+  Gap,
 } from "@cocalc/frontend/components";
 import CopyButton from "@cocalc/frontend/components/copy-button";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
@@ -486,7 +486,7 @@ function ProjectSearchOutputHeader({ project_id }: { project_id: string }) {
 
       <h4>
         Results of searching in {output_path()} for "{most_recent_search}"
-        <Space />
+        <Gap />
         <Button
           onClick={() =>
             actions?.setState({

@@ -11,13 +11,13 @@ import { Rendered } from "@cocalc/frontend/app-framework";
 import { TimeActions } from "./actions";
 import { HistoryOutlined, RedoOutlined, UndoOutlined } from "@ant-design/icons";
 import { Button } from "antd";
-import { Space } from "@cocalc/frontend/components/space";
+import { Gap } from "@cocalc/frontend/components/space";
 
 export function ButtonBar({ actions }: { actions: TimeActions }): JSX.Element {
   return (
     <div style={{ margin: "1px" }}>
       {timeTravelButton(actions)}
-      <Space />
+      <Gap />
       {undoRedoGroup(actions)}
     </div>
   );
