@@ -12,7 +12,7 @@ const UNITS = {
   memory_request: "MB",
   cores: "cores",
   cpu_shares: "cores",
-  mintime: "hours",
+  mintime: "seconds",
 };
 
 interface Props {
@@ -71,7 +71,7 @@ export default function QuotaRow({
                   setQuotaState({ ...quotaState, [name]: max });
                 }}
               >
-                (max: {max} {units})
+                (max: {valueToStr(max, units)})
               </Button>
             </>
           )}
@@ -92,4 +92,12 @@ export default function QuotaRow({
       />
     </LabeledRow>
   );
+}
+
+function valueToStr(value, units) {
+  if (units == "MB") {
+    return `${Math.round(value / 1000)} GB`;
+  } else {
+    return `${value} ${units}`;
+  }
 }

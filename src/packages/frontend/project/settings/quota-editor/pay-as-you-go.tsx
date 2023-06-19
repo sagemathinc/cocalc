@@ -134,6 +134,9 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       {quotaState != null && !!(editing || quotaState.enabled) && (
         <div style={{ float: "right", marginLeft: "30px" }}>
           <CostPerHour quota={quotaState} />
+          {editing && (
+            <div style={{ color: "#999" }}>Charged by the second</div>
+          )}
         </div>
       )}
       {!editing && (
@@ -162,8 +165,10 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                     })
                   }
                 >
-                  Increase quotas to at least the following values when the
-                  project starts. <b>I agree to pay charges for usage.</b>
+                  Increase quotas to at least the values below when the project
+                  starts.
+                  <br />
+                  <b>You agree to pay for usage.</b>
                 </Checkbox>
                 <br />
                 <Checkbox
@@ -176,7 +181,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                     })
                   }
                 >
-                  Upgrade quotas for anybody who starts this project
+                  Upgrade for anybody who starts this project
                 </Checkbox>
               </>
             }

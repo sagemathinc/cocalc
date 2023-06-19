@@ -27,11 +27,7 @@ export default function EditQuota({
   ) {
     if (max != null && max == 0) {
       return (
-        <Checkbox
-          key={name}
-          disabled
-          style={{ marginLeft: 0 }}
-        >
+        <Checkbox key={name} disabled style={{ marginLeft: 0 }}>
           Not supported
         </Checkbox>
       );
@@ -58,27 +54,55 @@ export default function EditQuota({
         addonAfter={
           units ? (
             <div style={{ width: "50px" }}>
-              <b>{units}</b>
+              <b>{displayUnits(units)}</b>
             </div>
           ) : undefined
         }
         style={{ width: "175px" }}
         key={name}
-        min={0}
+        min={name == "mintime" ? 0.25 : 1}
         max={max}
-        value={quotaState[name]}
-        step={getStepSize(name)}
+        value={displayValue(quotaState[name], units)}
+        step={1}
         onChange={(value) => {
-          setQuotaState({ ...quotaState, [name]: value });
+          setQuotaState({
+            ...quotaState,
+            [name]: internalValue(value, units),
+          });
         }}
       />
     );
   }
 }
 
-function getStepSize(name) {
-  if (name.includes("disk") || name.includes("memory")) {
-    return 1000;
+function displayValue(value, units) {
+  if (value == null) return 1;
+  if (units == "MB") {
+    return value / 1000;
   }
-  return 1;
+  if (units == "seconds") {
+    return value / 3600;
+  }
+  return value;
+}
+
+function displayUnits(units) {
+  if (units == "MB") {
+    return "GB";
+  }
+  if (units == "seconds") {
+    return "hours";
+  }
+  return units;
+}
+
+function internalValue(value, units) {
+  if (value == null) return value;
+  if (units == "MB") {
+    return value * 1000;
+  }
+  if (units == "seconds") {
+    return value * 3600;
+  }
+  return value;
 }
