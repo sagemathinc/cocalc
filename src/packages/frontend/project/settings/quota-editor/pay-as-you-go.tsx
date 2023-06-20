@@ -4,19 +4,17 @@
  */
 
 import { CSSProperties, useEffect, useMemo, useState } from "react";
-import { Alert, Button, Card, Tag } from "antd";
+import { Alert, Button, Card, Popconfirm, Tag } from "antd";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import QuotaRow from "./quota-row";
 import Information from "./information";
-import {
-  ProjectQuota,
-  PROJECT_QUOTA_KEYS,
-} from "@cocalc/util/db-schema/purchase-quotas";
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import { useRedux, redux } from "@cocalc/frontend/app-framework";
 import CostPerHour from "./cost-per-hour";
 import { getPricePerHour } from "@cocalc/util/purchases/project-quotas";
+import { copy_without } from "@cocalc/util/misc";
 
 // These correspond to dedicated RAM and dedicated CPU, and we
 // found them too difficult to cost out, so exclude them (only
@@ -76,22 +74,8 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     }
   }, [editing]);
 
-  function handleClose() {
+  async function handleCancel() {
     setEditing(false);
-  }
-
-  async function handleStop() {
-    const quota = { ...quotaState, enabled: 0 };
-    setQuotaState(quota);
-    await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
-      project_id,
-      quota
-    );
-    const actions = redux.getActions("projects");
-    await actions.stop_project(project_id);
-  }
-
-  async function handleSave() {
     if (quotaState == null) return;
     try {
       setStatus("Saving...");
@@ -105,6 +89,58 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     } finally {
       setStatus("");
     }
+  }
+
+  async function handleStop() {
+    const quota = { ...quotaState, enabled: 0 };
+    setQuotaState(quota);
+    await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
+      project_id,
+      quota
+    );
+    const actions = redux.getActions("projects");
+    await actions.stop_project(project_id);
+  }
+
+  function handlePreset(preset) {
+    if (maxQuotas == null) return;
+    let x;
+    if (preset == "max") {
+      x = maxQuotas;
+    } else if (preset == "min") {
+      x = {
+        member_host: 0,
+        network: 0,
+        cores: 1,
+        memory: 1000,
+        disk_quota: 1000,
+      };
+    } else if (preset == "medium") {
+      x = {
+        member_host: 1,
+        network: 1,
+        cores: 2,
+        memory: 8000,
+        disk_quota: 4000,
+        mintime: 7200,
+      };
+    } else if (preset == "large") {
+      x = {
+        member_host: 1,
+        network: 1,
+        always_running: 1,
+        cores: 3,
+        memory: 10000,
+        disk_quota: 6000,
+      };
+    }
+    x = copy_without(x, Array.from(EXCLUDE));
+    for (const key in x) {
+      if (maxQuotas[key] != null && maxQuotas[key] < x[key]) {
+        x[key] = maxQuotas[key];
+      }
+    }
+    setQuotaState(x);
   }
 
   async function handleRun() {
@@ -140,18 +176,18 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     }
   }
 
-  // Returns true if the admin inputs are valid, i.e.
-  //    - at least one has changed
-  //    - none are negative
-  //    - none are empty
-  function isModified(): boolean {
-    for (const key of PROJECT_QUOTA_KEYS) {
-      if ((savedQuotaState?.[key] ?? 0) != (quotaState?.[key] ?? 0)) {
-        return true;
-      }
-    }
-    return false;
-  }
+  //   // Returns true if the admin inputs are valid, i.e.
+  //   //    - at least one has changed
+  //   //    - none are negative
+  //   //    - none are empty
+  //   function isModified(): boolean {
+  //     for (const key of PROJECT_QUOTA_KEYS) {
+  //       if ((savedQuotaState?.[key] ?? 0) != (quotaState?.[key] ?? 0)) {
+  //         return true;
+  //       }
+  //     }
+  //     return false;
+  //   }
 
   if (editing && (quotaState == null || savedQuotaState == null)) {
     return <Loading />;
@@ -191,7 +227,8 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           {runningWithUpgrade ? (
             <div>
               This project is currently running with a pay as you go upgrades
-              that you purchased. You are being charged by the second.
+              that you purchased. You are being charged by the second only for
+              usage while the project is running.
               <br />
               <Button
                 size="large"
@@ -203,7 +240,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
             </div>
           ) : (
             <Button onClick={() => setEditing(!editing)}>
-              Temporarily increase your RAM, CPU, or disk...
+              Temporarily increase your RAM, CPU, disk, ...
             </Button>
           )}
         </>
@@ -211,25 +248,6 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       {editing && (
         <>
           {error && <Alert type="error" showIcon description={error} />}
-          {/*<Alert
-            type={!!quotaState?.enabled ? "success" : "info"}
-            message={!!quotaState?.enabled ? "Enabled" : "Disabled"}
-            description={
-              <>
-                <Checkbox
-                  checked={!!quotaState?.enabled}
-                  onChange={(e) =>
-                    setQuotaState({
-                      ...quotaState,
-                      enabled: e.target.checked ? 1 : 0,
-                    })
-                  }
-                >
-                  Increase quotas to at least the values below when you start
-                  this project.
-                </Checkbox>
-              </>}/>
-            */}
           {PROJECT_UPGRADES.field_order
             .filter((name) => !EXCLUDE.has(name))
             .map((name) => (
@@ -244,21 +262,59 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           <div style={{ margin: "15px 0" }}>
             {editing && (
               <>
-                <Button onClick={handleClose}>Close</Button>
-                <Button
-                  style={{ marginLeft: "8px" }}
-                  disabled={!isModified()}
-                  onClick={handleSave}
+                <div style={{ float: "right", marginTop: "5px" }}>
+                  <Tag
+                    icon={<Icon name="battery-quarter" />}
+                    style={{ cursor: "pointer" }}
+                    color="blue"
+                    onClick={() => handlePreset("min")}
+                  >
+                    Min
+                  </Tag>
+                  <Tag
+                    icon={<Icon name="battery-half" />}
+                    style={{ cursor: "pointer" }}
+                    color="blue"
+                    onClick={() => handlePreset("medium")}
+                  >
+                    Medium
+                  </Tag>
+                  <Tag
+                    icon={<Icon name="battery-three-quarters" />}
+                    style={{ cursor: "pointer" }}
+                    color="blue"
+                    onClick={() => handlePreset("large")}
+                  >
+                    Large
+                  </Tag>
+                  <Tag
+                    icon={<Icon name="battery-full" />}
+                    style={{ cursor: "pointer" }}
+                    color="blue"
+                    onClick={() => handlePreset("max")}
+                  >
+                    Max
+                  </Tag>
+                </div>
+                <Button onClick={handleCancel}>Cancel</Button>
+                <Popconfirm
+                  title="Run project with exactly these quotas?"
+                  description={
+                    <div style={{ width: "350px" }}>
+                      Project will restart with quotas applied. You will be
+                      charged by the second for usage during this session only,
+                      and can stop your project at any time. <br />
+                      NOTE: No licenses will be applied.
+                    </div>
+                  }
+                  onConfirm={handleRun}
+                  okText="Run"
+                  cancelText="No"
                 >
-                  <Icon name="save" /> Save
-                </Button>
-                <Button
-                  style={{ marginLeft: "8px" }}
-                  type="primary"
-                  onClick={handleRun}
-                >
-                  <Icon name="save" /> Start project with these upgrades
-                </Button>
+                  <Button style={{ marginLeft: "8px" }} type="primary">
+                    <Icon name="save" /> Run project with above quotas...
+                  </Button>
+                </Popconfirm>
               </>
             )}
           </div>

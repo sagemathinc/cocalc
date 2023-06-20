@@ -29,8 +29,11 @@ export function getPricePerHour(
     price /= price_per_month.member_host;
   }
 
-  // disk price doesn't depend on member or not
-  price += ((quota.disk_quota ?? 1000) * price_per_month.disk_quota) / 1000;
+  // disk price doesn't depend on member or not.
+  // The first 3GB are included for free.
+  if (quota.disk_quota && quota.disk_quota > 3000) {
+    price += ((quota.disk_quota - 3000) * price_per_month.disk_quota) / 1000;
+  }
 
   // convert from month to hour
   price /= 24 * 30.5;
