@@ -90,6 +90,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   private command?: string;
   private args?: string[];
+  private workingDir?: string;
 
   private fitAddon: FitAddon;
   private webLinksAddon: WebLinksAddon;
@@ -102,7 +103,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     id: string,
     parent: HTMLElement,
     command?: string,
-    args?: string[]
+    args?: string[],
+    workingDir?: string
   ) {
     bind_methods(this);
     this.ask_for_cwd = debounce(this.ask_for_cwd);
@@ -118,6 +120,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.path = actions.path;
     this.command = command;
     this.args = args;
+    this.workingDir = workingDir;
     this.rendererType = "canvas";
     const cmd = command ? "-" + replace_all(command, "/", "-") : "";
     // This is the one and only place number is used.
@@ -278,6 +281,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       }
       if (this.args != null) {
         options.args = this.args;
+      }
+      if (this.workingDir != null) {
+        options.workingDir = this.workingDir;
       }
       options.env = this.actions.get_term_env();
       options.path = this.path;

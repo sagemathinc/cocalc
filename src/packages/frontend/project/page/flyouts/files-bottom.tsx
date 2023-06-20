@@ -8,7 +8,10 @@ import { Button, Collapse, Descriptions, Popover, Space } from "antd";
 import immutable from "immutable";
 import { debounce } from "lodash";
 
-import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
+import {
+  Button as BSButton,
+  ButtonGroup,
+} from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   useActions,
@@ -21,16 +24,26 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { ConnectionStatus } from "@cocalc/frontend/app/store";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
-import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { ConnectionStatusIcon } from "@cocalc/frontend/frame-editors/frame-tree/title-bar";
+import { open_new_tab } from "@cocalc/frontend/misc";
 import {
   ACTION_BUTTONS_DIR,
   ACTION_BUTTONS_FILE,
   ACTION_BUTTONS_MULTI,
+  isDisabledSnapshots,
 } from "@cocalc/frontend/project/explorer/action-bar";
+import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
+import {
+  DirectoryListing,
+  DirectoryListingEntry,
+  FileMap,
+} from "@cocalc/frontend/project/explorer/types";
+import { url_href } from "@cocalc/frontend/project/utils";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import {
+  filename_extension,
   human_readable_size,
   path_split,
   path_to_file,
@@ -55,7 +68,7 @@ type PanelKey = (typeof PANEL_KEYS)[number];
 interface FilesBottomProps {
   project_id: string;
   checked_files: immutable.Set<string>;
-  directoryFiles: any;
+  directoryData: [DirectoryListing, FileMap];
   projectIsRunning: boolean;
   rootHeightPx: number;
   open: (
@@ -63,24 +76,29 @@ interface FilesBottomProps {
     index: number,
     skip?: boolean
   ) => void;
+  showFileSharingDialog(file): void;
 }
 
 export function FilesBottom({
   project_id,
   checked_files,
-  directoryFiles,
+  directoryData,
   projectIsRunning,
   rootHeightPx,
   open,
+  showFileSharingDialog,
 }: FilesBottomProps) {
+  const [directoryFiles, fileMap] = directoryData;
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
   const [activeKeys, setActiveKeys] = useState<PanelKey[]>([]);
   const [resize, setResize] = useState<number>(0);
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
   const [connectionStatus, setConectionStatus] = useState<
     ConnectionStatus | ""
   >("");
-  const [terminalFontSize, setTerminalFontSize] = useState<number>(11);
+  const [terminalFontSize, setTerminalFontSizeValue] = useState<number>(11);
   const [terminalTitle, setTerminalTitle] = useState<string>("");
   const [syncPath, setSyncPath] = useState<number>(0);
   const [sync, setSync] = useState<boolean>(true);
@@ -92,10 +110,18 @@ export function FilesBottom({
     trailing: true,
   });
 
-  function getFile(name: string) {
-    // TODO optimize this O(n) search, but for now it's fine, though
+  function setTerminalFontSize(next: number | Function) {
+    const sani = (val) => Math.round(Math.min(18, Math.max(6, val)));
+    if (typeof next === "number") {
+      setTerminalFontSizeValue(sani(next));
+    } else {
+      setTerminalFontSizeValue((s) => sani(next(s)));
+    }
+  }
+
+  function getFile(name: string): DirectoryListingEntry | undefined {
     const basename = path_split(name).tail;
-    return directoryFiles.find((f) => f.name === basename);
+    return fileMap[basename];
   }
 
   useEffect(() => {
@@ -161,45 +187,39 @@ export function FilesBottom({
 
   function renderButtons(names) {
     return (
-      <ButtonGroup
-        style={{
-          width: "100%",
-        }}
-      >
+      <Space direction="horizontal">
         {renderOpenFile()}
-        {names.map((name) => {
-          const disabled =
-            [
-              "move",
-              "compress",
-              "rename",
-              "delete",
-              "share",
-              "duplicate",
-            ].includes(name) &&
-            (current_path?.startsWith(".snapshots") ?? false);
+        <Space.Compact size="small">
+          {names.map((name) => {
+            const disabled =
+              isDisabledSnapshots(name) &&
+              (current_path?.startsWith(".snapshots") ?? false);
 
-          const { name: actionName, icon, hideFlyout } = FILE_ACTIONS[name];
-          if (hideFlyout) return;
-          return (
-            <Popover key={name} content={`${actionName}...`}>
-              <Button
-                size="small"
-                key={name}
-                disabled={disabled}
-                onClick={() => {
-                  actions?.set_file_action(
-                    name,
-                    () => path_split(checked_files.first()).tail
-                  );
-                }}
-              >
-                <Icon name={icon} />
-              </Button>
-            </Popover>
-          );
-        })}
-      </ButtonGroup>
+            const { name: actionName, icon, hideFlyout } = FILE_ACTIONS[name];
+            if (hideFlyout) return;
+            return (
+              <Popover key={name} content={`${actionName}...`}>
+                <Button
+                  size="small"
+                  key={name}
+                  disabled={disabled}
+                  onClick={() => {
+                    // TODO re-using the existing controls is a stopgap. make this part of the flyouts.
+                    actions?.set_active_tab("files");
+                    actions?.set_file_action(
+                      name,
+                      () => path_split(checked_files.first()).tail
+                    );
+                  }}
+                >
+                  <Icon name={icon} />
+                </Button>
+              </Popover>
+            );
+          })}
+        </Space.Compact>
+        {renderDownloadViewFile()}
+      </Space>
     );
   }
 
@@ -231,6 +251,63 @@ export function FilesBottom({
     );
   }
 
+  function renderDownloadViewFile() {
+    if (!singleFile) return;
+    const { name, isdir, size = 0 } = singleFile;
+    if (isdir) return;
+    const full_path = path_to_file(current_path, name);
+    const ext = (filename_extension(name) ?? "").toLowerCase();
+    const showView = VIEWABLE_FILE_EXT.includes(ext);
+    // the "href" part makes the link right-click copyable
+    const url = url_href(project_id, full_path);
+    const showDownload = !student_project_functionality.disableActions;
+    const sizeStr = human_readable_size(size);
+
+    return (
+      <Space.Compact size="small">
+        {showDownload ? (
+          <Popover
+            content={
+              <>
+                <Icon name="cloud-download" /> Download this {sizeStr} file
+                <br />
+                to your own computer.
+              </>
+            }
+          >
+            <Button
+              size="small"
+              href={`${url_href}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                actions?.download_file({
+                  path: full_path,
+                  log: true,
+                });
+              }}
+              icon={<Icon name="cloud-download" />}
+            />
+          </Popover>
+        ) : undefined}
+        {showView ? (
+          <Popover content="View file in new tab">
+            <Button
+              size="small"
+              href={url}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                open_new_tab(url);
+              }}
+              icon={<Icon name="eye" />}
+            />
+          </Popover>
+        ) : undefined}
+      </Space.Compact>
+    );
+  }
+
   function renderFileInfo() {
     if (singleFile != null) {
       const { size, mtime, isdir } = singleFile;
@@ -251,6 +328,20 @@ export function FilesBottom({
               {human_readable_size(size)}
             </Descriptions.Item>
           )}
+          {singleFile.is_public ? (
+            <Descriptions.Item label="Published">
+              <Button
+                size="small"
+                icon={<Icon name="share-square" />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  showFileSharingDialog(singleFile);
+                }}
+              >
+                configure
+              </Button>
+            </Descriptions.Item>
+          ) : undefined}
         </Descriptions>
       );
     }
@@ -259,10 +350,10 @@ export function FilesBottom({
     if (checked_files.size > 1) {
       let [totSize, startDT, endDT] = [0, new Date(0), new Date(0)];
       for (const f of checked_files) {
-        const file = directoryFiles.find((x) => x.name === f);
+        const file = getFile(f);
         if (file == null) continue;
-        const { size, mtime } = file;
-        totSize += size;
+        const { size = 0, mtime, isdir } = file;
+        totSize += isdir ? 0 : size;
         if (typeof mtime === "number") {
           const dt = new Date(1000 * mtime);
           if (startDT.getTime() === 0 || dt < startDT) startDT = dt;
@@ -278,7 +369,7 @@ export function FilesBottom({
           {startDT.getTime() > 0 ? (
             <Descriptions.Item label="Modified" span={1}>
               <div>
-                <TimeAgo date={startDT} /> to <TimeAgo date={endDT} />
+                <TimeAgo date={startDT} /> – <TimeAgo date={endDT} />
               </div>
             </Descriptions.Item>
           ) : undefined}
@@ -293,7 +384,7 @@ export function FilesBottom({
         {singleFile
           ? singleFile.isdir
             ? renderButtons(ACTION_BUTTONS_DIR)
-            : renderButtons(ACTION_BUTTONS_FILE)
+            : renderButtons(ACTION_BUTTONS_FILE.filter((n) => n !== "download"))
           : checked_files.size > 1
           ? renderButtons(ACTION_BUTTONS_MULTI)
           : undefined}
@@ -306,9 +397,8 @@ export function FilesBottom({
     if (checked_files.size === 0) {
       let totSize = 0;
       for (const f of directoryFiles) {
-        if (!f.isdir) totSize += f.size;
+        if (!f.isdir) totSize += f.size ?? 0;
       }
-
       return (
         <div style={PANEL_STYLE}>
           No files selected. Total size {human_readable_size(totSize)}.
@@ -358,14 +448,19 @@ export function FilesBottom({
 
   function terminalHeader() {
     return (
-      <>
-        <Icon name="terminal" /> Terminal {trunc_middle(terminalTitle, 20)}
-      </>
+      <span style={{ whiteSpace: "nowrap" }}>
+        <Icon name="terminal" />{" "}
+        {connectionStatus === "connected"
+          ? trunc_middle(terminalTitle, 15)
+          : "Terminal"}
+      </span>
     );
   }
 
   function renderTerminalExtra() {
-    const disabled = !activeKeys.includes("terminal");
+    const shown = activeKeys.includes("terminal");
+    if (!shown) return;
+    const disabled = connectionStatus !== "connected";
     return (
       <Space size="small" direction="horizontal">
         {connectionStatus !== "" ? (
@@ -383,7 +478,7 @@ export function FilesBottom({
                 setTerminalFontSize((s) => s - 1);
               }}
             >
-              <Icon name="minus" />
+              A-
             </Button>
           </Popover>
           <Popover content="Increase font size">
@@ -395,7 +490,7 @@ export function FilesBottom({
                 setTerminalFontSize((s) => s + 1);
               }}
             >
-              <Icon name="plus" />
+              A+
             </Button>
           </Popover>
         </ButtonGroup>
@@ -412,19 +507,18 @@ export function FilesBottom({
               <Icon name="arrow-down" />
             </Button>
           </Popover>
-          <Popover content="Sync directory">
-            <BSButton
-              bsSize="xsmall"
-              active={sync}
-              disabled={disabled}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSync((s) => !s);
-              }}
-            >
-              <Icon name="swap" rotate={"90"} />
-            </BSButton>
-          </Popover>
+          <BSButton
+            bsSize="xsmall"
+            active={sync}
+            disabled={disabled}
+            title={"Sync directories between terminal and file listing"}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSync((s) => !s);
+            }}
+          >
+            <Icon name="swap" rotate={"90"} />
+          </BSButton>
         </ButtonGroup>
       </Space>
     );
@@ -438,7 +532,9 @@ export function FilesBottom({
           onClick={(e) => {
             e.stopPropagation();
             actions?.set_file_list_checked(
-              directoryFiles.map((f) => path_to_file(current_path, f.name))
+              directoryFiles
+                .filter((f) => f.name !== "..")
+                .map((f) => path_to_file(current_path, f.name))
             );
           }}
         >

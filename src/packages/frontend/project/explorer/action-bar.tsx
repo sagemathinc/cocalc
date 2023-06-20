@@ -186,9 +186,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
 
   function render_action_button(name: string): JSX.Element {
     const disabled =
-      ["move", "compress", "rename", "delete", "share", "duplicate"].includes(
-        name
-      ) &&
+      isDisabledSnapshots(name) &&
       (props.current_path != null
         ? props.current_path.startsWith(".snapshots")
         : undefined);
@@ -323,3 +321,14 @@ export const ACTION_BUTTONS_MULTI = [
   "move",
   "copy",
 ] as const;
+
+export function isDisabledSnapshots(name: string) {
+  return [
+    "move",
+    "compress",
+    "rename",
+    "delete",
+    "share",
+    "duplicate",
+  ].includes(name);
+}

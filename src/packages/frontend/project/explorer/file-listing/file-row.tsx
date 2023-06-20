@@ -20,7 +20,7 @@ import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
 import track from "@cocalc/frontend/user-tracking";
 
-const VIEWABLE_FILE_EXT: Readonly<string[]> = [
+export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
   "md",
   "txt",
   "html",

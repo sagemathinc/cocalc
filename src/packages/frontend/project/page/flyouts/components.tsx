@@ -8,7 +8,7 @@ import {
   orange as ANTD_ORANGE,
   yellow as ANTD_YELLOW,
 } from "@ant-design/colors";
-import { Button, Tooltip } from "antd";
+import { Button, Popover, Tooltip } from "antd";
 
 import { CSS, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -65,9 +65,16 @@ const FILE_ITEM_LINE_STYLE: CSS = {
 
 const ICON_STYLE: CSS = { fontSize: "120%", marginRight: "5px" } as const;
 
+const BTN_STYLE: CSS = {
+  fontSize: "11px",
+  height: "20px",
+  width: "20px",
+} as const;
+
 interface Item {
   isopen?: boolean;
   isactive?: boolean;
+  is_public?: boolean;
   name: string;
 }
 
@@ -75,6 +82,8 @@ interface FileListItemProps {
   onClick?: (e: React.MouseEvent) => void;
   onClose?: (e: React.MouseEvent | undefined, name: string) => void;
   onOpen?: (e: React.MouseEvent) => void;
+  onPublic?: (e: React.MouseEvent) => void;
+  onMouseDown?: (e: React.MouseEvent) => void;
   itemStyle?: CSS;
   item: Item;
   renderIcon: (item: Item, style: CSS) => JSX.Element;
@@ -87,11 +96,13 @@ export function FileListItem({
   onClick,
   onClose,
   onOpen,
+  onPublic,
   item,
   renderIcon,
   itemStyle,
   tooltip,
   selected,
+  onMouseDown,
   multiline = false,
 }: FileListItemProps): JSX.Element {
   const itemRef = useRef<HTMLDivElement>(null);
@@ -116,13 +127,31 @@ export function FileListItem({
       <Button
         size="small"
         type="primary"
-        style={{ fontSize: "11px", height: "20px", width: "20px" }}
+        style={BTN_STYLE}
         icon={<Icon name="external-link" />}
         onClick={(e) => {
           e.stopPropagation();
           onOpen?.(e);
         }}
       />
+    );
+  }
+
+  function renderPublishedIcon(): JSX.Element | undefined {
+    if (!item.is_public) return undefined;
+    return (
+      <Popover content="File is published" placement="right">
+        <Button
+          size="small"
+          type="ghost"
+          style={BTN_STYLE}
+          icon={<Icon name="bullhorn" />}
+          onClick={(e) => {
+            e.stopPropagation();
+            onPublic?.(e);
+          }}
+        />
+      </Popover>
     );
   }
 
@@ -149,8 +178,13 @@ export function FileListItem({
 
   function renderBody(): JSX.Element {
     const el = (
-      <div ref={bodyRef} style={FILE_ITEM_BODY_STYLE} onClick={handleClick}>
-        {renderIcon(item, ICON_STYLE)} {renderItem()}
+      <div
+        ref={bodyRef}
+        style={FILE_ITEM_BODY_STYLE}
+        onClick={handleClick}
+        onMouseDown={onMouseDown}
+      >
+        {renderIcon(item, ICON_STYLE)} {renderItem()} {renderPublishedIcon()}
         {item.isopen
           ? renderCloseItem(item)
           : selected

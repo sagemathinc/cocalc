@@ -34,6 +34,7 @@ interface Terminal {
     command?: string;
     args?: string[];
     env?: { [key: string]: string };
+    cwd?: string; // if not set, the cwd is directory of "path"
   };
   size?: any;
   term?: any; // node-pty
@@ -55,11 +56,26 @@ export function pid2path(pid: number): string | undefined {
   }
 }
 
+function getCWD(path_head, cwd?): string {
+  // working dir can be set explicitly, and either be an empty string or $HOME
+  if (cwd != null) {
+    const HOME = process.env.HOME ?? "/home/user";
+    if (cwd === "") {
+      return HOME;
+    } else if (cwd.startsWith("$HOME")) {
+      return cwd.replace("$HOME", HOME);
+    } else {
+      return cwd;
+    }
+  }
+  return path_head;
+}
+
 export async function terminal(
   primus: any,
   logger: any,
   path: string,
-  options: any
+  options: Terminal["options"]
 ): Promise<string> {
   const name = `${PREFIX}${path}`;
   if (terminals[name] !== undefined) {
@@ -114,7 +130,7 @@ export async function terminal(
     }
 
     const command = options.command ? options.command : "/bin/bash";
-    const cwd = path_head;
+    const cwd = getCWD(path_head, options.cwd);
 
     try {
       terminals[name].history = (await callback(readFile, path)).toString();

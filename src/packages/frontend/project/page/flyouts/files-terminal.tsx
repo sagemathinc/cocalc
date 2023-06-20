@@ -26,6 +26,20 @@ import { background_color } from "@cocalc/frontend/frame-editors/terminal-editor
 import { escapeBashChangeDirPath } from "@cocalc/util/jupyter-api/chdir-commands";
 import { sha1 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { ConnectionStatus } from "@cocalc/frontend/app/store";
+
+interface TerminalFlyoutProps {
+  project_id: string;
+  font_size: number;
+  resize: number;
+  is_visible: boolean;
+  setConectionStatus: (status: ConnectionStatus | "") => void;
+  heightPx: string;
+  setTerminalFontSize: (f: (size: number) => number) => void;
+  setTerminalTitle: (title: string) => void;
+  syncPath: number;
+  sync: boolean;
+}
 
 // This is modeled after frame-editors/terminal-editor/terminal.tsx
 export function TerminalFlyout({
@@ -39,7 +53,7 @@ export function TerminalFlyout({
   setTerminalTitle,
   syncPath,
   sync,
-}) {
+}: TerminalFlyoutProps) {
   const actions = useActions({ project_id });
   const current_path = useTypedRedux({ project_id }, "current_path");
   const currentPathRef = useRef<string>(current_path);
@@ -52,10 +66,15 @@ export function TerminalFlyout({
     useStudentProjectFunctionality(project_id);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const syncRef = useRef<boolean>(sync);
 
   useEffect(() => {
     currentPathRef.current = current_path;
   }, [current_path]);
+
+  useEffect(() => {
+    syncRef.current = sync;
+  }, [sync]);
 
   // Design decision:
   // One terminal per project, one for each user, and persistent across flyout open/close.
@@ -77,8 +96,10 @@ export function TerminalFlyout({
     terminalRef.current = undefined;
   }
 
-  function get_terminal(id: string, parent: HTMLElement): Terminal {
-    const mockActions: ConnectedTerminalInterface = {
+  function getMockTerminalActions(): ConnectedTerminalInterface {
+    // NOTE: this object captures the initial state and does not react to changes
+    // That's why there are some references and functional state updates in play.
+    return {
       project_id,
       path: terminal_path,
       get_term_env() {
@@ -105,7 +126,7 @@ export function TerminalFlyout({
         setTerminalFontSize((prev) => prev + 1);
       },
       set_terminal_cwd(_id, payload) {
-        if (!sync) return;
+        if (!syncRef.current) return;
         // ignored, default location
         if (payload === "/tmp") return;
         if (currentPathRef.current != payload) {
@@ -127,14 +148,19 @@ export function TerminalFlyout({
         actions?.open_file(path);
       },
     };
+  }
+
+  function getTerminal(id: string, parent: HTMLElement): Terminal {
     const newTerminal = new Terminal(
-      mockActions as any, // this is "fine" because of the shared ConnectedTerminalInterface
+      getMockTerminalActions() as any, // this is "fine" because of the shared ConnectedTerminalInterface
       0,
       id,
       parent,
-      "bash",
-      []
+      undefined,
+      undefined,
+      "", // cwd=home directory, we'll send cd commands later
     );
+    console.log("getTerminal", `$HOME/${currentPathRef.current}`);
     newTerminal.connect();
     return newTerminal;
   }
@@ -147,7 +173,7 @@ export function TerminalFlyout({
       return;
     }
     try {
-      terminalRef.current = get_terminal(id, node);
+      terminalRef.current = getTerminal(id, node);
     } catch (err) {
       return; // not yet ready -- might be ok
     }
