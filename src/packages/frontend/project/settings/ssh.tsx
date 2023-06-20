@@ -11,6 +11,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { replace } from "lodash";
 import { Project } from "./types";
 import { Typography } from "antd";
+import CopyToClipBoard from "@cocalc/frontend/components/copy-to-clipboard";
 
 const { Text, Paragraph } = Typography;
 
@@ -54,16 +55,14 @@ export function SSHPanel({ project }: Props) {
           Use the following <Text code>username@host</Text> to connect to this
           project:
         </Paragraph>
-        <Paragraph
-          copyable={{ text }}
-          style={{
-            textAlign: "center",
-            fontSize: "115%",
-          }}
-        >
-          <Text strong code>
-            {text}
-          </Text>
+        <Paragraph>
+          <CopyToClipBoard
+            style={{
+              textAlign: "center",
+            }}
+            value={text}
+            inputStyle={{ margin: "auto" }}
+          />
         </Paragraph>
         {render_fingerprint()}
         <Paragraph>
