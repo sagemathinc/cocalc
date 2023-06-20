@@ -13,7 +13,7 @@ import {
 } from "@cocalc/util/db-schema/purchase-quotas";
 import ServiceTag from "./service";
 import { to_money } from "@cocalc/util/misc";
-import Quotas from "./all-quotas-config";
+import Quotas, { PRESETS, Preset, STEP } from "./all-quotas-config";
 import GlobalQuota from "./global-quota";
 import Balance from "./balance";
 
@@ -73,6 +73,8 @@ export default function QuotaConfig({
             <InputNumber
               style={{ width: "200px" }}
               min={0}
+              step={STEP}
+              value={inputValue}
               defaultValue={quotas.services[service] ?? 0}
               formatter={(value) =>
                 `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
@@ -93,6 +95,18 @@ export default function QuotaConfig({
                 </Button>
               }
             />
+            <div style={{ marginLeft: "15px" }}>
+              {PRESETS.filter((amount) => amount > 0).map((amount) => (
+                <Preset
+                  key={amount}
+                  index={0}
+                  amount={amount}
+                  handleQuotaChange={(_, amount) => {
+                    setInputValue(amount);
+                  }}
+                />
+              ))}
+            </div>
           </Space>
         )}
         {error && <Alert type="error" description={error} />}

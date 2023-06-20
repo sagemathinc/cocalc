@@ -5,17 +5,16 @@ import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 export interface QuotaDescription {
   quota: number;
   why: string;
-  increase: "account" | "support" | "add-card" | "verify-email"; // used in frontend ui, so don't change willy nilly!
+  increase: "account" | "support" | "verify-email" | "credit"; // used in frontend ui, so don't change willy nilly!
 }
 
-// This is the overall max quota for the user.   Their
-// quota for each service is also bounded by this value.
+// This is the overall max quota for the user, called the "Spending Limit" in the UI.
 export default async function getQuota(
   account_id: string
 ): Promise<QuotaDescription> {
   const pool = getPool("short");
   const { rows } = await pool.query(
-    "SELECT purchase_quota, stripe_customer#>'{sources,data}' as stripe_sources, email_address_verified, email_address FROM accounts WHERE account_id=$1",
+    "SELECT purchase_quota, email_address_verified, email_address FROM accounts WHERE account_id=$1",
     [account_id]
   );
   if (rows.length == 0) {
@@ -25,12 +24,7 @@ export default async function getQuota(
       increase: "account",
     };
   }
-  const {
-    purchase_quota,
-    stripe_sources,
-    email_address_verified,
-    email_address,
-  } = rows[0];
+  const { purchase_quota, email_address_verified, email_address } = rows[0];
   if (purchase_quota) {
     // a quota that was set by an admin, etc.
     return {
@@ -39,42 +33,43 @@ export default async function getQuota(
       increase: "support",
     };
   }
-  if (!hasValidCard(stripe_sources)) {
-    // if no stripe credit card on file that passes a check, so definitely no purchases allowed.
+
+  const {
+    pay_as_you_go_spending_limit,
+    pay_as_you_go_spending_limit_with_verified_email,
+    pay_as_you_go_spending_limit_with_credit,
+    verify_emails,
+  } = await getServerSettings();
+
+  if (await hasCredit(account_id)) {
     return {
-      quota: 0,
-      why: "You have no credit card on file that passes a check.  Add a valid credit card.",
-      increase: "add-card",
+      quota: pay_as_you_go_spending_limit_with_credit,
+      why: "Account received a payment. Thanks!",
+      increase: "support",
     };
   }
-  const { default_pay_as_you_go_quota, verify_emails } =
-    await getServerSettings();
+
   if (verify_emails && !email_address_verified?.[email_address]) {
     return {
-      quota: 0,
-      why: "Your email is not verified. Verify your email to increase your global limit.",
+      quota: pay_as_you_go_spending_limit,
+      why: "Your email address is not verified.",
       increase: "verify-email",
     };
   }
   return {
-    quota: default_pay_as_you_go_quota,
-    why: "This is the default starting limit for verified users with a card on file.",
-    increase: "support",
+    quota: pay_as_you_go_spending_limit_with_verified_email,
+    why: "Make a payment to increase your spending limit.",
+    increase: "credit",
   };
 }
 
-function hasValidCard(stripe_sources) {
-  if (!stripe_sources || stripe_sources.length == 0) {
-    // if no stripe credit card on file, then definitely no purchases allowed.
-    return false;
-  }
-  for (const source of stripe_sources) {
-    if (source.cvc_check == "pass") {
-      // have a card and it passes the cvc check
-      return true;
-    }
-  }
-  return false;
+async function hasCredit(account_id: string) {
+  const pool = getPool("long");
+  const { rows } = await pool.query(
+    "SELECT COUNT(*) AS count FROM purchases WHERE account_id=$1 AND service='credit'",
+    [account_id]
+  );
+  return rows[0].count > 0;
 }
 
 // Allow admin to get quota of another user.

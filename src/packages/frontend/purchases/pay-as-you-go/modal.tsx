@@ -9,8 +9,8 @@ import QuotaConfig from "../quota-config";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ServiceTag from "../service";
 import Cost from "./cost";
+import { load_target } from "@cocalc/frontend/history";
 
-/* must be big! 1000 for e.g., the jupyter generate modal */
 export const zIndex = 2000;
 
 export default function PayAsYouGoModal({}) {
@@ -48,8 +48,16 @@ export default function PayAsYouGoModal({}) {
       open={storeState.showModal}
       title={
         <>
-          <Icon name="credit-card" style={{ marginRight: "15px" }} /> Pay As You
-          Go for{" "}
+          <Icon name="credit-card" style={{ marginRight: "15px" }} />{" "}
+          <a
+            onClick={() => {
+              handleCancel();
+              load_target("settings/purchases");
+            }}
+          >
+            Pay As You Go
+          </a>{" "}
+          for{" "}
           <ServiceTag
             service={storeState.service as Service}
             style={{ fontSize: "16px" }}

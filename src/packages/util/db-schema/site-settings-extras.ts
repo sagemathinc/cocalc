@@ -112,7 +112,9 @@ export type SiteSettingsExtrasKeys =
   | "github_token"
   | "prometheus_metrics"
   | "pay_as_you_go_section"
-  | "default_pay_as_you_go_quota"
+  | "pay_as_you_go_spending_limit"
+  | "pay_as_you_go_spending_limit_with_verified_email"
+  | "pay_as_you_go_spending_limit_with_credit"
   | "pay_as_you_go_min_payment"
   | "pay_as_you_go_openai_markup_percentage"
   | "pay_as_you_go_max_project_upgrades"
@@ -423,10 +425,26 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     type: "header",
   },
-  default_pay_as_you_go_quota: {
-    name: "Default Pay As You Go Quota",
-    desc: "The default pay as you go purchase quota, in dollars.",
+  pay_as_you_go_spending_limit: {
+    name: "Initial Pay As You Go Spending Limit",
+    desc: "The initial default pay as you go spending limit that all accounts get, in dollars.",
     default: "0",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  pay_as_you_go_spending_limit_with_verified_email: {
+    name: "Pay As You Go Spending Limit with Verified Email",
+    desc: "The pay as you go spending limit for accounts with a verified email address.",
+    default: "5",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  pay_as_you_go_spending_limit_with_credit: {
+    name: "Pay As You Go Spending Limit with Credit",
+    desc: "The pay as you go spending limit for accounts that have ever successfully had a positive credit.",
+    default: "15",
     show: only_commercial,
     to_val: toFloat,
     valid: onlyNonnegFloat,

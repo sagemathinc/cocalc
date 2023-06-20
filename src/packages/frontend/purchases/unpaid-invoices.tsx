@@ -6,6 +6,9 @@ import { A } from "@cocalc/frontend/components/A";
 import { plural } from "@cocalc/util/misc";
 import Payment from "./payment";
 import { currency } from "./quota-config";
+import { zIndex as zIndexModal } from "./pay-as-you-go/modal";
+
+const zIndex = zIndexModal + 1;
 
 export default function UnpaidInvoices({ balance }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -49,7 +52,8 @@ export default function UnpaidInvoices({ balance }) {
   const title = (
     <>
       <Icon name="shopping-cart" style={{ marginRight: "5px" }} />
-      {unpaidInvoices.length} Unpaid {plural(unpaidInvoices.length, "Invoice")}
+      Pay {unpaidInvoices.length} Unpaid{" "}
+      {plural(unpaidInvoices.length, "Invoice")}
     </>
   );
 
@@ -66,6 +70,7 @@ export default function UnpaidInvoices({ balance }) {
         {title}...
       </Button>
       <Modal
+        zIndex={zIndex}
         okText="Done"
         title={
           <Space>

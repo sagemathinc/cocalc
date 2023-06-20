@@ -15,6 +15,7 @@ import {
   Space,
   Spin,
   Table,
+  Tag,
 } from "antd";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -22,10 +23,13 @@ import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { cloneDeep, isEqual } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
-import GlobalQuota from "./global-quota";
+import GlobalQuota, { Support } from "./global-quota";
 import { currency } from "./quota-config";
 import Balance from "./balance";
 import Cost from "./pay-as-you-go/cost";
+
+export const PRESETS = [0, 5, 20, 100];
+export const STEP = 5;
 
 interface ServiceQuota {
   service: Service;
@@ -138,24 +142,6 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       render: (service) => <ServiceTag service={service} />,
     },
     {
-      title: "Monthly Limit (USD)",
-      dataIndex: "quota",
-      align: "center" as "center",
-      render: (quota: number, _record: ServiceQuota, index: number) => (
-        <InputNumber
-          min={0}
-          value={quota}
-          onChange={(newQuota) => handleQuotaChange(index, newQuota as number)}
-          formatter={(value) => `$${value}`}
-        />
-      ),
-    },
-    {
-      title: "Cost",
-      align: "center" as "center",
-      render: (_, { service }: ServiceQuota) => <Cost service={service} />,
-    },
-    {
       title: "This Month Spend (USD)",
       dataIndex: "current",
       align: "center" as "center",
@@ -169,12 +155,57 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
         </div>
       ),
     },
+    {
+      title: "Monthly Limit (USD)",
+      dataIndex: "quota",
+      align: "center" as "center",
+      render: (quota: number, _record: ServiceQuota, index: number) => (
+        <div>
+          <InputNumber
+            min={0}
+            value={quota}
+            onChange={(newQuota) =>
+              handleQuotaChange(index, newQuota as number)
+            }
+            formatter={(value) => `$${value}`}
+            step={STEP}
+          />
+          <div style={{ marginTop: "15px" }}>
+            {PRESETS.map((amount) => (
+              <Preset
+                key={amount}
+                index={index}
+                amount={amount}
+                handleQuotaChange={handleQuotaChange}
+              />
+            ))}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "Cost",
+      align: "center" as "center",
+      render: (_, { service }: ServiceQuota) => <Cost service={service} />,
+    },
   ];
 
   return (
     <SettingBox
       icon="dashboard"
-      title={<span style={{ marginLeft: "5px" }}>Balance and Limits</span>}
+      title={
+        <span style={{ marginLeft: "5px" }}>
+          <Button
+            onClick={handleRefresh}
+            disabled={saving}
+            style={{ float: "right" }}
+          >
+            <Icon name="refresh" />
+            Refresh
+          </Button>
+          Balance and Limits
+        </span>
+      }
     >
       {error && (
         <Alert
@@ -200,12 +231,19 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
             />
             <Card
               title="Balance ≤ Spending Limit"
-              style={{ width: "300px", height: "250px", color: "#666" }}
+              style={{
+                width: "300px",
+                height: "250px",
+                color: "#666",
+              }}
             >
-              You balance is not allowed to exceed your total spending limit.
-              You can reduce your balance by making a payment, and you can raise
-              your spending limit by adding a credit card, verifying your
-              email address, or making a support request.
+              <div style={{ textAlign: "left" }}>
+                <p>Your balance can't exceed your spending limit. </p>
+                <p>
+                  Reduce your balance by making a payment. Raise your spending
+                  limit by <Support>making a support request</Support>.
+                </p>
+              </div>
             </Card>
           </Space>
         </div>
@@ -213,9 +251,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       <Card
         style={{ margin: "15px 0", overflow: "auto" }}
         title={
-          <>
-            Monthly limits are self-imposed caps you set to prevent overspending
-          </>
+          <>The Monthly Limit is a self-imposed caps to prevent overspending</>
         }
       >
         <div style={{ marginBottom: "15px" }}>
@@ -233,10 +269,6 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
               {saving && <Spin style={{ marginLeft: "15px" }} delay={500} />}
             </Button>
           </Button.Group>
-          <Button onClick={handleRefresh} disabled={saving}>
-            <Icon name="refresh" />
-            Refresh
-          </Button>
         </div>
         {serviceQuotas != null ? (
           <Table
@@ -252,5 +284,17 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
         )}
       </Card>
     </SettingBox>
+  );
+}
+
+export function Preset({ index, amount, handleQuotaChange }) {
+  return (
+    <Tag
+      style={{ cursor: "pointer" }}
+      color="blue"
+      onClick={() => handleQuotaChange(index, amount)}
+    >
+      ${amount}
+    </Tag>
   );
 }

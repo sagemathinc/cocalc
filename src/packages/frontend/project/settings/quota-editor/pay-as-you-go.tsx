@@ -15,6 +15,7 @@ import { useRedux, redux } from "@cocalc/frontend/app-framework";
 import CostPerHour from "./cost-per-hour";
 import { getPricePerHour } from "@cocalc/util/purchases/project-quotas";
 import { copy_without } from "@cocalc/util/misc";
+import { load_target } from "@cocalc/frontend/history";
 
 // These correspond to dedicated RAM and dedicated CPU, and we
 // found them too difficult to cost out, so exclude them (only
@@ -74,7 +75,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     }
   }, [editing]);
 
-  async function handleCancel() {
+  async function handleClose() {
     setEditing(false);
     if (quotaState == null) return;
     try {
@@ -165,7 +166,24 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           cost
         );
       if (!allowed) {
-        throw Error(reason);
+        await webapp_client.purchases_client.quotaModal({
+          service: "project-upgrade",
+          reason,
+          allowed,
+          cost,
+        });
+        {
+          // Check again, since result of modal may not be sufficient.
+          // This time if not allowed, will show an error.
+          const { allowed, reason } =
+            await webapp_client.purchases_client.isPurchaseAllowed(
+              "project-upgrade",
+              cost
+            );
+          if (!allowed) {
+            throw Error(reason);
+          }
+        }
       }
 
       await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
@@ -231,28 +249,31 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           {editing && <div>You will be charged by the second.</div>}
         </div>
       )}
-      {!editing && (
-        <>
-          {runningWithUpgrade ? (
-            <div>
-              This project is currently running with a pay as you go upgrades
-              that you purchased. You are being charged by the second only for
-              usage while the project is running.
-              <br />
-              <Button
-                size="large"
-                onClick={handleStop}
-                style={{ margin: "15px" }}
-              >
-                <Icon name="stop" /> Stop
-              </Button>
-            </div>
-          ) : (
-            <Button onClick={() => setEditing(!editing)}>
-              Temporarily increase your RAM, CPU, disk, ...
+      {runningWithUpgrade && (
+        <div>
+          This project is running with the quota upgrades that{" "}
+          <a
+            onClick={() => {
+              load_target("settings/purchases");
+            }}
+          >
+            you purchased
+          </a>
+          . You will be charged only while the project is running.
+          <div>
+            <Button onClick={handleStop} style={{ margin: "15px" }}>
+              <Icon name="stop" /> Stop
             </Button>
-          )}
-        </>
+            <Button onClick={() => setEditing(!editing)}>
+              {editing ? "Hide" : "Show"} Quotas
+            </Button>
+          </div>
+        </div>
+      )}
+      {!editing && !runningWithUpgrade && (
+        <Button onClick={() => setEditing(!editing)}>
+          Increase your RAM, CPU, disk, ...
+        </Button>
       )}
       {editing && (
         <>
@@ -313,7 +334,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                     Max
                   </Tag>
                 </div>
-                <Button onClick={handleCancel}>Cancel</Button>
+                <Button onClick={handleClose}>Close</Button>
                 <Popconfirm
                   title="Run project with exactly these quotas?"
                   description={
@@ -329,7 +350,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                   cancelText="No"
                 >
                   <Button style={{ marginLeft: "8px" }} type="primary">
-                    <Icon name="save" /> Run project with above quotas...
+                    <Icon name="save" /> Upgrade My Project
                   </Button>
                 </Popconfirm>
               </>
