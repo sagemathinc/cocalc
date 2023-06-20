@@ -3,11 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Input, Tooltip } from "antd";
-import { ReactNode, useEffect, useMemo, useState } from "react";
 import { CopyOutlined } from "@ant-design/icons";
-import { CSS } from "@cocalc/frontend/app-framework";
+import { Button, Input, Space, Tooltip } from "antd";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { CopyToClipboard } from "react-copy-to-clipboard";
+
+import { CSS } from "@cocalc/frontend/app-framework";
 
 interface Props {
   value: string;
@@ -59,10 +60,11 @@ export default function CopyToClipBoard({
     );
   }, [value, copied, size]);
 
-  // See https://ant.design/components/input for why using Input.Group is the
+  // ws: See https://ant.design/components/input for why using Input.Group is the
   // right way to do this.
+  // hsy: Input.Group is deprecated, using Space.Compact instead
   const input = (
-    <Input.Group compact style={{ display: "flex" }}>
+    <Space.Compact style={{ display: "flex" }}>
       <Input
         style={{
           width: inputWidth ?? `${value.length + 8}ex`,
@@ -74,7 +76,7 @@ export default function CopyToClipBoard({
         onFocus={(e) => e.target.select()}
       />
       {copy}
-    </Input.Group>
+    </Space.Compact>
   );
   if (!label) return <div style={style}>{input}</div>;
   return (
