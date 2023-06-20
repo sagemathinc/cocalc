@@ -37,7 +37,7 @@ import {
 import { MouseEventHandler } from "react";
 
 import { r_join } from "@cocalc/frontend/components/r_join";
-import { Gap } from "@cocalc/frontend/components/space";
+import { Gap } from "@cocalc/frontend/components/gap";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful

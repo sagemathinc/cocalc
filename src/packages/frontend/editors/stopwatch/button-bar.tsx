@@ -6,12 +6,12 @@
 /*
 Some buttons
 */
-
-import { Rendered } from "@cocalc/frontend/app-framework";
-import { TimeActions } from "./actions";
 import { HistoryOutlined, RedoOutlined, UndoOutlined } from "@ant-design/icons";
 import { Button } from "antd";
-import { Gap } from "@cocalc/frontend/components/space";
+
+import { Rendered } from "@cocalc/frontend/app-framework";
+import { Gap } from "@cocalc/frontend/components/gap";
+import { TimeActions } from "./actions";
 
 export function ButtonBar({ actions }: { actions: TimeActions }): JSX.Element {
   return (
