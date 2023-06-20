@@ -158,6 +158,16 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
         cost,
       };
       setQuotaState(quota);
+
+      const { allowed, reason } =
+        await webapp_client.purchases_client.isPurchaseAllowed(
+          "project-upgrade",
+          cost
+        );
+      if (!allowed) {
+        throw Error(reason);
+      }
+
       await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
         project_id,
         quota
@@ -171,7 +181,6 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       console.warn(err);
       setError(`${err}`);
     } finally {
-      setEditing(false);
       setStatus("");
     }
   }
@@ -247,7 +256,15 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       )}
       {editing && (
         <>
-          {error && <Alert type="error" showIcon description={error} />}
+          {error && (
+            <Alert
+              type="error"
+              showIcon
+              description={error}
+              closable
+              onClose={() => setError("")}
+            />
+          )}
           {PROJECT_UPGRADES.field_order
             .filter((name) => !EXCLUDE.has(name))
             .map((name) => (

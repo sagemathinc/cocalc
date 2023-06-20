@@ -16,6 +16,8 @@ This is useful for:
     laptop, e.g., when you're on an airplane.
 */
 
+import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
+
 import { kill } from "process";
 
 import {
@@ -195,8 +197,19 @@ class Project extends BaseProject {
           }
         }
       }
-      if (choice != null) {
-        run_quota = quota(settings, users, site_license, site_settings, choice);
+      if (choice != null && choice.account_id && choice.quota.cost) {
+        // Can the user actually create this purchase for at least 1 hour?
+        // If so, we do it.  Note: this already got checked on the frontend
+        // so this should only fail on the backend in rare cases (e.g., abuse),
+        // so no need to have an error message the user sees here.
+        const { allowed } = await isPurchaseAllowed({
+          account_id: choice.account_id,
+          service: "project-upgrade",
+          cost: choice.quota.cost,
+        });
+        if (allowed) {
+          run_quota = quota(settings, {}, {}, site_settings, choice);
+        }
       }
     }
 

@@ -9,7 +9,7 @@ import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import LRU from "lru-cache";
 import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Alert, Spin, Statistic, Table } from "antd";
+import { Alert, Spin, Statistic, Table, Tooltip } from "antd";
 
 const cache = new LRU<string, any>({
   max: 200,
@@ -56,7 +56,9 @@ export default function Cost({ service }: Props) {
     );
   }
 
-  if (service.startsWith("openai-gpt")) {
+  if (service == "project-upgrade") {
+    return <ProjectUpgradeCost cost={cost} />;
+  } else if (service.startsWith("openai-gpt")) {
     return (
       <OpenAiCost
         prompt_tokens={cost.prompt_tokens}
@@ -68,6 +70,90 @@ export default function Cost({ service }: Props) {
   return <pre>{JSON.stringify(cost)}</pre>;
 }
 
+function ProjectUpgradeCost({ cost }) {
+  // cost is an object like this, where the amount is in dollars per month, except
+  // the member host factor:
+  // {"cores":50, "memory":7, "disk_quota":0.25, "member_host":4}
+
+  // We convert to per hour pricing.
+  const hours = 30.5 * 24;
+  const cores = (cost.cores / hours).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+  const memory = (cost.memory / hours).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+  const disk_quota = cost.disk_quota.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+
+  const columns = [
+    {
+      title: "Memory (GB)",
+      dataIndex: "memory",
+      key: "memory",
+    },
+    {
+      title: "Disk Quota (GB)",
+      dataIndex: "disk_quota",
+      key: "disk_quota",
+    },
+    {
+      title: "vCPU",
+      dataIndex: "cores",
+      key: "cores",
+    },
+    {
+      title: "Member Hosting",
+      dataIndex: "member_host",
+      key: "member_host",
+    },
+  ];
+
+  const data = [
+    {
+      cores: <PricePerUnit value={cores} unit="hour" month={cost.cores} />,
+      memory: <PricePerUnit value={memory} unit="hour" month={cost.memory} />,
+      disk_quota: <PricePerUnit value={disk_quota} unit="month " />,
+      member_host: (
+        <span>
+          {Math.round(100 * (1 - 1 / cost.member_host))}%{" "}
+          <span style={{ color: "#666" }}>non-member discount</span>
+        </span>
+      ),
+    },
+  ];
+
+  return (
+    <Table
+      rowKey={"input"}
+      columns={columns}
+      dataSource={data}
+      pagination={false}
+    />
+  );
+}
+
+function PricePerUnit({ value, unit, month }: { value; unit; month? }) {
+  const body = (
+    <span>
+      <span style={{ color: "#000" }}>{value}</span>
+      <span style={{ color: "#666" }}> / {unit}</span>
+    </span>
+  );
+  if (month) {
+    const cost = month.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+    });
+    return <Tooltip title={`${cost} per month`}>{body}</Tooltip>;
+  }
+  return body;
+}
+
 function OpenAiCost({ prompt_tokens, completion_tokens }) {
   const inputPrice = (prompt_tokens * 1000).toLocaleString("en-US", {
     style: "currency",
@@ -77,7 +163,6 @@ function OpenAiCost({ prompt_tokens, completion_tokens }) {
     style: "currency",
     currency: "USD",
   });
-
   const columns = [
     {
       title: "Input",
@@ -92,14 +177,12 @@ function OpenAiCost({ prompt_tokens, completion_tokens }) {
       render: (text) => <PriceWithToken text={text} />,
     },
   ];
-
   const data = [
     {
       input: `${inputPrice} / 1K tokens`,
       output: `${outputPrice} / 1K tokens`,
     },
   ];
-
   return (
     <Table
       rowKey={"input"}

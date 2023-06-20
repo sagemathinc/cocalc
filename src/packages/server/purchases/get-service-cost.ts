@@ -15,6 +15,9 @@ export default async function getServiceCost(service): Promise<object> {
     // returns the minimum allowed credit.
     const { pay_as_you_go_min_payment } = await getServerSettings();
     return pay_as_you_go_min_payment ?? 2.5;
+  } else if (service == "project-upgrade") {
+    const { pay_as_you_go_price_project_upgrades } = await getServerSettings();
+    return pay_as_you_go_price_project_upgrades;
   } else {
     throw Error(`${service} not fully implemented`);
   }
