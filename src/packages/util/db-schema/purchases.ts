@@ -45,9 +45,10 @@ export interface OpenaiGPT35_16k {
 export interface ProjectUpgrade {
   type: "project-upgrade";
   project_id: string;
-  start: Date;
-  stop?: Date;
+  start: number; // ms since epoch
+  stop?: number; // ms since epoch
   upgrade: {
+    cost: number; // dollars per hour
     cores?: number;
     memory?: number;
     network?: number;
@@ -109,7 +110,7 @@ Table({
     account_id: CREATED_BY,
     cost: {
       title: "Cost ($)",
-      desc: "The cost in US dollars.",
+      desc: "The cost in US dollars. Not set if the purchase isn't finished, e.g., when upgrading a project this is only set when project stops or purchase is finalized.",
       type: "number", // actually comes back as string in queries.
       pg_type: "real",
     },

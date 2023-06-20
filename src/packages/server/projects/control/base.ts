@@ -32,10 +32,11 @@ import getLogger from "@cocalc/backend/logger";
 import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
 import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
 import getPool from "@cocalc/database/pool";
+import { closePayAsYouGoPurchases } from "@cocalc/server/purchases/project-quotas";
 
 export type { ProjectState, ProjectStatus };
 
-const winston = getLogger("project-control");
+const logger = getLogger("project-control");
 
 export type Action = "open" | "start" | "stop" | "restart";
 
@@ -86,11 +87,23 @@ export abstract class BaseProject extends EventEmitter {
     await site_license_hook(db(), this.project_id);
   }
 
+  private async closePayAsYouGoPurchases() {
+    try {
+      await closePayAsYouGoPurchases(this.project_id);
+    } catch (err) {
+      logger.error("problem closing pay as you go purchases", err);
+      // will happen soon via periodic sync...
+    }
+  }
+
   protected async saveStateToDatabase(state: ProjectState): Promise<void> {
     await callback2(db().set_project_state, {
       ...state,
       project_id: this.project_id,
     });
+    if (state.state != "starting" && state.state != "running") {
+      this.closePayAsYouGoPurchases();
+    }
   }
 
   protected async saveStatusToDatabase(status: ProjectStatus): Promise<void> {
@@ -102,7 +115,7 @@ export abstract class BaseProject extends EventEmitter {
 
   dbg(f: string): (string?) => void {
     return (msg?: string) => {
-      winston.debug(`(project_id=${this.project_id}).${f}: ${msg}`);
+      logger.debug(`(project_id=${this.project_id}).${f}: ${msg}`);
     };
   }
 
@@ -133,14 +146,14 @@ export abstract class BaseProject extends EventEmitter {
     let d = 250;
     while (new Date().valueOf() - t0 <= maxTime) {
       if (await until()) {
-        winston.debug(`wait ${this.project_id} -- satisfied`);
+        logger.debug(`wait ${this.project_id} -- satisfied`);
         return;
       }
       await delay(d);
       d *= 1.2;
     }
     const err = `wait ${this.project_id} -- FAILED`;
-    winston.debug(err);
+    logger.debug(err);
     throw Error(err);
   }
 

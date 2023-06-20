@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import { Alert, Checkbox, Button, Popover, Spin, Table, Tooltip } from "antd";
+import {
+  Alert,
+  Checkbox,
+  Button,
+  Popover,
+  Space,
+  Spin,
+  Table,
+  Tag,
+  Tooltip,
+} from "antd";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -9,10 +19,12 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
-import { capitalize } from "@cocalc/util/misc";
+import { capitalize, plural } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import Next from "@cocalc/frontend/components/next";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
+import { currency } from "./quota-config";
+import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
 
 const DEFAULT_LIMIT = 100;
 
@@ -30,7 +42,7 @@ export default function Purchases(props: Props) {
 
 function Purchases0({ project_id }: Props) {
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
-  const [group, setGroup] = useState<boolean>(true);
+  const [group, setGroup] = useState<boolean>(false);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
   const [error, setError] = useState<string>("");
   const [limit /*, setLimit*/] = useState<number>(DEFAULT_LIMIT);
@@ -88,14 +100,14 @@ function Purchases0({ project_id }: Props) {
     <SettingBox
       title={
         <>
-          <Next
-            style={{ float: "right", fontSize: "11pt" }}
-            href={"billing/receipts"}
+          <Button
+            style={{ marginRight: "15px", float: "right" }}
+            onClick={() => {
+              getPurchases();
+            }}
           >
-            <Button>
-              <Icon name="external-link" /> Receipts
-            </Button>
-          </Next>
+            <Icon name="refresh" /> Refresh
+          </Button>
           {project_id ? (
             <span>
               Purchases specific to{" "}
@@ -122,19 +134,19 @@ function Purchases0({ project_id }: Props) {
           closable
         />
       )}
-      <Button
-        style={{ marginRight: "15px" }}
-        onClick={() => {
-          getPurchases();
-        }}
+      <Next
+        style={{ float: "right", fontSize: "11pt" }}
+        href={"billing/receipts"}
       >
-        <Icon name="refresh" /> Refresh
-      </Button>
+        <Button type="link" style={{ float: "right" }}>
+          <Icon name="external-link" /> Receipts
+        </Button>
+      </Next>
       <Checkbox
-        checked={!group}
-        onChange={(e) => handleGroupChange(!e.target.checked)}
+        checked={group}
+        onChange={(e) => handleGroupChange(e.target.checked)}
       >
-        All transactions
+        Group transactions
       </Checkbox>
       <Checkbox
         checked={thisMonth}
@@ -256,7 +268,33 @@ function DetailedPurchaseTable({ purchases }) {
           title: "Time",
           dataIndex: "time",
           key: "time",
-          render: (text) => <TimeAgo date={text} />,
+          render: (text, record) => {
+            if (record.service == "project-upgrade") {
+              return (
+                <span>
+                  <TimeAgo date={text} />
+                  {record.description?.stop != null ? (
+                    <>
+                      {" "}to <TimeAgo date={record.description?.stop} />
+                    </>
+                  ) : null}
+                  {record.description?.stop != null &&
+                  record.description?.start != null ? (
+                    <div>
+                      Total:{" "}
+                      {Math.round(
+                        (record.description.stop - record.description.start) /
+                          1000 /
+                          60
+                      )}{" "}
+                      minutes
+                    </div>
+                  ) : null}
+                </span>
+              );
+            }
+            return <TimeAgo date={text} />;
+          },
           sorter: (a, b) =>
             new Date(a.time ?? 0).getTime() - new Date(b.time ?? 0).getTime(),
           sortDirections: ["ascend", "descend"],
@@ -265,7 +303,24 @@ function DetailedPurchaseTable({ purchases }) {
           title: "Amount (USD)",
           dataIndex: "cost",
           key: "cost",
-          render: (text) => `$${text?.toFixed(2)}`,
+          render: (text, record) => {
+            if (!text && record.service == "project-upgrade") {
+              const cost = record.description?.upgrade?.cost;
+              const start = record.description?.start;
+              if (cost != null && start != null) {
+                return (
+                  <Space>
+                    <DynamicallyUpdatingCost costPerHour={cost} start={start} />
+                    <Tag color="green">Active</Tag>
+                  </Space>
+                );
+              }
+            }
+            if (text) {
+              return `$${text?.toFixed(2)}`;
+            }
+            return "-";
+          },
           sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
           sortDirections: ["ascend", "descend"],
         },
@@ -276,6 +331,15 @@ function DetailedPurchaseTable({ purchases }) {
           render: (_, record) => (
             <Description description={record.description} />
           ),
+        },
+        {
+          title: "Project",
+          dataIndex: "project_id",
+          key: "project_id",
+          render: (project_id) =>
+            project_id ? (
+              <ProjectTitle project_id={project_id} trunc={20} />
+            ) : null,
         },
         {
           title: "Invoice",
@@ -300,15 +364,6 @@ function DetailedPurchaseTable({ purchases }) {
               </Button>
             );
           },
-        },
-        {
-          title: "Project",
-          dataIndex: "project_id",
-          key: "project_id",
-          render: (project_id) =>
-            project_id ? (
-              <ProjectTitle project_id={project_id} trunc={20} />
-            ) : null,
         },
         {
           title: "Id",
@@ -360,6 +415,32 @@ function Description({ description }: { description?: Description }) {
   }
   if (description.type == "credit") {
     return <Tooltip title="Thank you!">Credit</Tooltip>;
+  }
+  if (description.type == "project-upgrade") {
+    const upgrade = description?.upgrade ?? {};
+    const v: string[] = [];
+    if (upgrade.disk_quota) {
+      v.push(`${upgrade.disk_quota / 1000} GB disk`);
+    }
+    if (upgrade.memory) {
+      v.push(`${upgrade.memory / 1000} GB RAM`);
+    }
+    if (upgrade.cores) {
+      v.push(`${upgrade.cores} ${plural(upgrade.cores, "core")}`);
+    }
+    if (upgrade.always_running) {
+      v.push("always running");
+    }
+    if (upgrade.member_host) {
+      v.push("member hosting");
+    }
+    if (upgrade.network) {
+      v.push("network");
+    }
+    if (upgrade.cost) {
+      v.push(`${currency(upgrade.cost)} / hour`);
+    }
+    return <span>{v.join(", ")}</span>;
   }
   // generic fallback...
   return (

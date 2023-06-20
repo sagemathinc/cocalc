@@ -21,7 +21,7 @@ export default async function createPurchase({
 }: {
   account_id: string;
   project_id?: string;
-  cost: number;
+  cost?: number; // if cost not known yet, don't give.  E.g., for project-upgrade, the cost isn't known until project stops (or we close out a purchase interval).
   service: Service;
   description: Description;
   invoice_id?: string;

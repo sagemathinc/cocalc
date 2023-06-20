@@ -115,6 +115,7 @@ function ProjectUpgradeCost({ cost }) {
 
   const data = [
     {
+      input: "key",
       cores: <PricePerUnit value={cores} unit="hour" month={cost.cores} />,
       memory: <PricePerUnit value={memory} unit="hour" month={cost.memory} />,
       disk_quota: <PricePerUnit value={disk_quota} unit="month " />,

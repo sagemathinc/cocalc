@@ -17,6 +17,7 @@ This is useful for:
 */
 
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
+import createPurchase from "@cocalc/server/purchases/create-purchase";
 
 import { kill } from "process";
 
@@ -46,7 +47,7 @@ import { db } from "@cocalc/database";
 import { quota } from "@cocalc/util/upgrades/quota";
 import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
 
-const winston = getLogger("project-control:single-user");
+const logger = getLogger("project-control:single-user");
 
 // Usually should fully start in about 5 seconds, but we give it 20s.
 const MAX_START_TIME_MS = 20000;
@@ -74,7 +75,7 @@ class Project extends BaseProject {
   async status(): Promise<ProjectStatus> {
     const status = await getStatus(this.HOME);
     // TODO: don't include secret token in log message.
-    winston.debug(
+    logger.debug(
       `got status of ${this.project_id} = ${JSON.stringify(status)}`
     );
     await this.saveStatusToDatabase(status);
@@ -82,14 +83,14 @@ class Project extends BaseProject {
   }
 
   async start(): Promise<void> {
-    winston.debug("start", this.project_id);
+    logger.debug("start", this.project_id);
     if (this.stateChanging != null) return;
 
     // Home directory
     const HOME = this.HOME;
 
     if (await isProjectRunning(HOME)) {
-      winston.debug("start -- already running");
+      logger.debug("start -- already running");
       await this.saveStateToDatabase({ state: "running" });
       return;
     }
@@ -106,7 +107,7 @@ class Project extends BaseProject {
 
       // this.get('env') = extra env vars for project (from synctable):
       const env = await getEnvironment(this.project_id);
-      winston.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
+      logger.debug(`start ${this.project_id}: env = ${JSON.stringify(env)}`);
 
       // Setup files
       await setupDataPath(HOME);
@@ -133,7 +134,7 @@ class Project extends BaseProject {
 
   async stop(): Promise<void> {
     if (this.stateChanging != null) return;
-    winston.debug("stop ", this.project_id);
+    logger.debug("stop ", this.project_id);
     if (!(await isProjectRunning(this.HOME))) {
       await this.saveStateToDatabase({ state: "opened" });
       return;
@@ -159,7 +160,7 @@ class Project extends BaseProject {
   }
 
   async copyPath(opts: CopyOptions): Promise<string> {
-    winston.debug("copyPath ", this.project_id, opts);
+    logger.debug("copyPath ", this.project_id, opts);
     await copyPath(opts, this.project_id);
     return "";
   }
@@ -208,7 +209,29 @@ class Project extends BaseProject {
           cost: choice.quota.cost,
         });
         if (allowed) {
+          const run_quota0 = run_quota;
           run_quota = quota(settings, {}, {}, site_settings, choice);
+          // create the purchase.  As explained in setProjectQuota, we can
+          // trust choice.quota.cost.
+          try {
+            await createPurchase({
+              account_id: choice.account_id,
+              project_id: this.project_id,
+              service: "project-upgrade",
+              description: {
+                type: "project-upgrade",
+                start: Date.now(),
+                project_id: this.project_id,
+                upgrade: choice.quota,
+              },
+            });
+          } catch (err) {
+            // failed -- maybe could happen despite check above (?), but should
+            // be VERY rare
+            // We reset the run quota.
+            run_quota = run_quota0;
+            logger.error(`Problem creating purchase`, err);
+          }
         }
       }
     }
@@ -220,7 +243,7 @@ class Project extends BaseProject {
       set: { run_quota },
     });
 
-    winston.debug("updated run_quota=", run_quota);
+    logger.debug("updated run_quota=", run_quota);
   }
 }
 

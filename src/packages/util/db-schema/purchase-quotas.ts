@@ -42,6 +42,7 @@ export const QUOTA_SPEC: QuotaSpec = {
 
 // For pay-as-you-go project quota upgrades
 export interface ProjectQuota {
+  cost?: number; // dollars per hour
   enabled?: number;
   cores?: number;
   disk_quota?: number;
