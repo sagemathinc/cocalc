@@ -164,7 +164,12 @@ export class PurchasesClient {
     return m;
   }
 
-  async getPayAsYouGoPricesProjectQuotas(): Promise<ProjectQuota> {
+  async getPayAsYouGoPricesProjectQuotas(): Promise<{
+    cores: number;
+    disk_quota: number;
+    memory: number;
+    member_host: number;
+  }> {
     const key = "getPayAsYouGoPricesProjectQuotas";
     if (cache.has(key)) {
       return cache.get(key)!;

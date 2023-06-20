@@ -204,7 +204,7 @@ class Project extends BaseProject {
       db: db(),
       query: "UPDATE projects",
       where: { project_id: this.project_id },
-      jsonb_set: { run_quota },
+      set: { run_quota },
     });
 
     winston.debug("updated run_quota=", run_quota);

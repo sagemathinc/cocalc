@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Tag } from "antd";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -16,16 +16,12 @@ import {
 } from "@cocalc/util/db-schema/purchase-quotas";
 import { useRedux, redux } from "@cocalc/frontend/app-framework";
 import CostPerHour from "./cost-per-hour";
+import { getPricePerHour } from "@cocalc/util/purchases/project-quotas";
 
 // These correspond to dedicated RAM and dedicated CPU, and we
 // found them too difficult to cost out, so exclude them (only
 // admins can set them).
-const EXCLUDE = new Set([
-  "memory_request",
-  "cpu_shares",
-  "disk_quota",
-  "mintime",
-]);
+const EXCLUDE = new Set(["memory_request", "cpu_shares"]);
 
 interface Props {
   project_id: string;
@@ -36,6 +32,14 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   const project = useRedux(["projects", "project_map", project_id]);
   // Slightly subtle -- it's null if not loaded but {} or the thing if loaded, even
   // if there is no data yet in the database.
+  const runningWithUpgrade = useMemo(() => {
+    return (
+      project?.getIn(["state", "state"]) == "running" &&
+      project?.getIn(["run_quota", "pay_as_you_go", "account_id"]) ==
+        webapp_client.account_id
+    );
+  }, [project]);
+
   const savedQuotaState: ProjectQuota | null =
     project == null
       ? null
@@ -49,15 +53,19 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   );
   const [maxQuotas, setMaxQuotas] = useState<ProjectQuota | null>(null);
   const [error, setError] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
 
   useEffect(() => {
     (async () => {
       try {
+        setStatus("Loading quotas...");
         setMaxQuotas(
           await webapp_client.purchases_client.getPayAsYouGoMaxProjectQuotas()
         );
       } catch (err) {
         setError(`${err}`);
+      } finally {
+        setStatus("");
       }
     })();
   }, []);
@@ -68,13 +76,25 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     }
   }, [editing]);
 
-  function handleClose(): void {
+  function handleClose() {
     setEditing(false);
+  }
+
+  async function handleStop() {
+    const quota = { ...quotaState, enabled: 0 };
+    setQuotaState(quota);
+    await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
+      project_id,
+      quota
+    );
+    const actions = redux.getActions("projects");
+    await actions.stop_project(project_id);
   }
 
   async function handleSave() {
     if (quotaState == null) return;
     try {
+      setStatus("Saving...");
       setError("");
       await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
         project_id,
@@ -82,19 +102,42 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       );
     } catch (err) {
       setError(`${err}`);
+    } finally {
+      setStatus("");
     }
   }
 
   async function handleRun() {
     if (quotaState == null) return;
-    await setQuotaState({
-      ...quotaState,
-      enabled: webapp_client.server_time().valueOf(),
-    });
-    await handleSave();
-    const actions = redux.getActions("projects");
-    await actions.restart_project(project_id);
-    setEditing(false);
+    try {
+      setError("");
+      setStatus("Computing cost...");
+      const prices =
+        await webapp_client.purchases_client.getPayAsYouGoPricesProjectQuotas();
+      const cost = getPricePerHour(quotaState, prices);
+      setStatus("Saving quotas...");
+      const quota = {
+        ...quotaState,
+        enabled: webapp_client.server_time().valueOf(),
+        cost,
+      };
+      setQuotaState(quota);
+      await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
+        project_id,
+        quota
+      );
+      const actions = redux.getActions("projects");
+      setStatus("Stopping project...");
+      await actions.stop_project(project_id);
+      setStatus("Starting project...");
+      await actions.start_project(project_id);
+    } catch (err) {
+      console.warn(err);
+      setError(`${err}`);
+    } finally {
+      setEditing(false);
+      setStatus("");
+    }
   }
 
   // Returns true if the admin inputs are valid, i.e.
@@ -120,9 +163,16 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       title={
         <div style={{ marginTop: "5px" }}>
           <Icon name="compass" /> Pay As You Go
-          {quotaState?.enabled ? (
+          {runningWithUpgrade && (
+            <>
+              <Tag style={{ marginLeft: "30px" }} color="success">
+                Active
+              </Tag>
+            </>
+          )}
+          {status ? (
             <Tag color="success" style={{ marginLeft: "30px" }}>
-              Configured
+              {status}
             </Tag>
           ) : undefined}
         </div>
@@ -130,16 +180,33 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       type="inner"
       extra={<Information />}
     >
-      {quotaState != null && editing && (
+      {quotaState != null && (editing || runningWithUpgrade) && (
         <div style={{ float: "right", marginLeft: "30px", width: "150px" }}>
           <CostPerHour quota={quotaState} />
-          <div>You will be charged by the second.</div>
+          {editing && <div>You will be charged by the second.</div>}
         </div>
       )}
       {!editing && (
-        <Button onClick={() => setEditing(!editing)}>
-          Temporarily increase your RAM, CPU, or disk...
-        </Button>
+        <>
+          {runningWithUpgrade ? (
+            <div>
+              This project is currently running with a pay as you go upgrades
+              that you purchased. You are being charged by the second.
+              <br />
+              <Button
+                size="large"
+                onClick={handleStop}
+                style={{ margin: "15px" }}
+              >
+                <Icon name="stop" /> Stop
+              </Button>
+            </div>
+          ) : (
+            <Button onClick={() => setEditing(!editing)}>
+              Temporarily increase your RAM, CPU, or disk...
+            </Button>
+          )}
+        </>
       )}
       {editing && (
         <>
@@ -161,19 +228,6 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                   Increase quotas to at least the values below when you start
                   this project.
                 </Checkbox>
-                <br />
-                <Checkbox
-                  style={{ marginTop: "15px" }}
-                  checked={!!quotaState?.allow_any}
-                  onChange={(e) =>
-                    setQuotaState({
-                      ...quotaState,
-                      allow_any: e.target.checked ? 1 : 0,
-                    })
-                  }
-                >
-                  Upgrade for anybody who starts this project
-                </Checkbox>}
               </>}/>
             */}
           {PROJECT_UPGRADES.field_order
@@ -203,7 +257,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                   type="primary"
                   onClick={handleRun}
                 >
-                  <Icon name="save" /> Run Upgraded Project
+                  <Icon name="save" /> Start project with these upgrades
                 </Button>
               </>
             )}
