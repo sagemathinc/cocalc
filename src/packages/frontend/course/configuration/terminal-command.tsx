@@ -3,21 +3,22 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { List as AntdList, Button, Card, Form, Input, Space } from "antd";
+import { List, Map, fromJS } from "immutable";
+
 import {
-  React,
   CSS,
-  redux,
+  React,
   Rendered,
+  redux,
   useActions,
   useRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Space } from "@cocalc/frontend/components";
-import { Button, Card, Form, Input, List as AntdList } from "antd";
-import { fromJS, List, Map } from "immutable";
+import { Gap, Icon } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
 import { CourseStore, TerminalCommand, TerminalCommandOutput } from "../store";
 import { Result } from "../student-projects/run-in-all-projects";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   name: string;
@@ -40,7 +41,7 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
           disabled={running}
         >
           <Icon name={running ? "cocalc-ring" : "play"} spin={running} />{" "}
-          <Space /> Run
+          <Gap /> Run
         </Button>
       );
     }
@@ -58,10 +59,7 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
             run_terminal_command();
           }}
         >
-          <Input.Group
-            compact
-            style={{ display: "flex", whiteSpace: "nowrap" }}
-          >
+          <Space.Compact style={{ display: "flex", whiteSpace: "nowrap" }}>
             <Input
               style={{ fontFamily: "monospace" }}
               placeholder="Terminal command..."
@@ -70,7 +68,7 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
               }}
             />
             {render_button(running)}
-          </Input.Group>
+          </Space.Compact>
         </Form>
       );
     }

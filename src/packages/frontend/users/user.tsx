@@ -6,7 +6,7 @@
 //TODO: Make useable without passing in user_map
 
 import { Component } from "../app-framework";
-import { Space, TimeAgo, Tip } from "../components";
+import { Gap, TimeAgo, Tip } from "../components";
 import { is_valid_uuid_string, trunc_middle } from "@cocalc/util/misc";
 import { UserMap } from "./types";
 import { actions } from "./actions";
@@ -126,7 +126,7 @@ export class User extends Component<Props> {
           {this.props.show_avatar && (
             <>
               <Avatar account_id={this.props.account_id} first_name={n} />
-              <Space />
+              <Gap />
             </>
           )}
           {n}

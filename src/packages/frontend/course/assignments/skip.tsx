@@ -10,7 +10,7 @@ Skip assigning or collecting an assignment, so next step can be attempted.
 import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { CourseActions } from "../actions";
 import { AssignmentRecord } from "../store";
-import { Icon, Space, Tip } from "../../components";
+import { Icon, Gap, Tip } from "../../components";
 import { Button } from "antd";
 
 interface SkipCopyProps {
@@ -39,7 +39,7 @@ export const SkipCopy: React.FC<SkipCopyProps> = (props: SkipCopyProps) => {
         // don't bother even trying to implement skip and peer grading at once.
         extra = (
           <span>
-            <Space /> (Please disable this or peer grading.)
+            <Gap /> (Please disable this or peer grading.)
           </span>
         );
       }

@@ -20,7 +20,7 @@ import { PROJECT_INVITE_QUERY_PARAM } from "./handle-project-invite";
 
 import { Button, Card, Popconfirm, Table } from "antd";
 import { React, useState, useIsMountedRef } from "../app-framework";
-import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
+import { CopyToClipBoard, Icon, Loading, Gap, TimeAgo } from "../components";
 import { ProjectInviteToken } from "@cocalc/util/db-schema/project-invite-tokens";
 import { webapp_client } from "../webapp-client";
 import { alert_message } from "../alerts";
@@ -153,7 +153,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
         >
           <Button disabled={fetching}>
             <Icon name="plus" />
-            <Space /> Create token...
+            <Gap /> Create token...
           </Button>
         </Popconfirm>
       );
@@ -163,7 +163,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
       return (
         <Button onClick={fetch_tokens} disabled={fetching}>
           <Icon name="refresh" spin={fetching} />
-          <Space /> Refresh
+          <Gap /> Refresh
         </Button>
       );
     }
@@ -253,7 +253,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
           created: created ? <TimeAgo date={created} /> : undefined,
           expires: expires ? (
             <span>
-              <TimeAgo date={expires} /> <Space />
+              <TimeAgo date={expires} /> <Gap />
               {render_expire_button(token, expires)}
             </span>
           ) : undefined,
@@ -281,7 +281,7 @@ export const ProjectInviteTokens: React.FC<Props> = React.memo(
         <br />
         <br />
         {render_create_token()}
-        <Space />
+        <Gap />
         {render_refresh()}
         <br />
         <br />

@@ -12,7 +12,7 @@ import { Component, Rendered } from "../app-framework";
 import { DEFAULT_QUOTAS, PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Tip } from "../components/tip";
 import { Icon } from "../components/icon";
-import { Space } from "../components/space";
+import { Gap } from "../components/gap";
 const { Panel } = require("react-bootstrap"); // since the typescript declarations are our of sync with our crappy old version.
 
 import { render_project_quota } from "./util";
@@ -30,14 +30,14 @@ export class ProjectQuotaFreeTable extends Component {
   public render(): Rendered {
     return (
       <Panel header={this.render_header()} bsStyle="info">
-        <Space />
+        <Gap />
         <div style={{ marginBottom: "5px", marginLeft: "10px" }}>
           <Tip
             title="Free servers"
             tip="Many free projects are crammed together inside weaker compute machines, competing for CPU, RAM and I/O."
           >
             <span style={{ fontWeight: "bold", color: "#666" }}>low-grade</span>
-            <Space />
+            <Gap />
             <span style={{ color: "#999" }}>Server hosting</span>
           </Tip>
         </div>
@@ -47,18 +47,18 @@ export class ProjectQuotaFreeTable extends Component {
             tip="Despite working inside a web-browser, free projects are not allowed to directly access the internet due to security/abuse reasons."
           >
             <span style={{ fontWeight: "bold", color: "#666" }}>no</span>
-            <Space />
+            <Gap />
             <span style={{ color: "#999" }}>Internet access</span>
           </Tip>
         </div>
         {PROJECT_UPGRADES.field_order
           .filter((name) => DEFAULT_QUOTAS[name])
           .map((name) => render_project_quota(name, DEFAULT_QUOTAS[name]))}
-        <Space />
+        <Gap />
         <div style={{ textAlign: "center", marginTop: "10px" }}>
           <h3 style={{ textAlign: "left" }}>
             <span style={{ fontSize: "16px", verticalAlign: "super" }}>$</span>
-            <Space />
+            <Gap />
             <span style={{ fontSize: "30px" }}>0</span>
           </h3>
         </div>

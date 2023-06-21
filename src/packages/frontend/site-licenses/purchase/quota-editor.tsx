@@ -29,7 +29,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, Space } from "@cocalc/frontend/components";
+import { A, Gap } from "@cocalc/frontend/components";
 import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
@@ -67,7 +67,7 @@ const UNIT_STYLE: CSS = {
 function render_explanation(s): JSX.Element {
   return (
     <span style={{ color: "#888" }}>
-      <Space /> - {s}
+      <Gap /> - {s}
     </span>
   );
 }
@@ -167,7 +167,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               onChange({ cpu: Math.round(x) });
             }}
           />
-          <Space />
+          <Gap />
           <span style={UNIT_STYLE}>shared CPU {plural(quota.cpu, "core")}</span>
         </Col>
         <Col md={col.max}>
@@ -212,7 +212,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               onChange({ ram: Math.round(x) });
             }}
           />
-          <Space />
+          <Gap />
           <span style={UNIT_STYLE}>shared G RAM</span>
         </Col>
         <Col md={col.max}>
@@ -259,7 +259,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               }
             }}
           />
-          <Space />
+          <Gap />
           <span style={UNIT_STYLE}>
             dedicated CPU {plural(quota.dedicated_cpu, "core")}
           </span>
@@ -312,7 +312,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               }
             }}
           />
-          <Space />
+          <Gap />
           <span style={UNIT_STYLE}>dedicated G RAM</span>
         </Col>
         <Col md={col.max}>
@@ -358,7 +358,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               onChange({ disk: Math.round(x) });
             }}
           />
-          <Space />
+          <Gap />
           <span style={UNIT_STYLE}>G disk space</span>
         </Col>
         <Col md={col.max}>
