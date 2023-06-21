@@ -55,7 +55,7 @@ export async function handlePayAsYouGoQuotas(
   try {
     const start = Date.now();
     choice.quota.start = start; // useful for some purposes here
-    const id = await createPurchase({
+    const purchase_id = await createPurchase({
       account_id: choice.account_id,
       project_id,
       service: "project-upgrade",
@@ -68,9 +68,9 @@ export async function handlePayAsYouGoQuotas(
     });
     logger.debug(
       "handlePayAsYouGoQuotas: success -- created purchase with id",
-      id
+      purchase_id
     );
-    return quota(settings, {}, {}, site_settings, choice);
+    return quota(settings, {}, {}, site_settings, { ...choice, purchase_id });
   } catch (err) {
     // failed -- maybe could happen despite check above (?), but should
     // be VERY rare

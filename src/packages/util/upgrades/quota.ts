@@ -99,7 +99,11 @@ interface QuotaBase {
   idle_timeout?: number;
   dedicated_vm?: { machine: string } | boolean;
   dedicated_disks?: DedicatedDisk[];
-  pay_as_you_go?: null | { account_id: string; quota: PayAsYouGoQuota };
+  pay_as_you_go?: null | {
+    account_id: string;
+    purchase_id: number;
+    quota: PayAsYouGoQuota;
+  };
 }
 
 // additional fields of the quota result, which are used for onprem (cocalc-cloud) applications
@@ -868,7 +872,11 @@ export function quota(
   users_arg?: Users,
   site_licenses?: SiteLicenses,
   site_settings?: SiteSettingsQuotas,
-  pay_as_you_go?: { quota: PayAsYouGoQuota; account_id: string }
+  pay_as_you_go?: {
+    quota: PayAsYouGoQuota;
+    account_id: string;
+    purchase_id: number;
+  }
 ): Quota {
   const { quota } = quota_with_reasons(
     settings_arg,
@@ -885,7 +893,11 @@ export function quota_with_reasons(
   users_arg?: Users,
   site_licenses?: SiteLicenses,
   site_settings?: SiteSettingsQuotas,
-  pay_as_you_go?: { quota: PayAsYouGoQuota; account_id: string }
+  pay_as_you_go?: {
+    quota: PayAsYouGoQuota;
+    account_id: string;
+    purchase_id: number;
+  }
 ): { quota: Quota; reasons: { [key: string]: string } } {
   // as a precaution (and also since we indeed ARE modifying licenses) we make deep copies of all arguments.
   // tests to catch this are in postgres/site-license/hook.test.ts
