@@ -3,8 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Space } from "antd";
-
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Loading, Paragraph } from "@cocalc/frontend/components";
 import { Project } from "@cocalc/frontend/project/settings/types";
@@ -58,7 +56,7 @@ export function LicensesFlyout({
   function renderUsage(): JSX.Element {
     if (project == null) return <Loading />;
 
-    return (
+    return wrap(
       <UpgradeUsage
         project_id={project_id}
         project={project as any as Project}
@@ -84,13 +82,13 @@ export function LicensesFlyout({
     return <SandboxProjectSettingsWarning />;
   }
 
-  return wrap(
-    <Space direction="vertical" style={{ padding: "0 5px 0 5px" }}>
+  return (
+    <>
       <Paragraph>
         This project is using the following resource quotas when running. You
         can add more resources by adding licenses or applying upgrades.
       </Paragraph>
       {renderUsage()}
-    </Space>
+    </>
   );
 }

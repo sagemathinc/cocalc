@@ -291,8 +291,8 @@ export const RunQuota: React.FC<Props> = React.memo(
           expandable={{
             expandedRowRender: (record) => renderExtra(record),
             expandRowByClick: true,
+            expandIcon: isFlyout ? () => <></> : undefined,
           }}
-          expandIcon={isFlyout ? () => <></> : undefined}
         >
           <Table.Column<QuotaData>
             key="key"

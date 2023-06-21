@@ -16,9 +16,15 @@ import {
   usePrevious,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
+import {
+  Icon,
+  Loading,
+  QuestionMarkText,
+  TimeAgo,
+} from "@cocalc/frontend/components";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { trunc, unreachable } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import {
   LicenseStatus,
@@ -39,6 +45,7 @@ interface PropsTable {
   showRemoveWarning?: boolean; // default true
   onRemove?: (license_id: string) => void; // called *before* the license is removed!
   warn_if?: (info, license_id) => void | string;
+  mode?: "project" | "flyout";
 }
 
 interface TableRow {
@@ -55,7 +62,7 @@ interface TableRow {
 }
 
 export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
-  props: PropsTable
+  props: Readonly<PropsTable>
 ) => {
   const {
     site_licenses,
@@ -63,8 +70,10 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     restartAfterRemove = false,
     onRemove,
     warn_if,
+    mode = "project",
   } = props;
 
+  const isFlyout = mode === "flyout";
   const isMountedRef = useIsMountedRef();
   const [loading, setLoading] = useState<boolean>(true);
   // string is an error, Info the actual license data
@@ -278,7 +287,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     };
     return (
       <Popover title={info} trigger={["hover", "click"]} {...extra}>
-        <Tag style={style} color={color}>
+        <Tag style={style} color={color} onClick={(e) => e.stopPropagation()}>
           {text} {rec.reason && <QuestionCircleOutlined />}
         </Tag>
       </Popover>
@@ -335,7 +344,13 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     const title = rec.title ? rec.title : trunc_license_id(rec.license_id);
     return (
       <>
-        <strong>{title}</strong>
+        <div style={{ fontWeight: "bold" }}>
+          {title}
+
+          {isFlyout ? (
+            <span style={{ float: "right" }}>{renderStatus(rec)}</span>
+          ) : undefined}
+        </div>
         {rec.description && (
           <>
             <br />
@@ -346,6 +361,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
           {renderStatusText(rec)}
           <br />
           {activatesExpires(rec)}
+          {isFlyout ? renderRemove(rec.license_id) : undefined}
         </p>
       </>
     );
@@ -400,7 +416,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     );
   }
 
-  function renderRemoveButton(license_id): JSX.Element {
+  function renderRemoveButton(license_id: string): JSX.Element {
     return (
       <Popconfirm
         title={
@@ -413,8 +429,14 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         okText={"Remove"}
         cancelText={"Keep"}
       >
-        <Button>
+        <Button
+          type={isFlyout ? "link" : "default"}
+          style={
+            isFlyout ? { padding: 0, color: COLORS.ANTD_RED_WARN } : undefined
+          }
+        >
           <Icon name="times" />
+          {isFlyout ? " Remove license" : undefined}
         </Button>
       </Popconfirm>
     );
@@ -460,33 +482,45 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
       <Table<TableRow>
         loading={loading}
         dataSource={data}
+        size={isFlyout ? "small" : undefined}
+        className={"cc-flyout-license-table"}
         rowClassName={() => "cursor-pointer"}
         pagination={{ hideOnSinglePage: true, defaultPageSize: 5 }}
         expandable={{
           expandedRowRender: (record) => rowInfo(record),
           expandRowByClick: true,
+          expandIcon: isFlyout ? () => <></> : undefined,
         }}
       >
-        <Table.Column<TableRow>
-          key="status"
-          title="Status"
-          dataIndex="status"
-          align="center"
-          render={(_, rec) => renderStatus(rec)}
-        />
+        {isFlyout ? undefined : (
+          <Table.Column<TableRow>
+            key="status"
+            title="Status"
+            dataIndex="status"
+            align="center"
+            render={(_, rec) => renderStatus(rec)}
+          />
+        )}
         <Table.Column<TableRow>
           key="title"
-          title="License"
+          title={
+            <QuestionMarkText tip="License information. Click on a row to expand details.">
+              License
+            </QuestionMarkText>
+          }
           dataIndex="title"
           render={(_, rec) => renderLicense(rec)}
+          width={isFlyout ? "100%" : undefined}
         />
-        <Table.Column<TableRow>
-          key="actions"
-          title={renderReload()}
-          dataIndex="license_id"
-          align={"right"}
-          render={(license_id) => renderRemove(license_id)}
-        />
+        {isFlyout ? undefined : (
+          <Table.Column<TableRow>
+            key="actions"
+            title={renderReload()}
+            dataIndex="license_id"
+            align={"right"}
+            render={(license_id) => renderRemove(license_id)}
+          />
+        )}
       </Table>
     </>
   );

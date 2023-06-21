@@ -10,33 +10,39 @@ javascript object in the same format as quota_params cancel_upgrading takes no
 arguments and is called when the cancel button is hit.
 */
 
-import { CSS, React, redux, useForceUpdate, useState } from "../app-framework";
+import { Button as AntdButton, Checkbox } from "antd";
+
+import {
+  Alert,
+  Button,
+  ButtonToolbar,
+  Col,
+  FormControl,
+  FormGroup,
+  InputGroup,
+  Row,
+} from "@cocalc/frontend/antd-bootstrap";
+import {
+  CSS,
+  React,
+  redux,
+  useForceUpdate,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { UpgradeRestartWarning } from "@cocalc/frontend/upgrade-restart-warning";
 import {
   is_zero_map,
   map_diff,
   map_limit,
   map_max,
   map_sum,
-  plural,
   parse_number_input,
+  plural,
   round2,
 } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import {
-  Alert,
-  Button,
-  ButtonToolbar,
-  FormControl,
-  FormGroup,
-  InputGroup,
-  Row,
-  Col,
-} from "../antd-bootstrap";
-import { Button as AntdButton } from "antd";
-import { UpgradeRestartWarning } from "../upgrade-restart-warning";
-import { Tip } from "./tip";
-import { Checkbox } from "antd";
 import { Icon } from "./icon";
+import { Tip } from "./tip";
 
 export const UPGRADE_ERROR_STYLE = {
   color: "white",
@@ -142,9 +148,9 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
     set_upgrades("min");
   }
 
-//   function max_upgrades() {
-//     set_upgrades("max");
-//   }
+  //   function max_upgrades() {
+  //     set_upgrades("max");
+  //   }
 
   function set_upgrades(description) {
     const info = get_quota_info();
@@ -430,7 +436,7 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
 
   if (is_zero_map(props.upgrades_you_can_use)) {
     // user has no upgrades on their account
-    return <span></span>;
+    return <Button onClick={props.cancel_upgrading}>Close</Button>;
   } else {
     const { limits, remaining, current, totals, proj_remainder } =
       get_quota_info();

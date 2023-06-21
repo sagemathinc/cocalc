@@ -15,7 +15,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Paragraph, Text } from "@cocalc/frontend/components";
+import { Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
@@ -164,6 +164,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
           site_licenses={site_licenses}
           project_id={project_id}
           restartAfterRemove={true}
+          mode={mode}
         />
       </div>
     );
@@ -171,9 +172,17 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
 
   function render_title(): Rendered {
     return (
-      <h4>
+      <Title
+        level={4}
+        style={
+          isFlyout ? { paddingLeft: "5px", paddingRight: "5px" } : undefined
+        }
+      >
         <Icon name="key" /> Licenses
-      </h4>
+        {isFlyout ? (
+          <span style={{ float: "right" }}>{render_extra()}</span>
+        ) : undefined}
+      </Title>
     );
   }
 
@@ -190,34 +199,57 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
     );
   }
 
-  return (
-    <Card
-      title={render_title()}
-      extra={render_extra()}
-      type="inner"
-      style={{ marginTop: "15px" }}
-      bodyStyle={{ padding: "0px" }}
-    >
-      {render_current_licenses()}
-      <br />
-      <div style={{ padding: "15px" }}>
-        <Button
-          size={isFlyout ? "middle" : "large"}
-          onClick={() => set_show_site_license(true)}
-          disabled={show_site_license}
-        >
-          <Icon name="key" /> Upgrade using a license key...
-        </Button>
-        {render_site_license_text()}
+  function renderBody() {
+    return (
+      <>
+        {isFlyout ? (
+          <Paragraph type="secondary" style={{ padding: "5px" }}>
+            License information. Click on a row to expand details.
+          </Paragraph>
+        ) : undefined}
+        {render_current_licenses()}
         <br />
-        <br />
-        <span style={{ fontSize: "13pt" }}>
-          <BuyLicenseForProject
-            project_id={project_id}
+        <div style={{ padding: isFlyout ? "5px" : "15px" }}>
+          <Button
             size={isFlyout ? "middle" : "large"}
-          />
-        </span>
+            onClick={() => set_show_site_license(true)}
+            disabled={show_site_license}
+          >
+            <Icon name="key" /> Upgrade using a license key...
+          </Button>
+          {render_site_license_text()}
+          <br />
+          <br />
+          <span style={{ fontSize: "13pt" }}>
+            <BuyLicenseForProject
+              wrap={isFlyout}
+              project_id={project_id}
+              size={isFlyout ? "middle" : "large"}
+            />
+          </span>
+        </div>
+      </>
+    );
+  }
+
+  if (isFlyout) {
+    return (
+      <div style={{ marginTop: "20px" }}>
+        {render_title()}
+        {renderBody()}
       </div>
-    </Card>
-  );
+    );
+  } else {
+    return (
+      <Card
+        title={render_title()}
+        extra={render_extra()}
+        type="inner"
+        style={{ marginTop: "15px" }}
+        bodyStyle={{ padding: "0px" }}
+      >
+        {renderBody()}
+      </Card>
+    );
+  }
 };

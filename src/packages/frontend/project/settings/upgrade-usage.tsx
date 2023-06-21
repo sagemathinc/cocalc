@@ -16,7 +16,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
-  CopyToClipBoard,
   Icon,
   Loading,
   Paragraph,
@@ -275,18 +274,19 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     function renderOpenDisk(disk: DedicatedDisk): Rendered {
       if (typeof disk === "boolean" || disk.name == null) return; // should never happen
       return (
-        <Button
-          type="link"
-          onClick={() =>
+        <a
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             // NOTE: there is usually symlink disks/x → /local/... but we can't rely on it,
             // because the project only creates that symlink if there isn't a file/dir already with that name
             project_actions?.open_directory(
               join(".smc/root/", ROOT, `/${disk.name}/`)
-            )
-          }
+            );
+          }}
         >
           {dedicatedDiskDisplay(disk)} <Icon name="external-link" />
-        </Button>
+        </a>
       );
     }
 
@@ -326,7 +326,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       return (
         <>
           <hr />
-          <span style={{ color: COLORS.GRAY }}>
+          <div style={{ color: COLORS.GRAY }}>
             If you have any questions about upgrading a project, create a{" "}
             <ShowSupportLink />
             {isFlyout ? (
@@ -350,7 +350,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
                 <URLBox />
               </>
             )}
-          </span>
+          </div>
         </>
       );
     }
@@ -395,6 +395,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
             {render_dedicated_disks()}
             {render_site_license()}
             {render_support()}
+            <div style={{ height: "30px" }}>&nbsp;</div>
           </>
         );
     }
