@@ -10,17 +10,17 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
-import { Space as AntdSpace, Button, Card, Col, Row, Switch, Tag } from "antd";
+import { Button, Card, Col, Row, Space, Switch, Tag } from "antd";
 
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
+  Gap,
   HelpIcon,
   Icon,
   Loading,
   SearchInput,
-  Space,
 } from "@cocalc/frontend/components";
 import CopyButton from "@cocalc/frontend/components/copy-button";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
@@ -149,7 +149,7 @@ export const ProjectSearchBody: React.FC<{
   function renderHeaderFlyout() {
     const divStyle = { cursor: "pointer", padding: "2px 5px" };
     return (
-      <AntdSpace style={{ padding: "5px" }} direction="vertical">
+      <Space style={{ padding: "5px" }} direction="vertical">
         <ProjectSearchInput
           project_id={project_id}
           neural={neural_search}
@@ -221,7 +221,7 @@ export const ProjectSearchBody: React.FC<{
             </HelpIcon>
           </div>
         )}
-      </AntdSpace>
+      </Space>
     );
   }
 
@@ -408,7 +408,7 @@ function ProjectSearchOutput({
   function renderResultList() {
     if (isFlyout) {
       return wrap?.(
-        <AntdSpace
+        <Space
           direction="vertical"
           size="small"
           style={{
@@ -417,7 +417,7 @@ function ProjectSearchOutput({
           }}
         >
           {render_get_results()}
-        </AntdSpace>,
+        </Space>,
         { borderTop: `1px solid ${COLORS.GRAY_L}` }
       );
     } else {
@@ -486,7 +486,7 @@ function ProjectSearchOutputHeader({ project_id }: { project_id: string }) {
 
       <h4>
         Results of searching in {output_path()} for "{most_recent_search}"
-        <Space />
+        <Gap />
         <Button
           onClick={() =>
             actions?.setState({

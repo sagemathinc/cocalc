@@ -8,7 +8,7 @@ Progress indicator for assigning/collecting/etc. a particular assignment or hand
 */
 
 import { React, CSS } from "@cocalc/frontend/app-framework";
-import { Icon, Space } from "@cocalc/frontend/components";
+import { Icon, Gap } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 
 const progress_info: CSS = {
@@ -38,7 +38,7 @@ export const Progress: React.FC<ProgressProps> = React.memo(
         return (
           <span style={{ fontSize: "12pt" }}>
             <Icon name="check-circle" />
-            <Space />
+            <Gap />
           </span>
         );
       }

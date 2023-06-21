@@ -9,7 +9,7 @@ The format bar.
 
 import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { React, Rendered } from "@cocalc/frontend/app-framework";
-import { Icon, isIconName, Space } from "@cocalc/frontend/components";
+import { Icon, isIconName, Gap } from "@cocalc/frontend/components";
 import { ColorButton } from "@cocalc/frontend/components/color-picker";
 import FontFamilyMenu from "@cocalc/frontend/components/font-family";
 import FontSizeMenu from "@cocalc/frontend/components/font-size";
@@ -130,7 +130,7 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
     }
     return (
       <>
-        <Space />
+        <Gap />
         <ButtonGroup key={"format"}>
           {render_button("format_code", "Format selected text as code", "code")}
           {render_button(
@@ -154,7 +154,7 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
             "align-justify"
           )}
         </ButtonGroup>
-        <Space />
+        <Gap />
         <ButtonGroup key={"format2"}>
           {render_button(
             "unformat",
@@ -220,12 +220,12 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
       {render_font_dropdowns()}
       <div className={"cc-frame-tree-format-bar"}>
         {render_text_style_buttons()}
-        <Space />
+        <Gap />
         {render_insert_buttons()}
-        <Space />
+        <Gap />
         {render_insert_dialog_buttons()}
         {render_format_buttons()}
-        <Space />
+        <Gap />
       </div>
     </div>
   );

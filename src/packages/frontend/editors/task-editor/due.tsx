@@ -10,7 +10,7 @@ Task due date
 */
 
 import { React, CSS } from "../../app-framework";
-import { DateTimePicker, Icon, Space, TimeAgo } from "../../components";
+import { DateTimePicker, Icon, Gap, TimeAgo } from "../../components";
 import { TaskActions } from "./actions";
 
 const STYLE: CSS = {
@@ -80,7 +80,7 @@ export const DueDate: React.FC<Props> = React.memo(
       }
       return (
         <span style={{ color: "#888" }}>
-          <Space />
+          <Gap />
           <Icon
             name="times"
             onClick={() => {

@@ -22,7 +22,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, ErrorDisplay, Icon, Space } from "@cocalc/frontend/components";
+import { A, ErrorDisplay, Icon, Gap } from "@cocalc/frontend/components";
 import {
   derive_project_img_name,
   SoftwareEnvironment,
@@ -172,7 +172,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
         <div style={{ marginTop: "30px" }}>
           <Alert bsStyle="info">
             <Icon name="cocalc-ring" spin />
-            <Space /> Creating project...
+            <Gap /> Creating project...
           </Alert>
         </div>
       );
@@ -428,7 +428,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
     return (
       <Row style={{ width: "100%", paddingBottom: "20px" }}>
         <Col sm={24}>
-          <Space />
+          <Gap />
           {render_input_section()}
         </Col>
       </Row>

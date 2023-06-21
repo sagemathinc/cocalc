@@ -12,7 +12,7 @@ import { Cost, User } from "@cocalc/util/licenses/purchase/types";
 import { COLORS } from "@cocalc/util/theme";
 import { Col, Row, Table } from "react-bootstrap";
 import { React } from "../app-framework";
-import { Icon, IconName, Space } from "../components";
+import { Icon, IconName, Gap } from "../components";
 const { Panel } = require("react-bootstrap");
 
 // This component renders 3 price examples for licensed upgrades in a row
@@ -48,7 +48,7 @@ export const LicenseExamples: React.FC<Props> = ({
         <span style={{ fontWeight: "bold", color: "#444" }}>
           {value_str} {unit}
         </span>
-        <Space />
+        <Gap />
         <span style={{ color: COLORS.GRAY }}>{resource}</span>
       </div>
     );
@@ -74,7 +74,7 @@ export const LicenseExamples: React.FC<Props> = ({
       return (
         <span style={style}>
           <span style={{ fontSize: smallpx, verticalAlign: "super" }}>$</span>
-          <Space />
+          <Gap />
           <span style={{ fontSize: largepx }}>{usd.toFixed(2)}</span>
           {descr && <span style={{ fontSize: smallpx }}> / {descr}</span>}
         </span>
@@ -185,9 +185,9 @@ export const LicenseExamples: React.FC<Props> = ({
     return (
       <Col sm={4} key={title}>
         <Panel header={header} bsStyle={"info"}>
-          <Space />
+          <Gap />
           {lines.map((line) => render_example_line(line))}
-          <Space />
+          <Gap />
 
           {render_single_price(example)}
           {render_monthyear_price(example)}
@@ -216,9 +216,9 @@ export const LicenseExamples: React.FC<Props> = ({
           </>
         )}
       </p>
-      <Space />
+      <Gap />
       {render()}
-      <Space />
+      <Gap />
     </>
   );
 };

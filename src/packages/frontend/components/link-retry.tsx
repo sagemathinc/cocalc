@@ -10,7 +10,7 @@ import {
   useIsMountedRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Space } from "@cocalc/frontend/components";
+import { Icon, Loading, Gap } from "@cocalc/frontend/components";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { COLORS } from "@cocalc/util/theme";
@@ -97,13 +97,13 @@ const LinkRetry: React.FC<Props> = (props: Props) => {
           </a>
           {mode === "link" && loading && (
             <span>
-              <Space /> <Loading text={props.loadingText} />
+              <Gap /> <Loading text={props.loadingText} />
             </span>
           )}
           {error && (
             <>
               <span style={{ color: COLORS.ANTD_RED_WARN }}>
-                <Space /> (failed to load)
+                <Gap /> (failed to load)
               </span>
             </>
           )}
