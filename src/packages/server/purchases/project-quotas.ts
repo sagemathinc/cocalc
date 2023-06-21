@@ -11,6 +11,13 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { cloneDeep } from "lodash";
 import createPurchase from "./create-purchase";
 import type { ProjectUpgrade as ProjectUpgradeDescription } from "@cocalc/util/db-schema/purchases";
+import getBalance from "./get-balance";
+import getQuota from "./get-quota";
+import { getProject } from "@cocalc/server/projects/control";
+import LRU from "lru-cache";
+import { getPurchaseQuota } from "./purchase-quotas";
+import { getTotalChargesThisMonth } from "./get-charges";
+
 const logger = getLogger("purchases:project-quota");
 
 export async function getMaxQuotas() {
@@ -209,47 +216,123 @@ export async function maintainActivePurchases() {
   */
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT purchases.id AS purchase_id, projects.run_quota->'pay_as_you_go'->>'purchase_id' AS run_quota_purchase_id, projects.state->>'state' AS state, purchases.description->'start' AS start FROM purchases, projects WHERE cost IS NULL AND service='project-upgrade' AND purchases.project_id = projects.project_id"
+    "SELECT purchases.account_id AS account_id, purchases.project_id AS project_id, purchases.id AS purchase_id, projects.run_quota->'pay_as_you_go'->>'purchase_id' AS run_quota_purchase_id, projects.state->>'state' AS state, purchases.description->'start' AS start, purchases.description->'quota'->>'cost' AS cost_per_hour FROM purchases, projects WHERE cost IS NULL AND service='project-upgrade' AND purchases.project_id = projects.project_id"
   );
   logger.debug(
-    "maintainActivePurchases --- consider ",
+    "maintainActivePurchases --- found",
     rows.length,
-    " active purchases that might be closed"
+    "active purchases that might be closed"
   );
-  const now = Date.now();
-  for (const { purchase_id, run_quota_purchase_id, state, start } of rows) {
-    if (
-      !(
-        (state == "running" || state == "starting") &&
-        run_quota_purchase_id == purchase_id
-      )
-    ) {
+  for (const row of rows) {
+    logger.debug("maintainActivePurchases -- considering", row);
+    try {
+      await doMaintenance(row);
+    } catch (err) {
+      console.trace(err);
       logger.debug(
-        "maintainActivePurchases --- closing purchase with id",
-        purchase_id
+        "maintainActivePurchases -- ERROR doing maintenance",
+        err,
+        row
       );
-      // It's no longer running and somehow stopping the project didn't trigger closing out
-      // the purchase, or it was running pay-as-you-go for one user, then another user took over,
-      // and the original purchase wasn't ended.
-      try {
-        await closePurchase(purchase_id);
-      } catch (err) {
-        // I don't think this should ever happen but if it did that's bad.
-        logger.error("Error closing a pay as you go purchase", err);
-        // TODO -- send an email (?)
-      }
-    } else if (now - start >= MAX_ELAPSED_MS) {
-      logger.debug(
-        "maintainActivePurchases --- closing AND continuing purchase with id",
-        purchase_id
-      );
-      try {
-        await closeAndContinuePurchase(purchase_id);
-      } catch (err) {
-        logger.debug("Error closing and continuing purchase", err);
-      }
     }
-    // [ ] TODO -- need to check if any spending limit has been exceeded and in that case, cut them off.
-    
   }
+}
+
+async function doMaintenance({
+  account_id,
+  project_id,
+  purchase_id,
+  run_quota_purchase_id,
+  state,
+  start,
+  cost_per_hour,
+}) {
+  const now = Date.now();
+  if (
+    !(
+      (state == "running" || state == "starting") &&
+      run_quota_purchase_id == purchase_id
+    )
+  ) {
+    logger.debug("doMaintenance --- closing purchase with id", purchase_id);
+    // It's no longer running and somehow stopping the project didn't trigger closing out
+    // the purchase, or it was running pay-as-you-go for one user, then another user took over,
+    // and the original purchase wasn't ended.
+    try {
+      await closePurchase(purchase_id);
+    } catch (err) {
+      // I don't think this should ever happen but if it did that's bad.
+      logger.error("Error closing a pay as you go purchase", err);
+      // TODO -- send an email (?)
+      throw err;
+    }
+  } else if (now - start >= MAX_ELAPSED_MS) {
+    logger.debug(
+      "doMaintenance --- closing AND continuing purchase with id",
+      purchase_id
+    );
+    await closeAndContinuePurchase(purchase_id);
+  } else if (start != null && cost_per_hour != null) {
+    // Check if spending limit has been exceeded and in that case, cut them off.
+    const total_cost =
+      (cost_per_hour * (now.valueOf() - start)) / (1000 * 60 * 60);
+    const info = await getAccountInfo(account_id);
+    const { balance, spendingLimit, chargesThisMonth, limitThisMonth } = info;
+    logger.debug("doMaintenance --- spending info = ", info);
+    let cutoff;
+    if (balance + total_cost >= spendingLimit) {
+      logger.debug(
+        "doMaintenance --- stopping project because balance + total_cost >= spendingLimit"
+      );
+      cutoff = true;
+    } else if (chargesThisMonth + total_cost >= limitThisMonth) {
+      logger.debug(
+        "doMaintenance --- stopping project because chargesThisMonth + total_cost >= limitThisMonth"
+      );
+      cutoff = true;
+      logger.debug("");
+    } else {
+      cutoff = false;
+    }
+    if (cutoff) {
+      // cut them off -- (1) stop project, and (2) make sure purchase is closed
+      const project = getProject(project_id);
+      await project.stop();
+      // project stop would probably trigger close, but just in case, we explicitly trigger it:
+      await closePurchase(purchase_id);
+    }
+  }
+}
+
+// cache for account balance quota, since the same user could
+// get checked on a large number of times in one round of maintenance,
+// and each query could be expensive.
+
+interface AccountInfo {
+  spendingLimit: number;
+  balance: number;
+  limitThisMonth: number;
+  chargesThisMonth: number;
+}
+
+const accountCache = new LRU<string, AccountInfo>({
+  ttl: 15000, // 15 seconds
+  max: 1000,
+});
+
+async function getAccountInfo(account_id: string): Promise<AccountInfo> {
+  if (accountCache.has(account_id)) {
+    return accountCache.get(account_id)!;
+  }
+  const balance = await getBalance(account_id);
+  const { quota: spendingLimit } = await getQuota(account_id);
+  const chargesThisMonth = await getTotalChargesThisMonth(
+    account_id,
+    "project-upgrade"
+  );
+  const limitThisMonth =
+    (await getPurchaseQuota(account_id, "project-upgrade")) ?? 0;
+  const info = { spendingLimit, balance, chargesThisMonth, limitThisMonth };
+  accountCache.set(account_id, info);
+  return info;
 }

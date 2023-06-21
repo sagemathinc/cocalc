@@ -21,4 +21,3 @@ export async function getLastStatementBalance(
   );
   return rows[0].total_cost ?? 0;
 }
-

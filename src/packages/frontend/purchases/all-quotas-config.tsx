@@ -125,10 +125,10 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
     }
   };
 
-  const handleCancel = () => {
-    setServiceQuotas(cloneDeep(lastFetchedQuotasRef.current));
-    setChanged(false);
-  };
+  //   const handleCancel = () => {
+  //     setServiceQuotas(cloneDeep(lastFetchedQuotasRef.current));
+  //     setChanged(false);
+  //   };
 
   const handleRefresh = () => {
     getQuotas();
@@ -169,6 +169,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
             }
             formatter={(value) => `$${value}`}
             step={STEP}
+            onBlur={handleSave}
           />
           <div style={{ marginTop: "15px" }}>
             {PRESETS.map((amount) => (
@@ -176,7 +177,10 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
                 key={amount}
                 index={index}
                 amount={amount}
-                handleQuotaChange={handleQuotaChange}
+                handleQuotaChange={(a, b) => {
+                  handleQuotaChange(a, b);
+                  handleSave();
+                }}
               />
             ))}
           </div>
@@ -256,9 +260,9 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       >
         <div style={{ marginBottom: "15px" }}>
           <Button.Group style={{ marginRight: "5px" }}>
-            <Button onClick={handleCancel} disabled={!changed || saving}>
+            {/*<Button onClick={handleCancel} disabled={!changed || saving}>
               Cancel
-            </Button>
+            </Button>*/}
             <Button
               type="primary"
               onClick={handleSave}

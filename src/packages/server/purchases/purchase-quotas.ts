@@ -70,3 +70,15 @@ export async function getPurchaseQuotas(
   }
   return { services, global: await getGlobalQuota(account_id) };
 }
+
+export async function getPurchaseQuota(
+  account_id: string,
+  service: Service
+): Promise<number | null> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT value FROM purchase_quotas WHERE account_id=$1 AND service=$2",
+    [account_id, service]
+  );
+  return rows[0]?.value ?? null;
+}
