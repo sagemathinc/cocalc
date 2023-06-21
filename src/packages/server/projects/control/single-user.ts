@@ -16,9 +16,6 @@ This is useful for:
     laptop, e.g., when you're on an airplane.
 */
 
-import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
-import createPurchase from "@cocalc/server/purchases/create-purchase";
-
 import { kill } from "process";
 
 import {
@@ -46,14 +43,13 @@ import { query } from "@cocalc/database/postgres/query";
 import { db } from "@cocalc/database";
 import { quota } from "@cocalc/util/upgrades/quota";
 import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
+import { handlePayAsYouGoQuotas } from "./pay-as-you-go";
 
 const logger = getLogger("project-control:single-user");
 
 // Usually should fully start in about 5 seconds, but we give it 20s.
 const MAX_START_TIME_MS = 20000;
 const MAX_STOP_TIME_MS = 10000;
-
-const PAY_AS_YOU_GO_THRESH_MS = 60 * 1000;
 
 class Project extends BaseProject {
   private HOME: string;
@@ -168,72 +164,25 @@ class Project extends BaseProject {
   // despite not being used, this is useful for development and
   // the run_quota is shown in the UI (in project settings).
   async setRunQuota(): Promise<void> {
-    const { settings, users, site_license, pay_as_you_go_quotas } = await query(
-      {
+    let run_quota;
+
+    try {
+      run_quota = await handlePayAsYouGoQuotas(this.project_id);
+    } catch (err) {
+      logger.debug("issue handling run as you go quota", err);
+      run_quota = null;
+    }
+    if (run_quota == null) {
+      const { settings, users, site_license } = await query({
         db: db(),
-        select: ["site_license", "settings", "users", "pay_as_you_go_quotas"],
+        select: ["site_license", "settings", "users"],
         table: "projects",
         where: { project_id: this.project_id },
         one: true,
-      }
-    );
+      });
 
-    const site_settings = await getQuotaSiteSettings(); // quick, usually cached
-
-    let run_quota = quota(settings, users, site_license, site_settings);
-
-    if (pay_as_you_go_quotas != null) {
-      let choice: null | { quota: any; account_id: string } = null;
-      const now = Date.now();
-      for (const account_id in pay_as_you_go_quotas) {
-        const quota = pay_as_you_go_quotas[account_id];
-        if (Math.abs(quota.enabled - now) <= PAY_AS_YOU_GO_THRESH_MS) {
-          if (choice == null) {
-            choice = { quota, account_id };
-          } else if (
-            Math.abs(quota.enabled - now) < Math.abs(choice.quota.enabled - now)
-          ) {
-            choice.quota = quota;
-            choice.account_id = account_id;
-          }
-        }
-      }
-      if (choice != null && choice.account_id && choice.quota.cost) {
-        // Can the user actually create this purchase for at least 1 hour?
-        // If so, we do it.  Note: this already got checked on the frontend
-        // so this should only fail on the backend in rare cases (e.g., abuse),
-        // so no need to have an error message the user sees here.
-        const { allowed } = await isPurchaseAllowed({
-          account_id: choice.account_id,
-          service: "project-upgrade",
-          cost: choice.quota.cost,
-        });
-        if (allowed) {
-          const run_quota0 = run_quota;
-          run_quota = quota(settings, {}, {}, site_settings, choice);
-          // create the purchase.  As explained in setProjectQuota, we can
-          // trust choice.quota.cost.
-          try {
-            await createPurchase({
-              account_id: choice.account_id,
-              project_id: this.project_id,
-              service: "project-upgrade",
-              description: {
-                type: "project-upgrade",
-                start: Date.now(),
-                project_id: this.project_id,
-                upgrade: choice.quota,
-              },
-            });
-          } catch (err) {
-            // failed -- maybe could happen despite check above (?), but should
-            // be VERY rare
-            // We reset the run quota.
-            run_quota = run_quota0;
-            logger.error(`Problem creating purchase`, err);
-          }
-        }
-      }
+      const site_settings = await getQuotaSiteSettings(); // quick, usually cached
+      run_quota = quota(settings, users, site_license, site_settings);
     }
 
     await query({

@@ -1110,7 +1110,12 @@ total_quota =  {            max_upgrades = {
                             }
 */
 
-const IGNORED_KEYS = ["dedicated_disks", "dedicated_vm", "patch"] as const;
+const IGNORED_KEYS = [
+  "dedicated_disks",
+  "dedicated_vm",
+  "patch",
+  "pay_as_you_go",
+] as const;
 
 function limit_quota(total_quota: RQuota, max_upgrades: Upgrades): Quota {
   for (const [key, val] of Object.entries(upgrade2quota(max_upgrades))) {

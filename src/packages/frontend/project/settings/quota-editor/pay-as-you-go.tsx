@@ -246,7 +246,9 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       {quotaState != null && (editing || runningWithUpgrade) && (
         <div style={{ float: "right", marginLeft: "30px", width: "150px" }}>
           <CostPerHour quota={quotaState} />
-          {editing && <div>You will be charged by the second.</div>}
+          {editing && (
+            <div style={{ color: "#888" }}>Charged by the second.</div>
+          )}
         </div>
       )}
       {runningWithUpgrade && (
@@ -271,8 +273,8 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
         </div>
       )}
       {!editing && !runningWithUpgrade && (
-        <Button onClick={() => setEditing(!editing)}>
-          Increase your RAM, CPU, disk, ...
+        <Button size="large" onClick={() => setEditing(!editing)}>
+          <Icon name="credit-card" /> Temporary upgrade...
         </Button>
       )}
       {editing && (

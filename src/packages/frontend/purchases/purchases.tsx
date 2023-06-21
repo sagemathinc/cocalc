@@ -270,24 +270,31 @@ function DetailedPurchaseTable({ purchases }) {
           key: "time",
           render: (text, record) => {
             if (record.service == "project-upgrade") {
+              let minutes;
+              if (
+                record.description?.stop != null &&
+                record.description?.start != null
+              ) {
+                minutes = Math.ceil(
+                  (record.description.stop - record.description.start) /
+                    1000 /
+                    60
+                );
+              } else {
+                minutes = null;
+              }
               return (
                 <span>
                   <TimeAgo date={text} />
                   {record.description?.stop != null ? (
                     <>
-                      {" "}to <TimeAgo date={record.description?.stop} />
+                      {" "}
+                      to <TimeAgo date={record.description?.stop} />
                     </>
                   ) : null}
-                  {record.description?.stop != null &&
-                  record.description?.start != null ? (
+                  {minutes != null ? (
                     <div>
-                      Total:{" "}
-                      {Math.round(
-                        (record.description.stop - record.description.start) /
-                          1000 /
-                          60
-                      )}{" "}
-                      minutes
+                      Total: {minutes} {plural(minutes, "minute")}
                     </div>
                   ) : null}
                 </span>
