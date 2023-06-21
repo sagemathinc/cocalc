@@ -16,6 +16,7 @@ import CostPerHour from "./cost-per-hour";
 import { getPricePerHour } from "@cocalc/util/purchases/project-quotas";
 import { copy_without } from "@cocalc/util/misc";
 import { load_target } from "@cocalc/frontend/history";
+import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
 
 // These correspond to dedicated RAM and dedicated CPU, and we
 // found them too difficult to cost out, so exclude them (only
@@ -29,16 +30,9 @@ interface Props {
 
 export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   const project = useRedux(["projects", "project_map", project_id]);
+
   // Slightly subtle -- it's null if not loaded but {} or the thing if loaded, even
   // if there is no data yet in the database.
-  const runningWithUpgrade = useMemo(() => {
-    return (
-      project?.getIn(["state", "state"]) == "running" &&
-      project?.getIn(["run_quota", "pay_as_you_go", "account_id"]) ==
-        webapp_client.account_id
-    );
-  }, [project]);
-
   const savedQuotaState: ProjectQuota | null =
     project == null
       ? null
@@ -50,6 +44,26 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   const [quotaState, setQuotaState] = useState<ProjectQuota | null>(
     savedQuotaState
   );
+
+  const { runningWithUpgrade, runingWithDisplayedUpgrade } = useMemo(() => {
+    const runningWithUpgrade =
+      project?.getIn(["state", "state"]) == "running" &&
+      project?.getIn(["run_quota", "pay_as_you_go", "account_id"]) ==
+        webapp_client.account_id;
+    let runingWithDisplayedUpgrade = runningWithUpgrade;
+    if (runingWithDisplayedUpgrade) {
+      const quota =
+        project?.getIn(["run_quota", "pay_as_you_go", "quota"])?.toJS() ?? {};
+      for (const key in quotaState) {
+        if (quotaState[key] != quota[key]) {
+          runingWithDisplayedUpgrade = false;
+          break;
+        }
+      }
+    }
+    return { runningWithUpgrade, runingWithDisplayedUpgrade };
+  }, [project, quotaState]);
+
   const [maxQuotas, setMaxQuotas] = useState<ProjectQuota | null>(null);
   const [error, setError] = useState<string>("");
   const [status, setStatus] = useState<string>("");
@@ -231,6 +245,22 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
               <Tag style={{ marginLeft: "30px" }} color="success">
                 Active
               </Tag>
+              <DynamicallyUpdatingCost
+                costPerHour={
+                  project?.getIn([
+                    "run_quota",
+                    "pay_as_you_go",
+                    "quota",
+                    "cost",
+                  ]) ?? 0
+                }
+                start={project?.getIn([
+                  "run_quota",
+                  "pay_as_you_go",
+                  "quota",
+                  "start",
+                ])}
+              />
             </>
           )}
           {status ? (
@@ -263,9 +293,15 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           </a>
           . You will be charged only while the project is running.
           <div>
-            <Button onClick={handleStop} style={{ margin: "15px" }}>
-              <Icon name="stop" /> Stop
-            </Button>
+            <Popconfirm
+              title={"Stop project?"}
+              description={"Remove upgrades and stop the project?"}
+              onConfirm={handleStop}
+            >
+              <Button style={{ margin: "15px" }}>
+                <Icon name="stop" /> Stop Project
+              </Button>
+            </Popconfirm>
             <Button onClick={() => setEditing(!editing)}>
               {editing ? "Hide" : "Show"} Quotas
             </Button>
@@ -351,7 +387,11 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                   okText="Run"
                   cancelText="No"
                 >
-                  <Button style={{ marginLeft: "8px" }} type="primary">
+                  <Button
+                    style={{ marginLeft: "8px" }}
+                    type="primary"
+                    disabled={runingWithDisplayedUpgrade}
+                  >
                     <Icon name="save" /> Upgrade My Project
                   </Button>
                 </Popconfirm>

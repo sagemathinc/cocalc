@@ -53,13 +53,15 @@ export async function handlePayAsYouGoQuotas(
   // create the purchase.  As explained in setProjectQuota, we can
   // trust choice.quota.cost.
   try {
+    const start = Date.now();
+    choice.quota.start = start; // useful for some purposes here
     const id = await createPurchase({
       account_id: choice.account_id,
       project_id,
       service: "project-upgrade",
       description: {
         type: "project-upgrade",
-        start: Date.now(),
+        start, // useful for other purposes here.
         project_id,
         quota: choice.quota,
       },
