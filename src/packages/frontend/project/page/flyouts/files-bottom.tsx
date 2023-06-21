@@ -187,8 +187,7 @@ export function FilesBottom({
 
   function renderButtons(names) {
     return (
-      <Space direction="horizontal">
-        {renderOpenFile()}
+      <Space direction="horizontal" wrap>
         <Space.Compact size="small">
           {names.map((name) => {
             const disabled =
@@ -218,7 +217,6 @@ export function FilesBottom({
             );
           })}
         </Space.Compact>
-        {renderDownloadViewFile()}
       </Space>
     );
   }
@@ -251,7 +249,7 @@ export function FilesBottom({
     );
   }
 
-  function renderDownloadViewFile() {
+  function renderDownloadView() {
     if (!singleFile) return;
     const { name, isdir, size = 0 } = singleFile;
     if (isdir) return;
@@ -264,7 +262,7 @@ export function FilesBottom({
     const sizeStr = human_readable_size(size);
 
     return (
-      <Space.Compact size="small">
+      <>
         {showDownload ? (
           <Popover
             content={
@@ -304,6 +302,16 @@ export function FilesBottom({
             />
           </Popover>
         ) : undefined}
+      </>
+    );
+  }
+
+  function renderOpenDownloadViewFile() {
+    if (!singleFile) return renderSelectDeselectButton();
+    return (
+      <Space.Compact size="small">
+        {renderOpenFile()}
+        {renderDownloadView()}
       </Space.Compact>
     );
   }
@@ -315,7 +323,7 @@ export function FilesBottom({
       return (
         <Descriptions size="small" layout="horizontal" column={1}>
           {age ? (
-            <Descriptions.Item label="Last modified" span={1}>
+            <Descriptions.Item label="Modified" span={1}>
               <TimeAgo date={new Date(age)} />
             </Descriptions.Item>
           ) : undefined}
@@ -594,7 +602,7 @@ export function FilesBottom({
         header={renderSelectedHeader()}
         key="selected"
         style={style}
-        extra={renderSelectDeselectButton()}
+        extra={renderOpenDownloadViewFile()}
       >
         {renderSelected()}
       </Collapse.Panel>
