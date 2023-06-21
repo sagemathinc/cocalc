@@ -25,6 +25,7 @@ import Next from "@cocalc/frontend/components/next";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { currency } from "./quota-config";
 import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 
 const DEFAULT_LIMIT = 100;
 
@@ -435,30 +436,8 @@ function Description({ description }: { description?: Description }) {
     return <Tooltip title="Thank you!">Credit</Tooltip>;
   }
   if (description.type == "project-upgrade") {
-    const upgrade = description?.quota ?? {};
-    const v: string[] = [];
-    if (upgrade.disk_quota) {
-      v.push(`${upgrade.disk_quota / 1000} GB disk`);
-    }
-    if (upgrade.memory) {
-      v.push(`${upgrade.memory / 1000} GB RAM`);
-    }
-    if (upgrade.cores) {
-      v.push(`${upgrade.cores} ${plural(upgrade.cores, "core")}`);
-    }
-    if (upgrade.always_running) {
-      v.push("always running");
-    }
-    if (upgrade.member_host) {
-      v.push("member hosting");
-    }
-    if (upgrade.network) {
-      v.push("network");
-    }
-    if (upgrade.cost) {
-      v.push(`${currency(upgrade.cost)} / hour`);
-    }
-    return <span>{v.join(", ")}</span>;
+    const quota = description?.quota ?? {};
+    return <DisplayProjectQuota quota={quota} />;
   }
   // generic fallback...
   return (
@@ -470,4 +449,30 @@ function Description({ description }: { description?: Description }) {
       </Popover>
     </>
   );
+}
+
+export function DisplayProjectQuota({ quota }: { quota: ProjectQuota }) {
+  const v: string[] = [];
+  if (quota.disk_quota) {
+    v.push(`${quota.disk_quota / 1000} GB disk`);
+  }
+  if (quota.memory) {
+    v.push(`${quota.memory / 1000} GB RAM`);
+  }
+  if (quota.cores) {
+    v.push(`${quota.cores} ${plural(quota.cores, "core")}`);
+  }
+  if (quota.always_running) {
+    v.push("always running");
+  }
+  if (quota.member_host) {
+    v.push("member hosting");
+  }
+  if (quota.network) {
+    v.push("network");
+  }
+  if (quota.cost) {
+    v.push(`${currency(quota.cost)} / hour`);
+  }
+  return <span>{v.join(", ")}</span>;
 }

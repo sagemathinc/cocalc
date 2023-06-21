@@ -209,6 +209,10 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       await actions.stop_project(project_id);
       setStatus("Starting project...");
       await actions.start_project(project_id);
+      actions.project_log(project_id, {
+        event: "pay-as-you-go-upgrade",
+        quota,
+      });
     } catch (err) {
       console.warn(err);
       setError(`${err}`);
