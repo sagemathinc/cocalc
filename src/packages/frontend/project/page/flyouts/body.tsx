@@ -53,7 +53,8 @@ export function FlyoutBody({
     { leading: false, trailing: true }
   );
 
-  // use this *once* around a vertically scollable content div in the component, e.g. results in a search
+  // use this *once* around a vertically scollable content div in the component, e.g. results in a search.
+  // note: this won't work if the initial content is something else, e.g. a loading indicator.
   function wrap(content: React.ReactNode, style: CSS = {}) {
     return (
       <div

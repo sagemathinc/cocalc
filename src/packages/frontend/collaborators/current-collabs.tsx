@@ -3,22 +3,32 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Button, Card, Popconfirm } from "antd";
 import React from "react";
-import { redux, useRedux, CSS } from "../app-framework";
-import { Well, Row, Col } from "react-bootstrap";
-import { Gap, Icon, SettingBox } from "../components";
-import { Project } from "@cocalc/frontend/project/settings/types";
-import { User } from "../users";
-import { Popconfirm, Button } from "antd";
+
+import { CSS, redux, useRedux } from "@cocalc/frontend/app-framework";
+import {
+  Gap,
+  Icon,
+  Paragraph,
+  SettingBox,
+  Title,
+} from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { Project } from "@cocalc/frontend/project/settings/types";
+import { COLORS } from "@cocalc/util/theme";
+import { User } from "../users";
+import { FIX_BORDER } from "../project/page/common";
 
 interface Props {
   project: Project;
   user_map?: any;
+  mode?: "project" | "flyout";
 }
 
 export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
-  const { project, user_map } = props;
+  const { project, user_map, mode = "project" } = props;
+  const isFlyout = mode === "flyout";
   const get_account_id = useRedux("account", "get_account_id");
   const sort_by_activity = useRedux("projects", "sort_by_activity");
   const student = useStudentProjectFunctionality(project.get("project_id"));
@@ -61,38 +71,42 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
         onConfirm={() => remove_collaborator(account_id)}
         okText={"Yes, remove collaborator"}
         cancelText={"Cancel"}
+        disabled={group === "owner"}
       >
         <Button
           disabled={group === "owner"}
           style={{ marginBottom: "0", float: "right" }}
         >
           <Icon name="user-times" />
-          <Gap /> Remove...
+          {!isFlyout ? (
+            <>
+              <Gap /> Remove
+            </>
+          ) : undefined}
+          ...
         </Button>
       </Popconfirm>
     );
   }
 
   function render_user(user: any, is_last?: boolean) {
+    const style = {
+      width: "100%",
+      flex: "1 1 auto",
+      ...(!is_last ? { marginBottom: "20px" } : {}),
+    };
     return (
-      <div
-        key={user.account_id}
-        style={!is_last ? { marginBottom: "20px" } : undefined}
-      >
-        <Row style={{ display: "flex", alignItems: "center" }}>
-          <Col sm={8}>
-            <User
-              account_id={user.account_id}
-              user_map={user_map}
-              last_active={user.last_active}
-              show_avatar={true}
-            />
-            <span>
-              <Gap />({user.group})
-            </span>
-          </Col>
-          <Col sm={4}>{user_remove_button(user.account_id, user.group)}</Col>
-        </Row>
+      <div key={user.account_id} style={style}>
+        <User
+          account_id={user.account_id}
+          user_map={user_map}
+          last_active={user.last_active}
+          show_avatar={true}
+        />
+        <span>
+          <Gap />({user.group})
+        </span>
+        {user_remove_button(user.account_id, user.group)}
       </div>
     );
   }
@@ -112,26 +126,50 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
   }
 
   function render_collaborators_list() {
-    return (
-      <Well
-        style={{
-          maxHeight: "20em",
-          overflowY: "auto",
-          overflowX: "hidden",
-          marginBottom: "0",
-        }}
-      >
-        {render_users()}
-      </Well>
-    );
+    const style: CSS = {
+      maxHeight: "20em",
+      overflowY: "auto",
+      overflowX: "hidden",
+      marginBottom: "0",
+      display: "flex",
+      flexDirection: "column",
+    };
+    if (isFlyout) {
+      return (
+        <div style={{ ...style, borderBottom: FIX_BORDER }}>
+          {render_users()}
+        </div>
+      );
+    } else {
+      return (
+        <Card style={{ ...style, backgroundColor: COLORS.GRAY_LLL }}>
+          {render_users()}
+        </Card>
+      );
+    }
   }
 
-  return (
-    <SettingBox title="Current collaborators" icon="user">
-      Everybody listed below can collaboratively work with you on any notebooks,
-      terminals or files in this project, and add or remove other collaborators.
-      <hr />
-      {render_collaborators_list()}
-    </SettingBox>
-  );
+  const introText =
+    "Everybody listed below can collaboratively work with you on any notebooks, terminals or files in this project, and add or remove other collaborators.";
+
+  switch (mode) {
+    case "project":
+      return (
+        <SettingBox title="Current collaborators" icon="user">
+          {introText}
+          <hr />
+          {render_collaborators_list()}
+        </SettingBox>
+      );
+    case "flyout":
+      return (
+        <div style={{ paddingLeft: "5px" }}>
+          <Title level={3}>
+            <Icon name="user" /> Current collaborators
+          </Title>
+          <Paragraph>{introText}</Paragraph>
+          {render_collaborators_list()}
+        </div>
+      );
+  }
 };

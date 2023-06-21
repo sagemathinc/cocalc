@@ -16,7 +16,7 @@ import {
   SettingBox,
   Title,
 } from "@cocalc/frontend/components";
-import { getStudentProjectFunctionality } from "../../course";
+import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import {
   ICON_COLLABORATORS,
   ROOT_STYLE,
@@ -75,12 +75,12 @@ export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
       <Title level={2}>
         <Icon name={ICON_COLLABORATORS} /> {TITLE_COLLABORATORS}
       </Title>
-      <Paragraph>
-        Collaborators are people who can access this project. They can view and
-        edit the same files as you.
-      </Paragraph>
+      <Paragraph>{COLLABS_INFO_TEXT}</Paragraph>
       {renderAdmin()}
       {renderSettings()}
     </div>
   );
 }
+
+export const COLLABS_INFO_TEXT =
+  "Collaborators are people who can access this project. They can view and edit the same files as you.";
