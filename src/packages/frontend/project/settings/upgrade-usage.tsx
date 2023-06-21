@@ -162,8 +162,8 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         <div style={UPGRADE_BUTTON_STYLE}>
           {noUpgrades ? (
             <Typography.Text type="secondary">
-              <Typography.Text strong>Note:</Typography.Text> Increase the above
-              quotas using the quota editor or by adding a license.
+              <Typography.Text strong>Note:</Typography.Text> You can increase the above
+              quotas below:
             </Typography.Text>
           ) : (
             <>{render_contributions()}</>

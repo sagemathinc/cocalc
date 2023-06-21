@@ -11,13 +11,14 @@ import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import QuotaRow from "./quota-row";
 import Information from "./information";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
-import { useRedux, redux } from "@cocalc/frontend/app-framework";
+import { useRedux, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import CostPerHour from "./cost-per-hour";
 import { getPricePerHour } from "@cocalc/util/purchases/project-quotas";
 import { copy_without } from "@cocalc/util/misc";
 import { load_target } from "@cocalc/frontend/history";
 import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
 import track0 from "@cocalc/frontend/user-tracking";
+import { User } from "@cocalc/frontend/users";
 
 function track(obj) {
   track0("pay-as-you-go-project-upgrade", obj);
@@ -253,11 +254,10 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       title={
         <div style={{ marginTop: "5px" }}>
           <Icon name="compass" /> Pay As You Go
+          <RunningStatus project={project} style={{ marginRight: "8px" }} />
           {runningWithUpgrade && (
             <>
-              <Tag style={{ marginLeft: "30px" }} color="success">
-                Active
-              </Tag>
+              (Total:{" "}
               <DynamicallyUpdatingCost
                 costPerHour={
                   project?.getIn([
@@ -274,6 +274,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                   "start",
                 ])}
               />
+              )
             </>
           )}
           {status ? (
@@ -423,5 +424,31 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
         </>
       )}
     </Card>
+  );
+}
+
+export function RunningStatus({ project, style }) {
+  const user_map = useTypedRedux("users", "user_map");
+  if (project?.getIn(["state", "state"]) != "running") return null;
+  const pay_as_you_go_account_id = project.getIn([
+    "run_quota",
+    "pay_as_you_go",
+    "account_id",
+  ]);
+  if (!pay_as_you_go_account_id) {
+    return null;
+  }
+  return (
+    <span style={style}>
+      <Tag style={{ marginLeft: "30px" }} color="success">
+        Active
+      </Tag>
+      paid for by{" "}
+      {pay_as_you_go_account_id == webapp_client.account_id ? (
+        "you"
+      ) : (
+        <User account_id={pay_as_you_go_account_id} user_map={user_map} />
+      )}
+    </span>
   );
 }
