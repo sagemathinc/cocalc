@@ -11,7 +11,7 @@ import { fromJS } from "immutable";
 
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Space, Text } from "@cocalc/frontend/components";
+import { Icon, Loading, Gap, Text } from "@cocalc/frontend/components";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -167,11 +167,11 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
         <Col xs={12}>
           <Row style={{ fontSize: "12pt" }}>
             <Icon name={"hdd"} style={{ marginTop: "5px" }} />
-            <Space />
+            <Gap />
             Selected image
-            <Space />
+            <Gap />
             {render_selector()}
-            <Space />
+            <Gap />
             {render_doubt()}
           </Row>
           <Row>{render_info(true)}</Row>
@@ -182,7 +182,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
       return (
         <Col xs={12}>
           <Icon name={"hdd"} />
-          <Space />
+          <Gap />
           <span style={{ fontSize: "12pt", fontWeight: "bold" }}>
             {render_selector()}
           </span>

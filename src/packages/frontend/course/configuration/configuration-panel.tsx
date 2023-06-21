@@ -28,7 +28,7 @@ import {
   LabeledRow,
   Loading,
   MarkdownInput,
-  Space,
+  Gap,
   TextInput,
   TimeAgo,
   ErrorDisplay,
@@ -529,7 +529,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             <span style={{ fontSize: "18pt" }}>
               <Icon name="check" />
             </span>{" "}
-            <Space />
+            <Gap />
             {render_require_students_pay_desc()}
           </span>
         );

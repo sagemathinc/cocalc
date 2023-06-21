@@ -3,6 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export function Space() {
+export function Gap() {
   return <span>&nbsp;</span>;
 }

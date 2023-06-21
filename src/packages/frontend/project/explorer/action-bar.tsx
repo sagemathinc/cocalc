@@ -5,7 +5,7 @@
 
 import React from "react";
 import * as immutable from "immutable";
-import { HiddenSM, Icon, Space } from "../../components";
+import { HiddenSM, Icon, Gap } from "../../components";
 import { COLORS } from "@cocalc/util/theme";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { ProjectActions } from "@cocalc/frontend/project_store";
@@ -177,7 +177,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
             total,
             "item"
           )} selected`}</span>
-          <Space />
+          <Gap />
           {render_select_entire_directory()}
         </div>
       );

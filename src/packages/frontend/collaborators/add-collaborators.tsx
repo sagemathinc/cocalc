@@ -19,7 +19,7 @@ import {
   useState,
 } from "../app-framework";
 import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
-import { Icon, Loading, ErrorDisplay, Space } from "../components";
+import { Icon, Loading, ErrorDisplay, Gap } from "../components";
 import { webapp_client } from "../webapp-client";
 import { SITE_NAME } from "@cocalc/util/theme";
 import {
@@ -633,7 +633,7 @@ export const AddCollaborators: React.FC<Props> = ({
     return (
       <div>
         <Button onClick={reset}>Cancel</Button>
-        <Space />
+        <Gap />
         <Button disabled={disabled} onClick={add_selected} bsStyle="primary">
           <Icon name="user-plus" /> {label}
         </Button>

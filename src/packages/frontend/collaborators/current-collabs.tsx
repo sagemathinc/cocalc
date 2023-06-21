@@ -6,7 +6,7 @@
 import React from "react";
 import { redux, useRedux, CSS } from "../app-framework";
 import { Well, Row, Col } from "react-bootstrap";
-import { Space, Icon, SettingBox } from "../components";
+import { Gap, Icon, SettingBox } from "../components";
 import { Project } from "@cocalc/frontend/project/settings/types";
 import { User } from "../users";
 import { Popconfirm, Button } from "antd";
@@ -67,7 +67,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
           style={{ marginBottom: "0", float: "right" }}
         >
           <Icon name="user-times" />
-          <Space /> Remove...
+          <Gap /> Remove...
         </Button>
       </Popconfirm>
     );
@@ -88,7 +88,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
               show_avatar={true}
             />
             <span>
-              <Space />({user.group})
+              <Gap />({user.group})
             </span>
           </Col>
           <Col sm={4}>{user_remove_button(user.account_id, user.group)}</Col>

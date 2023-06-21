@@ -19,7 +19,7 @@ import {
   useTypedRedux,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Space } from "@cocalc/frontend/components";
+import { Icon, Loading, Gap } from "@cocalc/frontend/components";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { PaymentMethods } from "@cocalc/frontend/billing/payment-methods";
 
@@ -69,7 +69,7 @@ export const PurchaseMethod: React.FC<Props> = React.memo(
             size="large"
             onClick={() => set_buy_confirm(true)}
           >
-            <Icon name="check" /> <Space /> <Space /> Checkout...
+            <Icon name="check" /> <Gap /> <Gap /> Checkout...
           </Button>
         )}
         {source && buy_confirm && (
@@ -80,7 +80,7 @@ export const PurchaseMethod: React.FC<Props> = React.memo(
             </div>
             <br />
             <Button type="primary" size="large" onClick={() => onClose(source)}>
-              <Icon name="credit-card" /> <Space /> Complete Purchase
+              <Icon name="credit-card" /> <Gap /> Complete Purchase
             </Button>
           </div>
         )}

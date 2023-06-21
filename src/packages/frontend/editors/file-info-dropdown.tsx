@@ -13,7 +13,7 @@ import {
   HiddenXS,
   Icon,
   IconName,
-  Space,
+  Gap,
 } from "@cocalc/frontend/components";
 import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -129,7 +129,7 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
           <Icon name={"file"} />
           {label && (
             <HiddenXS>
-              <Space />
+              <Gap />
               {label}
             </HiddenXS>
           )}

@@ -10,7 +10,7 @@ import {
   redux,
   rtypes,
 } from "@cocalc/frontend/app-framework";
-import { A, Icon, Loading, Space } from "@cocalc/frontend/components";
+import { A, Icon, Loading, Gap } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { plural, round1 } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
@@ -72,7 +72,7 @@ class UpgradesPage extends Component<reduxProps> {
             <A href={join(appBasePath, "store")}>Store</A>.
           </p>
         </div>
-        <Space />
+        <Gap />
       </div>
     );
   }

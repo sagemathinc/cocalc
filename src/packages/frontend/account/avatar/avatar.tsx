@@ -11,7 +11,7 @@ import {
   useAsyncEffect,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Space } from "@cocalc/frontend/components";
+import { Gap } from "@cocalc/frontend/components";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { DEFAULT_COLOR } from "@cocalc/frontend/users/store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -165,7 +165,7 @@ const Avatar0: React.FC<Props> = (props) => {
     if (line != null) {
       return (
         <span>
-          <Space /> (Line {line})
+          <Gap /> (Line {line})
         </span>
       );
     }

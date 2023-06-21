@@ -13,7 +13,7 @@ import {
   IconName,
   PathLink,
   r_join,
-  Space,
+  Gap,
   TimeAgo,
   Tip,
 } from "@cocalc/frontend/components";
@@ -125,7 +125,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       return (
         <span>
           opened
-          <Space />
+          <Gap />
           <PathLink
             path={event.filename}
             full={true}
@@ -150,7 +150,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       return (
         <span>
           set the public path
-          <Space />
+          <Gap />
           <PathLink
             path={event.path}
             full={true}
@@ -656,10 +656,10 @@ export const LogEntry: React.FC<Props> = React.memo(
               </Col>
               <Col sm={11}>
                 {render_user()}
-                <Space />
+                <Gap />
                 {render_desc()}
                 {renderDuration()}
-                <Space />
+                <Gap />
                 <TimeAgo style={style} date={props.time} />
               </Col>
             </Row>
