@@ -47,7 +47,7 @@ export interface ProjectUpgrade {
   project_id: string;
   start: number; // ms since epoch
   stop?: number; // ms since epoch
-  upgrade: {
+  quota: {
     cost: number; // dollars per hour
     cores?: number;
     memory?: number;

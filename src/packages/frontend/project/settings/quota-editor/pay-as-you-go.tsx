@@ -274,7 +274,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       )}
       {!editing && !runningWithUpgrade && (
         <Button size="large" onClick={() => setEditing(!editing)}>
-          <Icon name="credit-card" /> Temporary upgrade...
+          <Icon name="credit-card" /> Upgrade...
         </Button>
       )}
       {editing && (

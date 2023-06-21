@@ -30,6 +30,7 @@ const DEFAULT_LIMIT = 100;
 
 interface Props {
   project_id?: string; // if given, restrict to only purchases that are for things in this project
+  group?: boolean; // default
 }
 
 export default function Purchases(props: Props) {
@@ -40,9 +41,9 @@ export default function Purchases(props: Props) {
   return <Purchases0 {...props} />;
 }
 
-function Purchases0({ project_id }: Props) {
+function Purchases0({ project_id, group: group0 }: Props) {
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
-  const [group, setGroup] = useState<boolean>(false);
+  const [group, setGroup] = useState<boolean>(!!group0);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
   const [error, setError] = useState<string>("");
   const [limit /*, setLimit*/] = useState<number>(DEFAULT_LIMIT);
@@ -110,8 +111,7 @@ function Purchases0({ project_id }: Props) {
           </Button>
           {project_id ? (
             <span>
-              Purchases specific to{" "}
-              <ProjectTitle project_id={project_id} trunc={30} />
+              Purchases in <ProjectTitle project_id={project_id} trunc={30} />
             </span>
           ) : (
             <span>
@@ -250,135 +250,146 @@ function DetailedPurchaseTable({ purchases }) {
     return <Spin size="large" delay={500} />;
   }
   return (
-    <Table
-      scroll={{ y: 400 }}
-      pagination={false}
-      dataSource={purchases}
-      rowKey="id"
-      columns={[
-        {
-          title: "Service",
-          dataIndex: "service",
-          key: "service",
-          sorter: (a, b) => (a.service ?? "").localeCompare(b.service ?? ""),
-          sortDirections: ["ascend", "descend"],
-          render: (service) => <ServiceTag service={service} />,
-        },
-        {
-          title: "Time",
-          dataIndex: "time",
-          key: "time",
-          render: (text, record) => {
-            if (record.service == "project-upgrade") {
-              let minutes;
-              if (
-                record.description?.stop != null &&
-                record.description?.start != null
-              ) {
-                minutes = Math.ceil(
-                  (record.description.stop - record.description.start) /
-                    1000 /
-                    60
-                );
-              } else {
-                minutes = null;
-              }
-              return (
-                <span>
-                  <TimeAgo date={text} />
-                  {record.description?.stop != null ? (
-                    <>
-                      {" "}
-                      to <TimeAgo date={record.description?.stop} />
-                    </>
-                  ) : null}
-                  {minutes != null ? (
-                    <div>
-                      Total: {minutes} {plural(minutes, "minute")}
-                    </div>
-                  ) : null}
-                </span>
-              );
-            }
-            return <TimeAgo date={text} />;
-          },
-          sorter: (a, b) =>
-            new Date(a.time ?? 0).getTime() - new Date(b.time ?? 0).getTime(),
-          sortDirections: ["ascend", "descend"],
-        },
-        {
-          title: "Amount (USD)",
-          dataIndex: "cost",
-          key: "cost",
-          render: (text, record) => {
-            if (!text && record.service == "project-upgrade") {
-              const cost = record.description?.upgrade?.cost;
-              const start = record.description?.start;
-              if (cost != null && start != null) {
+    <div style={{ overflow: "auto" }}>
+      <div style={{ width: "1000px" }}>
+        <Table
+          scroll={{ y: 400 }}
+          pagination={false}
+          dataSource={purchases}
+          rowKey="id"
+          columns={[
+            {
+              title: "Service",
+              dataIndex: "service",
+              key: "service",
+              sorter: (a, b) =>
+                (a.service ?? "").localeCompare(b.service ?? ""),
+              sortDirections: ["ascend", "descend"],
+              render: (service) => <ServiceTag service={service} />,
+            },
+            {
+              title: "Time",
+              dataIndex: "time",
+              key: "time",
+              render: (text, record) => {
+                if (record.service == "project-upgrade") {
+                  let minutes;
+                  if (
+                    record.description?.stop != null &&
+                    record.description?.start != null
+                  ) {
+                    minutes = Math.ceil(
+                      (record.description.stop - record.description.start) /
+                        1000 /
+                        60
+                    );
+                  } else {
+                    minutes = null;
+                  }
+                  return (
+                    <span>
+                      <TimeAgo date={text} />
+                      {record.description?.stop != null ? (
+                        <>
+                          {" "}
+                          to <TimeAgo date={record.description?.stop} />
+                        </>
+                      ) : null}
+                      {minutes != null ? (
+                        <div>
+                          Total: {minutes} {plural(minutes, "minute")}
+                        </div>
+                      ) : null}
+                    </span>
+                  );
+                }
+                return <TimeAgo date={text} />;
+              },
+              sorter: (a, b) =>
+                new Date(a.time ?? 0).getTime() -
+                new Date(b.time ?? 0).getTime(),
+              sortDirections: ["ascend", "descend"],
+            },
+            {
+              title: "Amount (USD)",
+              dataIndex: "cost",
+              key: "cost",
+              render: (text, record) => {
+                if (!text && record.service == "project-upgrade") {
+                  const cost = record.description?.quota?.cost;
+                  const start = record.description?.start;
+                  if (cost != null && start != null) {
+                    return (
+                      <Space>
+                        <DynamicallyUpdatingCost
+                          costPerHour={cost}
+                          start={start}
+                        />
+                        <Tag color="green">Active</Tag>
+                      </Space>
+                    );
+                  }
+                }
+                if (text) {
+                  return `$${text?.toFixed(2)}`;
+                }
+                return "-";
+              },
+              sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
+              sortDirections: ["ascend", "descend"],
+            },
+            {
+              title: "Description",
+              dataIndex: "description",
+              key: "description",
+              render: (_, record) => (
+                <Description description={record.description} />
+              ),
+            },
+            {
+              title: "Project",
+              dataIndex: "project_id",
+              key: "project_id",
+              render: (project_id) =>
+                project_id ? (
+                  <ProjectTitle project_id={project_id} trunc={20} />
+                ) : null,
+            },
+            {
+              title: "Invoice",
+              dataIndex: "invoice_id",
+              key: "invoice_id",
+              sorter: (a, b) =>
+                (a.invoice_id ?? "").localeCompare(b.invoice_id ?? "") ?? -1,
+              sortDirections: ["ascend", "descend"],
+              render: (invoice_id) => {
+                if (!invoice_id) return null;
                 return (
-                  <Space>
-                    <DynamicallyUpdatingCost costPerHour={cost} start={start} />
-                    <Tag color="green">Active</Tag>
-                  </Space>
+                  <Button
+                    type="link"
+                    onClick={async () => {
+                      const invoiceUrl = (
+                        await webapp_client.purchases_client.getInvoice(
+                          invoice_id
+                        )
+                      ).hosted_invoice_url;
+                      open_new_tab(invoiceUrl, false);
+                    }}
+                  >
+                    <Icon name="external-link" /> Invoice
+                  </Button>
                 );
-              }
-            }
-            if (text) {
-              return `$${text?.toFixed(2)}`;
-            }
-            return "-";
-          },
-          sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
-          sortDirections: ["ascend", "descend"],
-        },
-        {
-          title: "Description",
-          dataIndex: "description",
-          key: "description",
-          render: (_, record) => (
-            <Description description={record.description} />
-          ),
-        },
-        {
-          title: "Project",
-          dataIndex: "project_id",
-          key: "project_id",
-          render: (project_id) =>
-            project_id ? (
-              <ProjectTitle project_id={project_id} trunc={20} />
-            ) : null,
-        },
-        {
-          title: "Invoice",
-          dataIndex: "invoice_id",
-          key: "invoice_id",
-          sorter: (a, b) =>
-            (a.invoice_id ?? "").localeCompare(b.invoice_id ?? "") ?? -1,
-          sortDirections: ["ascend", "descend"],
-          render: (invoice_id) => {
-            if (!invoice_id) return null;
-            return (
-              <Button
-                type="link"
-                onClick={async () => {
-                  const invoiceUrl = (
-                    await webapp_client.purchases_client.getInvoice(invoice_id)
-                  ).hosted_invoice_url;
-                  open_new_tab(invoiceUrl, false);
-                }}
-              >
-                <Icon name="external-link" /> Invoice
-              </Button>
-            );
-          },
-        },
-        {
-          title: "Id",
-          dataIndex: "id",
-          key: "id",
-        },
-      ]}
-    />
+              },
+            },
+            {
+              title: "Id",
+              dataIndex: "id",
+              key: "id",
+            },
+          ]}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -424,7 +435,7 @@ function Description({ description }: { description?: Description }) {
     return <Tooltip title="Thank you!">Credit</Tooltip>;
   }
   if (description.type == "project-upgrade") {
-    const upgrade = description?.upgrade ?? {};
+    const upgrade = description?.quota ?? {};
     const v: string[] = [];
     if (upgrade.disk_quota) {
       v.push(`${upgrade.disk_quota / 1000} GB disk`);

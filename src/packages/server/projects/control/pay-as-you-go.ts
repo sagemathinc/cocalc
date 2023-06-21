@@ -61,7 +61,7 @@ export async function handlePayAsYouGoQuotas(
         type: "project-upgrade",
         start: Date.now(),
         project_id,
-        upgrade: choice.quota,
+        quota: choice.quota,
       },
     });
     logger.debug(

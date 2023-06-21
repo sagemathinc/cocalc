@@ -185,6 +185,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             </SettingBox>
           )}
           <ProjectControl key="control" project={project} />
+          <Purchases project_id={project_id} group={true} />
           {!student.disableSSH &&
             (ssh_gateway || kucalc === KUCALC_COCALC_COM) && (
               <SSHPanel
@@ -194,7 +195,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
               />
             )}
           <ApiKeys project_id={project_id} />
-          <Purchases project_id={project_id} />
         </Col>
       </Row>
     </div>

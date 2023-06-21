@@ -49,11 +49,16 @@ export async function closePayAsYouGoPurchases(project_id: string) {
     return;
   }
 
+  if (description.quota == null) {
+    // invalid format: should never happen
+    return;
+  }
+
   // Figure out the final cost.
-  let cost = description.upgrade.cost;
+  let cost = description.quota.cost;
   if (cost == null) {
     // this should never happen, but we can just recompute the cost.
-    cost = await getPricePerHour(description.upgrade);
+    cost = await getPricePerHour(description.quota);
   }
   let start = description.start;
   if (start == null) {
