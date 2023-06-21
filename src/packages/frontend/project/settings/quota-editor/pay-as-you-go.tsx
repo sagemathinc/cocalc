@@ -17,6 +17,11 @@ import { getPricePerHour } from "@cocalc/util/purchases/project-quotas";
 import { copy_without } from "@cocalc/util/misc";
 import { load_target } from "@cocalc/frontend/history";
 import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
+import track0 from "@cocalc/frontend/user-tracking";
+
+function track(obj) {
+  track0("pay-as-you-go-project-upgrade", obj);
+}
 
 // These correspond to dedicated RAM and dedicated CPU, and we
 // found them too difficult to cost out, so exclude them (only
@@ -90,6 +95,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   }, [editing]);
 
   async function handleClose() {
+    track({ action: "close", project_id });
     setEditing(false);
     if (quotaState == null) return;
     try {
@@ -107,6 +113,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   }
 
   async function handleStop() {
+    track({ action: "stop", project_id });
     const quota = { ...quotaState, enabled: 0 };
     setQuotaState(quota);
     await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
@@ -118,6 +125,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   }
 
   function handlePreset(preset) {
+    track({ action: "preset", preset, project_id });
     if (maxQuotas == null) return;
     let x;
     if (preset == "max") {
@@ -172,6 +180,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
         enabled: webapp_client.server_time().valueOf(),
         cost,
       };
+      track({ action: "run", quota, project_id });
       setQuotaState(quota);
 
       const { allowed, reason } =
@@ -313,7 +322,15 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
         </div>
       )}
       {!editing && !runningWithUpgrade && (
-        <Button size="large" onClick={() => setEditing(!editing)}>
+        <Button
+          size="large"
+          onClick={() => {
+            if (!editing) {
+              track({ action: "open", project_id });
+            }
+            setEditing(!editing);
+          }}
+        >
           <Icon name="credit-card" /> Upgrade...
         </Button>
       )}
