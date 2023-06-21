@@ -1577,6 +1577,7 @@ describe("dedicated", () => {
       disk_quota: 20000, // we give the max by default
       dedicated_disks: [{ type: "standard", size_gb: 128, name: "bar" }],
       dedicated_vm: { machine: "n2-highmem-8", name: "foo" },
+      pay_as_you_go: null,
     });
   });
 
@@ -2456,30 +2457,48 @@ describe("test heuristic to classify a boost license", () => {
 
 describe("test pay-you-go-quota inclusion", () => {
   it("combines with all the others being empty", () => {
-    const z = quota({}, {}, {}, {}, [
+    const z = quota(
+      { memory: 8000 },
+      {},
+      {},
+      {},
       {
-        memory: 5000,
-        cores: 2,
-        mintime: 3600,
-        disk_quota: 5500,
-        network: 1,
-        always_running: 1,
-        member_host: 1,
-      },
-      { disk_quota: 7000, cores: 2.5 },
-    ]);
+        quota: {
+          memory: 5000,
+          cores: 2,
+          mintime: 3600,
+          disk_quota: 5500,
+          network: 1,
+          always_running: 1,
+          member_host: 1,
+        },
+        account_id: "752be8c3-ff74-41d8-ad1c-b2fb92c3e7eb",
+      }
+    );
     expect(z).toStrictEqual({
       always_running: true,
-      cpu_limit: 2.5,
+      cpu_limit: 2,
       cpu_request: 0.05,
       dedicated_disks: [],
       dedicated_vm: false,
-      disk_quota: 7000,
+      disk_quota: 5500,
       idle_timeout: 3600,
       member_host: true,
-      memory_limit: 5000,
+      memory_limit: 8000,
       memory_request: 300,
       network: true,
+      pay_as_you_go: {
+        account_id: "752be8c3-ff74-41d8-ad1c-b2fb92c3e7eb",
+        quota: {
+          always_running: 1,
+          cores: 2,
+          disk_quota: 5500,
+          member_host: 1,
+          memory: 5000,
+          mintime: 3600,
+          network: 1,
+        },
+      },
       privileged: false,
     });
   });
