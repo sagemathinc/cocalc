@@ -3,31 +3,32 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties } from "react";
+import { Button, Col, Row, Tooltip } from "antd";
 import { Map } from "immutable";
-import { IS_TOUCH } from "@cocalc/frontend/feature";
+import { CSSProperties } from "react";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import {
-  is_editing,
-  message_colors,
-  newest_content,
-  sender_is_viewer,
-} from "./utils";
-import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import {
   redux,
   useMemo,
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Space, TimeAgo, Tip } from "@cocalc/frontend/components";
-import { Button, Tooltip, Row, Col } from "antd";
-import { getUserName } from "./chat-log";
-import { HistoryTitle, HistoryFooter, History } from "./history";
-import ChatInput from "./input";
+import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
+import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { ChatActions } from "./actions";
-import { Time } from "./time";
+import { getUserName } from "./chat-log";
+import { History, HistoryFooter, HistoryTitle } from "./history";
+import ChatInput from "./input";
 import { Name } from "./name";
+import { Time } from "./time";
+import {
+  is_editing,
+  message_colors,
+  newest_content,
+  sender_is_viewer,
+} from "./utils";
 
 // 5 minutes -- how long to show the "regenerate button" for chatgpt.
 // Don't show it forever, since we want to avoid clutter.
@@ -204,7 +205,7 @@ export default function Message(props: Props) {
         {is_editing ? (
           <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
             <Button onClick={on_cancel}>Cancel</Button>
-            <Space />
+            <Gap />
             <Button onClick={saveEditedMessage} type="primary">
               Save (shift+enter)
             </Button>

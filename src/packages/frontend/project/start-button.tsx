@@ -26,7 +26,7 @@ import {
   Delay,
   Icon,
   ProjectState,
-  Space,
+  Gap,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { server_seconds_ago } from "@cocalc/util/misc";
@@ -174,7 +174,7 @@ export const StartButton: React.FC<Props> = ({ project_id }: Props) => {
           }}
         >
           {starting ? <Icon name="cocalc-ring" spin /> : <Icon name="play" />}
-          <Space /> <Space /> Start{starting ? "ing" : ""} project
+          <Gap /> <Gap /> Start{starting ? "ing" : ""} project
         </Button>
       </div>
     );

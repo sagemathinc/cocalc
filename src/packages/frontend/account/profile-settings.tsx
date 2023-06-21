@@ -6,7 +6,7 @@
 import { Map } from "immutable";
 import { rclass, rtypes, Component, Rendered } from "../app-framework";
 import { Panel } from "../antd-bootstrap";
-import { LabeledRow, Loading, Space } from "../components";
+import { LabeledRow, Loading, Gap } from "../components";
 import { ColorPicker } from "../colorpicker";
 import { ProfileImageSelector } from "./profile-image";
 import { set_account_table } from "./util";
@@ -49,8 +49,8 @@ class ProfileSettings extends Component<Props, State> {
     return (
       <>
         <Avatar account_id={this.props.account_id} size={48} />
-        <Space />
-        <Space />
+        <Gap />
+        <Gap />
         Avatar
       </>
     );

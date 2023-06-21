@@ -30,7 +30,7 @@ import {
   LicenseStatus,
   licenseStatusProvidesUpgrades,
 } from "@cocalc/util/upgrades/quota";
-import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
+import { CopyToClipBoard, Icon, Loading, Gap, TimeAgo } from "../components";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
 import { LICENSE_ACTIVATION_RULES } from "./rules";
@@ -539,7 +539,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     return (
       <Button onClick={() => fetch_info(true)}>
         <Icon name="redo" />
-        <Space /> Refresh
+        <Gap /> Refresh
       </Button>
     );
   }
@@ -580,7 +580,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
       >
         <Button>
           <Icon name="times" />
-          <Space /> Remove...
+          <Gap /> Remove...
         </Button>
       </Popconfirm>
     );

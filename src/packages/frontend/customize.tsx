@@ -26,7 +26,7 @@ import {
   r_join,
   smc_git_rev,
   smc_version,
-  Space,
+  Gap,
   UNIT,
 } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -482,7 +482,7 @@ export const Footer: React.FC = React.memo(() => {
   return (
     <footer style={style}>
       <hr />
-      <Space />
+      <Gap />
       {contents()}
     </footer>
   );

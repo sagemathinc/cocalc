@@ -23,7 +23,7 @@ import {
   Markdown,
   Paragraph,
   ProjectState,
-  Space,
+  Gap,
   TimeAgo,
 } from "@cocalc/frontend/components";
 import {
@@ -90,7 +90,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
             <span style={{ fontSize: "15pt" }}>
               <Icon name={add_collab ? "caret-down" : "caret-right"} />
             </span>
-            <Space />
+            <Gap />
             <Icon
               name="user"
               style={{ fontSize: "16pt", marginRight: "10px" }}

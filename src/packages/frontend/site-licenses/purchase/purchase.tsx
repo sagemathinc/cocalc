@@ -20,7 +20,7 @@ import {
   ErrorDisplay,
   Icon,
   Loading,
-  Space,
+  Gap,
 } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { supportURL } from "@cocalc/frontend/support/url";
@@ -438,9 +438,9 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
             set_end(value[1].toDate());
           }}
         />
-        <Space />
-        <Space />
-        <Space />
+        <Gap />
+        <Gap />
+        <Gap />
         <Dropdown overlay={menu}>
           <a className="ant-dropdown-link" onClick={(e) => e.preventDefault()}>
             End after... <DownOutlined />
@@ -680,8 +680,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
           type="primary"
         >
           <Icon name="envelope" />
-          <Space />
-          <Space /> Copy information to support ticket...
+          <Gap />
+          <Gap /> Copy information to support ticket...
         </Button>
       </div>
     );

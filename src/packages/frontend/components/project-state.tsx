@@ -6,7 +6,7 @@
 import { React, useTypedRedux } from "../app-framework";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { ProjectStatus } from "../todo-types";
-import { Space } from "./space";
+import { Gap } from "./gap";
 import { Icon } from "./icon";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
@@ -50,7 +50,7 @@ export const ProjectState: React.FC<Props> = (props: Props) => {
   return (
     <span>
       <Icon name={icon} /> {display}
-      <Space />
+      <Gap />
       {!stable && renderSpinner()}
       {renderDescription(s)}
     </span>

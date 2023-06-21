@@ -7,7 +7,7 @@
 Display of basic information about a user, with link to get more information about that user.
 */
 
-import { Icon, Space, TimeAgo } from "@cocalc/frontend/components";
+import { Icon, Gap, TimeAgo } from "@cocalc/frontend/components";
 import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { capitalize } from "@cocalc/util/misc";
 import { Row, Col } from "@cocalc/frontend/antd-bootstrap";
@@ -163,17 +163,17 @@ export class UserResult extends Component<Props, State> {
     return (
       <div>
         {this.render_more_link("projects")}
-        <Space />
-        <Space />
+        <Gap />
+        <Gap />
         {this.render_more_link("billing")}
-        <Space />
-        <Space />
+        <Gap />
+        <Gap />
         {this.render_more_link("impersonate")}
-        <Space />
-        <Space />
+        <Gap />
+        <Gap />
         {this.render_more_link("password")}
-        <Space />
-        <Space />
+        <Gap />
+        <Gap />
         {this.render_more_link("ban")}
       </div>
     );

@@ -12,7 +12,7 @@ import {
   HelpIcon,
   Icon,
   SettingBox,
-  Space,
+  Gap,
   TimeAgo,
 } from "@cocalc/frontend/components";
 import { cmp } from "@cocalc/util/misc";
@@ -34,7 +34,7 @@ export const SSHKeyList: React.FC<SSHKeyListProps> = (
   function render_header() {
     return (
       <>
-        SSH keys <Space />
+        SSH keys <Gap />
         {help && <HelpIcon title="Using SSH Keys">{help}</HelpIcon>}
       </>
     );

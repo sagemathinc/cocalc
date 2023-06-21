@@ -16,7 +16,7 @@ import {
   useRedux,
   useState,
 } from "../../app-framework";
-import { Icon, Space, Tip } from "../../components";
+import { Icon, Gap, Tip } from "../../components";
 import { CourseStore, NBgraderRunInfo, PARALLEL_DEFAULT } from "../store";
 import { CourseActions } from "../actions";
 import { nbgrader_status } from "./util";
@@ -156,7 +156,7 @@ export const NbgraderButton: React.FC<Props> = React.memo(
       <span>
         {" "}
         <Icon name="cocalc-ring" spin />
-        <Space /> Nbgrader is running
+        <Gap /> Nbgrader is running
       </span>
     ) : (
       <span>Nbgrader...</span>
@@ -168,7 +168,7 @@ export const NbgraderButton: React.FC<Props> = React.memo(
             style={{ width: "20px" }}
             name={show_more_info ? "caret-down" : "caret-right"}
           />
-          <Space /> {label}
+          <Gap /> {label}
         </Button>
         {show_more_info && render_more_info()}
       </div>

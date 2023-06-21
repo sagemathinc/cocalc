@@ -38,7 +38,7 @@ import {
   IconName,
   MenuItems,
   r_join,
-  Space,
+  Gap,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -1796,7 +1796,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           key={"buttons"}
           className={"cc-frame-tree-title-bar-buttons"}
         >
-          {r_join(w, <Space />)}
+          {r_join(w, <Gap />)}
         </div>
       );
     } finally {
