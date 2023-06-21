@@ -289,9 +289,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       {quotaState != null && (editing || runningWithUpgrade) && (
         <div style={{ float: "right", marginLeft: "30px", width: "150px" }}>
           <CostPerHour quota={quotaState} />
-          {editing && (
-            <div style={{ color: "#888" }}>Charged by the second.</div>
-          )}
+          {!runningWithUpgrade && <Tag color="red">Inactive</Tag>}
         </div>
       )}
       {runningWithUpgrade && (
@@ -304,14 +302,15 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           >
             you purchased
           </a>
-          . You will be charged only while the project is running.
+          . You will be charged <b>by the second</b> only when the project is
+          not stopped.
           <div>
             <Popconfirm
               title={"Stop project?"}
               description={"Remove upgrades and stop the project?"}
               onConfirm={handleStop}
             >
-              <Button style={{ margin: "15px" }}>
+              <Button style={{ marginRight: "8px", marginTop: "15px" }}>
                 <Icon name="stop" /> Stop Project
               </Button>
             </Popconfirm>
@@ -334,10 +333,40 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           <Icon name="credit-card" /> Upgrade...
         </Button>
       )}
+      <div style={{ margin: "15px 0" }}>
+        {editing && (
+          <>
+            <Button onClick={handleClose}>Close</Button>
+            <Popconfirm
+              title="Run project with exactly these quotas?"
+              description={
+                <div style={{ width: "350px" }}>
+                  Project will restart with quotas applied. You will be charged
+                  by the second for usage during this session only, and can stop
+                  your project at any time. <br />
+                  NOTE: No licenses will be applied.
+                </div>
+              }
+              onConfirm={handleRun}
+              okText="Upgrade"
+              cancelText="No"
+            >
+              <Button
+                style={{ marginLeft: "8px" }}
+                type="primary"
+                disabled={runingWithDisplayedUpgrade}
+              >
+                <Icon name="save" /> Upgrade Project...
+              </Button>
+            </Popconfirm>
+          </>
+        )}
+      </div>{" "}
       {editing && (
         <>
           {error && (
             <Alert
+              style={{ margin: "15px" }}
               type="error"
               showIcon
               description={error}
@@ -345,6 +374,41 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
               onClose={() => setError("")}
             />
           )}
+          <div>
+            <Tag
+              icon={<Icon name="battery-quarter" />}
+              style={{ cursor: "pointer" }}
+              color="blue"
+              onClick={() => handlePreset("min")}
+            >
+              Min
+            </Tag>
+            <Tag
+              icon={<Icon name="battery-half" />}
+              style={{ cursor: "pointer" }}
+              color="blue"
+              onClick={() => handlePreset("medium")}
+            >
+              Medium
+            </Tag>
+            <Tag
+              icon={<Icon name="battery-three-quarters" />}
+              style={{ cursor: "pointer" }}
+              color="blue"
+              onClick={() => handlePreset("large")}
+            >
+              Large
+            </Tag>
+            <Tag
+              icon={<Icon name="battery-full" />}
+              style={{ cursor: "pointer" }}
+              color="blue"
+              onClick={() => handlePreset("max")}
+            >
+              Max
+            </Tag>
+            <hr />
+          </div>
           {PROJECT_UPGRADES.field_order
             .filter((name) => !EXCLUDE.has(name))
             .map((name) => (
@@ -356,69 +420,6 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                 maxQuotas={maxQuotas}
               />
             ))}
-          <div style={{ margin: "15px 0" }}>
-            {editing && (
-              <>
-                <div style={{ float: "right", marginTop: "5px" }}>
-                  <Tag
-                    icon={<Icon name="battery-quarter" />}
-                    style={{ cursor: "pointer" }}
-                    color="blue"
-                    onClick={() => handlePreset("min")}
-                  >
-                    Min
-                  </Tag>
-                  <Tag
-                    icon={<Icon name="battery-half" />}
-                    style={{ cursor: "pointer" }}
-                    color="blue"
-                    onClick={() => handlePreset("medium")}
-                  >
-                    Medium
-                  </Tag>
-                  <Tag
-                    icon={<Icon name="battery-three-quarters" />}
-                    style={{ cursor: "pointer" }}
-                    color="blue"
-                    onClick={() => handlePreset("large")}
-                  >
-                    Large
-                  </Tag>
-                  <Tag
-                    icon={<Icon name="battery-full" />}
-                    style={{ cursor: "pointer" }}
-                    color="blue"
-                    onClick={() => handlePreset("max")}
-                  >
-                    Max
-                  </Tag>
-                </div>
-                <Button onClick={handleClose}>Close</Button>
-                <Popconfirm
-                  title="Run project with exactly these quotas?"
-                  description={
-                    <div style={{ width: "350px" }}>
-                      Project will restart with quotas applied. You will be
-                      charged by the second for usage during this session only,
-                      and can stop your project at any time. <br />
-                      NOTE: No licenses will be applied.
-                    </div>
-                  }
-                  onConfirm={handleRun}
-                  okText="Run"
-                  cancelText="No"
-                >
-                  <Button
-                    style={{ marginLeft: "8px" }}
-                    type="primary"
-                    disabled={runingWithDisplayedUpgrade}
-                  >
-                    <Icon name="save" /> Upgrade My Project
-                  </Button>
-                </Popconfirm>
-              </>
-            )}
-          </div>
         </>
       )}
     </Card>

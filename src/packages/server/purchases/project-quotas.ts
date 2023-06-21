@@ -8,7 +8,9 @@ import { getPricePerHour as getPricePerHour0 } from "@cocalc/util/purchases/proj
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { reuseInFlight } from "async-await-utils/hof";
-
+import { cloneDeep } from "lodash";
+import createPurchase from "./create-purchase";
+import type { ProjectUpgrade as ProjectUpgradeDescription } from "@cocalc/util/db-schema/purchases";
 const logger = getLogger("purchases:project-quota");
 
 export async function getMaxQuotas() {
@@ -67,7 +69,15 @@ async function closePayAsYouGoPurchases0(project_id: string) {
   await closePurchase(id, description);
 }
 
-async function closePurchase(id: string, description?) {
+async function closePurchase(
+  id: string,
+  description?: ProjectUpgradeDescription,
+  now?: number
+) {
+  logger.debug("closePurchase", id);
+  if (now == null) {
+    now = Date.now();
+  }
   const pool = getPool();
   if (description == null) {
     const { rows } = await pool.query(
@@ -99,13 +109,13 @@ async function closePurchase(id: string, description?) {
   if (start == null) {
     logger.error("closePurchase: id=", id, " description.start was null");
     // should never happen, but if it did, let's make it one hour ago.
-    start = Date.now() - 1000 * 60 * 60;
+    start = now - 1000 * 60 * 60;
   }
   // record when project stopped
-  description.stop = Date.now();
+  description.stop = now;
   const final_cost = Math.max(
     0.01, // always at least one penny to avoid some abuse (?).
-    ((Date.now() - start) / (1000 * 60 * 60)) * cost
+    ((now - start) / (1000 * 60 * 60)) * cost
   );
   // set in the final cost, those closing out this purchase.
   await pool.query("UPDATE purchases SET cost=$1, description=$2 WHERE id=$3", [
@@ -114,6 +124,58 @@ async function closePurchase(id: string, description?) {
     id,
   ]);
 }
+
+async function closeAndContinuePurchase(id: string) {
+  logger.debug("closeAndContinuePurchase", id);
+  const pool = getPool();
+  const { rows } = await pool.query("SELECT * FROM purchases WHERE id=$1", [
+    id,
+  ]);
+  const purchase = rows[0];
+  if (purchase == null) {
+    throw Error(`invalid purchase ${id}`);
+  }
+  const now = new Date();
+  const newPurchase = cloneDeep(purchase);
+  delete newPurchase.id;
+  newPurchase.time = now;
+  newPurchase.description.start = newPurchase.description.quota.start =
+    now.valueOf();
+  logger.debug(
+    "closeAndContinuePurchase -- creating newPurchase=",
+    newPurchase
+  );
+  const new_purchase_id = await createPurchase(newPurchase);
+  logger.debug(
+    "closeAndContinuePurchase -- update purchased in run_quota of project"
+  );
+  await setRunQuotaPurchaseId(newPurchase.project_id, new_purchase_id);
+  logger.debug("closeAndContinuePurchase -- closing old purchase", newPurchase);
+  await closePurchase(id, purchase.description, now.valueOf());
+}
+
+async function setRunQuotaPurchaseId(project_id: string, purchase_id: number) {
+  // In code below I could patch the JSONB object, but this rarely happens, so doesn't
+  // have to be fast, and just reading and writing the entire run_quota object should
+  // be reasonable robust.
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT run_quota FROM projects WHERE project_id=$1",
+    [project_id]
+  );
+  const { run_quota } = rows[0];
+  if (run_quota.pay_as_you_go == null) {
+    // nothing to do
+    return;
+  }
+  run_quota.pay_as_you_go.purchase_id = purchase_id;
+  await pool.query("UPDATE projects SET run_quota=$1 WHERE project_id=$2", [
+    run_quota,
+    project_id,
+  ]);
+}
+
+const MAX_ELAPSED_MS = 1000 * 60 * 60 * 24; // 1 day
 
 /*
 This function ensures everything is in sync, and close out project purchases once per day.  
@@ -124,6 +186,11 @@ In particular:
   it doesn't due to some weird issue, so this catches it.
 - If there is a purchase of a project-upgrade that is actively being charged, make
   sure the project has the given run quota; otherwise end purchase.
+  
+- Also, if the total amount of time is at least 24 hours, we close the purchase out
+  and make a new one starting now.  This is so an always running project can't just run
+  for months and *never* get billed for usage, and also, so usage is clearly displayed
+  in the user's balance.
 
 Probably other issues will arise, but I can't think of any yet....
 */
@@ -142,14 +209,15 @@ export async function maintainActivePurchases() {
   */
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT purchases.id as purchase_id, projects.run_quota->'pay_as_you_go'->>'purchase_id' as run_quota_purchase_id, projects.state->>'state' as state FROM purchases, projects WHERE cost IS NULL AND service='project-upgrade' AND purchases.project_id = projects.project_id"
+    "SELECT purchases.id AS purchase_id, projects.run_quota->'pay_as_you_go'->>'purchase_id' AS run_quota_purchase_id, projects.state->>'state' AS state, purchases.description->'start' AS start FROM purchases, projects WHERE cost IS NULL AND service='project-upgrade' AND purchases.project_id = projects.project_id"
   );
   logger.debug(
     "maintainActivePurchases --- consider ",
     rows.length,
     " active purchases that might be closed"
   );
-  for (const { purchase_id, run_quota_purchase_id, state } of rows) {
+  const now = Date.now();
+  for (const { purchase_id, run_quota_purchase_id, state, start } of rows) {
     if (
       !(
         (state == "running" || state == "starting") &&
@@ -168,8 +236,20 @@ export async function maintainActivePurchases() {
       } catch (err) {
         // I don't think this should ever happen but if it did that's bad.
         logger.error("Error closing a pay as you go purchase", err);
-        // [ ] TODO -- send an email (?)
+        // TODO -- send an email (?)
+      }
+    } else if (now - start >= MAX_ELAPSED_MS) {
+      logger.debug(
+        "maintainActivePurchases --- closing AND continuing purchase with id",
+        purchase_id
+      );
+      try {
+        await closeAndContinuePurchase(purchase_id);
+      } catch (err) {
+        logger.debug("Error closing and continuing purchase", err);
       }
     }
+    // [ ] TODO -- need to check if any spending limit has been exceeded and in that case, cut them off.
+    
   }
 }

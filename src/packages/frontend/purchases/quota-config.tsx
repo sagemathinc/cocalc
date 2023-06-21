@@ -81,6 +81,11 @@ export default function QuotaConfig({
               }
               parser={(value) => value!.replace(/\$\s?|(,*)/g, "") as any}
               onChange={(value) => setInputValue(value ?? null)}
+              onBlur={() => {
+                if (inputValue != null) {
+                  saveServiceQuota(service, inputValue);
+                }
+              }}
               addonAfter={
                 <Button
                   type="text"
@@ -103,6 +108,7 @@ export default function QuotaConfig({
                   amount={amount}
                   handleQuotaChange={(_, amount) => {
                     setInputValue(amount);
+                    saveServiceQuota(service, amount);
                   }}
                 />
               ))}
