@@ -33,7 +33,7 @@ import {
   TITLE_LICENSES,
 } from "../servers/consts";
 import { CollabsFlyout } from "./flyouts/collabs";
-import { SettingsFlyout } from "./flyouts/control";
+import { SettingsFlyout } from "./flyouts/settings";
 import { FilesFlyout } from "./flyouts/files";
 import { ProjectInfoFlyout } from "./flyouts/info";
 import { LicensesFlyout } from "./flyouts/licenses";
@@ -120,6 +120,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: TITLE_LICENSES,
     icon: ICON_LICENSES,
     flyout: LicensesFlyout,
+    flyoutTitle: "Quotas and Licenses",
     noAnonymous: false,
   },
   settings: {

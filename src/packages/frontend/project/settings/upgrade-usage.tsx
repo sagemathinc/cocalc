@@ -16,8 +16,10 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
+  CopyToClipBoard,
   Icon,
   Loading,
+  Paragraph,
   SettingBox,
   Title,
   UpgradeAdjustor,
@@ -77,6 +79,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       dedicated_resources,
       mode,
     } = props;
+    const isFlyout = mode === "flyout";
     const actions: ProjectsActions = useActions("projects");
     const project_actions = useActions({ project_id });
     const account_groups: List<string> =
@@ -325,9 +328,28 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
           <hr />
           <span style={{ color: COLORS.GRAY }}>
             If you have any questions about upgrading a project, create a{" "}
-            <ShowSupportLink />, or email <HelpEmailLink /> and include the
-            following URL:
-            <URLBox />
+            <ShowSupportLink />
+            {isFlyout ? (
+              <>
+                , or email <HelpEmailLink /> and mention the project id:{" "}
+                <Paragraph
+                  style={{
+                    display: "inline",
+                    color: COLORS.GRAY,
+                    fontWeight: "bold",
+                  }}
+                  copyable={{ text: project_id }}
+                >
+                  {project_id}
+                </Paragraph>
+                .
+              </>
+            ) : (
+              <>
+                , or email <HelpEmailLink /> and include the following URL:
+                <URLBox />
+              </>
+            )}
           </span>
         </>
       );
@@ -340,6 +362,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         <SiteLicense
           project_id={project_id}
           site_license={project.get("site_license") as any}
+          mode={mode}
         />
       );
     }
@@ -367,7 +390,11 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
           <>
             <Title level={4}>Usage and quotas</Title>
             {render_run_quota()}
-            {/* TODO add more of the other things later, as collapsable blocks */}
+            {render_upgrades_button()}
+            {render_quota_console()}
+            {render_dedicated_disks()}
+            {render_site_license()}
+            {render_support()}
           </>
         );
     }

@@ -7,6 +7,7 @@
 // src/@cocalc/frontend/course/configuration/upgrades.tsx
 
 import { Button, Card, Popover } from "antd";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   redux,
@@ -20,6 +21,7 @@ import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/bu
 import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
+import track from "@cocalc/frontend/user-tracking";
 import { unreachable } from "@cocalc/util/misc";
 import {
   licenseToGroupKey,
@@ -27,11 +29,11 @@ import {
 } from "@cocalc/util/upgrades/quota";
 import { isBoostLicense } from "@cocalc/util/upgrades/utils";
 import { SiteLicense as SiteLicenseT } from "./types";
-import track from "@cocalc/frontend/user-tracking";
 
 interface Props {
   project_id: string;
   site_license?: SiteLicenseT; // of that project!
+  mode?: "project" | "flyout";
 }
 
 interface ALOpts {
@@ -56,7 +58,8 @@ export async function applyLicense(opts: ALOpts): Promise<void> {
 }
 
 export const SiteLicense: React.FC<Props> = (props: Props) => {
-  const { project_id, site_license } = props;
+  const { project_id, site_license, mode = "project" } = props;
+  const isFlyout = mode === "flyout";
 
   // all licenses known to the client, not just for the project
   const managed_licenses = useTypedRedux("billing", "managed_licenses");
@@ -199,7 +202,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
       <br />
       <div style={{ padding: "15px" }}>
         <Button
-          size="large"
+          size={isFlyout ? "middle" : "large"}
           onClick={() => set_show_site_license(true)}
           disabled={show_site_license}
         >
@@ -209,7 +212,10 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
         <br />
         <br />
         <span style={{ fontSize: "13pt" }}>
-          <BuyLicenseForProject project_id={project_id} />
+          <BuyLicenseForProject
+            project_id={project_id}
+            size={isFlyout ? "middle" : "large"}
+          />
         </span>
       </div>
     </Card>

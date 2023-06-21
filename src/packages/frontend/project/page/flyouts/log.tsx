@@ -83,7 +83,7 @@ export function LogHeader({ project_id }: HeaderProps): JSX.Element {
   }
 
   return (
-    <div style={{ flex: 1 }}>
+    <div style={{ flex: 1, fontWeight: "bold" }}>
       <Icon name={FIXED_PROJECT_TABS.log.icon} /> Recent {renderToggle()}
     </div>
   );
