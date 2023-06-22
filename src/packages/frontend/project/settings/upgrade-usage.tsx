@@ -326,7 +326,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       return (
         <>
           <hr />
-          <div style={{ color: COLORS.GRAY }}>
+          <Paragraph type="secondary">
             If you have any questions about upgrading a project, create a{" "}
             <ShowSupportLink />
             {isFlyout ? (
@@ -350,7 +350,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
                 <URLBox />
               </>
             )}
-          </div>
+          </Paragraph>
         </>
       );
     }
@@ -395,7 +395,6 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
             {render_dedicated_disks()}
             {render_site_license()}
             {render_support()}
-            <div style={{ height: "30px" }}>&nbsp;</div>
           </>
         );
     }

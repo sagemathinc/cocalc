@@ -441,7 +441,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
           }
         >
           <Icon name="times" />
-          {isFlyout ? " Remove license" : undefined}
+          {isFlyout ? " Remove..." : undefined}
         </Button>
       </Popconfirm>
     );
@@ -465,8 +465,11 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     return Object.values(errors).map((err, idx) => (
       <Alert
         type="error"
+        showIcon={false}
+        closable={true}
+        banner={true}
         key={idx}
-        message={`Error fetching information of license ${idx + 1} -- ${err}`}
+        message={`Error fetching information of license ${idx + 1}: ${err}`}
       />
     ));
   }
@@ -487,6 +490,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
       <Table<TableRow>
         loading={loading}
         dataSource={data}
+        showHeader={!isFlyout}
         size={isFlyout ? "small" : undefined}
         className={"cc-flyout-license-table"}
         rowClassName={() => "cursor-pointer"}

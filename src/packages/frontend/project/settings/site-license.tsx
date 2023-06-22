@@ -12,6 +12,7 @@ import { alert_message } from "@cocalc/frontend/alerts";
 import {
   redux,
   Rendered,
+  useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -60,6 +61,11 @@ export async function applyLicense(opts: ALOpts): Promise<void> {
 export const SiteLicense: React.FC<Props> = (props: Props) => {
   const { project_id, site_license, mode = "project" } = props;
   const isFlyout = mode === "flyout";
+
+  const haveLicenses = useMemo(
+    () => (site_license?.size ?? 0) > 0,
+    [site_license]
+  );
 
   // all licenses known to the client, not just for the project
   const managed_licenses = useTypedRedux("billing", "managed_licenses");
@@ -202,9 +208,10 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
   function renderBody() {
     return (
       <>
-        {isFlyout ? (
+        {isFlyout && haveLicenses ? (
           <Paragraph type="secondary" style={{ padding: "5px" }}>
-            License information. Click on a row to expand details.
+            Information about attached licenses. Click on a row to expand
+            details.
           </Paragraph>
         ) : undefined}
         {render_current_licenses()}
