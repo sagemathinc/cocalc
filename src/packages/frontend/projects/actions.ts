@@ -29,6 +29,7 @@ import { Set } from "immutable";
 import json_stable from "json-stable-stringify";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
+import { isEqual } from "lodash";
 
 export type Datastore = boolean | string[] | undefined;
 
@@ -314,13 +315,17 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (typeof envvars?.inherit === "boolean") {
       course.envvars = envvars;
     }
-    // null for shared/nbgrader project, otherwise student project
-    if (account_id != null && email_address != null) {
+    // account_id and email is null for shared/nbgrader project, otherwise student project
+    // the corresponding check of the two fields below is the
+    // is_student = ... or-test in ProjectsStore::date_when_course_payment_required
+    if (account_id != null) {
       course.account_id = account_id;
+    }
+    if (email_address != null) {
       course.email_address = email_address;
     }
-    // json_stable -- I'm tired and this needs to just work for comparing.
-    if (json_stable(course_info) === json_stable(course)) {
+    // lodash.isEqual: deep comparison of two objects
+    if (isEqual(course_info, course)) {
       // already set as required; do nothing
       return;
     }
