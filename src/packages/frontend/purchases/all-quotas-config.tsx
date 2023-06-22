@@ -28,7 +28,7 @@ import { currency } from "./quota-config";
 import Balance from "./balance";
 import Cost from "./pay-as-you-go/cost";
 
-export const PRESETS = [0, 5, 20, 100];
+export const PRESETS = [0, 5, 20, 100, 5000];
 export const STEP = 5;
 
 interface ServiceQuota {
@@ -294,7 +294,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
 export function Preset({ index, amount, handleQuotaChange }) {
   return (
     <Tag
-      style={{ cursor: "pointer" }}
+      style={{ cursor: "pointer", marginBottom: "5px" }}
       color="blue"
       onClick={() => handleQuotaChange(index, amount)}
     >

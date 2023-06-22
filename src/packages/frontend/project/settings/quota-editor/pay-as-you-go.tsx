@@ -290,7 +290,6 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       {quotaState != null && (editing || runningWithUpgrade) && (
         <div style={{ float: "right", marginLeft: "30px", width: "150px" }}>
           <CostPerHour quota={quotaState} />
-          {!runningWithUpgrade && <Tag color="red">Inactive</Tag>}
         </div>
       )}
       {runningWithUpgrade && (
@@ -429,14 +428,24 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
 
 export function RunningStatus({ project, style }) {
   const user_map = useTypedRedux("users", "user_map");
-  if (project?.getIn(["state", "state"]) != "running") return null;
+  if (project?.getIn(["state", "state"]) != "running") {
+    return (
+      <Tag color="red" style={{ marginLeft: "30px" }}>
+        Inactive
+      </Tag>
+    );
+  }
   const pay_as_you_go_account_id = project.getIn([
     "run_quota",
     "pay_as_you_go",
     "account_id",
   ]);
   if (!pay_as_you_go_account_id) {
-    return null;
+    return (
+      <Tag color="red" style={{ marginLeft: "30px" }}>
+        Inactive
+      </Tag>
+    );
   }
   return (
     <span style={style}>

@@ -26,6 +26,7 @@ import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { currency } from "./quota-config";
 import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import { load_target } from "@cocalc/frontend/history";
 
 const DEFAULT_LIMIT = 100;
 
@@ -112,7 +113,14 @@ function Purchases0({ project_id, group: group0 }: Props) {
           </Button>
           {project_id ? (
             <span>
-              Purchases in <ProjectTitle project_id={project_id} trunc={30} />
+              {project_id ? (
+                <a onClick={() => load_target("settings/purchases")}>
+                  Purchases
+                </a>
+              ) : (
+                "Purchases"
+              )}{" "}
+              in <ProjectTitle project_id={project_id} trunc={30} />
             </span>
           ) : (
             <span>
