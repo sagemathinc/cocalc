@@ -178,6 +178,10 @@ export class PurchasesClient {
     cache.set(key, m);
     return m;
   }
+
+  async syncPaidInvoices() {
+    await api("purchases/sync-paid-invoices");
+  }
 }
 
 async function waitUntilPayAsYouGoModalCloses() {

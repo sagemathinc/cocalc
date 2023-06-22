@@ -1,8 +1,16 @@
+import type { CSSProperties } from "react";
 import { Card, Tooltip, Progress, Space, Statistic, Spin } from "antd";
 import UnpaidInvoices from "./unpaid-invoices";
 import { zIndexTip } from "./payment";
 
-export default function Balance({ balance, quota, style }) {
+interface Props {
+  balance?: number;
+  quota?: number;
+  style?: CSSProperties;
+  refresh?: () => void;
+}
+
+export default function Balance({ balance, quota, style, refresh }: Props) {
   let body;
   if (balance == null) {
     body = (
@@ -55,13 +63,13 @@ export default function Balance({ balance, quota, style }) {
             </Tooltip>
           )}
         </Space>
-        <UnpaidInvoices balance={balance} />
+        <UnpaidInvoices balance={balance} refresh={refresh} />
       </>
     );
   }
   return (
     <Card title={"Balance"} style={style}>
-      {body}{" "}
+      {body}
     </Card>
   );
 }

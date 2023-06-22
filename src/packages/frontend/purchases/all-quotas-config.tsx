@@ -225,6 +225,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
               balance={balance}
               quota={globalQuota?.quota}
               style={{ width: "300px", height: "250px" }}
+              refresh={handleRefresh}
             />
             <GlobalQuota
               global={globalQuota}

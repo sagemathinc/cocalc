@@ -10,8 +10,13 @@ import { zIndex as zIndexModal } from "./pay-as-you-go/modal";
 
 const zIndex = zIndexModal + 1;
 
-export default function UnpaidInvoices({ balance }) {
-  const [isModalVisible, setIsModalVisible] = useState(false);
+interface Props {
+  balance?: number;
+  refresh?: () => void;
+}
+
+export default function UnpaidInvoices({ balance, refresh }: Props) {
+  const [isModalVisible, setIsModalVisible] = useState(isModalVisible);
   const [unpaidInvoices, setUnpaidInvoices] = useState<any[] | null>(null);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
@@ -20,6 +25,11 @@ export default function UnpaidInvoices({ balance }) {
       setRefreshing(true);
       const invoices = await webapp_client.purchases_client.getUnpaidInvoices();
       setUnpaidInvoices(invoices);
+      if ((unpaidInvoices?.length ?? 0) > invoices.length) {
+        // number of unpaid invoices just went down...
+        await webapp_client.purchases_client.syncPaidInvoices();
+        refresh?.();
+      }
     } catch (err) {
       // nonfatal -- basically showing these is just a user convenience.
       console.warn("error getting unpaid invoices...", err);
@@ -45,8 +55,11 @@ export default function UnpaidInvoices({ balance }) {
     );
   }
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    if (!isModalVisible) return;
     setIsModalVisible(false);
+    await webapp_client.purchases_client.syncPaidInvoices();
+    refresh?.();
   };
 
   const title = (

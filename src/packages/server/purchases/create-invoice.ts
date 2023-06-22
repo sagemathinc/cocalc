@@ -142,12 +142,20 @@ export async function createCreditFromPaidStripeInvoice(invoice) {
     invoice.metadata.service != "credit" ||
     !invoice.metadata.account_id
   ) {
+    logger.debug(
+      "createCreditFromPaidStripeInvoice -- skipping since not a service credit",
+      invoice.id
+    );
     // Some other sort of invoice, e.g, for a subscription or something else.
     // We don't handle them here yet.
     return;
   }
   const { account_id } = invoice.metadata;
   if (!(await isValidAccount(account_id))) {
+    logger.debug(
+      "createCreditFromPaidStripeInvoice -- invalid account_id!",
+      account_id
+    );
     // definitely should never happen
     throw Error(`invalid account_id in metadata '${account_id}'`);
   }
@@ -158,7 +166,6 @@ export async function createCreditFromPaidStripeInvoice(invoice) {
     account_id,
     invoice_id: invoice.id,
     amount,
-    unique: true, // avoid any possibility of accidentally creating the credit twice
   });
 }
 
