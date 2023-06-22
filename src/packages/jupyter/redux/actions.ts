@@ -183,8 +183,15 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   protected dbg(f: string): (...args) => void {
-    return (...args) =>
+    return (...args) => {
+      if (this.store == null) {
+        // calling dbg after the actions are closed is possible; this.store would
+        // be undefined, and then this log message would crash, which sucks.  It happened to me.
+        // See https://github.com/sagemathinc/cocalc/issues/6788
+        return;
+      }
       log(`JupyterActions('${this.store.get("path")}').${f}`, ...args);
+    };
   }
 
   protected close_client_only(): void {
