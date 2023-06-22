@@ -188,6 +188,7 @@ export function FilesBottom({
   function renderButtons(names) {
     return (
       <Space direction="horizontal" wrap>
+        {checked_files.size > 0 ? renderOpenFile() : undefined}
         <Space.Compact size="small">
           {names.map((name) => {
             const disabled =
@@ -241,7 +242,13 @@ export function FilesBottom({
   function renderOpenFile() {
     if (checked_files.size === 0) return;
     return (
-      <Popover content="Or double-click file in listing">
+      <Popover
+        content={
+          checked_files.size === 1
+            ? "Or double-click file in listing"
+            : "Open all selected files"
+        }
+      >
         <Button type="primary" size="small" onClick={openAllSelectedFiles}>
           <Icon name="external-link" /> Open
         </Button>
@@ -306,14 +313,9 @@ export function FilesBottom({
     );
   }
 
-  function renderOpenDownloadViewFile() {
+  function renderDownloadViewFile() {
     if (!singleFile) return renderSelectDeselectButton();
-    return (
-      <Space.Compact size="small">
-        {renderOpenFile()}
-        {renderDownloadView()}
-      </Space.Compact>
-    );
+    return <Space.Compact size="small">{renderDownloadView()}</Space.Compact>;
   }
 
   function renderFileInfo() {
@@ -602,7 +604,7 @@ export function FilesBottom({
         header={renderSelectedHeader()}
         key="selected"
         style={style}
-        extra={renderOpenDownloadViewFile()}
+        extra={renderDownloadViewFile()}
       >
         {renderSelected()}
       </Collapse.Panel>

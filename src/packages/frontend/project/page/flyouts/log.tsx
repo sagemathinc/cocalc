@@ -159,7 +159,7 @@ interface Props {
   wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
 }
 
-export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
+export function LogFlyout({ max = 1000, project_id, wrap }: Props): JSX.Element {
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
   const project_log = useTypedRedux({ project_id }, "project_log");
