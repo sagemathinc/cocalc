@@ -8,9 +8,7 @@ declare let DEBUG;
 import { Alert, Table } from "antd";
 
 import {
-  ProjectActions,
-  React,
-  Rendered,
+  ProjectActions
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
@@ -51,10 +49,7 @@ interface Props {
   start_ts: number | undefined;
   sync: WSProjectInfo | null;
   render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
-  render_val: (
-    index: string,
-    to_str: (val) => Rendered | React.ReactText
-  ) => (val: number, proc: ProcessRow) => { props: any; children: any };
+  onCellProps;
 }
 
 export function Flyout(_: Readonly<Props>): JSX.Element {
@@ -71,7 +66,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     pt_stats,
     ptree,
     start_ts,
-    render_val,
+    onCellProps,
   } = _;
 
   // mimic a table of processes program like htop – with tailored descriptions for cocalc
@@ -112,7 +107,8 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
           width="25%"
           dataIndex="cpu_pct"
           align={"right"}
-          render={render_val("cpu_pct", (val) => `${Math.round(val)}%`)}
+          render={onCellProps("cpu_pct", (val) => `${Math.round(val)}%`)}
+          onCell={onCellProps("cpu_pct")}
           sorter={field_cmp("cpu_pct")}
         />
         <Table.Column<ProcessRow>
@@ -121,7 +117,8 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
           dataIndex="mem"
           width="25%"
           align={"right"}
-          render={render_val("mem", (val) => `${val.toFixed(0)}M`)}
+          render={onCellProps("mem", (val) => `${val.toFixed(0)}M`)}
+          onCell={onCellProps("mem")}
           sorter={field_cmp("mem")}
         />
       </Table>

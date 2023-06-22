@@ -9,12 +9,7 @@ import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { Alert, Button, Form, Modal, Popconfirm, Switch, Table } from "antd";
 
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
-import {
-  CSS,
-  ProjectActions,
-  Rendered,
-  redux,
-} from "@cocalc/frontend/app-framework";
+import { CSS, ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
@@ -65,10 +60,7 @@ interface Props {
   start_ts: number | undefined;
   sync: WSProjectInfo | null;
   render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
-  render_val: (
-    index: string,
-    to_str: (val) => Rendered | React.ReactText
-  ) => (val: number, proc: ProcessRow) => { props: any; children: any };
+  onCellProps;
 }
 
 export function Full(props: Readonly<Props>): JSX.Element {
@@ -100,7 +92,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
     start_ts,
     sync,
     render_cocalc,
-    render_val,
+    onCellProps,
   } = props;
 
   function render_help() {
@@ -370,7 +362,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
               title={"PID"}
               width="10%"
               align={"left"}
-              render={render_val("pid", (x) =>
+              render={onCellProps("pid", (x) =>
                 x.pid == null ? "" : `${x.pid}`
               )}
               sorter={field_cmp("pid")}
@@ -389,7 +381,8 @@ export function Full(props: Readonly<Props>): JSX.Element {
               width="10%"
               dataIndex="cpu_pct"
               align={"right"}
-              render={render_val("cpu_pct", (val) => `${val.toFixed(1)}%`)}
+              render={onCellProps("cpu_pct", (val) => `${val.toFixed(1)}%`)}
+              onCell={onCellProps("cpu_pct")}
               sorter={field_cmp("cpu_pct")}
             />
             <Table.Column<ProcessRow>
@@ -398,7 +391,8 @@ export function Full(props: Readonly<Props>): JSX.Element {
               dataIndex="cpu_tot"
               width="10%"
               align={"right"}
-              render={render_val("cpu_tot", (val) => seconds2hms(val))}
+              render={onCellProps("cpu_pct", (val) => seconds2hms(val))}
+              onCell={onCellProps("cpu_tot")}
               sorter={field_cmp("cpu_tot")}
             />
             <Table.Column<ProcessRow>
@@ -407,7 +401,8 @@ export function Full(props: Readonly<Props>): JSX.Element {
               dataIndex="mem"
               width="10%"
               align={"right"}
-              render={render_val("mem", (val) => `${val.toFixed(0)}MiB`)}
+              render={onCellProps("cpu_pct", (val) => `${val.toFixed(0)}MiB`)}
+              onCell={onCellProps("mem")}
               sorter={field_cmp("mem")}
             />
           </Table>
