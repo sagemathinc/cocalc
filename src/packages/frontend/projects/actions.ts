@@ -26,10 +26,9 @@ import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 import { Set } from "immutable";
-import json_stable from "json-stable-stringify";
+import { isEqual } from "lodash";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
-import { isEqual } from "lodash";
 
 export type Datastore = boolean | string[] | undefined;
 
