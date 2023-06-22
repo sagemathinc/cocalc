@@ -101,7 +101,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   servers: {
     label: SERVERS_TITLE,
     icon: "server",
-    flyout: ({ project_id }) => ServersFlyout({ project_id }),
+    flyout: ServersFlyout,
     noAnonymous: false,
   },
   info: {
