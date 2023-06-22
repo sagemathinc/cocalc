@@ -22,6 +22,7 @@ import {
   QuestionMarkText,
   TimeAgo,
 } from "@cocalc/frontend/components";
+import { useProjectState } from "@cocalc/frontend/project/page/project-state-hook";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { trunc, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -83,6 +84,8 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   const [errors, setErrors] = useState<{ [license_id: string]: string }>({});
   const [data, setData] = useState<TableRow[]>([]);
   const prevSiteLicense = usePrevious(site_licenses);
+  const project_state = useProjectState(project_id);
+  const projectIsRunning = project_state?.get("state") === "running";
 
   useEffect(() => {
     // Optimization: check in redux store for first approximation of
@@ -138,7 +141,9 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   function calcStatus(k, v): LicenseStatus {
     const upgrades = site_licenses?.[k];
     const status_val = upgrades?.get("status");
-    if (isLicenseStatus(status_val)) {
+    // if project is not running, we do not have an updated info about the status
+    // do the else-fallthrough, which is to use the date.
+    if (projectIsRunning && isLicenseStatus(status_val)) {
       return status_val;
     } else {
       // right after loading this the first time, the field is null.
@@ -357,12 +362,12 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
             {trunc(rec.description, 30)}
           </>
         )}
-        <p>
+        <div>
           {renderStatusText(rec)}
           <br />
           {activatesExpires(rec)}
           {isFlyout ? renderRemove(rec.license_id) : undefined}
-        </p>
+        </div>
       </>
     );
   }
