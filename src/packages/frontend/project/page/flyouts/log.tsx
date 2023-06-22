@@ -148,7 +148,7 @@ function deriveHistory(project_log, searchTerm: string, max: number) {
       const searchStr = to_search_string(entry.toJS());
       return search_match(searchStr, searchWords);
     })
-    .sort((a, b) => getTime(b.get("time")) - getTime(a.get("time")))
+    .sort((a, b) => getTime(b) - getTime(a))
     .slice(0, max)
     .toJS() as any;
 }
