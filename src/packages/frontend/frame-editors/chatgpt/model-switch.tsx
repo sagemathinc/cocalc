@@ -25,14 +25,27 @@ export default function ModelSwitch({ style, model, setModel, size }: Props) {
         setModel(value);
       }}
     >
-      <Tooltip title={"OpenAI's fastest model, great for most everyday tasks"}>
+      <Tooltip
+        title={
+          "FREE: OpenAI's fastest model, great for most everyday tasks (4k token context)"
+        }
+      >
         <Radio.Button value="gpt-3.5-turbo">
           {modelToName("gpt-3.5-turbo")}
         </Radio.Button>
       </Tooltip>
       <Tooltip
+        title={`NOT FREE: Same as ${modelToName(
+          "gpt-3.5-turbo"
+        )} but with much larger context size (16k token context)`}
+      >
+        <Radio.Button value="gpt-3.5-turbo-16k">
+          {modelToName("gpt-3.5-turbo-16k")}
+        </Radio.Button>
+      </Tooltip>{" "}
+      <Tooltip
         title={
-          "OpenAI's most capable model, great for tasks that require creativity and advanced reasoning."
+          "NOT FREE: OpenAI's most capable model, great for tasks that require creativity and advanced reasoning (8k token context)"
         }
       >
         <Radio.Button value="gpt-4">
@@ -49,7 +62,7 @@ export function modelToName(model: Model): string {
 }
 
 export function modelToMention(model: Model): string {
-  return `<span class="user-mention" account-id=${
-    model == "gpt-4" ? "chatgpt4" : "chatgpt"
-  }>@${modelToName(model)}</span>`;
+  return `<span class="user-mention" account-id=openai-${model} >@${modelToName(
+    model
+  )}</span>`;
 }

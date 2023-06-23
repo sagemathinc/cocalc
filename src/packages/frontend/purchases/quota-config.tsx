@@ -17,8 +17,8 @@ import Quotas, { PRESETS, Preset, STEP } from "./all-quotas-config";
 import GlobalQuota from "./global-quota";
 import Balance from "./balance";
 
-export function currency(n) {
-  return `$${to_money(n)}`;
+export function currency(n, d = 2) {
+  return `$${to_money(n, d)}`;
 }
 
 export default function QuotaConfig({

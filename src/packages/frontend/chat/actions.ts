@@ -474,11 +474,11 @@ export class ChatActions extends Actions<ChatState> {
     while (message != null && i < 1000) {
       i += 1; // just in case some weird corrupted file has a time loop in it.
       const input = message.getIn(["history", 0, "content"])?.toLowerCase();
-      if (input?.includes("account-id=chatgpt4")) {
-        return "gpt-4";
-      }
-      if (input?.includes("account-id=chatgpt")) {
-        return "gpt-3.5-turbo";
+      if (
+        input?.includes("account-id=openai-") ||
+        input?.includes("account-id=chatgpt")
+      ) {
+        return getChatGPTModel(input);
       }
       const reply_to = message.get("reply_to");
       if (reply_to == null) return false;
@@ -530,7 +530,7 @@ export class ChatActions extends Actions<ChatState> {
     input = stripMentions(input);
     // also important to strip details, since they tend to confuse chatgpt:
     //input = stripDetails(input);
-    const sender_id = model == "gpt-4" ? "chatgpt4" : "chatgpt";
+    const sender_id = `openai-${model}`;
     // keep updating that chatgpt is doing something:
     const project_id = store.get("project_id");
     const path = store.get("path");
@@ -678,7 +678,7 @@ function stripMentions(value: string): string {
       value = value.slice(0, i) + value.slice(i + name.length);
     }
   }
-  // The mentions look like this: <span class="user-mention" account-id=chatgpt >@ChatGPT</span> ...
+  // The mentions looks like this: <span class="user-mention" account-id=openai-... >@ChatGPT</span> ...
   while (true) {
     const i = value.indexOf('<span class="user-mention"');
     if (i == -1) break;
@@ -696,7 +696,10 @@ function stripMentions(value: string): string {
 // }
 
 function mentionsChatGPT(input?: string): boolean {
-  return !!input?.toLowerCase().includes("account-id=chatgpt");
+  return !!(
+    input?.toLowerCase().includes("account-id=chatgpt") ||
+    input?.toLowerCase().includes("account-id=openai-")
+  );
 }
 
 function getChatGPTModel(input?: string): false | Model {
@@ -707,6 +710,11 @@ function getChatGPTModel(input?: string): false | Model {
   }
   if (x.includes("account-id=chatgpt")) {
     return "gpt-3.5-turbo";
+  }
+  const i = x.indexOf("account-id=openai-");
+  if (i != -1) {
+    const j = x.indexOf(">", i);
+    return x.slice(i + "account-id=openai-".length, j).trim() as any;
   }
   return false;
 }

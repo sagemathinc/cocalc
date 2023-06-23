@@ -297,6 +297,9 @@ export function getUserName(userMap, accountId: string): string {
   if (accountId.startsWith("chatgpt")) {
     return OPENAI_USERNAMES[accountId];
   }
+  if (accountId.startsWith("openai-")) {
+    return OPENAI_USERNAMES[accountId.slice("openai-".length)];
+  }
   if (userMap == null) return "Unknown";
   const account = userMap.get(accountId);
   if (account == null) return "Unknown";

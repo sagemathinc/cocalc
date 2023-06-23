@@ -86,6 +86,9 @@ export class UsersStore extends Store<UsersState> {
     if (account_id.startsWith("chatgpt")) {
       return OPENAI_USERNAMES[account_id] ?? account_id;
     }
+    if (account_id.startsWith("openai-")) {
+      return OPENAI_USERNAMES[account_id.slice("openai-".length)];
+    }
     const user_map = this.get("user_map");
     if (user_map == null) {
       return;

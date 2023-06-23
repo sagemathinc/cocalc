@@ -92,11 +92,11 @@ export async function checkForAbuse({
     );
   }
 
-  if (model == "gpt-4") {
+  if (model != "gpt-3.5-turbo") {
     // This is a for-pay product, so let's make sure user can purchase it.
     await assertPurchaseAllowed({
       account_id,
-      service: "openai-gpt-4",
+      service: `openai-${model}`,
     });
   }
 }

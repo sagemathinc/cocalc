@@ -15,7 +15,6 @@ import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
 import { capitalize } from "@cocalc/util/misc";
-import { useInterval } from "react-interval-hook";
 import TitleBarButtonTour from "./title-bar-button-tour";
 import ModelSwitch, { modelToName, Model } from "./model-switch";
 import Context from "./context";
@@ -134,6 +133,7 @@ export default function ChatGPT({
   const showOptions = frameType != "terminal";
   const [input, setInput] = useState<string>("");
   const [truncated, setTruncated] = useState<number>(0);
+  const [truncatedReason, setTruncatedReason] = useState<string>("");
   const [scope, setScope] = useState<Scope | "all">(() =>
     showChatGPT ? getScope(id, actions) : "all"
   );
@@ -178,17 +178,18 @@ export default function ChatGPT({
             (inputOrig.length - input.length) / Math.max(1, inputOrig.length))
       )
     );
+    setTruncatedReason(
+      `Input truncated from ${inputOrig.length} to ${input.length} characters.${
+        model == "gpt-3.5-turbo"
+          ? "  Try using a different model with a bigger context size."
+          : ""
+      }`
+    );
   };
 
   useEffect(() => {
     doUpdateInput();
-  }, [id, scope, visible, path, showChatGPT]);
-
-  // This is lame -- it would be better to hook into a change event, but that's hard to
-  // in general.
-  useInterval(() => {
-    doUpdateInput();
-  }, 2500);
+  }, [id, scope, visible, path, showChatGPT, model]);
 
   const [description, setDescription] = useState<string>(
     showOptions ? "" : getCustomDescription(frameType)
@@ -327,9 +328,15 @@ export default function ChatGPT({
                 }}
               >
                 <div style={{ marginBottom: "5px" }} ref={scopeRef}>
-                  {truncated < 100 && (
+                  {truncated < 100 ? (
+                    <Tooltip title={truncatedReason}>
+                      <div style={{ float: "right" }}>
+                        Truncated ({truncated}% remains)
+                      </div>
+                    </Tooltip>
+                  ) : (
                     <div style={{ float: "right" }}>
-                      Truncated ({truncated}% remains)
+                      NOT Truncated (100% included)
                     </div>
                   )}
                   ChatGPT will see:
@@ -415,7 +422,6 @@ async function updateInput(
   }
   return { input, inputOrig };
 }
-
 
 function getScope(id, actions): Scope {
   const scopes = actions.chatgptGetScopes();

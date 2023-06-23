@@ -245,7 +245,7 @@ function GroupedPurchaseTable({ purchases }) {
           title: "Total Amount (USD)",
           dataIndex: "sum",
           key: "sum",
-          render: (text) => `$${text?.toFixed(2)}`,
+          render: (amount) => currency(amount, Math.abs(amount) < 0.1 ? 3 : 2),
           sorter: (a: any, b: any) => (a.sum ?? 0) - (b.sum ?? 0),
           sortDirections: ["ascend", "descend"],
         },
@@ -323,8 +323,8 @@ function DetailedPurchaseTable({ purchases }) {
               title: "Amount (USD)",
               dataIndex: "cost",
               key: "cost",
-              render: (text, record) => {
-                if (!text && record.service == "project-upgrade") {
+              render: (amount, record) => {
+                if (amount == null && record.service == "project-upgrade") {
                   const cost = record.description?.quota?.cost;
                   const start = record.description?.start;
                   if (cost != null && start != null) {
@@ -339,8 +339,8 @@ function DetailedPurchaseTable({ purchases }) {
                     );
                   }
                 }
-                if (text) {
-                  return `$${text?.toFixed(2)}`;
+                if (amount != null) {
+                  return currency(amount, Math.abs(amount) < 0.1 ? 3 : 2);
                 }
                 return "-";
               },

@@ -15,6 +15,7 @@ export type Service =
   | "openai-gpt-4-32k"
   | "openai-gpt-3.5-turbo"
   | "openai-gpt-3.5-turbo-16k"
+  | "openai-text-embedding-ada-002"
   | "project-upgrade"
   | "license";
 
@@ -38,6 +39,12 @@ export interface OpenaiGPT35 {
 
 export interface OpenaiGPT35_16k {
   type: "openai-gpt-3.5-turbo-16k";
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export interface OpenaiTextEmbeddingsAda002 {
+  type: "openai-text-embedding-ada-002";
   prompt_tokens: number;
   completion_tokens: number;
 }
@@ -82,6 +89,7 @@ export type Description =
   | OpenaiGPT4_32k
   | OpenaiGPT35
   | OpenaiGPT35_16k
+  | OpenaiTextEmbeddingsAda002
   | ProjectUpgrade
   | Credit
   | License;

@@ -24,6 +24,10 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-3.5-turbo-16k": {
     display: "OpenAI GPT-3.5 16k",
     color: "#10a37f",
+  },
+  "openai-text-embedding-ada-002": {
+    display: "OpenAI Text Embedding Ada 002",
+    color: "#10a37f",
     noSet: true, // because this model is not user visible yet
   },
   "openai-gpt-4-32k": {

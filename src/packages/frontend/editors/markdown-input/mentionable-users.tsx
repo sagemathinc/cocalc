@@ -52,21 +52,35 @@ export function mentionableUsers(
   if (chatGPT) {
     if (!search || "chatgpt3".includes(search)) {
       v.push({
-        value: "chatgpt",
+        value: "openai-gpt-3.5-turbo",
         label: (
           <span>
-            <OpenAIAvatar size={24} /> {OPENAI_USERNAMES["chatgpt"]}
+            <OpenAIAvatar size={24} /> {OPENAI_USERNAMES["gpt-3.5-turbo"]}
           </span>
         ),
         search: "chatgpt3",
       });
+      // Realistically it's maybe really unlikely to want to use this in a new chat
+      // you're making...? This did work when I wrote it, but I'm commenting it
+      // out since I think it's just not worth it.
+      /*
+      v.push({
+        value: "openai-gpt-3.5-turbo-16k",
+        label: (
+          <span>
+            <OpenAIAvatar size={24} /> {OPENAI_USERNAMES["gpt-3.5-turbo-16k"]}
+          </span>
+        ),
+        search: "chatgpt3",
+      });
+      */
     }
     if (!search || "chatgpt4".includes(search)) {
       v.push({
-        value: "chatgpt4",
+        value: "openai-gpt-4",
         label: (
           <span>
-            <OpenAIAvatar size={24} /> {OPENAI_USERNAMES["chatgpt4"]}
+            <OpenAIAvatar size={24} /> {OPENAI_USERNAMES["gpt-4"]}
           </span>
         ),
         search: "chatgpt4",

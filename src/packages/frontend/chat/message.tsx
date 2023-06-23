@@ -29,6 +29,7 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
+import { modelToName } from "@cocalc/frontend/frame-editors/chatgpt/model-switch";
 
 // 5 minutes -- how long to show the "regenerate button" for chatgpt.
 // Don't show it forever, since we want to avoid clutter.
@@ -597,7 +598,9 @@ export default function Message(props: Props) {
             <Tooltip
               title={
                 isChatGPTThread
-                  ? "Reply to ChatGPT, sending the entire thread as context."
+                  ? `Reply to ${modelToName(
+                      isChatGPTThread
+                    )}, sending the entire thread as context.`
                   : "Reply in this thread."
               }
             >
@@ -607,9 +610,7 @@ export default function Message(props: Props) {
                 style={{ color: "#666" }}
               >
                 <Icon name="reply" /> Reply
-                {isChatGPTThread
-                  ? ` to GPT-${isChatGPTThread == "gpt-4" ? "4" : "3.5"}`
-                  : ""}
+                {isChatGPTThread ? ` to ${modelToName(isChatGPTThread)}` : ""}
                 {isChatGPTThread && (
                   <Avatar
                     account_id="chatgpt"

@@ -17,7 +17,7 @@ interface Props {
 }
 
 export default function UnpaidInvoices({ balance, refresh }: Props) {
-  const [isModalVisible, setIsModalVisible] = useState(isModalVisible);
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const [unpaidInvoices, setUnpaidInvoices] = useState<any[] | null>(null);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 

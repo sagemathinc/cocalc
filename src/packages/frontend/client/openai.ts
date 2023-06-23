@@ -16,6 +16,7 @@ import {
 } from "@cocalc/util/db-schema/openai";
 import { EventEmitter } from "events";
 import type { WebappClient } from "./client";
+import type { Service } from "@cocalc/util/db-schema/purchases";
 
 const DEFAULT_SYSTEM_PROMPT =
   "ASSUME THAT I HAVE FULL ACCESS TO COCALC AND I AM USING COCALC RIGHT NOW.  ENCLOSE ALL MATH IN $.  INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS.  BE BRIEF.";
@@ -91,9 +92,9 @@ export class OpenAIClient {
       }
     }
 
-    if (model == "gpt-4") {
-      const service = "openai-gpt-4";
-      // when client gets gpt4 request, check if allowed.  If not, show quota modal.
+    if (model != "gpt-3.5-turbo") {
+      const service = `openai-${model}` as any as Service;
+      // when client gets non-free openai model request, check if allowed.  If not, show quota modal.
       const { allowed, reason } =
         await this.client.purchases_client.isPurchaseAllowed(service);
 

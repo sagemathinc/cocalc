@@ -10,6 +10,7 @@ import LRU from "lru-cache";
 import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Alert, Spin, Statistic, Table, Tooltip } from "antd";
+import { currency } from "../quota-config";
 
 const cache = new LRU<string, any>({
   max: 200,
@@ -77,18 +78,9 @@ function ProjectUpgradeCost({ cost }) {
 
   // We convert to per hour pricing.
   const hours = 30.5 * 24;
-  const cores = (cost.cores / hours).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
-  const memory = (cost.memory / hours).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
-  const disk_quota = cost.disk_quota.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
+  const cores = currency(cost.cores / hours, 3);
+  const memory = currency(cost.memory / hours, 3);
+  const disk_quota = currency(cost.disk_quota, 3);
 
   const columns = [
     {
@@ -156,14 +148,8 @@ function PricePerUnit({ value, unit, month }: { value; unit; month? }) {
 }
 
 function OpenAiCost({ prompt_tokens, completion_tokens }) {
-  const inputPrice = (prompt_tokens * 1000).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
-  const outputPrice = (completion_tokens * 1000).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-  });
+  const inputPrice = currency(prompt_tokens * 1000, 3);
+  const outputPrice = currency(completion_tokens * 1000, 3);
   const columns = [
     {
       title: "Input",

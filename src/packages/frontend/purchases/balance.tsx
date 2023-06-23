@@ -4,7 +4,7 @@ import UnpaidInvoices from "./unpaid-invoices";
 import { zIndexTip } from "./payment";
 
 interface Props {
-  balance?: number;
+  balance?: number | null;
   quota?: number;
   style?: CSSProperties;
   refresh?: () => void;

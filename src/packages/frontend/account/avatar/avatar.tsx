@@ -31,7 +31,7 @@ const CIRCLE_INNER_STYLE: CSSProperties = {
 } as const;
 
 interface Props {
-  account_id?: string; // if not given useful as a placeholder in the UI (e.g., if we don't know account_id yet); uuid or "chatgpt"
+  account_id?: string; // if not given useful as a placeholder in the UI (e.g., if we don't know account_id yet); uuid or "chatgpt" or "openai-[model]".
   size?: number; // in pixels
   max_age_s?: number; // if given fade the avatar out over time.
   project_id?: string; // if given, showing avatar info for a project (or specific file)
@@ -49,7 +49,10 @@ interface Props {
 }
 
 export function Avatar(props) {
-  if (props.account_id.startsWith("chatgpt")) {
+  if (
+    props.account_id.startsWith("chatgpt") ||
+    props.account_id.startsWith("openai-")
+  ) {
     return <OpenAIAvatar size={props.size} style={props.style} />;
   } else {
     return <Avatar0 {...props} />;
