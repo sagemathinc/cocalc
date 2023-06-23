@@ -65,25 +65,25 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
   function user_remove_button(account_id: string, group?: string) {
     if (student.disableCollaborators) return;
     const text = user_remove_confirm_text(account_id);
+    const isOwner = group === "owner";
     return (
       <Popconfirm
         title={text}
         onConfirm={() => remove_collaborator(account_id)}
         okText={"Yes, remove collaborator"}
         cancelText={"Cancel"}
-        disabled={group === "owner"}
+        disabled={isOwner}
       >
         <Button
-          disabled={group === "owner"}
-          style={{ marginBottom: "0", float: "right" }}
+          disabled={isOwner}
+          type={isFlyout ? "link" : "default"}
+          style={{
+            marginBottom: "0",
+            float: "right",
+            ...(isFlyout ? { color: COLORS.ANTD_RED_WARN } : {}),
+          }}
         >
-          <Icon name="user-times" />
-          {!isFlyout ? (
-            <>
-              <Gap /> Remove
-            </>
-          ) : undefined}
-          ...
+          <Icon name="user-times" /> Remove ...
         </Button>
       </Popconfirm>
     );
@@ -167,7 +167,12 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
           <Title level={3}>
             <Icon name="user" /> Current collaborators
           </Title>
-          <Paragraph>{introText}</Paragraph>
+          <Paragraph
+            type="secondary"
+            ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
+          >
+            {introText}
+          </Paragraph>
           {render_collaborators_list()}
         </div>
       );

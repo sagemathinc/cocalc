@@ -492,7 +492,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         dataSource={data}
         showHeader={!isFlyout}
         size={isFlyout ? "small" : undefined}
-        className={"cc-flyout-license-table"}
+        className={"cc-license-table-public-info"}
         rowClassName={() => "cursor-pointer"}
         pagination={{ hideOnSinglePage: true, defaultPageSize: 5 }}
         expandable={{

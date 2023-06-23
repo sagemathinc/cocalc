@@ -84,7 +84,9 @@ export function LicensesFlyout({
 
   return (
     <>
-      <Paragraph>
+      <Paragraph
+        ellipsis={{ expandable: true, rows: 1, symbol: "more" }}
+      >
         This project is using the following resource quotas when running. You
         can add more resources by adding licenses or applying upgrades.
       </Paragraph>

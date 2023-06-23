@@ -389,6 +389,14 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         return (
           <>
             <Title level={4}>Usage and quotas</Title>
+            <Paragraph
+              type="secondary"
+              ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
+            >
+              This table lists project quotas, their current usage, and their
+              value/limit. Click on a row to show more details about it. If the
+              project is not running, you see the last known quota values.
+            </Paragraph>
             {render_run_quota()}
             {render_upgrades_button()}
             {render_quota_console()}

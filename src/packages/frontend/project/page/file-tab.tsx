@@ -60,7 +60,7 @@ export function isFixedTab(tab?: any): tab is FixedTab {
 
 type FixedTabs = {
   [name in FixedTab]: {
-    label: string;
+    label: string | ReactNode;
     icon: IconName;
     flyout: (props: { project_id: string; wrap: Function }) => JSX.Element;
     flyoutTitle?: string | ReactNode;
@@ -104,12 +104,6 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     flyout: ServersFlyout,
     noAnonymous: false,
   },
-  info: {
-    label: PROJECT_INFO_TITLE,
-    icon: "microchip",
-    flyout: ProjectInfoFlyout,
-    noAnonymous: false,
-  },
   collaborators: {
     label: TITLE_COLLABORATORS,
     icon: ICON_COLLABORATORS,
@@ -117,10 +111,22 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noAnonymous: false,
   },
   licenses: {
-    label: TITLE_LICENSES,
+    label: (
+      <>
+        Quotas
+        <br />
+        {TITLE_LICENSES}
+      </>
+    ),
     icon: ICON_LICENSES,
     flyout: LicensesFlyout,
     flyoutTitle: "Quotas and Licenses",
+    noAnonymous: false,
+  },
+  info: {
+    label: PROJECT_INFO_TITLE,
+    icon: "microchip",
+    flyout: ProjectInfoFlyout,
     noAnonymous: false,
   },
   settings: {

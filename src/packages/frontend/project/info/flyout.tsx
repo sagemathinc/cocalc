@@ -7,10 +7,8 @@ declare let DEBUG;
 
 import { Alert, Table } from "antd";
 
-import {
-  ProjectActions
-} from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
+import { ProjectActions } from "@cocalc/frontend/app-framework";
+import { Loading, Paragraph } from "@cocalc/frontend/components";
 import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
 import {
   Process,
@@ -63,11 +61,16 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     loading,
     project_state,
     project_status,
+    status,
     pt_stats,
     ptree,
     start_ts,
     onCellProps,
+    sync,
+    chan,
   } = _;
+
+  const projectIsRunning = project_state === "running";
 
   // mimic a table of processes program like htop – with tailored descriptions for cocalc
   function render_top() {
@@ -140,6 +143,25 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     );
   }
 
+  function render_general_status() {
+    if (!DEBUG) return null;
+    return (
+      <Paragraph type="secondary">
+        Timestamp:{" "}
+        {info?.timestamp != null ? (
+          <code>{new Date(info.timestamp).toISOString()}</code>
+        ) : (
+          "no timestamp"
+        )}{" "}
+        <br />
+        Connections sync=<code>{`${sync != null}`}</code> chan=
+        <code>{`${chan != null}`}</code>
+        <br />
+        Status: <code>{status}</code>
+      </Paragraph>
+    );
+  }
+
   function body() {
     return (
       <div
@@ -154,6 +176,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
         <ProjectProblems project_status={project_status} />
         {renderCgroup()}
         {wrap ? wrap(render_top()) : render_top()}
+        {render_general_status()}
       </div>
     );
   }
@@ -164,7 +187,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
   }
 
   function notRunning() {
-    if (project_state !== "running") {
+    if (!projectIsRunning) {
       return (
         <Alert
           type="warning"
@@ -175,7 +198,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     }
   }
 
-  if (loading) {
+  if (projectIsRunning && loading) {
     return <Loading />;
   }
 

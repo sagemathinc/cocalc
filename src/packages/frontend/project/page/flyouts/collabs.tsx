@@ -60,6 +60,8 @@ export function CollabsFlyout({ project_id, wrap }: CollabsProps): JSX.Element {
       <Alert
         type="warning"
         banner
+        closable
+        showIcon={false}
         message={
           <h4>
             <strong>
@@ -73,7 +75,12 @@ export function CollabsFlyout({ project_id, wrap }: CollabsProps): JSX.Element {
 
   return (
     <>
-      <Paragraph>{COLLABS_INFO_TEXT}</Paragraph>
+      <Paragraph
+        type="secondary"
+        ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
+      >
+        {COLLABS_INFO_TEXT}
+      </Paragraph>
       {renderAdmin()}
       {renderSettings()}
     </>
