@@ -48,18 +48,20 @@ export default async function createInvoice({
   const customer = await getStripeCustomerId({ account_id, create: true });
   if (customer == null) throw Error("bug");
   logger.debug("createInvoice", { customer });
-  await stripe.invoiceItems.create({
-    customer,
-    amount: Math.round(100 * amount), // stripe uses pennies not dollars.
-    currency: "usd",
-    description,
-  });
   const invoice = await stripe.invoices.create({
     customer,
     auto_advance: true,
     collection_method: "send_invoice",
     days_until_due: 21,
     metadata: { account_id, service: "credit" },
+    automatic_tax: { enabled: true },
+  });
+  await stripe.invoiceItems.create({
+    invoice: invoice.id,
+    customer,
+    amount: Math.round(100 * amount), // stripe uses pennies not dollars.
+    currency: "usd",
+    description,
   });
   logger.debug("createInvoice", { invoice });
   const sentInvoice = await stripe.invoices.sendInvoice(invoice.id);

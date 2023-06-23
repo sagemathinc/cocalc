@@ -80,7 +80,7 @@
     "passport-twitter": "^1.0.4",
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
-    "stripe": "^8.78.0",
+    "stripe": "^12.10.0",
     "uuid": "^8.3.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/server",

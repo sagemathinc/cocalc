@@ -126,7 +126,7 @@ export default function Payment({ balance, update }) {
               onChange={(value) => setPaymentAmount(value)}
               addonAfter="$"
             />
-            <div>+ tax and fees</div>
+            <div>+ TAX</div>
           </Space>
         </div>
         <Divider plain orientation="left">
