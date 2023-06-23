@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
+import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { List } from "immutable";
 import { debounce, fromPairs } from "lodash";
@@ -489,7 +489,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
 
   function renderListing(): JSX.Element {
     const files = directoryListings.get(current_path);
-    if (files == null) return <Loading />;
+    if (files == null) return <Loading  theme="medium" transparent />;
 
     return (
       <Virtuoso
@@ -634,7 +634,39 @@ export function FilesFlyout({ project_id }): JSX.Element {
             </BootstrapButton>
           </Space.Compact>
         </div>
+        {staleListingWarning()}
       </Space>
+    );
+  }
+
+  function staleListingWarning() {
+    if (projectIsRunning || directoryFiles?.length === 0) return;
+
+    return (
+      <Alert
+        type="warning"
+        banner
+        showIcon={false}
+        style={{ padding: "5px", margin: 0 }}
+        message={
+          <>
+            <Icon name="warning" /> Stale directory listing
+          </>
+        }
+        description={
+          <>
+            To update,{" "}
+            <a
+              onClick={() => {
+                redux.getActions("projects").start_project(project_id);
+              }}
+            >
+              start this project
+            </a>
+            .
+          </>
+        }
+      />
     );
   }
 

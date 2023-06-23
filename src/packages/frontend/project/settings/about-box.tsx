@@ -27,7 +27,7 @@ interface Props {
   mode?: "project" | "flyout";
 }
 
-export const AboutBox: React.FC<Props> = (props: Props) => {
+export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
   const {
     name,
     project_title,
@@ -37,6 +37,7 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
     actions,
     mode = "project",
   } = props;
+  const isFlyout = mode === "flyout";
   const [showNameInfo, setShowNameInfo] = useState<boolean>(false);
   const project_map = useTypedRedux("projects", "project_map");
   const courseProjectType = project_map?.getIn([
@@ -75,21 +76,22 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
       <>
         {error && (
           <Alert
+            banner={isFlyout}
+            showIcon={!isFlyout}
             style={{ marginBottom: "15px" }}
             type="error"
             message={error}
-            showIcon
           />
         )}
         {renderReadonly()}
-        <LabeledRow label="Title">
+        <LabeledRow label="Title" vertical={isFlyout}>
           <TextInput
             text={project_title}
             disabled={hasReadonlyFields}
             on_change={(title) => actions.set_project_title(project_id, title)}
           />
         </LabeledRow>
-        <LabeledRow label="Description (markdown)">
+        <LabeledRow label="Description (markdown)" vertical={isFlyout}>
           <TextInput
             type="textarea"
             rows={2}
@@ -100,7 +102,7 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
             }
           />
         </LabeledRow>
-        <LabeledRow label="Name (optional)">
+        <LabeledRow label="Name (optional)" vertical={isFlyout}>
           <TextInput
             type="textarea"
             rows={1}
@@ -122,7 +124,7 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
             />
           )}
         </LabeledRow>
-        <LabeledRow label="Image (optional)">
+        <LabeledRow label="Image (optional)" vertical={isFlyout}>
           <ProjectImage
             avatarImage={avatarImage}
             onChange={async (data) => {
@@ -136,7 +138,7 @@ export const AboutBox: React.FC<Props> = (props: Props) => {
           />
         </LabeledRow>
         {created && (
-          <LabeledRow label="Created">
+          <LabeledRow label="Created" vertical={isFlyout}>
             <TimeAgo date={created} />
           </LabeledRow>
         )}

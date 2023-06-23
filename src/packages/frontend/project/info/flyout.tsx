@@ -199,7 +199,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
   }
 
   if (projectIsRunning && loading) {
-    return <Loading />;
+    return <Loading theme="medium" transparent />;
   }
 
   return (

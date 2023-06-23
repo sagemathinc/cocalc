@@ -237,7 +237,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
     return (
       <>
         <div>
-          <Loading />
+          <Loading theme="medium" transparent />
         </div>
         {show_long_loading && (
           <Alert

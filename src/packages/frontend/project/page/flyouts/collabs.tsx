@@ -27,7 +27,7 @@ export function CollabsFlyout({ project_id, wrap }: CollabsProps): JSX.Element {
 
   function renderSettings() {
     if (project == null) {
-      return <Loading theme="medium" />;
+      return <Loading theme="medium" transparent />;
     }
     return wrap(
       <>

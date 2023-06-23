@@ -366,7 +366,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         {render_idle_timeout_row()}
         {render_uptime()}
         {render_cpu_usage()}
-        <LabeledRow key="project_id" label="Project id" vertical={isFlyout}>
+        <LabeledRow key="project_id" label="Project ID" vertical={isFlyout}>
           {!isFlyout ? (
             <CopyToClipBoard
               inputWidth={"330px"}
@@ -375,7 +375,10 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
             />
           ) : (
             <Paragraph
-              copyable={{ text: project.get("project_id") }}
+              copyable={{
+                text: project.get("project_id"),
+                tooltips: ["Copy Project ID", "Copied!"],
+              }}
               code
               style={{ marginBottom: 0 }}
             >

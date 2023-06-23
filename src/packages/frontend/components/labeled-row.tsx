@@ -58,7 +58,7 @@ export const LabeledRow: React.FC<Props> = ({
 
   function renderVertical() {
     return (
-      <Descriptions style={style} layout="vertical">
+      <Descriptions style={style} layout="vertical" column={1} size={"small"}>
         <Descriptions.Item label={label} style={innerStyle}>
           {children}
           {extra != null ? (

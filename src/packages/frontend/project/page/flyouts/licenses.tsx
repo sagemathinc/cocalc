@@ -54,7 +54,7 @@ export function LicensesFlyout({
   );
 
   function renderUsage(): JSX.Element {
-    if (project == null) return <Loading />;
+    if (project == null) return <Loading theme="medium" transparent />;
 
     return wrap(
       <UpgradeUsage
@@ -84,9 +84,7 @@ export function LicensesFlyout({
 
   return (
     <>
-      <Paragraph
-        ellipsis={{ expandable: true, rows: 1, symbol: "more" }}
-      >
+      <Paragraph ellipsis={{ expandable: true, rows: 1, symbol: "more" }}>
         This project is using the following resource quotas when running. You
         can add more resources by adding licenses or applying upgrades.
       </Paragraph>

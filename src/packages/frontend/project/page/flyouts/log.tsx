@@ -248,7 +248,7 @@ export function LogFlyout({ max = 1000, project_id, wrap }: Props): JSX.Element 
 
   if (project_log == null) {
     redux.getProjectStore(project_id).init_table("project_log"); // kick off loading it
-    return <Loading />;
+    return <Loading theme="medium" transparent/>;
   }
 
   function doScroll(dx: -1 | 1) {

@@ -17,14 +17,15 @@ import {
   Popconfirm,
   Space,
   Table,
+  Typography,
 } from "antd";
 import { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import TimeAgo from "react-timeago"; // so can use from nextjs
+const { Text, Paragraph } = Typography; // so can use from nextjs
 
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
-import { Paragraph, Text } from ".";
 import { A } from "./A";
 import CopyToClipBoard from "./copy-to-clipboard";
 import { Icon } from "./icon";

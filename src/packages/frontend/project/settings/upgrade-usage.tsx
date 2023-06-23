@@ -367,6 +367,9 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       );
     }
 
+    // This is is just a precaution, since "project" isn't properly typed
+    if (project == null) return <Loading theme="medium" transparent />;
+
     switch (mode) {
       case "project":
         return (

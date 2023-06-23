@@ -4,7 +4,7 @@
  */
 
 import { ReloadOutlined } from "@ant-design/icons";
-import { Button, Collapse, Space } from "antd";
+import { Button, Collapse, Popover, Space } from "antd";
 
 import {
   redux,
@@ -32,6 +32,7 @@ import { HideDeleteBox } from "@cocalc/frontend/project/settings/hide-delete-box
 import { ProjectCapabilities } from "@cocalc/frontend/project/settings/project-capabilites";
 import { ProjectControl } from "@cocalc/frontend/project/settings/project-control";
 import { RestartProject } from "@cocalc/frontend/project/settings/restart-project";
+import { SSHPanel } from "@cocalc/frontend/project/settings/ssh";
 import { StopProject } from "@cocalc/frontend/project/settings/stop-project";
 import { COMPUTE_STATES } from "@cocalc/util/compute-states";
 import {
@@ -39,7 +40,6 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { SSHPanel } from "@cocalc/frontend/project/settings/ssh";
 import { FIX_BORDER, useProject } from "../common";
 import { useProjectState } from "../project-state-hook";
 import { getFlyoutSettings, storeFlyoutState } from "./state";
@@ -116,8 +116,6 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
       <div
         style={{
           padding: "5px",
-          borderBottom: FIX_BORDER,
-          paddingBottom: "20px",
           marginBottom: "20px",
         }}
       >
@@ -171,38 +169,41 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
 
   function featuresRealodButton() {
     return (
-      <Button
-        size="small"
-        ghost
-        onClick={(e) => {
-          e.stopPropagation();
-          const project_id = project.get("project_id");
-          const pa = redux.getProjectActions(project_id);
-          pa.reload_configuration();
-        }}
-        icon={<ReloadOutlined />}
-        disabled={configuration_loading}
-      />
+      <Popover content="Reload features and configuration">
+        <Button
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            const project_id = project.get("project_id");
+            const pa = redux.getProjectActions(project_id);
+            pa.reload_configuration();
+          }}
+          icon={<ReloadOutlined />}
+          disabled={configuration_loading}
+        />
+      </Popover>
     );
   }
 
   function renderDatastoreRelaod() {
     return (
-      <Button
-        size="small"
-        icon={<ReloadOutlined />}
-        onClick={(e) => {
-          e.stopPropagation();
-          setDatastoreReload((prev) => prev + 1);
-        }}
-      />
+      <Popover content={`Reload ${DATASTORE_TITLE} information`}>
+        <Button
+          size="small"
+          icon={<ReloadOutlined />}
+          onClick={(e) => {
+            e.stopPropagation();
+            setDatastoreReload((prev) => prev + 1);
+          }}
+        />
+      </Popover>
     );
   }
 
   function renderSettings() {
     return (
       <Collapse
-        style={{ borderRadius: 0 }}
+        style={{ borderRadius: 0, borderLeft: "none", borderRight: "none" }}
         activeKey={expandedPanels}
         onChange={(keys) => setExpandedPanelsHandler(keys as string[])}
         destroyInactivePanel={true}
@@ -216,7 +217,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
           }
         >
           {project == null ? (
-            <Loading />
+            <Loading theme="medium" transparent />
           ) : (
             <AboutBox
               mode="flyout"
