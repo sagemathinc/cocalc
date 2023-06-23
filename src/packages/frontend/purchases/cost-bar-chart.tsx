@@ -15,7 +15,7 @@ export default function CostBarChart({}) {
   const [costPerDay, setCostPerDay] = useState<DailyCost[] | null>(null);
   const [error, setError] = useState<string>("");
   const [offset, setOffset] = useState<number>(0);
-  const [cumulative, setCumulative] = useState<boolean>(false);
+  const [cumulative, setCumulative] = useState<boolean>(true);
 
   const updateData = async () => {
     try {

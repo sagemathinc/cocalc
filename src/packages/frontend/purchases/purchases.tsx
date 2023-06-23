@@ -124,7 +124,7 @@ function Purchases0({ project_id, group: group0 }: Props) {
             </span>
           ) : (
             <span>
-              Transactions{" "}
+              <Icon name="table" /> Transactions{" "}
               {thisMonth
                 ? " (this billing month)"
                 : purchases?.length == limit
@@ -208,49 +208,55 @@ function GroupedPurchaseTable({ purchases }) {
     return <Spin size="large" delay={500} />;
   }
   return (
-    <Table
-      scroll={{ y: 400 }}
-      pagination={false}
-      dataSource={purchases}
-      rowKey={({ service, project_id }) => `${service}-${project_id}`}
-      columns={[
-        {
-          title: "Service",
-          dataIndex: "service",
-          key: "service",
-          sorter: (a, b) =>
-            (a.service ?? "").localeCompare(b.service ?? "") ?? -1,
-          sortDirections: ["ascend", "descend"],
-          render: (service) => <ServiceTag service={service} />,
-        },
-        {
-          title: "Transactions",
-          dataIndex: "count",
-          key: "count",
-          sorter: (a: any, b: any) => (a.count ?? 0) - (b.count ?? 0),
-          sortDirections: ["ascend", "descend"],
-        },
-        {
-          title: "Project",
-          dataIndex: "project_id",
-          key: "project_id",
-          render: (project_id) =>
-            project_id ? (
-              <ProjectTitle project_id={project_id} trunc={30} />
-            ) : (
-              "-"
-            ),
-        },
-        {
-          title: "Total Amount (USD)",
-          dataIndex: "sum",
-          key: "sum",
-          render: (amount) => currency(amount, Math.abs(amount) < 0.1 ? 3 : 2),
-          sorter: (a: any, b: any) => (a.sum ?? 0) - (b.sum ?? 0),
-          sortDirections: ["ascend", "descend"],
-        },
-      ]}
-    />
+    <div style={{ overflow: "auto" }}>
+      <div style={{ minWidth: "600px" }}>
+        <Table
+          scroll={{ y: 400 }}
+          pagination={false}
+          dataSource={purchases}
+          rowKey={({ service, project_id }) => `${service}-${project_id}`}
+          columns={[
+            {
+              title: "Service",
+              dataIndex: "service",
+              key: "service",
+              sorter: (a, b) =>
+                (a.service ?? "").localeCompare(b.service ?? "") ?? -1,
+              sortDirections: ["ascend", "descend"],
+              render: (service) => <ServiceTag service={service} />,
+            },
+            {
+              title: "Amount (USD)",
+              dataIndex: "sum",
+              key: "sum",
+              render: (amount) =>
+                currency(amount, Math.abs(amount) < 0.1 ? 3 : 2),
+              sorter: (a: any, b: any) => (a.sum ?? 0) - (b.sum ?? 0),
+              sortDirections: ["ascend", "descend"],
+            },
+
+            {
+              title: "Items",
+              dataIndex: "count",
+              key: "count",
+              sorter: (a: any, b: any) => (a.count ?? 0) - (b.count ?? 0),
+              sortDirections: ["ascend", "descend"],
+            },
+            {
+              title: "Project",
+              dataIndex: "project_id",
+              key: "project_id",
+              render: (project_id) =>
+                project_id ? (
+                  <ProjectTitle project_id={project_id} trunc={30} />
+                ) : (
+                  "-"
+                ),
+            },
+          ]}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -260,7 +266,7 @@ function DetailedPurchaseTable({ purchases }) {
   }
   return (
     <div style={{ overflow: "auto" }}>
-      <div style={{ width: "1000px" }}>
+      <div style={{ minWidth: "1000px" }}>
         <Table
           scroll={{ y: 400 }}
           pagination={false}
@@ -275,6 +281,34 @@ function DetailedPurchaseTable({ purchases }) {
                 (a.service ?? "").localeCompare(b.service ?? ""),
               sortDirections: ["ascend", "descend"],
               render: (service) => <ServiceTag service={service} />,
+            },
+            {
+              title: "Amount (USD)",
+              dataIndex: "cost",
+              key: "cost",
+              render: (amount, record) => {
+                if (amount == null && record.service == "project-upgrade") {
+                  const cost = record.description?.quota?.cost;
+                  const start = record.description?.start;
+                  if (cost != null && start != null) {
+                    return (
+                      <Space>
+                        <DynamicallyUpdatingCost
+                          costPerHour={cost}
+                          start={start}
+                        />
+                        <Tag color="green">Active</Tag>
+                      </Space>
+                    );
+                  }
+                }
+                if (amount != null) {
+                  return currency(amount, Math.abs(amount) < 0.1 ? 3 : 2);
+                }
+                return "-";
+              },
+              sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
+              sortDirections: ["ascend", "descend"],
             },
             {
               title: "Time",
@@ -320,34 +354,6 @@ function DetailedPurchaseTable({ purchases }) {
               sortDirections: ["ascend", "descend"],
             },
             {
-              title: "Amount (USD)",
-              dataIndex: "cost",
-              key: "cost",
-              render: (amount, record) => {
-                if (amount == null && record.service == "project-upgrade") {
-                  const cost = record.description?.quota?.cost;
-                  const start = record.description?.start;
-                  if (cost != null && start != null) {
-                    return (
-                      <Space>
-                        <DynamicallyUpdatingCost
-                          costPerHour={cost}
-                          start={start}
-                        />
-                        <Tag color="green">Active</Tag>
-                      </Space>
-                    );
-                  }
-                }
-                if (amount != null) {
-                  return currency(amount, Math.abs(amount) < 0.1 ? 3 : 2);
-                }
-                return "-";
-              },
-              sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
-              sortDirections: ["ascend", "descend"],
-            },
-            {
               title: "Description",
               dataIndex: "description",
               key: "description",
@@ -373,21 +379,7 @@ function DetailedPurchaseTable({ purchases }) {
               sortDirections: ["ascend", "descend"],
               render: (invoice_id) => {
                 if (!invoice_id) return null;
-                return (
-                  <Button
-                    type="link"
-                    onClick={async () => {
-                      const invoiceUrl = (
-                        await webapp_client.purchases_client.getInvoice(
-                          invoice_id
-                        )
-                      ).hosted_invoice_url;
-                      open_new_tab(invoiceUrl, false);
-                    }}
-                  >
-                    <Icon name="external-link" /> Invoice
-                  </Button>
-                );
+                return <InvoiceLink invoice_id={invoice_id} />;
               },
             },
             {
@@ -483,4 +475,27 @@ export function DisplayProjectQuota({ quota }: { quota: ProjectQuota }) {
     v.push(`${currency(quota.cost)} / hour`);
   }
   return <span>{v.join(", ")}</span>;
+}
+
+function InvoiceLink({ invoice_id }) {
+  const [loading, setLoading] = useState<boolean>(false);
+  return (
+    <Button
+      type="link"
+      onClick={async () => {
+        try {
+          setLoading(true);
+          const invoiceUrl = (
+            await webapp_client.purchases_client.getInvoice(invoice_id)
+          ).hosted_invoice_url;
+          open_new_tab(invoiceUrl, false);
+        } finally {
+          setLoading(false);
+        }
+      }}
+    >
+      <Icon name="external-link" /> Invoice
+      {loading && <Spin style={{ marginLeft: "30px" }} />}
+    </Button>
+  );
 }
