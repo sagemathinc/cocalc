@@ -127,7 +127,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   function render_selector() {
     return (
       <Dropdown menu={getMenu()} trigger={["click"]}>
-        <Button onBlur={onBlur} onFocus={onFocus}>
+        <Button onBlur={onBlur} onFocus={onFocus} size="small">
           {selected_title} <DownOutlined />
         </Button>
       </Dropdown>
@@ -165,7 +165,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
       // used in project settings → project control
       return (
         <Col xs={12}>
-          <Row style={{ fontSize: "12pt" }}>
+          <Row style={{ marginRight: 0, marginLeft: 0 }}>
             <Icon name={"hdd"} style={{ marginTop: "5px" }} />
             <Gap />
             Selected image
@@ -174,7 +174,9 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
             <Gap />
             {render_doubt()}
           </Row>
-          <Row>{render_info(true)}</Row>
+          <Row style={{ marginRight: 0, marginLeft: 0 }}>
+            {render_info(true)}
+          </Row>
         </Col>
       );
     case "horizontal":

@@ -48,7 +48,6 @@ interface ReactProps {
   customer?: Customer;
   email_address?: string;
   project_map?: ProjectMap; // if this changes, then available upgrades change, so we may have to re-render, if editing upgrades.
-  name: string;
 }
 
 const is_same = (prev: ReactProps, next: ReactProps) => {
@@ -59,7 +58,7 @@ const is_same = (prev: ReactProps, next: ReactProps) => {
 };
 
 export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
-  const { project_id, account_id, project, email_address, name } = props;
+  const { project_id, account_id, project, email_address } = props;
 
   const project_actions = useActions({ project_id });
 
@@ -157,7 +156,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             <Datastore key="datastore" project_id={project_id} />
           )}
           <ProjectCapabilities
-            name={name}
             key={"capabilities"}
             project={project}
             project_id={project_id}

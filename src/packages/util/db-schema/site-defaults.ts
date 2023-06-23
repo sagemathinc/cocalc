@@ -172,6 +172,7 @@ const gateway_dns_to_val: ToValFunc<string> = (
   );
 };
 
+export const DATASTORE_TITLE = "Cloud storage & remote file-systems";
 export const KUCALC_DISABLED = "no";
 export const KUCALC_COCALC_COM = "yes";
 export const KUCALC_ON_PREMISES = "onprem";
@@ -180,7 +181,7 @@ const KUCALC_VALID_VALS = [
   KUCALC_ON_PREMISES,
   KUCALC_DISABLED,
 ] as const;
-export type KucalcValues = typeof KUCALC_VALID_VALS[number];
+export type KucalcValues = (typeof KUCALC_VALID_VALS)[number];
 
 const DEFAULT_QUOTAS_HELP = `
 ### Default quotas
@@ -414,7 +415,7 @@ export const site_settings_conf: SiteSettings = {
   },
   datastore: {
     name: "Datastore",
-    desc: "Show the 'Cloud storage & remote file-systems' panel in the project settings",
+    desc: `Show the '${DATASTORE_TITLE}' panel in the project settings`,
     default: "yes",
     valid: only_booleans,
     show: only_onprem,

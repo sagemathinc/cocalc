@@ -25,6 +25,7 @@ export type LSFlyout = {
   expanded?: FixedTab | null;
   mode?: FlyoutLogMode; // check using isFlyoutLogMode
   files?: FilesMode;
+  settings?: string[]; // expanded panels
 };
 
 function isPositiveNumber(val: any): val is number {
@@ -42,6 +43,7 @@ export function storeFlyoutState(
     width?: number | null;
     mode?: string; // check using isFlyoutLogMode
     files?: FilesMode;
+    settings?: string[]; // expanded panels
   }
 ): void {
   const { scroll, expanded, width, mode, files } = state;
@@ -80,6 +82,11 @@ export function storeFlyoutState(
     };
   }
 
+  if (flyout === "settings" && Array.isArray(state.settings)) {
+    const keys = [...new Set(state.settings)].sort();
+    current.settings = keys;
+  }
+
   LS.set(key, current);
 }
 
@@ -100,4 +107,8 @@ export function getFlyoutLogMode(project_id: string): FlyoutLogMode {
 
 export function getFlyoutFiles(project_id: string): FilesMode {
   return LS.get<LSFlyout>(lsKey(project_id))?.files ?? {};
+}
+
+export function getFlyoutSettings(project_id: string): string[] {
+  return LS.get<LSFlyout>(lsKey(project_id))?.settings ?? [];
 }

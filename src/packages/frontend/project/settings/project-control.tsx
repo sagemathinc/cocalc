@@ -18,6 +18,7 @@ import {
   Icon,
   LabeledRow,
   Loading,
+  Paragraph,
   ProjectState,
   SettingBox,
   TimeAgo,
@@ -33,7 +34,7 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Button } from "antd";
+import { Button, Space } from "antd";
 import { ComputeImageSelector } from "./compute-image-selector";
 import { RestartProject } from "./restart-project";
 import { SoftwareImageDisplay } from "./software-image-display";
@@ -42,10 +43,12 @@ import { Project } from "./types";
 
 interface ReactProps {
   project: Project;
+  mode?: "project" | "flyout";
 }
 
 export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
-  const { project } = props;
+  const { project, mode = "project" } = props;
+  const isFlyout = mode === "flyout";
   const customize_kucalc = useTypedRedux("customize", "kucalc");
 
   //const    [show_ssh, set_show_ssh] = useState<boolean>(false)
@@ -68,7 +71,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
 
   function render_state() {
     return (
-      <span style={{ fontSize: "12pt", color: "#666" }}>
+      <span style={{ fontSize: "12pt", color: COLORS.GRAY_M }}>
         <ProjectState show_desc={true} state={project.get("state")} />
       </span>
     );
@@ -83,10 +86,10 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     if (date == null) {
       // e.g., viewing as admin where the info about idle timeout
       // horizon simply isn't known.
-      return <span style={{ color: "#666" }}>(not available)</span>;
+      return <span style={{ color: COLORS.GRAY_M }}>(not available)</span>;
     }
     return (
-      <span style={{ color: "#666" }}>
+      <span style={{ color: COLORS.GRAY_M }}>
         <Icon name="hourglass-half" />{" "}
         <b>
           About <TimeAgo date={date} />
@@ -105,7 +108,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   function render_stop_button(commands): Rendered {
     return (
       <StopProject
-        size="large"
+        size={isFlyout ? "small" : "large"}
         project_id={project.get("project_id")}
         disabled={!commands.includes("stop")}
       />
@@ -115,7 +118,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   function render_restart_button(commands): Rendered {
     return (
       <RestartProject
-        size="large"
+        size={isFlyout ? "small" : "large"}
         project_id={project.get("project_id")}
         disabled={!commands.includes("start") && !commands.includes("stop")}
       />
@@ -129,10 +132,13 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       COMPUTE_STATES[state] &&
       COMPUTE_STATES[state].commands) || ["save", "stop", "start"];
     return (
-      <Button.Group style={{ marginTop: "10px", marginBottom: "10px" }}>
+      <Space.Compact
+        style={{ marginTop: "10px", marginBottom: "10px" }}
+        size={isFlyout ? "small" : "large"}
+      >
         {render_restart_button(commands)}
         {render_stop_button(commands)}
-      </Button.Group>
+      </Space.Compact>
     );
   }
 
@@ -148,6 +154,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           key="idle-timeout"
           label="Always Running"
           style={rowstyle()}
+          vertical={isFlyout}
         >
           Project will be <b>automatically started</b> if it stops for any
           reason (it will run any{" "}
@@ -157,7 +164,12 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       );
     }
     return (
-      <LabeledRow key="idle-timeout" label="Idle Timeout" style={rowstyle()}>
+      <LabeledRow
+        key="idle-timeout"
+        label="Idle Timeout"
+        style={rowstyle()}
+        vertical={isFlyout}
+      >
         {render_idle_timeout()}
       </LabeledRow>
     );
@@ -172,8 +184,13 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     }
 
     return (
-      <LabeledRow key="uptime" label="Uptime" style={rowstyle()}>
-        <span style={{ color: "#666" }}>
+      <LabeledRow
+        key="uptime"
+        label="Uptime"
+        style={rowstyle()}
+        vertical={isFlyout}
+      >
+        <span style={{ color: COLORS.GRAY_M }}>
           <Icon name="clock" /> project started{" "}
           <b>{<TimeElapsed start_ts={start_ts} />}</b> ago
         </span>
@@ -191,8 +208,13 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     }
     const cpu_str = misc.seconds2hms(cpu, true);
     return (
-      <LabeledRow key="cpu-usage" label="CPU Usage" style={rowstyle(true)}>
-        <span style={{ color: "#666" }}>
+      <LabeledRow
+        key="cpu-usage"
+        label="CPU Usage"
+        style={rowstyle(true)}
+        vertical={isFlyout}
+      >
+        <span style={{ color: COLORS.GRAY_M }}>
           <Icon name="calculator" /> used <b>{cpu_str}</b> of CPU time since
           project started
         </span>
@@ -232,6 +254,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           key="cpu-usage"
           label="Software Environment"
           style={rowstyle(true)}
+          vertical={isFlyout}
         >
           {render_select_compute_image()}
         </LabeledRow>
@@ -241,7 +264,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
 
   function render_custom_compute_image() {
     return (
-      <div style={{ color: "#666" }}>
+      <div style={{ color: COLORS.GRAY_M }}>
         <div style={{ fontSize: "11pt" }}>
           <div>
             <Icon name={"hdd"} /> Custom image:
@@ -320,29 +343,58 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return {
       borderBottom: "1px solid #ddd",
       borderTop: "1px solid #ddd",
-      paddingBottom: "10px",
+      paddingBottom: isFlyout ? undefined : "10px",
+      paddingTop: "10px",
+      marginBottom: "10px",
     };
   }
 
-  return (
-    <SettingBox title="Project control" icon="gears">
-      <LabeledRow key="action" label="Actions">
-        {render_action_buttons()}
-      </LabeledRow>
-      <LabeledRow key="state" label="State" style={rowstyle(true)}>
-        {render_state()}
-      </LabeledRow>
-      {render_idle_timeout_row()}
-      {render_uptime()}
-      {render_cpu_usage()}
-      <LabeledRow key="project_id" label="Project id">
-        <CopyToClipBoard
-          inputWidth={"330px"}
-          value={project.get("project_id")}
-          style={{ display: "inline-block", width: "100%", margin: 0 }}
-        />
-      </LabeledRow>
-      {render_select_compute_image_row()}
-    </SettingBox>
-  );
+  function renderBody() {
+    return (
+      <>
+        <LabeledRow key="action" label="Actions" vertical={isFlyout}>
+          {render_action_buttons()}
+        </LabeledRow>
+        <LabeledRow
+          key="state"
+          label="State"
+          style={rowstyle(true)}
+          vertical={isFlyout}
+        >
+          {render_state()}
+        </LabeledRow>
+        {render_idle_timeout_row()}
+        {render_uptime()}
+        {render_cpu_usage()}
+        <LabeledRow key="project_id" label="Project id" vertical={isFlyout}>
+          {!isFlyout ? (
+            <CopyToClipBoard
+              inputWidth={"330px"}
+              value={project.get("project_id")}
+              style={{ display: "inline-block", width: "100%", margin: 0 }}
+            />
+          ) : (
+            <Paragraph
+              copyable={{ text: project.get("project_id") }}
+              code
+              style={{ marginBottom: 0 }}
+            >
+              {project.get("project_id")}
+            </Paragraph>
+          )}
+        </LabeledRow>
+        {render_select_compute_image_row()}
+      </>
+    );
+  }
+
+  if (mode === "flyout") {
+    return renderBody();
+  } else {
+    return (
+      <SettingBox title="Project control" icon="gears">
+        {renderBody()}
+      </SettingBox>
+    );
+  }
 };

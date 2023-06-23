@@ -388,7 +388,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       case "flyout":
         return (
           <>
-            <Title level={4}>Usage and quotas</Title>
+            <Title level={4}>Usage and Quotas</Title>
             <Paragraph
               type="secondary"
               ellipsis={{ rows: 1, expandable: true, symbol: "more" }}

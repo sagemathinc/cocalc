@@ -3,14 +3,46 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Space } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
+import { Button, Collapse, Space } from "antd";
 
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, IconName, Title } from "@cocalc/frontend/components";
+import {
+  redux,
+  useActions,
+  useEffect,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import {
+  Icon,
+  IconName,
+  Loading,
+  Paragraph,
+  Title,
+} from "@cocalc/frontend/components";
+import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { AboutBox } from "@cocalc/frontend/project/settings/about-box";
+import { ApiKeys } from "@cocalc/frontend/project/settings/api-keys";
+import { Datastore } from "@cocalc/frontend/project/settings/datastore";
+import {
+  ENV_VARS_ICON,
+  Environment,
+} from "@cocalc/frontend/project/settings/environment";
+import { HideDeleteBox } from "@cocalc/frontend/project/settings/hide-delete-box";
+import { ProjectCapabilities } from "@cocalc/frontend/project/settings/project-capabilites";
+import { ProjectControl } from "@cocalc/frontend/project/settings/project-control";
 import { RestartProject } from "@cocalc/frontend/project/settings/restart-project";
 import { StopProject } from "@cocalc/frontend/project/settings/stop-project";
 import { COMPUTE_STATES } from "@cocalc/util/compute-states";
+import {
+  DATASTORE_TITLE,
+  KUCALC_COCALC_COM,
+  KUCALC_ON_PREMISES,
+} from "@cocalc/util/db-schema/site-defaults";
+import { SSHPanel } from "@cocalc/frontend/project/settings/ssh";
+import { FIX_BORDER, useProject } from "../common";
 import { useProjectState } from "../project-state-hook";
+import { getFlyoutSettings, storeFlyoutState } from "./state";
 
 interface Props {
   project_id: string;
@@ -20,9 +52,32 @@ interface Props {
 export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   const { project_id, wrap } = _;
 
+  const account_id = useTypedRedux("account", "account_id");
+  const actions = useActions({ project_id });
   const state = useProjectState(project_id);
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const projectIsVisible = active_top_tab === project_id;
+  const { project } = useProject(project_id);
+  const [datastoreReload, setDatastoreReload] = useState<number>(0);
+  const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
+  const configuration_loading = useTypedRedux(
+    { project_id },
+    "configuration_loading"
+  );
+  const kucalc = useTypedRedux("customize", "kucalc");
+  const datastore = useTypedRedux("customize", "datastore");
+  const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
+  const student = getStudentProjectFunctionality(project_id);
+  const showSSH =
+    !student.disableSSH && (ssh_gateway || kucalc === KUCALC_COCALC_COM);
+  const showDatastore =
+    kucalc === KUCALC_COCALC_COM ||
+    (kucalc === KUCALC_ON_PREMISES && datastore);
+
+  useEffect(() => {
+    const state = getFlyoutSettings(project_id);
+    setExpandedPanels(state);
+  }, []);
 
   function renderState() {
     const s = state?.get("state");
@@ -58,7 +113,14 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   function renderStatus(): JSX.Element | undefined {
     if (!projectIsVisible) return;
     return (
-      <>
+      <div
+        style={{
+          padding: "5px",
+          borderBottom: FIX_BORDER,
+          paddingBottom: "20px",
+          marginBottom: "20px",
+        }}
+      >
         <Title level={4}>
           Status: <span style={{ float: "right" }}>{renderState()}</span>
         </Title>
@@ -70,14 +132,208 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
             short={true}
           />
         </Button.Group>
-      </>
+      </div>
+    );
+  }
+
+  function renderOther(): JSX.Element {
+    return (
+      <Paragraph
+        type="secondary"
+        style={{
+          padding: "5px",
+          borderTop: FIX_BORDER,
+          paddingTop: "20px",
+          marginTop: "20px",
+        }}
+      >
+        Where are Licenses and Quotas? They moved to their{" "}
+        <a
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            actions?.toggleFlyout("licenses");
+          }}
+        >
+          dedicated panel
+        </a>
+        .
+      </Paragraph>
+    );
+  }
+
+  function setExpandedPanelsHandler(keys: string[]) {
+    setExpandedPanels(keys);
+    storeFlyoutState(project_id, "settings", {
+      settings: keys,
+    });
+  }
+
+  function featuresRealodButton() {
+    return (
+      <Button
+        size="small"
+        ghost
+        onClick={(e) => {
+          e.stopPropagation();
+          const project_id = project.get("project_id");
+          const pa = redux.getProjectActions(project_id);
+          pa.reload_configuration();
+        }}
+        icon={<ReloadOutlined />}
+        disabled={configuration_loading}
+      />
+    );
+  }
+
+  function renderDatastoreRelaod() {
+    return (
+      <Button
+        size="small"
+        icon={<ReloadOutlined />}
+        onClick={(e) => {
+          e.stopPropagation();
+          setDatastoreReload((prev) => prev + 1);
+        }}
+      />
+    );
+  }
+
+  function renderSettings() {
+    return (
+      <Collapse
+        style={{ borderRadius: 0 }}
+        activeKey={expandedPanels}
+        onChange={(keys) => setExpandedPanelsHandler(keys as string[])}
+        destroyInactivePanel={true}
+      >
+        <Collapse.Panel
+          key="about"
+          header={
+            <>
+              <Icon name="file-alt" /> Name, description, image, ...
+            </>
+          }
+        >
+          {project == null ? (
+            <Loading />
+          ) : (
+            <AboutBox
+              mode="flyout"
+              project_id={project_id}
+              project_title={project.get("title") ?? ""}
+              description={project.get("description") ?? ""}
+              created={project.get("created")}
+              name={project.get("name")}
+              actions={redux.getActions("projects")}
+            />
+          )}
+        </Collapse.Panel>
+        <Collapse.Panel
+          key="control"
+          header={
+            <>
+              <Icon name="gears" /> Control
+            </>
+          }
+        >
+          <ProjectControl project={project} mode="flyout" />
+        </Collapse.Panel>
+        <Collapse.Panel
+          key="hide-delete"
+          header={
+            <>
+              <Icon name="warning" /> Hide or Delete
+            </>
+          }
+        >
+          <HideDeleteBox
+            project={project}
+            actions={redux.getActions("projects")}
+            mode="flyout"
+          />
+        </Collapse.Panel>
+        <Collapse.Panel
+          key="api"
+          header={
+            <>
+              <Icon name="api" /> API Keys
+            </>
+          }
+          className={"cc-project-flyout-settings-panel"}
+        >
+          <ApiKeys project_id={project_id} mode="flyout" />
+        </Collapse.Panel>
+        {showSSH ? (
+          <Collapse.Panel
+            key="ssh"
+            header={
+              <>
+                <Icon name="list-ul" /> SSH Keys
+              </>
+            }
+          >
+            <SSHPanel
+              mode="flyout"
+              key="ssh-keys"
+              project={project}
+              account_id={account_id}
+            />
+          </Collapse.Panel>
+        ) : undefined}
+        <Collapse.Panel
+          key="env"
+          header={
+            <>
+              <Icon name={ENV_VARS_ICON} /> Environment Variables
+            </>
+          }
+        >
+          <Environment project_id={project_id} mode="flyout" />
+        </Collapse.Panel>
+        {showDatastore ? (
+          <Collapse.Panel
+            className={"cc-project-flyout-settings-panel"}
+            key="datastore"
+            header={
+              <>
+                <Icon name="database" /> {DATASTORE_TITLE}
+              </>
+            }
+            extra={renderDatastoreRelaod()}
+          >
+            <Datastore
+              project_id={project_id}
+              mode="flyout"
+              reloadTrigger={datastoreReload}
+            />
+          </Collapse.Panel>
+        ) : undefined}
+        <Collapse.Panel
+          key="features"
+          header={
+            <>
+              <Icon name="clipboard-check" /> Features and configuration
+            </>
+          }
+          style={{ borderRadius: 0 }}
+          extra={featuresRealodButton()}
+        >
+          <ProjectCapabilities
+            project={project}
+            project_id={project_id}
+            mode="flyout"
+          />
+        </Collapse.Panel>
+      </Collapse>
     );
   }
 
   return wrap(
-    <Space direction="vertical" style={{ padding: "0 5px 0 5px" }}>
+    <Space direction="vertical" style={{ padding: "0", width: "100%" }}>
       {renderStatus()}
-      <hr />
+      {renderSettings()}
+      {renderOther()}
     </Space>
   );
 }

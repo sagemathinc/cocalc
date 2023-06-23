@@ -182,7 +182,6 @@ const ProjectSettings0 = rclass<ReactProps>(
               customer={this.props.customer}
               email_address={this.props.email_address}
               project_map={this.props.project_map}
-              name={this.props.name}
             />
           </div>
         );
