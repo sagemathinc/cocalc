@@ -14,6 +14,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency } from "./quota-config";
 import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/modal";
 import { Support } from "./global-quota";
+import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
@@ -42,7 +43,12 @@ export default function Payment({ balance, update }) {
     if (!paymentAmount || paymentAmount < 0) {
       return;
     }
-    await webapp_client.purchases_client.createCredit(paymentAmount);
+    const invoice = await webapp_client.purchases_client.createCredit(
+      paymentAmount
+    );
+    if (invoice?.hosted_invoice_url) {
+      open_new_tab(invoice.hosted_invoice_url, true);
+    }
     update();
   };
 

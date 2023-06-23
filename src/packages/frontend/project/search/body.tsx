@@ -165,7 +165,7 @@ export const ProjectSearchBody: React.FC<{
             disabled={neural_search}
             checked={subdirectories}
           />{" "}
-          <Icon name="folder-open" /> Sub-directories
+          <Icon name="folder-open" /> Subdirectories
         </div>
         <div
           onClick={() => actions?.toggle_search_checkbox_case_sensitive()}
@@ -176,7 +176,7 @@ export const ProjectSearchBody: React.FC<{
             disabled={neural_search}
             checked={case_sensitive}
           />{" "}
-          <Icon name="font-size" /> Case-sensitive
+          <Icon name="font-size" /> Case sensitive
         </div>
         <div
           onClick={() => actions?.toggle_search_checkbox_hidden_files()}

@@ -78,7 +78,7 @@ export default function CostBarChart({}) {
         checked={cumulative}
         onChange={(e) => setCumulative(e.target.checked)}
       >
-        Show Cumulative Spend
+        Cumulative Spend
       </Checkbox>
       <br />
       {costPerDay != null && (
