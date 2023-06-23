@@ -7,6 +7,7 @@ import { plural } from "@cocalc/util/misc";
 import Payment from "./payment";
 import { currency } from "./quota-config";
 import { zIndex as zIndexModal } from "./pay-as-you-go/modal";
+import { Support } from "./global-quota";
 
 const zIndex = zIndexModal + 1;
 
@@ -98,8 +99,8 @@ export default function UnpaidInvoices({ balance, refresh }: Props) {
         onOk={handleClose}
         onCancel={handleClose}
       >
-        Click on each invoice below and pay it to complete your purchase.
-        Thanks!
+        Click on each invoice below and pay it to complete your purchase. If
+        anything looks wrong, <Support>contact support</Support>. Thanks!
         {unpaidInvoices.map((invoice) => (
           <Invoice key={invoice.id} invoice={invoice} />
         ))}

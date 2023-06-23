@@ -28,7 +28,7 @@ import { currency } from "./quota-config";
 import Balance from "./balance";
 import Cost from "./pay-as-you-go/cost";
 
-export const PRESETS = [0, 5, 20, 100, 5000];
+export const PRESETS = [0, 5, 20, 1000];
 export const STEP = 5;
 
 interface ServiceQuota {
@@ -152,6 +152,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
             percent={Math.round((current / record.quota) * 100)}
             strokeColor={current / record.quota > 0.8 ? "#ff4d4f" : undefined}
           />
+          of {currency(record.quota)}
         </div>
       ),
     },
@@ -161,17 +162,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       align: "center" as "center",
       render: (quota: number, _record: ServiceQuota, index: number) => (
         <div>
-          <InputNumber
-            min={0}
-            value={quota}
-            onChange={(newQuota) =>
-              handleQuotaChange(index, newQuota as number)
-            }
-            formatter={(value) => `$${value}`}
-            step={STEP}
-            onBlur={handleSave}
-          />
-          <div style={{ marginTop: "15px" }}>
+          <div style={{ marginBottom: "15px", whiteSpace: "nowrap" }}>
             {PRESETS.map((amount) => (
               <Preset
                 key={amount}
@@ -184,6 +175,16 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
               />
             ))}
           </div>
+          <InputNumber
+            min={0}
+            value={quota}
+            onChange={(newQuota) =>
+              handleQuotaChange(index, newQuota as number)
+            }
+            formatter={(value) => `$${value}`}
+            step={STEP}
+            onBlur={handleSave}
+          />
         </div>
       ),
     },
@@ -207,7 +208,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
             <Icon name="refresh" />
             Refresh
           </Button>
-          Balance and Limits
+          Balance and Spending Limits
         </span>
       }
     >
@@ -243,7 +244,10 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
               }}
             >
               <div style={{ textAlign: "left" }}>
-                <p>Your balance can't exceed your spending limit. </p>
+                <p>
+                  If your balance exceeds your spending limit then purchases are
+                  restricted.
+                </p>
                 <p>
                   Reduce your balance by making a payment. Raise your spending
                   limit by <Support>making a support request</Support>.
@@ -256,7 +260,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       <Card
         style={{ margin: "15px 0", overflow: "auto" }}
         title={
-          <>The Monthly Limit is a self-imposed caps to prevent overspending</>
+          <>The Monthly Limit is a self-imposed cap to prevent overspending</>
         }
       >
         <div style={{ marginBottom: "15px" }}>

@@ -1,9 +1,19 @@
-import { Button, InputNumber, Modal, Space, Tooltip, Statistic } from "antd";
+import {
+  Button,
+  Divider,
+  InputNumber,
+  Modal,
+  Space,
+  Tag,
+  Tooltip,
+  Statistic,
+} from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency } from "./quota-config";
 import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/modal";
+import { Support } from "./global-quota";
 
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
@@ -69,13 +79,38 @@ export default function Payment({ balance, update }) {
             prefix={"$"}
           />
         </div>
-        <hr />
-        <Space>
-          <div style={{ marginRight: "30px" }}>
-            Enter payment amount (USD):
-            {minPayment != null && <div>Minimum: {currency(minPayment)}</div>}
+        <Divider plain orientation="left">
+          Enter payment amount (in US dollars)
+          <Tooltip
+            zIndex={zIndexTip}
+            title="If your payment exceeds your balance, then you will have a negative balance, which can be used for purchases that exceed your spending limit. Credits are nonrefundable, but do not expire."
+          >
+            <Icon name="question-circle" style={{ marginLeft: "30px" }} />
+          </Tooltip>
+        </Divider>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ marginBottom: "15px" }}>
+            {minPayment != null && (
+              <Preset amount={minPayment} setPaymentAmount={setPaymentAmount}>
+                Minimum: {currency(minPayment)}
+              </Preset>
+            )}
+            {minPayment != null && balance >= minPayment && (
+              <Preset amount={balance} setPaymentAmount={setPaymentAmount}>
+                Balance: {currency(balance)}
+              </Preset>
+            )}
+            <Preset amount={5} setPaymentAmount={setPaymentAmount}>
+              $5
+            </Preset>
+            <Preset amount={20} setPaymentAmount={setPaymentAmount}>
+              $20
+            </Preset>
+            <Preset amount={100} setPaymentAmount={setPaymentAmount}>
+              $100
+            </Preset>
           </div>
-          <div>
+          <Space>
             <InputNumber
               min={minPayment}
               max={100000} // maximum payment amount is $100,000
@@ -83,20 +118,30 @@ export default function Payment({ balance, update }) {
               step={0.01} // smallest possible increment is one cent
               value={paymentAmount}
               onChange={(value) => setPaymentAmount(value)}
+              addonAfter="$"
             />
-            <br />+ tax and fees
-          </div>
-          <Tooltip
-            zIndex={zIndexTip}
-            title="If your payment exceeds your balance, then you will have a negative balance, which can be used for purchases beyond your global spend limit and to buy licenses in the store. Credits are nonrefundable, but do not expire."
-          >
-            <Icon name="question-circle" style={{ marginLeft: "10px" }} />
-          </Tooltip>
-        </Space>
-        <hr />
+            <div>+ tax and fees</div>
+          </Space>
+        </div>
+        <Divider plain orientation="left">
+          What Happens Next
+        </Divider>
         An invoice will be created, which you can pay using a wide range of
-        methods. Once you pay the invoice, your account will be credited.
+        methods. Once you pay the invoice, your account will be credited. If
+        things look wrong, <Support>contact support</Support>.
       </Modal>
     </div>
+  );
+}
+
+export function Preset({ amount, setPaymentAmount, children }) {
+  return (
+    <Tag
+      style={{ cursor: "pointer", marginBottom: "5px" }}
+      color="blue"
+      onClick={() => setPaymentAmount(amount)}
+    >
+      {children}
+    </Tag>
   );
 }
