@@ -7,17 +7,15 @@
 Checkout -- finalize purchase and pay.
 */
 import { Alert, Button, Card, Col, Row, Spin, Table } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
-import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
-import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { describeItem, DisplayCost } from "./site-license-cost";
 import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph, Title, Text } from "components/misc";
@@ -25,35 +23,20 @@ import { COLORS } from "@cocalc/util/theme";
 import { ChangeEmailAddress } from "components/account/config/account/email";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import { currency } from "@cocalc/frontend/purchases/util";
-
-interface Params {
-  balance: number;
-  minPayment: number;
-  spendingLimit: number;
-  amountDue: number;
-  chargeAmount: number;
-  total: number;
-}
+import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 
 export default function Checkout() {
   const router = useRouter();
   const isMounted = useIsMounted();
   const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [subTotal, setSubTotal] = useState<number>(0);
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
   const [session, setSession] = useState<{ id: string; url: string } | null>(
     null
   );
-
-  const [params, setParams] = useState<Params | null>(null);
-
-  // most likely, user will do the purchase and then see the congratulations page
-  useEffect(() => {
-    router.prefetch("/store/congrats");
-  }, []);
+  const [params, setParams] = useState<CheckoutParams | null>(null);
 
   const updateSession = async () => {
     const session = await purchasesApi.getCurrentCheckoutSession();
@@ -61,62 +44,33 @@ export default function Checkout() {
     return session;
   };
 
-  useEffect(() => {
-    // on load, check for existing payent session.
-    updateSession();
-  }, []);
-
-  const updateState = async (total) => {
+  const updateParams = async () => {
     try {
-      const balance = await purchasesApi.getBalance();
-      const quotas = await purchasesApi.getQuotas();
-      const minPayment = await purchasesApi.getMinimumPayment();
-      const spendingLimit = quotas.global.quota ?? 0;
-      const newBalance = total + balance;
-      const amountDue = Math.max(0, newBalance - spendingLimit);
-      const chargeAmount = amountDue == 0 ? 0 : Math.max(amountDue, minPayment);
-      setParams({
-        balance,
-        minPayment,
-        spendingLimit,
-        amountDue,
-        chargeAmount,
-        total,
-      });
+      setParams(await purchasesApi.getShoppingCartCheckoutParams());
     } catch (err) {
       setError(`${err}`);
     }
   };
 
   useEffect(() => {
-    (async () => {
-      window.x = { purchasesApi };
-      console.log("hi!");
-      console.log(await purchasesApi.getBalance());
-    })();
-  });
+    // on load, check for existing payent session.
+    updateSession();
+    // on load also get current price, cart, etc.
+    updateParams();
+  }, []);
 
-  const cart = useAPI("/shopping/cart/get");
-
-  const items = useMemo(() => {
-    if (!cart.result) return undefined;
-    const x: any[] = [];
-    let subTotal = 0;
-    for (const item of cart.result) {
-      if (!item.checked) continue;
-      item.cost = computeCost(item.description);
-      subTotal += item.cost.discounted_cost;
-      x.push(item);
-    }
-    setSubTotal(subTotal);
-    updateState(subTotal);
-    return x;
-  }, [cart.result]);
-
-  if (cart.error) {
-    return <Alert type="error" message={cart.error} />;
+  if (error) {
+    return (
+      <Alert
+        type="error"
+        message="Error"
+        description={error}
+        closable
+        onClose={updateParams}
+      />
+    );
   }
-  if (!items) {
+  if (params == null) {
     return <Loading center />;
   }
 
@@ -165,7 +119,7 @@ export default function Checkout() {
     return (
       <Button
         disabled={
-          subTotal == 0 ||
+          params?.total == 0 ||
           completingPurchase ||
           !profile?.email_address ||
           session != null
@@ -186,17 +140,18 @@ export default function Checkout() {
   }
 
   function EmptyCart() {
+    if (params == null) return null;
     return (
       <div style={{ maxWidth: "800px", margin: "auto" }}>
         <h3>
           <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
-          {cart.result?.length > 0 && (
+          {params.cart.length > 0 && (
             <>
               Nothing in Your <SiteName />{" "}
               <A href="/store/cart">Shopping Cart</A> is Selected
             </>
           )}
-          {(cart.result?.length ?? 0) == 0 && (
+          {(params.cart.length ?? 0) == 0 && (
             <>
               Your <SiteName /> <A href="/store/cart">Shopping Cart</A> is Empty
             </>
@@ -214,7 +169,9 @@ export default function Checkout() {
     );
   }
 
-  function nonemptyCart(items) {
+  function NonemptyCart() {
+    if (params == null) return null;
+    const items = params.cart;
     return (
       <>
         <ShowError error={error} />
@@ -242,7 +199,7 @@ export default function Checkout() {
             </Col>
             <Col sm={12}>
               <div style={{ fontSize: "15pt" }}>
-                <TotalCost items={cart.result} />
+                <TotalCost items={items} />
                 <br />
                 <Terms />
               </div>
@@ -274,8 +231,8 @@ export default function Checkout() {
         />
       )}
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
-      {items.length == 0 && <EmptyCart />}
-      {items.length > 0 && nonemptyCart(items)}
+      {params.cart.length == 0 && <EmptyCart />}
+      {params.cart.length > 0 && <NonemptyCart />}
       <ShowError error={error} />
     </>
   );
@@ -614,7 +571,7 @@ function ExplainPaymentSituation({
   params,
   style,
 }: {
-  params: Params | null;
+  params: CheckoutParams | null;
   style?;
 }) {
   console.log(params);
@@ -629,13 +586,16 @@ function ExplainPaymentSituation({
       <Alert
         type="info"
         style={style}
-        message={"No payment required"}
+        message={"No payment required today"}
         description={
           <>
-            You can complete this purchase without making a payment, since your
-            account balance is {currency(balance)} and spending limit is{" "}
-            {currency(spendingLimit)}. Your balance will increase by{" "}
-            {currency(total)}.
+            <b>You can complete this purchase without making a payment now</b>,
+            since your account balance is {currency(balance)} and spending limit
+            is {currency(spendingLimit)}. Your balance will increase by{" "}
+            {currency(total)}.{" "}
+            {spendingLimit > 0 && total + balance > 0 && (
+              <b>You will be billed later.</b>
+            )}
           </>
         }
       />
@@ -646,16 +606,17 @@ function ExplainPaymentSituation({
       <Alert
         type="info"
         style={style}
-        message={"Minimum payment required"}
+        message={"Minimum payment required today"}
         description={
           <>
-            To complete this purchase you will need to pay{" "}
-            {currency(chargeAmount)} (+ tax). This is more than{" "}
-            {currency(amountDue)} since our minimum transaction amount is{" "}
-            {currency(minPayment)}. The difference will be credited to your
-            account, and you can use it toward future purchases. This will also
-            keep your balance below your spending limit of{" "}
-            {currency(spendingLimit)}. Your current balance is
+            <b>
+              To complete this purchase pay {currency(chargeAmount)} (+ tax).
+            </b>{" "}
+            This is more than {currency(amountDue)} since our minimum
+            transaction amount is {currency(minPayment)}. The difference will be
+            credited to your account, and you can use it toward future
+            purchases. This will also keep your balance below your spending
+            limit of {currency(spendingLimit)}. Your current balance is
             {currency(balance)}.
           </>
         }
@@ -666,13 +627,13 @@ function ExplainPaymentSituation({
     <Alert
       type="info"
       style={style}
-      message={"Payment required"}
+      message={"Payment required today"}
       description={
         <>
-          To complete this purchase you will need to pay{" "}
-          {currency(chargeAmount)} (+ tax) to keep your balance below your
-          spending limit of {currency(spendingLimit)}. Your current balance is{" "}
-          {currency(balance)}.
+          <b>To complete this purchase pay {currency(chargeAmount)} (+ tax)</b>{" "}
+          to keep your balance below your spending limit of{" "}
+          {currency(spendingLimit)}. Your current balance is {currency(balance)}
+          .
         </>
       }
     />

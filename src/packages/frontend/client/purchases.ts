@@ -144,6 +144,11 @@ export class PurchasesClient {
   async syncPaidInvoices() {
     await purchasesApi.syncPaidInvoices();
   }
+
+  // this is only used in the nextjs store app right now...
+  async getShoppingCartCheckoutParams() {
+    return await purchasesApi.getShoppingCartCheckoutParams();
+  }
 }
 
 async function waitUntilPayAsYouGoModalCloses() {

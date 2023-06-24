@@ -456,7 +456,7 @@ export async function setPurchaseMetadata(
       account_id,
       cost,
       service: "license",
-      description: { type: "license", info, license_id },
+      description: { type: "license", info, license_id, item: {} },
       invoice_id,
       tag: "license-purchase",
     });

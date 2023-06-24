@@ -184,3 +184,7 @@ export async function shoppingCartCheckout(opts: {
 > {
   return await api("purchases/shopping-cart-checkout", opts);
 }
+
+export async function getShoppingCartCheckoutParams() {
+  return await api("purchases/get-shopping-cart-checkout-params");
+}
