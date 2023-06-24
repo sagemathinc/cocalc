@@ -21,7 +21,36 @@ export class AccountTable extends Table {
   }
 
   query() {
-    return "accounts";
+    return {
+      accounts: [
+        {
+          account_id: null,
+          email_address: null,
+          email_address_verified: null,
+          email_address_problem: null,
+          editor_settings: null,
+          other_settings: null,
+          name: null,
+          first_name: null,
+          last_name: null,
+          terminal: null,
+          autosave: null,
+          evaluate_key: null,
+          font_size: null,
+          passports: null,
+          groups: null,
+          last_active: null,
+          ssh_keys: null,
+          created: null,
+          unlisted: null,
+          //tags: null,
+          tours: null,
+          purchase_quota: null,
+          purchase_closing_day: null,
+          stripe_checkout_session_id: null,
+        },
+      ],
+    };
   }
 
   _change(table: { get_one: () => { toJS: () => any } }) {

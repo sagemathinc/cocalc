@@ -221,6 +221,10 @@ Table({
         max: 28,
       },
     },
+    stripe_checkout_session_id: {
+      type: "string",
+      desc: "The id of a stripe checkout session.  When user is going to add credit to their account, we create a stripe checkout session and store its id here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
+    },
   },
   rules: {
     desc: "All user accounts.",
@@ -255,9 +259,12 @@ Table({
         throttle_changes: 500,
         pg_where: [{ "account_id = $::UUID": "account_id" }],
         fields: {
+          // Exactly what from the below is sync'd by default with the frontend app client is explicitly
+          // listed in frontend/account/table.ts
           account_id: null,
           email_address: null,
           lti_id: null,
+          stripe_checkout_session_id: null,
           email_address_verified: null,
           email_address_problem: null,
           editor_settings: {
