@@ -1,11 +1,11 @@
 /*
-Creates an invoice that when paid, credits the user's account.
+Creates a stripe checkout session that when paid, credits the user's account.
 
 This is used to reduce the user's balance so they are allowed to make purchases.
 */
 
 import getAccountId from "lib/account/get-account";
-import createInvoice from "@cocalc/server/purchases/create-invoice";
+import createStripeCheckoutSession from "@cocalc/server/purchases/create-stripe-checkout-session";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
@@ -22,10 +22,17 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  const { amount } = getParams(req);
-  return await createInvoice({
+  const {
+    amount,
+    description = "Payment to Credit Your Account",
+    success_url,
+    cancel_url,
+  } = getParams(req);
+  return await createStripeCheckoutSession({
     account_id,
     amount,
-    description: "Payment to Credit Your CoCalc Account",
+    description,
+    success_url,
+    cancel_url,
   });
 }

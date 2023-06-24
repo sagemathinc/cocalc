@@ -15,10 +15,11 @@ import Loading from "components/share/loading";
 import useAPI from "lib/hooks/api";
 
 function Description({ hosted_invoice_url, lines, metadata }) {
-  const license_id = metadata?.license_id ?? lines.data[0].metadata?.license_id;
+  const license_id =
+    metadata?.license_id ?? lines.data[0]?.metadata?.license_id;
   return (
     <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
-      {lines.data[0].description}
+      {lines.data[0]?.description}
       {(lines?.total_count ?? 1) > 1 && ", etc."}
       {hosted_invoice_url && (
         <div>

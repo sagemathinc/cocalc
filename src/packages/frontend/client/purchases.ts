@@ -3,24 +3,13 @@ Functions for interfacing with the purchases functionality.
 */
 // import type { WebappClient } from "./client";
 
-import api from "./api";
 import type { Service } from "@cocalc/util/db-schema/purchases";
 import { redux } from "@cocalc/frontend/app-framework";
 import { once } from "@cocalc/util/async-utils";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
-import LRU from "lru-cache";
-
-// We cache some results below using this cache, since they are general settings
-// that rarely change, and it is nice to not have to worry about how often
-// we call them.
-const cache = new LRU<string, any>({
-  ttl: 15 * 60 * 1000,
-  max: 100,
-});
+import * as purchasesApi from "@cocalc/frontend/purchases/api";
 
 export class PurchasesClient {
-  // Returns quotas for each category of purchase, along with
-  // a 'global' quota.
   async getQuotas(): Promise<{
     global: {
       quota: number;
@@ -29,30 +18,29 @@ export class PurchasesClient {
     };
     services: { [service: string]: number };
   }> {
-    return await api("purchases/get-quotas");
+    return await purchasesApi.getQuotas();
   }
 
   async getBalance(): Promise<number> {
-    return await api("purchases/get-balance");
+    return await purchasesApi.getBalance();
   }
 
   async getClosingDates(): Promise<{ last: Date; next: Date }> {
-    return await api("purchases/get-closing-dates");
+    return await purchasesApi.getClosingDates();
   }
 
-  // returns the quotas after being changed.
   async setQuota(
     service: Service,
     value: number
   ): Promise<{ global: number; services: { [service: string]: number } }> {
-    return await api("purchases/set-quota", { service, value });
+    return await purchasesApi.setQuota(service, value);
   }
 
   async isPurchaseAllowed(
     service: Service,
     cost?: number
   ): Promise<{ allowed: boolean; reason?: string }> {
-    return await api("purchases/is-purchase-allowed", { service, cost });
+    return await purchasesApi.isPurchaseAllowed(service, cost);
   }
 
   async getPurchases(opts: {
@@ -63,15 +51,15 @@ export class PurchasesClient {
     project_id?: string;
     group?: boolean;
   }) {
-    return await api("purchases/get-purchases", opts);
+    return await purchasesApi.getPurchases(opts);
   }
 
   async getInvoice(invoice_id: string) {
-    return await api("billing/get-invoice", { invoice_id });
+    return await purchasesApi.getInvoice(invoice_id);
   }
 
   async getCostPerDay(opts: { limit?: number; offset?: number }) {
-    return await api("purchases/get-cost-per-day", opts);
+    return await purchasesApi.getCostPerDay(opts);
   }
 
   async quotaModal({
@@ -92,76 +80,52 @@ export class PurchasesClient {
     await waitUntilPayAsYouGoModalCloses();
   }
 
-  // Get all the stripe payment info about a given user.
   async getPaymentMethods() {
-    return await api("billing/get-payment-methods");
+    return await purchasesApi.getPaymentMethods();
   }
 
-  // Get all the stripe information about a given user.
   async getCustomer() {
-    return await api("billing/get-customer");
+    return await purchasesApi.getCustomer();
   }
 
-  // Get this month's outstanding charges by service.
   async getChargesByService() {
-    return await api("purchases/get-charges-by-service");
+    return await purchasesApi.getChargesByService();
   }
 
-  // Get the global purchase quota of user with given account_id.  This is only
-  // for use by admins.  This quota is computed via rules, and may be overridden
-  // based on the adminSetQuota below, but usually isn't.
   async adminGetQuota(account_id: string): Promise<{
     quota: number;
     why: string;
     increase: string;
   }> {
-    return await api("purchases/admin-get-quota", { account_id });
+    return await purchasesApi.adminGetQuota(account_id);
   }
 
-  // Set the override global purchase quota of user with given account_id.  This is only
-  // for use by admins.
   async adminSetQuota(account_id: string, purchase_quota: number) {
-    await api("user-query", {
-      query: { crm_accounts: { account_id, purchase_quota } },
-    });
+    await purchasesApi.adminSetQuota(account_id, purchase_quota);
   }
 
-  async createCredit(amount: number): Promise<any> {
-    return await api("purchases/create-credit", { amount });
+  async createCredit(opts): Promise<any> {
+    return await purchasesApi.createCredit(opts);
   }
+
   async getUnpaidInvoices(): Promise<any[]> {
-    return await api("purchases/get-unpaid-invoices");
+    return await purchasesApi.getUnpaidInvoices();
   }
 
-  // OUTPUT:
-  //   If service is 'credit', then returns the min allowed credit.
-  //   If service is 'openai...' it returns an object {prompt_tokens: number; completion_tokens: number} with the current cost per token in USD.
   async getServiceCost(service: Service): Promise<any> {
-    return await api("purchases/get-service-cost", { service });
+    return await purchasesApi.getServiceCost(service);
   }
 
   async getMinimumPayment(): Promise<number> {
-    const key = "getMinimumPayment";
-    if (cache.has(key)) {
-      return cache.get(key)!;
-    }
-    const minPayment = (await this.getServiceCost("credit")) as number;
-    cache.set(key, minPayment);
-    return minPayment;
+    return await purchasesApi.getMinimumPayment();
   }
 
   async setPayAsYouGoProjectQuotas(project_id: string, quota: ProjectQuota) {
-    await api("purchases/set-project-quota", { project_id, quota });
+    await purchasesApi.setPayAsYouGoProjectQuotas(project_id, quota);
   }
 
   async getPayAsYouGoMaxProjectQuotas(): Promise<ProjectQuota> {
-    const key = "getPayAsYouGoMaxProjectQuotas";
-    if (cache.has(key)) {
-      return cache.get(key)!;
-    }
-    const m = await api("purchases/get-max-project-quotas");
-    cache.set(key, m);
-    return m;
+    return await purchasesApi.getPayAsYouGoMaxProjectQuotas();
   }
 
   async getPayAsYouGoPricesProjectQuotas(): Promise<{
@@ -170,17 +134,11 @@ export class PurchasesClient {
     memory: number;
     member_host: number;
   }> {
-    const key = "getPayAsYouGoPricesProjectQuotas";
-    if (cache.has(key)) {
-      return cache.get(key)!;
-    }
-    const m = await api("purchases/get-prices-project-quotas");
-    cache.set(key, m);
-    return m;
+    return await purchasesApi.getPayAsYouGoPricesProjectQuotas();
   }
 
   async syncPaidInvoices() {
-    await api("purchases/sync-paid-invoices");
+    await purchasesApi.syncPaidInvoices();
   }
 }
 

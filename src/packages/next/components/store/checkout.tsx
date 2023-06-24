@@ -14,7 +14,7 @@ import {
 } from "react-google-recaptcha-v3";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { money,  } from "@cocalc/util/licenses/purchase/utils";
+import { money } from "@cocalc/util/licenses/purchase/utils";
 import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
 import PaymentMethods from "components/billing/payment-methods";
 import A from "components/misc/A";
@@ -31,6 +31,7 @@ import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph, Title, Text } from "components/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChangeEmailAddress } from "components/account/config/account/email";
+import * as purchasesApi from "@cocalc/frontend/purchases/api";
 
 export default function CheckoutWithCaptcha() {
   const { reCaptchaKey } = useCustomize();
@@ -64,6 +65,13 @@ function Checkout() {
   useEffect(() => {
     router.prefetch("/store/congrats");
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      console.log("hi!");
+      console.log(await purchasesApi.getBalance());
+    })();
+  });
 
   const cart = useAPI("/shopping/cart/get");
 

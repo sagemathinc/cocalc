@@ -16,6 +16,7 @@ import { setStripeCustomerId } from "@cocalc/database/postgres/stripe";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import createCredit from "./create-credit";
 import getLogger from "@cocalc/backend/logger";
+import { getServerSettings } from "@cocalc/server/settings/server-settings";
 
 const logger = getLogger("purchases:create-invoice");
 
@@ -35,8 +36,9 @@ export default async function createInvoice({
   hosted_invoice_url: string;
 }> {
   logger.debug("createInvoice", { account_id, amount, description });
-  if (!amount || amount <= 1) {
-    throw Error("amount must be at least $1");
+  const { pay_as_you_go_min_payment } = await getServerSettings();
+  if (!amount || amount <= pay_as_you_go_min_payment) {
+    throw Error(`amount must be at least $${pay_as_you_go_min_payment}`);
   }
   if (!description?.trim()) {
     throw Error("description must be nontrivial");
@@ -162,8 +164,12 @@ export async function createCreditFromPaidStripeInvoice(invoice) {
     throw Error(`invalid account_id in metadata '${account_id}'`);
   }
 
-  // See long comment about "total_excluding_tax" below.
+  // See comment about "total_excluding_tax" below.
   const amount = invoice.total_excluding_tax / 100;
+  if (!amount) {
+    logger.debug("createCreditFromPaidStripeInvoice -- 0 amount so skipping");
+    return;
+  }
   await createCredit({
     account_id,
     invoice_id: invoice.id,
