@@ -26,6 +26,7 @@ export default function Payment({ balance, update }) {
     Math.max(5, balance ?? 0)
   );
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
+  const [url, setUrl] = useState<string>("");
 
   useEffect(() => {
     (async () => {
@@ -39,21 +40,17 @@ export default function Payment({ balance, update }) {
   };
 
   const handleOk = async () => {
-    setIsModalVisible(false);
-    setPaymentAmount(Math.max(5, balance ?? 0));
     if (!paymentAmount || paymentAmount < 0) {
       return;
     }
-    const invoice = await webapp_client.purchases_client.createCredit({
+    // this is a stripe checkout session:
+    const session = await webapp_client.purchases_client.createCredit({
       amount: paymentAmount,
-      // [ ] TODO!!!
-      success_url: `https://cocalc.com/${appBasePath}/settings/purchases`,
-      cancel_url: `https://cocalc.com/${appBasePath}/settings/purchases`,
+      success_url: window.location.href, // [ ] todo -- this needs to be a url that tells the backend that the payment is done, and then invoice gets sync'd, etc.
+      cancel_url: window.location.href,
     });
-    if (invoice?.hosted_invoice_url) {
-      open_new_tab(invoice.hosted_invoice_url, true);
-    }
-    update();
+    setUrl(session.url);
+    open_new_tab(session.url, true);
   };
 
   const handleCancel = () => {
@@ -67,7 +64,7 @@ export default function Payment({ balance, update }) {
         Make Payment...
       </Button>
       <Modal
-        okText={"Create Invoice"}
+        okText={"Make Payment"}
         destroyOnClose
         maskClosable={false}
         zIndex={zIndex}
@@ -136,9 +133,13 @@ export default function Payment({ balance, update }) {
         <Divider plain orientation="left">
           What Happens Next
         </Divider>
-        An invoice will be created, which you can pay using a wide range of
-        methods. Once you pay the invoice, your account will be credited. If
-        things look wrong, <Support>contact support</Support>.
+        When you click "Make Payment" a popup window will appear, where you can
+        enter your payment details.
+        {url ? (
+          <>
+            {" "}If the popup doesn't work, <a href={url}>click here</a>.
+          </>
+        ) : undefined}
       </Modal>
     </div>
   );
