@@ -51,8 +51,16 @@ export default function UnpaidInvoices({ balance, refresh }: Props) {
   if (unpaidInvoices.length == 0) {
     return (
       <div>
-        <Payment balance={balance} update={getUnpaidInvoices} />
-        <div style={{ marginTop: "5px" }}>You have no unpaid invoices.</div>
+        <Payment
+          balance={balance}
+          update={() => {
+            getUnpaidInvoices();
+            refresh?.();
+          }}
+        />
+        <div style={{ marginTop: "15px", color: "#888" }}>
+          You have no unpaid invoices.
+        </div>
       </div>
     );
   }

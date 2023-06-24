@@ -221,9 +221,9 @@ Table({
         max: 28,
       },
     },
-    stripe_checkout_session_id: {
-      type: "string",
-      desc: "The id of a stripe checkout session.  When user is going to add credit to their account, we create a stripe checkout session and store its id here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
+    stripe_checkout_session: {
+      type: "map",
+      desc: "Part of the currnet open stripe checkout session object, namely {id:?, url:?}, but none of the other info.  When user is going to add credit to their account, we create a stripe checkout session and store it here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
     },
   },
   rules: {
@@ -264,7 +264,7 @@ Table({
           account_id: null,
           email_address: null,
           lti_id: null,
-          stripe_checkout_session_id: null,
+          stripe_checkout_session: null,
           email_address_verified: null,
           email_address_problem: null,
           editor_settings: {

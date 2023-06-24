@@ -108,6 +108,10 @@ export class PurchasesClient {
     return await purchasesApi.createCredit(opts);
   }
 
+  async getCurrentCheckoutSession() {
+    return await purchasesApi.getCurrentCheckoutSession();
+  }
+
   async getUnpaidInvoices(): Promise<any[]> {
     return await purchasesApi.getUnpaidInvoices();
   }

@@ -4,80 +4,125 @@ import {
   InputNumber,
   Modal,
   Space,
+  Spin,
   Tag,
   Tooltip,
   Statistic,
 } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency } from "./quota-config";
 import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/modal";
-import { Support } from "./global-quota";
+//import { Support } from "./global-quota";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+//import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { delay } from "awaiting";
 
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
 
+const DEFAULT_AMOUNT = 5;
+
 export default function Payment({ balance, update }) {
+  const clickedOkRef = useRef<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number | null>(
-    Math.max(5, balance ?? 0)
+    Math.max(DEFAULT_AMOUNT, balance ?? 0)
   );
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
-  const [url, setUrl] = useState<string>("");
+  const [session, setSession] = useState<
+    { id: string; url: string } | null | "loading"
+  >("loading");
 
-  useEffect(() => {
+  const updateMinPayment = () => {
     (async () => {
       setMinPayment(await webapp_client.purchases_client.getMinimumPayment());
     })();
+  };
+
+  useEffect(() => {
+    updateMinPayment();
   }, []);
 
-  const showModal = () => {
+  const updateSession = async () => {
+    setSession(
+      await webapp_client.purchases_client.getCurrentCheckoutSession()
+    );
+  };
+
+  useEffect(() => {
+    updateSession();
+    if (isModalVisible) {
+      setPaymentAmount(Math.max(DEFAULT_AMOUNT, balance ?? 0));
+    }
+  }, [isModalVisible]);
+
+  const paymentPopup = async (url: string) => {
+    // create pop-up window with the payment info
+    const popup = open_new_tab(url, true);
+    while (popup != null && !popup.closed) {
+      await delay(2000);
+    }
+    await delay(1000);
+    setIsModalVisible(false);
+    updateSession();
+    update();
+  };
+
+  const showModal = async () => {
     setPaymentAmount(Math.max(5, balance ?? 0));
     setIsModalVisible(true);
+    if (typeof session == "object" && session?.url) {
+      paymentPopup(session.url);
+    }
   };
 
   const handleOk = async () => {
-    if (!paymentAmount || paymentAmount < 0) {
+    if (
+      !paymentAmount ||
+      paymentAmount < 0 ||
+      clickedOkRef.current ||
+      (typeof session == "object" && session?.id)
+    ) {
       return;
     }
+
+    // ignore ok clicks for a few seconds after click
+    clickedOkRef.current = true;
+    setTimeout(() => (clickedOkRef.current = false), 10000);
+
     // this is a stripe checkout session:
-    const session = await webapp_client.purchases_client.createCredit({
+    const session0 = await webapp_client.purchases_client.createCredit({
       amount: paymentAmount,
       success_url: window.location.href, // [ ] todo -- this needs to be a url that tells the backend that the payment is done, and then invoice gets sync'd, etc.
       cancel_url: window.location.href,
     });
-    setUrl(session.url);
-    open_new_tab(session.url, true);
+    setSession(session0);
+    paymentPopup(session0.url);
   };
 
   const handleCancel = () => {
     setIsModalVisible(false);
   };
 
-  return (
-    <div>
-      <Button disabled={balance == null} onClick={showModal}>
-        <Icon name="credit-card" style={{ marginRight: "5px" }} />
-        Make Payment...
-      </Button>
-      <Modal
-        okText={"Make Payment"}
-        destroyOnClose
-        maskClosable={false}
-        zIndex={zIndex}
-        title={
-          <>
-            <Icon name="credit-card" style={{ marginRight: "5px" }} /> Make
-            Payment
-          </>
-        }
-        open={balance != null && isModalVisible}
-        onOk={handleOk}
-        onCancel={handleCancel}
-      >
+  function renderBody() {
+    if (!isModalVisible) {
+      return null;
+    }
+    if (session == "loading") {
+      return <Spin />;
+    }
+    if (session != null) {
+      return (
+        <div style={{ fontSize: "12pt" }}>
+          If the popup payment window is blocked,{" "}
+          <a href={session.url}>click here to complete your payment.</a>
+        </div>
+      );
+    }
+    return (
+      <div>
         <div style={{ textAlign: "center" }}>
           <Statistic
             title={"Current balance (USD)"}
@@ -107,8 +152,8 @@ export default function Payment({ balance, update }) {
                 Balance: {currency(balance)}
               </Preset>
             )}
-            <Preset amount={5} setPaymentAmount={setPaymentAmount}>
-              $5
+            <Preset amount={DEFAULT_AMOUNT} setPaymentAmount={setPaymentAmount}>
+              ${DEFAULT_AMOUNT}
             </Preset>
             <Preset amount={20} setPaymentAmount={setPaymentAmount}>
               $20
@@ -133,13 +178,40 @@ export default function Payment({ balance, update }) {
         <Divider plain orientation="left">
           What Happens Next
         </Divider>
-        When you click "Make Payment" a popup window will appear, where you can
+        When you click "Make Payment..." a new window will appear, where you can
         enter your payment details.
-        {url ? (
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Button
+        disabled={balance == null}
+        onClick={showModal}
+        type={typeof session == "object" && session?.id ? "primary" : undefined}
+      >
+        <Icon name="credit-card" style={{ marginRight: "5px" }} />
+        {session == "loading" && <Spin />}
+        {typeof session == "object" && session?.id
+          ? "Finish Payment..."
+          : "Make Payment..."}
+      </Button>
+      <Modal
+        okText={session != null ? "" : "Make Payment..."}
+        maskClosable={false}
+        zIndex={zIndex}
+        title={
           <>
-            {" "}If the popup doesn't work, <a href={url}>click here</a>.
+            <Icon name="credit-card" style={{ marginRight: "5px" }} /> Make
+            Payment
           </>
-        ) : undefined}
+        }
+        open={balance != null && isModalVisible}
+        onOk={handleOk}
+        onCancel={handleCancel}
+      >
+        {renderBody()}
       </Modal>
     </div>
   );

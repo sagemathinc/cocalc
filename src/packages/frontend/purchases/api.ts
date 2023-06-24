@@ -168,3 +168,10 @@ export async function getPayAsYouGoPricesProjectQuotas(): Promise<{
 export async function syncPaidInvoices() {
   await api("purchases/sync-paid-invoices");
 }
+
+export async function getCurrentCheckoutSession(): Promise<null | {
+  id: string;
+  url: string;
+}> {
+  return (await api("purchases/get-current-checkout-session")).session;
+}

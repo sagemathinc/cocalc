@@ -30,8 +30,14 @@ export default async function createStripeCheckoutSession(
 ): Promise<Stripe.Checkout.Session> {
   const { account_id, amount, description, success_url, cancel_url } = opts;
   logger.debug("createStripeCheckoutSession", opts);
+
+  // check if there is already a stripe checkout session; if so throw error.
+  if ((await getCurrentSession(account_id)) != null) {
+    throw Error("there is already an active stripe checkout session");
+  }
+
   const { pay_as_you_go_min_payment } = await getServerSettings();
-  if (!amount || amount <= pay_as_you_go_min_payment) {
+  if (!amount || amount < pay_as_you_go_min_payment) {
     throw Error(`amount must be at least $${pay_as_you_go_min_payment}`);
   }
   if (!description?.trim()) {
@@ -81,6 +87,11 @@ export default async function createStripeCheckoutSession(
       shipping: "auto",
     },
   });
+  const db = getPool();
+  await db.query(
+    "UPDATE accounts SET stripe_checkout_session=$2 WHERE account_id=$1",
+    [account_id, { id: session.id, url: session.url }]
+  );
   return session;
 }
 
@@ -185,4 +196,42 @@ export async function createCreditFromPaidStripeInvoice(invoice) {
     invoice_id: invoice.id,
     amount,
   });
+}
+
+async function getSession(
+  session_id: string
+): Promise<Stripe.Checkout.Session> {
+  const stripe = await getConn();
+  return await stripe.checkout.sessions.retrieve(session_id);
+}
+
+async function getSessionStatus(
+  session_id: string
+): Promise<"open" | "complete" | "expired" | null> {
+  const session = await getSession(session_id);
+  return session.status;
+}
+
+export async function getCurrentSession(
+  account_id: string
+): Promise<{ id: string; url: string } | undefined> {
+  const db = getPool();
+  const { rows } = await db.query(
+    "SELECT stripe_checkout_session FROM accounts WHERE account_id=$1",
+    [account_id]
+  );
+  if (rows.length == 0) {
+    throw Error(`no such account ${account_id}`);
+  }
+  const session = rows[0].stripe_checkout_session;
+  if (!session) return;
+  const status = await getSessionStatus(session.id);
+  if (status != "open") {
+    await db.query(
+      "UPDATE accounts SET stripe_checkout_session=NULL WHERE account_id=$1",
+      [account_id]
+    );
+    return undefined;
+  }
+  return session;
 }

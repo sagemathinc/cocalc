@@ -37,7 +37,7 @@ export default async function createInvoice({
 }> {
   logger.debug("createInvoice", { account_id, amount, description });
   const { pay_as_you_go_min_payment } = await getServerSettings();
-  if (!amount || amount <= pay_as_you_go_min_payment) {
+  if (!amount || amount < pay_as_you_go_min_payment) {
     throw Error(`amount must be at least $${pay_as_you_go_min_payment}`);
   }
   if (!description?.trim()) {
