@@ -12,14 +12,9 @@ import {
   Service,
 } from "@cocalc/util/db-schema/purchase-quotas";
 import ServiceTag from "./service";
-import { to_money } from "@cocalc/util/misc";
 import Quotas, { PRESETS, Preset, STEP } from "./all-quotas-config";
 import GlobalQuota from "./global-quota";
 import Balance from "./balance";
-
-export function currency(n, d = 2) {
-  return `$${to_money(n, d)}`;
-}
 
 export default function QuotaConfig({
   service,

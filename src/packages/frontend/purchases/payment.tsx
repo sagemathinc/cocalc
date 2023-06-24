@@ -12,7 +12,7 @@ import {
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useRef, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { currency } from "./quota-config";
+import { currency } from "./util";
 import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/modal";
 //import { Support } from "./global-quota";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";

@@ -5,7 +5,7 @@ import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
 import { plural } from "@cocalc/util/misc";
 import Payment from "./payment";
-import { currency } from "./quota-config";
+import { currency } from "./util";
 import { zIndex as zIndexModal } from "./pay-as-you-go/modal";
 import { Support } from "./global-quota";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";

@@ -40,7 +40,7 @@ import {
   fullCost,
   discountedCost,
   getColumns,
-  OrderError,
+  ShowError as OrderError,
   RequireEmailAddress,
 } from "./checkout";
 import { COLORS } from "@cocalc/util/theme";
@@ -233,7 +233,7 @@ export default function CreateVouchers() {
   function nonemptyCart(items) {
     return (
       <>
-        <OrderError orderError={orderError} />
+        <OrderError error={orderError} />
         <Row>
           <Col md={14} sm={24}>
             <div>
@@ -751,7 +751,7 @@ export default function CreateVouchers() {
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
       {items.length == 0 && <EmptyCart />}
       {items.length > 0 && nonemptyCart(items)}
-      <OrderError orderError={orderError} />
+      <OrderError error={orderError} />
     </>
   );
 }

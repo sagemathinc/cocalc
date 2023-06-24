@@ -24,7 +24,7 @@ import { cloneDeep, isEqual } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
 import GlobalQuota, { Support } from "./global-quota";
-import { currency } from "./quota-config";
+import { currency } from "./util";
 import Balance from "./balance";
 import Cost from "./pay-as-you-go/cost";
 

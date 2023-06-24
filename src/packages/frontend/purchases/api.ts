@@ -175,3 +175,12 @@ export async function getCurrentCheckoutSession(): Promise<null | {
 }> {
   return (await api("purchases/get-current-checkout-session")).session;
 }
+
+export async function shoppingCartCheckout(opts: {
+  success_url: string;
+  cancel_url?: string;
+}): Promise<
+  { done: true } | { done: false; session: { url: string; id: string } }
+> {
+  return await api("purchases/shopping-cart-checkout", opts);
+}

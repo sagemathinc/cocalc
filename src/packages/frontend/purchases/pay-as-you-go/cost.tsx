@@ -10,7 +10,7 @@ import LRU from "lru-cache";
 import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Alert, Spin, Statistic, Table, Tooltip } from "antd";
-import { currency } from "../quota-config";
+import { currency } from "../util";
 
 const cache = new LRU<string, any>({
   max: 200,
