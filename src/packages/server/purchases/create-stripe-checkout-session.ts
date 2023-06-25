@@ -235,3 +235,20 @@ export async function getCurrentSession(
   }
   return session;
 }
+
+export async function cancelCurrentSession(account_id: string) {
+  const session = await getCurrentSession(account_id);
+  if (session == null) {
+    // no session to cancel
+    return;
+  }
+  const stripe = await getConn();
+  await stripe.checkout.sessions.expire(session.id);
+  // this clears stripe_checkout_session in the database, unless a new session appeared.
+  const session2 = await getCurrentSession(account_id);
+  if (session2?.id == session.id) {
+    // a new one could have been created
+    throw Error("failed to delete stripe checkout session");
+  }
+  // it worked :-)
+}

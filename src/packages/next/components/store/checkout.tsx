@@ -6,7 +6,7 @@
 /*
 Checkout -- finalize purchase and pay.
 */
-import { Alert, Button, Card, Col, Row, Spin, Table } from "antd";
+import { Alert, Button, Card, Divider, Col, Row, Spin, Table } from "antd";
 import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
@@ -109,6 +109,16 @@ export default function Checkout() {
     }
   }
 
+  const cancelPurchaseInProgress = async () => {
+    try {
+      await purchasesApi.cancelCurrentCheckoutSession();
+      updateSession();
+      updateParams();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   // handle ?complete -- i.e., what happens after successfully paying
   // for a purchase - we do ANOTHER completePurchase, and for the second
   // one no additional payment is required, so in this case user actually
@@ -154,9 +164,8 @@ export default function Checkout() {
             <Spin />
           </>
         ) : (
-          "Complete Purchase"
+          `Complete Purchase${session != null ? " (finish payment first)" : ""}`
         )}
-        {session != null && <>(finish payment first)</>}
       </Button>
     );
   }
@@ -235,25 +244,34 @@ export default function Checkout() {
   return (
     <>
       {session != null && (
-        <Alert
-          style={{ margin: "30px" }}
-          showIcon
-          type="warning"
-          message={"Payment in Progress"}
-          description={
-            <div style={{ fontSize: "12pt" }}>
-              <p>You have a payment in progress.</p>
-              <p>
-                <A href={session.url}>Complete payment by clicking here...</A>
-              </p>
-            </div>
-          }
-        />
+        <div style={{ textAlign: "center" }}>
+          <Alert
+            style={{ margin: "30px", display: "inline-block" }}
+            type="warning"
+            message={<h2>Purchase in Progress</h2>}
+            description={
+              <div style={{ fontSize: "14pt", width: "450px" }}>
+                <Divider />
+                <p>
+                  <Button href={session.url} type="primary" size="large">
+                    Complete Purchase
+                  </Button>
+                </p>
+                or
+                <p style={{ marginTop: "15px" }}>
+                  <Button onClick={cancelPurchaseInProgress}>Cancel</Button>
+                </p>
+              </div>
+            }
+          />
+        </div>
       )}
-      <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
-      {params.cart.length == 0 && <EmptyCart />}
-      {params.cart.length > 0 && <NonemptyCart />}
-      <ShowError error={error} />
+      <div style={session != null ? { opacity: 0.4 } : undefined}>
+        <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
+        {params.cart.length == 0 && <EmptyCart />}
+        {params.cart.length > 0 && <NonemptyCart />}
+        <ShowError error={error} />
+      </div>
     </>
   );
 }

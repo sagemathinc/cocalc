@@ -176,6 +176,10 @@ export async function getCurrentCheckoutSession(): Promise<null | {
   return (await api("purchases/get-current-checkout-session")).session;
 }
 
+export async function cancelCurrentCheckoutSession() {
+  await api("purchases/cancel-current-checkout-session");
+}
+
 export async function shoppingCartCheckout(opts: {
   success_url: string;
   cancel_url?: string;
