@@ -16,8 +16,8 @@ import { currency } from "./util";
 import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/modal";
 //import { Support } from "./global-quota";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
-//import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { delay } from "awaiting";
+import { cancelCurrentCheckoutSession } from "./api";
 
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
@@ -34,6 +34,7 @@ export default function Payment({ balance, update }) {
   const [session, setSession] = useState<
     { id: string; url: string } | null | "loading"
   >("loading");
+  const [cancelling, setCancelling] = useState<boolean>(false);
 
   const updateMinPayment = () => {
     (async () => {
@@ -75,6 +76,19 @@ export default function Payment({ balance, update }) {
     setIsModalVisible(true);
     if (typeof session == "object" && session?.url) {
       paymentPopup(session.url);
+    }
+  };
+
+  const cancelPayment = async () => {
+    try {
+      setCancelling(true);
+      await cancelCurrentCheckoutSession();
+      await updateSession();
+      setIsModalVisible(false);
+    } catch (err) {
+      console.log("ERROR canceling checkout session", err);
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -186,17 +200,32 @@ export default function Payment({ balance, update }) {
 
   return (
     <div>
-      <Button
-        disabled={balance == null}
-        onClick={showModal}
-        type={typeof session == "object" && session?.id ? "primary" : undefined}
-      >
-        <Icon name="credit-card" style={{ marginRight: "5px" }} />
-        {session == "loading" && <Spin />}
-        {typeof session == "object" && session?.id
-          ? "Finish Payment..."
-          : "Make Payment..."}
-      </Button>
+      <Button.Group>
+        <Button
+          disabled={balance == null || cancelling}
+          onClick={showModal}
+          type={
+            typeof session == "object" && session?.id ? "primary" : undefined
+          }
+        >
+          <Icon name="credit-card" style={{ marginRight: "5px" }} />
+          {session == "loading" && <Spin />}
+          {typeof session == "object" && session?.id
+            ? "Finish Payment..."
+            : "Make Payment..."}
+        </Button>
+        {typeof session == "object" && session?.id && (
+          <Button disabled={cancelling} onClick={cancelPayment}>
+            Cancel
+            {cancelling && (
+              <>
+                {" "}
+                <Spin />
+              </>
+            )}
+          </Button>
+        )}
+      </Button.Group>
       <Modal
         okText={session != null ? "" : "Make Payment..."}
         maskClosable={false}
