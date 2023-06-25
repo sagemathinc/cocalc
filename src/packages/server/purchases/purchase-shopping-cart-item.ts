@@ -96,7 +96,7 @@ export default async function purchaseShoppingCartItem(item) {
 
   const purchase_id = await createPurchase({
     account_id: item.account_id,
-    cost: item.cost.cost,
+    cost: item.cost.discounted_cost,
     service: "license",
     description: { type: "license", item, info, license_id },
     tag: "license-purchase",

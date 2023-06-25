@@ -38,9 +38,9 @@ export const QUOTA_SPEC: QuotaSpec = {
   "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
   license: {
     display: "License",
-    color: "#389e0d",
+    color: "#00008b",
     noSet:
-      true /* because we don't support pay-later-or-with-credit for licenses _yet_ */,
+      true /* we aren't actually using quotas for license purchases, because they are very explicit unlike openai and project-upgrade */,
   },
 };
 

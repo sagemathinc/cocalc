@@ -69,14 +69,6 @@ export default function Checkout() {
       />
     );
   }
-  if (params == null) {
-    return (
-      <div style={{ textAlign: "center" }}>
-        <Spin size="large" tip="Loading" />
-      </div>
-    );
-  }
-
   async function completePurchase() {
     try {
       setError("");
@@ -92,10 +84,11 @@ export default function Checkout() {
       // This api call tells the backend, "make a session that, when successfully finished, results in
       // buying everything in my shopping cart", or, if it returns {done:true}, then
       // It succeeds if the purchase goes through.
-      const i = window.location.href.lastIndexOf("/");
+      const currentUrl = window.location.href.split("?")[0];
+      const success_url = `${currentUrl}?complete=true`;
       const result = await purchasesApi.shoppingCartCheckout({
-        success_url: window.location.href.slice(0, i + 1) + "congrats",
-        cancel_url: window.location.href,
+        success_url,
+        cancel_url: currentUrl,
       });
       if (result.done) {
         // done -- nothing further to do!
@@ -114,6 +107,29 @@ export default function Checkout() {
       if (!isMounted.current) return;
       setCompletingPurchase(false);
     }
+  }
+
+  // handle ?complete -- i.e., what happens after successfully paying
+  // for a purchase - we do ANOTHER completePurchase, and for the second
+  // one no additional payment is required, so in this case user actually
+  // gets the items and goes to the congrats page.  Unless, of course,
+  // they try to be sneaky and add something to their cart right *after*
+  // paying... in which case they will just get asked for additional
+  // money for that last thing. :-)
+  useEffect(() => {
+    if (router.query.complete == null) {
+      // nothing to handle
+      return;
+    }
+    completePurchase();
+  }, []);
+
+  if (params == null) {
+    return (
+      <div style={{ textAlign: "center" }}>
+        <Spin size="large" tip="Loading" />
+      </div>
+    );
   }
 
   const columns = getColumns();
@@ -634,7 +650,7 @@ function ExplainPaymentSituation({
       description={
         <>
           <b>To complete this purchase pay {currency(chargeAmount)} (+ tax)</b>.{" "}
-          This will keep your balance below your spending limit of{" "}
+          This will keep your balance at or below your spending limit of{" "}
           {currency(spendingLimit)}. Your current balance is {currency(balance)}
           .
         </>
