@@ -22,7 +22,7 @@ interface Options {
   amount: number; // amount in US Dollars
   description: string;
   success_url: string;
-  cancel_url: string;
+  cancel_url?: string;
 }
 
 export default async function createStripeCheckoutSession(

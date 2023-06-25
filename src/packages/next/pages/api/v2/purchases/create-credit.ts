@@ -24,7 +24,7 @@ async function get(req) {
   }
   const {
     amount,
-    description = "Payment to Credit Your Account",
+    description = "Credit Your Account",
     success_url,
     cancel_url,
   } = getParams(req);

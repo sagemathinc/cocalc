@@ -24,7 +24,7 @@ function Description({ hosted_invoice_url, lines, metadata }) {
       {hosted_invoice_url && (
         <div>
           <A href={hosted_invoice_url}>
-            <Icon name="external-link" /> Invoice
+            <Icon name="external-link" /> Invoice/Receipt
           </A>
         </div>
       )}

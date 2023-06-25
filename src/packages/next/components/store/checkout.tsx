@@ -12,7 +12,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
 import A from "components/misc/A";
-import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
@@ -71,7 +70,11 @@ export default function Checkout() {
     );
   }
   if (params == null) {
-    return <Loading center />;
+    return (
+      <div style={{ textAlign: "center" }}>
+        <Spin size="large" tip="Loading" />
+      </div>
+    );
   }
 
   async function completePurchase() {
@@ -101,7 +104,7 @@ export default function Checkout() {
         }
         return;
       }
-      // a payment is required to complete the purchase, since user doesn't
+      // payment is required to complete the purchase, since user doesn't
       // have enough credit.
       window.location = result.session.url as any;
     } catch (err) {
@@ -130,7 +133,10 @@ export default function Checkout() {
         onClick={completePurchase}
       >
         {completingPurchase ? (
-          <Loading delay={0}>Completing Purchase...</Loading>
+          <>
+            Completing Purchase...
+            <Spin />
+          </>
         ) : (
           "Complete Purchase"
         )}
@@ -220,11 +226,9 @@ export default function Checkout() {
           message={"Payment in Progress"}
           description={
             <div style={{ fontSize: "12pt" }}>
-              You have a payment in progress.{" "}
+              <p>You have a payment in progress.</p>
               <p>
-                <A href={session.url}>
-                  Complete that payment first by clicking here...
-                </A>
+                <A href={session.url}>Complete payment by clicking here...</A>
               </p>
             </div>
           }
@@ -574,7 +578,6 @@ function ExplainPaymentSituation({
   params: CheckoutParams | null;
   style?;
 }) {
-  console.log(params);
   if (params == null) {
     return <Spin />;
   }
@@ -630,8 +633,8 @@ function ExplainPaymentSituation({
       message={"Payment required today"}
       description={
         <>
-          <b>To complete this purchase pay {currency(chargeAmount)} (+ tax)</b>{" "}
-          to keep your balance below your spending limit of{" "}
+          <b>To complete this purchase pay {currency(chargeAmount)} (+ tax)</b>.{" "}
+          This will keep your balance below your spending limit of{" "}
           {currency(spendingLimit)}. Your current balance is {currency(balance)}
           .
         </>

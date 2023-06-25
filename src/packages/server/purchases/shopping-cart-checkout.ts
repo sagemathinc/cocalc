@@ -5,6 +5,8 @@ import getQuota from "./get-quota";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import getLogger from "@cocalc/backend/logger";
+import createStripeCheckoutSession from "./create-stripe-checkout-session";
+import { round2 } from "@cocalc/util/misc";
 
 const logger = getLogger("purchases:shopping-cart-checkout");
 
@@ -39,9 +41,16 @@ export default async function shoppingCartCheckout({
     return { done: true };
   }
 
+  const session = await createStripeCheckoutSession({
+    account_id,
+    success_url,
+    cancel_url,
+    amount: params.chargeAmount,
+    description: "Credit Account to Complete Store Purchase",
+  });
   // make a stripe checkout session from the chargeAmount.
   // When it gets paid, user gets their purchases.
-  return { done: false };
+  return { done: false, session };
 }
 
 async function getCheckoutCart(account_id: string) {
@@ -68,7 +77,7 @@ export async function getShoppingCartCheckoutParams(
   const { quota: spendingLimit } = await getQuota(account_id);
   const { pay_as_you_go_min_payment: minPayment } = await getServerSettings();
   const newBalance = total + balance;
-  const amountDue = Math.max(0, newBalance - spendingLimit);
+  const amountDue = Math.max(0, round2(newBalance - spendingLimit));
   const chargeAmount = amountDue == 0 ? 0 : Math.max(amountDue, minPayment);
   return {
     balance,
