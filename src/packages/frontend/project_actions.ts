@@ -489,15 +489,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
         break;
 
-      case "collaborators":
+      case "users":
         if (opts.change_history) {
-          this.push_state("collaborators", "");
+          this.push_state("users", "");
         }
         break;
 
-      case "licenses":
+      case "upgrades":
         if (opts.change_history) {
-          this.push_state("licenses", "");
+          this.push_state("upgrades", "");
         }
         break;
 
@@ -3065,14 +3065,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_active_tab("info", { change_history: change_history });
         break;
 
-      case "collaborators":
-        this.set_active_tab("collaborators", {
+      case "users":
+        this.set_active_tab("users", {
           change_history: change_history,
         });
         break;
 
-      case "licenses":
-        this.set_active_tab("licenses", { change_history: change_history });
+      case "upgrades":
+        this.set_active_tab("upgrades", { change_history: change_history });
         break;
 
       default:

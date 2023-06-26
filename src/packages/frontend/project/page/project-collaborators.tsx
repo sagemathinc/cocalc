@@ -18,9 +18,9 @@ import {
 } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import {
-  ICON_COLLABORATORS,
+  ICON_USERS,
   ROOT_STYLE,
-  TITLE_COLLABORATORS,
+  TITLE_USERS,
 } from "../servers/consts";
 import { useProject } from "./common";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
@@ -73,7 +73,7 @@ export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
   return (
     <div style={ROOT_STYLE}>
       <Title level={2}>
-        <Icon name={ICON_COLLABORATORS} /> {TITLE_COLLABORATORS}
+        <Icon name={ICON_USERS} /> {TITLE_USERS}
       </Title>
       <Paragraph>{COLLABS_INFO_TEXT}</Paragraph>
       {renderAdmin()}

@@ -26,18 +26,18 @@ import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
 import { TITLE as SERVERS_TITLE } from "../servers";
 import {
-  ICON_COLLABORATORS,
-  ICON_LICENSES,
-  TITLE_COLLABORATORS,
-  TITLE_LICENSES,
+  ICON_USERS,
+  ICON_UPGRADES,
+  TITLE_USERS,
+  TITLE_UPGRADES,
 } from "../servers/consts";
 import {
   CollabsFlyout,
   FilesFlyout,
-  ProjectInfoFlyout,
   LicensesFlyout,
   LogFlyout,
   NewFlyout,
+  ProjectInfoFlyout,
   SearchFlyout,
   ServersFlyout,
   SettingsFlyout,
@@ -53,8 +53,8 @@ export type FixedTab =
   | "servers"
   | "settings"
   | "info"
-  | "collaborators"
-  | "licenses";
+  | "users"
+  | "upgrades";
 
 export function isFixedTab(tab?: any): tab is FixedTab {
   return typeof tab === "string" && tab in FIXED_PROJECT_TABS;
@@ -106,23 +106,17 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     flyout: ServersFlyout,
     noAnonymous: false,
   },
-  collaborators: {
-    label: TITLE_COLLABORATORS,
-    icon: ICON_COLLABORATORS,
+  users: {
+    label: TITLE_USERS,
+    icon: ICON_USERS,
     flyout: CollabsFlyout,
     noAnonymous: false,
   },
-  licenses: {
-    label: (
-      <>
-        Quotas
-        <br />
-        {TITLE_LICENSES}
-      </>
-    ),
-    icon: ICON_LICENSES,
+  upgrades: {
+    label: "Upgrades",
+    icon: ICON_UPGRADES,
     flyout: LicensesFlyout,
-    flyoutTitle: "Quotas and Licenses",
+    flyoutTitle: `Project ${TITLE_UPGRADES}`,
     noAnonymous: false,
   },
   info: {
