@@ -4,7 +4,8 @@
  */
 
 // API Key Configuration
-import { Component, Rendered, ReactDOM } from "../../app-framework";
+import { Button, FormControl, Well } from "@cocalc/frontend/antd-bootstrap";
+import { Component, ReactDOM, Rendered } from "@cocalc/frontend/app-framework";
 import {
   A,
   CloseX,
@@ -12,9 +13,8 @@ import {
   ErrorDisplay,
   LabeledRow,
   Loading,
-} from "../../components";
-import { webapp_client } from "../../webapp-client";
-import { Button, FormControl, Well } from "../../antd-bootstrap";
+} from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { startswith } from "@cocalc/util/misc";
 
 /*

@@ -24,14 +24,24 @@ import track from "@cocalc/frontend/user-tracking";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
-import { ProjectSearchBody } from "../search/body";
 import { TITLE as SERVERS_TITLE } from "../servers";
-import { SettingsFlyout } from "./flyouts/control";
-import { FilesFlyout } from "./flyouts/files";
-import { ProjectInfoFlyout } from "./flyouts/info";
-import { LogFlyout } from "./flyouts/log";
-import { NewFlyout } from "./flyouts/new";
-import { ServersFlyout } from "./flyouts/servers";
+import {
+  ICON_COLLABORATORS,
+  ICON_LICENSES,
+  TITLE_COLLABORATORS,
+  TITLE_LICENSES,
+} from "../servers/consts";
+import {
+  CollabsFlyout,
+  FilesFlyout,
+  ProjectInfoFlyout,
+  LicensesFlyout,
+  LogFlyout,
+  NewFlyout,
+  SearchFlyout,
+  ServersFlyout,
+  SettingsFlyout,
+} from "./flyouts";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -42,7 +52,9 @@ export type FixedTab =
   | "search"
   | "servers"
   | "settings"
-  | "info";
+  | "info"
+  | "collaborators"
+  | "licenses";
 
 export function isFixedTab(tab?: any): tab is FixedTab {
   return typeof tab === "string" && tab in FIXED_PROJECT_TABS;
@@ -50,7 +62,7 @@ export function isFixedTab(tab?: any): tab is FixedTab {
 
 type FixedTabs = {
   [name in FixedTab]: {
-    label: string;
+    label: string | ReactNode;
     icon: IconName;
     flyout: (props: { project_id: string; wrap: Function }) => JSX.Element;
     flyoutTitle?: string | ReactNode;
@@ -91,7 +103,26 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
   servers: {
     label: SERVERS_TITLE,
     icon: "server",
-    flyout: ({ project_id }) => ServersFlyout({ project_id }),
+    flyout: ServersFlyout,
+    noAnonymous: false,
+  },
+  collaborators: {
+    label: TITLE_COLLABORATORS,
+    icon: ICON_COLLABORATORS,
+    flyout: CollabsFlyout,
+    noAnonymous: false,
+  },
+  licenses: {
+    label: (
+      <>
+        Quotas
+        <br />
+        {TITLE_LICENSES}
+      </>
+    ),
+    icon: ICON_LICENSES,
+    flyout: LicensesFlyout,
+    flyoutTitle: "Quotas and Licenses",
     noAnonymous: false,
   },
   info: {
@@ -105,7 +136,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     icon: "wrench",
     flyout: SettingsFlyout,
     noAnonymous: false,
-    flyoutTitle: "Status and controls",
+    flyoutTitle: "Status and Settings",
   },
 } as const;
 
@@ -399,11 +430,5 @@ function DisplayedLabel({ path, label, inline = true }) {
         <span style={{ color: COLORS.FILE_EXT }}>{ext}</span>
       </span>
     </div>
-  );
-}
-
-function SearchFlyout({ project_id, wrap }) {
-  return (
-    <ProjectSearchBody mode="flyout" project_id={project_id} wrap={wrap} />
   );
 }

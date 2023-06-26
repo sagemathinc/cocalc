@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CopyToClipBoard } from "../../components";
+import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 export function URLBox() {
   let url = document.URL;

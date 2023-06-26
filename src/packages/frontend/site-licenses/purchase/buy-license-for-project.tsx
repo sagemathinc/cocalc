@@ -19,6 +19,7 @@ interface Props {
   asLink?: boolean;
   style?: CSS;
   size?: "small" | "middle" | "large";
+  wrap?: boolean;
 }
 
 export const BuyLicenseForProject: React.FC<Props> = ({
@@ -28,6 +29,7 @@ export const BuyLicenseForProject: React.FC<Props> = ({
   asLink = false,
   style,
   size = "large",
+  wrap = false,
 }: Props) => {
   const commercial = useTypedRedux("customize", "commercial");
 
@@ -84,7 +86,7 @@ export const BuyLicenseForProject: React.FC<Props> = ({
     );
   } else {
     return (
-      <Space>
+      <Space wrap={wrap}>
         {renderBuyButton()}
         {renderVoucherButton()}
       </Space>

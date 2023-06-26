@@ -20,72 +20,83 @@ const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
+import type { TourProps } from "antd";
 import { reuseInFlight } from "async-await-utils/hof";
-import { fromJS, List, Map, Set as iSet } from "immutable";
-import { debounce } from "underscore";
 import { delay } from "awaiting";
+import * as CodeMirror from "codemirror";
+import { List, Map, fromJS, Set as iSet } from "immutable";
+import { debounce } from "underscore";
+
 import {
-  get_default_font_size,
-  log_error,
-  formatter,
-  syncstring,
-  syncdb2,
-  syncstring2,
-} from "../generic/client";
-import { SyncDB } from "@cocalc/sync/editor/db";
-import { SyncString } from "@cocalc/sync/editor/string";
-import { aux_file } from "@cocalc/util/misc";
-import { once } from "@cocalc/util/async-utils";
-import { filename_extension, history_path, len, uuid } from "@cocalc/util/misc";
+  Actions as BaseActions,
+  Rendered,
+  Store,
+  TypedMap,
+  createTypedMap,
+} from "@cocalc/frontend/app-framework";
+import type { PageActions } from "@cocalc/frontend/app/actions";
+import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { filenameMode } from "@cocalc/frontend/file-associations";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
+import {
+  delete_local_storage,
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
+import { Config as FormatterConfig } from "@cocalc/project/formatters";
+import { SyncDB } from "@cocalc/sync/editor/db";
+import { apply_patch } from "@cocalc/sync/editor/generic/util";
+import { SyncString } from "@cocalc/sync/editor/string";
+import { once } from "@cocalc/util/async-utils";
+import {
+  Exts as FormatterExts,
+  Syntax as FormatterSyntax,
+  Tool as FormatterTool,
+  ext2syntax,
+  syntax2tool,
+} from "@cocalc/util/code-formatter";
+import {
+  aux_file,
+  filename_extension,
+  history_path,
+  len,
+  uuid,
+} from "@cocalc/util/misc";
+import chatgptCreatechat from "../chatgpt/create-chat";
+import type { Scope as ChatGPTScope } from "../chatgpt/types";
+import { default_opts } from "../codemirror/cm-options";
 import { print_code } from "../frame-tree/print-code";
+import * as tree_ops from "../frame-tree/tree-ops";
 import {
   ConnectionStatus,
+  ErrorStyles,
   FrameDirection,
   FrameTree,
   ImmutableFrameTree,
   SetMap,
-  ErrorStyles,
 } from "../frame-tree/types";
-import { SettingsObject } from "../settings/types";
-import { misspelled_words } from "./spell-check";
-import * as cm_doc_cache from "./doc";
-import { test_line } from "./simulate_typing";
-import { Rendered } from "../../app-framework";
-import * as CodeMirror from "codemirror";
+import {
+  formatter,
+  get_default_font_size,
+  log_error,
+  syncdb2,
+  syncstring,
+  syncstring2,
+} from "../generic/client";
 import "../generic/codemirror-plugins";
-import * as tree_ops from "../frame-tree/tree-ops";
-import { Actions as BaseActions, Store } from "../../app-framework";
-import { createTypedMap, TypedMap } from "../../app-framework";
+import { SettingsObject } from "../settings/types";
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
-import { CodeEditorManager, CodeEditor } from "./code-editor-manager";
-import { AvailableFeatures } from "../../project_configuration";
-import { apply_patch } from "@cocalc/sync/editor/generic/util";
-import { default_opts } from "../codemirror/cm-options";
-import { set_buffer, get_buffer } from "../../copy-paste-buffer";
-import { open_new_tab } from "../../misc";
-import {
-  set_local_storage,
-  get_local_storage,
-  delete_local_storage,
-} from "@cocalc/frontend/misc/local-storage";
-import Fragment from "@cocalc/frontend/misc/fragment-id";
-import {
-  ext2syntax,
-  syntax2tool,
-  Syntax as FormatterSyntax,
-  Exts as FormatterExts,
-  Tool as FormatterTool,
-} from "@cocalc/util/code-formatter";
-import { Config as FormatterConfig } from "@cocalc/project/formatters";
-import { SHELLS } from "./editor";
 import type { TimeTravelActions } from "../time-travel-editor/actions";
-import chatgptCreatechat from "../chatgpt/create-chat";
-import type { Scope as ChatGPTScope } from "../chatgpt/types";
-import type { PageActions } from "@cocalc/frontend/app/actions";
-import type { TourProps } from "antd";
-import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
+import { CodeEditor, CodeEditorManager } from "./code-editor-manager";
+import { DEFAULT_TERM_ENV } from "./const";
+import * as cm_doc_cache from "./doc";
+import { SHELLS } from "./editor";
+import { test_line } from "./simulate_typing";
+import { misspelled_words } from "./spell-check";
 
 interface gutterMarkerParams {
   line: number;
@@ -2369,9 +2380,7 @@ export class Actions<
   // Override in derived class to set a special env for
   // any launched terminals.
   get_term_env(): { [envvar: string]: string } {
-    // https://github.com/sagemathinc/cocalc/issues/4120
-    const MPLBACKEND = "Agg";
-    return { MPLBACKEND };
+    return DEFAULT_TERM_ENV;
   }
 
   // If you override show, make sure to still call this

@@ -444,6 +444,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.fetch_directory_listing();
         }
         break;
+
       case "new":
         change.file_creation_error = undefined;
         if (opts.change_history) {
@@ -457,31 +458,49 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.push_state("log", "");
         }
         break;
+
       case "search":
         if (opts.change_history) {
           this.push_state(`search/${store.get("current_path")}`, "");
         }
         break;
+
       case "servers":
         if (opts.change_history) {
           this.push_state("servers", "");
         }
         break;
+
       case "settings":
         if (opts.change_history) {
           this.push_state("settings", "");
         }
         break;
+
       case "info":
         if (opts.change_history) {
           this.push_state("info", "");
         }
         break;
+
       case "home":
         if (opts.change_history) {
           this.push_state("home", "");
         }
         break;
+
+      case "collaborators":
+        if (opts.change_history) {
+          this.push_state("collaborators", "");
+        }
+        break;
+
+      case "licenses":
+        if (opts.change_history) {
+          this.push_state("licenses", "");
+        }
+        break;
+
       default:
         // editor...
         const path = misc.tab_to_path(key);
@@ -3044,6 +3063,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
       case "info":
         this.set_active_tab("info", { change_history: change_history });
+        break;
+
+      case "collaborators":
+        this.set_active_tab("collaborators", {
+          change_history: change_history,
+        });
+        break;
+
+      case "licenses":
+        this.set_active_tab("licenses", { change_history: change_history });
         break;
 
       default:

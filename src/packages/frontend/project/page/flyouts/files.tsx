@@ -3,8 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
+import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import { delay } from "awaiting";
+import { List } from "immutable";
+import { debounce, fromPairs } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
@@ -17,28 +19,30 @@ import {
   useActions,
   useEffect,
   useIsMountedRef,
+  useLayoutEffect,
   useMemo,
+  usePrevious,
   useRef,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
-import { EditorFileInfoDropdown } from "@cocalc/frontend/editors/file-info-dropdown";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
   DirectoryListing,
   DirectoryListingEntry,
+  FileMap,
 } from "@cocalc/frontend/project/explorer/types";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
+import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import {
-  human_readable_size,
+  copy_without,
   path_to_file,
-  plural,
   search_match,
   search_split,
   should_open_in_foreground,
@@ -48,19 +52,36 @@ import {
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectState } from "../project-state-hook";
 import { FileListItem, fileItemStyle } from "./components";
+import { FilesBottom } from "./files-bottom";
 
 type ActiveFileSort = TypedMap<{
   column_name: string;
   is_descending: boolean;
 }>;
 
+// modeled after ProjectStore::stripped_public_paths
+function useStrippedPublicPaths(project_id: string) {
+  const public_paths = useTypedRedux({ project_id }, "public_paths");
+  return useMemo(() => {
+    if (public_paths == null) return List();
+    return public_paths
+      .valueSeq()
+      .map((public_path: any) =>
+        copy_without(public_path.toJS(), ["id", "project_id"])
+      );
+  }, [public_paths]);
+}
+
 export function FilesFlyout({ project_id }): JSX.Element {
   const isMountedRef = useIsMountedRef();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [rootHeightPx, setRootHeightPx] = useState<number>(0);
   const refInput = useRef<InputRef>(null);
   const actions: ProjectActions | undefined = useActions({ project_id });
   const project_state = useProjectState(project_id);
   const projectIsRunning = project_state?.get("state") === "running";
   const current_path = useTypedRedux({ project_id }, "current_path");
+  const strippedPublicPaths = useStrippedPublicPaths(project_id);
   const directoryListings = useTypedRedux({ project_id }, "directory_listings");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const activeFileSort: ActiveFileSort = useTypedRedux(
@@ -69,10 +90,13 @@ export function FilesFlyout({ project_id }): JSX.Element {
   );
   const hidden = useTypedRedux({ project_id }, "show_hidden");
   const show_masked = useTypedRedux({ project_id }, "show_masked");
+  const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const [search, setSearch] = useState<string>("");
+  const [prevSelected, setPrevSelected] = useState<number | null>(null);
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
   const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
+  const [selectionOnMouseDown, setSelectionOnMouseDown] = useState<string>("");
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const disableUploads = student_project_functionality.disableUploads ?? false;
@@ -105,13 +129,14 @@ export function FilesFlyout({ project_id }): JSX.Element {
     };
   }, [project_id, current_path]);
 
-  const directoryFiles = useMemo((): DirectoryListing => {
-    if (directoryListings == null) return [];
+  const [directoryFiles, fileMap] = useMemo((): [DirectoryListing, FileMap] => {
+    const empty: [DirectoryListing, FileMap] = [[], {}];
+    if (directoryListings == null) return empty;
     const filesStore = directoryListings.get(current_path);
-    if (filesStore == null) return [];
+    if (filesStore == null) return empty;
 
     // TODO this is an error, process it
-    if (typeof filesStore === "string") return [];
+    if (typeof filesStore === "string") return empty;
 
     const files: DirectoryListing = filesStore.toJS();
     compute_file_masks(files);
@@ -134,6 +159,16 @@ export function FilesFlyout({ project_id }): JSX.Element {
       .filter(
         (file: DirectoryListingEntry) => hidden || !file.name.startsWith(".")
       );
+
+    // this shares the logic with what's in project_store.js
+    mutate_data_to_compute_public_files(
+      {
+        listing: procFiles,
+        public: {},
+      },
+      strippedPublicPaths,
+      current_path
+    );
 
     procFiles.sort((a, b) => {
       // This replicated what project_store is doing
@@ -180,7 +215,10 @@ export function FilesFlyout({ project_id }): JSX.Element {
       });
     }
 
-    return procFiles;
+    // map each filename to it's entry in the directory listing
+    const fileMap = fromPairs(procFiles.map((file) => [file.name, file]));
+
+    return [procFiles, fileMap];
   }, [
     directoryListings,
     activeFileSort,
@@ -189,15 +227,43 @@ export function FilesFlyout({ project_id }): JSX.Element {
     openFiles,
     show_masked,
     current_path,
+    strippedPublicPaths,
   ]);
 
+  const prev_current_path = usePrevious(current_path);
+
   useEffect(() => {
+    // reset prev selection if path changes
+    setPrevSelected(null);
+
+    // if the current_path changes and there was a previous one,
+    // we reset the checked files as well. This should probably be somewhere in the actions, though.
+    // The edge case is when more than one editor in different directories is open,
+    // and you switch between the two. Checked files are not reset in that case.
+    if (prev_current_path != null && prev_current_path !== current_path) {
+      actions?.set_all_files_unchecked();
+    }
+
     // if we change directory *and* use the keyboard, we re-focus the input
     if (scrollIdx != null) {
       refInput.current?.focus();
     }
     setScrollIdx(null);
   }, [current_path]);
+
+  const triggerRootResize = debounce(
+    () => setRootHeightPx(rootRef.current?.clientHeight ?? 0),
+    50,
+    { leading: false, trailing: true }
+  );
+
+  // observe the root element's height
+  useLayoutEffect(() => {
+    if (rootRef.current == null) return;
+    const observer = new ResizeObserver(triggerRootResize);
+    observer.observe(rootRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   // *** END HOOKS ***
 
@@ -222,24 +288,109 @@ export function FilesFlyout({ project_id }): JSX.Element {
     })();
   }
 
-  function open(e: React.MouseEvent | React.KeyboardEvent, index: number) {
+  function open(
+    e: React.MouseEvent | React.KeyboardEvent,
+    index: number,
+    skip = false // to exclude directories
+  ) {
+    e.stopPropagation();
     const file = directoryFiles[index];
-    const fullPath = path_to_file(current_path, file.name);
-    if (file.isdir) {
-      actions?.set_current_path(fullPath);
-      setSearch("");
-    } else {
-      const foreground = should_open_in_foreground(e);
-      track("open-file", {
-        project_id,
-        path: fullPath,
-        how: "click-on-listing-flyout",
-      });
-      actions?.open_file({
-        path: fullPath,
-        foreground,
-      });
+
+    if (!skip) {
+      const fullPath = path_to_file(current_path, file.name);
+
+      if (file.isdir) {
+        actions?.open_directory(fullPath);
+        setSearch("");
+      } else {
+        const foreground = should_open_in_foreground(e);
+        track("open-file", {
+          project_id,
+          path: fullPath,
+          how: "click-on-listing-flyout",
+        });
+        actions?.open_file({
+          path: fullPath,
+          foreground,
+        });
+      }
     }
+
+    const fn = file.name;
+    if (checked_files.includes(fn)) {
+      actions?.set_file_list_unchecked(List([fn]));
+    }
+  }
+
+  function toggleSelected(index: number, fn: string) {
+    // never select "..", only calls for trouble
+    if (fn === "..") return;
+    fn = path_to_file(current_path, fn);
+    if (checked_files.includes(fn)) {
+      actions?.set_file_list_unchecked(List([fn]));
+    } else {
+      actions?.set_file_list_checked([fn]);
+      setPrevSelected(index);
+    }
+  }
+
+  function handleFileClick(e: React.MouseEvent, index: number) {
+    // "hack" from explorer/file-listing/file-row.tsx to avoid a click,
+    // if the user selects the filename -- ignore double clicks, though.
+    if (
+      e.detail !== 2 &&
+      (window.getSelection()?.toString() ?? "") !== selectionOnMouseDown
+    ) {
+      return;
+    }
+
+    // deselect text if any
+    window.getSelection()?.removeAllRanges();
+    const file = directoryFiles[index];
+
+    // doubleclick straight to open file
+    if (e.detail === 2) {
+      open(e, index);
+      return;
+    }
+
+    // if opened, just switch to the tab...
+    if (file.isopen) {
+      // ... unless active, then select/deselect it
+      if (file.isactive) {
+        if (!e.ctrlKey) actions?.set_all_files_unchecked();
+        toggleSelected(index, file.name);
+      } else {
+        open(e, index);
+      }
+      return;
+    }
+
+    // shift-click selects whole range from last selected (if not null) to current index
+    if (e.shiftKey && prevSelected != null) {
+      const start = Math.min(prevSelected, index);
+      const end = Math.max(prevSelected, index);
+      const add = !checked_files.includes(
+        path_to_file(current_path, directoryFiles[index].name)
+      );
+      let fileNames: string[] = [];
+      for (let i = start; i <= end; i++) {
+        const fn = directoryFiles[i].name;
+        if (fn === "..") continue; // don't select parent dir, just calls for trouble
+        fileNames.push(path_to_file(current_path, fn));
+      }
+      if (add) {
+        actions?.set_file_list_checked(fileNames);
+      } else {
+        actions?.set_file_list_unchecked(List(fileNames));
+      }
+      return;
+    }
+
+    // base case: select/de-select single file with a single click
+    // hold ctrl key to select several files one-by-one
+    if (!e.ctrlKey) actions?.set_all_files_unchecked();
+    toggleSelected(index, file.name);
   }
 
   function doScroll(dx: -1 | 1) {
@@ -288,65 +439,57 @@ export function FilesFlyout({ project_id }): JSX.Element {
     item: DirectoryListingEntry,
     style: CSS
   ): JSX.Element {
-    if (item.isdir) {
-      return <Icon name="folder-open" style={style} />;
-    } else {
-      const ficon = file_options(item.name)?.icon ?? "file";
-
-      return (
-        <EditorFileInfoDropdown
-          button={false}
-          filename={path_to_file(current_path, item.name)}
-          project_id={project_id}
-          title={<Icon name={ficon} style={style} />}
-          style={{ margin: 0 }}
-          mode="flyout"
-        />
-      );
-    }
+    const iconName = item.isdir
+      ? "folder-open"
+      : file_options(item.name)?.icon ?? "file";
+    return <Icon name={iconName} style={style} />;
   }
 
-  function renderTooltip(
-    age: number | null,
-    { isdir = false, size = 0 }
-  ): JSX.Element {
-    return (
-      <>
-        {age ? (
-          <>
-            Last modified <TimeAgo date={new Date(age)} />
-            <br />
-          </>
-        ) : undefined}
-        {isdir
-          ? `Contains ${size} ${plural(size, "item")}`
-          : `Size: ${human_readable_size(size)}`}
-      </>
-    );
+  function showFileSharingDialog(file?: { name: string }) {
+    if (!file) return;
+    actions?.set_active_tab("files");
+    const fullPath = path_to_file(current_path, file.name);
+    // only select the published file, same logic as in file-row.tsx
+    actions?.set_all_files_unchecked();
+    actions?.set_file_list_checked([fullPath]);
+    actions?.set_file_action("share");
   }
 
   function renderListItem(index: number, item: DirectoryListingEntry) {
     const { mtime, mask = false } = item;
     const age = typeof mtime === "number" ? 1000 * mtime : null;
+    // either select by scrolling (and only scrolling!) or by clicks
+    const isSelected =
+      scrollIdx != null
+        ? !scollIdxHide && index === scrollIdx
+        : checked_files.includes(
+            path_to_file(current_path, directoryFiles[index].name)
+          );
     return (
       <FileListItem
         item={item}
-        onClick={(e) => open(e, index)}
+        onClick={(e) => handleFileClick(e, index)}
+        onMouseDown={() => {
+          setSelectionOnMouseDown(window.getSelection()?.toString() ?? "");
+        }}
         renderIcon={renderItemIcon}
         itemStyle={fileItemStyle(age ?? 0, mask)}
         onClose={(e: React.MouseEvent, name: string) => {
           e.stopPropagation();
           actions?.close_tab(path_to_file(current_path, name));
         }}
-        tooltip={renderTooltip(age, item)}
-        selected={!scollIdxHide && index === scrollIdx}
+        onOpen={(e: React.MouseEvent) => {
+          open(e, index);
+        }}
+        onPublic={() => showFileSharingDialog(directoryFiles[index])}
+        selected={isSelected}
       />
     );
   }
 
   function renderListing(): JSX.Element {
     const files = directoryListings.get(current_path);
-    if (files == null) return <Loading />;
+    if (files == null) return <Loading  theme="medium" transparent />;
 
     return (
       <Virtuoso
@@ -410,6 +553,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
       <Space
         direction="vertical"
         style={{
+          flex: "0 0 auto",
           paddingBottom: "10px",
           paddingRight: "5px",
           borderBottom: `1px solid ${COLORS.GRAY_L}`,
@@ -429,7 +573,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
               {renderSortButton("time", "Time")}
               {renderSortButton("type", "Type")}
             </Radio.Group>
-            <Space direction="horizontal" size={"small"}>
+            <Space.Compact direction="horizontal" size={"small"}>
               <Button
                 className={uploadClassName}
                 size="small"
@@ -446,7 +590,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
                   <Icon name={"plus-circle"} />
                 </Button>
               </Tooltip>
-            </Space>
+            </Space.Compact>
           </div>
         )}
         <div
@@ -470,7 +614,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
             allowClear
             prefix={<Icon name="search" />}
           />
-          <Space direction="horizontal" size="small">
+          <Space.Compact direction="horizontal" size="small">
             <BootstrapButton
               title={hidden ? "Hide hidden files" : "Show hidden files"}
               bsSize="xsmall"
@@ -488,23 +632,53 @@ export function FilesFlyout({ project_id }): JSX.Element {
             >
               <Icon name={"mask"} />
             </BootstrapButton>
-          </Space>
+          </Space.Compact>
         </div>
+        {staleListingWarning()}
       </Space>
     );
   }
 
-  if (disableUploads) {
+  function staleListingWarning() {
+    if (projectIsRunning || directoryFiles?.length === 0) return;
+
     return (
-      <>
-        {renderHeader()}
-        {renderListing()}
-      </>
+      <Alert
+        type="warning"
+        banner
+        showIcon={false}
+        style={{ padding: "5px", margin: 0 }}
+        message={
+          <>
+            <Icon name="warning" /> Stale directory listing
+          </>
+        }
+        description={
+          <>
+            To update,{" "}
+            <a
+              onClick={() => {
+                redux.getActions("projects").start_project(project_id);
+              }}
+            >
+              start this project
+            </a>
+            .
+          </>
+        }
+      />
     );
-  } else {
-    return (
-      <>
-        {renderHeader()}
+  }
+
+  return (
+    <div
+      ref={rootRef}
+      style={{ flex: "1 0 auto", flexDirection: "column", display: "flex" }}
+    >
+      {renderHeader()}
+      {disableUploads ? (
+        renderListing()
+      ) : (
         <FileUploadWrapper
           project_id={project_id}
           dest_path={current_path}
@@ -520,7 +694,16 @@ export function FilesFlyout({ project_id }): JSX.Element {
         >
           {renderListing()}
         </FileUploadWrapper>
-      </>
-    );
-  }
+      )}
+      <FilesBottom
+        project_id={project_id}
+        checked_files={checked_files}
+        directoryData={[directoryFiles, fileMap]}
+        projectIsRunning={projectIsRunning}
+        rootHeightPx={rootHeightPx}
+        open={open}
+        showFileSharingDialog={showFileSharingDialog}
+      />
+    </div>
+  );
 }

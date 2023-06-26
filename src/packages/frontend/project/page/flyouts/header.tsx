@@ -84,6 +84,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              fontWeight: "bold",
             }}
           >
             <Icon
@@ -100,7 +101,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
         );
       default:
         return (
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, fontWeight: "bold" }}>
             {renderIcon()} {renderDefaultTitle()}
           </div>
         );
