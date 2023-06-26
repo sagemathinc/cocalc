@@ -12,7 +12,7 @@ NOTE: we haven't implemented deleting of keys in JSONB maps for
 the database yet, so we complicate the code below by making *empty*
 values be treated as deleted.
 */
-import { Button } from "antd";
+import { Alert, Button } from "antd";
 import jsonic from "jsonic";
 
 import {
@@ -83,7 +83,7 @@ export const Environment: React.FC<Props> = ({
 
   function renderBody() {
     return (
-      <>
+      <div style={{ padding: "10px" }}>
         {error != "" ? <ErrorDisplay banner error={error} /> : undefined}
         <textarea
           spellCheck="false"
@@ -110,19 +110,31 @@ export const Environment: React.FC<Props> = ({
         <Button disabled={disabled} onClick={save}>
           {saving ? "Saving..." : disabled ? "Saved" : "Save..."}
         </Button>
-        <br />
-        <br />
-        {instructions}
-      </>
+      </div>
     );
   }
 
   if (isFlyout) {
-    return renderBody();
+    return (
+      <>
+        {renderBody()}
+        {instructions ? (
+          <Alert
+            style={{ marginTop: "10px" }}
+            banner
+            type="info"
+            showIcon={false}
+            message={instructions}
+          />
+        ) : undefined}
+      </>
+    );
   } else {
     return (
       <SettingBox title="Custom environment variables" icon={ENV_VARS_ICON}>
         {renderBody()}
+        <br />
+        {instructions}
       </SettingBox>
     );
   }

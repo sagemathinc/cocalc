@@ -212,7 +212,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
           key="about"
           header={
             <>
-              <Icon name="file-alt" /> Name, description, image, ...
+              <Icon name="file-alt" /> About
             </>
           }
         >
@@ -289,6 +289,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
               <Icon name={ENV_VARS_ICON} /> Environment Variables
             </>
           }
+          className={"cc-project-flyout-settings-panel"}
         >
           <Environment project_id={project_id} mode="flyout" />
         </Collapse.Panel>

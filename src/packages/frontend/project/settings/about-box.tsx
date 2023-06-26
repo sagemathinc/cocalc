@@ -86,6 +86,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
         {renderReadonly()}
         <LabeledRow label="Title" vertical={isFlyout}>
           <TextInput
+            style={{ width: "100%" }}
             text={project_title}
             disabled={hasReadonlyFields}
             on_change={(title) => actions.set_project_title(project_id, title)}
@@ -93,6 +94,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
         </LabeledRow>
         <LabeledRow label="Description (markdown)" vertical={isFlyout}>
           <TextInput
+            style={{ width: "100%" }}
             type="textarea"
             rows={2}
             text={description}
@@ -104,6 +106,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
         </LabeledRow>
         <LabeledRow label="Name (optional)" vertical={isFlyout}>
           <TextInput
+            style={{ width: "100%" }}
             type="textarea"
             rows={1}
             text={name ?? ""}
@@ -111,19 +114,21 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
             onFocus={() => setShowNameInfo(true)}
             onBlur={() => setShowNameInfo(false)}
           />
-          {showNameInfo && (
-            <Alert
-              style={{ margin: "15px 0" }}
-              message={
-                "The project name is currently only used to provide better URL's for publicly shared documents. It can be at most 100 characters long and must be unique among all projects you own. Only the project owner can change the project name.  To be useful, the owner should also set their username in Account Preferences." +
-                (name
-                  ? " TEMPORARY WARNING: If you change the project name, existing links using the previous name will no longer work, so change with caution."
-                  : "")
-              }
-              type="info"
-            />
-          )}
         </LabeledRow>
+        {showNameInfo ? (
+          <Alert
+            style={{ margin: "0 0 15px 0" }}
+            showIcon={false}
+            banner={isFlyout}
+            message={
+              "The project name is currently only used to provide better URL's for publicly shared documents. It can be at most 100 characters long and must be unique among all projects you own. Only the project owner can change the project name.  To be useful, the owner should also set their username in Account Preferences." +
+              (name
+                ? " TEMPORARY WARNING: If you change the project name, existing links using the previous name will no longer work, so change with caution."
+                : "")
+            }
+            type="info"
+          />
+        ) : undefined}
         <LabeledRow label="Image (optional)" vertical={isFlyout}>
           <ProjectImage
             avatarImage={avatarImage}

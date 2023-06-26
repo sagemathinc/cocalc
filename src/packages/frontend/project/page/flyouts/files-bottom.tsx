@@ -442,7 +442,7 @@ export function FilesBottom({
         ? "folder"
         : file_options(name)?.icon ?? "file";
       return (
-        <div style={{ whiteSpace: "nowrap" }}>
+        <div style={{ whiteSpace: "nowrap" }} title={name}>
           <Icon name={iconName} /> {trunc_middle(name, 20)}
         </div>
       );
@@ -457,12 +457,10 @@ export function FilesBottom({
   }
 
   function terminalHeader() {
+    const title = connectionStatus === "connected" ? terminalTitle : "Terminal";
     return (
-      <span style={{ whiteSpace: "nowrap" }}>
-        <Icon name="terminal" />{" "}
-        {connectionStatus === "connected"
-          ? trunc_middle(terminalTitle, 15)
-          : "Terminal"}
+      <span style={{ whiteSpace: "nowrap" }} title={title}>
+        <Icon name="terminal" /> {trunc_middle(title, 15)}
       </span>
     );
   }

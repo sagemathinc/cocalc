@@ -216,7 +216,6 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
     if (mode === "flyout") {
       return (
         <>
-          {" "}
           {render_debug_info(conf)}
           {render_available()}
         </>
