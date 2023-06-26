@@ -152,9 +152,9 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
       return <ProjectSettings project_id={project_id} />;
     case "info":
       return <ProjectInfo project_id={project_id} />;
-    case "collaborators":
+    case "users":
       return <ProjectCollaboratorsPage project_id={project_id} />;
-    case "licenses":
+    case "upgrades":
       return <ProjectLicenses project_id={project_id} />;
     default:
       // check for "editor-[filename]"
