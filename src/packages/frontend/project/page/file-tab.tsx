@@ -24,7 +24,6 @@ import track from "@cocalc/frontend/user-tracking";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
-import { ProjectSearchBody } from "../search/body";
 import { TITLE as SERVERS_TITLE } from "../servers";
 import {
   ICON_COLLABORATORS,
@@ -32,14 +31,17 @@ import {
   TITLE_COLLABORATORS,
   TITLE_LICENSES,
 } from "../servers/consts";
-import { CollabsFlyout } from "./flyouts/collabs";
-import { SettingsFlyout } from "./flyouts/settings";
-import { FilesFlyout } from "./flyouts/files";
-import { ProjectInfoFlyout } from "./flyouts/info";
-import { LicensesFlyout } from "./flyouts/licenses";
-import { LogFlyout } from "./flyouts/log";
-import { NewFlyout } from "./flyouts/new";
-import { ServersFlyout } from "./flyouts/servers";
+import {
+  CollabsFlyout,
+  FilesFlyout,
+  ProjectInfoFlyout,
+  LicensesFlyout,
+  LogFlyout,
+  NewFlyout,
+  SearchFlyout,
+  ServersFlyout,
+  SettingsFlyout,
+} from "./flyouts";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -428,11 +430,5 @@ function DisplayedLabel({ path, label, inline = true }) {
         <span style={{ color: COLORS.FILE_EXT }}>{ext}</span>
       </span>
     </div>
-  );
-}
-
-function SearchFlyout({ project_id, wrap }) {
-  return (
-    <ProjectSearchBody mode="flyout" project_id={project_id} wrap={wrap} />
   );
 }

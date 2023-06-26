@@ -571,7 +571,7 @@ function ProjectSearchResultLine(_: Readonly<ProjectSearchResultLineProps>) {
         onClick={click_filename}
         extra={
           <CopyButton
-            value={description}
+            value={stripLineNumber(description)}
             noText
             size="small"
             style={{ padding: "0 5px" }}
@@ -619,4 +619,17 @@ function Snippet({
       style={style}
     />
   );
+}
+
+/**
+ * If the description starts with a line number and a colon, e.g. "21:foo", remove it.
+ * https://github.com/sagemathinc/cocalc/issues/6794
+ */
+function stripLineNumber(description: string): string {
+  const match = description.match(/^\d+:/);
+  if (match) {
+    return description.slice(match[0].length);
+  } else {
+    return description;
+  }
 }
