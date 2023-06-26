@@ -16,6 +16,7 @@ import {
   AllSiteSettingsKeys,
   AllSiteSettingsCached as ServerSettings,
 } from "@cocalc/util/db-schema/types";
+import { secure_random_token } from "@cocalc/util/misc";
 import { site_settings_conf as CONF } from "@cocalc/util/schema";
 
 export type { ServerSettings };
@@ -127,4 +128,17 @@ export async function load_server_settings_from_env(
       });
     }
   }
+}
+
+/**
+ * If the field "email_shared_secret" is not set, then set it to a random string using sha1.
+ */
+export async function initEmailSharedSecret(db: PostgreSQL): Promise<void> {
+  const { email_shared_secret: ess } = await getServerSettings();
+  if (typeof ess === "string" && ess.length > 0) return;
+  const secret = secure_random_token(32);
+  await cb2(db.set_server_setting, {
+    name: "email_shared_secret",
+    value: secret,
+  });
 }

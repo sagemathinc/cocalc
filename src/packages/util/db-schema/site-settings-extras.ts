@@ -81,6 +81,7 @@ export type SiteSettingsExtrasKeys =
   | "email_smtp_port"
   | "email_smtp_secure"
   | "email_smtp_pooling"
+  | "email_shared_secret"
   | "openai_section"
   | "openai_api_key"
   | "qdrant_api_key"
@@ -349,6 +350,12 @@ export const EXTRAS: SettingsExtras = {
     valid: only_booleans,
     to_val: to_bool,
     show: only_for_smtp,
+  },
+  email_shared_secret: {
+    name: "shared secret for accessing email settings",
+    desc: "This is a random string, set once, and should only be modified if it leaks.",
+    default: "",
+    show: is_email_enabled,
   },
   // bad name, historic baggage, used in packages/hub/email.ts
   password_reset_override: {
