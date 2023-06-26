@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Row, Col } from "antd";
+import { Row, Col, Descriptions } from "antd";
 
 interface Props {
   label_cols?: number;
@@ -15,6 +15,7 @@ interface Props {
   extra?: React.ReactNode;
   extra_cols?: number;
   innerStyle?: React.CSSProperties;
+  vertical?: boolean;
 }
 
 export const LabeledRow: React.FC<Props> = ({
@@ -26,6 +27,7 @@ export const LabeledRow: React.FC<Props> = ({
   extra,
   extra_cols = 1,
   innerStyle = { marginTop: "8px" },
+  vertical = false,
 }) => {
   const spanLabel = 2 * label_cols;
   const spanExtra = extra != null ? extra_cols : 0;
@@ -40,15 +42,32 @@ export const LabeledRow: React.FC<Props> = ({
     );
   }
 
-  return (
-    <Row style={style} className={className}>
-      <Col span={spanLabel} style={innerStyle}>
-        {label}
-      </Col>
-      <Col span={spanChildren} style={innerStyle}>
-        {children}
-      </Col>
-      {renderExtra()}
-    </Row>
-  );
+  function renderHorizontal() {
+    return (
+      <Row style={style} className={className}>
+        <Col span={spanLabel} style={innerStyle}>
+          {label}
+        </Col>
+        <Col span={spanChildren} style={innerStyle}>
+          {children}
+        </Col>
+        {renderExtra()}
+      </Row>
+    );
+  }
+
+  function renderVertical() {
+    return (
+      <Descriptions style={style} layout="vertical" column={1} size={"small"}>
+        <Descriptions.Item label={label} style={innerStyle}>
+          {children}
+          {extra != null ? (
+            <div style={{ textAlign: "right" }}>{extra}</div>
+          ) : undefined}
+        </Descriptions.Item>
+      </Descriptions>
+    );
+  }
+
+  return vertical ? renderVertical() : renderHorizontal();
 };

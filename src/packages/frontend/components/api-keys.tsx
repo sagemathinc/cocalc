@@ -15,14 +15,17 @@ import {
   Input,
   Modal,
   Popconfirm,
+  Space,
   Table,
+  Typography,
 } from "antd";
+import { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import TimeAgo from "react-timeago"; // so can use from nextjs
+const { Text, Paragraph } = Typography; // so can use from nextjs
 
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
-import { ColumnsType } from "antd/es/table";
 import { A } from "./A";
 import CopyToClipBoard from "./copy-to-clipboard";
 import { Icon } from "./icon";
@@ -46,9 +49,12 @@ interface Props {
     name?: string;
     expire?: Date;
   }) => Promise<ApiKey[] | undefined>;
+  mode?: "project" | "flyout";
 }
 
-export default function ApiKeys({ manage }: Props) {
+export default function ApiKeys({ manage, mode = "project" }: Props) {
+  const isFlyout = mode === "flyout";
+  const size = isFlyout ? "small" : undefined; // for e.g. buttons
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [editingKey, setEditingKey] = useState<number | undefined>(undefined);
@@ -134,9 +140,19 @@ export default function ApiKeys({ manage }: Props) {
   };
 
   const columns: ColumnsType<ApiKey> = [
-    { dataIndex: "name", title: "Name" },
-    { dataIndex: "id", title: "Id" },
-    { dataIndex: "trunc", title: "Key" },
+    {
+      dataIndex: "name",
+      title: "Name/Key",
+      render: (name, record) => {
+        return (
+          <>
+            {name}
+            <br />
+            <Text type="secondary">({record.trunc})</Text>
+          </>
+        );
+      },
+    },
     {
       dataIndex: "last_active",
       title: "Last Used",
@@ -151,8 +167,9 @@ export default function ApiKeys({ manage }: Props) {
     {
       dataIndex: "operation",
       title: "Operation",
+      align: "right",
       render: (_text, record) => (
-        <div>
+        <Space.Compact direction={isFlyout ? "vertical" : "horizontal"}>
           <Popconfirm
             title="Are you sure you want to delete this key?"
             onConfirm={() => deleteApiKey(record.id)}
@@ -170,10 +187,14 @@ export default function ApiKeys({ manage }: Props) {
           >
             Edit
           </a>
-        </div>
+        </Space.Compact>
       ),
     },
   ];
+
+  if (!isFlyout) {
+    columns.splice(1, 0, { dataIndex: "id", title: "Id" });
+  }
 
   const handleAdd = () => {
     setAddModalVisible(true);
@@ -221,61 +242,68 @@ export default function ApiKeys({ manage }: Props) {
           pagination={false}
         />
       )}
-      <Button.Group>
-        <Button onClick={handleAdd}>
-          <Icon name="plus-circle" /> Add API key...
-        </Button>
-        <Button onClick={getAllApiKeys}>Refresh</Button>
-        {apiKeys.length > 0 && (
-          <Popconfirm
-            title="Are you sure you want to delete all these api keys?"
-            onConfirm={deleteAllApiKeys}
-          >
-            <Button danger>Delete All...</Button>
-          </Popconfirm>
-        )}
-      </Button.Group>
-      <p style={{ marginTop: "10px" }}>
-        Read the <A href="https://doc.cocalc.com/api/">API documentation</A>.
-      </p>
-      <Modal
-        open={addModalVisible || editModalVisible}
-        title={
-          editingKey != null ? "Edit API Key Name" : "Create a New API Key"
-        }
-        okText={editingKey != null ? "Save" : "Create"}
-        cancelText="Cancel"
-        onCancel={handleModalCancel}
-        onOk={handleModalOK}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="Name"
-            rules={[{ required: true, message: "Please enter a name" }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="expire"
-            label="Expire"
-            rules={[
-              {
-                required: false,
-                message: "Optional date when key will be automatically deleted",
-              },
-            ]}
-          >
-            <DatePicker
-              showTime
-              disabledDate={(current) => {
-                // disable all dates before today
-                return current && current < dayjs();
-              }}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+      <div style={isFlyout ? { padding: "5px" } : undefined}>
+        <Space.Compact size={size}>
+          <Button onClick={handleAdd} size={size}>
+            <Icon name="plus-circle" /> Add API key...
+          </Button>
+          <Button onClick={getAllApiKeys} size={size}>
+            Refresh
+          </Button>
+          {apiKeys.length > 0 && (
+            <Popconfirm
+              title="Are you sure you want to delete all these api keys?"
+              onConfirm={deleteAllApiKeys}
+            >
+              <Button danger size={size}>
+                Delete All...
+              </Button>
+            </Popconfirm>
+          )}
+        </Space.Compact>
+        <Paragraph style={{ marginTop: "10px" }}>
+          Read the <A href="https://doc.cocalc.com/api/">API documentation</A>.
+        </Paragraph>
+        <Modal
+          open={addModalVisible || editModalVisible}
+          title={
+            editingKey != null ? "Edit API Key Name" : "Create a New API Key"
+          }
+          okText={editingKey != null ? "Save" : "Create"}
+          cancelText="Cancel"
+          onCancel={handleModalCancel}
+          onOk={handleModalOK}
+        >
+          <Form form={form} layout="vertical">
+            <Form.Item
+              name="name"
+              label="Name"
+              rules={[{ required: true, message: "Please enter a name" }]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              name="expire"
+              label="Expire"
+              rules={[
+                {
+                  required: false,
+                  message:
+                    "Optional date when key will be automatically deleted",
+                },
+              ]}
+            >
+              <DatePicker
+                showTime
+                disabledDate={(current) => {
+                  // disable all dates before today
+                  return current && current < dayjs();
+                }}
+              />
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
     </>
   );
 }

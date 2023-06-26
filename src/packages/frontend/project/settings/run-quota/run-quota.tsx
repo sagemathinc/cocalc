@@ -267,7 +267,7 @@ export const RunQuota: React.FC<Props> = React.memo(
       if (projectIsRunning) {
         return (
           <QuestionMarkText tip="Usage limit imposed by the current quota configuration. Add a license to change this limit or adjust your quota upgrade contribution. Project needs to run in order to see the effective runtime quota.">
-            Value
+            Limit
           </QuestionMarkText>
         );
       } else {
@@ -275,7 +275,7 @@ export const RunQuota: React.FC<Props> = React.memo(
           <Tip
             tip={`The project is currently not running. The data is stale from the last run. Start the project to see the effective quotas.`}
           >
-            Value <PoweroffOutlined style={{ color: COLORS.ANTD_RED_WARN }} />
+            Limit <PoweroffOutlined style={{ color: COLORS.ANTD_RED_WARN }} />
           </Tip>
         );
       }
@@ -291,8 +291,8 @@ export const RunQuota: React.FC<Props> = React.memo(
           expandable={{
             expandedRowRender: (record) => renderExtra(record),
             expandRowByClick: true,
+            expandIcon: isFlyout ? () => <></> : undefined,
           }}
-          expandIcon={isFlyout ? () => <></> : undefined}
         >
           <Table.Column<QuotaData>
             key="key"

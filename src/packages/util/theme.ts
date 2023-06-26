@@ -76,6 +76,7 @@ const MAIN_COLORS = {
   BLUE_L: "#80afff",
   BLUE_LL: "#94B3E5",
   BLUE_LLL: "#c7d9f5",
+  BLUE_LLLL: "#e6f4ff",
   BLUE_DOC: "#4375c1", // the blue used in the documentation
   BRWN: "#593E05",
   YELL_D: "#bf7b00",

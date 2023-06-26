@@ -3,4 +3,4 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export const FLYOUT_DEFAULT_WIDTH_PX: number = 300;
+export const FLYOUT_DEFAULT_WIDTH_PX: number = 350;

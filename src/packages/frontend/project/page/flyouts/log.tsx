@@ -83,7 +83,7 @@ export function LogHeader({ project_id }: HeaderProps): JSX.Element {
   }
 
   return (
-    <div style={{ flex: 1 }}>
+    <div style={{ flex: 1, fontWeight: "bold" }}>
       <Icon name={FIXED_PROJECT_TABS.log.icon} /> Recent {renderToggle()}
     </div>
   );
@@ -148,7 +148,7 @@ function deriveHistory(project_log, searchTerm: string, max: number) {
       const searchStr = to_search_string(entry.toJS());
       return search_match(searchStr, searchWords);
     })
-    .sort((a, b) => getTime(b.get("time")) - getTime(a.get("time")))
+    .sort((a, b) => getTime(b) - getTime(a))
     .slice(0, max)
     .toJS() as any;
 }
@@ -159,7 +159,7 @@ interface Props {
   wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
 }
 
-export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
+export function LogFlyout({ max = 1000, project_id, wrap }: Props): JSX.Element {
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
   const project_log = useTypedRedux({ project_id }, "project_log");
@@ -248,7 +248,7 @@ export function LogFlyout({ max = 100, project_id, wrap }: Props): JSX.Element {
 
   if (project_log == null) {
     redux.getProjectStore(project_id).init_table("project_log"); // kick off loading it
-    return <Loading />;
+    return <Loading theme="medium" transparent/>;
   }
 
   function doScroll(dx: -1 | 1) {

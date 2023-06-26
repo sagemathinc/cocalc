@@ -11,3 +11,7 @@ export const SAVE_DEBOUNCE_MS = 750;
 
 // for testing sync issues manually, it is much easier with this large -- do not do this in production though!
 // export const SAVE_DEBOUNCE_MS = 3000;
+
+// https://github.com/sagemathinc/cocalc/issues/4120
+const MPLBACKEND = "Agg";
+export const DEFAULT_TERM_ENV = { MPLBACKEND } as const;

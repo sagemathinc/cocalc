@@ -43,7 +43,7 @@ interface Props {
 
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 
-export const ActionBar: React.FC<Props> = (props) => {
+export const ActionBar: React.FC<Props> = (props: Props) => {
   const [select_entire_directory, set_select_entire_directory] = React.useState<
     "hidden" | "check" | "clear"
   >("hidden");
@@ -186,9 +186,7 @@ export const ActionBar: React.FC<Props> = (props) => {
 
   function render_action_button(name: string): JSX.Element {
     const disabled =
-      ["move", "compress", "rename", "delete", "share", "duplicate"].includes(
-        name
-      ) &&
+      isDisabledSnapshots(name) &&
       (props.current_path != null
         ? props.current_path.startsWith(".snapshots")
         : undefined);
@@ -234,31 +232,14 @@ export const ActionBar: React.FC<Props> = (props) => {
 
       if (isdir) {
         // one directory selected
-        action_buttons = [
-          "download",
-          "compress",
-          "delete",
-          "rename",
-          "duplicate",
-          "move",
-          "copy",
-          "share",
-        ];
+        action_buttons = [...ACTION_BUTTONS_DIR];
       } else {
         // one file selected
-        action_buttons = [
-          "download",
-          "delete",
-          "rename",
-          "duplicate",
-          "move",
-          "copy",
-          "share",
-        ];
+        action_buttons = [...ACTION_BUTTONS_FILE];
       }
     } else {
       // multiple items selected
-      action_buttons = ["download", "compress", "delete", "move", "copy"];
+      action_buttons = [...ACTION_BUTTONS_MULTI];
     }
     return (
       <ButtonGroup>
@@ -311,3 +292,43 @@ export const ActionBar: React.FC<Props> = (props) => {
     </div>
   );
 };
+
+export const ACTION_BUTTONS_DIR = [
+  "download",
+  "compress",
+  "delete",
+  "rename",
+  "duplicate",
+  "move",
+  "copy",
+  "share",
+] as const;
+
+export const ACTION_BUTTONS_FILE = [
+  "download",
+  "delete",
+  "rename",
+  "duplicate",
+  "move",
+  "copy",
+  "share",
+] as const;
+
+export const ACTION_BUTTONS_MULTI = [
+  "download",
+  "compress",
+  "delete",
+  "move",
+  "copy",
+] as const;
+
+export function isDisabledSnapshots(name: string) {
+  return [
+    "move",
+    "compress",
+    "rename",
+    "delete",
+    "share",
+    "duplicate",
+  ].includes(name);
+}

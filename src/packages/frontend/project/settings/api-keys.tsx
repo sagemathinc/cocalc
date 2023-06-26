@@ -8,7 +8,12 @@ import ApiKeysTables from "@cocalc/frontend/components/api-keys";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SettingBox } from "@cocalc/frontend/components";
 
-export function ApiKeys({ project_id }) {
+interface Props {
+  project_id: string;
+  mode?: "project" | "flyout";
+}
+
+export function ApiKeys({ project_id, mode = "project" }: Props) {
   const manage = useCallback(
     async (opts) => {
       return await webapp_client.project_client.api_keys({
@@ -18,9 +23,14 @@ export function ApiKeys({ project_id }) {
     },
     [project_id]
   );
-  return (
-    <SettingBox title="API Keys" icon={"api"}>
-      <ApiKeysTables manage={manage} />
-    </SettingBox>
-  );
+
+  if (mode === "flyout") {
+    return <ApiKeysTables manage={manage} mode={mode} />;
+  } else {
+    return (
+      <SettingBox title="API Keys" icon={"api"}>
+        <ApiKeysTables manage={manage} />
+      </SettingBox>
+    );
+  }
 }
