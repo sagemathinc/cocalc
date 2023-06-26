@@ -10,15 +10,15 @@ import { UpgradeUsage } from "@cocalc/frontend/project/settings/upgrade-usage";
 import { SandboxProjectSettingsWarning } from "../../settings/settings";
 import { useProject } from "../common";
 
-interface LicensesProps {
+interface ProjectUpgradesProps {
   project_id: string;
   wrap: Function;
 }
 
-export function LicensesFlyout({
+export function ProjectUpgradesFlyout({
   project_id,
   wrap,
-}: LicensesProps): JSX.Element {
+}: ProjectUpgradesProps): JSX.Element {
   const { project, group } = useProject(project_id);
 
   // TODO this duplicates a lot with settings/body.tsx → make this one or more hooks

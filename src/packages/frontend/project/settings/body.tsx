@@ -22,10 +22,10 @@ import {
 import { is_different } from "@cocalc/util/misc";
 import { NewFileButton } from "../new/new-file-button";
 import {
-  ICON_COLLABORATORS,
-  ICON_LICENSES,
-  TITLE_COLLABORATORS,
-  TITLE_LICENSES,
+  ICON_USERS,
+  ICON_UPGRADES,
+  TITLE_USERS,
+  TITLE_UPGRADES,
 } from "../servers/consts";
 import { NoNetworkProjectWarning } from "../warnings/no-network";
 import { NonMemberProjectWarning } from "../warnings/non-member";
@@ -134,8 +134,8 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
               configuring updates has been moved to the "Licenses" tab.
             </Paragraph>
             <NewFileButton
-              name={`Moved to "${TITLE_LICENSES}" tab.`}
-              icon={ICON_LICENSES}
+              name={`Moved to "${TITLE_UPGRADES}" tab.`}
+              icon={ICON_UPGRADES}
               on_click={() => {
                 project_actions?.set_active_tab("licenses", {
                   change_history: true,
@@ -165,8 +165,8 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
               "Collaborators" tab.
             </Paragraph>
             <NewFileButton
-              name={`Moved to "${TITLE_COLLABORATORS}" tab.`}
-              icon={ICON_COLLABORATORS}
+              name={`Moved to "${TITLE_USERS}" tab.`}
+              icon={ICON_USERS}
               on_click={() => {
                 project_actions?.set_active_tab("collaborators", {
                   change_history: true,

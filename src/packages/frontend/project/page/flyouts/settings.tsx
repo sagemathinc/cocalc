@@ -150,7 +150,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            actions?.toggleFlyout("licenses");
+            actions?.toggleFlyout("upgrades");
           }}
         >
           dedicated panel

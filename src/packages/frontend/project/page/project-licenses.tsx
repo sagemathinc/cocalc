@@ -7,7 +7,7 @@ import { redux } from "@cocalc/frontend//app-framework";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Paragraph, Title } from "@cocalc/frontend/components";
-import { ICON_LICENSES, ROOT_STYLE, TITLE_LICENSES } from "../servers/consts";
+import { ICON_UPGRADES, ROOT_STYLE, TITLE_UPGRADES } from "../servers/consts";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
 import { UpgradeUsage } from "../settings/upgrade-usage";
 import { useProject } from "./common";
@@ -83,7 +83,7 @@ export function ProjectLicenses({ project_id }): JSX.Element {
   return (
     <div style={ROOT_STYLE}>
       <Title level={2}>
-        <Icon name={ICON_LICENSES} /> Quotas and {TITLE_LICENSES}
+        <Icon name={ICON_UPGRADES} /> Quotas and {TITLE_UPGRADES}
       </Title>
       <Paragraph>
         Licenses change the quotas and features available to a project.
