@@ -9,36 +9,45 @@ const logger = getLogger("purchase:create-purchase");
 /*
 Creates the requested purchase if possible, given the user's quota.  If not, throws an exception.
 */
-export default async function createPurchase({
-  account_id,
-  project_id,
-  cost,
-  service,
-  description,
-  invoice_id,
-  notes,
-  tag,
-}: {
+interface Options {
   account_id: string;
   project_id?: string;
   cost?: number; // if cost not known yet, don't give.  E.g., for project-upgrade, the cost isn't known until project stops (or we close out a purchase interval).
+  start?: number; // options; used mainly for analytics, e.g., for a license with given start and end dates.
+  end?: number;
   service: Service;
   description: Description;
   invoice_id?: string;
   notes?: string;
   tag?: string;
-}): Promise<number> {
+}
+
+export default async function createPurchase(opts: Options): Promise<number> {
+  const {
+    account_id,
+    project_id,
+    cost,
+    start,
+    end,
+    service,
+    description,
+    invoice_id,
+    notes,
+    tag,
+  } = opts;
   const pool = getPool();
   let eps = 3000;
   let error = Error("unable to create purchase");
   for (let i = 0; i < 10; i++) {
     try {
       const { rows } = await pool.query(
-        "INSERT INTO purchases (time, account_id, project_id, cost, service, description,invoice_id, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
+        "INSERT INTO purchases (time, account_id, project_id, cost, period_start, period_end, service, description,invoice_id, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
         [
           account_id,
           project_id,
           cost,
+          start,
+          end,
           service,
           description,
           invoice_id,
@@ -46,28 +55,17 @@ export default async function createPurchase({
           tag,
         ]
       );
-      logger.debug("Created new purchase", {
-        account_id,
-        project_id,
-        cost,
-        service,
-        description,
-        invoice_id,
-        notes,
-        tag,
-      });
-      return rows[0].id;
+      const { id } = rows[0];
+      logger.debug("Created new purchase", "id=", id, "opts = ", opts);
+      return id;
     } catch (err) {
       error = err;
       // could be ill-timed database outage...?
-      logger.debug("Failed to insert purchase into purchases table.", {
-        account_id,
-        project_id,
-        cost,
-        service,
-        description,
+      logger.debug(
+        "Failed to insert purchase into purchases table.",
         err,
-      });
+        opts
+      );
       await delay(eps);
       eps *= 1.3;
     }

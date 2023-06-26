@@ -12,6 +12,8 @@ register({
       {
         id: null,
         time: null,
+        period_start: null,
+        period_end: null,
         account_id: null,
         cost: null,
         service: null,

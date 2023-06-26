@@ -100,6 +100,8 @@ export default async function purchaseShoppingCartItem(item) {
     service: "license",
     description: { type: "license", item, info, license_id },
     tag: "license-purchase",
+    start: info.start,
+    end: info.end,
   });
   logger.debug(
     "purchaseShoppingCartItem -- created purchase from shopping cart item",

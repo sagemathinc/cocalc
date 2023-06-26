@@ -17,7 +17,8 @@ export type Service =
   | "openai-gpt-3.5-turbo-16k"
   | "openai-text-embedding-ada-002"
   | "project-upgrade"
-  | "license";
+  | "license"
+  | "edit-license";
 
 export interface OpenaiGPT4 {
   type: "openai-gpt-4";
@@ -75,6 +76,11 @@ export interface License {
   license_id: string;
 }
 
+export interface EditLicense {
+  type: "edit-license";
+  // todo
+}
+
 // not used yet.
 //export interface OpenaiImage {
 //  type: "openai-image";
@@ -93,7 +99,8 @@ export type Description =
   | OpenaiTextEmbeddingsAda002
   | ProjectUpgrade
   | Credit
-  | License;
+  | License
+  | EditLicense;
 
 // max number of purchases a user can get in one query.
 export const MAX_API_LIMIT = 500;
@@ -101,6 +108,8 @@ export const MAX_API_LIMIT = 500;
 export interface Purchase {
   id: number;
   time: Date;
+  start?: Date;
+  end?: Date;
   account_id: string;
   cost: number;
   service: Service;
@@ -116,6 +125,16 @@ Table({
   fields: {
     id: ID,
     time: { type: "timestamp", desc: "When this purchase was logged." },
+    period_start: {
+      title: "Period Start",
+      type: "timestamp",
+      desc: "For analytics purposes -- when the purchase starts being active (e.g., a 1 week license starts and ends on specific days)",
+    },
+    period_end: {
+      title: "Period End",
+      type: "timestamp",
+      desc: "For analytics purposes -- when the purchase stop being active",
+    },
     account_id: CREATED_BY,
     cost: {
       title: "Cost ($)",
@@ -163,6 +182,8 @@ Table({
         fields: {
           id: null,
           time: null,
+          period_start: null,
+          period_end: null,
           account_id: null,
           cost: null,
           service: null,
@@ -188,6 +209,8 @@ Table({
         fields: {
           id: null,
           time: null,
+          period_start: null,
+          period_end: null,
           account_id: null,
           cost: null,
           service: null,
@@ -202,8 +225,11 @@ Table({
         admin: true,
         fields: {
           id: true,
+          time: true,
           cost: true,
-          service: null,
+          period_start: true,
+          period_end: true,
+          service: true,
           description: true,
           tag: true,
           notes: true,
