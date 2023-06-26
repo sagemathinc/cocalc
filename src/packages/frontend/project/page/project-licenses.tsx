@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Row, Col } from "antd";
 import { redux } from "@cocalc/frontend//app-framework";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -11,6 +12,7 @@ import { ICON_UPGRADES, ROOT_STYLE, TITLE_UPGRADES } from "../servers/consts";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
 import { UpgradeUsage } from "../settings/upgrade-usage";
 import { useProject } from "./common";
+import Purchases from "@cocalc/frontend/purchases/purchases";
 
 export function ProjectLicenses({ project_id }): JSX.Element {
   const { project, group } = useProject(project_id);
@@ -81,7 +83,7 @@ export function ProjectLicenses({ project_id }): JSX.Element {
   }
 
   return (
-    <div style={ROOT_STYLE}>
+    <div style={{ ...ROOT_STYLE, maxWidth: undefined }}>
       <Title level={2}>
         <Icon name={ICON_UPGRADES} /> Quotas and {TITLE_UPGRADES}
       </Title>
@@ -89,7 +91,16 @@ export function ProjectLicenses({ project_id }): JSX.Element {
         Licenses change the quotas and features available to a project.
       </Paragraph>
       {renderAdmin()}
-      {renderBody()}
+      <div>
+        <Row>
+          <Col md={12} style={{ padding: "15px 30px" }}>
+            {renderBody()}
+          </Col>
+          <Col md={12} style={{ padding: "15px 30px" }}>
+            <Purchases project_id={project_id} group={true} />
+          </Col>
+        </Row>
+      </div>
     </div>
   );
 }

@@ -39,7 +39,6 @@ import { ProjectControl } from "./project-control";
 import SavingProjectSettingsError from "./saving-project-settings-error";
 import { SSHPanel } from "./ssh";
 import { Project } from "./types";
-import Purchases from "@cocalc/frontend/purchases/purchases";
 
 interface ReactProps {
   project_id: string;
@@ -175,7 +174,6 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
             />
           </SettingBox>
           <ProjectControl key="control" project={project} />
-          <Purchases project_id={project_id} group={true} />
           {!student.disableSSH &&
             (ssh_gateway || kucalc === KUCALC_COCALC_COM) && (
               <SSHPanel
