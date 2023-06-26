@@ -136,7 +136,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
               name={`Moved to "${TITLE_UPGRADES}" tab.`}
               icon={ICON_UPGRADES}
               on_click={() => {
-                project_actions?.set_active_tab("licenses", {
+                project_actions?.set_active_tab("upgrades", {
                   change_history: true,
                 });
               }}
@@ -160,14 +160,14 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
         <Col sm={6}>
           <SettingBox title="Collaborators moved" icon="move">
             <Paragraph>
-              The panel for configuring collaborators has been moved to the
-              "Collaborators" tab.
+              The panel for configuring collaborators has been moved to the "
+              {TITLE_USERS}" tab.
             </Paragraph>
             <NewFileButton
               name={`Moved to "${TITLE_USERS}" tab.`}
               icon={ICON_USERS}
               on_click={() => {
-                project_actions?.set_active_tab("collaborators", {
+                project_actions?.set_active_tab("users", {
                   change_history: true,
                 });
               }}
