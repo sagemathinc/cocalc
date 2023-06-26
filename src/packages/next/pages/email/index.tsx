@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
@@ -7,42 +7,38 @@ import { Alert, Card, Layout, Space } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
 
+import {
+  getEmailAddressOfAccount,
+  getEmailNotificationSettings,
+} from "@cocalc/database/postgres/email";
 import { Icon } from "@cocalc/frontend/components/icon";
+import getAccountId from "@cocalc/server/auth/get-account";
+import { generateEmailSecretToken } from "@cocalc/server/email/utils";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import { Paragraph, Title } from "components/misc";
-import Loading from "components/share/loading";
 import { MAX_WIDTH } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
-import useDatabase from "lib/hooks/database";
-import useProfile from "lib/hooks/profile";
 import withCustomize from "lib/with-customize";
 
 interface Props {
   customize: CustomizeType;
+  error?: string;
+  token?: string;
+  secret?: string;
+  email_address?: boolean;
+  needSignIn?: boolean;
 }
 
-const QUERY = {
-  notification_settings: [
-    {
-      settings: null,
-    },
-  ],
-} as const;
-
 export default function Email(props: Props) {
-  const { customize } = props;
+  const { customize, error, token, secret, needSignIn } = props;
   const { siteName } = customize;
-  const profile = useProfile({ noCache: true });
   const router = useRouter();
-  const { loading, value, error, setError } = useDatabase(QUERY);
 
   function content() {
-    if (profile == null) return <Loading />;
-
-    if (profile != null && !profile.account_id) {
+    if (needSignIn) {
       return (
         <Card style={{ textAlign: "center" }}>
           <InPlaceSignInOrUp
@@ -54,6 +50,8 @@ export default function Email(props: Props) {
           />
         </Card>
       );
+    } else if (error) {
+      return <Alert type="error" message={error} />;
     }
 
     return (
@@ -65,21 +63,9 @@ export default function Email(props: Props) {
           <Paragraph>
             Everything about newsletters, announcements, and other email.
           </Paragraph>
-          {error && (
-            <Alert
-              type="error"
-              banner={true}
-              message={error}
-              showIcon
-              style={{ width: "100%", marginBottom: "30px" }}
-              closable
-              onClose={() => setError("")}
-            />
-          )}
-          <Paragraph>Loading: {loading ? <Loading /> : "done"}</Paragraph>
+
           <Paragraph>
-            Value:{" "}
-            {value ? <pre>{JSON.stringify(value, null, 2)}</pre> : "none"}
+            Value: <pre>{JSON.stringify({ token, secret }, null, 2)}</pre>
           </Paragraph>
         </Space>
       </>
@@ -114,5 +100,46 @@ export default function Email(props: Props) {
 }
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-  return await withCustomize({ context });
+  const { query, req } = context;
+  const email_address = typeof query.email === "string" ? query.email : null;
+  const token = typeof query.token === "string" ? query.token : null;
+  if (!email_address || !token) {
+    const account_id = await getAccountId(req);
+    if (account_id != null) {
+      const email_address = await getEmailAddressOfAccount(account_id);
+      const secret = await generateEmailSecretToken({
+        account_id,
+        email_address,
+      });
+      return await withCustomize({
+        context,
+        props: { email_address, token: secret },
+      });
+    } else {
+      return {
+        props: {
+          needSignIn: true,
+          error:
+            "You must be logged in or use a link with a secret token in order to see your email notification settings.",
+        },
+      };
+    }
+  } else {
+    try {
+      const notification_settings = await getEmailNotificationSettings({
+        email_address,
+        token,
+      });
+      return await withCustomize({
+        context,
+        props: { email_address, token, notification_settings },
+      });
+    } catch (err) {
+      return {
+        props: {
+          error: err.message,
+        },
+      };
+    }
+  }
 }

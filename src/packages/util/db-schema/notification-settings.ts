@@ -17,7 +17,7 @@ Table({
     },
     settings: {
       type: "map",
-      desc: "A mapping of each type of email (channel) to a setting. Initially just true|false, but it could be more complex.",
+      desc: "A mapping of each type of email channels to a setting. Initially just true|false, but it could be more complex.",
     },
   },
   rules: {
