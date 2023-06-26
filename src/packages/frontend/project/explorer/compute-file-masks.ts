@@ -45,6 +45,7 @@ const MASKED_FILE_EXTENSIONS = {
   rnw: ["tex", "NODOT-concordance.tex"],
   rtex: ["tex", "NODOT-concordance.tex"],
   rmd: ["pdf", "html", "nb.html", "md", "NODOT_files", "NODOT_cache"],
+  qmd: ["pdf", "html", "NODOT_files"],
   sage: ["sage.py"],
 } as const;
 

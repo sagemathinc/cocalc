@@ -5,11 +5,16 @@
 
 import { debounce } from "lodash";
 
-import { CSS, useEffect, useState } from "@cocalc/frontend/app-framework";
+import {
+  CSS,
+  redux,
+  useEffect,
+  useState,
+} from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
-import { FIX_BORDER } from "../page";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { LSFlyout, lsKey, storeFlyoutState } from "./state";
 
@@ -49,7 +54,7 @@ export function FlyoutBody({
   );
 
   // use this *once* around a vertically scollable content div in the component, e.g. results in a search
-  function wrap(content, style: CSS = {}) {
+  function wrap(content: React.ReactNode, style: CSS = {}) {
     return (
       <div
         ref={setBodyDiv}
@@ -80,9 +85,16 @@ export function FlyoutBody({
         overflowY: "hidden",
         overflowX: "hidden",
       }}
+      onFocus={() => {
+        // Remove any active key handler that is next to this side chat.
+        // E.g, this is critical for taks lists...
+        redux.getActions("page").erase_active_key_handler();
+      }}
     >
       {Body == null ? (
-        <Loading />
+        <div style={{ textAlign: "center", marginTop: "50px" }}>
+          <Loading />
+        </div>
       ) : (
         <Body project_id={project_id} wrap={wrap} />
       )}

@@ -23,7 +23,7 @@ import {
   useRedux,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { ErrorDisplay, SettingBox, Space } from "@cocalc/frontend/components";
+import { ErrorDisplay, SettingBox, Gap } from "@cocalc/frontend/components";
 
 export const ENV_VARS_ICON = "bars";
 interface Props {
@@ -100,7 +100,7 @@ export const Environment: React.FC<Props> = ({ project_id }) => {
       >
         Cancel
       </Button>
-      <Space />
+      <Gap />
       <Button disabled={disabled} onClick={save}>
         {saving ? "Saving..." : disabled ? "Saved" : "Save..."}
       </Button>

@@ -18,7 +18,7 @@ import {
   ErrorDisplay,
   Icon,
   SearchInput,
-  Space,
+  Gap,
   Tip,
 } from "@cocalc/frontend/components";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
@@ -437,9 +437,9 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           </Form.Item>
           <Form.Item>
             {render_cancel()}
-            <Space />
+            <Gap />
             {render_add_selector_button(options)}
-            <Space />
+            <Gap />
             {render_add_all_students_button(options)}
           </Form.Item>
         </>
@@ -654,7 +654,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           }}
         >
           {display_name}
-          <Space />
+          <Gap />
           {render_sort_icon(column_name)}
         </a>
       );

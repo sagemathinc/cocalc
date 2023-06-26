@@ -364,4 +364,9 @@
                           "readonly struct union DEF IF ELIF ELSE")
   });
 
+  CodeMirror.defineMIME("text/x-mojo", {
+    name: "python",
+    extra_keywords: words("fn struct let var borrowed inout owned Pointer"),
+  });
+
 });

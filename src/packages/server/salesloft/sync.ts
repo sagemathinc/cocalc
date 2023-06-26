@@ -25,16 +25,38 @@ https://help.salesloft.com/s/article/Person-Field-Configuration#Add_Custom_Perso
 
 Later, we will also try to provide more interesting information.  But this should be something
 to get started.
+
+RATE LIMITS:
+
+- Documented here: https://developers.salesloft.com/docs/platform/api-basics/rate-limits/
+
+- The rate limit is "600 costs per minute" where a cost is some weird unit that
+depends on the api endpoint, and can by 1 or 30 or any arbitrarily large number
+below 600! And they have this distopian statement: "Salesloft is able to change
+the cost for an existing endpoint at any time, as the functionality doesn't
+become deprecated from a cost change."  There is no possible way to
+know ahead of time if calls are going to the rate limit or not.  So in
+our code below, we basically space out handling each person by 1s. That
+keeps the number of people per minute to at most 60, which should keep us
+well below the 600 costs per minute limit.  And spending a few hours to update
+10K records is fine for now.
+
+Spacing out by a minute doesn't work.  It's all very weird.  I'll try
+exponential backoff with up to 10 minutes between attempts.
 */
 
 import getPool from "@cocalc/database/pool";
 import { create, list, update } from "./people";
 import getLogger from "@cocalc/backend/logger";
+import { delay } from "awaiting";
+
 const logger = getLogger("salesloft:sync");
 const log = logger.debug.bind(logger);
 
 export async function sync(
-  account_ids: string[]
+  account_ids: string[],
+  delayMs: number = 1000, // wait this long after handling each account_id
+  maxDelayMs: number = 1000 * 60 * 15 // exponential backoff up to this long.
 ): Promise<{ update: number; create: number }> {
   const cocalc = getPool("long");
 
@@ -50,48 +72,69 @@ export async function sync(
   log("got ", rows.length, " records with an email address");
 
   const stats = { update: 0, create: 0 };
+  let currentDelayMs = 2 * delayMs;
   for (const row of rows) {
     log("considering ", row.email_address);
-    const data = toSalesloft(row);
-    if (row.salesloft_id) {
+    try {
+      await syncOne({ row, stats, cocalc });
+      currentDelayMs = 2 * delayMs; // success - reset this
+    } catch (err) {
+      log(`Failed to sync ${row.email_address}`, err);
       log(
-        "already exists in salesloft with salesloft_id = ",
-        row.salesloft_id,
-        "so updating..."
+        "We do not retry since, e.g., some errors are fatal, e.g., invalid email addresses."
       );
-      // person already exists in salesloft, so update it
-      await update(row.salesloft_id, data);
-      stats.update += 1;
-    } else {
-      log("does not exists in salesloft yet...");
-      // They *might* exist for some reason, even though we haven't explicitly linked them.
-      log("Do email search...");
-      const matches = await list({ email_addresses: [row.email_address] });
-      let salesloft_id;
-      if (matches.data.length > 0) {
-        log("They exist, so update them");
-        salesloft_id = matches.data[0].id;
-        await update(salesloft_id, data);
-        stats.update += 1;
-      } else {
-        log("Do not exist, so create them");
-        const result = await create(data);
-        salesloft_id = result.data.id;
-        stats.create += 1;
-      }
       log(
-        "Link this cocalc account ",
-        row.cocalc_account_id,
-        "to this salesloft account",
-        salesloft_id
+        `We do wait ${currentDelayMs}ms in case this is due to rate limits or other issues...`
       );
-      await cocalc.query(
-        "UPDATE accounts SET salesloft_id=$1 WHERE account_id=$2",
-        [salesloft_id, row.cocalc_account_id]
-      );
+      await delay(currentDelayMs);
+      // exponential delay
+      currentDelayMs = Math.min(currentDelayMs * 1.3, maxDelayMs);
     }
+    log(`Waiting ${delayMs}ms due to potential rate limits...`);
+    await delay(delayMs);
   }
   return stats;
+}
+
+async function syncOne({ row, stats, cocalc }) {
+  const data = toSalesloft(row);
+  if (row.salesloft_id) {
+    log(
+      "already exists in salesloft with salesloft_id = ",
+      row.salesloft_id,
+      "so updating..."
+    );
+    // person already exists in salesloft, so update it
+    await update(row.salesloft_id, data);
+    stats.update += 1;
+  } else {
+    log("does not exists in salesloft yet...");
+    // They *might* exist for some reason, even though we haven't explicitly linked them.
+    log("Do email search...");
+    const matches = await list({ email_addresses: [row.email_address] });
+    let salesloft_id;
+    if (matches.data.length > 0) {
+      log("They exist, so update them");
+      salesloft_id = matches.data[0].id;
+      await update(salesloft_id, data);
+      stats.update += 1;
+    } else {
+      log("Do not exist, so create them");
+      const result = await create(data);
+      salesloft_id = result.data.id;
+      stats.create += 1;
+    }
+    log(
+      "Link this cocalc account ",
+      row.cocalc_account_id,
+      "to this salesloft account",
+      salesloft_id
+    );
+    await cocalc.query(
+      "UPDATE accounts SET salesloft_id=$1 WHERE account_id=$2",
+      [salesloft_id, row.cocalc_account_id]
+    );
+  }
 }
 
 function toSalesloft({
@@ -123,12 +166,46 @@ function toSalesloft({
   return data;
 }
 
-// account_id's that were active during the given Date range.
-export async function addActiveUsers(howLongAgo: string = "1 day") {
+export async function addNewUsers(
+  howLongAgo: string = "1 day",
+  delayMs: number = 1000
+) {
+  return await sync(
+    await getAccountIds(
+      `created IS NOT NULL AND created >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NULL`
+    ),
+    delayMs
+  );
+}
+
+export async function addActiveUsers(
+  howLongAgo: string = "1 day",
+  delayMs: number = 1000
+) {
+  return await sync(
+    await getAccountIds(
+      `last_active >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NULL`
+    ),
+    delayMs
+  );
+}
+
+export async function updateActiveUsers(
+  howLongAgo: string = "1 day",
+  delayMs: number = 1000
+) {
+  return await sync(
+    await getAccountIds(
+      `last_active >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NOT NULL`
+    ),
+    delayMs
+  );
+}
+
+async function getAccountIds(condition: string): Promise<string[]> {
   const db = getPool("long");
   const { rows } = await db.query(
-    `SELECT account_id FROM accounts WHERE last_active >= NOW() - interval '${howLongAgo}' AND salesloft_id IS NULL`
+    `SELECT account_id FROM accounts WHERE ${condition}`
   );
-  const account_ids = rows.map(({ account_id }) => account_id);
-  return await sync(account_ids);
+  return rows.map(({ account_id }) => account_id);
 }

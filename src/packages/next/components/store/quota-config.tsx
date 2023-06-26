@@ -15,10 +15,9 @@ import {
 import { Col, Divider, Form, Radio, Row, Space, Tabs, Typography } from "antd";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
-import { Preset, PRESETS, Presets } from "./quota-config-presets";
+import { PRESETS, Preset, Presets } from "./quota-config-presets";
 
 const { Text } = Typography;
-const { TabPane } = Tabs;
 
 const EXPERT_CONFIG = "Expert configuration";
 
@@ -389,30 +388,29 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           tabPosition="top"
           size="middle"
           centered={true}
-        >
-          <TabPane
-            tab={
-              <span>
-                <Icon name="lightbulb" />
-                Quota presets
-              </span>
-            }
-            key="preset"
-          >
-            {presets()}
-          </TabPane>
-          <TabPane
-            tab={
-              <span>
-                <Icon name="wrench" />
-                {EXPERT_CONFIG}
-              </span>
-            }
-            key="expert"
-          >
-            {detailed()}
-          </TabPane>
-        </Tabs>
+          items={[
+            {
+              key: "preset",
+              label: (
+                <span>
+                  <Icon name="lightbulb" />
+                  Quota presets
+                </span>
+              ),
+              children: presets(),
+            },
+            {
+              key: "expert",
+              label: (
+                <span>
+                  <Icon name="wrench" />
+                  {EXPERT_CONFIG}
+                </span>
+              ),
+              children: detailed(),
+            },
+          ]}
+        />
       );
     }
   }

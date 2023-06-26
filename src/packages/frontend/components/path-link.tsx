@@ -3,16 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux } from "@cocalc/frontend/app-framework";
 import {
   endswith,
   path_split,
   separate_file_extension,
-  should_open_in_foreground,
   trunc_middle,
 } from "@cocalc/util/misc";
-import { Tip } from "./tip";
 import { COLORS } from "@cocalc/util/theme";
+import { handle_log_click } from "../project/history/utils";
+import { Tip } from "./tip";
 
 interface Props {
   path: string;
@@ -90,13 +89,3 @@ export const PathLink: React.FC<Props> = ({
     return render_link(name);
   }
 };
-
-export function handle_log_click(e, path, project_id): void {
-  e.preventDefault();
-  const switch_to = should_open_in_foreground(e);
-  redux.getProjectActions(project_id).open_file({
-    path,
-    foreground: switch_to,
-    foreground_project: switch_to,
-  });
-}

@@ -22,7 +22,7 @@ import {
   Icon,
   Loading,
   r_join,
-  Space,
+  Gap,
   Title,
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -158,7 +158,7 @@ export const SiteLicenses: React.FC<{}> = () => {
           style={{ margin: "15px 0", float: "right" }}
         >
           <Icon name="plus" spin={creating} />
-          <Space /> Create license...
+          <Gap /> Create license...
         </Button>
       </Popconfirm>
     );
@@ -264,14 +264,14 @@ export const SiteLicenses: React.FC<{}> = () => {
         {render_error()}
         <div>
           {render_search()}
-          <Space />
-          <Space />
+          <Gap />
+          <Gap />
           {render_search_button()}
-          <Space />
-          <Space />
+          <Gap />
+          <Gap />
           {render_create_new_license()}
-          <Space />
-          <Space />
+          <Gap />
+          <Gap />
           {render_search_restriction_note()}
           {render_export()}
           {render_loading()}

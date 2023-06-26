@@ -13,7 +13,7 @@ Headings of the task list:
 
 import { Row, Col } from "../../antd-bootstrap";
 import { React } from "../../app-framework";
-import { Icon, Space } from "../../components";
+import { Icon, Gap } from "../../components";
 
 import { HEADINGS, HEADINGS_DIR } from "./headings-info";
 import { TaskActions } from "./actions";
@@ -41,7 +41,7 @@ const Heading: React.FC<HeadingProps> = React.memo(
         {heading}
         {dir != null && (
           <span>
-            <Space />
+            <Gap />
             {dir == "asc" ? (
               <Icon name="caret-down" />
             ) : (

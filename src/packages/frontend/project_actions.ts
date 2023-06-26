@@ -3088,9 +3088,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == null) return; // no store
     if (store.get("project_log_all") != null) return; // already done
-    this.setState({ project_log: undefined });
+    // Dear future dev: don't delete the project_log table
+    // https://github.com/sagemathinc/cocalc/issues/6765
     store.init_table("project_log_all");
-    this.remove_table("project_log");
   }
 
   // called when project page is shown

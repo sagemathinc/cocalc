@@ -6,7 +6,7 @@
 /* Link to purchasing a license */
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Space } from "@cocalc/frontend/components";
+import { Icon, Gap } from "@cocalc/frontend/components";
 import { Button } from "antd";
 import { PurchaseOneLicense } from "./purchase";
 
@@ -21,7 +21,7 @@ export const PurchaseOneLicenseLink: React.FC = () => {
     <div>
       <Button disabled={expand} type="primary" onClick={() => set_expand(true)}>
         <Icon name={"shopping-cart"} />
-        <Space /> Buy a license...
+        <Gap /> Buy a license...
       </Button>
       {expand && (
         <>

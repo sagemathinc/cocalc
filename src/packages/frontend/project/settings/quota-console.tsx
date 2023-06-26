@@ -21,7 +21,7 @@ import {
   Icon,
   LabeledRow,
   Loading,
-  Space,
+  Gap,
   Tip,
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -375,7 +375,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     }
     return (
       <span>
-        <Space /> (<b>{disk} MB</b> used)
+        <Gap /> (<b>{disk} MB</b> used)
       </span>
     );
   }
@@ -386,7 +386,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     }
     return (
       <span>
-        <Space /> (<b>{memory} MB</b> used)
+        <Gap /> (<b>{memory} MB</b> used)
       </span>
     );
   }
@@ -440,7 +440,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
       ),
       edit: (
         <span>
-          <b>{render_input("disk_quota")} MB</b> disk space limit <Space />{" "}
+          <b>{render_input("disk_quota")} MB</b> disk space limit <Gap />{" "}
           {render_disk_used(disk)}
         </span>
       ),
