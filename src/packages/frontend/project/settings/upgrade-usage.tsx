@@ -6,7 +6,6 @@
 import { Button, Card, Typography } from "antd";
 import { List } from "immutable";
 import { join } from "path";
-
 import {
   CSS,
   React,
@@ -19,7 +18,6 @@ import {
   Icon,
   Loading,
   Paragraph,
-  SettingBox,
   Title,
   UpgradeAdjustor,
 } from "@cocalc/frontend/components";
@@ -161,11 +159,11 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       if (dedicated_resources?.vm !== false) return;
       const noUpgrades = is_zero_map(upgrades_you_can_use);
       return (
-        <div style={UPGRADE_BUTTON_STYLE}>
+        <div style={{ ...UPGRADE_BUTTON_STYLE, marginTop: "15px" }}>
           {noUpgrades ? (
             <Typography.Text type="secondary">
               <Typography.Text strong>Note:</Typography.Text> You can increase
-              the above quotas below:
+              the above limits via Licenses or Pay As You Go below:
             </Typography.Text>
           ) : (
             <>{render_contributions()}</>
@@ -362,45 +360,24 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     if (project == null) {
       return <Loading theme="medium" transparent />;
     }
-
-    switch (mode) {
-      case "project":
-        return (
-          <SettingBox
-            title="Project usage and quotas"
-            icon="dashboard"
-            bodyStyle={{ padding: 0 }}
-          >
-            {render_run_quota()}
-            <div style={{ padding: "16px" }}>
-              {render_upgrades_button()}
-              {renderQuotaEditor()}
-              {render_dedicated_disks()}
-              {render_site_license()}
-              {render_support()}
-            </div>
-          </SettingBox>
-        );
-      case "flyout":
-        return (
-          <>
-            <Title level={4}>Usage and Quotas</Title>
-            <Paragraph
-              type="secondary"
-              ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
-            >
-              This table lists project quotas, their current usage, and their
-              value/limit. Click on a row to show more details about it. If the
-              project is not running, you see the last known quota values.
-            </Paragraph>
-            {render_run_quota()}
-            {render_upgrades_button()}
-            {renderQuotaEditor()}
-            {render_dedicated_disks()}
-            {render_site_license()}
-            {render_support()}
-          </>
-        );
-    }
+    return (
+      <div style={{ maxWidth: "1000px" }}>
+        <Title level={4}>Usage and Quotas</Title>
+        <Paragraph
+          type="secondary"
+          ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
+        >
+          This table lists project quotas, their current usage, and their
+          value/limit. Click on a row to show more details about it. If the
+          project is not running, you see the last known quota values.
+        </Paragraph>
+        {render_run_quota()}
+        {render_upgrades_button()}
+        {renderQuotaEditor()}
+        {render_dedicated_disks()}
+        {render_site_license()}
+        {render_support()}
+      </div>
+    );
   }
 );

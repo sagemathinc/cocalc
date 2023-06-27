@@ -20,6 +20,7 @@ interface Props {
   quotaState: Partial<QuotaParams> | null;
   setQuotaState: (state: Partial<QuotaParams> | null) => void;
   maxQuotas?: Partial<QuotaParams> | null;
+  disabled?: boolean;
 }
 
 export default function QuotaRow({
@@ -27,6 +28,7 @@ export default function QuotaRow({
   quotaState,
   setQuotaState,
   maxQuotas,
+  disabled,
 }: Props) {
   const kucalc: string = useTypedRedux("customize", "kucalc");
   const params_data = PROJECT_UPGRADES.params[name];
@@ -65,6 +67,7 @@ export default function QuotaRow({
             <>
               {" "}
               <Button
+                disabled={disabled}
                 type="text"
                 size="small"
                 onClick={() => {
@@ -89,6 +92,7 @@ export default function QuotaRow({
         setQuotaState={setQuotaState}
         units={units}
         max={max}
+        disabled={disabled}
       />
     </LabeledRow>
   );

@@ -51,24 +51,13 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     savedQuotaState
   );
 
-  const { runningWithUpgrade, runingWithDisplayedUpgrade } = useMemo(() => {
-    const runningWithUpgrade =
+  const runningWithUpgrade = useMemo(() => {
+    return (
       project?.getIn(["state", "state"]) == "running" &&
       project?.getIn(["run_quota", "pay_as_you_go", "account_id"]) ==
-        webapp_client.account_id;
-    let runingWithDisplayedUpgrade = runningWithUpgrade;
-    if (runingWithDisplayedUpgrade) {
-      const quota =
-        project?.getIn(["run_quota", "pay_as_you_go", "quota"])?.toJS() ?? {};
-      for (const key in quotaState) {
-        if (quotaState[key] != quota[key]) {
-          runingWithDisplayedUpgrade = false;
-          break;
-        }
-      }
-    }
-    return { runningWithUpgrade, runingWithDisplayedUpgrade };
-  }, [project, quotaState]);
+        webapp_client.account_id
+    );
+  }, [project]);
 
   const [maxQuotas, setMaxQuotas] = useState<ProjectQuota | null>(null);
   const [error, setError] = useState<string>("");
@@ -252,11 +241,12 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     <Card
       style={style}
       title={
-        <div style={{ marginTop: "5px" }}>
+        <h4>
           <Icon name="compass" /> Pay As You Go
-          <RunningStatus project={project} style={{ marginRight: "8px" }} />
+          <RunningStatus project={project} />
           {runningWithUpgrade && (
             <>
+              {" "}
               (Total:{" "}
               <DynamicallyUpdatingCost
                 costPerHour={
@@ -282,7 +272,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
               {status}
             </Tag>
           ) : undefined}
-        </div>
+        </h4>
       }
       type="inner"
       extra={<Information />}
@@ -302,8 +292,8 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           >
             you purchased
           </a>
-          . You will be charged <b>by the second</b> only when the project is
-          not stopped.
+          . You will be charged <b>by the second</b> until the project is
+          stopped.
           <div>
             <Popconfirm
               title={"Stop project?"}
@@ -333,35 +323,34 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           <Icon name="credit-card" /> Upgrade...
         </Button>
       )}
-      <div style={{ margin: "15px 0" }}>
-        {editing && (
-          <>
-            <Button onClick={handleClose}>Close</Button>
-            <Popconfirm
-              title="Run project with exactly these quotas?"
-              description={
-                <div style={{ width: "350px" }}>
-                  Project will restart with quotas applied. You will be charged
-                  by the second for usage during this session only, and can stop
-                  your project at any time. <br />
-                  NOTE: No licenses will be applied.
-                </div>
-              }
-              onConfirm={handleRun}
-              okText="Upgrade"
-              cancelText="No"
-            >
-              <Button
-                style={{ marginLeft: "8px" }}
-                type="primary"
-                disabled={runingWithDisplayedUpgrade}
-              >
-                <Icon name="save" /> Upgrade Project...
-              </Button>
-            </Popconfirm>
-          </>
-        )}
-      </div>{" "}
+      {editing && !runningWithUpgrade && (
+        <div style={{ marginTop: "15px" }}>
+          <Button onClick={handleClose}>Close</Button>
+          <Popconfirm
+            title="Run project with exactly these quotas?"
+            description={
+              <div style={{ width: "400px" }}>
+                The project will restart with your quotas applied.{" "}
+                <b>
+                  You will be charged by the second for usage during this
+                  session.
+                </b>
+                <br /> <br />
+                NOTES: No licenses will be applied. Only one person can upgrade
+                a project at once, though all collaborators get to use the
+                upgraded version of the project.
+              </div>
+            }
+            onConfirm={handleRun}
+            okText="Upgrade"
+            cancelText="No"
+          >
+            <Button style={{ marginLeft: "8px" }} type="primary">
+              <Icon name="save" /> Upgrade Project...
+            </Button>
+          </Popconfirm>
+        </div>
+      )}
       {editing && (
         <>
           {error && (
@@ -374,7 +363,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
               onClose={() => setError("")}
             />
           )}
-          <div>
+          <div style={{ margin: "15px 0" }}>
             <Tag
               icon={<Icon name="battery-quarter" />}
               style={{ cursor: "pointer" }}
@@ -418,6 +407,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                 quotaState={quotaState}
                 setQuotaState={setQuotaState}
                 maxQuotas={maxQuotas}
+                disabled={runningWithUpgrade}
               />
             ))}
         </>
@@ -426,7 +416,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   );
 }
 
-export function RunningStatus({ project, style }) {
+function RunningStatus({ project }) {
   const user_map = useTypedRedux("users", "user_map");
   if (project?.getIn(["state", "state"]) != "running") {
     return (
@@ -448,7 +438,7 @@ export function RunningStatus({ project, style }) {
     );
   }
   return (
-    <span style={style}>
+    <span>
       <Tag style={{ marginLeft: "30px" }} color="success">
         Active
       </Tag>
@@ -459,5 +449,36 @@ export function RunningStatus({ project, style }) {
         <User account_id={pay_as_you_go_account_id} user_map={user_map} />
       )}
     </span>
+  );
+}
+
+// This is used specifically for the fixed tabs action
+// bar, hence the weird marginInlineEnd below to get
+// it to center properly.
+// Also, when we also have pay as you go remote GPU
+// Jupyter kernels, then this will be the sum of them
+// and the pay as you go project...
+export function PayAsYouGoCost({ project_id }) {
+  const PAYG = useRedux([
+    "projects",
+    "project_map",
+    project_id,
+    "run_quota",
+    "pay_as_you_go",
+  ]);
+  if (PAYG?.get("account_id") != webapp_client.account_id) {
+    // only show this when YOU are paying.
+    return null;
+  }
+  const quota = PAYG.get("quota")?.toJS();
+  if (!quota || !quota.cost || !quota.start) {
+    return null;
+  }
+  return (
+    <div style={{ textAlign: "center" }}>
+      <Tag color="green" style={{ marginInlineEnd: 0 }}>
+        <DynamicallyUpdatingCost costPerHour={quota.cost} start={quota.start} />
+      </Tag>
+    </div>
   );
 }

@@ -8,6 +8,7 @@ interface Props {
   setQuotaState: (state: Partial<QuotaParams> | null) => void;
   units?: string;
   max?: number;
+  disabled?: boolean;
 }
 
 export default function EditQuota({
@@ -16,6 +17,7 @@ export default function EditQuota({
   setQuotaState,
   units,
   max,
+  disabled,
 }: Props) {
   if (quotaState == null) {
     return null;
@@ -27,7 +29,11 @@ export default function EditQuota({
   ) {
     if (max != null && max == 0) {
       return (
-        <Checkbox key={name} disabled style={{ marginLeft: 0 }}>
+        <Checkbox
+          key={name}
+          disabled
+          style={{ marginLeft: 0 }}
+        >
           Not supported
         </Checkbox>
       );
@@ -40,6 +46,7 @@ export default function EditQuota({
         onChange={(e) =>
           setQuotaState({ ...quotaState, [name]: e.target.checked ? 1 : 0 })
         }
+        disabled={disabled}
       >
         {quotaState[name] ? "Enabled" : "Disabled"}
       </Checkbox>
@@ -70,6 +77,7 @@ export default function EditQuota({
             [name]: internalValue(value, units),
           });
         }}
+        disabled={disabled}
       />
     );
   }

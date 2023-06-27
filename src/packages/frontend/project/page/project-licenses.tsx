@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Row, Col } from "antd";
+import { Divider } from "antd";
 import { redux } from "@cocalc/frontend//app-framework";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -88,19 +88,13 @@ export function ProjectLicenses({ project_id }): JSX.Element {
         <Icon name={ICON_UPGRADES} /> Quotas and {TITLE_UPGRADES}
       </Title>
       <Paragraph>
-        Licenses change the quotas and features available to a project.
+        Licenses and pay as you go upgrades change the quotas and features
+        available to a project.
       </Paragraph>
       {renderAdmin()}
-      <div>
-        <Row>
-          <Col md={12} style={{ padding: "15px 30px" }}>
-            {renderBody()}
-          </Col>
-          <Col md={12} style={{ padding: "15px 30px" }}>
-            <Purchases project_id={project_id} group={true} />
-          </Col>
-        </Row>
-      </div>
+      {renderBody()}
+      <Divider />
+      <Purchases project_id={project_id} group={true} />
     </div>
   );
 }
