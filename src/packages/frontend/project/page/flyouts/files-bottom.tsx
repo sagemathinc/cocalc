@@ -250,7 +250,8 @@ export function FilesBottom({
         }
       >
         <Button type="primary" size="small" onClick={openAllSelectedFiles}>
-          <Icon name="external-link" /> Open
+          <Icon name="edit-filled" /> Edit
+          {checked_files.size > 1 ? " all" : ""}
         </Button>
       </Popover>
     );

@@ -11,7 +11,6 @@ import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import {
-  CSS,
   ProjectActions,
   React,
   TypedMap,
@@ -29,7 +28,6 @@ import {
 import { Icon, Loading } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
@@ -322,11 +320,11 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
   }
 
-  function toggleSelected(index: number, fn: string) {
+  function toggleSelected(index: number, fn: string, nextState?: boolean) {
     // never select "..", only calls for trouble
     if (fn === "..") return;
     fn = path_to_file(current_path, fn);
-    if (checked_files.includes(fn)) {
+    if (nextState != null ? !nextState : checked_files.includes(fn)) {
       actions?.set_file_list_unchecked(List([fn]));
     } else {
       actions?.set_file_list_checked([fn]);
@@ -435,16 +433,6 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
   }
 
-  function renderItemIcon(
-    item: DirectoryListingEntry,
-    style: CSS
-  ): JSX.Element {
-    const iconName = item.isdir
-      ? "folder-open"
-      : file_options(item.name)?.icon ?? "file";
-    return <Icon name={iconName} style={style} />;
-  }
-
   function showFileSharingDialog(file?: { name: string }) {
     if (!file) return;
     actions?.set_active_tab("files");
@@ -472,7 +460,6 @@ export function FilesFlyout({ project_id }): JSX.Element {
         onMouseDown={() => {
           setSelectionOnMouseDown(window.getSelection()?.toString() ?? "");
         }}
-        renderIcon={renderItemIcon}
         itemStyle={fileItemStyle(age ?? 0, mask)}
         onClose={(e: React.MouseEvent, name: string) => {
           e.stopPropagation();
@@ -483,13 +470,17 @@ export function FilesFlyout({ project_id }): JSX.Element {
         }}
         onPublic={() => showFileSharingDialog(directoryFiles[index])}
         selected={isSelected}
+        showCheckbox={checked_files?.size > 0}
+        onChecked={(nextState: boolean) => {
+          toggleSelected(index, item.name, nextState);
+        }}
       />
     );
   }
 
   function renderListing(): JSX.Element {
     const files = directoryListings.get(current_path);
-    if (files == null) return <Loading  theme="medium" transparent />;
+    if (files == null) return <Loading theme="medium" transparent />;
 
     return (
       <Virtuoso
@@ -640,7 +631,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   }
 
   function staleListingWarning() {
-    if (projectIsRunning || directoryFiles?.length === 0) return;
+    if (projectIsRunning || directoryFiles != null) return;
 
     return (
       <Alert
