@@ -38,6 +38,7 @@ import {
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
 import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import {
   copy_without,
   path_to_file,
@@ -87,6 +88,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     "active_file_sort"
   );
   const hidden = useTypedRedux({ project_id }, "show_hidden");
+  const kucalc = useTypedRedux("customize", "kucalc");
   const show_masked = useTypedRedux({ project_id }, "show_masked");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
@@ -590,6 +592,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
             flexDirection: "row",
             justifyContent: "space-between",
             width: "100%",
+            gap: "5px",
           }}
         >
           <Input
@@ -601,7 +604,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
             onChange={(e) => setSearch(e.target.value)}
             onFocus={() => setScrollIdxHide(false)}
             onBlur={() => setScrollIdxHide(true)}
-            style={{ flex: "1", marginRight: "10px" }}
+            style={{ flex: "1" }}
             allowClear
             prefix={<Icon name="search" />}
           />
@@ -624,6 +627,20 @@ export function FilesFlyout({ project_id }): JSX.Element {
               <Icon name={"mask"} />
             </BootstrapButton>
           </Space.Compact>
+          {kucalc === KUCALC_COCALC_COM ? (
+            <Space.Compact direction="horizontal" size="small">
+              <Button
+                onClick={() => {
+                  actions?.open_directory(".snapshots");
+                  track("snapshots", { action: "open", where: "flyout-files" });
+                }}
+                title={
+                  "Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."
+                }
+                icon={<Icon name={"life-ring"} />}
+              />
+            </Space.Compact>
+          ) : undefined}
         </div>
         {staleListingWarning()}
       </Space>
@@ -631,7 +648,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   }
 
   function staleListingWarning() {
-    if (projectIsRunning || directoryFiles != null) return;
+    if (projectIsRunning || (directoryFiles?.length ?? 0) === 0) return;
 
     return (
       <Alert

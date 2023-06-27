@@ -8,10 +8,7 @@ import { Button, Collapse, Descriptions, Space, Tooltip } from "antd";
 import immutable from "immutable";
 import { debounce } from "lodash";
 
-import {
-  Button as BSButton,
-  ButtonGroup,
-} from "@cocalc/frontend/antd-bootstrap";
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   useActions,
@@ -477,7 +474,7 @@ export function FilesBottom({
             <ConnectionStatusIcon status={connectionStatus} />
           </span>
         ) : undefined}
-        <ButtonGroup>
+        <Space.Compact size="small">
           <Tooltip title="Reduce font size">
             <Button
               size="small"
@@ -486,9 +483,8 @@ export function FilesBottom({
                 e.stopPropagation();
                 setTerminalFontSize((s) => s - 1);
               }}
-            >
-              A-
-            </Button>
+              icon={<Icon name="minus" />}
+            />
           </Tooltip>
           <Tooltip title="Increase font size">
             <Button
@@ -498,12 +494,11 @@ export function FilesBottom({
                 e.stopPropagation();
                 setTerminalFontSize((s) => s + 1);
               }}
-            >
-              A+
-            </Button>
+              icon={<Icon name="plus" />}
+            />
           </Tooltip>
-        </ButtonGroup>
-        <ButtonGroup>
+        </Space.Compact>
+        <Space.Compact size="small">
           <Tooltip title="Change directory to current one">
             <Button
               size="small"
@@ -528,7 +523,7 @@ export function FilesBottom({
           >
             <Icon name="swap" rotate={"90"} />
           </BSButton>
-        </ButtonGroup>
+        </Space.Compact>
       </Space>
     );
   }

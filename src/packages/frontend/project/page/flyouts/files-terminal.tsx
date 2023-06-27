@@ -234,7 +234,8 @@ export function TerminalFlyout({
     // see frame-editors/terminal-editor/actions::run_command
     const clean = "\x05\x15"; // move cursor to end of line, then clear line
     const nextCwd = escapeBashChangeDirPath(current_path);
-    const cmd = `cd "$HOME/${nextCwd}"`;
+    // start with a space to avoid recording in history
+    const cmd = ` cd "$HOME/${nextCwd}"`;
     // this will end up in a write buffer, hence it should be ok to do right at the beginning
     terminalRef.current.conn_write(`${clean}${cmd}\n`);
   }, [current_path, syncPath, sync]);
