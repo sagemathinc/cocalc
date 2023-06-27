@@ -10,7 +10,7 @@ import {
 } from "@ant-design/colors";
 import { Button, Tooltip } from "antd";
 
-import { CSS, useRef } from "@cocalc/frontend/app-framework";
+import { CSS, React, useRef } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { DirectoryListingEntry } from "@cocalc/frontend/project/explorer/types";
@@ -95,20 +95,22 @@ interface FileListItemProps {
   showCheckbox?: boolean;
 }
 
-export function FileListItem({
-  onClick,
-  onClose,
-  onOpen,
-  onPublic,
-  onChecked,
-  item,
-  itemStyle,
-  tooltip,
-  selected,
-  onMouseDown,
-  multiline = false,
-  showCheckbox,
-}: FileListItemProps): JSX.Element {
+export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
+  const {
+    onClick,
+    onClose,
+    onOpen,
+    onPublic,
+    onChecked,
+    item,
+    itemStyle,
+    tooltip,
+    selected,
+    onMouseDown,
+    multiline = false,
+    showCheckbox,
+  } = props;
+
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -255,7 +257,7 @@ export function FileListItem({
       {renderBody()}
     </div>
   );
-}
+});
 
 // Depending on age, highlight  entries from the past past 24 hours and week
 export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {

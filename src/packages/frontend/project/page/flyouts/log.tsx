@@ -16,9 +16,8 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, IconName, Loading, TimeAgo } from "@cocalc/frontend/components";
+import { Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
-import { file_options } from "@cocalc/frontend/editor-tmp";
 import { LogEntry } from "@cocalc/frontend/project/history/log-entry";
 import {
   EventRecordMap,
@@ -159,7 +158,11 @@ interface Props {
   wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
 }
 
-export function LogFlyout({ max = 1000, project_id, wrap }: Props): JSX.Element {
+export function LogFlyout({
+  max = 1000,
+  project_id,
+  wrap,
+}: Props): JSX.Element {
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
   const project_log = useTypedRedux({ project_id }, "project_log");
@@ -198,8 +201,6 @@ export function LogFlyout({ max = 1000, project_id, wrap }: Props): JSX.Element 
     const time = entry.time;
     const account_id = entry.account_id;
     const path = entry.filename;
-    const info = file_options(path);
-    const name: IconName = info.icon ?? "file";
     const isOpened: boolean = openFiles.some((p) => p === path);
     const isActive: boolean = activePath === path;
 
@@ -209,7 +210,6 @@ export function LogFlyout({ max = 1000, project_id, wrap }: Props): JSX.Element 
         itemStyle={fileItemStyle(time?.getTime())}
         multiline={true}
         selected={!scollIdxHide && index === scrollIdx}
-        renderIcon={(_item, style) => <Icon style={style} name={name} />}
         onClick={(e) => handle_log_click(e, path, project_id)}
         onClose={(e: React.MouseEvent, path: string) => {
           e.stopPropagation();
@@ -248,7 +248,7 @@ export function LogFlyout({ max = 1000, project_id, wrap }: Props): JSX.Element 
 
   if (project_log == null) {
     redux.getProjectStore(project_id).init_table("project_log"); // kick off loading it
-    return <Loading theme="medium" transparent/>;
+    return <Loading theme="medium" transparent />;
   }
 
   function doScroll(dx: -1 | 1) {
@@ -266,6 +266,7 @@ export function LogFlyout({ max = 1000, project_id, wrap }: Props): JSX.Element 
   function open(e: React.MouseEvent | React.KeyboardEvent, index: number) {
     if (mode !== "files") return;
     const file: OpenedFile = log[index];
+    if (file == null) return;
     track("open-file", {
       project_id,
       path: file.filename,
@@ -274,7 +275,7 @@ export function LogFlyout({ max = 1000, project_id, wrap }: Props): JSX.Element 
     handle_log_click(e, file.filename, project_id);
   }
 
-  function onKeyUpHandler(e) {
+  function onKeyDownHandler(e) {
     // if arrow key down or up, then scroll to next item
     const dx = e.code === "ArrowDown" ? 1 : e.code === "ArrowUp" ? -1 : 0;
     if (dx != 0) {
@@ -286,12 +287,15 @@ export function LogFlyout({ max = 1000, project_id, wrap }: Props): JSX.Element 
       if (scrollIdx != null) {
         open(e, scrollIdx);
         setScrollIdx(null);
+      } else if (searchTerm != "" && log.length > 0) {
+        open(e, 0);
       }
     }
 
-    // if esc key is pressed, empty the search term
+    // if esc key is pressed, empty the search term and reset scroll index
     if (e.key === "Escape") {
       setSearchTerm("");
+      setScrollIdx(null);
     }
   }
 
@@ -345,7 +349,7 @@ export function LogFlyout({ max = 1000, project_id, wrap }: Props): JSX.Element 
         size="small"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        onKeyUp={onKeyUpHandler}
+        onKeyDown={onKeyDownHandler}
         onFocus={() => setScrollIdxHide(false)}
         onBlur={() => setScrollIdxHide(true)}
         allowClear

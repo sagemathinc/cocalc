@@ -295,6 +295,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   ) {
     e.stopPropagation();
     const file = directoryFiles[index];
+    if (file == null) return;
 
     if (!skip) {
       const fullPath = path_to_file(current_path, file.name);
@@ -426,12 +427,15 @@ export function FilesFlyout({ project_id }): JSX.Element {
       if (scrollIdx != null) {
         open(e, scrollIdx);
         setScrollIdx(null);
+      } else if (search != "" && directoryFiles.length > 0) {
+        open(e, 0);
       }
     }
 
-    // if esc key is pressed, clear search and reset
+    // if esc key is pressed, clear search and reset scroll index
     else if (e.key === "Escape") {
       setSearch("");
+      setScrollIdx(null);
     }
   }
 
