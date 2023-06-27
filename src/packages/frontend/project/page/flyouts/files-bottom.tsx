@@ -4,7 +4,7 @@
  */
 
 import { CaretRightOutlined } from "@ant-design/icons";
-import { Button, Collapse, Descriptions, Popover, Space } from "antd";
+import { Button, Collapse, Descriptions, Space, Tooltip } from "antd";
 import immutable from "immutable";
 import { debounce } from "lodash";
 
@@ -198,7 +198,7 @@ export function FilesBottom({
             const { name: actionName, icon, hideFlyout } = FILE_ACTIONS[name];
             if (hideFlyout) return;
             return (
-              <Popover key={name} content={`${actionName}...`}>
+              <Tooltip key={name} title={`${actionName}...`}>
                 <Button
                   size="small"
                   key={name}
@@ -214,7 +214,7 @@ export function FilesBottom({
                 >
                   <Icon name={icon} />
                 </Button>
-              </Popover>
+              </Tooltip>
             );
           })}
         </Space.Compact>
@@ -242,8 +242,8 @@ export function FilesBottom({
   function renderOpenFile() {
     if (checked_files.size === 0) return;
     return (
-      <Popover
-        content={
+      <Tooltip
+        title={
           checked_files.size === 1
             ? "Or double-click file in listing"
             : "Open all selected files"
@@ -253,7 +253,7 @@ export function FilesBottom({
           <Icon name="edit-filled" /> Edit
           {checked_files.size > 1 ? " all" : ""}
         </Button>
-      </Popover>
+      </Tooltip>
     );
   }
 
@@ -272,8 +272,8 @@ export function FilesBottom({
     return (
       <>
         {showDownload ? (
-          <Popover
-            content={
+          <Tooltip
+            title={
               <>
                 <Icon name="cloud-download" /> Download this {sizeStr} file
                 <br />
@@ -294,10 +294,10 @@ export function FilesBottom({
               }}
               icon={<Icon name="cloud-download" />}
             />
-          </Popover>
+          </Tooltip>
         ) : undefined}
         {showView ? (
-          <Popover content="View file in new tab">
+          <Tooltip title="View file in new tab">
             <Button
               size="small"
               href={url}
@@ -308,7 +308,7 @@ export function FilesBottom({
               }}
               icon={<Icon name="eye" />}
             />
-          </Popover>
+          </Tooltip>
         ) : undefined}
       </>
     );
@@ -478,7 +478,7 @@ export function FilesBottom({
           </span>
         ) : undefined}
         <ButtonGroup>
-          <Popover content="Reduce font size">
+          <Tooltip title="Reduce font size">
             <Button
               size="small"
               disabled={disabled}
@@ -489,8 +489,8 @@ export function FilesBottom({
             >
               A-
             </Button>
-          </Popover>
-          <Popover content="Increase font size">
+          </Tooltip>
+          <Tooltip title="Increase font size">
             <Button
               size="small"
               disabled={disabled}
@@ -501,10 +501,10 @@ export function FilesBottom({
             >
               A+
             </Button>
-          </Popover>
+          </Tooltip>
         </ButtonGroup>
         <ButtonGroup>
-          <Popover content="Change directory to current one">
+          <Tooltip title="Change directory to current one">
             <Button
               size="small"
               disabled={disabled}
@@ -515,7 +515,7 @@ export function FilesBottom({
             >
               <Icon name="arrow-down" />
             </Button>
-          </Popover>
+          </Tooltip>
           <BSButton
             bsSize="xsmall"
             active={sync}

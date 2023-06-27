@@ -4,7 +4,7 @@
  */
 
 import { ReloadOutlined } from "@ant-design/icons";
-import { Button, Collapse, Popover, Space } from "antd";
+import { Button, Collapse, Tooltip, Space } from "antd";
 
 import {
   redux,
@@ -169,7 +169,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
 
   function featuresRealodButton() {
     return (
-      <Popover content="Reload features and configuration">
+      <Tooltip title="Reload features and configuration">
         <Button
           size="small"
           onClick={(e) => {
@@ -181,13 +181,13 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
           icon={<ReloadOutlined />}
           disabled={configuration_loading}
         />
-      </Popover>
+      </Tooltip>
     );
   }
 
   function renderDatastoreRelaod() {
     return (
-      <Popover content={`Reload ${DATASTORE_TITLE} information`}>
+      <Tooltip title={`Reload ${DATASTORE_TITLE} information`}>
         <Button
           size="small"
           icon={<ReloadOutlined />}
@@ -196,7 +196,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
             setDatastoreReload((prev) => prev + 1);
           }}
         />
-      </Popover>
+      </Tooltip>
     );
   }
 

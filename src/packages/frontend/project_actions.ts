@@ -375,7 +375,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (misc.path_to_tab(path) === active_project_tab) {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
-        next_active_tab = "files";
+        const account_store = this.redux.getStore("account") as any;
+        const flyoutsDefault = account_store?.getIn(
+          ["other_settings", "flyouts_default"],
+          false
+        );
+        next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;
 

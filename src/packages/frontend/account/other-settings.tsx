@@ -132,7 +132,6 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
-
   private render_hide_project_popovers(): Rendered {
     return (
       <Checkbox
@@ -339,6 +338,15 @@ export class OtherSettings extends Component<Props> {
         >
           Disable the markdown code bar in all markdown documents. Checking this
           hides the extra run, copy, and explain buttons in fenced code blocks.
+        </Checkbox>
+        <Checkbox
+          checked={!!this.props.other_settings.get("flyouts_default")}
+          onChange={(e) => {
+            this.on_change("flyouts_default", e.target.checked);
+          }}
+        >
+          <strong>Flyouts as default</strong>: Enabling this makes the vertical
+          bars for files, logs, settings, etc. the default.
         </Checkbox>
         {this.render_new_filenames()}
         {this.render_default_file_sort()}

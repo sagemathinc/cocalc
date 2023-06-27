@@ -8,7 +8,7 @@ import {
   orange as ANTD_ORANGE,
   yellow as ANTD_YELLOW,
 } from "@ant-design/colors";
-import { Button, Popover, Tooltip } from "antd";
+import { Button, Tooltip } from "antd";
 
 import { CSS, useRef } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
@@ -144,7 +144,7 @@ export function FileListItem({
   function renderPublishedIcon(): JSX.Element | undefined {
     if (!item.is_public) return undefined;
     return (
-      <Popover content="File is published" placement="right">
+      <Tooltip title="File is published" placement="right">
         <Button
           size="small"
           type="ghost"
@@ -155,7 +155,7 @@ export function FileListItem({
             onPublic?.(e);
           }}
         />
-      </Popover>
+      </Tooltip>
     );
   }
 
