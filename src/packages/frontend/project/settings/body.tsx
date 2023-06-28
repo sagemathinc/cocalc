@@ -134,7 +134,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
           <SettingBox title="Quotas and Licenses moved" icon="move">
             <Paragraph>
               The panel for checking up on quotas, adding licenses and
-              configuring updates has been moved to the "Licenses" tab.
+              configuring updates has been moved to the "{TITLE_UPGRADES}" tab.
             </Paragraph>
             <NewFileButton
               name={`Moved to "${TITLE_UPGRADES}" tab.`}

@@ -458,6 +458,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         const new_fn = default_filename(opts.new_ext, this.project_id);
         this.set_next_default_filename(new_fn);
         break;
+
       case "log":
         if (opts.change_history) {
           this.push_state("log", "");

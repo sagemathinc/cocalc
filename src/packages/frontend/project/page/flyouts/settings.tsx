@@ -80,7 +80,8 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   }, []);
 
   function renderState() {
-    const s = state?.get("state");
+    if (state == null) return <Loading />;
+    const s = state.get("state");
     const iconName = COMPUTE_STATES[s]?.icon;
     const str = COMPUTE_STATES[s]?.display ?? s;
 
@@ -106,11 +107,13 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
       case "opened":
         return <span style={{ color: "red" }}>{display}</span>;
       default:
+        console.warn(`Unknown project state: ${s}`);
         return <span style={{ color: "red" }}>Unknown</span>;
     }
   }
 
   function renderStatus(): JSX.Element | undefined {
+    // this prevents the start/stop popup dialog to stick around, if we switch somewhere else
     if (!projectIsVisible) return;
     return (
       <div

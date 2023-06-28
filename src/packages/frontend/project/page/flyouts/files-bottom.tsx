@@ -162,7 +162,9 @@ export function FilesBottom({
   function renderTerminal() {
     if (!projectIsRunning) {
       return (
-        <div>You have to start the project to be able to run a terminal.</div>
+        <div style={{ padding: "5px" }}>
+          You have to start the project to be able to run a terminal.
+        </div>
       );
     }
     const heightPx = `${0.33 * rootHeightPx}px`;
