@@ -85,6 +85,9 @@ interface FVTProps {
 export function VerticalFixedTabs(props: Readonly<FVTProps>) {
   const { project_id, activeTab, setHomePageButtonWidth } = props;
   const actions = useActions({ project_id });
+  const active_flyout = useTypedRedux({ project_id }, "flyout");
+  const other_settings = useTypedRedux("account", "other_settings");
+  const flyoutsDefault = other_settings.get("flyouts_default", false);
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const parent = useRef<HTMLDivElement>(null);
   const tabs = useRef<HTMLDivElement>(null);
@@ -162,11 +165,13 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         ? { color: COLORS.PROJECT.FIXED_LEFT_ACTIVE }
         : undefined;
 
+    const isActive = (flyoutsDefault ? active_flyout : activeTab) === name;
+
     const style: CSS = {
       padding: "0",
       ...color,
       borderLeft: `4px solid ${
-        activeTab == name ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
+        isActive ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
       }`,
     };
 

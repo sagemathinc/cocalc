@@ -4,14 +4,11 @@
  */
 
 import { CaretRightOutlined } from "@ant-design/icons";
-import { Button, Collapse, Descriptions, Popover, Space } from "antd";
+import { Button, Collapse, Descriptions, Space, Tooltip } from "antd";
 import immutable from "immutable";
 import { debounce } from "lodash";
 
-import {
-  Button as BSButton,
-  ButtonGroup,
-} from "@cocalc/frontend/antd-bootstrap";
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   useActions,
@@ -52,6 +49,7 @@ import {
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
+import { FLYOUT_PADDING } from "./consts";
 import { TerminalFlyout } from "./files-terminal";
 import { getFlyoutFiles, storeFlyoutState } from "./state";
 
@@ -59,7 +57,7 @@ const PANEL_STYLE: CSS = {
   width: "100%",
   paddingLeft: "10px",
   paddingRight: "10px",
-  paddingBottom: "5px",
+  paddingBottom: FLYOUT_PADDING,
 };
 
 const PANEL_KEYS = ["selected", "terminal"];
@@ -165,7 +163,9 @@ export function FilesBottom({
   function renderTerminal() {
     if (!projectIsRunning) {
       return (
-        <div>You have to start the project to be able to run a terminal.</div>
+        <div style={{ padding: FLYOUT_PADDING }}>
+          You have to start the project to be able to run a terminal.
+        </div>
       );
     }
     const heightPx = `${0.33 * rootHeightPx}px`;
@@ -198,7 +198,7 @@ export function FilesBottom({
             const { name: actionName, icon, hideFlyout } = FILE_ACTIONS[name];
             if (hideFlyout) return;
             return (
-              <Popover key={name} content={`${actionName}...`}>
+              <Tooltip key={name} title={`${actionName}...`}>
                 <Button
                   size="small"
                   key={name}
@@ -214,7 +214,7 @@ export function FilesBottom({
                 >
                   <Icon name={icon} />
                 </Button>
-              </Popover>
+              </Tooltip>
             );
           })}
         </Space.Compact>
@@ -242,17 +242,18 @@ export function FilesBottom({
   function renderOpenFile() {
     if (checked_files.size === 0) return;
     return (
-      <Popover
-        content={
+      <Tooltip
+        title={
           checked_files.size === 1
             ? "Or double-click file in listing"
             : "Open all selected files"
         }
       >
         <Button type="primary" size="small" onClick={openAllSelectedFiles}>
-          <Icon name="external-link" /> Open
+          <Icon name="edit-filled" /> Edit
+          {checked_files.size > 1 ? " all" : ""}
         </Button>
-      </Popover>
+      </Tooltip>
     );
   }
 
@@ -271,8 +272,8 @@ export function FilesBottom({
     return (
       <>
         {showDownload ? (
-          <Popover
-            content={
+          <Tooltip
+            title={
               <>
                 <Icon name="cloud-download" /> Download this {sizeStr} file
                 <br />
@@ -293,10 +294,10 @@ export function FilesBottom({
               }}
               icon={<Icon name="cloud-download" />}
             />
-          </Popover>
+          </Tooltip>
         ) : undefined}
         {showView ? (
-          <Popover content="View file in new tab">
+          <Tooltip title="View file in new tab">
             <Button
               size="small"
               href={url}
@@ -307,7 +308,7 @@ export function FilesBottom({
               }}
               icon={<Icon name="eye" />}
             />
-          </Popover>
+          </Tooltip>
         ) : undefined}
       </>
     );
@@ -476,8 +477,8 @@ export function FilesBottom({
             <ConnectionStatusIcon status={connectionStatus} />
           </span>
         ) : undefined}
-        <ButtonGroup>
-          <Popover content="Reduce font size">
+        <Space.Compact size="small">
+          <Tooltip title="Reduce font size">
             <Button
               size="small"
               disabled={disabled}
@@ -485,11 +486,10 @@ export function FilesBottom({
                 e.stopPropagation();
                 setTerminalFontSize((s) => s - 1);
               }}
-            >
-              A-
-            </Button>
-          </Popover>
-          <Popover content="Increase font size">
+              icon={<Icon name="minus" />}
+            />
+          </Tooltip>
+          <Tooltip title="Increase font size">
             <Button
               size="small"
               disabled={disabled}
@@ -497,13 +497,12 @@ export function FilesBottom({
                 e.stopPropagation();
                 setTerminalFontSize((s) => s + 1);
               }}
-            >
-              A+
-            </Button>
-          </Popover>
-        </ButtonGroup>
-        <ButtonGroup>
-          <Popover content="Change directory to current one">
+              icon={<Icon name="plus" />}
+            />
+          </Tooltip>
+        </Space.Compact>
+        <Space.Compact size="small">
+          <Tooltip title="Change directory to current one">
             <Button
               size="small"
               disabled={disabled}
@@ -514,7 +513,7 @@ export function FilesBottom({
             >
               <Icon name="arrow-down" />
             </Button>
-          </Popover>
+          </Tooltip>
           <BSButton
             bsSize="xsmall"
             active={sync}
@@ -527,7 +526,7 @@ export function FilesBottom({
           >
             <Icon name="swap" rotate={"90"} />
           </BSButton>
-        </ButtonGroup>
+        </Space.Compact>
       </Space>
     );
   }

@@ -375,7 +375,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (misc.path_to_tab(path) === active_project_tab) {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
-        next_active_tab = "files";
+        const account_store = this.redux.getStore("account") as any;
+        const flyoutsDefault = account_store?.getIn(
+          ["other_settings", "flyouts_default"],
+          false
+        );
+        next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;
 
@@ -453,6 +458,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         const new_fn = default_filename(opts.new_ext, this.project_id);
         this.set_next_default_filename(new_fn);
         break;
+
       case "log":
         if (opts.change_history) {
           this.push_state("log", "");

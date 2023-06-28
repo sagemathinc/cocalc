@@ -16,6 +16,7 @@ import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
+import { FLYOUT_PADDING } from "./consts";
 import { LSFlyout, lsKey, storeFlyoutState } from "./state";
 
 export function FlyoutBody({
@@ -76,7 +77,7 @@ export function FlyoutBody({
       style={{
         display: "flex",
         flexDirection: "column",
-        padding: "5px 0 0 5px",
+        padding: `${FLYOUT_PADDING} 0 0 ${FLYOUT_PADDING}`,
         margin: 0,
         marginRight: "0",
         borderRight: FIX_BORDER,

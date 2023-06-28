@@ -171,6 +171,7 @@ export function FileTab(props: Readonly<Props>) {
     name === "info" && project_status?.get("alerts")?.size > 0;
   const other_settings = useTypedRedux("account", "other_settings");
   const active_flyout = useTypedRedux({ project_id }, "flyout");
+  const flyoutsDefault = other_settings.get("flyouts_default", false);
 
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
@@ -183,7 +184,8 @@ export function FileTab(props: Readonly<Props>) {
     actions.close_tab(path);
   }
 
-  function click(e): void {
+  function click(e: React.MouseEvent) {
+    e.stopPropagation();
     if (actions == null) return;
     if (path != null) {
       if (e.ctrlKey || e.shiftKey || e.metaKey) {
@@ -206,12 +208,16 @@ export function FileTab(props: Readonly<Props>) {
         });
       }
     } else if (name != null) {
-      actions.set_active_tab(name);
-      track("switch-to-fixed-tab", {
-        project_id,
-        name,
-        how: "click-on-tab",
-      });
+      if (flyout != null && flyoutsDefault) {
+        actions?.toggleFlyout(flyout);
+      } else {
+        actions.set_active_tab(name);
+        track("switch-to-fixed-tab", {
+          project_id,
+          name,
+          how: "click-on-tab",
+        });
+      }
     }
   }
 
@@ -225,7 +231,7 @@ export function FileTab(props: Readonly<Props>) {
   }
 
   function renderFlyoutCaret() {
-    if (IS_MOBILE || flyout == null) return;
+    if (IS_MOBILE || flyout == null || flyoutsDefault) return;
 
     const color =
       flyout === active_flyout

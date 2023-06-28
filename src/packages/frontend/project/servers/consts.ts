@@ -11,7 +11,7 @@ export const ICON_NAME = "server";
 export const TITLE_USERS = "Users";
 export const ICON_USERS = "users";
 
-export const ICON_UPGRADES = "key";
+export const ICON_UPGRADES = "gears";
 export const TITLE_UPGRADES = "Upgrades";
 
 export const ROOT_STYLE: CSS = {
