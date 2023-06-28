@@ -52,6 +52,8 @@ import { COLORS } from "@cocalc/util/theme";
 import { useProjectState } from "../project-state-hook";
 import { FileListItem, fileItemStyle } from "./components";
 import { FilesBottom } from "./files-bottom";
+import { FIX_BORDER } from "../common";
+import { FLYOUT_PADDING } from "./consts";
 
 type ActiveFileSort = TypedMap<{
   column_name: string;
@@ -529,7 +531,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     const isActive = activeFileSort.get("column_name") === name;
     const direction = isActive ? (
       <Icon
-        style={{ marginLeft: "5px" }}
+        style={{ marginLeft: FLYOUT_PADDING }}
         name={activeFileSort.get("is_descending") ? "caret-up" : "caret-down"}
       />
     ) : undefined;
@@ -552,9 +554,9 @@ export function FilesFlyout({ project_id }): JSX.Element {
         direction="vertical"
         style={{
           flex: "0 0 auto",
-          paddingBottom: "10px",
-          paddingRight: "5px",
-          borderBottom: `1px solid ${COLORS.GRAY_L}`,
+          paddingBottom: FLYOUT_PADDING,
+          paddingRight: FLYOUT_PADDING,
+          borderBottom: FIX_BORDER,
         }}
       >
         {wrapDropzone(
@@ -597,7 +599,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
             flexDirection: "row",
             justifyContent: "space-between",
             width: "100%",
-            gap: "5px",
+            gap: FLYOUT_PADDING,
           }}
         >
           <Input
@@ -660,7 +662,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
         type="warning"
         banner
         showIcon={false}
-        style={{ padding: "5px", margin: 0 }}
+        style={{ padding: FLYOUT_PADDING, margin: 0 }}
         message={
           <>
             <Icon name="warning" /> Stale directory listing

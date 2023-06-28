@@ -17,6 +17,7 @@ import { DirectoryListingEntry } from "@cocalc/frontend/project/explorer/types";
 import { hexColorToRGBA } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
+import { FLYOUT_PADDING } from "./consts";
 
 // make sure two types of borders are of the same width
 const BORDER_WIDTH_PX = "4px";
@@ -49,7 +50,7 @@ const FILE_ITEM_BODY_STYLE: CSS = {
   display: "flex",
   flexDirection: "row",
   flex: "1",
-  padding: "5px",
+  padding: FLYOUT_PADDING,
 } as const;
 
 const FILE_ITEM_LINE_STYLE: CSS = {
@@ -65,7 +66,10 @@ const FILE_ITEM_LINE_STYLE: CSS = {
   color: COLORS.GRAY_D,
 } as const;
 
-const ICON_STYLE: CSS = { fontSize: "120%", marginRight: "5px" } as const;
+const ICON_STYLE: CSS = {
+  fontSize: "120%",
+  marginRight: FLYOUT_PADDING,
+} as const;
 
 const BTN_STYLE: CSS = {
   fontSize: "11px",

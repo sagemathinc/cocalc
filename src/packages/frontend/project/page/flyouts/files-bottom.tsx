@@ -49,6 +49,7 @@ import {
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
+import { FLYOUT_PADDING } from "./consts";
 import { TerminalFlyout } from "./files-terminal";
 import { getFlyoutFiles, storeFlyoutState } from "./state";
 
@@ -56,7 +57,7 @@ const PANEL_STYLE: CSS = {
   width: "100%",
   paddingLeft: "10px",
   paddingRight: "10px",
-  paddingBottom: "5px",
+  paddingBottom: FLYOUT_PADDING,
 };
 
 const PANEL_KEYS = ["selected", "terminal"];
@@ -162,7 +163,7 @@ export function FilesBottom({
   function renderTerminal() {
     if (!projectIsRunning) {
       return (
-        <div style={{ padding: "5px" }}>
+        <div style={{ padding: FLYOUT_PADDING }}>
           You have to start the project to be able to run a terminal.
         </div>
       );

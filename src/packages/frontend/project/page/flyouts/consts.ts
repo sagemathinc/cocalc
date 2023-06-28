@@ -4,3 +4,6 @@
  */
 
 export const FLYOUT_DEFAULT_WIDTH_PX: number = 350;
+
+// use this in styles for padding or margins
+export const FLYOUT_PADDING = "5px";

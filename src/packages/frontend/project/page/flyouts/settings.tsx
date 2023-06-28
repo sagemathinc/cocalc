@@ -4,7 +4,7 @@
  */
 
 import { ReloadOutlined } from "@ant-design/icons";
-import { Button, Collapse, Tooltip, Space } from "antd";
+import { Button, Collapse, Space, Tooltip } from "antd";
 
 import {
   redux,
@@ -42,6 +42,7 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { FIX_BORDER, useProject } from "../common";
 import { useProjectState } from "../project-state-hook";
+import { FLYOUT_PADDING } from "./consts";
 import { getFlyoutSettings, storeFlyoutState } from "./state";
 
 interface Props {
@@ -118,7 +119,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
     return (
       <div
         style={{
-          padding: "5px",
+          padding: FLYOUT_PADDING,
           marginBottom: "20px",
         }}
       >
@@ -142,7 +143,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
       <Paragraph
         type="secondary"
         style={{
-          padding: "5px",
+          padding: FLYOUT_PADDING,
           borderTop: FIX_BORDER,
           paddingTop: "20px",
           marginTop: "20px",

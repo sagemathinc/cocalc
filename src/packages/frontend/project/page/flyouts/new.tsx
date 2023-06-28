@@ -36,6 +36,7 @@ import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatGPTGenerateNotebookButton } from "../home-page/chatgpt-generate-jupyter";
+import { FLYOUT_PADDING } from "./consts";
 
 const DEFAULT_EXT = "ipynb";
 
@@ -224,7 +225,7 @@ export function NewFlyout({
   }
 
   function renderHead() {
-    const padding = { padding: "5px" };
+    const padding = { padding: FLYOUT_PADDING };
     return (
       <Space direction="vertical">
         <Space direction="horizontal" style={padding}>
@@ -281,7 +282,7 @@ export function NewFlyout({
   function renderBody() {
     return (
       <Space
-        style={{ width: "100%", overflowX: "hidden", padding: "5px" }}
+        style={{ width: "100%", overflowX: "hidden", padding: FLYOUT_PADDING }}
         direction="vertical"
       >
         <FileTypeSelector

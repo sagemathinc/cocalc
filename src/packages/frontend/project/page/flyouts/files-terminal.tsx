@@ -272,7 +272,7 @@ export function TerminalFlyout({
   }
 
   function renderStatusError() {
-    const style: CSS = { fontSize: "12px", padding: "5px", margin: "0px" };
+    const style: CSS = { fontSize: "12px", padding: FLYOUT_PADDING, margin: "0px" };
     if (error) {
       return (
         <Alert banner closable type="error" message={error} style={style} />
