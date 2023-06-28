@@ -4,7 +4,7 @@
  */
 
 import { ReloadOutlined } from "@ant-design/icons";
-import { Button, Collapse, Popover, Space } from "antd";
+import { Button, Collapse, Space, Tooltip } from "antd";
 
 import {
   redux,
@@ -42,6 +42,7 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { FIX_BORDER, useProject } from "../common";
 import { useProjectState } from "../project-state-hook";
+import { FLYOUT_PADDING } from "./consts";
 import { getFlyoutSettings, storeFlyoutState } from "./state";
 
 interface Props {
@@ -80,7 +81,8 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   }, []);
 
   function renderState() {
-    const s = state?.get("state");
+    if (state == null) return <Loading />;
+    const s = state.get("state");
     const iconName = COMPUTE_STATES[s]?.icon;
     const str = COMPUTE_STATES[s]?.display ?? s;
 
@@ -106,16 +108,18 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
       case "opened":
         return <span style={{ color: "red" }}>{display}</span>;
       default:
+        console.warn(`Unknown project state: ${s}`);
         return <span style={{ color: "red" }}>Unknown</span>;
     }
   }
 
   function renderStatus(): JSX.Element | undefined {
+    // this prevents the start/stop popup dialog to stick around, if we switch somewhere else
     if (!projectIsVisible) return;
     return (
       <div
         style={{
-          padding: "5px",
+          padding: FLYOUT_PADDING,
           marginBottom: "20px",
         }}
       >
@@ -139,7 +143,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
       <Paragraph
         type="secondary"
         style={{
-          padding: "5px",
+          padding: FLYOUT_PADDING,
           borderTop: FIX_BORDER,
           paddingTop: "20px",
           marginTop: "20px",
@@ -169,7 +173,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
 
   function featuresRealodButton() {
     return (
-      <Popover content="Reload features and configuration">
+      <Tooltip title="Reload features and configuration">
         <Button
           size="small"
           onClick={(e) => {
@@ -181,13 +185,13 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
           icon={<ReloadOutlined />}
           disabled={configuration_loading}
         />
-      </Popover>
+      </Tooltip>
     );
   }
 
   function renderDatastoreRelaod() {
     return (
-      <Popover content={`Reload ${DATASTORE_TITLE} information`}>
+      <Tooltip title={`Reload ${DATASTORE_TITLE} information`}>
         <Button
           size="small"
           icon={<ReloadOutlined />}
@@ -196,7 +200,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
             setDatastoreReload((prev) => prev + 1);
           }}
         />
-      </Popover>
+      </Tooltip>
     );
   }
 

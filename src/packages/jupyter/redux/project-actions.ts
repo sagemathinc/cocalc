@@ -1051,14 +1051,21 @@ export class JupyterActions extends JupyterActions0 {
       });
     } catch (err) {
       // no-op -- nothing to do.
-      this.dbg("set_last_ipynb_save")(`error ${err}`);
+      this.dbg("set_last_ipynb_save")(`WARNING -- issue in path_stat ${err}`);
       return;
     }
 
     // This is ugly (i.e., how we get access), but I need to get this done.
     // This is the RIGHT place to save the info though.
     // TODO: move this state info to new ephemeral table.
-    (this.syncdb as any).set_save({ last_ipynb_save: stats.ctime.getTime() });
+    try {
+      await (this.syncdb as any).set_save({
+        last_ipynb_save: stats.ctime.getTime(),
+      });
+    } catch (err) {
+      this.dbg("set_last_ipynb_save")(`WARNING -- issue in set_save ${err}`);
+      return;
+    }
   };
 
   load_ipynb_file = async () => {

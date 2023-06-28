@@ -9,6 +9,7 @@ import { Icon, Paragraph, Title } from "@cocalc/frontend/components";
 import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
 import { SagewsControl } from "../../settings/sagews-control";
 import { FIX_BORDER } from "../common";
+import { FLYOUT_PADDING } from "./consts";
 
 export function ServersFlyout({ project_id, wrap }) {
   const servers = [
@@ -20,7 +21,7 @@ export function ServersFlyout({ project_id, wrap }) {
 
   function renderEmbeddedServers() {
     return (
-      <div style={{ padding: "5px" }}>
+      <div style={{ padding: FLYOUT_PADDING }}>
         <Title level={5}>
           <Icon name="server" /> Additonal Servers
         </Title>

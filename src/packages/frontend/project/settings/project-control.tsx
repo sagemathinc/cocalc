@@ -156,10 +156,12 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           style={rowstyle()}
           vertical={isFlyout}
         >
-          Project will be <b>automatically started</b> if it stops for any
-          reason (it will run any{" "}
-          <A href="https://doc.cocalc.com/project-init.html">init scripts</A>
-          ).
+          <Paragraph>
+            Project will be <b>automatically started</b> if it stops for any
+            reason (it will run any{" "}
+            <A href="https://doc.cocalc.com/project-init.html">init scripts</A>
+            ).
+          </Paragraph>
         </LabeledRow>
       );
     }

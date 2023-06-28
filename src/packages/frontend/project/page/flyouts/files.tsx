@@ -11,7 +11,6 @@ import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import {
-  CSS,
   ProjectActions,
   React,
   TypedMap,
@@ -26,10 +25,9 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading } from "@cocalc/frontend/components";
+import { ErrorDisplay, Icon, Loading, Text } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
@@ -40,18 +38,22 @@ import {
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/project/websocket/listings";
 import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import {
   copy_without,
   path_to_file,
   search_match,
   search_split,
+  separate_file_extension,
   should_open_in_foreground,
   strictMod,
   tab_to_path,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { FIX_BORDER } from "../common";
 import { useProjectState } from "../project-state-hook";
 import { FileListItem, fileItemStyle } from "./components";
+import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 import { FilesBottom } from "./files-bottom";
 
 type ActiveFileSort = TypedMap<{
@@ -72,6 +74,17 @@ function useStrippedPublicPaths(project_id: string) {
   }, [public_paths]);
 }
 
+function searchToFilename(search: string): string {
+  search = search.trim();
+  if (search === "") return "";
+  // if last character is "/" return the search string
+  if (search.endsWith("/")) return search;
+  const { ext } = separate_file_extension(search);
+  if (ext.length > 0) return search;
+  if (ext === "") return `${search}.${DEFAULT_EXT}`;
+  return `${search}.${DEFAULT_EXT}`;
+}
+
 export function FilesFlyout({ project_id }): JSX.Element {
   const isMountedRef = useIsMountedRef();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -84,11 +97,16 @@ export function FilesFlyout({ project_id }): JSX.Element {
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
   const directoryListings = useTypedRedux({ project_id }, "directory_listings");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
+  const file_creation_error = useTypedRedux(
+    { project_id },
+    "file_creation_error"
+  );
   const activeFileSort: ActiveFileSort = useTypedRedux(
     { project_id },
     "active_file_sort"
   );
   const hidden = useTypedRedux({ project_id }, "show_hidden");
+  const kucalc = useTypedRedux("customize", "kucalc");
   const show_masked = useTypedRedux({ project_id }, "show_masked");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
@@ -140,7 +158,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
 
     const files: DirectoryListing = filesStore.toJS();
     compute_file_masks(files);
-    const searchWords = search_split(search.toLowerCase());
+    const searchWords = search_split(search.trim().toLowerCase());
 
     const procFiles = files
       .filter((file: DirectoryListingEntry) => {
@@ -295,12 +313,14 @@ export function FilesFlyout({ project_id }): JSX.Element {
   ) {
     e.stopPropagation();
     const file = directoryFiles[index];
+    if (file == null) return;
 
     if (!skip) {
       const fullPath = path_to_file(current_path, file.name);
 
       if (file.isdir) {
-        actions?.open_directory(fullPath);
+        // true: change history, false: do not show "files" page
+        actions?.open_directory(fullPath, true, false);
         setSearch("");
       } else {
         const foreground = should_open_in_foreground(e);
@@ -322,11 +342,11 @@ export function FilesFlyout({ project_id }): JSX.Element {
     }
   }
 
-  function toggleSelected(index: number, fn: string) {
+  function toggleSelected(index: number, fn: string, nextState?: boolean) {
     // never select "..", only calls for trouble
     if (fn === "..") return;
     fn = path_to_file(current_path, fn);
-    if (checked_files.includes(fn)) {
+    if (nextState != null ? !nextState : checked_files.includes(fn)) {
       actions?.set_file_list_unchecked(List([fn]));
     } else {
       actions?.set_file_list_checked([fn]);
@@ -405,6 +425,14 @@ export function FilesFlyout({ project_id }): JSX.Element {
     });
   }
 
+  async function createFileOrFolder() {
+    const fn = searchToFilename(search);
+    await actions?.create_file({
+      name: fn,
+      current_path,
+    });
+  }
+
   function filterKeyHandler(e: React.KeyboardEvent) {
     // if arrow key down or up, then scroll to next item
     const dx = e.code === "ArrowDown" ? 1 : e.code === "ArrowUp" ? -1 : 0;
@@ -426,23 +454,21 @@ export function FilesFlyout({ project_id }): JSX.Element {
       if (scrollIdx != null) {
         open(e, scrollIdx);
         setScrollIdx(null);
+      } else if (search != "") {
+        setSearch("");
+        if (directoryFiles.length > 0) {
+          open(e, 0);
+        } else {
+          createFileOrFolder();
+        }
       }
     }
 
-    // if esc key is pressed, clear search and reset
+    // if esc key is pressed, clear search and reset scroll index
     else if (e.key === "Escape") {
       setSearch("");
+      setScrollIdx(null);
     }
-  }
-
-  function renderItemIcon(
-    item: DirectoryListingEntry,
-    style: CSS
-  ): JSX.Element {
-    const iconName = item.isdir
-      ? "folder-open"
-      : file_options(item.name)?.icon ?? "file";
-    return <Icon name={iconName} style={style} />;
   }
 
   function showFileSharingDialog(file?: { name: string }) {
@@ -472,7 +498,6 @@ export function FilesFlyout({ project_id }): JSX.Element {
         onMouseDown={() => {
           setSelectionOnMouseDown(window.getSelection()?.toString() ?? "");
         }}
-        renderIcon={renderItemIcon}
         itemStyle={fileItemStyle(age ?? 0, mask)}
         onClose={(e: React.MouseEvent, name: string) => {
           e.stopPropagation();
@@ -483,13 +508,17 @@ export function FilesFlyout({ project_id }): JSX.Element {
         }}
         onPublic={() => showFileSharingDialog(directoryFiles[index])}
         selected={isSelected}
+        showCheckbox={checked_files?.size > 0}
+        onChecked={(nextState: boolean) => {
+          toggleSelected(index, item.name, nextState);
+        }}
       />
     );
   }
 
   function renderListing(): JSX.Element {
     const files = directoryListings.get(current_path);
-    if (files == null) return <Loading  theme="medium" transparent />;
+    if (files == null) return <Loading theme="medium" transparent />;
 
     return (
       <Virtuoso
@@ -531,7 +560,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     const isActive = activeFileSort.get("column_name") === name;
     const direction = isActive ? (
       <Icon
-        style={{ marginLeft: "5px" }}
+        style={{ marginLeft: FLYOUT_PADDING }}
         name={activeFileSort.get("is_descending") ? "caret-up" : "caret-down"}
       />
     ) : undefined;
@@ -554,9 +583,9 @@ export function FilesFlyout({ project_id }): JSX.Element {
         direction="vertical"
         style={{
           flex: "0 0 auto",
-          paddingBottom: "10px",
-          paddingRight: "5px",
-          borderBottom: `1px solid ${COLORS.GRAY_L}`,
+          paddingBottom: FLYOUT_PADDING,
+          paddingRight: FLYOUT_PADDING,
+          borderBottom: FIX_BORDER,
         }}
       >
         {wrapDropzone(
@@ -599,6 +628,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
             flexDirection: "row",
             justifyContent: "space-between",
             width: "100%",
+            gap: FLYOUT_PADDING,
           }}
         >
           <Input
@@ -610,7 +640,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
             onChange={(e) => setSearch(e.target.value)}
             onFocus={() => setScrollIdxHide(false)}
             onBlur={() => setScrollIdxHide(true)}
-            style={{ flex: "1", marginRight: "10px" }}
+            style={{ flex: "1" }}
             allowClear
             prefix={<Icon name="search" />}
           />
@@ -633,21 +663,74 @@ export function FilesFlyout({ project_id }): JSX.Element {
               <Icon name={"mask"} />
             </BootstrapButton>
           </Space.Compact>
+          {kucalc === KUCALC_COCALC_COM ? (
+            <Space.Compact direction="horizontal" size="small">
+              <Button
+                onClick={() => {
+                  actions?.open_directory(".snapshots");
+                  track("snapshots", { action: "open", where: "flyout-files" });
+                }}
+                title={
+                  "Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."
+                }
+                icon={<Icon name={"life-ring"} />}
+              />
+            </Space.Compact>
+          ) : undefined}
         </div>
         {staleListingWarning()}
+        {createFileIfNotExists()}
+        {renderFileCreationError()}
       </Space>
     );
   }
 
+  function renderFileCreationError() {
+    if (!file_creation_error) return;
+    return (
+      <ErrorDisplay
+        banner
+        error={file_creation_error}
+        componentStyle={{
+          margin: 0,
+          maxHeight: "200px",
+        }}
+        onClose={(): void => {
+          actions?.setState({ file_creation_error: "" });
+        }}
+      />
+    );
+  }
+
+  function createFileIfNotExists() {
+    if (search === "" || directoryFiles.length > 0) return;
+
+    const what = search.trim().endsWith("/") ? "directory" : "file";
+    return (
+      <Alert
+        type="info"
+        banner
+        showIcon={false}
+        style={{ padding: FLYOUT_PADDING, margin: 0 }}
+        description={
+          <>
+            Hit <Text code>Return</Text> to create the {what}{" "}
+            <Text code>{searchToFilename(search)}</Text>
+          </>
+        }
+      />
+    );
+  }
+
   function staleListingWarning() {
-    if (projectIsRunning || directoryFiles?.length === 0) return;
+    if (projectIsRunning || (directoryFiles?.length ?? 0) === 0) return;
 
     return (
       <Alert
         type="warning"
         banner
         showIcon={false}
-        style={{ padding: "5px", margin: 0 }}
+        style={{ padding: FLYOUT_PADDING, margin: 0 }}
         message={
           <>
             <Icon name="warning" /> Stale directory listing
