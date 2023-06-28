@@ -25,7 +25,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading } from "@cocalc/frontend/components";
+import { ErrorDisplay, Icon, Loading, Text } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
@@ -44,16 +44,17 @@ import {
   path_to_file,
   search_match,
   search_split,
+  separate_file_extension,
   should_open_in_foreground,
   strictMod,
   tab_to_path,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { FIX_BORDER } from "../common";
 import { useProjectState } from "../project-state-hook";
 import { FileListItem, fileItemStyle } from "./components";
+import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 import { FilesBottom } from "./files-bottom";
-import { FIX_BORDER } from "../common";
-import { FLYOUT_PADDING } from "./consts";
 
 type ActiveFileSort = TypedMap<{
   column_name: string;
@@ -73,6 +74,17 @@ function useStrippedPublicPaths(project_id: string) {
   }, [public_paths]);
 }
 
+function searchToFilename(search: string): string {
+  search = search.trim();
+  if (search === "") return "";
+  // if last character is "/" return the search string
+  if (search.endsWith("/")) return search;
+  const { ext } = separate_file_extension(search);
+  if (ext.length > 0) return search;
+  if (ext === "") return `${search}.${DEFAULT_EXT}`;
+  return `${search}.${DEFAULT_EXT}`;
+}
+
 export function FilesFlyout({ project_id }): JSX.Element {
   const isMountedRef = useIsMountedRef();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -85,6 +97,10 @@ export function FilesFlyout({ project_id }): JSX.Element {
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
   const directoryListings = useTypedRedux({ project_id }, "directory_listings");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
+  const file_creation_error = useTypedRedux(
+    { project_id },
+    "file_creation_error"
+  );
   const activeFileSort: ActiveFileSort = useTypedRedux(
     { project_id },
     "active_file_sort"
@@ -142,7 +158,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
 
     const files: DirectoryListing = filesStore.toJS();
     compute_file_masks(files);
-    const searchWords = search_split(search.toLowerCase());
+    const searchWords = search_split(search.trim().toLowerCase());
 
     const procFiles = files
       .filter((file: DirectoryListingEntry) => {
@@ -409,6 +425,14 @@ export function FilesFlyout({ project_id }): JSX.Element {
     });
   }
 
+  async function createFileOrFolder() {
+    const fn = searchToFilename(search);
+    await actions?.create_file({
+      name: fn,
+      current_path,
+    });
+  }
+
   function filterKeyHandler(e: React.KeyboardEvent) {
     // if arrow key down or up, then scroll to next item
     const dx = e.code === "ArrowDown" ? 1 : e.code === "ArrowUp" ? -1 : 0;
@@ -430,8 +454,13 @@ export function FilesFlyout({ project_id }): JSX.Element {
       if (scrollIdx != null) {
         open(e, scrollIdx);
         setScrollIdx(null);
-      } else if (search != "" && directoryFiles.length > 0) {
-        open(e, 0);
+      } else if (search != "") {
+        setSearch("");
+        if (directoryFiles.length > 0) {
+          open(e, 0);
+        } else {
+          createFileOrFolder();
+        }
       }
     }
 
@@ -650,7 +679,46 @@ export function FilesFlyout({ project_id }): JSX.Element {
           ) : undefined}
         </div>
         {staleListingWarning()}
+        {createFileIfNotExists()}
+        {renderFileCreationError()}
       </Space>
+    );
+  }
+
+  function renderFileCreationError() {
+    if (!file_creation_error) return;
+    return (
+      <ErrorDisplay
+        banner
+        error={file_creation_error}
+        componentStyle={{
+          margin: 0,
+          maxHeight: "200px",
+        }}
+        onClose={(): void => {
+          actions?.setState({ file_creation_error: "" });
+        }}
+      />
+    );
+  }
+
+  function createFileIfNotExists() {
+    if (search === "" || directoryFiles.length > 0) return;
+
+    const what = search.trim().endsWith("/") ? "directory" : "file";
+    return (
+      <Alert
+        type="info"
+        banner
+        showIcon={false}
+        style={{ padding: FLYOUT_PADDING, margin: 0 }}
+        description={
+          <>
+            Hit <Text code>Return</Text> to create the {what}{" "}
+            <Text code>{searchToFilename(search)}</Text>
+          </>
+        }
+      />
     );
   }
 

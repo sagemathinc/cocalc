@@ -36,9 +36,8 @@ import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatGPTGenerateNotebookButton } from "../home-page/chatgpt-generate-jupyter";
-import { FLYOUT_PADDING } from "./consts";
+import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 
-const DEFAULT_EXT = "ipynb";
 
 export function NewFlyout({
   project_id,
