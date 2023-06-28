@@ -18,6 +18,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { ConnectionStatus } from "@cocalc/frontend/app/store";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { DEFAULT_TERM_ENV } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { Terminal } from "@cocalc/frontend/frame-editors/terminal-editor/connected-terminal";
@@ -26,7 +27,7 @@ import { background_color } from "@cocalc/frontend/frame-editors/terminal-editor
 import { escapeBashChangeDirPath } from "@cocalc/util/jupyter-api/chdir-commands";
 import { sha1 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { ConnectionStatus } from "@cocalc/frontend/app/store";
+import { FLYOUT_PADDING } from "./consts";
 
 interface TerminalFlyoutProps {
   project_id: string;
@@ -158,7 +159,7 @@ export function TerminalFlyout({
       parent,
       undefined,
       undefined,
-      "", // cwd=home directory, we'll send cd commands later
+      "" // cwd=home directory, we'll send cd commands later
     );
     console.log("getTerminal", `$HOME/${currentPathRef.current}`);
     newTerminal.connect();
@@ -272,7 +273,11 @@ export function TerminalFlyout({
   }
 
   function renderStatusError() {
-    const style: CSS = { fontSize: "12px", padding: FLYOUT_PADDING, margin: "0px" };
+    const style: CSS = {
+      fontSize: "12px",
+      padding: FLYOUT_PADDING,
+      margin: "0px",
+    };
     if (error) {
       return (
         <Alert banner closable type="error" message={error} style={style} />
