@@ -301,7 +301,8 @@ export function FilesFlyout({ project_id }): JSX.Element {
       const fullPath = path_to_file(current_path, file.name);
 
       if (file.isdir) {
-        actions?.open_directory(fullPath);
+        // true: change history, false: do not show "files" page
+        actions?.open_directory(fullPath, true, false);
         setSearch("");
       } else {
         const foreground = should_open_in_foreground(e);
