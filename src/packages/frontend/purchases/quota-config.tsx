@@ -13,7 +13,6 @@ import {
 } from "@cocalc/util/db-schema/purchase-quotas";
 import ServiceTag from "./service";
 import Quotas, { PRESETS, Preset, STEP } from "./all-quotas-config";
-import GlobalQuota from "./global-quota";
 import Balance from "./balance";
 
 export default function QuotaConfig({
@@ -116,11 +115,6 @@ export default function QuotaConfig({
         <Space>
           <Balance
             balance={balance}
-            quota={quotas?.global?.quota}
-            style={{ width: "250px", height: "250px" }}
-          />
-          <GlobalQuota
-            global={quotas?.global}
             style={{ width: "250px", height: "250px" }}
           />
         </Space>

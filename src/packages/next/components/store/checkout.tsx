@@ -615,24 +615,22 @@ function ExplainPaymentSituation({
   if (params == null) {
     return <Spin />;
   }
-  const { balance, minPayment, spendingLimit, amountDue, chargeAmount, total } =
-    params;
+  const { balance, minPayment, amountDue, chargeAmount, total } = params;
+  const curBalance = (
+    <div style={{ float: "right" }}>Balance: {currency(balance)}</div>
+  );
 
   if (chargeAmount == 0) {
     return (
       <Alert
         type="info"
         style={style}
-        message={"No payment required today"}
+        message={<>{curBalance}No payment required</>}
         description={
           <>
             <b>You can complete this purchase without making a payment now</b>,
-            since your account balance is {currency(balance)} and spending limit
-            is {currency(spendingLimit)}. Your balance will increase by{" "}
-            {currency(total)}.{" "}
-            {spendingLimit > 0 && total + balance > 0 && (
-              <b>You will be billed later.</b>
-            )}
+            since your account balance is {currency(balance)}, which is at least{" "}
+            {currency(total)}.
           </>
         }
       />
@@ -643,18 +641,16 @@ function ExplainPaymentSituation({
       <Alert
         type="info"
         style={style}
-        message={"Minimum payment required today"}
+        message={<>{curBalance}Minimal payment required</>}
         description={
           <>
             <b>
-              To complete this purchase pay {currency(chargeAmount)} (+ tax).
+              To complete this purchase, pay {currency(chargeAmount)} (+ TAX).
             </b>{" "}
-            This is more than {currency(amountDue)} since our minimum
+            This is more than {currency(amountDue)}, since our minimum
             transaction amount is {currency(minPayment)}. The difference will be
             credited to your account, and you can use it toward future
-            purchases. This will also keep your balance below your spending
-            limit of {currency(spendingLimit)}. Your current balance is
-            {currency(balance)}.
+            purchases.
           </>
         }
       />
@@ -664,13 +660,17 @@ function ExplainPaymentSituation({
     <Alert
       type="info"
       style={style}
-      message={"Payment required today"}
+      message={<>{curBalance}Payment required</>}
       description={
         <>
-          <b>To complete this purchase pay {currency(chargeAmount)} (+ tax)</b>.{" "}
-          This will keep your balance at or below your spending limit of{" "}
-          {currency(spendingLimit)}. Your current balance is {currency(balance)}
-          .
+          <b>To complete this purchase, pay {currency(chargeAmount)} (+ TAX)</b>
+          .{" "}
+          {balance < 0 && (
+            <>
+              This is larger than the total for these items, because your
+              account balance is {currency(balance)}, which negative.
+            </>
+          )}
         </>
       }
     />

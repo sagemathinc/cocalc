@@ -1,7 +1,6 @@
 import getCart from "@cocalc/server/shopping/cart/get";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import getBalance from "./get-balance";
-import getQuota from "./get-quota";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import getLogger from "@cocalc/backend/logger";
@@ -13,7 +12,6 @@ const logger = getLogger("purchases:shopping-cart-checkout");
 export interface CheckoutParams {
   balance: number;
   minPayment: number;
-  spendingLimit: number;
   amountDue: number;
   chargeAmount: number;
   total: number;
@@ -74,15 +72,13 @@ export async function getShoppingCartCheckoutParams(
 ): Promise<CheckoutParams> {
   const { total, cart } = await getCheckoutCart(account_id);
   const balance = await getBalance(account_id);
-  const { quota: spendingLimit } = await getQuota(account_id);
   const { pay_as_you_go_min_payment: minPayment } = await getServerSettings();
-  const newBalance = total + balance;
-  const amountDue = Math.max(0, round2(newBalance - spendingLimit));
+  const newBalance = total - balance;
+  const amountDue = Math.max(0, round2(newBalance));
   const chargeAmount = amountDue == 0 ? 0 : Math.max(amountDue, minPayment);
   return {
     balance,
     minPayment,
-    spendingLimit,
     amountDue,
     chargeAmount,
     total,

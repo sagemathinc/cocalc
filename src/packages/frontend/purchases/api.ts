@@ -82,28 +82,6 @@ export async function getChargesByService() {
   return await api("purchases/get-charges-by-service");
 }
 
-// Get the global purchase quota of user with given account_id.  This is only
-// for use by admins.  This quota is computed via rules, and may be overridden
-// based on the adminSetQuota below, but usually isn't.
-export async function adminGetQuota(account_id: string): Promise<{
-  quota: number;
-  why: string;
-  increase: string;
-}> {
-  return await api("purchases/admin-get-quota", { account_id });
-}
-
-// Set the override global purchase quota of user with given account_id.  This is only
-// for use by admins.
-export async function adminSetQuota(
-  account_id: string,
-  purchase_quota: number
-) {
-  await api("user-query", {
-    query: { crm_accounts: { account_id, purchase_quota } },
-  });
-}
-
 export async function createCredit(opts: {
   amount: number;
   success_url: string;

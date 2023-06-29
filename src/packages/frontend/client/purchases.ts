@@ -92,18 +92,6 @@ export class PurchasesClient {
     return await purchasesApi.getChargesByService();
   }
 
-  async adminGetQuota(account_id: string): Promise<{
-    quota: number;
-    why: string;
-    increase: string;
-  }> {
-    return await purchasesApi.adminGetQuota(account_id);
-  }
-
-  async adminSetQuota(account_id: string, purchase_quota: number) {
-    await purchasesApi.adminSetQuota(account_id, purchase_quota);
-  }
-
   async createCredit(opts): Promise<any> {
     return await purchasesApi.createCredit(opts);
   }

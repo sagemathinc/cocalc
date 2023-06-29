@@ -65,17 +65,15 @@ export async function isPurchaseAllowed({
     // credit is specially excluded
     return { allowed: false, reason: `cost must be positive` };
   }
-  const { services, global } = await getPurchaseQuotas(account_id);
+  const { services } = await getPurchaseQuotas(account_id);
   // First check that the overall quota is not exceeded
   const balance = await getBalance(account_id);
-  if (balance + cost > global.quota) {
+  if (cost > balance) {
     return {
       allowed: false,
-      reason: `This purchase would potentially exceed your spending limit (${currency(
-        balance
-      )} + ${currency(cost)} > ${currency(
-        global.quota
-      )}).  Add credit, increase your spending limit, or contact support.`,
+      reason: `You do not have enough credits to spend ${currency(
+        cost
+      )} since your balance is ${currency(balance)}.  Please add credits.`,
     };
   }
   // Next check that the quota for the specific service is not exceeded.
@@ -100,7 +98,7 @@ export async function isPurchaseAllowed({
       allowed: false,
       reason: `You need to increase your ${
         QUOTA_SPEC[service]?.display ?? service
-      } spending limit or reduce your balance (this month charges: ${currency(
+      } spending limit (this month charges: ${currency(
         chargesForService
       )}).  Your limit ${currency(quotaForService)} for "${
         QUOTA_SPEC[service]?.display ?? service

@@ -7,8 +7,8 @@ import { plural } from "@cocalc/util/misc";
 import Payment from "./payment";
 import { currency } from "./util";
 import { zIndex as zIndexModal } from "./pay-as-you-go/modal";
-import { Support } from "./global-quota";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
+import getSupportURL from "@cocalc/frontend/support/url";
 
 const zIndex = zIndexModal + 1;
 
@@ -171,3 +171,20 @@ function Description({ invoice }) {
     </div>
   ));
 }
+
+
+export function Support({ children }) {
+  return (
+    <A
+      href={getSupportURL({
+        body: "Please raise my spending limit.\n\nTELL US WHO YOU ARE AND EXPLAIN YOUR USE CASE.  THANKS!",
+        subject: "Spending Limit Increase Request",
+        type: "question",
+        hideExtra: true,
+      })}
+    >
+      {children}
+    </A>
+  );
+}
+

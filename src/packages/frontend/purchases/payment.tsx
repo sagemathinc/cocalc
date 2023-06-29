@@ -14,7 +14,6 @@ import { useEffect, useRef, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency } from "./util";
 import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/modal";
-//import { Support } from "./global-quota";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { delay } from "awaiting";
 import { cancelCurrentCheckoutSession } from "./api";
@@ -22,7 +21,7 @@ import { cancelCurrentCheckoutSession } from "./api";
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
 
-const DEFAULT_AMOUNT = 5;
+const DEFAULT_AMOUNT = 10;
 
 export default function Payment({ balance, update }) {
   const clickedOkRef = useRef<boolean>(false);
@@ -155,27 +154,38 @@ export default function Payment({ balance, update }) {
           </Tooltip>
         </Divider>
         <div style={{ textAlign: "center" }}>
-          <div style={{ marginBottom: "15px" }}>
-            {minPayment != null && (
-              <Preset amount={minPayment} setPaymentAmount={setPaymentAmount}>
-                Minimum: {currency(minPayment)}
-              </Preset>
-            )}
-            {minPayment != null && balance >= minPayment && (
-              <Preset amount={balance} setPaymentAmount={setPaymentAmount}>
-                Balance: {currency(balance)}
-              </Preset>
-            )}
-            <Preset amount={DEFAULT_AMOUNT} setPaymentAmount={setPaymentAmount}>
-              ${DEFAULT_AMOUNT}
-            </Preset>
-            <Preset amount={20} setPaymentAmount={setPaymentAmount}>
-              $20
-            </Preset>
-            <Preset amount={100} setPaymentAmount={setPaymentAmount}>
-              $100
-            </Preset>
-          </div>
+          {minPayment != null && (
+            <div style={{ marginBottom: "15px" }}>
+              {minPayment != null && (
+                <Preset amount={minPayment} setPaymentAmount={setPaymentAmount}>
+                  Minimum: {currency(minPayment)}
+                </Preset>
+              )}
+              {minPayment != null && balance >= minPayment && (
+                <Preset amount={balance} setPaymentAmount={setPaymentAmount}>
+                  Balance: {currency(balance)}
+                </Preset>
+              )}
+              {DEFAULT_AMOUNT >= minPayment && (
+                <Preset
+                  amount={DEFAULT_AMOUNT}
+                  setPaymentAmount={setPaymentAmount}
+                >
+                  ${DEFAULT_AMOUNT}
+                </Preset>
+              )}
+              {20 >= minPayment && (
+                <Preset amount={20} setPaymentAmount={setPaymentAmount}>
+                  $20
+                </Preset>
+              )}
+              {100 >= minPayment && (
+                <Preset amount={100} setPaymentAmount={setPaymentAmount}>
+                  $100
+                </Preset>
+              )}
+            </div>
+          )}
           <Space>
             <InputNumber
               min={minPayment}

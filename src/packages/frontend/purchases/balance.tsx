@@ -1,16 +1,15 @@
 import type { CSSProperties } from "react";
-import { Card, Tooltip, Progress, Space, Statistic, Spin } from "antd";
+import { Card, Tooltip, Space, Statistic, Spin } from "antd";
 import UnpaidInvoices from "./unpaid-invoices";
 import { zIndexTip } from "./payment";
 
 interface Props {
   balance?: number | null;
-  quota?: number;
   style?: CSSProperties;
   refresh?: () => void;
 }
 
-export default function Balance({ balance, quota, style, refresh }: Props) {
+export default function Balance({ balance, style, refresh }: Props) {
   let body;
   if (balance == null) {
     body = (
@@ -48,27 +47,13 @@ export default function Balance({ balance, quota, style, refresh }: Props) {
       <>
         <Space style={{ marginBottom: "30px" }}>
           {stat}
-          {quota != null && quota > 0 && (
-            <Tooltip
-              title={"Percent of your spending limit"}
-              zIndex={zIndexTip}
-            >
-              <Progress
-                style={{ marginLeft: "30px" }}
-                type={"circle"}
-                size={"small"}
-                percent={Math.round((balance / Math.max(1, quota)) * 100)}
-                strokeColor={{ "0%": "blue", "100%": "#ff4d4f" }}
-              />
-            </Tooltip>
-          )}
         </Space>
         <UnpaidInvoices balance={balance} refresh={refresh} />
       </>
     );
   }
   return (
-    <Card title={"Balance"} style={style}>
+    <Card title={"Account Balance (Your Credits)"} style={style}>
       {body}
     </Card>
   );

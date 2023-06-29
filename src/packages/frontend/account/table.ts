@@ -45,7 +45,6 @@ export class AccountTable extends Table {
           unlisted: null,
           //tags: null,
           tours: null,
-          purchase_quota: null,
           purchase_closing_day: null,
           stripe_checkout_session: null,
         },

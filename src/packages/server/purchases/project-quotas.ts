@@ -12,11 +12,11 @@ import { cloneDeep } from "lodash";
 import createPurchase from "./create-purchase";
 import type { ProjectUpgrade as ProjectUpgradeDescription } from "@cocalc/util/db-schema/purchases";
 import getBalance from "./get-balance";
-import getQuota from "./get-quota";
 import { getProject } from "@cocalc/server/projects/control";
 import LRU from "lru-cache";
 import { getPurchaseQuota } from "./purchase-quotas";
 import { getTotalChargesThisMonth } from "./get-charges";
+import { currency } from "./util";
 
 const logger = getLogger("purchases:project-quota");
 
@@ -277,12 +277,14 @@ async function doMaintenance({
     const total_cost =
       (cost_per_hour * (now.valueOf() - start)) / (1000 * 60 * 60);
     const info = await getAccountInfo(account_id);
-    const { balance, spendingLimit, chargesThisMonth, limitThisMonth } = info;
+    const { balance, chargesThisMonth, limitThisMonth } = info;
     logger.debug("doMaintenance --- spending info = ", info);
     let cutoff;
-    if (balance + total_cost >= spendingLimit) {
+    if (balance <= total_cost) {
       logger.debug(
-        "doMaintenance --- stopping project because balance + total_cost >= spendingLimit"
+        `doMaintenance --- stopping project because balance (${currency(
+          balance
+        )} is less than the total cost = ${currency(total_cost)}`
       );
       cutoff = true;
     } else if (chargesThisMonth + total_cost >= limitThisMonth) {
@@ -309,7 +311,6 @@ async function doMaintenance({
 // and each query could be expensive.
 
 interface AccountInfo {
-  spendingLimit: number;
   balance: number;
   limitThisMonth: number;
   chargesThisMonth: number;
@@ -325,14 +326,13 @@ async function getAccountInfo(account_id: string): Promise<AccountInfo> {
     return accountCache.get(account_id)!;
   }
   const balance = await getBalance(account_id);
-  const { quota: spendingLimit } = await getQuota(account_id);
+  const limitThisMonth =
+    (await getPurchaseQuota(account_id, "project-upgrade")) ?? 0;
   const chargesThisMonth = await getTotalChargesThisMonth(
     account_id,
     "project-upgrade"
   );
-  const limitThisMonth =
-    (await getPurchaseQuota(account_id, "project-upgrade")) ?? 0;
-  const info = { spendingLimit, balance, chargesThisMonth, limitThisMonth };
+  const info = { balance, chargesThisMonth, limitThisMonth };
   accountCache.set(account_id, info);
   return info;
 }

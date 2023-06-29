@@ -1,7 +1,5 @@
 import getPool from "@cocalc/database/pool";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import getGlobalQuota from "./get-quota";
-import type { QuotaDescription } from "./get-quota";
 
 export async function setPurchaseQuota({
   account_id,
@@ -27,16 +25,7 @@ export async function setPurchaseQuota({
   if (typeof value != "number" || !isFinite(value) || value < 0) {
     throw Error(`value must be a nonnegative number but it is "${value}"`);
   }
-  const { services /*, global */ } = await getPurchaseQuotas(account_id);
-  //   for (const key in services) {
-  //     if (key != service) {
-  //       if (value > global.quota) {
-  //         throw Error(
-  //           `You have a global limit of $${global.quota}.  Increasing the "${QUOTA_SPEC[service].display}" limit to $${value} would exceed this.`
-  //         );
-  //       }
-  //     }
-  //   }
+  const { services } = await getPurchaseQuotas(account_id);
   const pool = getPool();
   if (services[service] != null) {
     await pool.query(
@@ -53,7 +42,6 @@ export async function setPurchaseQuota({
 
 export interface PurchaseQuotas {
   services: { [service: string]: number };
-  global: QuotaDescription;
 }
 
 export async function getPurchaseQuotas(
@@ -68,7 +56,7 @@ export async function getPurchaseQuotas(
   for (const { service, value } of rows) {
     services[service] = value ?? 0;
   }
-  return { services, global: await getGlobalQuota(account_id) };
+  return { services };
 }
 
 export async function getPurchaseQuota(

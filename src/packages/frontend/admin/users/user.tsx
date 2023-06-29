@@ -17,7 +17,6 @@ import { Projects } from "./projects";
 import { Impersonate } from "./impersonate";
 import { PasswordReset } from "./password-reset";
 import { Ban } from "./ban";
-import PayAsYouGoGlobalQuota from "@cocalc/frontend/frame-editors/crm-editor/users/pay-as-you-go-global-quota";
 
 interface State {
   projects: boolean;
@@ -93,7 +92,6 @@ export class UserResult extends Component<Props, State> {
     return (
       <div style={{ margin: "15px 0" }}>
         <Subscriptions account_id={this.props.account_id} />
-        <PayAsYouGoGlobalQuota account_id={this.props.account_id} />
       </div>
     );
   }

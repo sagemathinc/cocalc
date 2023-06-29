@@ -12,7 +12,6 @@ import {
   Card,
   InputNumber,
   Progress,
-  Space,
   Spin,
   Table,
   Tag,
@@ -23,7 +22,6 @@ import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { cloneDeep, isEqual } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
-import GlobalQuota, { Support } from "./global-quota";
 import { currency } from "./util";
 import Balance from "./balance";
 import Cost from "./pay-as-you-go/cost";
@@ -41,11 +39,6 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
   const [balance, setBalance] = useState<number | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [globalQuota, setGlobalQuota] = useState<{
-    quota: number;
-    why: string;
-    increase: string;
-  } | null>(null);
   const [serviceQuotas, setServiceQuotas] = useState<ServiceQuota[] | null>(
     null
   );
@@ -72,7 +65,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       setError(`${err}`);
       return;
     }
-    const { global, services } = x;
+    const { services } = x;
     const v: ServiceQuota[] = [];
     for (const service in QUOTA_SPEC) {
       const spec = QUOTA_SPEC[service];
@@ -84,7 +77,6 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       });
     }
     lastFetchedQuotasRef.current = cloneDeep(v);
-    setGlobalQuota(global);
     setServiceQuotas(v);
     setChanged(false);
   };
@@ -221,40 +213,9 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       )}
       {!noStats && (
         <div style={{ textAlign: "center" }}>
-          <Space>
-            <Balance
-              balance={balance}
-              quota={globalQuota?.quota}
-              style={{ width: "300px", height: "250px" }}
-              refresh={handleRefresh}
-            />
-            <GlobalQuota
-              global={globalQuota}
-              style={{
-                width: "300px",
-                height: "250px",
-              }}
-            />
-            <Card
-              title="Balance ≤ Spending Limit"
-              style={{
-                width: "300px",
-                height: "250px",
-                color: "#666",
-              }}
-            >
-              <div style={{ textAlign: "left" }}>
-                <p>
-                  If your balance exceeds your spending limit then purchases are
-                  restricted.
-                </p>
-                <p>
-                  Reduce your balance by making a payment. Raise your spending
-                  limit by <Support>making a support request</Support>.
-                </p>
-              </div>
-            </Card>
-          </Space>
+          <div style={{ width: "300px", margin: "auto" }}>
+            <Balance balance={balance} refresh={handleRefresh} />
+          </div>
         </div>
       )}
       <Card

@@ -3,7 +3,6 @@ import { Tag, Card, Space } from "antd";
 import { TimeAgo } from "@cocalc/frontend/components";
 import Projects from "./projects";
 import Impersonate from "./impersonate";
-import PayAsYouGoGlobalQuota from "./pay-as-you-go-global-quota";
 
 export default function User({
   account_id,
@@ -60,7 +59,6 @@ export default function User({
           first_name={first_name}
           last_name={last_name}
         />
-        <PayAsYouGoGlobalQuota account_id={account_id} />
       </Space>
     </Card>
   );
