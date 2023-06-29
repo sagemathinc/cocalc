@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { Card, Tooltip, Space, Statistic, Spin } from "antd";
 import UnpaidInvoices from "./unpaid-invoices";
 import { zIndexTip } from "./payment";
+import { round2 } from "@cocalc/util/misc";
 
 interface Props {
   balance?: number | null;
@@ -28,7 +29,7 @@ export default function Balance({ balance, style, refresh }: Props) {
     let stat = (
       <Statistic
         title={"Current balance (USD)"}
-        value={balance}
+        value={round2(balance)}
         precision={2}
         prefix={"$"}
       />
@@ -45,15 +46,13 @@ export default function Balance({ balance, style, refresh }: Props) {
     }
     body = (
       <>
-        <Space style={{ marginBottom: "30px" }}>
-          {stat}
-        </Space>
+        <Space style={{ marginBottom: "30px" }}>{stat}</Space>
         <UnpaidInvoices balance={balance} refresh={refresh} />
       </>
     );
   }
   return (
-    <Card title={"Account Balance (Your Credits)"} style={style}>
+    <Card title={"Add Money to Your Account"} style={style}>
       {body}
     </Card>
   );

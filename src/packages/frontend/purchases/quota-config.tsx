@@ -112,12 +112,7 @@ export default function QuotaConfig({
         {error && <Alert type="error" description={error} />}
       </Card>
       <div style={{ marginTop: "15px", textAlign: "center" }}>
-        <Space>
-          <Balance
-            balance={balance}
-            style={{ width: "250px", height: "250px" }}
-          />
-        </Space>
+        <Balance balance={balance} style={{ width: "100%" }} />
         {!showAll && (
           <div style={{ marginTop: "15px", textAlign: "center" }}>
             <Button type="link" onClick={() => setShowAll(true)}>
