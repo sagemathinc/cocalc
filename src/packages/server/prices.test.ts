@@ -29,6 +29,9 @@ import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 const isUTC = new Date().getTimezoneOffset() === 0;
 
 describe("product id and compute cost", () => {
+  // This test I think hardcodes that the online_discount is 0.75, so
+  // (since it isn't!) we set it back to run this test.
+  COSTS.online_discount = 0.75;
   const info1: Omit<PurchaseInfoQuota, "quantity"> = {
     type: "quota",
     user: "academic",
