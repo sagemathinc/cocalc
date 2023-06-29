@@ -31,7 +31,7 @@ export default async function getPurchases({
       "SELECT SUM(cost), service, project_id, CAST(COUNT(*) AS INTEGER) AS count FROM purchases WHERE account_id=$1";
   } else {
     query =
-      "SELECT id, time, cost, service, description, invoice_id, project_id FROM purchases WHERE account_id=$1";
+      "SELECT id, time, cost, period_start, cost_per_hour, service, description, invoice_id, project_id FROM purchases WHERE account_id=$1";
   }
   const params: any[] = [account_id];
   if (service != null) {

@@ -65,15 +65,20 @@ export async function isPurchaseAllowed({
     // credit is specially excluded
     return { allowed: false, reason: `cost must be positive` };
   }
-  const { services } = await getPurchaseQuotas(account_id);
-  // First check that the overall quota is not exceeded
+  const { services, minBalance } = await getPurchaseQuotas(account_id);
+  // First check that making purchase won't reduce our balance below the minBalance.
   const balance = await getBalance(account_id);
-  if (cost > balance) {
+  const amountAfterPurchase = balance - cost;
+  if (amountAfterPurchase < minBalance) {
     return {
       allowed: false,
       reason: `You do not have enough credits to spend ${currency(
         cost
-      )} since your balance is ${currency(balance)}.  Please add credits.`,
+      )} since your balance is ${currency(
+        balance
+      )}, which would go below your allowed minimum balance of ${currency(
+        minBalance
+      )}.  Please add credits.`,
     };
   }
   // Next check that the quota for the specific service is not exceeded.

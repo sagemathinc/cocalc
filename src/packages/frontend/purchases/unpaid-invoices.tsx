@@ -172,13 +172,12 @@ function Description({ invoice }) {
   ));
 }
 
-
 export function Support({ children }) {
   return (
     <A
       href={getSupportURL({
-        body: "Please raise my spending limit.\n\nTELL US WHO YOU ARE AND EXPLAIN YOUR USE CASE.  THANKS!",
-        subject: "Spending Limit Increase Request",
+        body: "Please change my minimum allowed balance.\n\nTELL US WHO YOU ARE AND EXPLAIN YOUR USE CASE.  THANKS!",
+        subject: "Change Minimum Allowed Balance",
         type: "question",
         hideExtra: true,
       })}
@@ -187,4 +186,3 @@ export function Support({ children }) {
     </A>
   );
 }
-

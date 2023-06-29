@@ -10,10 +10,14 @@ compute the sum of the following, over all rows of the table for a given account
   current time.
 */
 
+// selects the cost, or if not done, the metered cost so far (see above):
+export const COST_OR_METERED_COST =
+  "COALESCE(cost, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)";
+
 export default async function getBalance(account_id: string): Promise<number> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT -SUM(COALESCE(cost, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)) as balance FROM purchases WHERE account_id=$1",
+    `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1`,
     [account_id]
   );
   return rows[0]?.balance ?? 0;

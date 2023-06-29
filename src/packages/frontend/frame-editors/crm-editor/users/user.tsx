@@ -3,6 +3,7 @@ import { Tag, Card, Space } from "antd";
 import { TimeAgo } from "@cocalc/frontend/components";
 import Projects from "./projects";
 import Impersonate from "./impersonate";
+import PayAsYouGoMinBalance from "./pay-as-you-go-min-balance";
 
 export default function User({
   account_id,
@@ -59,6 +60,7 @@ export default function User({
           first_name={first_name}
           last_name={last_name}
         />
+        <PayAsYouGoMinBalance account_id={account_id} />
       </Space>
     </Card>
   );

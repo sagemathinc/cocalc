@@ -20,11 +20,7 @@ export async function getBalance(): Promise<number> {
 }
 
 export async function getQuotas(): Promise<{
-  global: {
-    quota: number;
-    why: string;
-    increase: string;
-  };
+  minBalance: number;
   services: { [service: string]: number };
 }> {
   return await api("purchases/get-quotas");
@@ -169,4 +165,24 @@ export async function shoppingCartCheckout(opts: {
 
 export async function getShoppingCartCheckoutParams() {
   return await api("purchases/get-shopping-cart-checkout-params");
+}
+
+// Get the min balance for user with given account_id.  This is only
+// for use by admins.
+export async function adminGetMinBalance(account_id: string): Promise<number> {
+  const x = await api("user-query", {
+    query: { crm_accounts: { account_id, min_balance: null } },
+  });
+  return x.query.crm_accounts.min_balance ?? 0;
+}
+
+// Set the min allowed balance of user with given account_id.  This is only
+// for use by admins.
+export async function adminSetMinBalance(
+  account_id: string,
+  min_balance: number
+) {
+  await api("user-query", {
+    query: { crm_accounts: { account_id, min_balance } },
+  });
 }

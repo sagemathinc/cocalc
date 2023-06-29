@@ -209,6 +209,18 @@ Table({
         max: 28,
       },
     },
+    min_balance: {
+      type: "number",
+      pg_type: "REAL",
+      desc: "The minimum allowed balance for this user. This is a quota we impose for safety, not something they set. Admins may change this in response to a support request.  For most users this is not set at all hence 0, but for some special enterprise-style customers to whom we extend 'credit', it will be set.",
+      render: {
+        title: "Minimum Allowed Balance (USD)",
+        type: "number",
+        integer: false,
+        editable: true,
+        max: 0,
+      },
+    },
     stripe_checkout_session: {
       type: "map",
       desc: "Part of the currnet open stripe checkout session object, namely {id:?, url:?}, but none of the other info.  When user is going to add credit to their account, we create a stripe checkout session and store it here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
@@ -340,6 +352,7 @@ Table({
           unlisted: false,
           tags: null,
           tours: null,
+          min_balance: null,
           purchase_closing_day: null,
         },
       },
@@ -361,6 +374,7 @@ Table({
           unlisted: true,
           tags: true,
           tours: true,
+          // obviously min_balance can't be set!
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
           if (obj["name"] != null) {
@@ -496,6 +510,7 @@ Table({
           notes: true,
           salesloft_id: true,
           purchase_closing_day: true,
+          min_balance: true, // admins can set this
         },
       },
     },

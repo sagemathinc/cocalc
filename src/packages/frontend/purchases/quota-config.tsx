@@ -14,6 +14,7 @@ import {
 import ServiceTag from "./service";
 import Quotas, { PRESETS, Preset, STEP } from "./all-quotas-config";
 import Balance from "./balance";
+import MinBalance from "./min-balance";
 
 export default function QuotaConfig({
   service,
@@ -27,7 +28,7 @@ export default function QuotaConfig({
   const [savedValue, setSavedValue] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
   const [quotas, setQuotas] = useState<{
-    global: { quota: number; why: string; increase: string };
+    minBalance: number;
     services: { [service: string]: number };
   } | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
@@ -113,6 +114,7 @@ export default function QuotaConfig({
       </Card>
       <div style={{ marginTop: "15px", textAlign: "center" }}>
         <Balance balance={balance} style={{ width: "100%" }} />
+        <MinBalance minBalance={quotas?.minBalance} />
         {!showAll && (
           <div style={{ marginTop: "15px", textAlign: "center" }}>
             <Button type="link" onClick={() => setShowAll(true)}>

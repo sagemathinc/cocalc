@@ -6,6 +6,7 @@ import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import getLogger from "@cocalc/backend/logger";
 import createStripeCheckoutSession from "./create-stripe-checkout-session";
 import { round2 } from "@cocalc/util/misc";
+import getMinBalance from "./get-min-balance";
 
 const logger = getLogger("purchases:shopping-cart-checkout");
 
@@ -15,6 +16,7 @@ export interface CheckoutParams {
   amountDue: number;
   chargeAmount: number;
   total: number;
+  minBalance: number;
   cart;
 }
 
@@ -71,14 +73,16 @@ export async function getShoppingCartCheckoutParams(
   account_id: string
 ): Promise<CheckoutParams> {
   const { total, cart } = await getCheckoutCart(account_id);
+  const minBalance = await getMinBalance(account_id);
   const balance = await getBalance(account_id);
   const { pay_as_you_go_min_payment: minPayment } = await getServerSettings();
   const newBalance = total - balance;
-  const amountDue = Math.max(0, round2(newBalance));
+  const amountDue = Math.max(0, round2(minBalance - newBalance));
   const chargeAmount = amountDue == 0 ? 0 : Math.max(amountDue, minPayment);
   return {
     balance,
     minPayment,
+    minBalance,
     amountDue,
     chargeAmount,
     total,

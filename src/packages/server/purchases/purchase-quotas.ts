@@ -1,5 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
+import getMinBalance from "./get-min-balance";
 
 export async function setPurchaseQuota({
   account_id,
@@ -42,6 +43,7 @@ export async function setPurchaseQuota({
 
 export interface PurchaseQuotas {
   services: { [service: string]: number };
+  minBalance: number;
 }
 
 export async function getPurchaseQuotas(
@@ -56,7 +58,8 @@ export async function getPurchaseQuotas(
   for (const { service, value } of rows) {
     services[service] = value ?? 0;
   }
-  return { services };
+  const minBalance = await getMinBalance(account_id);
+  return { services, minBalance };
 }
 
 export async function getPurchaseQuota(

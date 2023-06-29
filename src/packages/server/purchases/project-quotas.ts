@@ -17,6 +17,7 @@ import LRU from "lru-cache";
 import { getPurchaseQuota } from "./purchase-quotas";
 import { getTotalChargesThisMonth } from "./get-charges";
 import { currency } from "./util";
+import getMinBalance from "./get-min-balance";
 
 const logger = getLogger("purchases:project-quota");
 
@@ -275,20 +276,20 @@ async function doMaintenance({
     await closeAndContinuePurchase(purchase_id);
   } else if (start != null && cost_per_hour != null) {
     // Check if spending limit has been exceeded and in that case, cut them off.
-    const total_cost =
-      (cost_per_hour * (now.valueOf() - start)) / (1000 * 60 * 60);
     const info = await getAccountInfo(account_id);
-    const { balance, chargesThisMonth, limitThisMonth } = info;
+    const { balance, chargesThisMonth, limitThisMonth, minBalance } = info;
     logger.debug("doMaintenance --- spending info = ", info);
     let cutoff;
-    if (balance <= total_cost) {
+    if (balance <= minBalance) {
+      // balance *includes* all partial metered charges already
       logger.debug(
         `doMaintenance --- stopping project because balance (${currency(
           balance
-        )} is less than the total cost = ${currency(total_cost)}`
+        )} has hit the min allowed balance of = ${currency(minBalance)}`
       );
       cutoff = true;
-    } else if (chargesThisMonth + total_cost >= limitThisMonth) {
+    } else if (chargesThisMonth >= limitThisMonth) {
+      // this is the self-imposed limit to avoid accidental overspend
       logger.debug(
         "doMaintenance --- stopping project because chargesThisMonth + total_cost >= limitThisMonth"
       );
@@ -298,7 +299,7 @@ async function doMaintenance({
       cutoff = false;
     }
     if (cutoff) {
-      // cut them off -- (1) stop project, and (2) make sure purchase is closed
+      // cut this off -- (1) stop project, and (2) make sure purchase is closed
       const project = getProject(project_id);
       await project.stop();
       // project stop would probably trigger close, but just in case, we explicitly trigger it:
@@ -315,6 +316,7 @@ interface AccountInfo {
   balance: number;
   limitThisMonth: number;
   chargesThisMonth: number;
+  minBalance: number;
 }
 
 const accountCache = new LRU<string, AccountInfo>({
@@ -333,7 +335,8 @@ async function getAccountInfo(account_id: string): Promise<AccountInfo> {
     account_id,
     "project-upgrade"
   );
-  const info = { balance, chargesThisMonth, limitThisMonth };
+  const minBalance = await getMinBalance(account_id);
+  const info = { balance, chargesThisMonth, limitThisMonth, minBalance };
   accountCache.set(account_id, info);
   return info;
 }

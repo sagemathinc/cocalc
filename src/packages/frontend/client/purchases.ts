@@ -11,11 +11,7 @@ import * as purchasesApi from "@cocalc/frontend/purchases/api";
 
 export class PurchasesClient {
   async getQuotas(): Promise<{
-    global: {
-      quota: number;
-      why: string;
-      increase: string;
-    };
+    minBalance: number;
     services: { [service: string]: number };
   }> {
     return await purchasesApi.getQuotas();
@@ -136,6 +132,14 @@ export class PurchasesClient {
   // this is only used in the nextjs store app right now...
   async getShoppingCartCheckoutParams() {
     return await purchasesApi.getShoppingCartCheckoutParams();
+  }
+
+  async adminGetMinBalance(account_id: string): Promise<number> {
+    return await purchasesApi.adminGetMinBalance(account_id);
+  }
+
+  async adminSetMinBalance(account_id: string, minBalance: number) {
+    await purchasesApi.adminSetMinBalance(account_id, minBalance);
   }
 }
 

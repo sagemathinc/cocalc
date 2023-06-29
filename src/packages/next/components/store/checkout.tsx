@@ -615,9 +615,13 @@ function ExplainPaymentSituation({
   if (params == null) {
     return <Spin />;
   }
-  const { balance, minPayment, amountDue, chargeAmount, total } = params;
+  const { balance, minPayment, amountDue, chargeAmount, total, minBalance } =
+    params;
   const curBalance = (
-    <div style={{ float: "right" }}>Balance: {currency(balance)}</div>
+    <div style={{ float: "right" }}>
+      Balance: {currency(balance)}
+      {minBalance ? `, Minimum allowed: ${currency(minBalance)}` : ""}
+    </div>
   );
 
   if (chargeAmount == 0) {

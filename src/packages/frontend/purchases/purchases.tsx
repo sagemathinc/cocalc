@@ -287,20 +287,20 @@ function DetailedPurchaseTable({ purchases }) {
               dataIndex: "cost",
               key: "cost",
               render: (amount, record) => {
-                if (amount == null && record.service == "project-upgrade") {
-                  const cost = record.description?.quota?.cost;
-                  const start = record.description?.start;
-                  if (cost != null && start != null) {
-                    return (
-                      <Space>
-                        <DynamicallyUpdatingCost
-                          costPerHour={cost}
-                          start={start}
-                        />
-                        <Tag color="green">Active</Tag>
-                      </Space>
-                    );
-                  }
+                if (
+                  amount == null &&
+                  record.period_start != null &&
+                  record.cost_per_hour != null
+                ) {
+                  return (
+                    <Space>
+                      <DynamicallyUpdatingCost
+                        costPerHour={record.cost_per_hour}
+                        start={new Date(record.period_start)}
+                      />
+                      <Tag color="green">Active</Tag>
+                    </Space>
+                  );
                 }
                 if (amount != null) {
                   return currency(amount, Math.abs(amount) < 0.1 ? 3 : 2);

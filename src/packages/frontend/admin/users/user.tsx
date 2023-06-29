@@ -17,6 +17,7 @@ import { Projects } from "./projects";
 import { Impersonate } from "./impersonate";
 import { PasswordReset } from "./password-reset";
 import { Ban } from "./ban";
+import PayAsYouGoMinBalance from "@cocalc/frontend/frame-editors/crm-editor/users/pay-as-you-go-min-balance";
 
 interface State {
   projects: boolean;
@@ -92,6 +93,7 @@ export class UserResult extends Component<Props, State> {
     return (
       <div style={{ margin: "15px 0" }}>
         <Subscriptions account_id={this.props.account_id} />
+        <PayAsYouGoMinBalance account_id={this.props.account_id} />
       </div>
     );
   }

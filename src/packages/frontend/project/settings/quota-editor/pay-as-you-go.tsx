@@ -459,13 +459,11 @@ function RunningStatus({ project }) {
 // Jupyter kernels, then this will be the sum of them
 // and the pay as you go project...
 export function PayAsYouGoCost({ project_id }) {
-  const PAYG = useRedux([
-    "projects",
-    "project_map",
-    project_id,
-    "run_quota",
-    "pay_as_you_go",
-  ]);
+  const project = useRedux(["projects", "project_map", project_id]);
+  if (!project) return null;
+  const state = project.getIn(["state", "state"]);
+  if (state != "running" && state != "starting") return null;
+  const PAYG = project.getIn(["run_quota", "pay_as_you_go"]);
   if (PAYG?.get("account_id") != webapp_client.account_id) {
     // only show this when YOU are paying.
     return null;

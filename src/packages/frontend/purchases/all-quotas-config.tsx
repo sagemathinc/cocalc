@@ -22,6 +22,7 @@ import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { cloneDeep, isEqual } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
+import MinBalance from "./min-balance";
 import { currency } from "./util";
 import Balance from "./balance";
 import Cost from "./pay-as-you-go/cost";
@@ -39,6 +40,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
   const [balance, setBalance] = useState<number | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [minBalance, setMinBalance] = useState<number | null>(null);
   const [serviceQuotas, setServiceQuotas] = useState<ServiceQuota[] | null>(
     null
   );
@@ -65,7 +67,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       setError(`${err}`);
       return;
     }
-    const { services } = x;
+    const { services, minBalance } = x;
     const v: ServiceQuota[] = [];
     for (const service in QUOTA_SPEC) {
       const spec = QUOTA_SPEC[service];
@@ -77,6 +79,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       });
     }
     lastFetchedQuotasRef.current = cloneDeep(v);
+    setMinBalance(minBalance);
     setServiceQuotas(v);
     setChanged(false);
   };
@@ -213,8 +216,10 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       )}
       {!noStats && (
         <div style={{ textAlign: "center" }}>
-          <div style={{ width: "300px", margin: "auto" }}>
+          <div style={{ margin: "auto", display: "flex", maxWidth: "600px" }}>
             <Balance balance={balance} refresh={handleRefresh} />
+            <div style={{ width: "30px" }} />
+            <MinBalance minBalance={minBalance} />
           </div>
         </div>
       )}
