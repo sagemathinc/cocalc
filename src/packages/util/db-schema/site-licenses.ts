@@ -40,7 +40,7 @@ Table({
     },
     info: {
       type: "map",
-      desc: "Structured object for admins to store structured information about this license.  This serves a similar purpose to description, but must be a valid JSON object map.",
+      desc: "Structured object for admins to store structured information about this license.  This serves a similar purpose to description, but must be a valid JSON object map.  In practice, this is an object {purchased: PurchaseInfo} that records the info that defines the specs and price of the license",
     },
     expires: {
       type: "timestamp",
