@@ -70,13 +70,17 @@ export default function PayAsYouGoMinBalance({ account_id }) {
                 <InputNumber
                   max={0}
                   step={10}
-                  defaultValue={minBalance}
+                  defaultValue={minBalance ?? undefined}
                   onChange={(val) => setMinBalance(val)}
                 />
                 <Button
                   type="primary"
-                  disabled={minBalance == lastSaved}
-                  onClick={() => saveMinBalance(minBalance)}
+                  disabled={minBalance == lastSaved || minBalance == null}
+                  onClick={() => {
+                    if (minBalance != null) {
+                      saveMinBalance(minBalance);
+                    }
+                  }}
                 >
                   <Icon name="save" /> Save
                 </Button>

@@ -21,6 +21,10 @@ export class PurchasesClient {
     return await purchasesApi.getBalance();
   }
 
+  async getSpendRate(): Promise<number> {
+    return await purchasesApi.getSpendRate();
+  }
+
   async getClosingDates(): Promise<{ last: Date; next: Date }> {
     return await purchasesApi.getClosingDates();
   }

@@ -296,7 +296,7 @@ function DetailedPurchaseTable({ purchases }) {
                     <Space>
                       <DynamicallyUpdatingCost
                         costPerHour={record.cost_per_hour}
-                        start={new Date(record.period_start)}
+                        start={new Date(record.period_start).valueOf()}
                       />
                       <Tag color="green">Active</Tag>
                     </Space>

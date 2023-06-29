@@ -19,6 +19,10 @@ export async function getBalance(): Promise<number> {
   return await api("purchases/get-balance");
 }
 
+export async function getSpendRate(): Promise<number> {
+  return await api("purchases/get-spend-rate");
+}
+
 export async function getQuotas(): Promise<{
   minBalance: number;
   services: { [service: string]: number };

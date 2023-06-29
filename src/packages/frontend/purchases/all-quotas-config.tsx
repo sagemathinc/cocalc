@@ -12,6 +12,7 @@ import {
   Card,
   InputNumber,
   Progress,
+  Space,
   Spin,
   Table,
   Tag,
@@ -25,6 +26,7 @@ import ServiceTag from "./service";
 import MinBalance from "./min-balance";
 import { currency } from "./util";
 import Balance from "./balance";
+import SpendRate from "./spend-rate";
 import Cost from "./pay-as-you-go/cost";
 
 export const PRESETS = [0, 5, 20, 1000];
@@ -54,8 +56,15 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       setError(`${err}`);
     }
   };
+
+  const [spendRate, setSpendRate] = useState<number | null>(null);
+  const getSpendRate = async () => {
+    setSpendRate(await webapp_client.purchases_client.getSpendRate());
+  };
+
   useEffect(() => {
     getBalance();
+    getSpendRate();
   }, []);
 
   const getQuotas = async () => {
@@ -128,6 +137,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
   const handleRefresh = () => {
     getQuotas();
     getBalance();
+    getSpendRate();
   };
 
   const columns = [
@@ -216,11 +226,13 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       )}
       {!noStats && (
         <div style={{ textAlign: "center" }}>
-          <div style={{ margin: "auto", display: "flex", maxWidth: "600px" }}>
+          <Space style={{ margin: "auto", alignItems: "flex-start" }}>
             <Balance balance={balance} refresh={handleRefresh} />
             <div style={{ width: "30px" }} />
             <MinBalance minBalance={minBalance} />
-          </div>
+            <div style={{ width: "30px" }} />
+            <SpendRate spendRate={spendRate} />
+          </Space>
         </div>
       )}
       <Card

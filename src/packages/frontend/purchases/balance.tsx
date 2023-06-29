@@ -28,7 +28,7 @@ export default function Balance({ balance, style, refresh }: Props) {
   } else {
     let stat = (
       <Statistic
-        title={"Current balance (USD)"}
+        title={"Current Balance (USD)"}
         value={round2(balance)}
         precision={2}
         prefix={"$"}

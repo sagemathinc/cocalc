@@ -138,7 +138,7 @@ export default function Payment({ balance, update }) {
       <div>
         <div style={{ textAlign: "center" }}>
           <Statistic
-            title={"Current balance (USD)"}
+            title={"Current Balance (USD)"}
             value={balance}
             precision={2}
             prefix={"$"}
