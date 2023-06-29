@@ -124,12 +124,11 @@ async function closePurchase(
     0.01, // always at least one penny to avoid some abuse (?).
     ((now - start) / (1000 * 60 * 60)) * cost
   );
-  // set in the final cost, those closing out this purchase.
-  await pool.query("UPDATE purchases SET cost=$1, description=$2 WHERE id=$3", [
-    final_cost,
-    description,
-    id,
-  ]);
+  // set the final cost, thus closing out this purchase.
+  await pool.query(
+    "UPDATE purchases SET cost=$1, description=$2, period_end=$3 WHERE id=$4",
+    [final_cost, description, new Date(now), id]
+  );
 }
 
 async function closeAndContinuePurchase(id: string) {
@@ -146,6 +145,8 @@ async function closeAndContinuePurchase(id: string) {
   const newPurchase = cloneDeep(purchase);
   delete newPurchase.id;
   newPurchase.time = now;
+  delete newPurchase.period_end;
+  newPurchase.period_start = now;
   newPurchase.description.start = newPurchase.description.quota.start =
     now.valueOf();
   logger.debug(

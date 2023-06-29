@@ -13,8 +13,9 @@ interface Options {
   account_id: string;
   project_id?: string;
   cost?: number; // if cost not known yet, don't give.  E.g., for project-upgrade, the cost isn't known until project stops (or we close out a purchase interval).
-  start?: number; // options; used mainly for analytics, e.g., for a license with given start and end dates.
-  end?: number;
+  cost_per_hour?: number;
+  period_start?: Date; // options; used mainly for analytics, e.g., for a license with given start and end dates.
+  period_end?: Date;
   service: Service;
   description: Description;
   invoice_id?: string;
@@ -27,8 +28,9 @@ export default async function createPurchase(opts: Options): Promise<number> {
     account_id,
     project_id,
     cost,
-    start,
-    end,
+    cost_per_hour,
+    period_start,
+    period_end,
     service,
     description,
     invoice_id,
@@ -37,17 +39,23 @@ export default async function createPurchase(opts: Options): Promise<number> {
   } = opts;
   const pool = getPool();
   let eps = 3000;
+  if (cost == null && (cost_per_hour == null || period_start == null)) {
+    throw Error(
+      "if cost is not set, then cost_per_hour and period_start must both be set"
+    );
+  }
   let error = Error("unable to create purchase");
   for (let i = 0; i < 10; i++) {
     try {
       const { rows } = await pool.query(
-        "INSERT INTO purchases (time, account_id, project_id, cost, period_start, period_end, service, description,invoice_id, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
+        "INSERT INTO purchases (time, account_id, project_id, cost, cost_per_hour, period_start, period_end, service, description,invoice_id, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id",
         [
           account_id,
           project_id,
           cost,
-          start,
-          end,
+          cost_per_hour,
+          period_start,
+          period_end,
           service,
           description,
           invoice_id,

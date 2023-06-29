@@ -38,10 +38,11 @@ export async function handlePayAsYouGoQuotas(
   // If so, we do it.  Note: this already got checked on the frontend
   // so this should only fail on the backend in rare cases (e.g., abuse),
   // so no need to have an error message the user sees here.
+  const cost_per_hour = choice.quota.cost;
   const { allowed, reason } = await isPurchaseAllowed({
     account_id: choice.account_id,
     service: "project-upgrade",
-    cost: choice.quota.cost,
+    cost: cost_per_hour,
   });
   if (!allowed) {
     logger.debug("handlePayAsYouGoQuotas: purchase not allowed", reason);
@@ -59,9 +60,11 @@ export async function handlePayAsYouGoQuotas(
       account_id: choice.account_id,
       project_id,
       service: "project-upgrade",
+      period_start: new Date(start),
+      cost_per_hour,
       description: {
         type: "project-upgrade",
-        start, // useful for other purposes here.
+        start,
         project_id,
         quota: choice.quota,
       },
