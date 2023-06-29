@@ -3,16 +3,18 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useInterval } from "react-interval-hook";
-import { cmp } from "@cocalc/util/misc";
 import {
+  CSS,
   redux,
   useMemo,
-  useTypedRedux,
   useState,
-  CSS,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
+import { cmp } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { isEmpty } from "lodash";
+import { useInterval } from "react-interval-hook";
 import { Avatar } from "./avatar";
 
 // How frequently all UsersViewing componenents are completely updated.
@@ -75,30 +77,31 @@ export const UsersViewing: React.FC<Props> = (props) => {
   } = props;
   const [counter, set_counter] = useState(0); // used to force update periodically.
 
-  // only so component is updated immediately whenever file use changes
-  const file_use = useTypedRedux("file_use", "file_use");
-  const users = useMemo(
-    () =>
-      redux.getStore("file_use")?.get_active_users({
-        project_id,
-        path,
-        max_age_s,
-      }),
-    [file_use, project_id, path, max_age_s]
-  );
-
   // so we can exclude ourselves from list of faces
   const our_account_id: string | undefined = useTypedRedux(
     "account",
     "account_id"
   );
 
+  // only so component is updated immediately whenever file use changes
+  const file_use = useTypedRedux("file_use", "file_use");
+  const users = useMemo(() => {
+    const nextUsers = redux.getStore("file_use")?.get_active_users({
+      project_id,
+      path,
+      max_age_s,
+    });
+    // only show other users
+    delete nextUsers?.[our_account_id];
+    return nextUsers;
+  }, [file_use, project_id, path, max_age_s, our_account_id]);
+
   useInterval(() => {
     // cause an update
     set_counter(counter + 1);
   }, UPDATE_INTERVAL_S * 1000);
 
-  function render_active_users(users) {
+  function render_active_users() {
     const v: {
       account_id: string;
       activity: Activity;
@@ -116,28 +119,34 @@ export const UsersViewing: React.FC<Props> = (props) => {
     let i = 0;
     const r: JSX.Element[] = [];
     for (const { account_id, activity } of v) {
-      // only show other users
-      if (account_id !== our_account_id) {
-        i += 1;
-        r.push(
-          <Avatar
-            key={account_id + i}
-            account_id={account_id}
-            max_age_s={max_age_s}
-            project_id={project_id}
-            path={path}
-            size={size}
-            activity={activity}
-          />
-        );
-      }
+      i += 1;
+      r.push(
+        <Avatar
+          key={account_id + i}
+          account_id={account_id}
+          max_age_s={max_age_s}
+          project_id={project_id}
+          path={path}
+          size={size}
+          activity={activity}
+        />
+      );
     }
     return r;
   }
 
   if (file_use == null || our_account_id == null) {
-    return <Loading />;
+    return <Loading style={{ color: COLORS.GRAY_DD }} />;
   }
 
-  return <div style={{ ...USERS_VIEWING_STYLE, ...style }}>{render_active_users(users)}</div>;
+  // don't return the <div> below withouth any children, because this breaks some styling in the topright area of the project editor tabs
+  if (isEmpty(users)) {
+    return <></>;
+  }
+
+  return (
+    <div style={{ ...USERS_VIEWING_STYLE, ...style }}>
+      {render_active_users()}
+    </div>
+  );
 };

@@ -9,11 +9,12 @@ The format bar.
 
 import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { React, Rendered } from "@cocalc/frontend/app-framework";
-import { Icon, isIconName, Gap } from "@cocalc/frontend/components";
+import { Gap, Icon, isIconName } from "@cocalc/frontend/components";
 import { ColorButton } from "@cocalc/frontend/components/color-picker";
 import FontFamilyMenu from "@cocalc/frontend/components/font-family";
 import FontSizeMenu from "@cocalc/frontend/components/font-size";
 import HeadingMenu from "@cocalc/frontend/components/heading-menu";
+import { COLORS } from "@cocalc/util/theme";
 import { SetMap } from "./types";
 
 interface Props {
@@ -216,7 +217,7 @@ export const FormatBar: React.FC<Props> = React.memo((props: Props) => {
   }
 
   return (
-    <div style={{ background: "#f8f8f8", margin: "0 1px" }}>
+    <div style={{ background: COLORS.EDITOR.COL_BAR_BACKGROUND, padding: "0 1px" }}>
       {render_font_dropdowns()}
       <div className={"cc-frame-tree-format-bar"}>
         {render_text_style_buttons()}

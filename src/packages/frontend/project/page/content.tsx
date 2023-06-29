@@ -26,7 +26,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
-import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import SideChat from "@cocalc/frontend/chat/side-chat";
 import { Loading } from "@cocalc/frontend/components";
 import KaTeXAndMathJaxV2 from "@cocalc/frontend/components/math/katex-and-mathjax2";
@@ -42,6 +41,7 @@ import { ProjectLog } from "@cocalc/frontend/project/history";
 import { ProjectInfo } from "@cocalc/frontend/project/info";
 import { ProjectNew } from "@cocalc/frontend/project/new";
 import { log_file_open } from "@cocalc/frontend/project/open-file";
+import type { ChatState } from "@cocalc/frontend/project/page/chat-button";
 import { ProjectSearch } from "@cocalc/frontend/project/search/search";
 import { ProjectServers } from "@cocalc/frontend/project/servers";
 import { ProjectSettings } from "@cocalc/frontend/project/settings";

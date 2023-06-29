@@ -36,8 +36,9 @@ import {
 } from "antd";
 import { MouseEventHandler } from "react";
 
-import { r_join } from "@cocalc/frontend/components/r_join";
 import { Gap } from "@cocalc/frontend/components/gap";
+import { r_join } from "@cocalc/frontend/components/r_join";
+import { COLORS } from "@cocalc/util/theme";
 
 // Note regarding buttons -- there are 6 semantics meanings in bootstrap, but
 // only four in antd, and it we can't automatically collapse them down in a meaningful
@@ -50,18 +51,22 @@ export type ButtonStyle =
   | "info"
   | "warning"
   | "danger"
+  | "ghost"
   | "link";
 
+type BUTTON_TYPES = "primary" | "default" | "dashed" | "link";
+
 const BS_STYLE_TO_TYPE: {
-  [name in ButtonStyle]: "primary" | "default" | "dashed" | "danger" | "link";
+  [name in ButtonStyle]: BUTTON_TYPES;
 } = {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
   default: "default",
   info: "default", // antd doesn't have this so we do it via style below.
   warning: "default", // antd doesn't have this so we do it via style below.
-  danger: "danger",
+  danger: "default",
   link: "link",
+  ghost: "default", // but ghost=true
 };
 
 export type ButtonSize = "large" | "small" | "xsmall";
@@ -71,7 +76,7 @@ function parse_bsStyle(props: {
   style?: React.CSSProperties;
   disabled?: boolean;
 }): {
-  type: "primary" | "default" | "dashed" | "link";
+  type: BUTTON_TYPES;
   style: React.CSSProperties;
   danger?: boolean;
   ghost?: boolean;
@@ -115,15 +120,19 @@ function parse_bsStyle(props: {
   style = { ...style, ...props.style };
   let danger: boolean | undefined = undefined;
   let loading: boolean | undefined = undefined; // nothing mapped to this yet
-  let ghost: boolean | undefined = undefined; // nothing mapped to this yet
-  if (type == "danger") {
+  let ghost: boolean | undefined = undefined;
+  if (props.bsStyle === "ghost") {
+    ghost = true;
+    style.color = COLORS.GRAY_DD;
+  }
+  if (props.bsStyle == "danger") {
     type = "default";
     danger = true;
   }
   return { type, style, danger, ghost, loading };
 }
 
-export const Button = (props: {
+interface ButtonProps {
   bsStyle?: ButtonStyle;
   bsSize?: ButtonSize;
   style?: React.CSSProperties;
@@ -140,7 +149,9 @@ export const Button = (props: {
   id?: string;
   autoFocus?: boolean;
   placement?;
-}) => {
+}
+
+export function Button(props: Readonly<ButtonProps>) {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
   const { type, style, danger, ghost, loading } = parse_bsStyle(props);
@@ -189,7 +200,7 @@ export const Button = (props: {
   } else {
     return btn;
   }
-};
+}
 
 export function ButtonGroup(props: {
   style?: React.CSSProperties;
@@ -409,10 +420,11 @@ interface AlertProps {
   banner?: boolean;
   children?: any;
   icon?: JSX.Element;
+  showIcon?: boolean;
 }
 
-export function Alert(props: AlertProps) {
-  const { bsStyle, style, banner, children, icon } = props;
+export function Alert(props: Readonly<AlertProps>) {
+  const { bsStyle, style, banner, children, icon, showIcon } = props;
 
   let type: "success" | "info" | "warning" | "error" | undefined = undefined;
   // success, info, warning, error
@@ -432,6 +444,7 @@ export function Alert(props: AlertProps) {
       style={style}
       banner={banner}
       icon={icon}
+      showIcon={showIcon}
     />
   );
 }

@@ -101,8 +101,8 @@ export function register_file_editor(opts: FileEditorInfo): void {
     initAsync: undefined, // async function
     remove: undefined,
     icon: "file-o",
-    save: undefined,
-  }); // optional; If given, doing opts.save(path, redux, project_id) should save the document.
+    save: undefined, // optional; If given, doing opts.save(path, redux, project_id) should save the document.
+  });
 
   if (typeof opts.ext === "string") {
     opts.ext = [opts.ext];

@@ -134,6 +134,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
         items={items}
         activeKey={activeKey}
         type={"editable-card"}
+        hideAdd={true}
         onChange={(key) => {
           if (actions == null) return;
           actions.set_active_tab(path_to_tab(keyToPath(key)));

@@ -4,21 +4,21 @@
  */
 
 .smc-project-files-dropdown>a
-  overflow      : hidden
-  text-overflow : ellipsis
+  overflow: hidden
+  text-overflow: ellipsis
 
 .smc-project-files-dropdown
   > a
-    overflow      : hidden
-    text-overflow : ellipsis
+    overflow: hidden
+    text-overflow: ellipsis
   > ul
-    width : 100%
+    width: 100%
 
 dl.cc-project-settings-features
   > dt
-    width       : 20px
+    width: 20px
   > dd
-    margin-left : 30px
+    margin-left: 30px
 
 .cocalc-files-tabs-more
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15)
@@ -27,3 +27,43 @@ dl.cc-project-settings-features
     .anticon
       font-size: 125%
       margin-right: 10px
+
+$toprightborder: 1px solid $COL_GRAY_L
+
+.cc-project-tabs-top-right
+  background: transparent
+  display: flex
+  flex: 1 1 auto
+  flex-direction: row
+  border-bottom: $toprightborder
+
+.cc-project-tabs-top-right-actions
+  display: inline-flex
+  flex-direction: row
+  justify-content: space-between
+  gap: 5px
+  z-index: 2
+  flex: 1 1 auto
+  flex-direction: row
+  align-items: baseline
+  background-color: $COL_GRAY_LL
+  color: white
+  border-top: $toprightborder
+
+.cc-project-tabs-top-right-slant
+  z-index: 1
+  display: flex
+  flex: 1 1 auto
+  flex-direction: row
+  content: ""
+  width: 20px
+  position: relative
+  left: 12px
+  background-color: $COL_GRAY_LL
+  -webkit-transform: skewX(-10deg)
+  -moz-transform: skewX(-10deg)
+  -ms-transform: skewX(-10deg)
+  transform: skewX(-10deg)
+  border-top: $toprightborder
+  border-left: $toprightborder
+  border-radius: 5px 0 0 0

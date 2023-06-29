@@ -83,11 +83,10 @@ interface EditorActions extends Actions {
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { COLORS } from "@cocalc/util/theme";
 
-const COL_BAR_BACKGROUND = "#f8f8f8";
-const COL_BAR_BACKGROUND_DARK = "#ddd";
-const COL_BAR_BORDER = "rgb(204,204,204)";
+const { COL_BAR_BACKGROUND, COL_BAR_BACKGROUND_DARK, COL_BAR_BORDER } =
+  COLORS.EDITOR;
 
-const title_bar_style: CSS = {
+const TITLE_BAR_STYLE: CSS = {
   background: COL_BAR_BACKGROUND_DARK,
   border: `1px solid ${COL_BAR_BORDER}`,
   padding: "1px",
@@ -2087,7 +2086,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
   // Whether this is *the* active currently focused frame:
   let style;
-  style = copy(title_bar_style);
+  style = copy(TITLE_BAR_STYLE);
   style.background = COL_BAR_BACKGROUND;
   if (!props.is_only && !props.is_full) {
     style.maxHeight = "34px";

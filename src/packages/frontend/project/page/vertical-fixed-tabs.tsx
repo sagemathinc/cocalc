@@ -4,7 +4,7 @@
  */
 
 /*
-Tabs in a particular project.
+Vertical Fixed Tabs on the left in a project.
 */
 
 import { Switch, Tooltip } from "antd";
@@ -12,69 +12,11 @@ import { debounce, throttle } from "lodash";
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
 import track from "@cocalc/frontend/user-tracking";
-import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIXED_PROJECT_TABS, FileTab, FixedTab } from "./file-tab";
-import FileTabs from "./file-tabs";
-import { ShareIndicator } from "./share-indicator";
-
-const INDICATOR_STYLE: React.CSSProperties = {
-  overflow: "hidden",
-  paddingLeft: "5px",
-} as const;
 
 export const FIXED_TABS_BG_COLOR = "rgba(0, 0, 0, 0.02)";
-
-interface PTProps {
-  project_id: string;
-}
-
-export default function ProjectTabs(props: PTProps) {
-  const { project_id } = props;
-  const openFiles = useTypedRedux({ project_id }, "open_files_order");
-  const activeTab = useTypedRedux({ project_id }, "active_project_tab");
-
-  if (openFiles.size == 0) return <></>;
-
-  return (
-    <div
-      className="smc-file-tabs"
-      style={{
-        width: "100%",
-        height: "40px",
-        padding: "2.5px",
-        overflow: "hidden",
-      }}
-    >
-      <div style={{ display: "flex" }}>
-        <div
-          style={{
-            display: "flex",
-            overflow: "hidden",
-            flex: 1,
-          }}
-        >
-          <FileTabs
-            openFiles={openFiles}
-            project_id={project_id}
-            activeTab={activeTab}
-          />
-        </div>
-        <div
-          style={{
-            display: "inline-flex",
-            marginLeft: "-10px",
-          }}
-        >
-          <ShareIndicatorTab activeTab={activeTab} project_id={project_id} />
-          <ChatIndicatorTab activeTab={activeTab} project_id={project_id} />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 interface FVTProps {
   project_id: string;
@@ -226,54 +168,6 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
           />
         </Tooltip>
       </div>
-    </div>
-  );
-}
-
-function ChatIndicatorTab({ activeTab, project_id }): JSX.Element | null {
-  const openFileInfo = useTypedRedux({ project_id }, "open_files");
-  if (!activeTab?.startsWith("editor-")) {
-    // TODO: This is the place in the code where we could support project-wide
-    // side chat, or side chats for each individual Files/Search, etc. page.
-    return null;
-  }
-  const path = tab_to_path(activeTab);
-  if (path == null) {
-    // bug -- tab is not a file tab.
-    return null;
-  }
-  const chatState = openFileInfo.getIn([path, "chatState"]) as any;
-  return (
-    <div style={INDICATOR_STYLE}>
-      <ChatIndicator
-        project_id={project_id}
-        path={path}
-        chatState={chatState}
-      />
-    </div>
-  );
-}
-
-function ShareIndicatorTab({ activeTab, project_id }) {
-  const isAnonymous = useTypedRedux("account", "is_anonymous");
-  const currentPath = useTypedRedux({ project_id }, "current_path");
-
-  if (isAnonymous) {
-    // anon users can't share anything
-    return null;
-  }
-  const path = activeTab === "files" ? currentPath : tab_to_path(activeTab);
-  if (path == null) {
-    // nothing specifically to share
-    return null;
-  }
-  if (path === "") {
-    // sharing whole project not implemented
-    return null;
-  }
-  return (
-    <div style={INDICATOR_STYLE}>
-      <ShareIndicator project_id={project_id} path={path} />
     </div>
   );
 }

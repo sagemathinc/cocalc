@@ -11,7 +11,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { PathNavigator } from "../../explorer/path-navigator";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
-import { FIXED_TABS_BG_COLOR } from "../tabs";
+import { FIXED_TABS_BG_COLOR } from "../vertical-fixed-tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log";
 

@@ -17,31 +17,33 @@ const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
 declare const localStorage: any;
 
 import { reuseInFlight } from "async-await-utils/hof";
-import * as immutable from "immutable";
-import { Actions } from "@cocalc/util/redux/Actions";
-import { three_way_merge } from "@cocalc/sync/editor/generic/util";
-import { callback2, retry_until_success } from "@cocalc/util/async-utils";
-import * as misc from "@cocalc/util/misc";
 import * as awaiting from "awaiting";
-import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
+import debug from "debug";
+import * as immutable from "immutable";
+
+import { IPynbImporter } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import {
   JupyterStore,
   JupyterStoreState,
   show_kernel_selector_reasons,
 } from "@cocalc/jupyter/redux/store";
 import { Cell, KernelInfo } from "@cocalc/jupyter/types";
-import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
-import debug from "debug";
-import { Kernel, Kernels } from "@cocalc/jupyter/util/misc";
-import { IPynbImporter } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
+import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
 import {
+  Kernel,
+  Kernels,
   char_idx_to_js_idx,
   codemirror_to_jupyter_pos,
+  get_kernels_by_name_or_language,
   js_idx_to_char_idx,
 } from "@cocalc/jupyter/util/misc";
-import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type Client from "@cocalc/sync-client";
+import { SyncDB } from "@cocalc/sync/editor/db/sync";
+import { three_way_merge } from "@cocalc/sync/editor/generic/util";
+import { callback2, retry_until_success } from "@cocalc/util/async-utils";
+import * as misc from "@cocalc/util/misc";
+import { Actions } from "@cocalc/util/redux/Actions";
 
 const log = debug("cocalc:jupyter:actions");
 const { close, required, defaults } = misc;

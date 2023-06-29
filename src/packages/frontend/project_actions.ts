@@ -11,7 +11,7 @@ import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
 import { join } from "path";
 
-import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
+import type { ChatState } from "@cocalc/frontend/project/page/chat-button";
 import { init as initChat } from "@cocalc/frontend/chat/register";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";

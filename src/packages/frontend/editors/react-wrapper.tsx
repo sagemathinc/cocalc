@@ -12,7 +12,7 @@
 
 import { debounce } from "lodash";
 import { delay } from "awaiting";
-import { NotifyResize } from '@zippytech/react-notify-resize'
+import { NotifyResize } from "@zippytech/react-notify-resize";
 
 import {
   React,
@@ -20,7 +20,7 @@ import {
   useAsyncEffect,
   useEffect,
   useRef,
-} from "../app-framework";
+} from "@cocalc/frontend/app-framework";
 import { copy } from "@cocalc/util/misc";
 
 // Once we get rid of all editor.coffee:

@@ -244,18 +244,17 @@ const Avatar0: React.FC<Props> = (props) => {
       return 1;
     }
     const { last_used } = props.activity;
+    const serverTime = webapp_client.server_time().valueOf();
+    const lastUsedTime = last_used.valueOf();
+    const timeDiff = serverTime - lastUsedTime;
+
     // don't fade out completely as then just see an empty face, which looks broken...
-    return ensure_bound(
-      1 -
-        (webapp_client.server_time().valueOf() - last_used.valueOf()) /
-          (props.max_age_s * 1000),
-      0,
-      0.85
-    );
+    return ensure_bound(1 - timeDiff / (props.max_age_s * 1000), 0.1, 1);
   }
 
   const { size } = props;
   if (size == null) throw Error("bug");
+
   const outer_style = {
     height: `${size}px`,
     width: `${size}px`,

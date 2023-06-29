@@ -16,6 +16,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useAppState } from "@cocalc/frontend/app/context";
 import { Loading } from "@cocalc/frontend/components";
 import {
   FrameContext,
@@ -23,7 +24,6 @@ import {
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { useAppState } from "../../app/context";
 import { AnonymousName } from "../anonymous-name";
 import { ProjectWarningBanner } from "../project-banner";
 import { StartButton } from "../start-button";
@@ -31,6 +31,7 @@ import { DeletedProjectWarning } from "../warnings/deleted";
 import { DiskSpaceWarning } from "../warnings/disk-space";
 import { OOMWarning } from "../warnings/oom";
 import { RamWarning } from "../warnings/ram";
+import { FIX_BORDERS } from "./common";
 import { Content } from "./content";
 import { isFixedTab } from "./file-tab";
 import { FlyoutBody } from "./flyouts/body";
@@ -44,8 +45,8 @@ import {
 import HomePageButton from "./home-page/button";
 import { useProjectStatus } from "./project-status-hook";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
-import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
-import { FIX_BORDERS } from "./common";
+import { TopTabBar } from "./top-bar";
+import { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./vertical-fixed-tabs";
 //import FirstSteps from "@cocalc/frontend/project/explorer/file-listing/first-steps";
 
 const PAGE_STYLE: React.CSSProperties = {
@@ -274,7 +275,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           />
           {renderFlyoutHeader()}
           <div style={{ flex: 1, overflow: "hidden" }}>
-            <Tabs project_id={project_id} />
+            <TopTabBar project_id={project_id} />
           </div>
         </div>
       )}
