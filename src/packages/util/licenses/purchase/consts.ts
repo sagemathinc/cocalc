@@ -128,7 +128,10 @@ interface CostsStructure {
 export const COSTS: CostsStructure = {
   user_discount: { academic: ACADEMIC_DISCOUNT, business: 1 },
   sub_discount: { no: 1, monthly: 0.9, yearly: 0.85 },
-  online_discount: 0.75,
+  // online_discount - If this were 0.75 then there would be a 25% discount on all "self service purchases",
+  // but this doesn't really make sense anymore with our new credits model.  Setting this to 1 effectively
+  // disables the discount.
+  online_discount: 1,
   min_quote: MIN_QUOTE,
   min_sale: 1,
   custom_cost: CUSTOM_COST,
