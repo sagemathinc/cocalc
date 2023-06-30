@@ -78,7 +78,9 @@ export interface License {
 
 export interface EditLicense {
   type: "edit-license";
-  // todo
+  license_id: string;
+  origInfo: PurchaseInfo;
+  modifiedInfo: PurchaseInfo;
 }
 
 // not used yet.

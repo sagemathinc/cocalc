@@ -84,31 +84,36 @@ export async function isPurchaseAllowed({
   // Next check that the quota for the specific service is not exceeded.
   // This is a self-imposed limit by the user to control what they
   // explicitly authorized.
-  const quotaForService = services[service];
-  if (!quotaForService) {
-    return {
-      allowed: false,
-      reason: `Please set a spending limit for the "${
-        QUOTA_SPEC[service]?.display ?? service
-      }" service.`,
-    };
-  }
-  // user has set a quota for this service.  is the total unpaid spend within this quota?
+  if (!QUOTA_SPEC[service]?.noSet) {
+    const quotaForService = services[service];
+    if (!quotaForService) {
+      return {
+        allowed: false,
+        reason: `Please set a spending limit for the "${
+          QUOTA_SPEC[service]?.display ?? service
+        }" service.`,
+      };
+    }
+    // user has set a quota for this service.  is the total unpaid spend within this quota?
 
-  // NOTE: This does NOT involve credits at all.  Even if the user has $10K in credits,
-  // they can still limit their monthly spend on a particular service, as a safety.
-  const chargesForService = await getTotalChargesThisMonth(account_id, service);
-  if (chargesForService + cost > quotaForService) {
-    return {
-      allowed: false,
-      reason: `You need to increase your ${
-        QUOTA_SPEC[service]?.display ?? service
-      } spending limit (this month charges: ${currency(
-        chargesForService
-      )}).  Your limit ${currency(quotaForService)} for "${
-        QUOTA_SPEC[service]?.display ?? service
-      }" is not sufficient to make a purchase of up to ${currency(cost)}.`,
-    };
+    // NOTE: This does NOT involve credits at all.  Even if the user has $10K in credits,
+    // they can still limit their monthly spend on a particular service, as a safety.
+    const chargesForService = await getTotalChargesThisMonth(
+      account_id,
+      service
+    );
+    if (chargesForService + cost > quotaForService) {
+      return {
+        allowed: false,
+        reason: `You need to increase your ${
+          QUOTA_SPEC[service]?.display ?? service
+        } spending limit (this month charges: ${currency(
+          chargesForService
+        )}).  Your limit ${currency(quotaForService)} for "${
+          QUOTA_SPEC[service]?.display ?? service
+        }" is not sufficient to make a purchase of up to ${currency(cost)}.`,
+      };
+    }
   }
 
   // allowed :-)

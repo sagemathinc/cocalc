@@ -8,6 +8,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { once } from "@cocalc/util/async-utils";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
+import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
 
 export class PurchasesClient {
   async getQuotas(): Promise<{
@@ -52,6 +53,10 @@ export class PurchasesClient {
     group?: boolean;
   }) {
     return await purchasesApi.getPurchases(opts);
+  }
+
+  async editLicense(opts: { license_id: string; changes: EditLicenseChanges }) {
+    return await purchasesApi.editLicense(opts);
   }
 
   async getInvoice(invoice_id: string) {

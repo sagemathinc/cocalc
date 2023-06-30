@@ -1,7 +1,7 @@
 /*
 Creates a stripe checkout session that when paid, credits the user's account.
 
-This is used to reduce the user's balance so they are allowed to make purchases.
+This is used to *increase* the user's balance so they are allowed to make purchases.
 */
 
 import getAccountId from "lib/account/get-account";

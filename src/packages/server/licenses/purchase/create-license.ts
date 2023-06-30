@@ -40,7 +40,7 @@ export default async function createLicense(
         : start,
     "created::TIMESTAMP": new Date(),
     "managers::TEXT[]": [account_id],
-    "quota::JSONB": await getQuota(info, license_id),
+    "quota::JSONB": getQuota(info, license_id),
     "title::TEXT": info.title,
     "description::TEXT": info.description,
     "run_limit::INTEGER": info.quantity,
@@ -60,7 +60,7 @@ export default async function createLicense(
 
 // this constructs the "quota" object for the license,
 // while it also sanity checks all fields. Last chance to find a problem!
-async function getQuota(info: PurchaseInfo, license_id: string) {
+export function getQuota(info: PurchaseInfo, license_id: string) {
   switch (info.type) {
     case "quota":
       return {

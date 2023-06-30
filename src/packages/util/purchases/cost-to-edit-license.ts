@@ -24,7 +24,7 @@ const log = (...args) => console.log("costToEditLicense", ...args);
 export default function costToEditLicense(
   info: PurchaseInfo,
   changes: Changes
-): number {
+): { cost: number; modifiedInfo: PurchaseInfo } {
   if (info.type == "vouchers") {
     throw Error("bug -- a license for vouchers makes no sense");
   }
@@ -164,9 +164,9 @@ export default function costToEditLicense(
   log({ price });
   log({ modifiedPrice });
 
-  const editCost = modifiedPrice.discounted_cost - price.discounted_cost;
-  log({ editCost });
-  return editCost;
+  const cost = modifiedPrice.discounted_cost - price.discounted_cost;
+  log({ cost });
+  return { cost, modifiedInfo };
 }
 
 function assertIsPositiveInteger(n: number, desc: string) {

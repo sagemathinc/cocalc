@@ -11,13 +11,13 @@ Creates the requested purchase if possible, given the user's quota.  If not, thr
 */
 interface Options {
   account_id: string;
+  service: Service;
+  description: Description;
   project_id?: string;
   cost?: number; // if cost not known yet, don't give.  E.g., for project-upgrade, the cost isn't known until project stops (or we close out a purchase interval).
   cost_per_hour?: number;
   period_start?: Date; // options; used mainly for analytics, e.g., for a license with given start and end dates.
   period_end?: Date;
-  service: Service;
-  description: Description;
   invoice_id?: string;
   notes?: string;
   tag?: string;

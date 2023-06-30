@@ -5,6 +5,10 @@ import { isManager } from "@cocalc/server/licenses/get-license";
 import costToEditLicense, {
   Changes,
 } from "@cocalc/util/purchases/cost-to-edit-license";
+import { getQuota } from "@cocalc/server/licenses/purchase/create-license";
+import { assertPurchaseAllowed } from "./is-purchase-allowed";
+import createPurchase from "./create-purchase";
+import getName from "@cocalc/server/accounts/get-name";
 
 const logger = getLogger("purchases:edit-license");
 
@@ -14,7 +18,9 @@ interface Options {
   changes: Changes;
 }
 
-export default async function editLicense(opts: Options) {
+export default async function editLicense(
+  opts: Options
+): Promise<{ purchase_id: number; cost: number }> {
   const { account_id, license_id, changes } = opts;
   logger.debug("editLicense", opts);
   if (!(await isManager(license_id, account_id))) {
@@ -24,15 +30,77 @@ export default async function editLicense(opts: Options) {
   // Get data about current license. See below.
   const info = await getPurchaseInfo(license_id);
   logger.debug("editLicense -- initial info = ", info);
-  const editCost = costToEditLicense(info, changes);
-  logger.debug("editLicense -- cost to make the edit: ", editCost);
 
-  // Make purchase
+  // account_id isn't defined in the schema for PurchaseInfo,
+  // but we do set it when making the license via a normal purchase.
+  // There are licenses without it set, e.g., manually test licenses
+  // made by admins, but those are exactly the sort of thing users
+  // should not be able to edit.
+  if ((info as any).account_id != account_id) {
+    if ((info as any).account_id == null) {
+      throw Error("this license does not support editing");
+    } else {
+      throw Error(
+        `Only the user who purchased a license is allowed to edit it. This license was purchased by ${await getName(
+          info.account_id
+        )}.`
+      );
+    }
+  }
+
+  const { cost, modifiedInfo } = costToEditLicense(info, changes);
+  logger.debug("editLicense -- cost to make the edit: ", cost, modifiedInfo);
+
+  const service = "edit-license";
+  // Is it possible to buy this change?
+  if (cost > 0) {
+    await assertPurchaseAllowed({ account_id, service, cost });
+  }
+
+  // [ ] TODO: make changing the license and creating the purchase a single atomic transaction
 
   // Change license
+  await changeLicense(license_id, modifiedInfo);
+
+  // Make purchase
+  const description = {
+    type: "edit-license",
+    license_id,
+    origInfo: info,
+    modifiedInfo,
+  } as const;
+  const purchase_id = await createPurchase({
+    account_id,
+    service,
+    description,
+    cost,
+  });
+
+  return { cost, purchase_id };
 }
 
-async function getPurchaseInfo(license_id: string): Promise<PurchaseInfo> {
+async function changeLicense(license_id: string, info: PurchaseInfo) {
+  if (info.type == "vouchers") {
+    throw Error("BUG -- info.type must not be vouchers");
+  }
+  const quota = getQuota(info, license_id);
+  const pool = getPool();
+  await pool.query(
+    "UPDATE site_licenses SET quota=$1,run_limit=$2,info=$3,expires=$4,activates=$5 WHERE id=$6",
+    [
+      quota,
+      info.quantity,
+      { purchased: info },
+      (info as any).end,
+      info.start,
+      license_id,
+    ]
+  );
+}
+
+export async function getPurchaseInfo(
+  license_id: string
+): Promise<PurchaseInfo> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT info->'purchased' AS info FROM site_licenses WHERE id=$1",

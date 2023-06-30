@@ -7,7 +7,7 @@ export type { Service };
 
 interface Spec {
   display: string; // what to show user to describe this service
-  noSet?: boolean; // if true, then this is not a service quota that the user can set.
+  noSet?: boolean; // if true, then no spend limits are set for this.
   color: string;
 }
 
@@ -44,7 +44,7 @@ export const QUOTA_SPEC: QuotaSpec = {
   },
   "edit-license": {
     display: "Edit License",
-    color: "#8b0000",
+    color: "#5498fb",
     noSet: true,
   },
 };
