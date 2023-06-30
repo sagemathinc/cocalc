@@ -8,6 +8,8 @@ import { Alert, Button, Divider, Spin } from "antd";
 import { useState } from "react";
 import { getLicense } from "./api";
 import { Icon } from "@cocalc/frontend/components/icon";
+import LicenseEditor from "./license-editor";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 
 interface Props {
   license_id: string;
@@ -15,7 +17,7 @@ interface Props {
 
 interface License {
   account_id: string;
-  info: string;
+  info: PurchaseInfo;
   number_running: number;
   title: string;
   description: string;
@@ -24,11 +26,26 @@ export default function EditLicense({ license_id }: Props) {
   const [license, setLicense] = useState<License | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [modifiedInfo, setModifiedInfo] = useState<PurchaseInfo | null>(null);
+  const [info, setInfo] = useState<PurchaseInfo | null>(null);
 
   const fetchLicense = async () => {
     try {
       setLoading(true);
-      setLicense(await getLicense(license_id));
+      const license = await getLicense(license_id);
+      console.log(license);
+      setLicense(license);
+      const info = license.info?.purchased ?? null;
+      if (info != null) {
+        if (info.start != null) {
+          info.start = new Date(info.start);
+        }
+        if (info.end != null) {
+          info.end = new Date(info.end);
+        }
+      }
+      setInfo(info);
+      setModifiedInfo(info);
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -56,7 +73,13 @@ export default function EditLicense({ license_id }: Props) {
           {loading && <Spin />}
         </Button>
       </Divider>
-      {license != null && <pre>{JSON.stringify(license, undefined, 2)}</pre>}
+      {modifiedInfo != null && (
+        <LicenseEditor
+          info={modifiedInfo}
+          onChange={setModifiedInfo}
+          style={{ maxWidth: "600px", margin: "auto" }}
+        />
+      )}
     </div>
   );
 }
