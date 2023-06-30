@@ -5,9 +5,7 @@ or anything like that.
 */
 
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import costToEditLicense, {
-  Changes,
-} from "@cocalc/util/purchases/cost-to-edit-license";
+import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
 import { Alert, DatePicker, InputNumber, Switch, Select, Table } from "antd";
 import dayjs from "dayjs";
 import { MAX } from "@cocalc/util/licenses/purchase/consts";

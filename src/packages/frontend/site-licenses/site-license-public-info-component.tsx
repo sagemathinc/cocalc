@@ -917,7 +917,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
             "purchased",
             "account_id",
           ]) == redux.getStore("account").get("account_id") && (
-            <EditLicense license_id={license_id} />
+            <EditLicense
+              license_id={license_id}
+              refresh={() => fetch_info(true)}
+            />
           ) /* we can only edit license we bought */
       }
     </div>
