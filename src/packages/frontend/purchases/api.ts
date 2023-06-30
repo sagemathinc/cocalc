@@ -198,3 +198,7 @@ export async function adminSetMinBalance(
     query: { crm_accounts: { account_id, min_balance } },
   });
 }
+
+export async function getLicense(license_id: string) {
+  return await api("licenses/get-license", { license_id });
+}

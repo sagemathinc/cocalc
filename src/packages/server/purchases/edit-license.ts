@@ -36,13 +36,14 @@ export default async function editLicense(
   // There are licenses without it set, e.g., manually test licenses
   // made by admins, but those are exactly the sort of thing users
   // should not be able to edit.
-  if ((info as any).account_id != account_id) {
-    if ((info as any).account_id == null) {
+  const owner_id = (info as any).account_id;
+  if (owner_id != account_id) {
+    if (owner_id == null) {
       throw Error("this license does not support editing");
     } else {
       throw Error(
         `Only the user who purchased a license is allowed to edit it. This license was purchased by ${await getName(
-          info.account_id
+          owner_id
         )}.`
       );
     }

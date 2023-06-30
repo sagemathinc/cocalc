@@ -150,6 +150,10 @@ export class PurchasesClient {
   async adminSetMinBalance(account_id: string, minBalance: number) {
     await purchasesApi.adminSetMinBalance(account_id, minBalance);
   }
+
+  async getLicense(license_id: string) {
+    return await purchasesApi.getLicense(license_id);
+  }
 }
 
 async function waitUntilPayAsYouGoModalCloses() {

@@ -46,6 +46,7 @@ import {
   SiteLicensePublicInfo as SiteLicensePublicInfoType,
 } from "./types";
 import { site_license_public_info, trunc_license_id } from "./util";
+import EditLicense from "@cocalc/frontend/purchases/edit-license";
 
 interface Props {
   license_id: string;
@@ -91,6 +92,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       }
   >(false);
   const user_map = useTypedRedux("users", "user_map");
+  const managedLicenses = useTypedRedux("billing", "managed_licenses");
 
   function getLicenseStatus(): LicenseStatus | undefined {
     const status = upgrades?.get("status");
@@ -108,9 +110,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
   useEffect(() => {
     // Optimization: check in redux store for first approximation of
     // info already available locally
-    let info = redux
-      .getStore("billing")
-      .getIn(["managed_licenses", license_id]);
+    let info = managedLicenses?.get(license_id);
     if (info != null) {
       const info2 = info.toJS() as Info;
       info2.is_manager = true; // redux store *only* has entries that are managed.
@@ -909,6 +909,17 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       {render_upgrades()}
       {render_err()}
       {render_warning()}
+      {
+        license_id &&
+          managedLicenses?.getIn([
+            license_id,
+            "info",
+            "purchased",
+            "account_id",
+          ]) == redux.getStore("account").get("account_id") && (
+            <EditLicense license_id={license_id} />
+          ) /* we can only edit license we bought */
+      }
     </div>
   );
   return (
