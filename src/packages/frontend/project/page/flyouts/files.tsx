@@ -150,6 +150,15 @@ export function FilesFlyout({ project_id }): JSX.Element {
     };
   }, [project_id, current_path]);
 
+  // selecting files switches over to "select" mode
+  useEffect(() => {
+    if (mode === "open" && checked_files.size > 0) {
+      setMode("select");
+    }
+    // this doesn't switch back to open mode, if no files are selected,
+    // because it's nicer to keep the checkboxes if everything is deselected
+  }, [checked_files]);
+
   // active file: current editor is the file in the listing
   // empty: either no files, or just the ".." for the parent dir
   const [directoryFiles, fileMap, activeFile, isEmpty] = useMemo((): [
@@ -443,7 +452,6 @@ export function FilesFlyout({ project_id }): JSX.Element {
         if (e.shiftKey || e.ctrlKey) {
           // Shift case: no prevSelected, otherwise see above
           toggleSelected(index, file.name);
-          setMode("select");
         } else {
           setPrevSelected(index);
           open(e, index);

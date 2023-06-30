@@ -357,10 +357,10 @@ export function FilesBottom({
             onClick={(e) => {
               e.stopPropagation();
               const nextMode = mode === "select" ? "open" : "select";
-              setMode(nextMode);
               if (nextMode === "open") {
                 clearAllSelections(true);
               }
+              setMode(nextMode);
             }}
           >
             <Icon name={mode === "select" ? "check-square" : "square"} /> Select
