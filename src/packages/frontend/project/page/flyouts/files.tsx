@@ -159,12 +159,20 @@ export function FilesFlyout({ project_id }): JSX.Element {
     // because it's nicer to keep the checkboxes if everything is deselected
   }, [checked_files]);
 
-  const [directoryFiles, fileMap, activeFile] = useMemo((): [
+  // active file: current editor is the file in the listing
+  // empty: either no files, or just the ".." for the parent dir
+  const [directoryFiles, fileMap, activeFile, isEmpty] = useMemo((): [
     DirectoryListing,
     FileMap,
-    DirectoryListingEntry | null
+    DirectoryListingEntry | null,
+    boolean
   ] => {
-    const empty: [DirectoryListing, FileMap, null] = [[], {}, null];
+    const empty: [DirectoryListing, FileMap, null, boolean] = [
+      [],
+      {},
+      null,
+      true,
+    ];
     if (directoryListings == null) return empty;
     const filesStore = directoryListings.get(current_path);
     if (filesStore == null) return empty;
@@ -244,6 +252,9 @@ export function FilesFlyout({ project_id }): JSX.Element {
       procFiles.reverse(); // inplace op
     }
 
+    const isEmpty = procFiles.length === 0;
+
+    // the ".." dir does not change the isEmpty state
     if (current_path != "") {
       procFiles.unshift({
         name: "..",
@@ -254,7 +265,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     // map each filename to it's entry in the directory listing
     const fileMap = fromPairs(procFiles.map((file) => [file.name, file]));
 
-    return [procFiles, fileMap, activeFile];
+    return [procFiles, fileMap, activeFile, isEmpty];
   }, [
     directoryListings,
     activeFileSort,
@@ -495,7 +506,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
         setScrollIdx(null);
       } else if (search != "") {
         setSearch("");
-        if (directoryFiles.length > 0) {
+        if (!isEmpty) {
           open(e, 0);
         } else {
           createFileOrFolder();
@@ -742,7 +753,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   }
 
   function createFileIfNotExists() {
-    if (search === "" || directoryFiles.length > 0) return;
+    if (search === "" || !isEmpty) return;
 
     const what = search.trim().endsWith("/") ? "directory" : "file";
     return (
