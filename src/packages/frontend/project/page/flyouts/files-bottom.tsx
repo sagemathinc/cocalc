@@ -66,6 +66,7 @@ type PanelKey = (typeof PANEL_KEYS)[number];
 interface FilesBottomProps {
   project_id: string;
   checked_files: immutable.Set<string>;
+  activeFile: DirectoryListingEntry | null;
   directoryData: [DirectoryListing, FileMap];
   projectIsRunning: boolean;
   rootHeightPx: number;
@@ -75,18 +76,26 @@ interface FilesBottomProps {
     skip?: boolean
   ) => void;
   showFileSharingDialog(file): void;
+  modeState: ["open" | "select", (mode: "open" | "select") => void];
+  clearAllSelections: (switchMode: boolean) => void;
+  selectAllFiles: () => void;
 }
 
 export function FilesBottom({
   project_id,
   checked_files,
+  activeFile,
   directoryData,
+  modeState,
   projectIsRunning,
+  clearAllSelections,
+  selectAllFiles,
   rootHeightPx,
   open,
   showFileSharingDialog,
 }: FilesBottomProps) {
   const [directoryFiles, fileMap] = directoryData;
+  const [mode, setMode] = modeState;
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
   const [activeKeys, setActiveKeys] = useState<PanelKey[]>([]);
@@ -146,11 +155,23 @@ export function FilesBottom({
     }
   }, [checked_files]);
 
+  useEffect(() => {
+    if (mode === "select") {
+      // expand the select panel if it was closed
+      if (!activeKeys.includes("selected")) {
+        setActiveKeys(["selected", ...activeKeys]);
+      }
+    }
+  }, [mode]);
+
   const singleFile = useMemo(() => {
+    if (checked_files.size === 0 && activeFile != null) {
+      return activeFile;
+    }
     if (checked_files.size === 1) {
       return getFile(checked_files.first() ?? "");
     }
-  }, [checked_files, directoryFiles]);
+  }, [checked_files, directoryFiles, activeFile]);
 
   // if rootRef changes size, increase resize
   useLayoutEffect(() => {
@@ -269,8 +290,10 @@ export function FilesBottom({
     const showDownload = !student_project_functionality.disableActions;
     const sizeStr = human_readable_size(size);
 
+    if (!showDownload && !showView) return null;
+
     return (
-      <>
+      <Space.Compact size="small">
         {showDownload ? (
           <Tooltip
             title={
@@ -283,7 +306,7 @@ export function FilesBottom({
           >
             <Button
               size="small"
-              href={`${url_href}`}
+              href={url}
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
@@ -310,13 +333,42 @@ export function FilesBottom({
             />
           </Tooltip>
         ) : undefined}
-      </>
+      </Space.Compact>
     );
   }
 
-  function renderDownloadViewFile() {
-    if (!singleFile) return renderSelectDeselectButton();
-    return <Space.Compact size="small">{renderDownloadView()}</Space.Compact>;
+  function renderSelectExtra() {
+    return (
+      <Space size="small" direction="horizontal" wrap>
+        {singleFile != null ? renderDownloadView() : undefined}
+        <Space.Compact size="small">
+          <BSButton
+            bsSize="xsmall"
+            active={mode === "select"}
+            title={
+              <>
+                Switch into file file selection mode.
+                <br />
+                Note: Like on a desktop, you can also use the Shift and Ctrl key
+                for selecting files – or hover over the file icon to reveal the
+                checkbox.
+              </>
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              const nextMode = mode === "select" ? "open" : "select";
+              if (nextMode === "open") {
+                clearAllSelections(true);
+              }
+              setMode(nextMode);
+            }}
+          >
+            <Icon name={mode === "select" ? "check-square" : "square"} /> Select
+          </BSButton>
+          {renderSelectButtons()}
+        </Space.Compact>
+      </Space>
+    );
   }
 
   function renderFileInfo() {
@@ -531,34 +583,35 @@ export function FilesBottom({
     );
   }
 
-  function renderSelectDeselectButton() {
+  function renderSelectButtons() {
+    if (mode !== "select") return;
     if (checked_files.size === 0) {
       return (
-        <Button
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            actions?.set_file_list_checked(
-              directoryFiles
-                .filter((f) => f.name !== "..")
-                .map((f) => path_to_file(current_path, f.name))
-            );
-          }}
-        >
-          Select all
-        </Button>
+        <Tooltip title="Select all files">
+          <Button
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              selectAllFiles();
+            }}
+          >
+            All
+          </Button>
+        </Tooltip>
       );
     } else {
       return (
-        <Button
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            actions?.set_all_files_unchecked();
-          }}
-        >
-          Deselect all
-        </Button>
+        <Tooltip title="Deselect all selected files">
+          <Button
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              clearAllSelections(false);
+            }}
+          >
+            Clear
+          </Button>
+        </Tooltip>
       );
     }
   }
@@ -601,7 +654,7 @@ export function FilesBottom({
         header={renderSelectedHeader()}
         key="selected"
         style={style}
-        extra={renderDownloadViewFile()}
+        extra={renderSelectExtra()}
       >
         {renderSelected()}
       </Collapse.Panel>

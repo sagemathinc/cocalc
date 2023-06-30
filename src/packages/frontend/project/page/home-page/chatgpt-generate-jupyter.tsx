@@ -11,7 +11,6 @@ import { Alert, Button, Input, Modal } from "antd";
 import { delay } from "awaiting";
 import { throttle } from "lodash";
 import { CSSProperties, useEffect, useState } from "react";
-
 import {
   redux,
   useActions,
@@ -215,8 +214,8 @@ export default function ChatGPTGenerateJupyterNotebook({
   async function updateNotebook(gptStream: ChatStream): Promise<void> {
     // local state, modified when more data comes in
     let init = false;
-    let ja: JupyterActions;
-    let jfa: NotebookFrameActions;
+    let ja: JupyterActions | undefined = undefined;
+    let jfa: NotebookFrameActions | undefined = undefined;
     let curCell: string = "";
     let numCells: number = 0;
 
@@ -269,7 +268,18 @@ export default function ChatGPTGenerateJupyterNotebook({
       // every update interval, we extract all the answer text,
       function (answer) {
         const allCells = splitCells(answer);
-        // console.log({ allCells, answer });
+        if (jfa == null) {
+          console.warn(
+            "unable to update cells since jupyter frame actions are not defined"
+          );
+          return;
+        }
+        if (ja == null) {
+          console.warn(
+            "unable to update cells since jupyter actions are not defined"
+          );
+          return;
+        }
 
         // we always have to update the last cell, even if there are more cells ahead
         jfa.set_cell_input(curCell, allCells[numCells - 1].source.join(""));
@@ -304,21 +314,24 @@ export default function ChatGPTGenerateJupyterNotebook({
         }
       } else {
         // we're done
-        ja.delete_all_blank_code_cells();
-        ja.run_all_cells();
+        ja?.delete_all_blank_code_cells();
+        ja?.run_all_cells();
       }
     });
 
     gptStream.on("error", (err) => {
       setError(`${err}`);
-      if (ja != null) {
-        ja.set_cell_input(
-          curCell,
-          `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`
-        );
-        ja.set_cell_type(curCell, "markdown");
-        ja.set_mode("escape");
+      setQuerying(false);
+      const error = `# Error generating code cell\n\n\`\`\`\n${err}\n\`\`\`\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
+      if (ja == null) {
+        // have to make error message without markdown since error isn't markdown.
+        // This case happens if we turn on the chatgpt UI, but do not put an openai key in.
+        setError(error);
+        return;
       }
+      ja.set_cell_input(curCell, error);
+      ja.set_cell_type(curCell, "markdown");
+      ja.set_mode("escape");
       return;
     });
 
@@ -421,28 +434,35 @@ export default function ChatGPTGenerateJupyterNotebook({
                   }}
                 />
                 <br />
-                {example && (
+                {!error && example && (
                   <div style={{ color: COLORS.GRAY_D, marginTop: "15px" }}>
                     Example: <i>"{example}"</i>
                   </div>
                 )}
               </Paragraph>
-              <Paragraph style={{ textAlign: "center" }}>
-                <Button
-                  type="primary"
-                  size="large"
-                  onClick={generate}
-                  disabled={querying || !prompt?.trim() || !spec}
-                >
-                  <Icon name="paper-plane" /> Create Notebook using{" "}
+              {!error && (
+                <Paragraph style={{ textAlign: "center" }}>
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={generate}
+                    disabled={querying || !prompt?.trim() || !spec}
+                  >
+                    <Icon name="paper-plane" /> Create Notebook using{" "}
                   {modelToName(model)} (shift+enter)
-                </Button>
-              </Paragraph>
+                  </Button>
+                </Paragraph>
+              )}
+              {!error && querying && <ProgressEstimate seconds={30} />}
               {error && (
                 <Alert
-                  style={{ marginBottom: "15px" }}
+                  closable
+                  onClose={() => {
+                    setError("");
+                  }}
                   showIcon
                   type="error"
+                  message="Error"
                   description={<Markdown value={error} />}
                 />
               )}
