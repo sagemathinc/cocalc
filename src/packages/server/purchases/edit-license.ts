@@ -1,20 +1,21 @@
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { cloneDeep } from "lodash";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { isManager } from "@cocalc/server/licenses/get-license";
+import costToEditLicense, {
+  Changes,
+} from "@cocalc/util/purchases/cost-to-edit-license";
 
 const logger = getLogger("purchases:edit-license");
 
 interface Options {
   account_id: string;
   license_id: string;
-  end?: Date;
+  changes: Changes;
 }
 
 export default async function editLicense(opts: Options) {
-  const { account_id, license_id, end } = opts;
+  const { account_id, license_id, changes } = opts;
   logger.debug("editLicense", opts);
   if (!(await isManager(license_id, account_id))) {
     throw Error(`${account_id} must be a manager of ${license_id}`);
@@ -22,23 +23,9 @@ export default async function editLicense(opts: Options) {
 
   // Get data about current license. See below.
   const info = await getPurchaseInfo(license_id);
-  logger.debug("editLicense", { info });
-  if (info.type == "vouchers") {
-    throw Error("bug -- a license for vouchers makes no sense");
-  }
-
-  // Make copy of data with modified params.
-  const modifiedInfo = cloneDeep(info);
-  if (end != null) {
-    // @ts-ignore: TODO!
-    modifiedInfo.end = end;
-  }
-  logger.debug("editLicense", { modifiedInfo });
-
-  // Determine price for the change
-  const price = compute_cost(info);
-  const modifiedPrice = compute_cost(modifiedInfo);
-  logger.debug("editLicense", { price, modifiedPrice });
+  logger.debug("editLicense -- initial info = ", info);
+  const editCost = costToEditLicense(info, changes);
+  logger.debug("editLicense -- cost to make the edit: ", editCost);
 
   // Make purchase
 

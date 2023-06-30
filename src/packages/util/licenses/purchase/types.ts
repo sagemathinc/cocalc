@@ -43,9 +43,9 @@ export interface StartEndDatesWithStrings {
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Uptime } from "@cocalc/util/consts/site-license";
-import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
-import { CustomDescription, Period } from "../../upgrades/shopping";
+import type { Uptime } from "@cocalc/util/consts/site-license";
+import type{ DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import type{ CustomDescription, Period } from "../../upgrades/shopping";
 
 export type PurchaseInfoQuota = {
   type: "quota";
