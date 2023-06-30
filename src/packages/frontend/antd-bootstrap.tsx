@@ -134,7 +134,7 @@ export const Button = (props: {
   className?: string;
   href?: string;
   target?: string;
-  title?: string;
+  title?: string | JSX.Element;
   tabIndex?: number;
   active?: boolean;
   id?: string;
