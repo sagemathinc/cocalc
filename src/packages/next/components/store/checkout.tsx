@@ -619,8 +619,8 @@ function ExplainPaymentSituation({
     params;
   const curBalance = (
     <div style={{ float: "right" }}>
-      Balance: {currency(balance)}
-      {minBalance ? `, Minimum allowed: ${currency(minBalance)}` : ""}
+      Current balance: {currency(balance)}
+      {minBalance ? `, Minimum allowed balance: ${currency(minBalance)}` : ""}
     </div>
   );
 
@@ -640,7 +640,7 @@ function ExplainPaymentSituation({
       />
     );
   }
-  if (chargeAmount > amountDue) {
+  if (chargeAmount == minPayment) {
     return (
       <Alert
         type="info"
@@ -651,10 +651,14 @@ function ExplainPaymentSituation({
             <b>
               To complete this purchase, pay {currency(chargeAmount)} (+ TAX).
             </b>{" "}
-            This is more than {currency(amountDue)}, since our minimum
-            transaction amount is {currency(minPayment)}. The difference will be
-            credited to your account, and you can use it toward future
-            purchases.
+            {chargeAmount > amountDue && (
+              <>
+                This is more than {currency(amountDue)}, since our minimum
+                transaction amount is {currency(minPayment)}. The difference
+                will be credited to your account, and you can use it toward
+                future purchases.
+              </>
+            )}
           </>
         }
       />
@@ -667,12 +671,15 @@ function ExplainPaymentSituation({
       message={<>{curBalance}Payment required</>}
       description={
         <>
-          <b>To complete this purchase, pay {currency(chargeAmount)} (+ TAX)</b>
+          <b>
+            To complete this purchase, you must pay {currency(chargeAmount)} (+
+            TAX) to add sufficient credit to your account
+          </b>
           .{" "}
-          {balance < 0 && (
+          {chargeAmount > total && (
             <>
-              This is larger than the total for these items, because your
-              account balance is {currency(balance)}, which negative.
+              This is larger than the total, because your account balance must
+              always be at least {currency(params.minBalance)}.
             </>
           )}
         </>

@@ -11,13 +11,13 @@ import getMinBalance from "./get-min-balance";
 const logger = getLogger("purchases:shopping-cart-checkout");
 
 export interface CheckoutParams {
-  balance: number;
-  minPayment: number;
-  amountDue: number;
-  chargeAmount: number;
-  total: number;
-  minBalance: number;
-  cart;
+  balance: number; // this user's balance before payment happens
+  minPayment: number; // min allowed payment size
+  amountDue: number; // actual amount due if it weren't for minPayment
+  chargeAmount: number; // actual amount due because of minPayment
+  total: number; // total of items in cart
+  minBalance: number; // min allowed balance for this user
+  cart; // big object that describes actual contents of the cart
 }
 
 export default async function shoppingCartCheckout({
@@ -76,9 +76,30 @@ export async function getShoppingCartCheckoutParams(
   const minBalance = await getMinBalance(account_id);
   const balance = await getBalance(account_id);
   const { pay_as_you_go_min_payment: minPayment } = await getServerSettings();
-  const newBalance = total - balance;
-  const amountDue = Math.max(0, round2(minBalance - newBalance));
+
+  // Figure out what the amount due is, not worrying about the minPayment (we do that below).
+  let amountDue = total;
+
+  // Sometimes for weird reasons the balance goes below the minimum allowed balance,
+  // so if that happens we correct that here.
+  if (balance < minBalance) {
+    // get back up to the minimum balance -- this should never be required,
+    // but sometimes it is, e.g., maybe there is a race condition with purchases.
+    amountDue += minBalance - balance;
+  }
+
+  if (balance + amountDue - total > minBalance) {
+    // We extend a little bit of credit to this user, because they
+    // have a minBalance below 0:
+    const credit = balance + amountDue - total - minBalance;
+    amountDue -= credit;
+  }
+  // amount due can never be negative
+  amountDue = Math.max(0, round2(amountDue));
+
+  // amount you actually have to pay, due to our min payment requirement
   const chargeAmount = amountDue == 0 ? 0 : Math.max(amountDue, minPayment);
+
   return {
     balance,
     minPayment,
