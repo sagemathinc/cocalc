@@ -166,7 +166,8 @@ export default function EditLicense({ license_id, refresh }: Props) {
             The {cost >= 0 ? "charge" : "credit"} of {currency(Math.abs(cost))}{" "}
             is the prorated difference between the cost of the original license
             and the edited one. You may edit a license at any time with no
-            change fee, but any projects using the license will restarted.
+            change fee, but{" "}
+            <b>any projects using the license may be restarted</b>.
             <Button
               style={{ float: "right" }}
               type="text"

@@ -486,6 +486,9 @@ export async function restartProjectIfRunning(project_id: string) {
   const project = getProject(project_id);
   const { state } = await project.state();
   if (state == "starting" || state == "running") {
-    project.restart(); // don't await this -- it could take a long time and isn't necessary to wait for.
+    // don't await this -- it could take a long time and isn't necessary to wait for.
+    (async () => {
+      await project.restart();
+    })();
   }
 }

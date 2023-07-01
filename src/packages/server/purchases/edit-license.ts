@@ -9,6 +9,8 @@ import { getQuota } from "@cocalc/server/licenses/purchase/create-license";
 import { assertPurchaseAllowed } from "./is-purchase-allowed";
 import createPurchase from "./create-purchase";
 import getName from "@cocalc/server/accounts/get-name";
+import { query_projects_using_site_license } from "@cocalc/database/postgres/site-license/analytics";
+import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 
 const logger = getLogger("purchases:edit-license");
 
@@ -30,6 +32,9 @@ export default async function editLicense(
   // Get data about current license. See below.
   const info = await getPurchaseInfo(license_id);
   logger.debug("editLicense -- initial info = ", info);
+  if (info.type == "vouchers") {
+    throw Error("editing vouchers is not supported");
+  }
 
   // account_id isn't defined in the schema for PurchaseInfo,
   // but we do set it when making the license via a normal purchase.
@@ -53,7 +58,7 @@ export default async function editLicense(
   logger.debug("editLicense -- cost to make the edit: ", cost, modifiedInfo);
 
   const service = "edit-license";
-  // Is it possible to buy this change?
+  // Is it possible for this user to purchase this change?
   if (cost > 0) {
     await assertPurchaseAllowed({ account_id, service, cost });
   }
@@ -76,6 +81,44 @@ export default async function editLicense(
     description,
     cost,
   });
+
+  // If changes is anything except only changing the end date to be in the future,
+  // then we restart all projects using the license.  Changing the end date is one
+  // thing that happens when updating subscriptions, and those need to be non-intrusive.
+  const keys = Object.keys(changes);
+  if (
+    keys.length == 0 ||
+    (keys.length == 1 &&
+      keys[0] == "end" &&
+      changes.end != null &&
+      changes.end >= (info.end ?? new Date()))
+  ) {
+    // no need to restart
+    logger.debug(
+      "editLicense -- only change was to extend the end date, so not restarting any projects"
+    );
+  } else {
+    logger.debug(
+      "editLicense -- restarting all projects that are using the license",
+      license_id
+    );
+    // don't block returning on this
+    (async () => {
+      try {
+        await restartProjectsUsingLicense(license_id);
+        logger.debug(
+          "editLicense -- DONE restarting all projects that are the license",
+          license_id
+        );
+      } catch (err) {
+        logger.debug(
+          "editLicense -- ERROR restarting all projects that are the license",
+          license_id,
+          err
+        );
+      }
+    })();
+  }
 
   return { cost, purchase_id };
 }
@@ -118,6 +161,17 @@ export async function getPurchaseInfo(
     info.end = new Date(info.end);
   }
   return info;
+}
+
+async function restartProjectsUsingLicense(license_id: string) {
+  const query = query_projects_using_site_license(license_id);
+  const pool = getPool();
+  const { rows } = await pool.query(`SELECT project_id ${query}`);
+  for (const row of rows) {
+    (async () => {
+      await restartProjectIfRunning(row.project_id);
+    })();
+  }
 }
 
 /*
