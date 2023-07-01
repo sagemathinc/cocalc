@@ -9,8 +9,9 @@ import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import LRU from "lru-cache";
 import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Alert, Spin, Statistic, Table, Tooltip } from "antd";
+import { Alert, Spin, Table, Tooltip } from "antd";
 import { currency } from "../util";
+import MoneyStatistic from "../money-statistic";
 
 const cache = new LRU<string, any>({
   max: 200,
@@ -47,14 +48,7 @@ export default function Cost({ service }: Props) {
   }
 
   if (service == "credit") {
-    return (
-      <Statistic
-        title={"Minimum Credit"}
-        value={cost}
-        precision={2}
-        prefix={"$"}
-      />
-    );
+    return <MoneyStatistic title={"Minimum Credit"} value={cost} />;
   }
 
   if (service == "project-upgrade") {

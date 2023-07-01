@@ -5,7 +5,7 @@ import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import getLogger from "@cocalc/backend/logger";
 import createStripeCheckoutSession from "./create-stripe-checkout-session";
-import { round2 } from "@cocalc/util/misc";
+import getChargeAmount from "@cocalc/util/purchases/charge-amount";
 import getMinBalance from "./get-min-balance";
 
 const logger = getLogger("purchases:shopping-cart-checkout");
@@ -76,29 +76,12 @@ export async function getShoppingCartCheckoutParams(
   const minBalance = await getMinBalance(account_id);
   const balance = await getBalance(account_id);
   const { pay_as_you_go_min_payment: minPayment } = await getServerSettings();
-
-  // Figure out what the amount due is, not worrying about the minPayment (we do that below).
-  let amountDue = total;
-
-  // Sometimes for weird reasons the balance goes below the minimum allowed balance,
-  // so if that happens we correct that here.
-  if (balance < minBalance) {
-    // get back up to the minimum balance -- this should never be required,
-    // but sometimes it is, e.g., maybe there is a race condition with purchases.
-    amountDue += minBalance - balance;
-  }
-
-  if (balance + amountDue - total > minBalance) {
-    // We extend a little bit of credit to this user, because they
-    // have a minBalance below 0:
-    const credit = balance + amountDue - total - minBalance;
-    amountDue -= credit;
-  }
-  // amount due can never be negative
-  amountDue = Math.max(0, round2(amountDue));
-
-  // amount you actually have to pay, due to our min payment requirement
-  const chargeAmount = amountDue == 0 ? 0 : Math.max(amountDue, minPayment);
+  const { amountDue, chargeAmount } = getChargeAmount({
+    cost: total,
+    balance,
+    minBalance,
+    minPayment,
+  });
 
   return {
     balance,

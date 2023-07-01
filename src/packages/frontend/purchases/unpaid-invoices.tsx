@@ -13,11 +13,12 @@ import getSupportURL from "@cocalc/frontend/support/url";
 const zIndex = zIndexModal + 1;
 
 interface Props {
-  balance?: number;
+  balance: number;
   refresh?: () => void;
+  cost?: number; // optional amount of money we want right now
 }
 
-export default function UnpaidInvoices({ balance, refresh }: Props) {
+export default function UnpaidInvoices({ balance, refresh, cost }: Props) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [unpaidInvoices, setUnpaidInvoices] = useState<any[] | null>(null);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -57,6 +58,7 @@ export default function UnpaidInvoices({ balance, refresh }: Props) {
             getUnpaidInvoices();
             refresh?.();
           }}
+          cost={cost}
         />
         <div style={{ marginTop: "15px", color: "#888" }}>
           You have no unpaid invoices.

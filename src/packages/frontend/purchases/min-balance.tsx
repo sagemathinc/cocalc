@@ -1,5 +1,6 @@
-import { Card, Statistic } from "antd";
+import { Card } from "antd";
 import { Support } from "./unpaid-invoices";
+import MoneyStatistic from "./money-statistic";
 
 interface Props {
   minBalance?: number | null;
@@ -13,12 +14,7 @@ export default function MinBalance({ minBalance, style }: Props) {
   }
   return (
     <Card style={style} title="Balance Cannot Go Below">
-      <Statistic
-        title={"Minimum Balance (USD)"}
-        value={minBalance}
-        precision={2}
-        prefix={"$"}
-      />
+      <MoneyStatistic title={"Minimum Balance"} value={minBalance} />
       <Support>Request change...</Support>
     </Card>
   );

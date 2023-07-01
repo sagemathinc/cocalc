@@ -69,16 +69,19 @@ export async function isPurchaseAllowed({
   // First check that making purchase won't reduce our balance below the minBalance.
   const balance = await getBalance(account_id);
   const amountAfterPurchase = balance - cost;
-  if (amountAfterPurchase < minBalance) {
+  // add 0.01 due to potential rounding errors
+  if (amountAfterPurchase + 0.01 < minBalance) {
     return {
       allowed: false,
       reason: `You do not have enough credits to spend ${currency(
         cost
-      )} since your balance is ${currency(
-        balance
-      )}, which would go below your allowed minimum balance of ${currency(
+      )} since your balance is ${currency(balance)}, and spending ${currency(
+        cost
+      )} would cause your balance to go below your allowed minimum balance of ${currency(
         minBalance
-      )}.  Please add credits.`,
+      )}.  Please add at least ${currency(
+        cost - (balance - minBalance)
+      )} to your account.`,
     };
   }
   // Next check that the quota for the specific service is not exceeded.

@@ -1,15 +1,13 @@
 import { Alert, Modal } from "antd";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
-import {
-  Service,
-  serviceToDisplay,
-} from "@cocalc/util/db-schema/purchase-quotas";
+import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { Icon } from "@cocalc/frontend/components/icon";
 import QuotaConfig from "../quota-config";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ServiceTag from "../service";
 import Cost from "./cost";
 import { load_target } from "@cocalc/frontend/history";
+import { QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 
 export const zIndex = 2000;
 
@@ -80,16 +78,10 @@ export default function PayAsYouGoModal({}) {
           style={{ margin: "15px 0" }}
           showIcon
           type="success"
-          description={
-            <>
-              Thanks, your use of{" "}
-              {serviceToDisplay(storeState.service as Service)} should now be
-              allowed!
-            </>
-          }
+          description={<>Thanks, your purchase should now be allowed!</>}
         />
       )}
-      {storeState.service != null && (
+      {storeState.service != null && !QUOTA_SPEC[storeState.service]?.noSet && (
         <div>
           <div style={{ color: "#666", marginBottom: "5px" }}>
             This service is charged on a pay-as-you-go basis according to the
@@ -102,6 +94,7 @@ export default function PayAsYouGoModal({}) {
       <QuotaConfig
         service={storeState.service as Service}
         updateAllowed={updateAllowed}
+        cost={storeState.allowed ? 0 : storeState.cost}
       />
     </Modal>
   );

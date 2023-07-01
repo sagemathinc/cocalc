@@ -118,6 +118,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
                         service,
                         reason,
                         allowed,
+                        cost,
                       });
                     }
                     if ((await isPurchaseAllowed(service, cost)).allowed) {

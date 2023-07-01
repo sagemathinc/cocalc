@@ -1,16 +1,17 @@
 import type { CSSProperties } from "react";
-import { Card, Tooltip, Space, Statistic, Spin } from "antd";
+import { Card, Tooltip, Space, Spin } from "antd";
 import UnpaidInvoices from "./unpaid-invoices";
 import { zIndexTip } from "./payment";
-import { round2 } from "@cocalc/util/misc";
+import MoneyStatistic from "./money-statistic";
 
 interface Props {
   balance?: number | null;
   style?: CSSProperties;
   refresh?: () => void;
+  cost?: number; // optional amount of money we want right now
 }
 
-export default function Balance({ balance, style, refresh }: Props) {
+export default function Balance({ balance, style, refresh, cost }: Props) {
   let body;
   if (balance == null) {
     body = (
@@ -27,18 +28,13 @@ export default function Balance({ balance, style, refresh }: Props) {
     );
   } else {
     let stat = (
-      <Statistic
-        title={"Current Balance (USD)"}
-        value={round2(balance)}
-        precision={2}
-        prefix={"$"}
-      />
+      <MoneyStatistic title={"Current Balance (USD)"} value={balance} />
     );
     if (balance < 0) {
       stat = (
         <Tooltip
           zIndex={zIndexTip}
-          title="You have a negative balance.  This is money that you can spend anywhere in CoCalc."
+          title="You have a negative balance (an account credit).  This is money that you can spend anywhere in CoCalc."
         >
           {stat}
         </Tooltip>
@@ -47,7 +43,7 @@ export default function Balance({ balance, style, refresh }: Props) {
     body = (
       <>
         <Space style={{ marginBottom: "30px" }}>{stat}</Space>
-        <UnpaidInvoices balance={balance} refresh={refresh} />
+        <UnpaidInvoices balance={balance} refresh={refresh} cost={cost} />
       </>
     );
   }

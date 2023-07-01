@@ -7,7 +7,6 @@ import {
   Spin,
   Tag,
   Tooltip,
-  Statistic,
 } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useRef, useState } from "react";
@@ -17,13 +16,20 @@ import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/modal";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { delay } from "awaiting";
 import { cancelCurrentCheckoutSession } from "./api";
+import MoneyStatistic from "./money-statistic";
 
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
 
 const DEFAULT_AMOUNT = 10;
 
-export default function Payment({ balance, update }) {
+interface Props {
+  balance: number;
+  update: () => void;
+  cost?: number; // optional amount that we want to encourage the user to pay
+}
+
+export default function Payment({ balance, update, cost }: Props) {
   const clickedOkRef = useRef<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number | null>(
@@ -53,25 +59,26 @@ export default function Payment({ balance, update }) {
 
   useEffect(() => {
     updateSession();
-    if (isModalVisible) {
-      setPaymentAmount(Math.max(DEFAULT_AMOUNT, balance ?? 0));
-    }
   }, [isModalVisible]);
 
   const paymentPopup = async (url: string) => {
     // create pop-up window with the payment info
     const popup = open_new_tab(url, true);
     while (popup != null && !popup.closed) {
-      await delay(2000);
+      await delay(500);
     }
-    await delay(1000);
+    await delay(500);
     setIsModalVisible(false);
     updateSession();
     update();
   };
 
-  const showModal = async () => {
-    setPaymentAmount(Math.max(5, balance ?? 0));
+  const showModal = () => {
+    setPaymentAmount(
+      cost
+        ? Math.max(minPayment ?? 0, cost)
+        : Math.max(minPayment ?? 0, balance ?? 0)
+    );
     setIsModalVisible(true);
     if (typeof session == "object" && session?.url) {
       paymentPopup(session.url);
@@ -137,12 +144,7 @@ export default function Payment({ balance, update }) {
     return (
       <div>
         <div style={{ textAlign: "center" }}>
-          <Statistic
-            title={"Current Balance (USD)"}
-            value={balance}
-            precision={2}
-            prefix={"$"}
-          />
+          <MoneyStatistic title={"Current Balance"} value={balance} />
         </div>
         <Divider plain orientation="left">
           Enter payment amount (in US dollars)
@@ -215,13 +217,17 @@ export default function Payment({ balance, update }) {
           disabled={balance == null || cancelling}
           onClick={showModal}
           type={
-            typeof session == "object" && session?.id ? "primary" : undefined
+            (cost ?? 0) > 0 || (typeof session == "object" && session?.id)
+              ? "primary"
+              : undefined
           }
         >
           <Icon name="credit-card" style={{ marginRight: "5px" }} />
           {session == "loading" && <Spin />}
           {typeof session == "object" && session?.id
             ? "Finish Payment..."
+            : cost
+            ? `Make Payment of at least ${currency(cost)}`
             : "Make Payment..."}
         </Button>
         {typeof session == "object" && session?.id && (

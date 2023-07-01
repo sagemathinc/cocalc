@@ -33,14 +33,13 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-4-32k": {
     display: "OpenAI GPT-4 32k",
     color: "#10a37f",
-    noSet: true, // because this model is not user visible yet
+    noSet: true, // because this is not user visible yet
   },
   "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
   license: {
     display: "License",
     color: "#00008b",
-    noSet:
-      true /* we aren't actually using quotas for license purchases, because they are very explicit unlike openai and project-upgrade */,
+    noSet: true,
   },
   "edit-license": {
     display: "Change License",
