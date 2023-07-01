@@ -66,6 +66,13 @@ export default function Cost({ service }: Props) {
         completion_tokens={cost.completion_tokens}
       />
     );
+  } else if (service == "edit-license") {
+    return (
+      <div>
+        The prorated difference between the cost of the original license and the
+        edited one.
+      </div>
+    );
   }
 
   return <pre>{JSON.stringify(cost)}</pre>;

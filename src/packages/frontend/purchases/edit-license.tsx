@@ -6,7 +6,7 @@ make, or get a refund.
 
 import { Alert, Button, Card, Divider, Popconfirm, Spin } from "antd";
 import { useEffect, useState } from "react";
-import { getLicense, editLicense } from "./api";
+import { getLicense, editLicense, isPurchaseAllowed } from "./api";
 import { Icon } from "@cocalc/frontend/components/icon";
 import LicenseEditor from "./license-editor";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
@@ -14,6 +14,7 @@ import costToEditLicense from "@cocalc/util/purchases/cost-to-edit-license";
 import { currency } from "./util";
 import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
 import { isEqual } from "lodash";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props {
   license_id: string;
@@ -35,6 +36,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
   const [modifiedInfo, setModifiedInfo] = useState<PurchaseInfo | null>(null);
   const [info, setInfo] = useState<PurchaseInfo | null>(null);
   const [cost, setCost] = useState<number>(0);
+  const [makingChange, setMakingChange] = useState<boolean>(false);
 
   const fetchLicense = async () => {
     try {
@@ -74,7 +76,9 @@ export default function EditLicense({ license_id, refresh }: Props) {
   }, [info, modifiedInfo]);
 
   if (error) {
-    return <Alert type="error" message="Error" description={error} />;
+    return (
+      <Alert type="error" message="Error Loading License" description={error} />
+    );
   }
   return (
     <div>
@@ -102,18 +106,37 @@ export default function EditLicense({ license_id, refresh }: Props) {
                 description="Are you sure to change this license?"
                 onConfirm={async () => {
                   const changes = getChanges(info, modifiedInfo);
+                  const service = "edit-license";
                   try {
-                    await editLicense({ license_id, changes });
-                    refresh?.();
-                    setLicense(null);
+                    setMakingChange(true);
+                    const { allowed, reason } = await isPurchaseAllowed(
+                      service,
+                      cost
+                    );
+                    if (!allowed) {
+                      await webapp_client.purchases_client.quotaModal({
+                        service,
+                        reason,
+                        allowed,
+                      });
+                    }
+                    if ((await isPurchaseAllowed(service, cost)).allowed) {
+                      await editLicense({ license_id, changes });
+                      refresh?.();
+                      setLicense(null);
+                    } else {
+                      throw Error("unable to complete purchase");
+                    }
                   } catch (err) {
                     setEditError(`${err}`);
+                  } finally {
+                    setMakingChange(false);
                   }
                 }}
                 okText="Yes"
                 cancelText="No"
               >
-                <Button disabled={!cost} type="primary">
+                <Button disabled={!cost || makingChange} type="primary">
                   {cost > 0 && (
                     <>Change License -- you will be charged {currency(cost)}</>
                   )}
@@ -133,7 +156,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
           {editError && (
             <Alert
               type="error"
-              message="Error"
+              message="Error Editing License"
               description={editError}
               style={{ margin: "15px 0" }}
             />
@@ -147,7 +170,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
               style={{ float: "right" }}
               type="text"
               onClick={() => setModifiedInfo(info)}
-              disabled={isEqual(modifiedInfo, info)}
+              disabled={isEqual(modifiedInfo, info) || makingChange}
             >
               Reset
             </Button>
