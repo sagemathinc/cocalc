@@ -27,6 +27,8 @@ import { currency } from "./util";
 import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import { load_target } from "@cocalc/frontend/history";
+import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 
 const DEFAULT_LIMIT = 100;
 
@@ -357,6 +359,7 @@ function DetailedPurchaseTable({ purchases }) {
               title: "Description",
               dataIndex: "description",
               key: "description",
+              width: 250,
               render: (_, record) => (
                 <Description description={record.description} />
               ),
@@ -394,7 +397,7 @@ function DetailedPurchaseTable({ purchases }) {
   );
 }
 
-// "credit" | "openai-gpt-4" | "project-upgrade" | "license"
+// "credit" | "openai-gpt-4" | "project-upgrade" | "license" | "edit-license"
 
 function Description({ description }: { description?: Description }) {
   if (description == null) {
@@ -439,6 +442,30 @@ function Description({ description }: { description?: Description }) {
     const quota = description?.quota ?? {};
     return <DisplayProjectQuota quota={quota} />;
   }
+  if (description.type == "edit-license") {
+    return (
+      <Popover
+        title={
+          <div style={{ fontSize: "13pt" }}>
+            <Icon name="pencil" /> Change License
+          </div>
+        }
+        content={() => (
+          <div style={{ width: "500px" }}>
+            <b>From:</b> {describeQuotaFromInfo(description.origInfo)}{" "}
+            <LicenseDates info={description.origInfo} />
+            <br />
+            <br />
+            <b>To:</b> {describeQuotaFromInfo(description.modifiedInfo)}{" "}
+            <LicenseDates info={description.modifiedInfo} />
+          </div>
+        )}
+      >
+        {describeQuotaFromInfo(description.modifiedInfo)}{" "}
+        <LicenseDates info={description.modifiedInfo} />
+      </Popover>
+    );
+  }
   // generic fallback...
   return (
     <>
@@ -450,6 +477,47 @@ function Description({ description }: { description?: Description }) {
     </>
   );
 }
+
+function LicenseDates({ info }: { info: PurchaseInfo }) {
+  if (info.type == "vouchers") {
+    return null;
+  }
+  return (
+    <span>
+      (<TimeAgo date={info.start} /> to{" "}
+      {info.end ? <TimeAgo date={info.end} /> : "-"})
+    </span>
+  );
+}
+
+/*
+{
+  "type": "edit-license",
+  "origInfo": {
+    "end": "2023-07-04T06:59:59.999Z",
+    "type": "vm",
+    "start": "2023-06-29T07:00:00.000Z",
+    "quantity": 1,
+    "account_id": "8e138678-9264-431c-8dc6-5c4f6efe66d8",
+    "dedicated_vm": {
+      "machine": "n2-highmem-8"
+    },
+    "subscription": "no"
+  },
+  "license_id": "0b7b03a4-d13a-4187-b907-0cae6f591f8a",
+  "modifiedInfo": {
+    "end": "2023-07-07T06:59:59.999Z",
+    "type": "vm",
+    "start": "2023-06-30T23:29:22.413Z",
+    "quantity": 1,
+    "account_id": "8e138678-9264-431c-8dc6-5c4f6efe66d8",
+    "dedicated_vm": {
+      "machine": "n2-highmem-8"
+    },
+    "subscription": "no"
+  }
+}
+*/
 
 export function DisplayProjectQuota({ quota }: { quota: ProjectQuota }) {
   const v: string[] = [];

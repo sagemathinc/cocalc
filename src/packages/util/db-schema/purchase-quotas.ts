@@ -43,7 +43,7 @@ export const QUOTA_SPEC: QuotaSpec = {
       true /* we aren't actually using quotas for license purchases, because they are very explicit unlike openai and project-upgrade */,
   },
   "edit-license": {
-    display: "Edit License",
+    display: "Change License",
     color: "#5498fb",
     noSet: true,
   },

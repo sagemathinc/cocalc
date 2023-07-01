@@ -19,7 +19,8 @@ export interface Changes {
   custom_uptime?: Uptime; // short, medium, day, always_running
 }
 
-const log = (...args) => console.log("costToEditLicense", ...args);
+//const log = (...args) => console.log("costToEditLicense", ...args);
+const log = (..._args) => {};
 
 export default function costToEditLicense(
   info: PurchaseInfo,
@@ -81,6 +82,10 @@ export default function costToEditLicense(
 
   // Make copy of data with modified params.
   const modifiedInfo = cloneDeep(origInfo);
+  if (changes.start != null) {
+    // @ts-ignore: TODO!
+    modifiedInfo.start = changes.start;
+  }
   if (changes.end != null) {
     // @ts-ignore: TODO!
     modifiedInfo.end = changes.end;

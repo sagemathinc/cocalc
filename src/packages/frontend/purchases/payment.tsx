@@ -85,7 +85,7 @@ export default function Payment({ balance, update }) {
       await updateSession();
       setIsModalVisible(false);
     } catch (err) {
-      console.log("ERROR canceling checkout session", err);
+      console.warn("ERROR canceling checkout session", err);
     } finally {
       setCancelling(false);
     }

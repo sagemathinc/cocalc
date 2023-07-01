@@ -13,6 +13,7 @@ import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import costToEditLicense from "@cocalc/util/purchases/cost-to-edit-license";
 import { currency } from "./util";
 import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
+import { isEqual } from "lodash";
 
 interface Props {
   license_id: string;
@@ -114,14 +115,12 @@ export default function EditLicense({ license_id, refresh }: Props) {
               >
                 <Button disabled={!cost} type="primary">
                   {cost > 0 && (
-                    <>
-                      Change License -- you will be charged {currency(cost)}...
-                    </>
+                    <>Change License -- you will be charged {currency(cost)}</>
                   )}
                   {cost < 0 && (
                     <>
                       Change License -- your account will be credited{" "}
-                      {currency(-cost)}...
+                      {currency(-cost)}
                     </>
                   )}
                   {cost == 0 && <>Edit license below</>}
@@ -139,6 +138,20 @@ export default function EditLicense({ license_id, refresh }: Props) {
               style={{ margin: "15px 0" }}
             />
           )}
+          <div style={{ marginBottom: "15px", color: "#666" }}>
+            The {cost >= 0 ? "charge" : "credit"} of {currency(Math.abs(cost))}{" "}
+            is the prorated difference between the cost of the original license
+            and the edited one. You may edit a license at any time with no
+            change fee, but any projects using the license will restarted.
+            <Button
+              style={{ float: "right" }}
+              type="text"
+              onClick={() => setModifiedInfo(info)}
+              disabled={isEqual(modifiedInfo, info)}
+            >
+              Reset
+            </Button>
+          </div>
           <LicenseEditor info={modifiedInfo} onChange={setModifiedInfo} />
         </Card>
       )}
@@ -149,7 +162,10 @@ export default function EditLicense({ license_id, refresh }: Props) {
 function getChanges(info: PurchaseInfo, modifiedInfo: PurchaseInfo): Changes {
   const changes: Changes = {};
   for (const key in info) {
-    if (JSON.stringify(info[key]) != JSON.stringify(modifiedInfo[key])) {
+    if (
+      modifiedInfo[key] != null &&
+      JSON.stringify(info[key]) != JSON.stringify(modifiedInfo[key])
+    ) {
       changes[key] = modifiedInfo[key];
     }
   }

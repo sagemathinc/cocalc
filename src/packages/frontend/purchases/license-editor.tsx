@@ -33,6 +33,9 @@ const columns = [
 
 export default function LicenseEditor({ info, onChange, style }: Props) {
   const handleFieldChange = (field: keyof Changes) => (value: any) => {
+    if (field == "start" || field == "end") {
+      value = value?.toDate();
+    }
     onChange({ ...info, [field]: value });
   };
 
@@ -46,8 +49,10 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
       field: "Start Date",
       value: (
         <DatePicker
+          disabled={info.start != null && info.start <= new Date()}
           value={info.start ? dayjs(info.start) : undefined}
           onChange={handleFieldChange("start")}
+          disabledDate={(current) => current < dayjs().startOf("day")}
         />
       ),
     },
@@ -58,24 +63,26 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
         <DatePicker
           value={info.end ? dayjs(info.end) : undefined}
           onChange={handleFieldChange("end")}
+          disabledDate={(current) => current <= dayjs().startOf("day")}
         />
       ),
     },
-    {
-      key: "3",
-      field: "Run Limit",
-      value: (
-        <InputNumber
-          min={1}
-          step={1}
-          value={info.quantity}
-          onChange={handleFieldChange("quantity")}
-          addonAfter={"Simultanous running projects"}
-        />
-      ),
-    },
+
     ...(info.type == "quota"
       ? [
+          {
+            key: "3",
+            field: "Run Limit",
+            value: (
+              <InputNumber
+                min={1}
+                step={1}
+                value={info.quantity}
+                onChange={handleFieldChange("quantity")}
+                addonAfter={"Simultanous running projects"}
+              />
+            ),
+          },
           {
             key: "4",
             field: "RAM",
