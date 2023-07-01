@@ -48,6 +48,7 @@ import {
   should_open_in_foreground,
   strictMod,
   tab_to_path,
+  unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
@@ -111,6 +112,8 @@ export function FilesFlyout({ project_id }): JSX.Element {
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const [search, setSearch] = useState<string>("");
+  // mainly controls what a single click does, plus additional UI elements
+  const [mode, setMode] = useState<"open" | "select">("open");
   const [prevSelected, setPrevSelected] = useState<number | null>(null);
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
   const [scollIdxHide, setScrollIdxHide] = useState<boolean>(false);
@@ -147,8 +150,29 @@ export function FilesFlyout({ project_id }): JSX.Element {
     };
   }, [project_id, current_path]);
 
-  const [directoryFiles, fileMap] = useMemo((): [DirectoryListing, FileMap] => {
-    const empty: [DirectoryListing, FileMap] = [[], {}];
+  // selecting files switches over to "select" mode
+  useEffect(() => {
+    if (mode === "open" && checked_files.size > 0) {
+      setMode("select");
+    }
+    // this doesn't switch back to open mode, if no files are selected,
+    // because it's nicer to keep the checkboxes if everything is deselected
+  }, [checked_files]);
+
+  // active file: current editor is the file in the listing
+  // empty: either no files, or just the ".." for the parent dir
+  const [directoryFiles, fileMap, activeFile, isEmpty] = useMemo((): [
+    DirectoryListing,
+    FileMap,
+    DirectoryListingEntry | null,
+    boolean
+  ] => {
+    const empty: [DirectoryListing, FileMap, null, boolean] = [
+      [],
+      {},
+      null,
+      true,
+    ];
     if (directoryListings == null) return empty;
     const filesStore = directoryListings.get(current_path);
     if (filesStore == null) return empty;
@@ -157,6 +181,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     if (typeof filesStore === "string") return empty;
 
     const files: DirectoryListing = filesStore.toJS();
+    let activeFile: DirectoryListingEntry | null = null;
     compute_file_masks(files);
     const searchWords = search_split(search.trim().toLowerCase());
 
@@ -219,6 +244,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
       }
       if (activePath === fullPath) {
         file.isactive = true;
+        activeFile = file;
       }
     }
 
@@ -226,6 +252,9 @@ export function FilesFlyout({ project_id }): JSX.Element {
       procFiles.reverse(); // inplace op
     }
 
+    const isEmpty = procFiles.length === 0;
+
+    // the ".." dir does not change the isEmpty state
     if (current_path != "") {
       procFiles.unshift({
         name: "..",
@@ -236,7 +265,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
     // map each filename to it's entry in the directory listing
     const fileMap = fromPairs(procFiles.map((file) => [file.name, file]));
 
-    return [procFiles, fileMap];
+    return [procFiles, fileMap, activeFile, isEmpty];
   }, [
     directoryListings,
     activeFileSort,
@@ -346,11 +375,22 @@ export function FilesFlyout({ project_id }): JSX.Element {
     // never select "..", only calls for trouble
     if (fn === "..") return;
     fn = path_to_file(current_path, fn);
+    window.getSelection()?.removeAllRanges();
     if (nextState != null ? !nextState : checked_files.includes(fn)) {
+      // deselects the file
       actions?.set_file_list_unchecked(List([fn]));
+      if (checked_files.size <= 1) {
+        // because the above will remove the last checked item, we revert back to "open" mode
+        setMode("open");
+        setPrevSelected(null);
+      } else {
+        setPrevSelected(index);
+      }
     } else {
+      // selects the file
       actions?.set_file_list_checked([fn]);
       setPrevSelected(index);
+      setMode("select");
     }
   }
 
@@ -370,19 +410,15 @@ export function FilesFlyout({ project_id }): JSX.Element {
 
     // doubleclick straight to open file
     if (e.detail === 2) {
+      setPrevSelected(index);
       open(e, index);
       return;
     }
 
-    // if opened, just switch to the tab...
-    if (file.isopen) {
-      // ... unless active, then select/deselect it
-      if (file.isactive) {
-        if (!e.ctrlKey) actions?.set_all_files_unchecked();
-        toggleSelected(index, file.name);
-      } else {
-        open(e, index);
-      }
+    // similar, if in open mode and already opened, just switch to it as well
+    if (mode === "open" && file.isopen && !e.shiftKey && !e.ctrlKey) {
+      setPrevSelected(index);
+      open(e, index);
       return;
     }
 
@@ -407,10 +443,24 @@ export function FilesFlyout({ project_id }): JSX.Element {
       return;
     }
 
-    // base case: select/de-select single file with a single click
-    // hold ctrl key to select several files one-by-one
-    if (!e.ctrlKey) actions?.set_all_files_unchecked();
-    toggleSelected(index, file.name);
+    switch (mode) {
+      case "select":
+        toggleSelected(index, file.name);
+        break;
+
+      case "open":
+        if (e.shiftKey || e.ctrlKey) {
+          // Shift case: no prevSelected, otherwise see above
+          toggleSelected(index, file.name);
+        } else {
+          setPrevSelected(index);
+          open(e, index);
+        }
+        break;
+
+      default:
+        unreachable(mode);
+    }
   }
 
   function doScroll(dx: -1 | 1) {
@@ -456,7 +506,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
         setScrollIdx(null);
       } else if (search != "") {
         setSearch("");
-        if (directoryFiles.length > 0) {
+        if (!isEmpty) {
           open(e, 0);
         } else {
           createFileOrFolder();
@@ -495,20 +545,20 @@ export function FilesFlyout({ project_id }): JSX.Element {
       <FileListItem
         item={item}
         onClick={(e) => handleFileClick(e, index)}
-        onMouseDown={() => {
+        onMouseDown={(e: React.MouseEvent, name: string) => {
           setSelectionOnMouseDown(window.getSelection()?.toString() ?? "");
+          if (e.button === 1) {
+            actions?.close_tab(path_to_file(current_path, name));
+          }
         }}
         itemStyle={fileItemStyle(age ?? 0, mask)}
         onClose={(e: React.MouseEvent, name: string) => {
           e.stopPropagation();
           actions?.close_tab(path_to_file(current_path, name));
         }}
-        onOpen={(e: React.MouseEvent) => {
-          open(e, index);
-        }}
         onPublic={() => showFileSharingDialog(directoryFiles[index])}
         selected={isSelected}
-        showCheckbox={checked_files?.size > 0}
+        showCheckbox={mode === "select" || checked_files?.size > 0}
         onChecked={(nextState: boolean) => {
           toggleSelected(index, item.name, nextState);
         }}
@@ -703,7 +753,7 @@ export function FilesFlyout({ project_id }): JSX.Element {
   }
 
   function createFileIfNotExists() {
-    if (search === "" || directoryFiles.length > 0) return;
+    if (search === "" || !isEmpty) return;
 
     const what = search.trim().endsWith("/") ? "directory" : "file";
     return (
@@ -781,9 +831,24 @@ export function FilesFlyout({ project_id }): JSX.Element {
       <FilesBottom
         project_id={project_id}
         checked_files={checked_files}
+        activeFile={activeFile}
         directoryData={[directoryFiles, fileMap]}
+        modeState={[mode, setMode]}
         projectIsRunning={projectIsRunning}
         rootHeightPx={rootHeightPx}
+        clearAllSelections={(switchMode) => {
+          if (switchMode) setMode("open");
+          setPrevSelected(null);
+          actions?.set_all_files_unchecked();
+        }}
+        selectAllFiles={() => {
+          setMode("select");
+          actions?.set_file_list_checked(
+            directoryFiles
+              .filter((f) => f.name !== "..")
+              .map((f) => path_to_file(current_path, f.name))
+          );
+        }}
         open={open}
         showFileSharingDialog={showFileSharingDialog}
       />

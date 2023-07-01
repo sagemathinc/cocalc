@@ -10,10 +10,9 @@ import {
 } from "@ant-design/colors";
 import { Button, Tooltip } from "antd";
 
-import { CSS, React, useRef } from "@cocalc/frontend/app-framework";
-import { Icon, IconName } from "@cocalc/frontend/components";
+import { CSS, React, useRef, useState } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
-import { DirectoryListingEntry } from "@cocalc/frontend/project/explorer/types";
 import { hexColorToRGBA } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
@@ -79,6 +78,7 @@ const BTN_STYLE: CSS = {
 
 interface Item {
   isopen?: boolean;
+  isdir?: boolean;
   isactive?: boolean;
   is_public?: boolean;
   name: string;
@@ -87,9 +87,8 @@ interface Item {
 interface FileListItemProps {
   onClick?: (e: React.MouseEvent) => void;
   onClose?: (e: React.MouseEvent | undefined, name: string) => void;
-  onOpen?: (e: React.MouseEvent) => void;
   onPublic?: (e: React.MouseEvent) => void;
-  onMouseDown?: (e: React.MouseEvent) => void;
+  onMouseDown?: (e: React.MouseEvent, name: string) => void;
   onChecked?: (state: boolean) => void;
   itemStyle?: CSS;
   item: Item;
@@ -103,7 +102,6 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const {
     onClick,
     onClose,
-    onOpen,
     onPublic,
     onChecked,
     item,
@@ -114,6 +112,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     multiline = false,
     showCheckbox,
   } = props;
+  const [hover, setHover] = useState(false);
 
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -127,21 +126,6 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         onClick={(e) => {
           e?.stopPropagation();
           onClose?.(e, name);
-        }}
-      />
-    );
-  }
-
-  function renderOpenItem(): JSX.Element {
-    return (
-      <Button
-        size="small"
-        type="primary"
-        style={BTN_STYLE}
-        icon={<Icon name="edit-filled" />}
-        onClick={(e) => {
-          e.stopPropagation();
-          onOpen?.(e);
         }}
       />
     );
@@ -186,17 +170,22 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     }
   }
 
-  function renderItemIcon(
-    item: DirectoryListingEntry,
-    name?: IconName
-  ): JSX.Element {
+  function renderBodyLeft(): JSX.Element {
     const iconName =
-      name ??
-      (item.isdir ? "folder-open" : file_options(item.name)?.icon ?? "file");
+      (showCheckbox || hover) && item.name !== ".."
+        ? selected
+          ? "check-square"
+          : "square"
+        : item.isdir
+        ? "folder-open"
+        : file_options(item.name)?.icon ?? "file";
+
     return (
       <Icon
         name={iconName}
         style={ICON_STYLE}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         onClick={(e) => {
           e?.stopPropagation();
           onChecked?.(!selected);
@@ -205,29 +194,20 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderBodyLeft(): JSX.Element {
-    const name = showCheckbox
-      ? selected
-        ? "check-square"
-        : "square"
-      : undefined;
-    return renderItemIcon(item, name);
-  }
-
   function renderBody(): JSX.Element {
     const el = (
       <div
         ref={bodyRef}
         style={FILE_ITEM_BODY_STYLE}
         onClick={handleClick}
-        onMouseDown={onMouseDown}
+        onMouseDown={(e) => {
+          onMouseDown?.(e, item.name);
+        }}
+        // additional mouseLeave to prevent stale hover state icon
+        onMouseLeave={() => setHover(false)}
       >
         {renderBodyLeft()} {renderItem()} {renderPublishedIcon()}
-        {item.isopen
-          ? renderCloseItem(item)
-          : selected
-          ? renderOpenItem()
-          : undefined}
+        {item.isopen ? renderCloseItem(item) : undefined}
       </div>
     );
 
@@ -247,6 +227,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   return (
     <div
       className="cc-project-flyout-file-item"
+      // additional mouseLeave to prevent stale hover state icon
+      onMouseLeave={() => setHover(false)}
       style={{
         ...FILE_ITEM_LINE_STYLE,
         ...(item.isopen
