@@ -62,7 +62,10 @@ export async function isPurchaseAllowed({
   }
 
   if (cost <= 0) {
-    // credit is specially excluded
+    if (service == "edit-license") {
+      // some services are specially excluded -- TODO: this should be moved to the spec in db-schema
+      return { allowed: true };
+    }
     return { allowed: false, reason: `cost must be positive` };
   }
   const { services, minBalance } = await getPurchaseQuotas(account_id);

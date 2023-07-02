@@ -82,22 +82,7 @@ export default async function editLicense(
     cost,
   });
 
-  // If changes is anything except only changing the end date to be in the future,
-  // then we restart all projects using the license.  Changing the end date is one
-  // thing that happens when updating subscriptions, and those need to be non-intrusive.
-  const keys = Object.keys(changes);
-  if (
-    keys.length == 0 ||
-    (keys.length == 1 &&
-      keys[0] == "end" &&
-      changes.end != null &&
-      changes.end >= (info.end ?? new Date()))
-  ) {
-    // no need to restart
-    logger.debug(
-      "editLicense -- only change was to extend the end date, so not restarting any projects"
-    );
-  } else {
+  if (requiresRestart(info, changes)) {
     logger.debug(
       "editLicense -- restarting all projects that are using the license",
       license_id
@@ -107,20 +92,60 @@ export default async function editLicense(
       try {
         await restartProjectsUsingLicense(license_id);
         logger.debug(
-          "editLicense -- DONE restarting all projects that are the license",
+          "editLicense -- DONE restarting all projects that are using the license",
           license_id
         );
       } catch (err) {
+        console.trace(err);
         logger.debug(
-          "editLicense -- ERROR restarting all projects that are the license",
+          "editLicense -- ERROR restarting all projects that are using the license",
           license_id,
-          err
+          `${err}`
         );
       }
     })();
   }
-
   return { cost, purchase_id };
+}
+
+/*
+Restart except when changes *only* does the following:
+
+- changes modifies the end date to be in the future
+- changes increases the quantity
+- start is in the future and changes modifies start to be a different date still in the future
+*/
+function requiresRestart(info: PurchaseInfo, changes: Changes): boolean {
+  const now = new Date();
+  if (Object.keys(changes).length == 0) {
+    // no change so no need to restart
+    return false;
+  }
+  if (info.type == "vouchers") {
+    throw Error("not implemented for vouchers");
+  }
+  if (changes.end && changes.end <= now) {
+    // moving end date back to before now -- clearly need to restart since license is now no longer valid
+    return true;
+  }
+  if (changes.quantity && changes.quantity < info.quantity) {
+    // reducing quantity -- need to restart since license won't work for some projects
+    return true;
+  }
+  if (changes.start && !(info.start > now && changes.start > now)) {
+    // changing start time in a way that isn't only in the future
+    return true;
+  }
+  const handled = new Set(["end", "quantity", "start"]);
+  // if anything besides end, quantity, and start are changed, then restart:
+  for (const key in changes) {
+    if (handled.has(key)) continue;
+    if (info[key] != changes[key]) {
+      return true; // changed something like custom_ram, etc.
+    }
+  }
+  // survived the above, so no need to restart:
+  return false;
 }
 
 async function changeLicense(license_id: string, info: PurchaseInfo) {
@@ -164,9 +189,9 @@ export async function getPurchaseInfo(
 }
 
 async function restartProjectsUsingLicense(license_id: string) {
-  const query = query_projects_using_site_license(license_id);
+  const { query, params } = query_projects_using_site_license(license_id);
   const pool = getPool();
-  const { rows } = await pool.query(`SELECT project_id ${query}`);
+  const { rows } = await pool.query(`SELECT project_id ${query}`, params);
   for (const row of rows) {
     (async () => {
       await restartProjectIfRunning(row.project_id);
