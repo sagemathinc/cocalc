@@ -112,7 +112,7 @@ export const AccountPage: React.FC = () => {
       key: "account",
       label: (
         <span>
-          <Icon name="wrench" /> Preferences
+          <Icon name="wrench" /> Account Preferences
         </span>
       ),
       children: (active_page == null || active_page === "account") && (
@@ -128,6 +128,18 @@ export const AccountPage: React.FC = () => {
       return [];
     }
     const items: AntdTabItem[] = [];
+    if (is_commercial) {
+      items.push({
+        key: "purchases",
+        label: (
+          <span>
+            <Icon name="money" /> Purchases
+          </span>
+        ),
+        children: active_page === "purchases" && <PurchasesPage />,
+      });
+    }
+
     if (
       kucalc === KUCALC_COCALC_COM ||
       kucalc === KUCALC_ON_PREMISES ||
@@ -144,17 +156,6 @@ export const AccountPage: React.FC = () => {
       });
     }
 
-    if (is_commercial) {
-      items.push({
-        key: "purchases",
-        label: (
-          <span>
-            <Icon name="money" /> Purchases
-          </span>
-        ),
-        children: active_page === "purchases" && <PurchasesPage />,
-      });
-    }
     if (ssh_gateway || kucalc === KUCALC_COCALC_COM) {
       items.push({
         key: "ssh-keys",

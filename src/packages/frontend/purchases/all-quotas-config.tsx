@@ -213,7 +213,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
             <Icon name="refresh" />
             Refresh
           </Button>
-          Balance and Spending Limits
+          Account Balance
         </span>
       }
     >

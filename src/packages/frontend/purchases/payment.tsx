@@ -9,7 +9,7 @@ import {
   Tooltip,
 } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency } from "./util";
 import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/modal";
@@ -30,7 +30,6 @@ interface Props {
 }
 
 export default function Payment({ balance, update, cost }: Props) {
-  const clickedOkRef = useRef<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number | null>(
     Math.max(DEFAULT_AMOUNT, balance ?? 0)
@@ -40,6 +39,7 @@ export default function Payment({ balance, update, cost }: Props) {
     { id: string; url: string } | null | "loading"
   >("loading");
   const [cancelling, setCancelling] = useState<boolean>(false);
+  const [paying, setPaying] = useState<boolean>(false);
 
   const updateMinPayment = () => {
     (async () => {
@@ -64,10 +64,29 @@ export default function Payment({ balance, update, cost }: Props) {
   const paymentPopup = async (url: string) => {
     // create pop-up window with the payment info
     const popup = open_new_tab(url, true);
-    while (popup != null && !popup.closed) {
+    if (popup == null) {
+      // popup was blocked
+      return;
+    }
+    while (true) {
+      if (popup.closed) {
+        // user explicitly closed it, so done.
+        break;
+      }
+      try {
+        if (popup.location.href == window.location.href) {
+          break;
+        }
+      } catch (_) {
+        // due to security, when on the stripe page, just looking at
+        // popup.location.href should throw an exception.
+      }
       await delay(500);
     }
-    await delay(500);
+    // attempt to close the popup, if possible
+    try {
+      popup.close();
+    } catch (_) {}
     setIsModalVisible(false);
     updateSession();
     update();
@@ -100,26 +119,30 @@ export default function Payment({ balance, update, cost }: Props) {
 
   const handleOk = async () => {
     if (
+      paying ||
       !paymentAmount ||
       paymentAmount < 0 ||
-      clickedOkRef.current ||
       (typeof session == "object" && session?.id)
     ) {
       return;
     }
-
-    // ignore ok clicks for a few seconds after click
-    clickedOkRef.current = true;
-    setTimeout(() => (clickedOkRef.current = false), 10000);
-
-    // this is a stripe checkout session:
-    const session0 = await webapp_client.purchases_client.createCredit({
-      amount: paymentAmount,
-      success_url: window.location.href, // [ ] todo -- this needs to be a url that tells the backend that the payment is done, and then invoice gets sync'd, etc.
-      cancel_url: window.location.href,
-    });
-    setSession(session0);
-    paymentPopup(session0.url);
+    try {
+      setPaying(true);
+      // this is a stripe checkout session:
+      // NOTE: we monitor a popup for hitting the
+      // success or cancel url, so they must be
+      // window.location.href.  Also, we can't even
+      // check the URL unless it is same domain.
+      const session0 = await webapp_client.purchases_client.createCredit({
+        amount: paymentAmount,
+        success_url: window.location.href,
+        cancel_url: window.location.href,
+      });
+      setSession(session0);
+      paymentPopup(session0.url);
+    } finally {
+      setPaying(false);
+    }
   };
 
   const handleCancel = () => {
@@ -243,7 +266,18 @@ export default function Payment({ balance, update, cost }: Props) {
         )}
       </Button.Group>
       <Modal
-        okText={session != null ? "" : "Make Payment..."}
+        okButtonProps={{ disabled: paying }}
+        okText={
+          session != null ? (
+            ""
+          ) : paying ? (
+            <>
+              Paying... <Spin />
+            </>
+          ) : (
+            "Make Payment..."
+          )
+        }
         maskClosable={false}
         zIndex={zIndex}
         title={
