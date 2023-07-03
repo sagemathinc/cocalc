@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
@@ -11,19 +11,25 @@ import { Button as AntdButton, Tooltip } from "antd";
 
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
-  Actions,
   redux,
+  redux_name,
   useActions,
   useAsyncEffect,
   useIsMountedRef,
+  useRedux,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { ChatActions } from "@cocalc/frontend/chat/actions";
+import { Icon, Loading } from "@cocalc/frontend/components";
+import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
+import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { getJupyterActions } from "@cocalc/frontend/frame-editors/whiteboard-editor/elements/code/actions";
 import { tab_to_path } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { ChatButton } from "./chat-button";
 import { ShareIndicator } from "./share-indicator";
+import { TopBarActions } from "./types";
 
 interface TTBAProps {
   activeTab: string;
@@ -53,7 +59,13 @@ export function TopTabBarActionsContainer(props: Readonly<TTBAProps>) {
 function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
   const { activeTab, project_id, path } = props;
   const isMounted = useIsMountedRef();
-  const [actions, setActions] = useState<Actions<{}> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actions, setActions] = useState<
+    CodeEditorActions | ChatActions | null
+  >(null);
+  const [topBarActions, setTopBarActions] = useState<TopBarActions | null>(
+    null
+  );
 
   useAsyncEffect(async () => {
     setActions(null); // to avoid calling wrong actions
@@ -61,6 +73,8 @@ function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
       if (!isMounted.current) return;
       const actions = await redux.getEditorActions(project_id, path);
       if (actions != null) {
+        setLoading(false);
+        setTopBarActions(actions.getTopBarActions?.());
         setActions(actions);
         return;
       }
@@ -68,14 +82,81 @@ function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
     }
   }, [project_id, path]);
 
-  console.log("actions", actions);
+  console.debug("topBarActions", topBarActions);
+
+  if (loading) {
+    return <Loading style={{ color: COLORS.GRAY_M, padding: "8px 10px" }} />;
+  } else {
+    return (
+      <>
+        <ChatIndicatorTab activeTab={activeTab} project_id={project_id} />
+        <ShareIndicatorTab activeTab={activeTab} project_id={project_id} />
+        <TopBarSaveButton
+          project_id={project_id}
+          path={path}
+          actions={actions}
+        />
+        <CloseEditor activeTab={activeTab} project_id={project_id} />
+      </>
+    );
+  }
+}
+
+interface TopBarSaveButtonProps {
+  project_id: string;
+  path: string;
+  actions: CodeEditorActions | ChatActions | null;
+}
+
+function TopBarSaveButton({
+  project_id,
+  path,
+  actions,
+}: TopBarSaveButtonProps): JSX.Element | null {
+  const name = redux_name(project_id, path);
+
+  const read_only: boolean = useRedux([name, "read_only"]);
+  const has_unsaved_changes: boolean = useRedux([name, "has_unsaved_changes"]);
+  const has_uncommitted_changes: boolean = useRedux([
+    name,
+    "has_uncommitted_changes",
+  ]);
+  const show_uncommitted_changes: boolean = useRedux([
+    name,
+    "show_uncommitted_changes",
+  ]);
+  const is_saving: boolean = useRedux([name, "is_saving"]);
+  const is_public: boolean = useRedux([name, "is_public"]);
+
+  if (actions == null) return null;
+
+  const isChat = actions instanceof ChatActions;
+  // actions instanceof CodeEditorActions causes strange exception
+  const isCodeEditor = !isChat && actions.set_show_uncommitted_changes != null;
 
   return (
-    <>
-      <ChatIndicatorTab activeTab={activeTab} project_id={project_id} />
-      <ShareIndicatorTab activeTab={activeTab} project_id={project_id} />
-      <CloseEditor activeTab={activeTab} project_id={project_id} />
-    </>
+    <SaveButton
+      has_unsaved_changes={has_unsaved_changes}
+      has_uncommitted_changes={has_uncommitted_changes}
+      show_uncommitted_changes={show_uncommitted_changes}
+      set_show_uncommitted_changes={
+        isCodeEditor ? actions.set_show_uncommitted_changes : undefined
+      }
+      read_only={read_only}
+      is_public={is_public}
+      is_saving={is_saving}
+      no_labels={false}
+      size={24}
+      style={{}}
+      onClick={() => {
+        if (isChat) {
+          actions.save_to_disk();
+        } else if (isCodeEditor) {
+          actions.save(true);
+          actions.explicit_save();
+        }
+      }}
+    />
   );
 }
 
@@ -102,13 +183,7 @@ function CloseEditor({ activeTab, project_id }): JSX.Element | null {
   }
 
   return (
-    <Tooltip
-      title=<>
-        Shutdown Editor
-        <br />
-        e.g. halts a running Jupyter Kernel
-      </>
-    >
+    <Tooltip title={<>Close Editor</>}>
       <AntdButton onClick={handleOnClick} icon={<Icon name="hand-stop" />} />
     </Tooltip>
   );

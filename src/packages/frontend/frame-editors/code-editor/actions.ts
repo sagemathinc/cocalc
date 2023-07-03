@@ -44,6 +44,7 @@ import {
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
+import { TopBarActions } from "@cocalc/frontend/project/page/types";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import { Config as FormatterConfig } from "@cocalc/project/formatters";
@@ -2934,6 +2935,10 @@ export class Actions<
   }
 
   tour(_id: string, _refs: any): TourProps["steps"] {
+    return [];
+  }
+
+  public getTopBarActions(): TopBarActions {
     return [];
   }
 }

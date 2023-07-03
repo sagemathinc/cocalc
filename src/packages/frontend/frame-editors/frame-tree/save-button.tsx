@@ -3,13 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { FC, CSSProperties, memo, useMemo } from "react";
+import { Button } from "antd";
+import { CSSProperties, FC, memo, useMemo } from "react";
+
 import {
   Icon,
   UncommittedChanges,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
-import { Button } from "antd";
 
 interface Props {
   has_unsaved_changes?: boolean;
