@@ -6,27 +6,14 @@ and lets you adjust any of them.
 */
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  Button,
-  Card,
-  InputNumber,
-  Progress,
-  Space,
-  Spin,
-  Table,
-  Tag,
-} from "antd";
+import { Alert, Button, InputNumber, Progress, Spin, Table, Tag } from "antd";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { cloneDeep, isEqual } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
-import MinBalance from "./min-balance";
 import { currency } from "./util";
-import Balance from "./balance";
-import SpendRate from "./spend-rate";
 import Cost from "./pay-as-you-go/cost";
 
 export const PRESETS = [0, 5, 20, 1000];
@@ -38,34 +25,14 @@ interface ServiceQuota {
   current: number;
 }
 
-export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
-  const [balance, setBalance] = useState<number | null>(null);
+export default function AllQuotasConfig() {
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [minBalance, setMinBalance] = useState<number | null>(null);
   const [serviceQuotas, setServiceQuotas] = useState<ServiceQuota[] | null>(
     null
   );
   const lastFetchedQuotasRef = useRef<ServiceQuota[] | null>(null);
   const [changed, setChanged] = useState<boolean>(false);
-  const getBalance = async () => {
-    try {
-      setBalance(null);
-      setBalance(await webapp_client.purchases_client.getBalance());
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
-
-  const [spendRate, setSpendRate] = useState<number | null>(null);
-  const getSpendRate = async () => {
-    setSpendRate(await webapp_client.purchases_client.getSpendRate());
-  };
-
-  useEffect(() => {
-    getBalance();
-    getSpendRate();
-  }, []);
 
   const getQuotas = async () => {
     let x, y;
@@ -76,7 +43,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       setError(`${err}`);
       return;
     }
-    const { services, minBalance } = x;
+    const { services } = x;
     const v: ServiceQuota[] = [];
     for (const service in QUOTA_SPEC) {
       const spec = QUOTA_SPEC[service];
@@ -88,7 +55,6 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       });
     }
     lastFetchedQuotasRef.current = cloneDeep(v);
-    setMinBalance(minBalance);
     setServiceQuotas(v);
     setChanged(false);
   };
@@ -116,7 +82,9 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
           try {
             await webapp_client.purchases_client.setQuota(
               serviceQuotas[i].service,
-              serviceQuotas[i].quota
+              serviceQuotas[i].quota ??
+                lastFetchedQuotasRef.current[i]?.quota ??
+                0
             );
           } catch (err) {
             setError(`${err}`);
@@ -129,15 +97,8 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
     }
   };
 
-  //   const handleCancel = () => {
-  //     setServiceQuotas(cloneDeep(lastFetchedQuotasRef.current));
-  //     setChanged(false);
-  //   };
-
   const handleRefresh = () => {
     getQuotas();
-    getBalance();
-    getSpendRate();
   };
 
   const columns = [
@@ -150,16 +111,19 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
       title: "This Month Spend (USD)",
       dataIndex: "current",
       align: "center" as "center",
-      render: (current: number, record: ServiceQuota) => (
-        <div>
-          {currency(current)}{" "}
-          <Progress
-            percent={Math.round((current / record.quota) * 100)}
-            strokeColor={current / record.quota > 0.8 ? "#ff4d4f" : undefined}
-          />
-          of {currency(record.quota)}
-        </div>
-      ),
+      render: (current: number, record: ServiceQuota) => {
+        if (record.quota == null) return null;
+        return (
+          <div>
+            {currency(current)}{" "}
+            <Progress
+              percent={Math.round((current / record.quota) * 100)}
+              strokeColor={current / record.quota > 0.8 ? "#ff4d4f" : undefined}
+            />
+            of {currency(record.quota)}
+          </div>
+        );
+      },
     },
     {
       title: "Monthly Limit (USD)",
@@ -213,7 +177,7 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
             <Icon name="refresh" />
             Refresh
           </Button>
-          Account Balance
+          Limits
         </span>
       }
     >
@@ -224,52 +188,38 @@ export default function AllQuotasConfig({ noStats }: { noStats?: boolean }) {
           style={{ marginBottom: "15px" }}
         />
       )}
-      {!noStats && (
-        <div style={{ textAlign: "center" }}>
-          <Space style={{ margin: "auto", alignItems: "flex-start" }}>
-            <Balance balance={balance} refresh={handleRefresh} />
-            <div style={{ width: "30px" }} />
-            <MinBalance minBalance={minBalance} />
-            <div style={{ width: "30px" }} />
-            <SpendRate spendRate={spendRate} />
-          </Space>
-        </div>
-      )}
-      <Card
-        style={{ margin: "15px 0", overflow: "auto" }}
-        title={
-          <>The Monthly Limit is a self-imposed cap to prevent overspending</>
-        }
-      >
-        <div style={{ marginBottom: "15px" }}>
-          <Button.Group style={{ marginRight: "5px" }}>
-            {/*<Button onClick={handleCancel} disabled={!changed || saving}>
+      <div style={{ color: "#666", marginBottom: "15px" }}>
+        These are self-imposed monthly spending caps to prevent accidental
+        overspending.
+      </div>
+      <div style={{ marginBottom: "15px" }}>
+        <Button.Group style={{ marginRight: "5px" }}>
+          {/*<Button onClick={handleCancel} disabled={!changed || saving}>
               Cancel
             </Button>*/}
-            <Button
-              type="primary"
-              onClick={handleSave}
-              disabled={!changed || saving}
-            >
-              <Icon name="save" />{" "}
-              {saving ? "Saving..." : changed ? "Save Changes" : "Saved"}
-              {saving && <Spin style={{ marginLeft: "15px" }} delay={500} />}
-            </Button>
-          </Button.Group>
+          <Button
+            type="primary"
+            onClick={handleSave}
+            disabled={!changed || saving}
+          >
+            <Icon name="save" />{" "}
+            {saving ? "Saving..." : changed ? "Save Changes" : "Saved"}
+            {saving && <Spin style={{ marginLeft: "15px" }} delay={500} />}
+          </Button>
+        </Button.Group>
+      </div>
+      {serviceQuotas != null ? (
+        <Table
+          dataSource={serviceQuotas}
+          columns={columns}
+          pagination={false}
+          rowKey="service"
+        />
+      ) : (
+        <div style={{ textAlign: "center" }}>
+          <Spin size="large" delay={500} />
         </div>
-        {serviceQuotas != null ? (
-          <Table
-            dataSource={serviceQuotas}
-            columns={columns}
-            pagination={false}
-            rowKey="service"
-          />
-        ) : (
-          <div style={{ textAlign: "center" }}>
-            <Spin size="large" delay={500} />
-          </div>
-        )}
-      </Card>
+      )}
     </SettingBox>
   );
 }

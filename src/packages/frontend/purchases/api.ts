@@ -179,6 +179,11 @@ export async function getShoppingCartCheckoutParams() {
   return await api("purchases/get-shopping-cart-checkout-params");
 }
 
+// get your own min balance
+export async function getMinBalance(): Promise<number> {
+  return await api("purchases/get-min-balance");
+}
+
 // Get the min balance for user with given account_id.  This is only
 // for use by admins.
 export async function adminGetMinBalance(account_id: string): Promise<number> {

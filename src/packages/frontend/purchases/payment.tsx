@@ -227,7 +227,7 @@ export default function Payment({ balance, update, cost }: Props) {
         <Divider plain orientation="left">
           What Happens Next
         </Divider>
-        When you click "Make Payment..." a new window will appear, where you can
+        When you click "Add Money..." a new window will appear, where you can
         enter your payment details.
       </div>
     );
@@ -250,8 +250,8 @@ export default function Payment({ balance, update, cost }: Props) {
           {typeof session == "object" && session?.id
             ? "Finish Payment..."
             : cost
-            ? `Make Payment of at least ${currency(cost)}`
-            : "Make Payment..."}
+            ? `Add at least ${currency(cost)}`
+            : "Add Money..."}
         </Button>
         {typeof session == "object" && session?.id && (
           <Button disabled={cancelling} onClick={cancelPayment}>
@@ -272,10 +272,10 @@ export default function Payment({ balance, update, cost }: Props) {
             ""
           ) : paying ? (
             <>
-              Paying... <Spin />
+              Adding money... <Spin />
             </>
           ) : (
-            "Make Payment..."
+            "Add Money..."
           )
         }
         maskClosable={false}

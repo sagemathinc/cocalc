@@ -142,7 +142,7 @@ export default function QuotaConfig({ service, updateAllowed, cost }: Props) {
         )}
         {showAll && (
           <div style={{ marginTop: "30px" }}>
-            <Quotas noStats />
+            <Quotas />
           </div>
         )}
       </div>

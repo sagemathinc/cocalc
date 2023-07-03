@@ -126,12 +126,7 @@ function Purchases0({ project_id, group: group0 }: Props) {
             </span>
           ) : (
             <span>
-              <Icon name="table" /> Transactions{" "}
-              {thisMonth
-                ? " (this billing month)"
-                : purchases?.length == limit
-                ? ` (most recent ${limit} transactions)`
-                : " (all time)"}
+              <Icon name="table" /> Transactions
             </span>
           )}
         </>
@@ -172,25 +167,24 @@ function Purchases0({ project_id, group: group0 }: Props) {
           alignItems: "center",
         }}
       >
-        <Button.Group>
-          {offset > 0 && (
-            <Button type="default" onClick={getPrevPage}>
-              Previous
-            </Button>
-          )}
-          {purchases && purchases.length >= limit && (
-            <Button type="default" onClick={getNextPage}>
-              Next
-            </Button>
-          )}
-        </Button.Group>
         {purchases &&
+          !thisMonth &&
           purchases.length > 0 &&
           (purchases.length >= limit || offset > 0) && (
-            <div style={{ marginLeft: "10px" }}>
+            <div style={{ marginRight: "10px" }}>
               Page {Math.floor(offset / limit) + 1}
             </div>
           )}
+        {!thisMonth && offset > 0 && (
+          <Button type="default" onClick={getPrevPage}>
+            Previous
+          </Button>
+        )}
+        {!thisMonth && purchases && purchases.length >= limit && (
+          <Button type="default" onClick={getNextPage}>
+            Next
+          </Button>
+        )}
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
         {!group && <DetailedPurchaseTable purchases={purchases} />}

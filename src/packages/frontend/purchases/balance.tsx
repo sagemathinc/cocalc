@@ -48,7 +48,7 @@ export default function Balance({ balance, style, refresh, cost }: Props) {
     );
   }
   return (
-    <Card title={"Add Money to Your Account"} style={style}>
+    <Card title={"Balance"} style={style}>
       {body}
     </Card>
   );
