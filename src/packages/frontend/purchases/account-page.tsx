@@ -1,9 +1,10 @@
 import { Collapse } from "antd";
+import { useState } from "react";
 import Purchases from "./purchases";
 import AccountStatus from "./account-status";
 import Quotas from "./all-quotas-config";
 import CostBarChart from "./cost-bar-chart";
-import { useState } from "react";
+import Subscriptions from "./subscriptions";
 
 type Key = string[] | string | number[] | number;
 
@@ -29,6 +30,9 @@ export default function PurchasesPage() {
         </Collapse.Panel>
         <Collapse.Panel key="spend" header="Spend">
           <CostBarChart />
+        </Collapse.Panel>
+        <Collapse.Panel key="subscriptions" header="Subscriptions">
+          <Subscriptions />
         </Collapse.Panel>
       </Collapse>
     </div>

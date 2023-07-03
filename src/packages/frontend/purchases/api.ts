@@ -7,6 +7,7 @@ import type { Service } from "@cocalc/util/db-schema/purchases";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import LRU from "lru-cache";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
+import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 
 // We cache some results below using this cache, since they are general settings
 // that rarely change, and it is nice to not have to worry about how often
@@ -58,6 +59,13 @@ export async function getPurchases(opts: {
   group?: boolean;
 }) {
   return await api("purchases/get-purchases", opts);
+}
+
+export async function getSubscriptions(opts: {
+  limit?: number;
+  offset?: number;
+}): Promise<Subscription[]> {
+  return await api("purchases/get-subscriptions", opts);
 }
 
 export async function editLicense(opts: {

@@ -70,7 +70,7 @@ import { db } from "@cocalc/database";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import getLogger from "@cocalc/backend/logger";
-import { createSubscription } from "./subscriptions";
+import createSubscription from "./create-subscription";
 
 const logger = getLogger("purchases:purchase-shopping-cart-item");
 

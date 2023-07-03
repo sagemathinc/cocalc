@@ -15,7 +15,7 @@ interface Options {
 export default async function getPurchases({
   account_id,
   thisMonth,
-  limit = 50,
+  limit = 100,
   offset,
   service,
   project_id,

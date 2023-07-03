@@ -1,9 +1,9 @@
 /*
-Let user get all of their purchases
+Let user get all of their subscriptions.
 */
 
 import getAccountId from "lib/account/get-account";
-import getPurchases from "@cocalc/server/purchases/get-purchases";
+import getSubscriptions from "@cocalc/server/purchases/get-subscriptions";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
@@ -20,15 +20,10 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  const { limit, offset, service, project_id, group, thisMonth } =
-    getParams(req);
-  return await getPurchases({
-    thisMonth,
+  const { limit, offset } = getParams(req);
+  return await getSubscriptions({
     limit,
     offset,
-    service,
     account_id,
-    project_id,
-    group,
   });
 }

@@ -5,7 +5,9 @@ import { is_date as isDate, is_integer } from "@cocalc/util/misc";
 
 type Options = Omit<Subscription, "id" | "created" | "notes">;
 
-export async function createSubscription(opts: Options): Promise<number> {
+export default async function createSubscription(
+  opts: Options
+): Promise<number> {
   const pool = getPool();
 
   // some consistency checks below.  It's very likely this should always hold,
