@@ -70,6 +70,7 @@ import { db } from "@cocalc/database";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import getLogger from "@cocalc/backend/logger";
+import { createSubscription } from "./subscriptions";
 
 const logger = getLogger("purchases:purchase-shopping-cart-item");
 
@@ -105,8 +106,29 @@ export default async function purchaseShoppingCartItem(item) {
   });
   logger.debug(
     "purchaseShoppingCartItem -- created purchase from shopping cart item",
-    { purchase_id, license_id }
+    { purchase_id, license_id, item_id: item.id }
   );
+
+  if (item.description.period) {
+    let interval = item.description.period;
+    if (interval.endsWith("ly")) {
+      interval = interval.slice(0, -2); // get rid of the ly
+    }
+    const subscription_id = await createSubscription({
+      account_id: item.account_id,
+      cost: item.cost.discounted_cost,
+      interval,
+      current_period_start: info.start,
+      current_period_end: info.end,
+      latest_purchase_id: purchase_id,
+      status: "active",
+      metadata: { type: "license", license_id },
+    });
+    logger.debug(
+      "purchaseShoppingCartItem -- created subscription from shopping cart item",
+      { subscription_id, license_id, item_id: item.id }
+    );
+  }
 
   await markItemPurchased(item, license_id);
   logger.debug("moved shopping cart item to purchased.");

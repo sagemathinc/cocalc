@@ -26,6 +26,7 @@ import "./public-paths";
 import "./purchases";
 import "./purchase-quotas";
 import "./shopping-cart-items";
+import "./subscriptions";
 import "./syncstrings";
 import "./vouchers";
 import "./openai";
