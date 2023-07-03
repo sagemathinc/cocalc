@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useRedux, useActions } from "../../app-framework";
-import { Button, Panel } from "../../antd-bootstrap";
-import { A, ErrorDisplay, Icon, Loading } from "../../components";
+import { Button, Panel } from "@cocalc/frontend/antd-bootstrap";
+import { useActions, useRedux } from "@cocalc/frontend/app-framework";
+import { A, ErrorDisplay, Icon, Loading } from "@cocalc/frontend/components";
 import { ArchiveActions } from "./actions";
 
 export const Archive: React.FC<{ project_id: string; path: string }> = ({

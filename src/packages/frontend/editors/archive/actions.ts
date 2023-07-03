@@ -3,7 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { webapp_client } from "../../webapp-client";
+import { Actions, redux_name } from "@cocalc/frontend/app-framework";
+import { register_file_editor } from "@cocalc/frontend/project-file";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   filename_extension,
   filename_extension_notilde,
@@ -11,9 +13,6 @@ import {
   path_split,
   split,
 } from "@cocalc/util/misc";
-import { Actions, redux_name } from "../../app-framework";
-import { register_file_editor } from "../../project-file";
-
 import { Archive } from "./component";
 import { COMMANDS, DOUBLE_EXT } from "./misc";
 

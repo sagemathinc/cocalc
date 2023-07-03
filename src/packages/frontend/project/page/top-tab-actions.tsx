@@ -22,6 +22,8 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { ChatActions } from "@cocalc/frontend/chat/actions";
 import { Icon, Loading } from "@cocalc/frontend/components";
+import { CourseActions } from "@cocalc/frontend/course/actions";
+import { ArchiveActions } from "@cocalc/frontend/editors/archive/actions";
 import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
 import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { getJupyterActions } from "@cocalc/frontend/frame-editors/whiteboard-editor/elements/code/actions";
@@ -56,13 +58,18 @@ export function TopTabBarActionsContainer(props: Readonly<TTBAProps>) {
   );
 }
 
+// All possible Actions of files. TODO: should they have a common parent?!
+type EditorAction =
+  | ArchiveActions
+  | CodeEditorActions
+  | ChatActions
+  | CourseActions;
+
 function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
   const { activeTab, project_id, path } = props;
   const isMounted = useIsMountedRef();
   const [loading, setLoading] = useState(true);
-  const [actions, setActions] = useState<
-    CodeEditorActions | ChatActions | null
-  >(null);
+  const [actions, setActions] = useState<EditorAction | null>(null);
   const [topBarActions, setTopBarActions] = useState<TopBarActions | null>(
     null
   );
@@ -105,7 +112,7 @@ function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
 interface TopBarSaveButtonProps {
   project_id: string;
   path: string;
-  actions: CodeEditorActions | ChatActions | null;
+  actions: EditorAction | null;
 }
 
 function TopBarSaveButton({
@@ -131,8 +138,14 @@ function TopBarSaveButton({
   if (actions == null) return null;
 
   const isChat = actions instanceof ChatActions;
+  const isArchive = actions instanceof ArchiveActions;
+  const isCourse = actions instanceof CourseActions;
   // actions instanceof CodeEditorActions causes strange exception
-  const isCodeEditor = !isChat && actions.set_show_uncommitted_changes != null;
+  const isCodeEditor =
+    !isCourse &&
+    !isArchive &&
+    !isChat &&
+    actions.set_show_uncommitted_changes != null;
 
   return (
     <SaveButton
