@@ -7,6 +7,57 @@
 LaTeX Editor Actions.
 */
 
+import {
+  TableOfContentsEntry,
+  TableOfContentsEntryList,
+} from "@cocalc/frontend/components";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import { TopBarActions } from "@cocalc/frontend/project/page/types";
+import { once } from "@cocalc/util/async-utils";
+import {
+  change_filename_extension,
+  path_split,
+  separate_file_extension,
+  sha1,
+  splitlines,
+  startswith,
+} from "@cocalc/util/misc";
+import { reuseInFlight } from "async-await-utils/hof";
+import { delay } from "awaiting";
+import * as CodeMirror from "codemirror";
+import { List, Map, fromJS } from "immutable";
+import { debounce, union } from "lodash";
+import { normalize as path_normalize } from "path";
+import { Store, TypedMap, createTypedMap } from "../../app-framework";
+import {
+  Actions as BaseActions,
+  CodeEditorState,
+} from "../code-editor/actions";
+import { print_html } from "../frame-tree/print";
+import { FrameTree } from "../frame-tree/types";
+import { raw_url } from "../frame-tree/util";
+import { ExecOutput, project_api, server_time } from "../generic/client";
+import { bibtex } from "./bibtex";
+import { IBuildSpecs } from "./build";
+import { clean } from "./clean";
+import { KNITR_EXTS } from "./constants";
+import { count_words } from "./count_words";
+import { update_gutters } from "./gutters";
+import { knitr, knitr_errors, patch_synctex } from "./knitr";
+import { IProcessedLatexLog, LatexParser } from "./latex-log-parser";
+import {
+  Engine,
+  build_command,
+  get_engine_from_config,
+  latexmk,
+} from "./latexmk";
+import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
+import { pythontex, pythontex_errors } from "./pythontex";
+import { sagetex, sagetex_errors, sagetex_hash } from "./sagetex";
+import * as synctex from "./synctex";
+import { parseTableOfContents } from "./table-of-contents";
+import { ensureTargetPathIsCorrect, pdf_path } from "./util";
+
 const MINIMAL = `\\documentclass{article}
 \\title{Title}
 \\author{Author}
@@ -18,57 +69,6 @@ const MINIMAL = `\\documentclass{article}
 const HELP_URL = "https://doc.cocalc.com/latex.html";
 
 const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build"] as const;
-import { delay } from "awaiting";
-import * as CodeMirror from "codemirror";
-import { normalize as path_normalize } from "path";
-import { debounce, union } from "lodash";
-import { reuseInFlight } from "async-await-utils/hof";
-import { fromJS, List, Map } from "immutable";
-import { once } from "@cocalc/util/async-utils";
-import { project_api } from "../generic/client";
-import {
-  Actions as BaseActions,
-  CodeEditorState,
-} from "../code-editor/actions";
-import {
-  latexmk,
-  build_command,
-  Engine,
-  get_engine_from_config,
-} from "./latexmk";
-import { sagetex, sagetex_hash, sagetex_errors } from "./sagetex";
-import { pythontex, pythontex_errors } from "./pythontex";
-import { knitr, patch_synctex, knitr_errors } from "./knitr";
-import * as synctex from "./synctex";
-import { bibtex } from "./bibtex";
-import { count_words } from "./count_words";
-import { server_time, ExecOutput } from "../generic/client";
-import { clean } from "./clean";
-import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
-import { update_gutters } from "./gutters";
-import { ensureTargetPathIsCorrect, pdf_path } from "./util";
-import { KNITR_EXTS } from "./constants";
-import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
-import { FrameTree } from "../frame-tree/types";
-import { Store } from "../../app-framework";
-import { createTypedMap, TypedMap } from "../../app-framework";
-import { print_html } from "../frame-tree/print";
-import { raw_url } from "../frame-tree/util";
-import {
-  path_split,
-  separate_file_extension,
-  splitlines,
-  startswith,
-  change_filename_extension,
-  sha1,
-} from "@cocalc/util/misc";
-import { IBuildSpecs } from "./build";
-import { open_new_tab } from "@cocalc/frontend/misc";
-import { parseTableOfContents } from "./table-of-contents";
-import {
-  TableOfContentsEntryList,
-  TableOfContentsEntry,
-} from "@cocalc/frontend/components";
 
 export interface BuildLog extends ExecOutput {
   parse?: IProcessedLatexLog;
@@ -1514,5 +1514,15 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   chatgptCodeDescription(): string {
     return "Put any LaTeX you generate in the answer in a fenced code block with info string 'tex'.";
+  }
+
+  public getTopBarActions(): TopBarActions {
+    return [
+      {
+        label: "Build",
+        icon: "play-circle",
+        action: () => this.force_build(),
+      },
+    ];
   }
 }

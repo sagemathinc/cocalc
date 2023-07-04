@@ -26,9 +26,11 @@ import { CourseActions } from "@cocalc/frontend/course/actions";
 import { ArchiveActions } from "@cocalc/frontend/editors/archive/actions";
 import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
 import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
+import { TimeTravelActions } from "@cocalc/frontend/frame-editors/time-travel-editor/actions";
 import { getJupyterActions } from "@cocalc/frontend/frame-editors/whiteboard-editor/elements/code/actions";
 import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { Button } from "../../antd-bootstrap";
 import { ChatButton } from "./chat-button";
 import { ShareIndicator } from "./share-indicator";
 import { TopBarActions } from "./types";
@@ -59,17 +61,18 @@ export function TopTabBarActionsContainer(props: Readonly<TTBAProps>) {
 }
 
 // All possible Actions of files. TODO: should they have a common parent?!
-type EditorAction =
+type EditorActions =
   | ArchiveActions
   | CodeEditorActions
   | ChatActions
-  | CourseActions;
+  | CourseActions
+  | TimeTravelActions;
 
 function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
   const { activeTab, project_id, path } = props;
   const isMounted = useIsMountedRef();
   const [loading, setLoading] = useState(true);
-  const [actions, setActions] = useState<EditorAction | null>(null);
+  const [actions, setActions] = useState<EditorActions | null>(null);
   const [topBarActions, setTopBarActions] = useState<TopBarActions | null>(
     null
   );
@@ -89,13 +92,19 @@ function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
     }
   }, [project_id, path]);
 
-  console.debug("topBarActions", topBarActions);
-
   if (loading) {
     return <Loading style={{ color: COLORS.GRAY_M, padding: "8px 10px" }} />;
   } else {
     return (
       <>
+        {topBarActions?.map((el, index) => {
+          const { action, label, icon } = el;
+          return (
+            <Button key={`${index}`} onClick={action}>
+              <Icon name={icon} /> {label}
+            </Button>
+          );
+        })}
         <ChatIndicatorTab activeTab={activeTab} project_id={project_id} />
         <ShareIndicatorTab activeTab={activeTab} project_id={project_id} />
         <TopBarSaveButton
@@ -112,7 +121,7 @@ function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
 interface TopBarSaveButtonProps {
   project_id: string;
   path: string;
-  actions: EditorAction | null;
+  actions: EditorActions | null;
 }
 
 function TopBarSaveButton({
@@ -137,15 +146,12 @@ function TopBarSaveButton({
 
   if (actions == null) return null;
 
-  const isChat = actions instanceof ChatActions;
-  const isArchive = actions instanceof ArchiveActions;
-  const isCourse = actions instanceof CourseActions;
-  // actions instanceof CodeEditorActions causes strange exception
-  const isCodeEditor =
-    !isCourse &&
-    !isArchive &&
-    !isChat &&
-    actions.set_show_uncommitted_changes != null;
+  // test, if actions has the method set_show_uncommitted_changes
+  // an "actions instanceof CodeEditorActions" does not work. TODO figure out why...
+  const isCodeEditorActions =
+    (actions as any).set_show_uncommitted_changes != null;
+
+  const hasSaveToDisk = typeof (actions as any).save_to_disk === "function";
 
   return (
     <SaveButton
@@ -153,7 +159,9 @@ function TopBarSaveButton({
       has_uncommitted_changes={has_uncommitted_changes}
       show_uncommitted_changes={show_uncommitted_changes}
       set_show_uncommitted_changes={
-        isCodeEditor ? actions.set_show_uncommitted_changes : undefined
+        isCodeEditorActions
+          ? (actions as any).set_show_uncommitted_changes
+          : undefined
       }
       read_only={read_only}
       is_public={is_public}
@@ -162,11 +170,14 @@ function TopBarSaveButton({
       size={24}
       style={{}}
       onClick={() => {
-        if (isChat) {
-          actions.save_to_disk();
-        } else if (isCodeEditor) {
-          actions.save(true);
-          actions.explicit_save();
+        if (isCodeEditorActions) {
+          (actions as any).save(true);
+          (actions as any).explicit_save();
+        }
+        if (hasSaveToDisk) {
+          (actions as any).save_to_disk?.();
+        } else {
+          console.warn("No save_to_disk method on actions", actions.name);
         }
       }}
     />
