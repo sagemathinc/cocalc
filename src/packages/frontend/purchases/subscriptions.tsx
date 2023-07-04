@@ -21,18 +21,21 @@ The subscriptions look like this in the database:
 ];
 */
 
-import { Alert, Button, Spin, Table } from "antd";
+import { Alert, Button, Collapse, Spin, Table, Tag } from "antd";
 import { useEffect, useState } from "react";
 import { getSubscriptions as getSubscriptionsUsingApi } from "./api";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
+import { STATUS_TO_COLOR } from "@cocalc/util/db-schema/subscriptions";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { currency } from "./util";
+import { capitalize } from "@cocalc/util/misc";
+import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 
 const columns = [
   {
-    title: "ID",
+    title: "Id",
     dataIndex: "id",
     key: "id",
   },
@@ -43,15 +46,24 @@ const columns = [
     render: (date) => <TimeAgo date={date} />,
   },
   {
-    title: "Cost",
+    title: "Cost per Period",
     dataIndex: "cost",
     key: "cost",
     render: (cost) => currency(cost),
   },
   {
-    title: "Interval",
+    title: "Period",
     dataIndex: "interval",
     key: "interval",
+    render: (interval) => {
+      if (interval == "month") {
+        return "Monthly";
+      } else if (interval == "year") {
+        return "Yearly";
+      } else {
+        return interval;
+      }
+    },
   },
   {
     title: "Current Period",
@@ -66,7 +78,7 @@ const columns = [
     },
   },
   {
-    title: "Latest Purchase Id",
+    title: "Last Transaction Id",
     dataIndex: "latest_purchase_id",
     key: "latest_purchase_id",
   },
@@ -74,15 +86,32 @@ const columns = [
     title: "Status",
     dataIndex: "status",
     key: "status",
+    render: (status) => {
+      return <Tag color={STATUS_TO_COLOR[status]}>{capitalize(status)}</Tag>;
+    },
   },
   {
+    width: "40%",
     title: "Description",
     key: "desc",
     render: (_, { metadata }) => {
+      if (metadata.type == "license" && metadata.license_id) {
+        return <LicenseDescription license_id={metadata.license_id} />;
+      }
       return <>{JSON.stringify(metadata, undefined, 2)}</>;
     },
   },
 ];
+
+function LicenseDescription({ license_id }) {
+  return (
+    <Collapse>
+      <Collapse.Panel key="license" header={`License ${license_id}`}>
+        <SiteLicensePublicInfo license_id={license_id} />
+      </Collapse.Panel>
+    </Collapse>
+  );
+}
 
 export default function Subscriptions() {
   const [subscriptions, setSubscriptions] = useState<Subscription[] | null>(
@@ -133,7 +162,11 @@ export default function Subscriptions() {
       {loading ? (
         <Spin />
       ) : (
-        <Table dataSource={subscriptions ?? undefined} columns={columns} />
+        <Table
+          pagination={{ hideOnSinglePage: true, defaultPageSize: 10 }}
+          dataSource={subscriptions ?? undefined}
+          columns={columns}
+        />
       )}
     </SettingBox>
   );

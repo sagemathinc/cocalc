@@ -25,6 +25,13 @@ export interface Subscription {
   notes?: string;
 }
 
+export const STATUS_TO_COLOR = {
+  active: "green",
+  blue: "red",
+  unpaid: "red",
+  past_due: "red",
+};
+
 Table({
   name: "subscriptions",
   fields: {

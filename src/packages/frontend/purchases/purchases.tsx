@@ -270,41 +270,9 @@ function DetailedPurchaseTable({ purchases }) {
           rowKey="id"
           columns={[
             {
-              title: "Service",
-              dataIndex: "service",
-              key: "service",
-              sorter: (a, b) =>
-                (a.service ?? "").localeCompare(b.service ?? ""),
-              sortDirections: ["ascend", "descend"],
-              render: (service) => <ServiceTag service={service} />,
-            },
-            {
-              title: "Amount (USD)",
-              dataIndex: "cost",
-              key: "cost",
-              render: (amount, record) => {
-                if (
-                  amount == null &&
-                  record.period_start != null &&
-                  record.cost_per_hour != null
-                ) {
-                  return (
-                    <Space>
-                      <DynamicallyUpdatingCost
-                        costPerHour={record.cost_per_hour}
-                        start={new Date(record.period_start).valueOf()}
-                      />
-                      <Tag color="green">Active</Tag>
-                    </Space>
-                  );
-                }
-                if (amount != null) {
-                  return currency(amount, Math.abs(amount) < 0.1 ? 3 : 2);
-                }
-                return "-";
-              },
-              sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
-              sortDirections: ["ascend", "descend"],
+              title: "Id",
+              dataIndex: "id",
+              key: "id",
             },
             {
               title: "Time",
@@ -350,6 +318,44 @@ function DetailedPurchaseTable({ purchases }) {
               sortDirections: ["ascend", "descend"],
             },
             {
+              title: "Service",
+              dataIndex: "service",
+              key: "service",
+              sorter: (a, b) =>
+                (a.service ?? "").localeCompare(b.service ?? ""),
+              sortDirections: ["ascend", "descend"],
+              render: (service) => <ServiceTag service={service} />,
+            },
+            {
+              title: "Amount (USD)",
+              dataIndex: "cost",
+              key: "cost",
+              render: (amount, record) => {
+                if (
+                  amount == null &&
+                  record.period_start != null &&
+                  record.cost_per_hour != null
+                ) {
+                  return (
+                    <Space>
+                      <DynamicallyUpdatingCost
+                        costPerHour={record.cost_per_hour}
+                        start={new Date(record.period_start).valueOf()}
+                      />
+                      <Tag color="green">Active</Tag>
+                    </Space>
+                  );
+                }
+                if (amount != null) {
+                  return currency(amount, Math.abs(amount) < 0.1 ? 3 : 2);
+                }
+                return "-";
+              },
+              sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
+              sortDirections: ["ascend", "descend"],
+            },
+
+            {
               title: "Description",
               dataIndex: "description",
               key: "description",
@@ -378,11 +384,6 @@ function DetailedPurchaseTable({ purchases }) {
                 if (!invoice_id) return null;
                 return <InvoiceLink invoice_id={invoice_id} />;
               },
-            },
-            {
-              title: "Id",
-              dataIndex: "id",
-              key: "id",
             },
           ]}
         />
