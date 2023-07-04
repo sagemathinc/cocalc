@@ -34,7 +34,11 @@ export type ComputeCostProps =
       range: DateRange;
       dedicated_vm: DedicatedVM;
     }
-  | { type: "disk"; dedicated_disk: DedicatedDisk; period: Period };
+  | {
+      type: "disk";
+      dedicated_disk: DedicatedDisk;
+      period: Period;
+    };
 
 export type ComputeCostPropsTypes = ComputeCostProps["type"];
 

@@ -610,7 +610,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       upgrade,
       subscription,
       start,
-      end: subscription == "no" ? end : undefined,
+      end,
       quote,
       quote_info,
       payment_method,

@@ -12,11 +12,12 @@ import {
   CostInputPeriod,
   PurchaseInfo,
 } from "@cocalc/util/licenses/purchase/types";
+import { fixRange } from "@cocalc/util/licenses/purchase/purchase-info";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
-import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
+import type { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
 
-export function computeDedicatedDiskCost(
+function computeDedicatedDiskCost(
   props: ComputeCostProps
 ): CostInputPeriod | undefined {
   if (props.type !== "disk") {
@@ -41,7 +42,7 @@ export function computeDedicatedDiskCost(
   }
 }
 
-export function computeDedicatedVMCost(
+function computeDedicatedVMCost(
   props: ComputeCostProps
 ): CostInputPeriod | undefined {
   if (props.type !== "vm") {
@@ -117,8 +118,6 @@ export function computeCost(
           | "no"
           | "monthly"
           | "yearly",
-        start: range?.[0] ?? new Date(),
-        end: range?.[1],
         custom_ram: ram,
         custom_dedicated_ram: 0,
         custom_cpu: cpu,
@@ -128,6 +127,7 @@ export function computeCost(
         custom_member: member,
         custom_uptime: uptime,
         boost,
+        ...fixRange(range, period),
       };
       return {
         ...compute_cost(input),

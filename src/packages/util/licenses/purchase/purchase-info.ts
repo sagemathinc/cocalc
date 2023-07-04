@@ -1,6 +1,10 @@
-import type { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
-import type { PurchaseInfo, Subscription } from "./types";
+import type {
+  Period,
+  SiteLicenseDescriptionDB,
+} from "@cocalc/util/upgrades/shopping";
+import type { PurchaseInfo, StartEndDates, Subscription } from "./types";
 import type { Date0 } from "@cocalc/util/types/store";
+import dayjs from "dayjs";
 
 export default function getPurchaseInfo(
   conf: SiteLicenseDescriptionDB
@@ -23,15 +27,13 @@ export default function getPurchaseInfo(
         uptime,
         boost = false,
       } = conf;
-      const rangeQuota = fixRange(conf.range);
       return {
         type, // "quota"
         user,
         upgrade: "custom" as "custom",
         quantity: run_limit,
         subscription: (period == "range" ? "no" : period) as Subscription,
-        start: rangeQuota[0],
-        end: rangeQuota[1],
+        ...fixRange(conf.range, conf.period),
         custom_ram: ram,
         custom_dedicated_ram: 0,
         custom_cpu: cpu,
@@ -45,21 +47,12 @@ export default function getPurchaseInfo(
       };
 
     case "vm":
-      if (conf.range[0] == null || conf.range[1] == null) {
-        throw new Error(
-          `start/end range must be defined -- range=${JSON.stringify(
-            conf.range
-          )}`
-        );
-      }
-      const rangeVM = fixRange(conf.range);
       return {
         type: "vm",
         quantity: 1,
         dedicated_vm: conf.dedicated_vm,
         subscription: "no",
-        start: rangeVM[0],
-        end: rangeVM[1],
+        ...fixRange(conf.range, conf.period),
         title,
         description,
       };
@@ -70,24 +63,47 @@ export default function getPurchaseInfo(
         quantity: 1,
         dedicated_disk: conf.dedicated_disk,
         subscription: conf.period,
-        start: new Date(),
         title,
         description,
+        ...fixRange(null, conf.period),
       };
   }
 }
 
-// make sure start/end is properly defined
-// later, when actually saving the range to the database, we will maybe append a portion of the start which is in the past
-function fixRange(rangeOrig?: [Date0 | string, Date0 | string]): [Date, Date0] {
+// Make sure both start and end dates defined as Date.  For all licenses we
+// always require that both are defined.  For a subscription, the end date must
+// be defined, but it will get periodically moved forward as the subscription
+// is updated.
+// Later, when actually saving the range to the database, we will maybe append
+// a portion of the start which is in the past.
+export function fixRange(
+  rangeOrig: [Date0 | string, Date0 | string] | undefined | null,
+  period: Period
+): StartEndDates {
+  const now = new Date();
   if (rangeOrig == null) {
-    return [new Date(), undefined];
+    if (period == "range") {
+      throw Error(
+        "if period is 'range', then start and end dates must be explicitly given"
+      );
+    }
+    return { start: now, end: addPeriod(now, period) };
   }
 
-  const [start, end]: [Date, Date0] = [
-    rangeOrig?.[0] ? new Date(rangeOrig?.[0]) : new Date(),
-    rangeOrig?.[1] ? new Date(rangeOrig?.[1]) : undefined,
-  ];
+  return {
+    start: rangeOrig?.[0] ? new Date(rangeOrig?.[0]) : now,
+    end: rangeOrig?.[1] ? new Date(rangeOrig?.[1]) : addPeriod(now, period),
+  };
+}
 
-  return [start, end];
+function addPeriod(date: Date, period: Period): Date {
+  if (period == "range") {
+    throw Error("period must not be range");
+  } else if (period == "monthly") {
+    return dayjs(date).add(1, "month").toDate();
+  } else if (period == "yearly") {
+    return dayjs(date).add(1, "year").toDate();
+  } else {
+    throw Error(`unsupported period ${period}`);
+  }
 }

@@ -30,12 +30,12 @@ export interface CostInputPeriod extends Cost {
 
 export interface StartEndDates {
   start: Date;
-  end?: Date;
+  end: Date;
 }
 
 export interface StartEndDatesWithStrings {
   start: Date | string;
-  end?: Date | string;
+  end: Date | string;
 }
 
 /*
