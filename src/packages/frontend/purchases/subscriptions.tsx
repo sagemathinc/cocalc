@@ -31,7 +31,7 @@ import {
   Table,
   Tag,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getSubscriptions as getSubscriptionsUsingApi,
   cancelSubscription,
@@ -46,80 +46,6 @@ import { currency } from "./util";
 import { capitalize } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 
-const columns = [
-  {
-    title: "Id",
-    dataIndex: "id",
-    key: "id",
-  },
-  {
-    title: "Created",
-    dataIndex: "created",
-    key: "created",
-    render: (date) => <TimeAgo date={date} />,
-  },
-  {
-    title: "Cost per Period",
-    dataIndex: "cost",
-    key: "cost",
-    render: (cost) => currency(cost),
-  },
-  {
-    title: "Period",
-    dataIndex: "interval",
-    key: "interval",
-    render: (interval) => {
-      if (interval == "month") {
-        return "Monthly";
-      } else if (interval == "year") {
-        return "Yearly";
-      } else {
-        return interval;
-      }
-    },
-  },
-  {
-    width: "20%",
-    title: "Current Period",
-    key: "period",
-    render: (_, record) => {
-      return (
-        <>
-          <TimeAgo date={record.current_period_start} /> to{" "}
-          <TimeAgo date={record.current_period_end} />
-        </>
-      );
-    },
-  },
-  {
-    title: "Last Transaction Id",
-    dataIndex: "latest_purchase_id",
-    key: "latest_purchase_id",
-  },
-  {
-    title: "Status",
-    dataIndex: "status",
-    key: "status",
-    render: (status) => <LicenseStatus status={status} />,
-  },
-  {
-    title: "Action",
-    key: "action",
-    render: (_, { status, id }) => <LicenseActions id={id} status={status} />,
-  },
-  {
-    width: "40%",
-    title: "Description",
-    key: "desc",
-    render: (_, { metadata }) => {
-      if (metadata.type == "license" && metadata.license_id) {
-        return <LicenseDescription license_id={metadata.license_id} />;
-      }
-      return <>{JSON.stringify(metadata, undefined, 2)}</>;
-    },
-  },
-];
-
 function LicenseStatus({ status }) {
   return (
     <Tag color={STATUS_TO_COLOR[status]}>
@@ -128,12 +54,13 @@ function LicenseStatus({ status }) {
   );
 }
 
-function LicenseActions({ id, status }) {
+function LicenseActions({ id, status, refresh }) {
   const [error, setError] = useState<string>("");
   const handleCancel = async () => {
     try {
       setError("");
       await cancelSubscription(id);
+      refresh();
     } catch (error) {
       setError(`${error}`);
     }
@@ -142,6 +69,7 @@ function LicenseActions({ id, status }) {
     try {
       setError("");
       await resumeSubscription(id);
+      refresh();
     } catch (error) {
       setError(`${error}`);
     }
@@ -163,7 +91,13 @@ function LicenseActions({ id, status }) {
       )}
       {status !== "canceled" && (
         <Popconfirm
-          title="Are you sure you want to cancel this subscription?"
+          title={
+            <div style={{ maxWidth: "450px" }}>
+              Are you sure you want to cancel this subscription? The
+              corresponding license will not be renewed. To receive a pro-rated
+              credit, you can also edit the end date of the license.
+            </div>
+          }
           onConfirm={handleCancel}
           okText="Yes"
           cancelText="No"
@@ -173,7 +107,12 @@ function LicenseActions({ id, status }) {
       )}
       {status == "canceled" && (
         <Popconfirm
-          title="Are you sure you want to resume this subscription?"
+          title={
+            <div style={{ maxWidth: "450px" }}>
+              Are you sure you want to resume this subscription? The
+              corresponding license will become active again.
+            </div>
+          }
           onConfirm={handleResume}
           okText="Yes"
           cancelText="No"
@@ -187,7 +126,10 @@ function LicenseActions({ id, status }) {
 function LicenseDescription({ license_id }) {
   return (
     <Collapse>
-      <Collapse.Panel key="license" header={`License ${license_id}`}>
+      <Collapse.Panel
+        key="license"
+        header={`Automatically renews the license ${license_id}`}
+      >
         <SiteLicensePublicInfo license_id={license_id} />
       </Collapse.Panel>
     </Collapse>
@@ -217,6 +159,85 @@ export default function Subscriptions() {
   useEffect(() => {
     getSubscriptions();
   }, []);
+
+  const columns = useMemo(
+    () => [
+      {
+        title: "Id",
+        dataIndex: "id",
+        key: "id",
+      },
+      {
+        title: "Created",
+        dataIndex: "created",
+        key: "created",
+        render: (date) => <TimeAgo date={date} />,
+      },
+      {
+        title: "Cost per Period",
+        dataIndex: "cost",
+        key: "cost",
+        render: (cost) => currency(cost),
+      },
+      {
+        title: "Period",
+        dataIndex: "interval",
+        key: "interval",
+        render: (interval) => {
+          if (interval == "month") {
+            return "Monthly";
+          } else if (interval == "year") {
+            return "Yearly";
+          } else {
+            return interval;
+          }
+        },
+      },
+      {
+        width: "20%",
+        title: "Current Period",
+        key: "period",
+        render: (_, record) => {
+          return (
+            <>
+              <TimeAgo date={record.current_period_start} /> to{" "}
+              <TimeAgo date={record.current_period_end} />
+            </>
+          );
+        },
+      },
+      {
+        title: "Last Transaction Id",
+        dataIndex: "latest_purchase_id",
+        key: "latest_purchase_id",
+      },
+      {
+        title: "Status",
+        dataIndex: "status",
+        key: "status",
+        render: (status) => <LicenseStatus status={status} />,
+      },
+      {
+        title: "Action",
+        key: "action",
+        render: (_, { status, id }) => (
+          <LicenseActions id={id} status={status} refresh={getSubscriptions} />
+        ),
+      },
+      {
+        width: "40%",
+        title: "Description",
+        key: "desc",
+        render: (_, { metadata }) => {
+          if (metadata.type == "license" && metadata.license_id) {
+            return <LicenseDescription license_id={metadata.license_id} />;
+          }
+          return <>{JSON.stringify(metadata, undefined, 2)}</>;
+        },
+      },
+    ],
+    []
+  );
 
   return (
     <SettingBox

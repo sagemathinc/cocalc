@@ -16,6 +16,8 @@ register({
         cost: null,
         interval: null,
         status: null,
+        canceled_at: null,
+        resumed_at: null,
         metadata: null,
         notes: null,
       },

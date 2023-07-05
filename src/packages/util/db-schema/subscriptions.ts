@@ -21,6 +21,8 @@ export interface Subscription {
   current_period_end: Date;
   latest_purchase_id: number;
   status: Status;
+  canceled_at?: Date;
+  resumed_at?: Date;
   metadata: Metadata;
   notes?: string;
 }
@@ -66,12 +68,21 @@ Table({
       type: "string",
       desc: "The status of the description: 'active', 'canceled', 'unpaid', 'past_due'",
     },
+    canceled_at: {
+      type: "timestamp",
+      desc: "When subscription was canceled",
+    },
+    resumed_at: {
+      type: "timestamp",
+      desc: "When subscription was resumed",
+    },
     metadata: {
       title: "Metadata",
       desc: "Metadata that describes what the subscription is for, e.g., {type:'license', license_id:'...'}",
       type: "map",
       pg_type: "jsonb",
     },
+
     notes: NOTES, // for admins to make notes about this subscription
   },
   rules: {
@@ -88,6 +99,8 @@ Table({
           cost: null,
           interval: null,
           status: null,
+          canceled_at: null,
+          resumed_at: null,
           metadata: null,
         },
       },
@@ -111,6 +124,8 @@ Table({
           cost: null,
           interval: null,
           status: null,
+          canceled_at: null,
+          resumed_at: null,
           metadata: null,
           notes: null,
         },
@@ -124,6 +139,8 @@ Table({
           cost: true,
           interval: true,
           status: true,
+          canceled_at: true,
+          resumed_at: true,
           metadata: true,
           notes: true,
         },
