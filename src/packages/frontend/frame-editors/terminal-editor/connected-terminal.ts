@@ -11,35 +11,36 @@ extra support for being connected to:
   - frame-editor (via actions)
 */
 
-import { Map } from "immutable";
 import { callback, delay } from "awaiting";
-import { redux, ProjectActions } from "../../app-framework";
+import { Map } from "immutable";
 import { debounce } from "lodash";
-import { aux_file } from "@cocalc/util/misc";
 import { Terminal as XTerminal } from "xterm";
-import "xterm/css/xterm.css";
-
 import { FitAddon } from "xterm-addon-fit";
 import { WebLinksAddon } from "xterm-addon-web-links";
 import { WebglAddon } from "xterm-addon-webgl";
-import { setTheme } from "./themes";
-import { project_websocket, touch, touch_project } from "../generic/client";
-import { Actions, CodeEditorState } from "../code-editor/actions";
-import { set_buffer, get_buffer } from "../../copy-paste-buffer";
+import "xterm/css/xterm.css";
+
+import { ProjectActions, redux } from "@cocalc/frontend/app-framework";
+import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
+import { file_associations } from "@cocalc/frontend/file-associations";
+import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
+import { Channel } from "@cocalc/frontend/project/websocket/types";
 import {
+  aux_file,
+  bind_methods,
   close,
   endswith,
   filename_extension,
   replace_all,
-  bind_methods,
 } from "@cocalc/util/misc";
-import { open_init_file } from "./init-file";
+import { Actions, CodeEditorState } from "../code-editor/actions";
 import { ConnectionStatus } from "../frame-tree/types";
-import { file_associations } from "../../file-associations";
-import { Channel } from "@cocalc/frontend/project/websocket/types";
+import { project_websocket, touch, touch_project } from "../generic/client";
+import { ConnectedTerminalInterface } from "./connected-terminal-interface";
+import { open_init_file } from "./init-file";
+import { setTheme } from "./themes";
 
 declare const $: any;
-import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 
 // NOTE: Keep this consistent with server.ts on the backend...  Someday make configurable.
 const SCROLLBACK = 5000;
@@ -52,7 +53,7 @@ interface Path {
 
 export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private state: string = "ready";
-  private actions: Actions<T>;
+  private actions: Actions<T> | ConnectedTerminalInterface;
   private account_store: any;
   private project_actions: ProjectActions;
   private terminal_settings: Map<string, any>;
@@ -89,6 +90,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   private command?: string;
   private args?: string[];
+  private workingDir?: string;
 
   private fitAddon: FitAddon;
   private webLinksAddon: WebLinksAddon;
@@ -101,7 +103,8 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     id: string,
     parent: HTMLElement,
     command?: string,
-    args?: string[]
+    args?: string[],
+    workingDir?: string
   ) {
     bind_methods(this);
     this.ask_for_cwd = debounce(this.ask_for_cwd);
@@ -117,6 +120,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.path = actions.path;
     this.command = command;
     this.args = args;
+    this.workingDir = workingDir;
     this.rendererType = "canvas";
     const cmd = command ? "-" + replace_all(command, "/", "-") : "";
     // This is the one and only place number is used.
@@ -278,6 +282,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       if (this.args != null) {
         options.args = this.args;
       }
+      if (this.workingDir != null) {
+        options.workingDir = this.workingDir;
+      }
       options.env = this.actions.get_term_env();
       options.path = this.path;
       this.conn = await ws.api.terminal(this.term_path, options);
@@ -402,7 +409,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   touch(): void {
-    if (new Date().valueOf() - this.last_active < 70000) {
+    if (Date.now() - this.last_active < 70000) {
       touch_project(this.project_id);
     }
   }
@@ -426,7 +433,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       });
       */
       // record that terminal is being actively used.
-      this.last_active = new Date().valueOf();
+      this.last_active = Date.now();
       this.ignore_terminal_data = false;
 
       if (this.is_paused) {
@@ -640,7 +647,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     if (!this.is_visible) {
       return;
     }
-    const project_actions = this.actions._get_project_actions();
+    const project_actions: ProjectActions = this.actions._get_project_actions();
     let i = 0;
     let foreground = false;
     for (const x of paths) {

@@ -14,7 +14,7 @@ import {
   Icon,
   Markdown,
   SearchInput,
-  Space,
+  Gap,
 } from "@cocalc/frontend/components";
 import {
   CompanyName,
@@ -412,7 +412,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
             set_state(img, display, "standard");
           }}
         />
-        <Space />
+        <Gap />
       </Col>
     );
   }

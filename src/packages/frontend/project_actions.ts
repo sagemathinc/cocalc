@@ -375,7 +375,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (misc.path_to_tab(path) === active_project_tab) {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
-        next_active_tab = "files";
+        const account_store = this.redux.getStore("account") as any;
+        const flyoutsDefault = account_store?.getIn(
+          ["other_settings", "flyouts_default"],
+          false
+        );
+        next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;
 
@@ -444,6 +449,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.fetch_directory_listing();
         }
         break;
+
       case "new":
         change.file_creation_error = undefined;
         if (opts.change_history) {
@@ -452,36 +458,55 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         const new_fn = default_filename(opts.new_ext, this.project_id);
         this.set_next_default_filename(new_fn);
         break;
+
       case "log":
         if (opts.change_history) {
           this.push_state("log", "");
         }
         break;
+
       case "search":
         if (opts.change_history) {
           this.push_state(`search/${store.get("current_path")}`, "");
         }
         break;
+
       case "servers":
         if (opts.change_history) {
           this.push_state("servers", "");
         }
         break;
+
       case "settings":
         if (opts.change_history) {
           this.push_state("settings", "");
         }
         break;
+
       case "info":
         if (opts.change_history) {
           this.push_state("info", "");
         }
         break;
+
       case "home":
         if (opts.change_history) {
           this.push_state("home", "");
         }
         break;
+
+      case "users":
+        if (opts.change_history) {
+          this.push_state("users", "");
+        }
+        break;
+
+      case "upgrades":
+        if (opts.change_history) {
+          this.push_state("upgrades", "");
+        }
+        break;
+
       default:
         // editor...
         const path = misc.tab_to_path(key);
@@ -3044,6 +3069,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
       case "info":
         this.set_active_tab("info", { change_history: change_history });
+        break;
+
+      case "users":
+        this.set_active_tab("users", {
+          change_history: change_history,
+        });
+        break;
+
+      case "upgrades":
+        this.set_active_tab("upgrades", { change_history: change_history });
         break;
 
       default:

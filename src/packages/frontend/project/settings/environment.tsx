@@ -12,7 +12,7 @@ NOTE: we haven't implemented deleting of keys in JSONB maps for
 the database yet, so we complicate the code below by making *empty*
 values be treated as deleted.
 */
-import { Button } from "antd";
+import { Alert, Button } from "antd";
 import jsonic from "jsonic";
 
 import {
@@ -23,11 +23,12 @@ import {
   useRedux,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { ErrorDisplay, SettingBox, Space } from "@cocalc/frontend/components";
+import { ErrorDisplay, Gap, SettingBox } from "@cocalc/frontend/components";
 
 export const ENV_VARS_ICON = "bars";
 interface Props {
   project_id: string;
+  mode?: "project" | "flyout";
 }
 
 function process_env(env): object {
@@ -46,7 +47,11 @@ function to_json(env): string {
   return JSON.stringify(process_env(env), null, 2);
 }
 
-export const Environment: React.FC<Props> = ({ project_id }) => {
+export const Environment: React.FC<Props> = ({
+  project_id,
+  mode = "project",
+}: Props) => {
+  const isFlyout = mode === "flyout";
   const env = useRedux(["projects", "project_map", project_id, "env"]);
   const [focused, set_focused] = useState<boolean>(false);
   const [editing, set_editing] = useState<string>(to_json(env?.toJS()));
@@ -76,37 +81,61 @@ export const Environment: React.FC<Props> = ({ project_id }) => {
     ? `Enter custom environment variables as a JSON map from string to string, e.g., {"foo":"bar","x":"y"}.   Unlike environment variables in .bashrc, these will be available to anything that runs in your project (e.g., Jupyter kernels).  Delete a variable by setting it to the empty string.  Restart your project for these changes to take effect.`
     : "";
 
-  return (
-    <SettingBox title="Custom environment variables" icon={ENV_VARS_ICON}>
-      {error != "" ? <ErrorDisplay error={error} /> : undefined}
-      <textarea
-        spellCheck="false"
-        onFocus={() => set_focused(true)}
-        onBlur={() => set_focused(false)}
-        disabled={saving}
-        className="form-control"
-        rows={4}
-        style={{ width: "100%" }}
-        value={editing}
-        onChange={(event) => {
-          set_editing(event.target.value);
-          set_error("");
-        }}
-      />
-      <br />
-      <Button
-        disabled={disabled}
-        onClick={() => set_editing(to_json(env?.toJS()))}
-      >
-        Cancel
-      </Button>
-      <Space />
-      <Button disabled={disabled} onClick={save}>
-        {saving ? "Saving..." : disabled ? "Saved" : "Save..."}
-      </Button>
-      <br />
-      <br />
-      {instructions}
-    </SettingBox>
-  );
+  function renderBody() {
+    return (
+      <div style={{ padding: "10px" }}>
+        {error != "" ? <ErrorDisplay banner error={error} /> : undefined}
+        <textarea
+          spellCheck="false"
+          onFocus={() => set_focused(true)}
+          onBlur={() => set_focused(false)}
+          disabled={saving}
+          className="form-control"
+          rows={4}
+          style={{ width: "100%" }}
+          value={editing}
+          onChange={(event) => {
+            set_editing(event.target.value);
+            set_error("");
+          }}
+        />
+        <br />
+        <Button
+          disabled={disabled}
+          onClick={() => set_editing(to_json(env?.toJS()))}
+        >
+          Cancel
+        </Button>
+        <Gap />
+        <Button disabled={disabled} onClick={save}>
+          {saving ? "Saving..." : disabled ? "Saved" : "Save..."}
+        </Button>
+      </div>
+    );
+  }
+
+  if (isFlyout) {
+    return (
+      <>
+        {renderBody()}
+        {instructions ? (
+          <Alert
+            style={{ marginTop: "10px" }}
+            banner
+            type="info"
+            showIcon={false}
+            message={instructions}
+          />
+        ) : undefined}
+      </>
+    );
+  } else {
+    return (
+      <SettingBox title="Custom environment variables" icon={ENV_VARS_ICON}>
+        {renderBody()}
+        <br />
+        {instructions}
+      </SettingBox>
+    );
+  }
 };

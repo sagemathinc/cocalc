@@ -38,7 +38,7 @@ import {
   IconName,
   MenuItems,
   r_join,
-  Space,
+  Gap,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -125,6 +125,17 @@ function connection_status_color(status: ConnectionStatus): string {
     default:
       return "rgb(255, 165, 0)";
   }
+}
+
+export function ConnectionStatusIcon({ status }: { status: ConnectionStatus }) {
+  return (
+    <Icon
+      style={{
+        color: connection_status_color(status),
+      }}
+      name={"wifi"}
+    />
+  );
 }
 
 const ICON_STYLE: CSS = {
@@ -1796,7 +1807,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           key={"buttons"}
           className={"cc-frame-tree-title-bar-buttons"}
         >
-          {r_join(w, <Space />)}
+          {r_join(w, <Gap />)}
         </div>
       );
     } finally {
@@ -1894,12 +1905,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
 
     return (
       <span style={style} title={props.connection_status}>
-        <Icon
-          style={{
-            color: connection_status_color(props.connection_status),
-          }}
-          name={"wifi"}
-        />
+        <ConnectionStatusIcon status={props.connection_status} />
       </span>
     );
   }

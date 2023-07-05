@@ -460,7 +460,7 @@ const Explorer0 = rclass(
             <Icon name="exclamation-triangle" /> Your instructor requires that
             you pay the one-time ${STUDENT_COURSE_PRICE} course fee for this
             project.
-            {cards && <CourseProjectExtraHelp />}
+            {cards ? <CourseProjectExtraHelp /> : undefined}
           </h4>
           {this.render_upgrade_in_place()}
         </Alert>

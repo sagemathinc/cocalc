@@ -6,7 +6,7 @@
 import { Rendered, useState } from "../app-framework";
 import { Alert, Button, ButtonToolbar, Row, Col } from "react-bootstrap";
 import { Icon, IconName} from "../components/icon";
-import { Space } from "../components/space";
+import { Gap } from "../components/gap";
 import { brand_to_icon_name } from "./data";
 
 import { Source } from "./types";
@@ -39,7 +39,7 @@ export const PaymentMethod: React.FC<Props> = (props) => {
             <p>
               All future payments will be made with the card that is the default{" "}
               <b>at the time of renewal</b>. Changing your default card right
-              before a subscription renewal will cause the <Space />
+              before a subscription renewal will cause the <Gap />
               new default to be charged instead of the previous one.
             </p>
           </Col>
@@ -105,8 +105,8 @@ export const PaymentMethod: React.FC<Props> = (props) => {
         <Col md={1}>{props.source.address_country}</Col>
         <Col md={2}>
           {props.source.address_state}
-          <Space />
-          <Space />
+          <Gap />
+          <Gap />
           {props.source.address_zip}
         </Col>
         {props.set_as_default != null || props.delete_method != null

@@ -152,28 +152,7 @@ const ProjectSettings0 = rclass<ReactProps>(
         this.props.group != "owner" &&
         project?.get("sandbox")
       ) {
-        return (
-          <AntdAlert
-            showIcon
-            style={{ margin: "auto", fontSize: "14pt" }}
-            type="warning"
-            message="Sandboxed Project"
-            description={
-              <div style={{ maxWidth: "700px" }}>
-                Settings are disabled for non-owners of sandboxed projects.
-                <br />
-                <br />
-                You will automatically be removed as a collaborator of this
-                project when you stop actively using it.
-                <br />
-                <br />
-                You can easily make your own new private project by clicking on
-                the "Projects" button then "Create new project". Copy any files
-                to it from the Files tab here.
-              </div>
-            }
-          />
-        );
+        return <SandboxProjectSettingsWarning />;
       }
       if (this.props.group === "admin") {
         project = this.state.admin_project;
@@ -200,11 +179,9 @@ const ProjectSettings0 = rclass<ReactProps>(
               project_id={this.props.project_id}
               account_id={this.props.account_id}
               project={project}
-              user_map={this.props.user_map}
               customer={this.props.customer}
               email_address={this.props.email_address}
               project_map={this.props.project_map}
-              name={this.props.name}
             />
           </div>
         );
@@ -212,3 +189,28 @@ const ProjectSettings0 = rclass<ReactProps>(
     }
   }
 );
+
+export function SandboxProjectSettingsWarning() {
+  return (
+    <AntdAlert
+      showIcon
+      style={{ margin: "auto", fontSize: "14pt" }}
+      type="warning"
+      message="Sandboxed Project"
+      description={
+        <div style={{ maxWidth: "700px" }}>
+          Settings are disabled for non-owners of sandboxed projects.
+          <br />
+          <br />
+          You will automatically be removed as a collaborator of this project
+          when you stop actively using it.
+          <br />
+          <br />
+          You can easily make your own new private project by clicking on the
+          "Projects" button then "Create new project". Copy any files to it from
+          the Files tab here.
+        </div>
+      }
+    />
+  );
+}

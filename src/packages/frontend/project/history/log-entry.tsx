@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Tooltip } from "antd";
+import React from "react";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { CSS, redux, Rendered } from "@cocalc/frontend/app-framework";
 import {
@@ -10,7 +13,7 @@ import {
   IconName,
   PathLink,
   r_join,
-  Space,
+  Gap,
   TimeAgo,
   Tip,
 } from "@cocalc/frontend/components";
@@ -22,8 +25,6 @@ import track from "@cocalc/frontend/user-tracking";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import * as misc from "@cocalc/util/misc";
 import { round1 } from "@cocalc/util/misc";
-import { Tooltip } from "antd";
-import React from "react";
 import { Col, Grid, Row } from "react-bootstrap";
 import { SystemProcess } from "./system-process";
 import {
@@ -69,7 +70,7 @@ const file_action_icons: {
 
 interface Props {
   id: string;
-  time: Date;
+  time?: Date;
   event: ProjectEvent | string;
   account_id: string;
   user_map?: UserMap;
@@ -124,7 +125,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       return (
         <span>
           opened
-          <Space />
+          <Gap />
           <PathLink
             path={event.filename}
             full={true}
@@ -149,7 +150,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       return (
         <span>
           set the public path
-          <Space />
+          <Gap />
           <PathLink
             path={event.path}
             full={true}
@@ -655,10 +656,10 @@ export const LogEntry: React.FC<Props> = React.memo(
               </Col>
               <Col sm={11}>
                 {render_user()}
-                <Space />
+                <Gap />
                 {render_desc()}
                 {renderDuration()}
-                <Space />
+                <Gap />
                 <TimeAgo style={style} date={props.time} />
               </Col>
             </Row>

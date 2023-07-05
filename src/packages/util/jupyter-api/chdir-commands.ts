@@ -60,8 +60,12 @@ function createNodeChangeDirectoryCode(path) {
   return `process.chdir(\`${escapedPath}\`)`;
 }
 
+export function escapeBashChangeDirPath(path: string): string {
+  return path.replace(/(["'$`\\])/g, "\\$1");
+}
+
 function createBashChangeDirectoryCommand(path) {
-  const escapedPath = path.replace(/(["'$`\\])/g, "\\$1");
+  const escapedPath = escapeBashChangeDirPath(path);
   return `cd '${escapedPath}'`;
 }
 

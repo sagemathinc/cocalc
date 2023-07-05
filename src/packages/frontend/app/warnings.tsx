@@ -1,6 +1,6 @@
 import { redux, React, TypedMap } from "../app-framework";
 import { webapp_client } from "../webapp-client";
-import { Icon, Space } from "../components";
+import { Icon, Gap } from "../components";
 import { SiteName } from "../customize";
 import { get_browser } from "../feature";
 
@@ -32,7 +32,7 @@ export const VersionWarning: React.FC<VersionWarningProps> = React.memo(
       return (
         <div>
           <br />
-          THIS IS A CRITICAL UPDATE. YOU MUST <Space />
+          THIS IS A CRITICAL UPDATE. YOU MUST <Gap />
           <a
             onClick={() => window.location.reload()}
             style={{
@@ -44,7 +44,7 @@ export const VersionWarning: React.FC<VersionWarningProps> = React.memo(
           >
             RELOAD THIS PAGE
           </a>
-          <Space /> IMMEDIATELY OR YOU WILL BE DISCONNECTED. Sorry for the
+          <Gap /> IMMEDIATELY OR YOU WILL BE DISCONNECTED. Sorry for the
           inconvenience.
         </div>
       );
@@ -70,7 +70,7 @@ export const VersionWarning: React.FC<VersionWarningProps> = React.memo(
 
     return (
       <div style={style}>
-        <Icon name={"refresh"} /> New Version Available: upgrade by <Space />
+        <Icon name={"refresh"} /> New Version Available: upgrade by <Gap />
         <a
           onClick={() => window.location.reload()}
           style={{

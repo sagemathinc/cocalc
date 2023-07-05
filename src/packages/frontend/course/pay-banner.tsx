@@ -14,7 +14,7 @@ import { CSS, React, useTypedRedux } from "../app-framework";
 
 import { Alert } from "antd";
 import { CourseSettingsRecord } from "./store";
-import { Icon, Space } from "../components";
+import { Icon, Gap } from "../components";
 
 interface PayBannerProps {
   settings: CourseSettingsRecord;
@@ -93,7 +93,7 @@ export const PayBanner: React.FC<PayBannerProps> = React.memo(
               style={{ float: "right", marginTop: "3px" }}
             />
             <Icon name="exclamation-triangle" />
-            <Space />
+            <Gap />
             {mesg}
           </div>
         }

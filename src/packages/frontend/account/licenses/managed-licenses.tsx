@@ -22,7 +22,7 @@ import {
   ErrorDisplay,
   Icon,
   Loading,
-  Space,
+  Gap,
   Title,
 } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -132,7 +132,7 @@ export const ManagedLicenses: React.FC = () => {
           {render_show_all()}
           <Button onClick={reload} disabled={loading}>
             <Icon name="redo" />
-            <Space /> <Space /> {loading ? "Loading..." : "Refresh all"}
+            <Gap /> <Gap /> {loading ? "Loading..." : "Refresh all"}
           </Button>
         </div>
       </Title>

@@ -5,7 +5,7 @@
 
 import { Alert, Well } from "react-bootstrap";
 import { Component, Rendered } from "../app-framework";
-import { Space } from "../components/space";
+import { Gap } from "../components/gap";
 import { Icon } from "../components/icon";
 
 import { Customer, Source } from "./types";
@@ -36,7 +36,7 @@ export class ConfirmPaymentMethod extends Component<Props> {
         <p>
           The initial payment will be processed with the card below. Future
           payments will be made with whichever card you have set as your default
-          <Space />
+          <Gap />
           <b>at the time of renewal</b>.
         </p>
       </span>

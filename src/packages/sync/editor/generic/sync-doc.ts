@@ -40,7 +40,7 @@ const LOCAL_HUB_AUTOSAVE_S = 45;
 // const LOCAL_HUB_AUTOSAVE_S = 5;
 
 // How big of files we allow users to open using syncstrings.
-const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_MB = 8;
 
 // This parameter determines throttling when broadcasting cursor position
 // updates.   Make this larger to reduce bandwidth at the expense of making
@@ -2344,18 +2344,9 @@ export class SyncDoc extends EventEmitter {
       dbg("file exists");
       await this.update_if_file_is_read_only();
 
-      const data = await new Promise<string>(async (resolve, reject) => {
-        await this.client.path_read({
-          path,
-          maxsize_MB: MAX_FILE_SIZE_MB,
-          cb(err, data) {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(data);
-            }
-          },
-        });
+      const data = await callback2<string>(this.client.path_read, {
+        path,
+        maxsize_MB: MAX_FILE_SIZE_MB,
       });
 
       size = data.length;
@@ -2747,20 +2738,7 @@ export class SyncDoc extends EventEmitter {
     this.save_to_disk_start_ctime = Date.now() - 1500;
     this.save_to_disk_end_ctime = undefined;
     try {
-      await new Promise<void>(async (resolve, reject) => {
-        await this.client.write_file({
-          path,
-          data,
-          cb(err) {
-            if (err) {
-              reject(err);
-            } else {
-              resolve();
-            }
-          },
-        });
-      });
-
+      await callback2(this.client.write_file, { path, data });
       this.assert_is_ready("save_to_disk_project -- after write_file");
       const stat = await callback2(this.client.path_stat, { path });
       this.assert_is_ready("save_to_disk_project -- after path_state");
