@@ -6,52 +6,56 @@
 import { Context, createContext, useContext, useMemo } from "react";
 
 import {
-  useProjectState,
-  init as INIT_PROJECT_STATE,
-} from "./page/project-state-hook";
+  ProjectActions,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { UserGroup } from "@cocalc/frontend/projects/store";
 import { ProjectStatus } from "@cocalc/frontend/todo-types";
-import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
+import { useProject } from "./page/common";
+import {
+  init as INIT_PROJECT_STATE,
+  useProjectState,
+} from "./page/project-state-hook";
 import { useProjectStatus } from "./page/project-status-hook";
-import { useActions } from "@cocalc/frontend/app-framework";
+import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
+import { Project } from "./settings/types";
 
-export interface ProjectState {
-  project_id: string;
+export interface ProjectContextState {
+  actions?: ProjectActions;
+  active_project_tab?: string;
+  group?: UserGroup;
+  hasInternet?: boolean | undefined;
   is_active: boolean;
-  isRunning: boolean | undefined;
-  hasInternet: boolean | undefined;
+  isRunning?: boolean | undefined;
+  project_id: string;
+  project?: Project;
   status: ProjectStatus;
 }
 
-const contexts: { [project_id: string]: Context<ProjectState> } = {};
-
-export function createProjectContext(project_id: string) {
-  if (contexts[project_id] != null) {
-    return contexts[project_id];
-  }
-  const ctx = createContext<ProjectState>({
+export const ProjectContext: Context<ProjectContextState> =
+  createContext<ProjectContextState>({
+    actions: undefined,
+    active_project_tab: undefined,
+    group: undefined,
+    project: undefined,
     is_active: false,
-    project_id,
+    project_id: "", // this will be defined
     isRunning: undefined,
     status: INIT_PROJECT_STATE,
     hasInternet: undefined,
   });
-  contexts[project_id] = ctx;
-  return ctx;
-}
 
-export function useProjectContext(project_id: string) {
-  const ctx = contexts[project_id];
-  if (ctx == null) {
-    throw new Error(`No project context for project ${project_id}`);
-  }
-  return useContext(ctx);
+export function useProjectContext() {
+  return useContext(ProjectContext);
 }
 
 export function useProjectContextProvider(
   project_id: string,
   is_active: boolean
-): ProjectState {
+): ProjectContextState {
   const actions = useActions({ project_id });
+  const { project, group } = useProject(project_id);
   const status: ProjectStatus = useProjectState(project_id);
   useProjectStatus(actions);
   const hasInternet = useProjectHasInternetAccess(project_id);
@@ -59,10 +63,20 @@ export function useProjectContextProvider(
     () => status.get("state") === "running",
     [status.get("state")]
   );
+  const active_project_tab = useTypedRedux(
+    { project_id },
+    "active_project_tab"
+  );
 
-  return { project_id, status, hasInternet, isRunning, is_active };
-}
-
-export function deleteProjectContext(project_id: string) {
-  delete contexts[project_id];
+  return {
+    actions,
+    active_project_tab,
+    group,
+    hasInternet,
+    is_active,
+    isRunning,
+    project_id,
+    project,
+    status,
+  };
 }

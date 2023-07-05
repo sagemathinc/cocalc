@@ -41,7 +41,7 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { FIX_BORDER, useProject } from "../common";
+import { FIX_BORDER } from "../common";
 import { FLYOUT_PADDING } from "./consts";
 import { getFlyoutSettings, storeFlyoutState } from "./state";
 
@@ -53,13 +53,11 @@ interface Props {
 export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   const { project_id, wrap } = _;
 
-  const { status } = useProjectContext(project_id);
-
+  const { status, project } = useProjectContext();
   const account_id = useTypedRedux("account", "account_id");
   const actions = useActions({ project_id });
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const projectIsVisible = active_top_tab === project_id;
-  const { project } = useProject(project_id);
   const [datastoreReload, setDatastoreReload] = useState<number>(0);
   const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
   const configuration_loading = useTypedRedux(
@@ -179,7 +177,6 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
           size="small"
           onClick={(e) => {
             e.stopPropagation();
-            const project_id = project.get("project_id");
             const pa = redux.getProjectActions(project_id);
             pa.reload_configuration();
           }}
@@ -206,6 +203,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   }
 
   function renderSettings() {
+    if (project == null) return <Loading theme="medium" transparent />;
     return (
       <Collapse
         style={{ borderRadius: 0, borderLeft: "none", borderRight: "none" }}

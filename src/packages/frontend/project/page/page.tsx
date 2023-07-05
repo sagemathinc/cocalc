@@ -25,13 +25,18 @@ import {
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { AnonymousName } from "../anonymous-name";
-import { createProjectContext, useProjectContextProvider } from "../context";
+import {
+  ProjectContext,
+  useProjectContext,
+  useProjectContextProvider,
+} from "../context";
 import { ProjectWarningBanner } from "../project-banner";
 import { StartButton } from "../start-button";
 import { DeletedProjectWarning } from "../warnings/deleted";
 import { DiskSpaceWarning } from "../warnings/disk-space";
 import { OOMWarning } from "../warnings/oom";
 import { RamWarning } from "../warnings/ram";
+import { FIX_BORDERS } from "./common";
 import { Content } from "./content";
 import { isFixedTab } from "./file-tab";
 import { FlyoutBody } from "./flyouts/body";
@@ -45,7 +50,6 @@ import {
 import HomePageButton from "./home-page/button";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
-import { FIX_BORDERS } from "./common";
 //import FirstSteps from "@cocalc/frontend/project/explorer/file-listing/first-steps";
 
 const PAGE_STYLE: React.CSSProperties = {
@@ -71,7 +75,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     project_id,
     "deleted",
   ]);
-  const ProjectContext = createProjectContext(project_id);
   const projectCtx = useProjectContextProvider(project_id, is_active);
   const fullscreen = useTypedRedux("page", "fullscreen");
   const active_top_tab = useTypedRedux("page", "active_top_tab");
@@ -161,7 +164,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             is_visible={
               active_top_tab == project_id && active_project_tab === tab_name
             }
-            project_id={project_id}
             tab_name={tab_name}
           />
         </FrameContext.Provider>
@@ -186,7 +188,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <Content
           key={active_project_tab}
           is_visible={true}
-          project_id={project_id}
           tab_name={active_project_tab}
         />
       );
@@ -219,7 +220,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       <div style={{ display: "flex", flexDirection: "row" }}>
         <FlyoutBody
           flyout={flyout}
-          project_id={project_id}
           flyoutWidth={flyoutWidth}
         />
         <DndContext
@@ -227,7 +227,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           onDragEnd={(e) => updateDrag(e)}
         >
           <FlyoutDragbar
-            project_id={project_id}
             resetFlyoutWidth={resetFlyoutWidth}
             flyoutLimit={flyoutLimit}
             oldFlyoutWidth={oldFlyoutWidth}
@@ -243,7 +242,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
       <FlyoutHeader
         flyoutWidth={flyoutWidth}
         flyout={flyout}
-        project_id={project_id}
         narrowerPX={narrowerPX}
       />
     );
@@ -293,8 +291,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
               }}
             >
               <VerticalFixedTabs
-                project_id={project_id}
-                activeTab={active_project_tab}
                 setHomePageButtonWidth={setHomePageButtonWidth}
               />
             </div>
@@ -308,7 +304,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
               overflowX: "auto",
             }}
           >
-            <StartButton project_id={project_id} />
+            <StartButton />
             {renderEditorContent()}
             {render_project_content()}
             {render_project_modal()}
@@ -320,16 +316,16 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 };
 
 function FlyoutDragbar({
-  project_id,
   resetFlyoutWidth,
   flyoutLimit,
   oldFlyoutWidth,
 }: {
-  project_id: string;
   resetFlyoutWidth: () => void;
   flyoutLimit: { left: number; right: number };
   oldFlyoutWidth: number;
 }) {
+  const { project_id } = useProjectContext();
+
   const { attributes, listeners, setNodeRef, transform, active } = useDraggable(
     {
       id: `flyout-drag-${project_id}`,

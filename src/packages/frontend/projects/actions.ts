@@ -14,7 +14,6 @@ import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
-import { deleteProjectContext } from "@cocalc/frontend/project/context";
 import { site_license_public_info } from "@cocalc/frontend/site-licenses/util";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { once } from "@cocalc/util/async-utils";
@@ -83,7 +82,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
       redux.removeProjectReferences(project_id);
       this.setState({ open_projects: x.delete(index) });
     }
-    deleteProjectContext(project_id);
   }
 
   // Save all open files in all projects to disk
