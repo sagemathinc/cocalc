@@ -5,7 +5,7 @@
 
 import { Alert } from "../../antd-bootstrap";
 import { plural } from "@cocalc/util/misc";
-import { A, Icon, Space } from "../../components";
+import { A, Icon, Gap } from "../../components";
 import { Options, project_warning_opts } from "./util";
 import { PolicyPricingPageUrl } from "../../customize";
 import { LICENSE_MIN_PRICE } from "@cocalc/util/consts/billing";
@@ -41,7 +41,7 @@ export const NoNetworkProjectWarning: React.FC<Options> = (props) => {
     } else {
       suggestion = (
         <span>
-          <Space />
+          <Gap />
           <A href={url}>Licenses start at {LICENSE_MIN_PRICE}...</A>
         </span>
       );

@@ -23,3 +23,12 @@ export function init() {
 export default function getBugCount(): number {
   return bugCount;
 }
+
+export function bad(n) {
+  if (Math.random() < n) {
+    console.log("not throwing error");
+    return;
+  }
+  console.log("throwing an error on purpose");
+  throw Error("foo");
+}

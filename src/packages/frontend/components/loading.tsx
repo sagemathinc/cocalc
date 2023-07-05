@@ -4,8 +4,9 @@
  */
 
 import { CSSProperties } from "react";
+
+import { TypedMap, useDelayedRender } from "@cocalc/frontend/app-framework";
 import { Icon } from "./icon";
-import { TypedMap, useDelayedRender } from "../app-framework";
 
 export type Estimate = TypedMap<{
   time: number; // Time in seconds
@@ -19,6 +20,7 @@ interface Props {
   estimate?: Estimate;
   theme?: "medium" | undefined;
   delay?: number; // if given, don't show anything until after delay milliseconds.  The component could easily unmount by then, and hence never annoyingly flicker on screen.
+  transparent?: boolean;
 }
 
 const LOADING_THEMES: { [keys: string]: CSSProperties } = {
@@ -31,7 +33,14 @@ const LOADING_THEMES: { [keys: string]: CSSProperties } = {
   },
 };
 
-export function Loading({ style, text, estimate, theme, delay }: Props) {
+export function Loading({
+  style,
+  text,
+  estimate,
+  theme,
+  delay,
+  transparent = false,
+}: Props) {
   const render = useDelayedRender(delay ?? 0);
   if (!render) {
     return <></>;
@@ -41,6 +50,7 @@ export function Loading({ style, text, estimate, theme, delay }: Props) {
     <div
       style={{
         ...(theme ? LOADING_THEMES[theme] : undefined),
+        ...(transparent ? { background: "transparent" } : undefined),
         ...style,
       }}
     >

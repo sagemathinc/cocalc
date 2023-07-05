@@ -3,6 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert as AntdAlert, Space } from "antd";
+import { List, Map } from "immutable";
+import { join } from "path";
+
 import {
   Alert,
   Button,
@@ -17,15 +21,15 @@ import {
 import {
   Component,
   React,
-  redux,
   Rendered,
   TypedMap,
+  redux,
 } from "@cocalc/frontend/app-framework";
 import {
   A,
   ErrorDisplay,
+  Gap,
   Icon,
-  Space,
   TimeAgo,
 } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -37,9 +41,6 @@ import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { keys, startswith } from "@cocalc/util/misc";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
-import { Alert as AntdAlert, Space as AntdSpace } from "antd";
-import { List, Map } from "immutable";
-import { join } from "path";
 import { SiteName, TermsOfService } from "../../customize";
 import { open_new_tab } from "../../misc/open-browser-tab";
 import { DeleteAccount } from "../delete-account";
@@ -297,7 +298,7 @@ export class AccountSettings extends Component<Props, State> {
         <Col xs={12}>
           <div className="pull-right">
             <SignOut everywhere={false} highlight={true} />
-            {!this.props.is_anonymous ? <Space /> : undefined}
+            {!this.props.is_anonymous ? <Gap /> : undefined}
             {!this.props.is_anonymous ? (
               <SignOut everywhere={true} />
             ) : undefined}
@@ -394,9 +395,9 @@ export class AccountSettings extends Component<Props, State> {
       <div>
         <hr key="hr0" />
         <h5 style={{ color: "#666" }}>{heading}</h5>
-        <AntdSpace size={[10, 10]} wrap style={{ marginBottom: "10px" }}>
+        <Space size={[10, 10]} wrap style={{ marginBottom: "10px" }}>
           {btns}
-        </AntdSpace>
+        </Space>
         {this.render_add_strategy_link()}
       </div>
     );

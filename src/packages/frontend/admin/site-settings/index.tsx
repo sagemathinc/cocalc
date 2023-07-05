@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Button, Input, InputRef, Modal, Tag, Row, Col } from "antd";
+import { Alert, Button, Col, Input, InputRef, Modal, Row, Tag } from "antd";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
 import { useMemo, useRef, useState } from "react";
@@ -13,10 +13,10 @@ import { Well } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import {
+  Gap,
   Icon,
   Loading,
   Paragraph,
-  Space,
   Title,
 } from "@cocalc/frontend/components";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
@@ -251,7 +251,7 @@ export default function SiteSettings({}) {
     return (
       <div>
         <SaveButton />
-        <Space />
+        <Gap />
         <CancelButton />
       </div>
     );
@@ -314,9 +314,9 @@ export default function SiteSettings({}) {
     return (
       <div style={{ marginBottom: "1rem" }}>
         <strong>Tests:</strong>
-        <Space />
+        <Gap />
         Email:
-        <Space />
+        <Gap />
         <Input
           style={{ width: "auto" }}
           defaultValue={redux.getStore("account").get("email_address")}
@@ -509,7 +509,7 @@ export default function SiteSettings({}) {
           </Col>
         </Row>
         {editRows}
-        <Space />
+        <Gap />
         {!filter.trim() && <Tests />}
         {!filter.trim() && <Buttons />}
         {filter.trim() && (

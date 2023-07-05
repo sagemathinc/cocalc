@@ -14,7 +14,7 @@ import {
   CopyToClipBoard,
   DateTimePicker,
   Icon,
-  Space,
+  Gap,
   TimeAgo,
 } from "@cocalc/frontend/components";
 import {
@@ -523,7 +523,7 @@ export const License: React.FC<Props> = (props: Props) => {
         <Button onClick={() => actions.cancel_editing(id)} disabled={saving}>
           Cancel
         </Button>
-        <Space />
+        <Gap />
         <Button
           disabled={edits == null || edits.size <= 1 || saving}
           bsStyle="success"

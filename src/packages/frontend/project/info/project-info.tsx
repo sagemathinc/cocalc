@@ -303,8 +303,13 @@ export const ProjectInfo: React.FC<Props> = React.memo(
       set_selected(pids);
     }
 
-    function val_max_value(index): number {
+    function val_max_value(
+      index: "cpu_pct" | "cpu_tot" | "mem" | "pid"
+    ): number {
       switch (index) {
+        case "pid":
+          // largest pid number in linux 64 bit
+          return 2 ** 22 + 1;
         case "cpu_pct":
           // the cgroup cpu limit could be less than 1, but we want to alert about
           // processes using 100% cpu, even if there is much more headroom.
@@ -320,8 +325,10 @@ export const ProjectInfo: React.FC<Props> = React.memo(
           } else {
             return 1000; // 1 gb
           }
+        default:
+          unreachable(index);
+          return 0;
       }
-      return 1;
     }
 
     function any_alerts(): boolean {
@@ -335,9 +342,9 @@ export const ProjectInfo: React.FC<Props> = React.memo(
 
     // if collapsed, we sum up the values of the children
     // to avoid misunderstandings due to data not being shown…
-    function render_val(
-      index: string,
-      to_str: (val) => Rendered | React.ReactText
+    function onCellProps(
+      index: "cpu_pct" | "cpu_tot" | "mem",
+      to_str?: (val) => Rendered
     ) {
       const cell_val = (val, proc): number => {
         // we have to check for length==0, because initally rows are all expanded but
@@ -356,13 +363,20 @@ export const ProjectInfo: React.FC<Props> = React.memo(
 
       const max_val = val_max_value(index);
 
-      return (val: number, proc: ProcessRow) => {
-        const display_val = cell_val(val, proc);
-        return {
-          props: { style: grid_warning(display_val, max_val) },
-          children: to_str(display_val),
+      if (to_str == null) {
+        return (proc: ProcessRow) => {
+          const val = proc[index];
+          const display_val = cell_val(val, proc);
+          return {
+            style: grid_warning(display_val, max_val),
+          };
         };
-      };
+      } else {
+        return (val, proc: ProcessRow) => {
+          const display_val = cell_val(val, proc);
+          return to_str(display_val);
+        };
+      }
     }
 
     function render_cocalc({ cocalc }: ProcessRow) {
@@ -443,7 +457,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
             sync={sync}
             render_disconnected={render_disconnected}
             render_cocalc={render_cocalc}
-            render_val={render_val}
+            onCellProps={onCellProps}
           />
         );
       case "full":
@@ -476,7 +490,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
             sync={sync}
             render_disconnected={render_disconnected}
             render_cocalc={render_cocalc}
-            render_val={render_val}
+            onCellProps={onCellProps}
           />
         );
     }

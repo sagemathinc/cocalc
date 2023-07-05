@@ -18,7 +18,7 @@ import {
   ErrorDisplay,
   Icon,
   Markdown,
-  Space,
+  Gap,
   Tip
 } from "@cocalc/frontend/components";
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
@@ -436,7 +436,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       return (
         <div key="open_recopy">
           {render_open_recopy_confirm(name, copy, copy_tip, placement)}
-          <Space />
+          <Gap />
           <Button key="open" bsSize={bsSize} onClick={open}>
             <Tip title="Open assignment" placement={placement} tip={open_tip}>
               <Icon name="folder-open" /> Open

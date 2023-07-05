@@ -12,16 +12,18 @@ import {
   HelpIcon,
   Icon,
   SettingBox,
-  Space,
+  Gap,
   TimeAgo,
 } from "@cocalc/frontend/components";
 import { cmp } from "@cocalc/util/misc";
+import { FIX_BORDER } from "../../project/page/common";
 
 interface SSHKeyListProps {
   ssh_keys?: Map<string, any>;
   project_id?: string;
   help?: JSX.Element;
   children?: any;
+  mode?: "project" | "flyout";
 }
 
 // Children are rendered above the list of SSH Keys
@@ -29,12 +31,13 @@ interface SSHKeyListProps {
 export const SSHKeyList: React.FC<SSHKeyListProps> = (
   props: SSHKeyListProps
 ) => {
-  const { ssh_keys, project_id, help, children } = props;
+  const { ssh_keys, project_id, help, children, mode = "project" } = props;
+  const isFlyout = mode === "flyout";
 
   function render_header() {
     return (
       <>
-        SSH keys <Space />
+        SSH keys <Gap />
         {help && <HelpIcon title="Using SSH Keys">{help}</HelpIcon>}
       </>
     );
@@ -58,6 +61,7 @@ export const SSHKeyList: React.FC<SSHKeyListProps> = (
               ssh_key={ssh_key}
               key={fingerprint}
               project_id={project_id}
+              mode={mode}
             />
           ),
         });
@@ -76,25 +80,46 @@ export const SSHKeyList: React.FC<SSHKeyListProps> = (
       }
       return cmp(a.fp, b.fp);
     });
+    if (isFlyout) {
+      return <div>{v.map((x) => x.component)}</div>;
+    } else {
+      return (
+        <SettingBox style={{ marginBottom: "0px" }} show_header={false}>
+          {v.map((x) => x.component)}
+        </SettingBox>
+      );
+    }
+  }
+
+  function renderBody() {
     return (
-      <SettingBox style={{ marginBottom: "0px" }} show_header={false}>
-        {v.map((x) => x.component)}
-      </SettingBox>
+      <>
+        {children}
+        {render_keys()}
+      </>
     );
   }
 
-  return (
-    <SettingBox title={render_header()} icon={"list-ul"}>
-      {children}
-      {render_keys()}
-    </SettingBox>
-  );
+  if (isFlyout) {
+    return renderBody();
+  } else {
+    return (
+      <SettingBox title={render_header()} icon={"list-ul"}>
+        {renderBody()}
+      </SettingBox>
+    );
+  }
 };
 
-const OneSSHKey: React.FC<{
+interface OneSSHKeyProps {
   ssh_key: Map<string, any>;
   project_id?: string;
-}> = ({ ssh_key, project_id }) => {
+  mode?: "project" | "flyout";
+}
+
+function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
+  const isFlyout = mode === "flyout";
+
   function render_last_use(): JSX.Element {
     const d = ssh_key.get("last_use_date");
     if (d) {
@@ -121,18 +146,25 @@ const OneSSHKey: React.FC<{
   }
 
   const key_style: React.CSSProperties = {
-    fontSize: "42px",
+    fontSize: isFlyout ? "24px" : "42px",
     color: ssh_key.get("last_use_date") ? "#1e7e34" : undefined,
   };
 
-  return (
-    <Row
-      style={{
+  const rowStyle = isFlyout
+    ? {
+        border: "none",
+        padding: "5px 0px 5px 0px",
+        marginTop: "5px",
+        borderTop: FIX_BORDER,
+      }
+    : {
         border: "1px solid lightgray",
         padding: "5px",
         marginBottom: "5px",
-      }}
-    >
+      };
+
+  return (
+    <Row style={rowStyle}>
       <Col md={1} style={{ marginRight: "8px" }}>
         <Icon style={key_style} name="key" />
       </Col>
@@ -159,11 +191,15 @@ const OneSSHKey: React.FC<{
           okText={"Yes, delete key"}
           cancelText={"Cancel"}
         >
-          <Button bsStyle="warning" bsSize="small" style={{ float: "right" }}>
+          <Button
+            bsStyle="warning"
+            bsSize={isFlyout ? "xsmall" : "small"}
+            style={{ float: "right" }}
+          >
             Delete...
           </Button>
         </Popconfirm>
       </Col>
     </Row>
   );
-};
+}

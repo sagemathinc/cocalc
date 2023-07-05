@@ -510,7 +510,13 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
   // Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
   // If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
-  public async write_file(opts: { path: string; data: string; cb: CB<void> }) {
+  // WARNING: See big comment below for path_read.
+  public async write_file(opts: {
+    path: string;
+    data: string;
+    cb: CB<void>;
+  }): Promise<void> {
+    // WARNING: despite being async, this returns nothing!
     const path = join(HOME, opts.path);
     if (this._file_io_lock == null) {
       this._file_io_lock = {};
@@ -531,11 +537,11 @@ export class Client extends EventEmitter implements ProjectClientInterface {
       await ensureContainingDirectoryExists(path);
       await writeFile(path, opts.data);
       dbg("success");
-      return opts.cb();
+      opts.cb();
     } catch (error) {
       const err = error;
       dbg(`error -- ${err}`);
-      return opts.cb(err);
+      opts.cb(err);
     } finally {
       delete this._file_io_lock[path];
     }
@@ -545,11 +551,16 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   // If file is currently being written or read in this process,
   // will retry until it isn't, so we do not get an error and we
   // do NOT get silently corrupted data.
+  // TODO and HUGE AWARNING: Despite this function being async, it DOES NOT
+  // RETURN ANYTHING AND DOES NOT THROW EXCEPTIONS!  Just use it like any
+  // other old cb function.  Todo: rewrite this and anything that uses it.
+  // This is just a halfway step toward rewriting project away from callbacks and coffeescript.
   public async path_read(opts: {
     path: string;
     maxsize_MB?: number; // in megabytes; if given and file would be larger than this, then cb(err)
     cb: CB<string>; // cb(err, file content as string (not Buffer!))
-  }) {
+  }): Promise<void> {
+    // WARNING: despite being async, this returns nothing!
     let content: string | undefined = undefined;
     const path = join(HOME, opts.path);
     const dbg = this.dbg(

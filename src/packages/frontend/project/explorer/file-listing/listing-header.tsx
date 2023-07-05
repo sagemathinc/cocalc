@@ -5,7 +5,7 @@
 
 import React from "react";
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { Icon, Space } from "@cocalc/frontend/components";
+import { Icon, Gap } from "@cocalc/frontend/components";
 const { Row, Col } = require("react-bootstrap");
 
 // TODO: Flatten active_file_sort for easy PureComponent use
@@ -40,7 +40,7 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
         style={{ color: "#428bca", fontWeight: "bold" }}
       >
         {display_name}
-        <Space />
+        <Gap />
         {active_file_sort.get("column_name") === column_name ? (
           <Icon
             style={inner_icon_style}

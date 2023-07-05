@@ -39,10 +39,10 @@ const A_STYLE_ELEVATED: CSS = {
 } as const;
 
 export const ALERT_STYLE: CSS = {
-  paddingTop: "0px",
+  paddingTop: "5px",
   paddingLeft: "10px",
   paddingRight: "5px",
-  paddingBottom: "5px",
+  paddingBottom: "0px",
   marginBottom: 0,
   fontSize: "9pt",
   borderRadius: 0,
@@ -128,13 +128,13 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       <strong>No upgrades</strong>
     );
 
-    function renderMessage(): JSX.Element | undefined {
-      const buy_and_upgrade = (
+    function renderBuyAndUpgrade(text: string = "with a license"): JSX.Element {
+      return (
         <>
           <BuyLicenseForProject
             project_id={project_id}
-            buyText={"with a license"}
-            voucherText={"a voucher"}
+            buyText={text}
+            voucherText={"redeem a voucher"}
             asLink={true}
             style={{ padding: 0, fontSize: style.fontSize, ...a_style }}
           />
@@ -144,13 +144,15 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
           </a>
         </>
       );
+    }
 
+    function renderMessage(): JSX.Element | undefined {
       if (allow_run === false) {
         return (
           <span>
             There are too many free trial projects running right now.
             <br />
-            Try again later or {buy_and_upgrade}.
+            Try again later or {renderBuyAndUpgrade()}.
           </span>
         );
       }
@@ -159,7 +161,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         return (
           <span>
             {trial_project} You can improve hosting quality and get internet
-            access {buy_and_upgrade}.
+            access {renderBuyAndUpgrade()}.
             <br />
             Otherwise, {humanizeList([...NO_HOST, NO_INTERNET])}
             {"."}
@@ -174,6 +176,8 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             </A>{" "}
             or {humanizeList(NO_HOST)}
             {"."}
+            <br />
+            {renderBuyAndUpgrade("Buy a license")}
           </span>
         );
       } else if (internet) {
@@ -185,6 +189,8 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             </A>{" "}
             or {NO_INTERNET}
             {"."}
+            <br />
+            {renderBuyAndUpgrade("Buy a license")}
           </span>
         );
       }
