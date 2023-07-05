@@ -7,13 +7,14 @@ all you want.
 This will also try to start the project up to about a minute.
 */
 
-import { reuseInFlight } from "async-await-utils/hof";
-import { getProject } from "@cocalc/server/projects/control";
 import getLogger from "@cocalc/backend/logger";
-import initialize from "./initialize";
-import { cancelAll } from "./handle-query";
+import { getProject } from "@cocalc/server/projects/control";
+import { reuseInFlight } from "async-await-utils/hof";
 import { delay } from "awaiting";
+import { cancelAll } from "./handle-query";
+import initialize from "./initialize";
 
+import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { connectToLockedSocket } from "@cocalc/backend/tcp/locked-socket";
 
 const logger = getLogger("project-connection:connect");
@@ -37,7 +38,7 @@ async function connect(project_id: string): Promise<Connection> {
   // information about where it is running and how to connection.
   // We retry a few times, in case project isn't running yet.
   dbg("getting address of ", project_id);
-  let socket;
+  let socket: CoCalcSocket;
   let i = 0;
   while (true) {
     try {

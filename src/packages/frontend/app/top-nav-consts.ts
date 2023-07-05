@@ -20,6 +20,7 @@ export const NAV_HEIGHT_NARROW_PX = 28;
 export const NAV_CLASS = "hidden-xs";
 
 // top bar font size in icons
+// also used for the notification news badge offset, with a minus sign
 export const FONT_SIZE_ICONS_NARROW = "14px";
 export const FONT_SIZE_ICONS_NORMAL = "20px";
 

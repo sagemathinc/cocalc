@@ -3,6 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Alert, Button, Input, Popconfirm, Popover } from "antd";
+import { fromJS } from "immutable";
+import { DebounceInput } from "react-debounce-input";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
@@ -13,6 +17,14 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import {
+  Gap,
+  Icon,
+  Loading,
+  Paragraph,
+  Text,
+  TimeAgo,
+} from "@cocalc/frontend/components";
 import {
   query,
   user_search,
@@ -26,10 +38,6 @@ import {
   LicenseStatus,
   licenseStatusProvidesUpgrades,
 } from "@cocalc/util/upgrades/quota";
-import { Alert, Button, Input, Popconfirm, Popover } from "antd";
-import { fromJS } from "immutable";
-import { DebounceInput } from "react-debounce-input";
-import { CopyToClipBoard, Icon, Loading, Space, TimeAgo } from "../components";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
 import { LicensePurchaseInfo } from "./purchase-info-about-license";
 import { LICENSE_ACTIVATION_RULES } from "./rules";
@@ -42,14 +50,16 @@ import { site_license_public_info, trunc_license_id } from "./util";
 interface Props {
   license_id: string;
   project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
-  upgrades: TypedMap<SiteLicensePublicInfoType> | null;
+  upgrades?: TypedMap<SiteLicensePublicInfoType> | null;
   onRemove?: () => void; // called *before* the license is removed!
   warn_if?: (info) => void | string;
   restartAfterRemove?: boolean; // default false
   tableMode?: boolean; // if true, used via SiteLicensePublicInfoTable
 }
 
-export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
+export const SiteLicensePublicInfo: React.FC<Props> = (
+  props: Readonly<Props>
+) => {
   const {
     license_id,
     project_id,
@@ -253,25 +263,24 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     return (
       <li>
         {info?.is_manager ? (
-          <CopyToClipBoard
+          <Paragraph
+            copyable={{
+              text: license_id,
+              tooltips: ["Copy license key", "Copied!"],
+            }}
             style={{
-              display: "inline-block",
-              width: "50ex",
+              display: "inline",
               margin: 0,
               verticalAlign: "middle",
-            }}
-            value={license_id}
-          />
-        ) : (
-          <span
-            style={{
               fontFamily: "monospace",
-              whiteSpace: "nowrap",
-              verticalAlign: "middle",
             }}
           >
+            {license_id}
+          </Paragraph>
+        ) : (
+          <Text style={{ fontFamily: "monospace" }}>
             {trunc_license_id(license_id)}
-          </span>
+          </Text>
         )}
       </li>
     );
@@ -292,16 +301,12 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     if (!info.run_limit) {
       return (
         <li>
-          License can be used with an unlimited number of simultaneous running
-          projects.
+          Can upgrade an unlimited number of simultaneous running projects.
         </li>
       );
     }
     return (
-      <li>
-        License can be used with up to {info.run_limit} simultaneous running
-        projects.
-      </li>
+      <li>Can upgrade up to {info.run_limit} simultaneous running projects.</li>
     );
   }
 
@@ -309,7 +314,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     if (info?.running == null) return;
     return (
       <li>
-        License is being actively used by {info.running} running{" "}
+        Actively used by {info.running} running{" "}
         {plural(info.running, "project")}.
       </li>
     );
@@ -319,7 +324,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     if (info?.applied == null) return;
     return (
       <li>
-        License is applied to {info.applied} {plural(info.applied, "project")}.
+        Applied to {info.applied} {plural(info.applied, "project")}.
       </li>
     );
   }
@@ -538,7 +543,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
     return (
       <Button onClick={() => fetch_info(true)}>
         <Icon name="redo" />
-        <Space /> Refresh
+        <Gap /> Refresh
       </Button>
     );
   }
@@ -579,7 +584,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
       >
         <Button>
           <Icon name="times" />
-          <Space /> Remove...
+          <Gap /> Remove...
         </Button>
       </Popconfirm>
     );
@@ -908,6 +913,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = (props: Props) => {
   );
   return (
     <Alert
+      banner={tableMode}
+      showIcon={false}
       style={{ marginTop: "5px", minHeight: "48px" }}
       message={message}
       type={get_type()}

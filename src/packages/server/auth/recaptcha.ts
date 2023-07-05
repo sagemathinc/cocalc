@@ -8,15 +8,16 @@ import { getServerSettings } from "@cocalc/server/settings/server-settings";
 
 // IMPORTANT: This code is only meant to be used by the nextjs app.  Note that
 // nextjs polyfills fetch in: https://nextjs.org/blog/next-9-4#improved-built-in-fetch-support
-// Installing node-fetch v3 won't work at all, so don't do that.
+// Installing node-fetch v3 won't work at all, so don't do that to solve this problem.
+// In node.js 18 that won't be needed.
 
 declare var fetch;
 
 const THRESH = 0.25;
 
-export default async function reCaptcha(req): Promise<void> {
+export default async function reCaptcha(req): Promise<string | null> {
   const { re_captcha_v3_secret_key } = await getServerSettings();
-  if (!re_captcha_v3_secret_key) return;
+  if (!re_captcha_v3_secret_key) return null;
 
   const { reCaptchaToken } = req.body;
 
@@ -39,4 +40,6 @@ export default async function reCaptcha(req): Promise<void> {
       `Only humans are allowed to use this feature. Your score is ${result.score}, which is below the human threshold of ${THRESH}.  Please move your mouse around, type like a human, etc., and try again.`
     );
   }
+
+  return reCaptchaToken;
 }

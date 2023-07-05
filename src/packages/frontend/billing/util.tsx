@@ -7,7 +7,7 @@ import { Rendered } from "../app-framework";
 import { Icon } from "../components/icon";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Tip } from "../components/tip";
-import { Space } from "../components/space";
+import { Gap } from "../components/gap";
 import { round1, plural } from "@cocalc/util/misc";
 import { stripeAmount } from "@cocalc/util/misc";
 
@@ -44,7 +44,7 @@ export function render_project_quota(name: string, value: number): Rendered {
         <span style={{ fontWeight: "bold", color: "#666" }}>
           {round1(amount)} {plural(amount, unit)}
         </span>
-        <Space />
+        <Gap />
         <span style={{ color: "#999" }}>{data.display}</span>
       </Tip>
     </div>

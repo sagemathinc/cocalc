@@ -125,7 +125,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
   const prevWindows = usePrevious(windows);
   const children = useMemo(() => {
     const wid = desc.get("wid");
-    return windows?.getIn([wid, "children"], Set());
+    return windows?.getIn([wid, "children"], Set()) as any;
   }, [windows, desc.get("wid")]);
   const prevChildren = usePrevious(children);
 
@@ -141,7 +141,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
   useEffect(() => {
     if (windows == null) return;
     const wid = desc.get("wid");
-    const children = windows?.getIn([wid, "children"], Set());
+    const children = windows?.getIn([wid, "children"], Set()) as any;
     insert_children_in_dom(children);
   }, [windows, desc.get("wid")]);
 
@@ -206,7 +206,7 @@ export const X11: React.FC<Props> = React.memo((props: Props) => {
     }
     try {
       client.insert_window_in_dom(wid, node);
-      await insert_children_in_dom(windows.getIn([wid, "children"], Set()));
+      await insert_children_in_dom(windows.getIn([wid, "children"], Set()) as any);
     } catch (err) {
       // window not available right now.
       is_loaded.current = false;

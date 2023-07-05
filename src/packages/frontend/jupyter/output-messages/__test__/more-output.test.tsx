@@ -7,7 +7,7 @@ import React from "react";
 import { shallow } from "enzyme";
 import { MoreOutput } from "../more-output";
 import { fromJS } from "immutable";
-import { JupyterActions } from "../../actions";
+import { JupyterActions } from "@cocalc/jupyter/redux/actions";
 
 describe("test More Output button with no actions (so not enabled)", () => {
   const wrapper = shallow(<MoreOutput message={fromJS({})} id={""} />);

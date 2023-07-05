@@ -18,6 +18,12 @@ export default function SavingProjectSettingsError({ project_id }: Props) {
     obj = query;
   }
 
+  if (obj == null) {
+    // I saw this crash once in production, where obj wasn't defined at all.
+    // I suspect that means tableError is empty or not parseable below (?).
+    return null;
+  }
+
   let description;
   if (obj["project_id"]?.length == 36 && obj["project_id"] != project_id) {
     // A problem saving for one project will break saving for everybody, so better inform user about this.

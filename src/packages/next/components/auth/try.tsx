@@ -24,6 +24,7 @@ import { LOGIN_STYLE } from "./shared";
 
 interface Props {
   minimal?: boolean;
+  publicPathId?: string;
   onSuccess: () => void; // if given, call after sign up *succeeds*.
 }
 
@@ -40,13 +41,18 @@ export default function Try(props: Props) {
   );
 }
 
-function Try0({ minimal, onSuccess }: Props) {
-  const { siteName, anonymousSignup, reCaptchaKey } = useCustomize();
+function Try0({ minimal, onSuccess, publicPathId }: Props) {
+  const {
+    siteName,
+    anonymousSignup,
+    reCaptchaKey,
+    anonymousSignupLicensedShares,
+  } = useCustomize();
   const [state, setState] = useState<"wait" | "creating" | "done">("wait");
   const [error, setError] = useState<string>("");
   const { executeRecaptcha } = useGoogleReCaptcha();
 
-  if (!anonymousSignup) {
+  if (!anonymousSignup && !(anonymousSignupLicensedShares && publicPathId)) {
     return (
       <h1 style={{ textAlign: "center", margin: "45px auto" }}>
         Anonymous Trial of {siteName} Not Currently Available
@@ -65,7 +71,10 @@ function Try0({ minimal, onSuccess }: Props) {
         reCaptchaToken = await executeRecaptcha("anonymous");
       }
 
-      const result = await api("/auth/sign-up", { reCaptchaToken });
+      const result = await api("/auth/sign-up", {
+        reCaptchaToken,
+        publicPathId,
+      });
       if (result.issues && len(result.issues) > 0) {
         throw Error(JSON.stringify(result.issues)); // TODO: should not happen, except for captcha error...
       }
@@ -96,7 +105,7 @@ function Try0({ minimal, onSuccess }: Props) {
 
       <div style={LOGIN_STYLE}>
         {error && <Alert type="error" message={error} showIcon />}
-        Try {siteName} <b>without</b>{" "}
+        Use {siteName} <b>without</b>{" "}
         <A href="/auth/sign-up" external={!!minimal}>
           creating an account
         </A>

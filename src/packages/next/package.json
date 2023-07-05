@@ -51,7 +51,6 @@
   "dependencies-comment": "IMPORTANT: we install typescript as a normal dependency (not devDependencies) since it may be needed at runtime due to server settings changing!!",
   "dependencies": {
     "@ant-design/icons": "^4.8.0",
-    "@cocalc/antd-img-crop": "^4.5.5",
     "@cocalc/assets": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/cdn": "workspace:*",
@@ -63,7 +62,8 @@
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.0.10",
     "@vscode/vscode-languagedetection": "^1.0.22",
-    "antd": "^5.1.6",
+    "antd": "^5.4.6",
+    "antd-img-crop": "^4.12.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "base-64": "^1.0.0",
@@ -88,10 +88,12 @@
     "sharp": "^0.30.5",
     "timeago-react": "^3.0.4",
     "tslib": "^2.3.1",
-    "uuid": "^8.3.2"
+    "use-async-effect": "^2.2.7",
+    "uuid": "^8.3.2",
+    "xmlbuilder2": "^3.0.2"
   },
   "devDependencies": {
-    "@types/node": "^18.11.18",
+    "@types/node": "^18.16.14",
     "react-test-renderer": "^18.2.0"
   }
 }

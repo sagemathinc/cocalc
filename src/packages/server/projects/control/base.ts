@@ -31,6 +31,7 @@ import { delay } from "awaiting";
 import getLogger from "@cocalc/backend/logger";
 import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
 import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
+import getPool from "@cocalc/database/pool";
 
 export type { ProjectState, ProjectStatus };
 
@@ -62,6 +63,23 @@ export abstract class BaseProject extends EventEmitter {
     this.project_id = project_id;
     const dbg = this.dbg("constructor");
     dbg("initializing");
+  }
+
+  async touch(account_id?: string): Promise<void> {
+    const d = db();
+    if (account_id) {
+      await callback2(d.touch.bind(d), {
+        project_id: this.project_id,
+        account_id,
+      });
+    } else {
+      const pool = getPool();
+      await pool.query(
+        "UPDATE projects SET last_edited=NOW() WHERE project_id=$1",
+        [this.project_id]
+      );
+    }
+    await this.start();
   }
 
   protected async siteLicenseHook(): Promise<void> {

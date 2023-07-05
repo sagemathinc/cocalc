@@ -18,7 +18,7 @@ import {
   ErrorDisplay,
   Icon,
   SearchInput,
-  Space,
+  Gap,
   Tip,
 } from "@cocalc/frontend/components";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
@@ -40,6 +40,7 @@ import {
 } from "../store";
 import * as util from "../util";
 import { Student, StudentNameDescription } from "./students-panel-student";
+import { HelpBox } from "../configuration/help-box";
 
 interface StudentsPanelReactProps {
   frame_id?: string; // used for state caching
@@ -266,7 +267,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       // contains the course.
       const users = redux.getStore("projects").get_users(project_id);
       // Make a map with keys the email or account_id is already part of the course.
-      const already_added = users?.toJS() ?? {}; // start with collabs on project
+      const already_added : {[key:string]:boolean} = (users?.toJS() ?? {}) as any; // start with collabs on project
       // also track **which** students are already part of the course
       const existing_students: any = {};
       existing_students.account = {};
@@ -421,7 +422,11 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         <>
           <Form.Item style={{ margin: "5px 0 15px 0" }}>
             <select
-              style={{ width: "100%", border: "1px solid lightgray" }}
+              style={{
+                width: "100%",
+                border: "1px solid lightgray",
+                padding: "4px 11px",
+              }}
               multiple
               ref={addSelectRef}
               size={8}
@@ -432,9 +437,9 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           </Form.Item>
           <Form.Item>
             {render_cancel()}
-            <Space />
+            <Gap />
             {render_add_selector_button(options)}
-            <Space />
+            <Gap />
             {render_add_all_students_button(options)}
           </Form.Item>
         </>
@@ -649,7 +654,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           }}
         >
           {display_name}
-          <Space />
+          <Gap />
           {render_sort_icon(column_name)}
         </a>
       );
@@ -740,21 +745,32 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
 
     function render_no_students(): Rendered {
       return (
-        <Alert
-          type="info"
-          style={{
-            margin: "auto",
-            fontSize: "12pt",
-            maxWidth: "800px",
-          }}
-          message={
-            <div>
-              <h3>Add Students to your Course</h3>
-              Add some students to your course by entering their email addresses
-              in the box in the upper right, then click on Search.
-            </div>
-          }
-        />
+        <div>
+          <div
+            style={{
+              margin: "30px auto",
+              fontSize: "12pt",
+              maxWidth: "800px",
+            }}
+          >
+            <HelpBox />
+          </div>
+          <Alert
+            type="info"
+            style={{
+              margin: "auto",
+              fontSize: "12pt",
+              maxWidth: "800px",
+            }}
+            message={
+              <div>
+                <h3>Add Students to your Course</h3>
+                Add some students to your course by entering their email
+                addresses in the box in the upper right, then click on Search.
+              </div>
+            }
+          />
+        </div>
       );
     }
 

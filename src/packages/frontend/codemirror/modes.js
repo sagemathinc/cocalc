@@ -104,6 +104,7 @@ require("./mode/coffeescript2.js");
 require("./mode/less.js");
 require("./mode/ocaml.js");
 require("./mode/pari.js");
+require("./mode/macaulay2.js");
 
 require("./mode/mediawiki/mediawiki.js");
 

@@ -30,7 +30,7 @@ function is_running_or_starting(project_id: string): boolean {
   const state = project_map.getIn([project_id, "state", "state"]);
   if (state == null || state == "running" || state == "starting") return true;
 
-  const x = project_map?.getIn([project_id, "action_request"]);
+  const x = project_map?.get(project_id)?.get("action_request");
   if (x == null) return false;
   const action = x.get("action");
   const finished = x.get("finished");

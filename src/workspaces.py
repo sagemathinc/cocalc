@@ -40,6 +40,8 @@ def needs_build(package: str) -> bool:
     # We only need to do a build if the newest file in the tree is not
     # in the dist directory.
     path = os.path.join(os.path.dirname(__file__), package)
+    if not os.path.exists(os.path.join(path, 'dist')):
+        return True
     newest = newest_file(path)
     return not newest.startswith('./' + SUCCESSFUL_BUILD)
 
@@ -104,8 +106,12 @@ def all_packages() -> List[str]:
         'packages/cdn',  # packages/hub assumes this is built
         'packages/util',
         'packages/sync',
+        'packages/sync-client',
         'packages/backend',
-        'packages/project',  # frontend depend on project
+        'packages/api-client',
+        'packages/jupyter',
+        'packages/compute',
+        'packages/project',  # frontend depends on project (and project on frontend!) right now...
         'packages/assets',
         'packages/frontend',  # static depends on frontend
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
@@ -278,7 +284,7 @@ def clean(args) -> None:
     elif args.node_modules_only:
         folders = ['node_modules']
     else:
-        folders = ['node_modules', 'dist']
+        folders = ['node_modules', 'dist', SUCCESSFUL_BUILD]
 
     paths = []
     for path in v:

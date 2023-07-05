@@ -1,6 +1,6 @@
 import { join } from "path";
 import { Router } from "express";
-const Primus = require("primus");
+import Primus from "primus";
 import base_path from "@cocalc/backend/base-path";
 import Logger from "@cocalc/backend/logger";
 import setup_primus_client from "@cocalc/hub/primus-client";
@@ -36,7 +36,7 @@ export default function init({
     pathname: join(base_path, "hub"),
     maxLength: 2 * 10485760, // 20MB - twice the default
     compression: true,
-  };
+  } as const;
   const primus_server = new Primus(httpServer, primusOpts);
   logger.info(`listening on ${primusOpts.pathname}`);
 

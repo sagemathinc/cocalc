@@ -1,4 +1,4 @@
-import type { KernelSpec } from "./types";
+import type { KernelSpec } from "@cocalc/jupyter/types";
 import { get_server_url } from "./server-urls";
 import LRU from "lru-cache";
 

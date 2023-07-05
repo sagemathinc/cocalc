@@ -9,7 +9,7 @@ import { plural, capitalize } from "@cocalc/util/misc";
 import { Component, Rendered } from "../app-framework";
 import { Tip } from "../components/tip";
 import { Icon } from "../components/icon";
-import { Space } from "../components/space";
+import { Gap } from "../components/gap";
 import { r_join } from "../components/r_join";
 import { Button } from "react-bootstrap";
 const { Panel } = require("react-bootstrap"); // since the typescript declarations are our of sync with our crappy old version.
@@ -32,7 +32,7 @@ export class PlanInfo extends Component<Props> {
             {value * data.pricing_factor}{" "}
             {plural(value * data.pricing_factor, data.pricing_unit)}
           </span>
-          <Space />
+          <Gap />
           <span style={{ color: "#666" }}>{data.display}</span>
         </Tip>
       </div>
@@ -47,7 +47,7 @@ export class PlanInfo extends Component<Props> {
     return (
       <span key={period} style={{ whiteSpace: "nowrap" }}>
         <span style={{ fontSize: "16px", verticalAlign: "super" }}>$</span>
-        <Space />
+        <Gap />
         <span style={{ fontSize: "30px" }}>{price}</span>
         <span style={{ fontSize: "14px" }}> / {period}</span>
       </span>
@@ -127,7 +127,7 @@ export class PlanInfo extends Component<Props> {
           this.props.on_click != null ? this.props.on_click() : undefined
         }
       >
-        <Space />
+        <Gap />
         {PROJECT_UPGRADES.field_order
           .filter((name) => benefits[name])
           .map((name) =>
@@ -137,7 +137,7 @@ export class PlanInfo extends Component<Props> {
               params[name]
             )
           )}
-        <Space />
+        <Gap />
 
         <div style={{ textAlign: "center", marginTop: "10px" }}>
           {this.render_price(prices)}

@@ -380,7 +380,7 @@ export class FileUseStore extends Store<FileUseState> {
     const users_map: iMap<string, any> = file_use.getIn([
       sha1(opts.project_id, opts.path),
       "users",
-    ]);
+    ]) as any;
     if (users_map == null) {
       return users;
     }

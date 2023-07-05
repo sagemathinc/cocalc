@@ -20,6 +20,7 @@ import {
 } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { useDebounce } from "use-debounce";
+import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 
 import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
@@ -30,7 +31,7 @@ import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
 import { InsertCell } from "./insert-cell";
-import { NotebookMode, Scroll } from "./types";
+import { NotebookMode, Scroll } from "@cocalc/jupyter/types";
 
 import {
   SortableList,
@@ -413,17 +414,19 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     return (
       <div key={id}>
         {actions?.store.is_cell_editable(id) && (
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <DragHandle
-              id={id}
-              style={{
-                position: "absolute",
-                left: 15,
-                top: 12.5,
-                color: "#aaa",
-              }}
-            />
-          </div>
+          <HiddenXS>
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <DragHandle
+                id={id}
+                style={{
+                  position: "absolute",
+                  left: 15,
+                  top: 12.5,
+                  color: "#aaa",
+                }}
+              />
+            </div>
+          </HiddenXS>
         )}
         <Cell
           id={id}
@@ -542,8 +545,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (!use_windowed_list) return "";
     let value = "";
     cell_list.forEach((id) => {
-      debouncedCells.getIn([id, "output"])?.forEach((output) => {
-        const html = output.getIn(["data", "text/html"]);
+      (debouncedCells.getIn([id, "output"]) as any)?.forEach((output) => {
+        // I hit a case in prod of output not being defined. Given the
+        // debounce and how debouncedCells might not match up with cell_list,
+        // and how output is going from markdown cells or maybe cleared cells,
+        // it seems plausible output could contain an undefined entry.
+        const html = output?.getIn(["data", "text/html"]);
         if (html?.includes("style")) {
           // parse out and include style tags
           for (const x of $("<div>" + html + "</div>").find("style")) {

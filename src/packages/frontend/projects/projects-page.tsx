@@ -3,13 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Map, Set } from "immutable";
+import { useRef } from "react";
+
 // ensure redux stuff (actions and store) are initialized:
 import "./actions";
 
-import { Footer } from "@cocalc/frontend/customize";
-import { Map, Set } from "immutable";
-import { UsersViewing } from "../account/avatar/users-viewing";
-import { Col, Row } from "../antd-bootstrap";
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   redux,
@@ -17,8 +17,10 @@ import {
   useMemo,
   useState,
   useTypedRedux,
-} from "../app-framework";
-import { Icon, Loading, LoginLink } from "../components";
+} from "@cocalc/frontend/app-framework";
+import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
+import { Footer } from "@cocalc/frontend/customize";
+import { UsersViewing } from "../account/avatar/users-viewing";
 import { NewProjectCreator } from "./create-project";
 import { Hashtags } from "./hashtags";
 import ProjectList from "./project-list";
@@ -26,6 +28,7 @@ import { ProjectsListingDescription } from "./project-list-desc";
 import { ProjectsFilterButtons } from "./projects-filter-buttons";
 import { ProjectsSearch } from "./search";
 import { AddToProjectToken } from "./token";
+import ProjectsPageTour from "./tour";
 import { get_visible_hashtags, get_visible_projects } from "./util";
 
 const PROJECTS_TITLE_STYLE: React.CSSProperties = {
@@ -42,6 +45,11 @@ const LOADING_STYLE: React.CSSProperties = {
 } as const;
 
 export const ProjectsPage: React.FC = () => {
+  const searchRef = useRef<any>(null);
+  const filtersRef = useRef<any>(null);
+  const createNewRef = useRef<any>(null);
+  const projectListRef = useRef<any>(null);
+
   const actions = useActions("projects");
   const [clear_and_focus_search, set_clear_and_focus_search] =
     useState<number>(0);
@@ -106,7 +114,10 @@ export const ProjectsPage: React.FC = () => {
     }
     const ts = new Date().toISOString().split("T")[0];
     return (
-      <div style={{ margin: "15px auto", maxWidth: "900px" }}>
+      <div
+        ref={createNewRef}
+        style={{ margin: "15px auto", maxWidth: "900px" }}
+      >
         <NewProjectCreator
           start_in_edit_mode={n === 0}
           default_value={search || `Untitled ${ts}`}
@@ -128,66 +139,87 @@ export const ProjectsPage: React.FC = () => {
   }
 
   return (
-    <Col
-      sm={12}
-      md={12}
-      lg={10}
-      lgOffset={1}
-      className={"smc-vfill"}
-      style={{ overflowY: "auto", paddingTop: "20px" }}
-    >
-      <Row>
-        <Col md={4}>
-          <div style={PROJECTS_TITLE_STYLE}>
-            <Icon name="edit" /> Projects{" "}
-          </div>
-        </Col>
-        <Col md={3}>{!is_anonymous && <ProjectsFilterButtons />}</Col>
-        <Col md={2}>
-          <UsersViewing style={{ width: "100%" }} />
-        </Col>
-        <Col md={3}>{!is_anonymous && <AddToProjectToken />}</Col>
-      </Row>
-      <Row>
-        <Col sm={4}>
-          <ProjectsSearch
-            clear_and_focus_search={clear_and_focus_search}
-            on_submit={(switch_to: boolean) => {
-              const project_id = visible_projects[0];
-              if (project_id != null) {
-                actions.setState({ search: "" });
-                actions.open_project({ project_id, switch_to });
-              }
-            }}
-          />
-        </Col>
-        <Col sm={8}>
-          <Hashtags
-            hashtags={visible_hashtags}
-            selected_hashtags={selected_hashtags?.get(filter)}
-            toggle_hashtag={(tag) => actions.toggle_hashtag(filter, tag)}
-          />
-        </Col>
-      </Row>
-      <Row>
-        <Col sm={12} style={{ marginTop: "1ex" }}>
-          {render_new_project_creator()}
-        </Col>
-      </Row>
-      <Row>
-        <Col sm={12}>
-          <ProjectsListingDescription
-            visible_projects={visible_projects}
-            onCancel={clear_filters_and_focus_search_input}
-          />
-        </Col>
-      </Row>
-      <Row className="smc-vfill">
-        <Col sm={12} className="smc-vfill">
-          <ProjectList visible_projects={visible_projects} />
-        </Col>
-      </Row>
-      <Footer />
-    </Col>
+    <div className={"smc-vfill"}>
+      <div style={{ minHeight: "20px" }}>
+        <ProjectsPageTour
+          style={{ float: "right", marginTop: "5px", marginRight: "5px" }}
+          searchRef={searchRef}
+          filtersRef={filtersRef}
+          createNewRef={createNewRef}
+          projectListRef={projectListRef}
+        />
+      </div>
+      <Col
+        sm={12}
+        md={12}
+        lg={10}
+        lgOffset={1}
+        className={"smc-vfill"}
+        style={{ overflowY: "auto" }}
+      >
+        <Row>
+          <Col md={4}>
+            <div style={PROJECTS_TITLE_STYLE}>
+              <Icon name="edit" /> Projects{" "}
+            </div>
+          </Col>
+          <Col md={3}>
+            {!is_anonymous && (
+              <span ref={filtersRef}>
+                <ProjectsFilterButtons />
+              </span>
+            )}
+          </Col>
+          <Col md={2}>
+            <UsersViewing style={{ width: "100%" }} />
+          </Col>
+          <Col md={3}>{!is_anonymous && <AddToProjectToken />}</Col>
+        </Row>
+        <Row>
+          <Col sm={4}>
+            <div ref={searchRef}>
+              <ProjectsSearch
+                clear_and_focus_search={clear_and_focus_search}
+                on_submit={(switch_to: boolean) => {
+                  const project_id = visible_projects[0];
+                  if (project_id != null) {
+                    actions.setState({ search: "" });
+                    actions.open_project({ project_id, switch_to });
+                  }
+                }}
+              />
+            </div>
+          </Col>
+          <Col sm={8}>
+            <Hashtags
+              hashtags={visible_hashtags}
+              selected_hashtags={selected_hashtags?.get(filter)}
+              toggle_hashtag={(tag) => actions.toggle_hashtag(filter, tag)}
+            />
+          </Col>
+        </Row>
+        <Row>
+          <Col sm={12} style={{ marginTop: "1ex" }}>
+            {render_new_project_creator()}
+          </Col>
+        </Row>
+        <Row>
+          <Col sm={12}>
+            <ProjectsListingDescription
+              visible_projects={visible_projects}
+              onCancel={clear_filters_and_focus_search_input}
+            />
+          </Col>
+        </Row>
+        <Row className="smc-vfill">
+          <Col sm={12} className="smc-vfill">
+            <div className="smc-vfill" ref={projectListRef}>
+              <ProjectList visible_projects={visible_projects} />
+            </div>
+          </Col>
+        </Row>
+        <Footer />
+      </Col>
+    </div>
   );
 };

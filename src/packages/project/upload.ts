@@ -12,10 +12,17 @@ Upload form handler
 const MAX_FILE_SIZE_MB = 10000;
 
 import { Router } from "express";
-import { appendFile, mkdir, copyFile, rename, readFile, unlink } from "fs";
-import { join } from "path";
 import { IncomingForm } from "formidable";
-import { callback } from "awaiting";
+import {
+  appendFile,
+  copyFile,
+  mkdir,
+  readFile,
+  rename,
+  unlink,
+} from "node:fs/promises";
+import { join } from "node:path";
+
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { getLogger } from "./logger";
 
@@ -62,9 +69,9 @@ export default function init(): Router {
     try {
       // ensure target path existsJS
       dbg("ensure target path exists... ", options.uploadDir);
-      await callback(mkdir, options.uploadDir, { recursive: true });
+      await mkdir(options.uploadDir, { recursive: true });
       dbg("parsing form data...");
-      const { fields, files } = await callback(form_parse, form, req);
+      const { fields, files } = await form_parse(form, req);
       // dbg(`finished parsing form data. ${JSON.stringify({ fields, files })}`);
       if (files.file?.path == null || files.file?.name == null) {
         dbg("error parsing form data");
@@ -106,9 +113,9 @@ async function handle_chunk_data(index, total, chunk, dest): Promise<void> {
     await moveFile(chunk, temp);
   } else {
     // append chunk to the temp file
-    const data = await callback(readFile, chunk);
-    await callback(appendFile, temp, data);
-    await callback(unlink, chunk);
+    const data = await readFile(chunk);
+    await appendFile(temp, data);
+    await unlink(chunk);
   }
   // if it's the last chunk, move temp to actual file.
   if (index === total - 1) {
@@ -117,22 +124,28 @@ async function handle_chunk_data(index, total, chunk, dest): Promise<void> {
 }
 
 // Get around that form.parse returns two extra args in its callback
-function form_parse(form, req, cb): void {
-  form.parse(req, (err, fields, files) => {
-    cb(err, { fields, files });
+function form_parse(form, req): Promise<{ fields; files }> {
+  return new Promise<{ fields; files }>((resolve, reject) => {
+    form.parse(req, (err, fields, files) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve({ fields, files });
+      }
+    });
   });
 }
 
 async function moveFile(src: string, dest: string): Promise<void> {
   try {
-    await callback(rename, src, dest);
+    await rename(src, dest);
   } catch (_) {
     // in some cases, e.g., cocalc-docker, this happens:
     //   "EXDEV: cross-device link not permitted"
     // so we just try again the slower way.  This is slightly
     // inefficient, maybe, but more robust than trying to determine
     // if we are doing a cross device rename.
-    await callback(copyFile, src, dest);
-    await callback(unlink, src);
+    await copyFile(src, dest);
+    await unlink(src);
   }
 }

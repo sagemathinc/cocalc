@@ -10,10 +10,12 @@
   just links to the info from backups about *this* file.
 */
 
-import { Rendered, Component } from "../../app-framework";
 import { Button } from "react-bootstrap";
+
+import { Rendered, Component } from "@cocalc/frontend/app-framework";
 import { TimeTravelActions } from "./actions";
-import { Icon } from "../../components";
+import { Icon } from "@cocalc/frontend/components";
+import track from "@cocalc/frontend/user-tracking";
 
 interface Props {
   actions: TimeTravelActions;
@@ -23,7 +25,10 @@ export class OpenSnapshots extends Component<Props> {
   public render(): Rendered {
     return (
       <Button
-        onClick={() => this.props.actions.open_snapshots()}
+        onClick={() => {
+          this.props.actions.open_snapshots();
+          track("snapshots", { action: "open", where: "time-travel" });
+        }}
         title={
           "Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."
         }

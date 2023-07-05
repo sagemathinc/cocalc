@@ -493,7 +493,7 @@ class SagewsPrinter extends Printer
                                 try
                                     mesg = misc.from_json(mesg_ser)
                                 catch e
-                                    console.warn("invalid output message '#{m}' in line '#{line}'")
+                                    console.warn("invalid output message '#{mesg_ser}' in line '#{line}'")
                                     continue
 
                                 #if DEBUG then console.log 'sagews2html: output message', mesg

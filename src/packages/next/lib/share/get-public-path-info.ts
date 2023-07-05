@@ -36,7 +36,8 @@ export default async function getPublicPathInfo({
   const { rows } = await pool.query(
     `SELECT project_id, path, description, compute_image, license, disabled, unlisted, authenticated, url,
     counter::INT,
-    (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
+    (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars,
+    CASE WHEN site_license_id <> '' THEN TRUE ELSE FALSE END AS has_site_license
     FROM public_paths WHERE vhost IS NULL AND id=$1`,
     [id]
   );

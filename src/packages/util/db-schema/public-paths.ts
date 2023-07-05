@@ -225,7 +225,7 @@ Table({
           counter: null,
           // don't use DEFAULT_COMPUTE_IMAGE, because old shares without that val set will always be "default"!
           compute_image: "default",
-          // do NOT allow to read the site_license_id.
+          site_license_id: null,
           cross_origin_isolation: null,
         },
       },

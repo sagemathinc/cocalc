@@ -30,6 +30,7 @@ required = defaults.required
 {queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
 
 {file_use_times} = require('./postgres/file-use-times')
+{updateRetentionData} = require('./postgres/retention')
 
 { checkProjectName } = require("@cocalc/util/db-schema/name-rules");
 {callback2} = require('@cocalc/util/async-utils')
@@ -1385,6 +1386,17 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             tracker.removeListener("remove_user_from_project-#{account_id}", tracker_remove)
 
 
+                else if pg_changefeed == 'news'
+                    pg_changefeed = ->
+                        where : (obj) ->
+                            if obj.date?
+                                date_obj = new Date(obj.date)
+                                # we send future news items to the frontend, but filter it based on the server time
+                                return date_obj >= misc.months_ago(3)
+                            else
+                                return true
+                        select : {id: 'SERIAL UNIQUE', date: 'TIMESTAMP'}
+
                 else if pg_changefeed == 'one-hour'
                     pg_changefeed = ->
                         where : (obj) ->
@@ -1715,6 +1727,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # ASYNC FUNCTION with no callback.
     file_use_times: (opts) =>  # for docs, see where this is imported from.
         return await file_use_times(@, opts)
+
+    updateRetentionData: (opts) =>
+        return await updateRetentionData(opts)
 
 _last_awaken_time = {}
 awaken_project = (db, project_id, cb) ->

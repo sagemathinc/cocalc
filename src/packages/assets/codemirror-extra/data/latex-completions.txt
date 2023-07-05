@@ -122,7 +122,7 @@
 \bibitem{citekey}
 \bibitem[label]{citekey}
 \bibliography{file}
-\bibliographystyle{style}
+\bibliographystyle{plain}
 \big
 \Big
 \bigcap
@@ -279,10 +279,10 @@
 \displaywidth
 \div
 \divide
-\documentclass[options]{style}
-\documentclass{style}
-\documentstyle[options]{style}
-\documentstyle{style}
+\documentclass[options]{article}
+\documentclass{article}
+\documentstyle[options]{article}
+\documentstyle{article}
 \dot{a}
 \doteq
 \dotfill

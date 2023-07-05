@@ -41,13 +41,9 @@ export default function SideChat({ project_id, path, style }: Props) {
     markAsRead();
   }, []);
 
-  useEffect(() => {
-    scrollToBottomRef.current?.();
-  }, [messages]);
-
   const sendChat = useCallback(() => {
-    const value = submitMentionsRef.current?.();
-    actions.send_chat(value);
+    const input = submitMentionsRef.current?.();
+    actions.send_chat({ input });
     scrollToBottomRef.current?.(true);
   }, [actions]);
 
@@ -81,7 +77,7 @@ export default function SideChat({ project_id, path, style }: Props) {
           style={{
             margin: "0 5px",
             paddingTop: "5px",
-            maxHeight: "25%",
+            maxHeight: "50vh",
             overflow: "auto",
             borderBottom: "1px solid lightgrey",
           }}
@@ -95,7 +91,7 @@ export default function SideChat({ project_id, path, style }: Props) {
                 project_id,
                 path
               ) as ChatActions;
-              actions.send_chat(value);
+              actions.send_chat({ input: value });
             }}
           />{" "}
           <CollabList
@@ -195,7 +191,7 @@ function AddChatCollab({ addCollab, project_id }) {
         join a discussion on GitHub
       </A>
       , and add more collaborators to this project below.
-      <AddCollaborators project_id={project_id} autoFocus />
+      <AddCollaborators project_id={project_id} autoFocus where="side-chat" />
       <div style={{ color: "#666" }}>
         (Collaborators have access to all files in this project.)
       </div>

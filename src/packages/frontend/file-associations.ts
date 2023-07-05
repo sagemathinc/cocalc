@@ -67,9 +67,11 @@ const codemirror_associations: { [ext: string]: string } = {
   init: "shell",
   java: "text/x-java",
   jl: "text/x-julia",
+  javascript: "javascript",
   js: "javascript",
   jsx: "jsx",
   json: "javascript",
+  jsonl: "javascript", // See https://jsonlines.org/
   lean: "lean", // obviously nowhere close...
   ls: "text/x-livescript",
   lua: "lua",
@@ -78,6 +80,7 @@ const codemirror_associations: { [ext: string]: string } = {
   mjs: "javascript",
   ml: "text/x-ocaml",
   mysql: "text/x-sql",
+  psql: "text/x-sql",
   patch: "text/x-diff",
   gp: "text/pari",
   go: "text/x-go",
@@ -89,6 +92,7 @@ const codemirror_associations: { [ext: string]: string } = {
   python3: "python",
   pyx: "python",
   r: "r",
+  R: "r",
   rmd: "rmd",
   qmd: "rmd",
   rnw: "rnw",
@@ -109,6 +113,7 @@ const codemirror_associations: { [ext: string]: string } = {
   tex: "stex2",
   ts: "application/typescript",
   tsx: "text/typescript-jsx",
+  typescript: "application/typescript",
   toml: "text/x-toml",
   bib: "stex",
   bbl: "stex",
@@ -169,6 +174,14 @@ for (const ext in codemirror_associations) {
     name,
   };
 }
+
+file_associations["mojo"] = file_associations["🔥"] = {
+  editor: "codemirror",
+  icon: "fire",
+  opts: { mode: "text/x-mojo" }, // this is a custom type, similar to cython
+  name: "text/x-mojo",
+  exclude_from_menu: true,
+};
 
 // noext = means file with no extension but the given name.
 file_associations["noext-dockerfile"] = {
@@ -486,9 +499,26 @@ file_associations[""] = {
   name: "",
 };
 
-for (const ext of "zip gz bz2 z lz xz lzma tgz tbz tbz2 tb2 taz tz tlz txz lzip".split(
-  " "
-)) {
+const archive_extensions = [
+  "bz2",
+  "gz",
+  "lz",
+  "lzip",
+  "lzma",
+  "taz",
+  "tb2",
+  "tbz",
+  "tbz2",
+  "tgz",
+  "tlz",
+  "txz",
+  "tz",
+  "xz",
+  "z",
+  "zip",
+] as const;
+
+for (const ext of archive_extensions) {
   file_associations[ext] = archive_association;
 }
 

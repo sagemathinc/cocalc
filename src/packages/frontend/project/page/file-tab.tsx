@@ -9,7 +9,7 @@ A single tab in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
 
-import { Popover, Space } from "antd";
+import { Popover } from "antd";
 import { CSSProperties, ReactNode } from "react";
 
 import {
@@ -20,15 +20,28 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { HiddenXSSM, Icon, IconName } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import track from "@cocalc/frontend/user-tracking";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { TITLE as SERVERS_TITLE } from "../servers";
 import { PROJECT_INFO_TITLE } from "../info";
-import { RestartProject } from "../settings/restart-project";
-import { StopProject } from "../settings/stop-project";
-import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
-import { HomeRecentFiles } from "./home-page/recent-files";
-import { ChatGPTGenerateNotebookButton } from "./home-page/chatgpt-generate-jupyter";
+import { TITLE as SERVERS_TITLE } from "../servers";
+import {
+  ICON_USERS,
+  ICON_UPGRADES,
+  TITLE_USERS,
+  TITLE_UPGRADES,
+} from "../servers/consts";
+import {
+  CollabsFlyout,
+  FilesFlyout,
+  LicensesFlyout,
+  LogFlyout,
+  NewFlyout,
+  ProjectInfoFlyout,
+  SearchFlyout,
+  ServersFlyout,
+  SettingsFlyout,
+} from "./flyouts";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -39,59 +52,85 @@ export type FixedTab =
   | "search"
   | "servers"
   | "settings"
-  | "info";
+  | "info"
+  | "users"
+  | "upgrades";
+
+export function isFixedTab(tab?: any): tab is FixedTab {
+  return typeof tab === "string" && tab in FIXED_PROJECT_TABS;
+}
 
 type FixedTabs = {
   [name in FixedTab]: {
-    label: string;
+    label: string | ReactNode;
     icon: IconName;
-    tooltip: string | ((props: { project_id: string }) => ReactNode);
+    flyout: (props: { project_id: string; wrap: Function }) => JSX.Element;
+    flyoutTitle?: string | ReactNode;
     noAnonymous?: boolean;
   };
 };
+
+// TODO/NOTE: for better or worse I just can't stand the tooltips on the sidebar!
+// Disabling them.  If anyone complaints or likes them, I can make them an option.
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
   files: {
     label: "Explorer",
     icon: "folder-open",
-    tooltip: "Browse files",
+    flyout: FilesFlyout,
     noAnonymous: false,
   },
   new: {
     label: "New",
+    flyoutTitle: "New file",
     icon: "plus-circle",
-    tooltip: NewPopover,
+    flyout: NewFlyout,
     noAnonymous: false,
   },
   log: {
     label: "Log",
     icon: "history",
-    tooltip: LogPopover,
+    flyout: LogFlyout,
+    flyoutTitle: "Recent Files",
     noAnonymous: false,
   },
   search: {
     label: "Find",
     icon: "search",
-    tooltip: "Search files in the project",
+    flyout: SearchFlyout,
     noAnonymous: false,
   },
   servers: {
     label: SERVERS_TITLE,
     icon: "server",
-    tooltip: ServersPopover,
-    noAnonymous: true,
+    flyout: ServersFlyout,
+    noAnonymous: false,
+  },
+  users: {
+    label: TITLE_USERS,
+    icon: ICON_USERS,
+    flyout: CollabsFlyout,
+    noAnonymous: false,
+  },
+  upgrades: {
+    label: "Upgrades",
+    icon: ICON_UPGRADES,
+    flyout: LicensesFlyout,
+    flyoutTitle: `Project ${TITLE_UPGRADES}`,
+    noAnonymous: false,
   },
   info: {
     label: PROJECT_INFO_TITLE,
     icon: "microchip",
-    tooltip: "Running processes, resource usage, …",
-    noAnonymous: true,
+    flyout: ProjectInfoFlyout,
+    noAnonymous: false,
   },
   settings: {
     label: "Settings",
     icon: "wrench",
-    tooltip: SettingsPopover,
-    noAnonymous: true,
+    flyout: SettingsFlyout,
+    noAnonymous: false,
+    flyoutTitle: "Status and Settings",
   },
 } as const;
 
@@ -103,6 +142,7 @@ interface Props0 {
   placement?;
   iconStyle?: CSSProperties;
   isFixedTab?: boolean;
+  flyout?: FixedTab;
 }
 interface PropsPath extends Props0 {
   path: string;
@@ -110,18 +150,28 @@ interface PropsPath extends Props0 {
 }
 interface PropsName extends Props0 {
   path?: undefined;
-  name: FixedTab;
+  name: string;
 }
 type Props = PropsPath | PropsName;
 
-export function FileTab(props: Props) {
-  const { project_id, path, name, label: label_prop, isFixedTab } = props;
+export function FileTab(props: Readonly<Props>) {
+  const {
+    project_id,
+    path,
+    name,
+    label: label_prop,
+    isFixedTab,
+    flyout = null,
+  } = props;
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
   // this is @cocalc/project/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
   const status_alert =
     name === "info" && project_status?.get("alerts")?.size > 0;
+  const other_settings = useTypedRedux("account", "other_settings");
+  const active_flyout = useTypedRedux({ project_id }, "flyout");
+  const flyoutsDefault = other_settings.get("flyouts_default", false);
 
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
@@ -134,7 +184,8 @@ export function FileTab(props: Props) {
     actions.close_tab(path);
   }
 
-  function click(e): void {
+  function click(e: React.MouseEvent) {
+    e.stopPropagation();
     if (actions == null) return;
     if (path != null) {
       if (e.ctrlKey || e.shiftKey || e.metaKey) {
@@ -143,11 +194,30 @@ export function FileTab(props: Props) {
           path,
           new_browser_window: true,
         });
+        track("open-file-in-new-window", {
+          path,
+          project_id,
+          how: "shift-ctrl-meta-click-on-tab",
+        });
       } else {
         actions.set_active_tab(path_to_tab(path));
+        track("switch-to-file-tab", {
+          project_id,
+          path,
+          how: "click-on-tab",
+        });
       }
     } else if (name != null) {
-      actions.set_active_tab(name);
+      if (flyout != null && flyoutsDefault) {
+        actions?.toggleFlyout(flyout);
+      } else {
+        actions.set_active_tab(name);
+        track("switch-to-fixed-tab", {
+          project_id,
+          name,
+          how: "click-on-tab",
+        });
+      }
     }
   }
 
@@ -158,6 +228,39 @@ export function FileTab(props: Props) {
       e.preventDefault();
       closeFile();
     }
+  }
+
+  function renderFlyoutCaret() {
+    if (IS_MOBILE || flyout == null || flyoutsDefault) return;
+
+    const color =
+      flyout === active_flyout
+        ? COLORS.PROJECT.FIXED_LEFT_ACTIVE
+        : active_flyout == null
+        ? COLORS.GRAY_L
+        : COLORS.GRAY_L0;
+    const bg = flyout === active_flyout ? COLORS.GRAY_L0 : undefined;
+
+    return (
+      <div
+        className="cc-project-fixedtab"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          color,
+          backgroundColor: bg,
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          actions?.toggleFlyout(flyout);
+        }}
+      >
+        <Icon
+          style={{ padding: "0 3px", margin: "0", color }}
+          name="caret-right"
+        />
+      </div>
+    );
   }
 
   let style: CSSProperties;
@@ -183,6 +286,7 @@ export function FileTab(props: Props) {
       label = path_split(path).tail;
     }
   }
+
   if (label == null) throw Error("label must not be null");
 
   const icon =
@@ -190,7 +294,36 @@ export function FileTab(props: Props) {
       ? file_options(path)?.icon ?? "code-o"
       : FIXED_PROJECT_TABS[name!].icon;
 
-  let body = (
+  const btnLeft = (
+    <>
+      <div>
+        <Icon style={{ ...icon_style }} name={icon} />
+      </div>
+      <DisplayedLabel path={path} label={label} inline={!isFixedTab} />
+    </>
+  );
+
+  const inner = !isFixedTab ? (
+    btnLeft
+  ) : (
+    <div
+      style={{
+        display: "flex",
+        flex: "1 0 auto",
+        justifyContent: "space-between",
+      }}
+    >
+      <div
+        className="cc-project-fixedtab"
+        style={{ textAlign: "center", width: "100%" }}
+      >
+        {btnLeft}
+      </div>
+      {renderFlyoutCaret()}
+    </div>
+  );
+
+  const body = (
     <div
       style={{ ...style, ...props.style }}
       cocalc-test={label}
@@ -205,15 +338,17 @@ export function FileTab(props: Props) {
           textAlign: "center",
         }}
       >
-        <div>
-          <Icon style={{ ...icon_style }} name={icon} />
-        </div>
-        <DisplayedLabel path={path} label={label} />
+        {inner}
       </div>
     </div>
   );
 
-  if (props.noPopover || IS_MOBILE) {
+  if (
+    props.noPopover ||
+    IS_MOBILE ||
+    isFixedTab ||
+    (!isFixedTab && other_settings.get("hide_file_popovers"))
+  ) {
     return body;
   }
   // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
@@ -240,7 +375,7 @@ export function FileTab(props: Props) {
           </span>
         ) : undefined
       }
-      mouseEnterDelay={0.9}
+      mouseEnterDelay={1}
       placement={props.placement ?? "bottom"}
     >
       {body}
@@ -264,12 +399,13 @@ const FULLPATH_LABEL_STYLE: CSS = {
   padding: "0 1px", // need less since have ..
 } as const;
 
-function DisplayedLabel({ path, label }) {
+function DisplayedLabel({ path, label, inline = true }) {
   if (path == null) {
     // a fixed tab (not an actual file)
+    const E = inline ? "span" : "div";
     return (
       <HiddenXSSM>
-        <span style={{ fontSize: "9pt" }}>{label}</span>
+        <E style={{ fontSize: "9pt", textAlign: "center" }}>{label}</E>
       </HiddenXSSM>
     );
   }
@@ -293,57 +429,6 @@ function DisplayedLabel({ path, label }) {
         {label}
         <span style={{ color: COLORS.FILE_EXT }}>{ext}</span>
       </span>
-    </div>
-  );
-}
-
-function NewPopover({ project_id }) {
-  return (
-    <div>
-      Create or Upload New Files (click for more...)
-      <hr />
-      <ChatGPTGenerateNotebookButton project_id={project_id} />
-    </div>
-  );
-}
-
-function LogPopover({ project_id }) {
-  return (
-    <div>
-      Project Activity Log (click for more...)
-      <hr />
-      <HomeRecentFiles
-        project_id={project_id}
-        style={{ maxHeight: "125px" }}
-      />
-    </div>
-  );
-}
-
-function SettingsPopover({ project_id }) {
-  return (
-    <div>
-      Project settings and controls (click for more...)
-      <hr />
-      <Space>
-        <RestartProject project_id={project_id} />
-        <StopProject project_id={project_id} />
-      </Space>
-    </div>
-  );
-}
-
-function ServersPopover({ project_id }) {
-  return (
-    <div>
-      Launch servers: Jupyter, Pluto, VS Code (click for more details...)
-      <hr />
-      <Space direction="vertical">
-        <ServerLink name="jupyterlab" project_id={project_id} />
-        <ServerLink name="jupyter" project_id={project_id} />
-        <ServerLink name="code" project_id={project_id} />
-        <ServerLink name="pluto" project_id={project_id} />
-      </Space>
     </div>
   );
 }

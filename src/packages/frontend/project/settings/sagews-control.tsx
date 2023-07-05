@@ -20,10 +20,12 @@ import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   project_id: string;
+  mode?: "project" | "flyout";
 }
 
 export const SagewsControl: React.FC<Props> = (props: Props) => {
-  const { project_id } = props;
+  const { project_id, mode = "project" } = props;
+  const isFlyout = mode === "flyout";
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
@@ -61,28 +63,49 @@ export const SagewsControl: React.FC<Props> = (props: Props) => {
     }
   }
 
-  return (
-    <SettingBox title="Restart Sage Worksheet Server" icon="refresh">
-      <Paragraph>
-        This restarts the underlying{" "}
-        <A href={"https://doc.cocalc.com/sagews.html"}>Sage Worksheet</A>{" "}
-        server. In case you customized your <Text code>$HOME/bin/sage</Text>,
-        you have to do this, in order to to pick up the new version of Sage.
-      </Paragraph>
-      <Paragraph style={{ color: COLORS.GRAY_D }}>
-        Existing worksheet sessions are unaffected. This means you have to
-        restart your worksheet as well to use the new version of Sage.
-      </Paragraph>
-      <Paragraph style={{ textAlign: "center" }}>
-        <Button
-          bsStyle="warning"
-          disabled={loading}
-          onClick={restart_worksheet}
-        >
-          <Icon name="refresh" spin={loading} /> Restart SageWS Server
-        </Button>
-      </Paragraph>
-      {error && <Text type="danger">{error}</Text>}
-    </SettingBox>
-  );
+  function renderBody() {
+    return (
+      <>
+        <Paragraph>
+          This restarts the underlying{" "}
+          <A href={"https://doc.cocalc.com/sagews.html"}>Sage Worksheet</A>{" "}
+          server. In case you customized your <Text code>$HOME/bin/sage</Text>,
+          you have to do this, in order to to pick up the new version of Sage.
+        </Paragraph>
+        <Paragraph style={{ color: COLORS.GRAY_D }}>
+          Existing worksheet sessions are unaffected. This means you have to
+          restart your worksheet as well to use the new version of Sage.
+        </Paragraph>
+        <Paragraph style={{ textAlign: "center" }}>
+          <Button
+            bsStyle="warning"
+            disabled={loading}
+            onClick={restart_worksheet}
+          >
+            <Icon name="refresh" spin={loading} /> Restart SageWS Server
+          </Button>
+        </Paragraph>
+        {error && <Text type="danger">{error}</Text>}
+      </>
+    );
+  }
+
+  const title = "Restart Sage Worksheet Server";
+
+  if (isFlyout) {
+    return (
+      <>
+        <Paragraph style={{ fontWeight: "bold" }}>
+          <Icon name="refresh" /> {title}
+        </Paragraph>
+        {renderBody()}
+      </>
+    );
+  } else {
+    return (
+      <SettingBox title={title} icon="refresh">
+        {renderBody()}
+      </SettingBox>
+    );
+  }
 };

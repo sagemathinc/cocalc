@@ -7,6 +7,14 @@
 LaTeX Editor Actions.
 */
 
+const MINIMAL = `\\documentclass{article}
+\\title{Title}
+\\author{Author}
+\\begin{document}
+\\maketitle
+\\end{document}
+`;
+
 const HELP_URL = "https://doc.cocalc.com/latex.html";
 
 const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build"] as const;
@@ -140,6 +148,20 @@ export class Actions extends BaseActions<LatexEditorState> {
         "change",
         debounce(this.updateTableOfContents.bind(this), 1500)
       );
+      this._syncstring.on(
+        "change",
+        debounce(this.ensureNonempty.bind(this), 1500)
+      );
+    }
+  }
+
+  // similar to jupyter, where an empty document is really
+  // confusing, with latex we at least do something to
+  // prevent having a truly empty document.
+  private ensureNonempty() {
+    if (this.store && !this.store.get("value")?.trim()) {
+      this.set_value(MINIMAL);
+      this.build();
     }
   }
 
@@ -315,7 +337,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     // set in syncdb, we wait for file to load,
     // looks for "% !TeX program =", and if so
     // sets up the build command based on that:
-    if (this._syncdb == null) throw Error("syncdb must be defined");
+    if (this._syncdb == null) {
+      throw Error("syncdb must be defined");
+    }
     if (this._syncdb.get_one({ key: "build_command" }) == null) {
       await this.init_build_directive();
       if (this._state == "closed") return;
@@ -566,7 +590,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   check_for_fatal_error(): void {
     const build_logs: BuildLogs = this.store.get("build_logs");
     if (!build_logs) return;
-    const errors = build_logs.getIn(["latex", "parse", "errors"]);
+    const errors = build_logs.getIn(["latex", "parse", "errors"]) as any;
     if (errors === undefined || errors.size < 1) return;
     const last_error = errors.get(errors.size - 1);
     let s = last_error.get("message") + last_error.get("content");
@@ -861,6 +885,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     this.check_for_fatal_error();
     this.update_gutters();
+    this.update_gutters_soon();
 
     if (update_pdf) {
       this.update_pdf(time, force);
@@ -902,6 +927,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     update_gutters({
       log: this.parsed_output_log,
       set_gutter: this.set_gutter,
+      actions: this,
     });
   }
 
@@ -923,6 +949,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (actions == null) {
       return; // file not open
     }
+
     (actions as BaseActions<LatexEditorState>).set_gutter_marker({
       line,
       component,
@@ -1471,7 +1498,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     const contents = fromJS(
       parseTableOfContents(this._syncstring.to_str() ?? "")
-    );
+    ) as any;
     this.setState({ contents });
   }
 
@@ -1479,5 +1506,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     const id = this.show_focused_frame_of_type("cm");
     if (id == null) return;
     this.programmatical_goto_line(parseInt(entry.id), true, true, id);
+  }
+
+  chatgptExtraFileInfo() {
+    return "LaTeX";
+  }
+
+  chatgptCodeDescription(): string {
+    return "Put any LaTeX you generate in the answer in a fenced code block with info string 'tex'.";
   }
 }

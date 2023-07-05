@@ -18,9 +18,9 @@ export type NewFilenameTypes =
 export const NEW_FILENAMES = "new_filenames";
 export const DEFAULT_NEW_FILENAMES: NewFilenameTypes = "ymd_semantic";
 
-// This is used on cocalc.com, and the storage server has images named "default" and "ubuntu2004"
+// This is used on cocalc.com, and the storage server has images named "default", "ubuntu2004" and "ubuntu2204"
 // For on-prem, you have to configure the "software environment" configuration, which includes a default image name.
-export const DEFAULT_COMPUTE_IMAGE = "ubuntu2004";
+export const DEFAULT_COMPUTE_IMAGE = "ubuntu2204";
 
 // this is the fallback value to use for the compute image, in case it isn't set
 // in particular, for projects and public_path shares!

@@ -3,7 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Checkbox } from "antd";
+import { Alert, Button, Checkbox } from "antd";
+
+import { join } from "path";
 
 import {
   CSS,
@@ -16,11 +18,14 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
+  A,
   ErrorDisplay,
   Icon,
   Loading,
-  Space,
+  Gap,
+  Title,
 } from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
 
@@ -30,7 +35,7 @@ export const LICENSES_STYLE: CSS = {
 } as const;
 
 export const ManagedLicenses: React.FC = () => {
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState<boolean>(true);
   const [show_all, set_show_all] = useState<boolean>(false);
   const actions = useActions("billing");
@@ -65,7 +70,9 @@ export const ManagedLicenses: React.FC = () => {
 
   function render_error() {
     if (!error) return;
-    return <ErrorDisplay error={error} onClose={() => setError(undefined)} />;
+    return (
+      <ErrorDisplay banner error={error} onClose={() => setError(undefined)} />
+    );
   }
 
   function render_managed() {
@@ -118,19 +125,38 @@ export const ManagedLicenses: React.FC = () => {
   }
 
   return (
-    <div>
-      <h3>
+    <>
+      <Title level={3}>
         Licenses that you manage {render_count()}
         <div style={{ float: "right" }}>
           {render_show_all()}
           <Button onClick={reload} disabled={loading}>
             <Icon name="redo" />
-            <Space /> <Space /> {loading ? "Loading..." : "Refresh all"}
+            <Gap /> <Gap /> {loading ? "Loading..." : "Refresh all"}
           </Button>
         </div>
-      </h3>
+      </Title>
+      <CancelSubscriptionBanner />
       {render_error()}
       {render_managed()}
-    </div>
+    </>
   );
 };
+
+function CancelSubscriptionBanner() {
+  return (
+    <Alert
+      banner
+      type="info"
+      message={
+        <>
+          To cancel a subscription, visit the{" "}
+          <A href={join(appBasePath, "billing", "subscriptions")}>
+            Subscription Management
+          </A>
+          .
+        </>
+      }
+    />
+  );
+}

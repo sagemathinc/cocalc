@@ -37,7 +37,6 @@ export function addUserProfileCallback(opts: UserProfileCallbackOpts) {
       oauth.useAuthorizationHeaderforGET(true);
     }
     oauth.get(userinfoURL, accessToken, tokenSecret, (err, body) => {
-      // L2(`get->body = ${safeJsonStringify(body)}`);
       let json;
 
       if (err) {
@@ -69,6 +68,7 @@ export function addUserProfileCallback(opts: UserProfileCallbackOpts) {
         );
       }
 
+      L2(`body [no err] = ${safeJsonStringify(body)}`);
       try {
         json = JSON.parse(body);
       } catch (ex) {

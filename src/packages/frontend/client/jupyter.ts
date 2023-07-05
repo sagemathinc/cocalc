@@ -5,7 +5,7 @@
 
 import * as message from "@cocalc/util/message";
 import { AsyncCall } from "./client";
-import type { KernelSpec } from "@cocalc/frontend/jupyter/types";
+import type { KernelSpec } from "@cocalc/jupyter/types";
 
 export class JupyterClient {
   private async_call: AsyncCall;

@@ -4,13 +4,12 @@
  */
 
 import { Button } from "antd";
-import React from "react";
-
-import { CSS } from "@cocalc/frontend/app-framework";
-import { Icon, IconName } from "@cocalc/frontend/components";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
+import { unreachable } from "@cocalc/util/misc";
+import { NEW_FILETYPE_ICONS, isNewFiletypeIconName } from "./consts";
 
-const STYLE: CSS = {
+const STYLE = {
   marginRight: "5px",
   marginBottom: "5px",
   width: "100%",
@@ -19,41 +18,50 @@ const STYLE: CSS = {
   padding: "10px",
 } as const;
 
-const ICON_STYLE: CSS = {
-  fontSize: "200%",
+const ICON_STYLE = {
   color: COLORS.FILE_ICON,
 } as const;
 
+const ICON_STYLE_LARGE = {
+  ...ICON_STYLE,
+  fontSize: "200%",
+};
+
 interface Props {
   name: string;
-  icon: IconName;
   on_click: (ext?: string) => void;
   ext?: string;
   className?: string;
   disabled?: boolean;
   loading?: boolean;
   active?: boolean;
+  size?: "large" | "small";
+  icon?: IconName;
 }
 
-export const NewFileButton = React.memo((props: Props) => {
-  const {
-    name,
-    icon,
-    on_click,
-    ext,
-    className,
-    disabled,
-    loading,
-    active = false,
-  } = props;
+export function NewFileButton({
+  name,
+  on_click,
+  ext,
+  icon: propsIcon,
+  className,
+  disabled,
+  loading,
+  active = false,
+  size = "large",
+}: Props) {
+  const iconStyle = size === "large" ? ICON_STYLE_LARGE : ICON_STYLE;
+  const icon: IconName =
+    propsIcon ??
+    (isNewFiletypeIconName(ext) ? NEW_FILETYPE_ICONS[ext!] : "file");
 
   const displayed_icon = loading ? (
-    <Icon style={ICON_STYLE} name="cocalc-ring" spin />
+    <Icon style={iconStyle} name="cocalc-ring" spin />
   ) : (
-    <Icon style={ICON_STYLE} name={icon} />
+    <Icon style={iconStyle} name={icon} />
   );
 
-  const style: CSS = {
+  const style = {
     ...STYLE,
     ...(active
       ? {
@@ -63,9 +71,31 @@ export const NewFileButton = React.memo((props: Props) => {
       : {}),
   };
 
+  function renderBody() {
+    switch (size) {
+      case "large":
+        return (
+          <div>
+            {displayed_icon}
+            <br />
+            <span style={{ color: COLORS.GRAY_D }}>{name}</span>
+          </div>
+        );
+      case "small":
+        return (
+          <div>
+            {displayed_icon}{" "}
+            <span style={{ color: COLORS.GRAY_D }}>{name}</span>
+          </div>
+        );
+      default:
+        unreachable(size);
+    }
+  }
+
   return (
     <Button
-      size="large"
+      size={size}
       onClick={(): void => {
         on_click?.(ext);
       }}
@@ -73,11 +103,7 @@ export const NewFileButton = React.memo((props: Props) => {
       className={className}
       disabled={disabled || loading}
     >
-      <div>
-        {displayed_icon}
-        <br />
-        <span style={{ color: COLORS.GRAY_D }}>{name}</span>
-      </div>
+      {renderBody()}
     </Button>
   );
-});
+}

@@ -70,7 +70,7 @@ export const Input: React.FC<InputProps> = (props: InputProps) => {
 
   return (
     <div style={STDOUT_STYLE}>
-      {message.getIn(["opts", "prompt"], "")}
+      {message.getIn(["opts", "prompt"], "") as string}
       <input
         style={INPUT_STYLE}
         autoFocus={false}

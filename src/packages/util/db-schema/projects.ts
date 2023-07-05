@@ -9,6 +9,7 @@ import { FALLBACK_COMPUTE_IMAGE } from "./defaults";
 import { SCHEMA as schema } from "./index";
 import { Table } from "./types";
 import { State } from "../compute-states";
+import { NOTES } from "./crm";
 
 Table({
   name: "projects",
@@ -312,8 +313,16 @@ Table({
       desc: "A visual image associated with the project.  Could be 150kb.  NOT include as part of changefeed of projects, since potentially big (e.g., 200kb x 1000 projects = 200MB!).",
       render: { type: "image" },
     },
+    notes: NOTES,
   },
 });
+
+export interface ApiKeyInfo {
+  name: string;
+  trunc: string;
+  hash?: string;
+  used?: number;
+}
 
 // Same query above, but without the last_edited time constraint.
 schema.projects_all = deep_copy(schema.projects);
@@ -570,7 +579,10 @@ Table({
         admin: true, // only admins can do get queries on this table
         // (without this, users who have read access could read)
         pg_where: [],
-        fields: schema.projects.user_query.get.fields,
+        fields: {
+          ...schema.projects.user_query?.get?.fields,
+          notes: null,
+        },
       },
       set: {
         admin: true,
@@ -580,6 +592,7 @@ Table({
           title: true,
           description: true,
           deleted: true,
+          notes: true,
         },
       },
     },

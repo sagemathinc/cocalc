@@ -14,9 +14,10 @@ and it displays the file as an editor associated with that path in the project,
 or Loading... if the file is still being loaded.
 */
 
-import { useEffect, useMemo, useRef } from "react";
 import { Map } from "immutable";
+import { useEffect, useMemo, useRef } from "react";
 import Draggable from "react-draggable";
+
 import {
   React,
   ReactDOM,
@@ -25,6 +26,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
+import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import SideChat from "@cocalc/frontend/chat/side-chat";
 import { Loading } from "@cocalc/frontend/components";
 import KaTeXAndMathJaxV2 from "@cocalc/frontend/components/math/katex-and-mathjax2";
@@ -48,8 +50,9 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { hidden_meta_file } from "@cocalc/util/misc";
 import getAnchorTagComponent from "./anchor-tag-component";
 import HomePage from "./home-page";
+import { ProjectCollaboratorsPage } from "./project-collaborators";
+import { ProjectLicenses } from "./project-licenses";
 import getUrlTransform from "./url-transform";
-import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 
 // Default width of chat window as a fraction of the
 // entire window.
@@ -149,6 +152,10 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
       return <ProjectSettings project_id={project_id} />;
     case "info":
       return <ProjectInfo project_id={project_id} />;
+    case "users":
+      return <ProjectCollaboratorsPage project_id={project_id} />;
+    case "upgrades":
+      return <ProjectLicenses project_id={project_id} />;
     default:
       // check for "editor-[filename]"
       if (!tab_name.startsWith("editor-")) {
@@ -175,9 +182,10 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
               project_id={project_id}
               path={path}
               is_visible={is_visible}
-              chatState={open_files.getIn([path, "chatState"])}
+              chatState={open_files.getIn([path, "chatState"]) as any}
               chat_width={
-                open_files.getIn([path, "chat_width"]) ?? DEFAULT_CHAT_WIDTH
+                (open_files.getIn([path, "chat_width"]) as any) ??
+                DEFAULT_CHAT_WIDTH
               }
               component={open_files.getIn([path, "component"]) ?? {}}
             />

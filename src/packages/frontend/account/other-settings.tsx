@@ -7,7 +7,7 @@ import { Card, InputNumber } from "antd";
 import { Map } from "immutable";
 
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
-import { Component, redux, Rendered } from "@cocalc/frontend/app-framework";
+import { Component, Rendered, redux } from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
@@ -21,10 +21,12 @@ import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
+import Tours from "./tours";
 
 interface Props {
   other_settings: Map<string, any>;
   is_stripe_customer: boolean;
+  kucalc: string;
 }
 
 export class OtherSettings extends Component<Props> {
@@ -41,17 +43,17 @@ export class OtherSettings extends Component<Props> {
     }
   }
 
-  private render_first_steps(): Rendered {
-    return; // this is disabled elsewhere anyways...
-    return (
-      <Checkbox
-        checked={!!this.props.other_settings.get("first_steps")}
-        onChange={(e) => this.on_change("first_steps", e.target.checked)}
-      >
-        Offer to setup the "First Steps" guide (if available).
-      </Checkbox>
-    );
-  }
+  //   private render_first_steps(): Rendered {
+  //     if (this.props.kucalc !== KUCALC_COCALC_COM) return;
+  //     return (
+  //       <Checkbox
+  //         checked={!!this.props.other_settings.get("first_steps")}
+  //         onChange={(e) => this.on_change("first_steps", e.target.checked)}
+  //       >
+  //         Offer the First Steps guide
+  //       </Checkbox>
+  //     );
+  //   }
 
   private render_global_banner(): Rendered {
     return (
@@ -71,7 +73,7 @@ export class OtherSettings extends Component<Props> {
         onChange={(e) => this.on_change("time_ago_absolute", e.target.checked)}
       >
         Display timestamps as absolute points in time instead of relative to the
-        current time.
+        current time
       </Checkbox>
     );
   }
@@ -126,6 +128,44 @@ export class OtherSettings extends Component<Props> {
       >
         Mask files: grey out files in the files viewer that you probably do not
         want to open
+      </Checkbox>
+    );
+  }
+
+  private render_hide_project_popovers(): Rendered {
+    return (
+      <Checkbox
+        checked={!!this.props.other_settings.get("hide_project_popovers")}
+        onChange={(e) =>
+          this.on_change("hide_project_popovers", e.target.checked)
+        }
+      >
+        Hide Project Tab Popovers: do not show the popovers over the project
+        tabs
+      </Checkbox>
+    );
+  }
+
+  private render_hide_file_popovers(): Rendered {
+    return (
+      <Checkbox
+        checked={!!this.props.other_settings.get("hide_file_popovers")}
+        onChange={(e) => this.on_change("hide_file_popovers", e.target.checked)}
+      >
+        Hide File Tab Popovers: do not show the popovers over file tabs
+      </Checkbox>
+    );
+  }
+
+  private render_hide_button_tooltips(): Rendered {
+    return (
+      <Checkbox
+        checked={!!this.props.other_settings.get("hide_button_tooltips")}
+        onChange={(e) =>
+          this.on_change("hide_button_tooltips", e.target.checked)
+        }
+      >
+        Hide Button Tooltips: hides some button tooltips (this is only partial)
       </Checkbox>
     );
   }
@@ -201,7 +241,7 @@ export class OtherSettings extends Component<Props> {
           checked={checked}
           onChange={(e) => this.on_change("dark_mode", e.target.checked)}
           style={{
-            color: "rgba(229, 224, 216, 0.65)",
+            color: "rgba(229, 224, 216)",
             backgroundColor: "rgb(36, 37, 37)",
             marginLeft: "-5px",
             padding: "5px",
@@ -274,6 +314,9 @@ export class OtherSettings extends Component<Props> {
         {this.render_time_ago_absolute()}
         {this.render_global_banner()}
         {this.render_mask_files()}
+        {this.render_hide_project_popovers()}
+        {this.render_hide_file_popovers()}
+        {this.render_hide_button_tooltips()}
         {this.render_no_free_warnings()}
         {redux.getStore("customize").get("openai_enabled") && (
           <Checkbox
@@ -296,11 +339,21 @@ export class OtherSettings extends Component<Props> {
           Disable the markdown code bar in all markdown documents. Checking this
           hides the extra run, copy, and explain buttons in fenced code blocks.
         </Checkbox>
-        {this.render_first_steps()}
+        <Checkbox
+          checked={!!this.props.other_settings.get("flyouts_default")}
+          onChange={(e) => {
+            this.on_change("flyouts_default", e.target.checked);
+          }}
+        >
+          <strong>Flyouts as default</strong>: Enabling this makes the vertical
+          bars for files, logs, settings, etc. the default.
+        </Checkbox>
         {this.render_new_filenames()}
         {this.render_default_file_sort()}
         {this.render_page_size()}
         {this.render_standby_timeout()}
+        <div style={{ height: "10px" }} />
+        <Tours />
       </Panel>
     );
   }

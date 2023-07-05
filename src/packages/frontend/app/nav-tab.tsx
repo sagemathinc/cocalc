@@ -7,7 +7,7 @@ import { Tooltip } from "antd";
 
 import { CSS, React, useActions } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
-import { user_tracking } from "@cocalc/frontend/user-tracking";
+import track from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
 import { TOP_BAR_ELEMENT_CLASS } from "./top-nav-consts";
 
@@ -75,12 +75,12 @@ export const NavTab: React.FC<Props> = React.memo((props: Props) => {
     on_click?.();
 
     if (is_project) {
-      user_tracking("top_nav", {
+      track("top_nav", {
         name: "project",
         project_id: name,
       });
     } else {
-      user_tracking("top_nav", {
+      track("top_nav", {
         name: name ?? label,
       });
     }

@@ -5,15 +5,21 @@ This mainly involves setting up the socket to so we we can send and receive
 message over it.
 */
 
-import initHeartbeat from "./heartbeat";
+import getLogger from "@cocalc/backend/logger";
 import handleBlob from "./handle-blob";
 import handleMessage from "./handle-message";
-import getLogger from "@cocalc/backend/logger";
+import initHeartbeat from "./heartbeat";
+
+import enableMessagingProtocol, {
+  CoCalcSocket,
+} from "@cocalc/backend/tcp/enable-messaging-protocol";
+
 const logger = getLogger("project-connection:initialize");
 
-import enableMessagingProtocol from "@cocalc/backend/tcp/enable-messaging-protocol";
-
-export default function initialize(project_id: string, socket): void {
+export default function initialize(
+  project_id: string,
+  socket: CoCalcSocket
+): void {
   logger.info("initializing socket");
   enableMessagingProtocol(socket, "connection_to_a_local_hub");
 

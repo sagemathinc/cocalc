@@ -1,0 +1,219 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+declare let DEBUG;
+
+import { Alert, Table } from "antd";
+
+import { ProjectActions } from "@cocalc/frontend/app-framework";
+import { Loading, Paragraph } from "@cocalc/frontend/components";
+import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
+import {
+  Process,
+  ProjectInfo as ProjectInfoType,
+} from "@cocalc/project/project-info/types";
+import { field_cmp } from "@cocalc/util/misc";
+import { Channel } from "../websocket/types";
+import { CGroup, ProcState, ProjectProblems } from "./components";
+import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
+
+interface Props {
+  wrap?: Function;
+  cg_info: CGroupInfo;
+  chan: Channel | null;
+  render_disconnected: () => JSX.Element | undefined;
+  disconnected: boolean;
+  disk_usage: DUState;
+  error: JSX.Element | null;
+  status: string;
+  info: ProjectInfoType | undefined;
+  loading: boolean;
+  modal: string | Process | undefined;
+  project_actions: ProjectActions | undefined;
+  project_id: string;
+  project_state: string | undefined;
+  project_status: Immutable.Map<string, any> | undefined;
+  pt_stats: PTStats;
+  ptree: ProcessRow[] | undefined;
+  select_proc: (pids: number[]) => void;
+  selected: number[];
+  set_expanded: (keys: number[]) => void;
+  set_modal: (proc: string | Process | undefined) => void;
+  set_selected: (pids: number[]) => void;
+  show_explanation: boolean;
+  show_long_loading: boolean;
+  start_ts: number | undefined;
+  sync: WSProjectInfo | null;
+  render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
+  onCellProps;
+}
+
+export function Flyout(_: Readonly<Props>): JSX.Element {
+  const {
+    wrap,
+    cg_info,
+    disconnected,
+    disk_usage,
+    error,
+    info,
+    loading,
+    project_state,
+    project_status,
+    status,
+    pt_stats,
+    ptree,
+    start_ts,
+    onCellProps,
+    sync,
+    chan,
+  } = _;
+
+  const projectIsRunning = project_state === "running";
+
+  // mimic a table of processes program like htop – with tailored descriptions for cocalc
+  function render_top() {
+    if (ptree == null) {
+      return null;
+    }
+
+    return (
+      <Table<ProcessRow>
+        dataSource={ptree}
+        size={"small"}
+        pagination={false}
+        style={{
+          width: "100%",
+          overflowX: "hidden",
+          overflowY: "auto",
+        }}
+        loading={disconnected || loading}
+      >
+        <Table.Column<ProcessRow>
+          key="process"
+          title="Process"
+          width="50%"
+          align={"left"}
+          ellipsis={true}
+          render={(proc) => (
+            <span>
+              <ProcState state={proc.state} /> <b>{proc.name}</b>{" "}
+              <span>{proc.args}</span>
+            </span>
+          )}
+          sorter={field_cmp("name")}
+        />
+        <Table.Column<ProcessRow>
+          key="cpu_pct"
+          title="CPU%"
+          width="25%"
+          dataIndex="cpu_pct"
+          align={"right"}
+          render={onCellProps("cpu_pct", (val) => `${Math.round(val)}%`)}
+          onCell={onCellProps("cpu_pct")}
+          sorter={field_cmp("cpu_pct")}
+        />
+        <Table.Column<ProcessRow>
+          key="mem"
+          title="MEM"
+          dataIndex="mem"
+          width="25%"
+          align={"right"}
+          render={onCellProps("mem", (val) => `${val.toFixed(0)}M`)}
+          onCell={onCellProps("mem")}
+          sorter={field_cmp("mem")}
+        />
+      </Table>
+    );
+  }
+
+  function renderCgroup() {
+    return (
+      <CGroup
+        have_cgroup={info?.cgroup != null}
+        cg_info={cg_info}
+        disk_usage={disk_usage}
+        pt_stats={pt_stats}
+        start_ts={start_ts}
+        project_status={project_status}
+        mode={"flyout"}
+        style={{ flex: "1 0 auto", marginBottom: "10px" }}
+      />
+    );
+  }
+
+  function render_general_status() {
+    if (!DEBUG) return null;
+    return (
+      <Paragraph type="secondary">
+        Timestamp:{" "}
+        {info?.timestamp != null ? (
+          <code>{new Date(info.timestamp).toISOString()}</code>
+        ) : (
+          "no timestamp"
+        )}{" "}
+        <br />
+        Connections sync=<code>{`${sync != null}`}</code> chan=
+        <code>{`${chan != null}`}</code>
+        <br />
+        Status: <code>{status}</code>
+      </Paragraph>
+    );
+  }
+
+  function body() {
+    return (
+      <div
+        style={{
+          flex: "1 1 auto",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          height: "100%",
+        }}
+      >
+        <ProjectProblems project_status={project_status} />
+        {renderCgroup()}
+        {wrap ? wrap(render_top()) : render_top()}
+        {render_general_status()}
+      </div>
+    );
+  }
+
+  function renderError() {
+    if (error == null) return;
+    return <Alert message={error} type="error" />;
+  }
+
+  function notRunning() {
+    if (!projectIsRunning) {
+      return (
+        <Alert
+          type="warning"
+          banner={true}
+          message={"Project is not running."}
+        />
+      );
+    }
+  }
+
+  if (projectIsRunning && loading) {
+    return <Loading theme="medium" transparent />;
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        height: "100%",
+      }}
+    >
+      {notRunning()}
+      {renderError()}
+      {body()}
+    </div>
+  );
+}

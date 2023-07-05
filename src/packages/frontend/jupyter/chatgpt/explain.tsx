@@ -22,7 +22,7 @@ export default function ChatGPTExplain({ actions, id, style }: Props) {
   const [error, setError] = useState<string>("");
   if (
     actions == null ||
-    !actions.redux.getStore("projects").hasOpenAI(project_id)
+    !actions.redux.getStore("projects").hasOpenAI(project_id, "explain")
   ) {
     return null;
   }
@@ -95,5 +95,9 @@ ${cell.get("input")}
 \n\n</details>`;
   // scroll to bottom *after* the message gets sent.
   setTimeout(() => chatActions.scrollToBottom(), 100);
-  await chatActions.send_chat(message, undefined, undefined, "jupyter-explain");
+  await chatActions.send_chat({
+    input: message,
+    tag: "jupyter-explain",
+    noNotification: true,
+  });
 }

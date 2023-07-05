@@ -6,23 +6,22 @@
 // TODO: Remove `as any`s in this file.
 // Refer to https://github.com/microsoft/TypeScript/issues/13948
 
+import { Button, Space } from "antd";
 import * as immutable from "immutable";
 import React, { useEffect, useState } from "react";
-const {
-  Checkbox,
-  Row,
-  Col,
-  ButtonToolbar,
-  Button,
-} = require("react-bootstrap");
 
 import { alert_message } from "@cocalc/frontend/alerts";
-import { Rendered, usePrevious } from "@cocalc/frontend/app-framework";
+import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
 import {
+  Rendered,
+  usePrevious,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import {
+  Gap,
   Icon,
   LabeledRow,
   Loading,
-  Space,
   Tip,
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -37,9 +36,8 @@ interface Props {
   project_settings: ProjectSettings; // settings contains the base values for quotas
   project_status?: ProjectStatus;
   project_state?: "opened" | "running" | "starting" | "stopping"; //  -- only show memory usage when project_state == 'running'
-  user_map: object;
   quota_params: object; // from the schema
-  account_groups: string[];
+  account_groups: immutable.List<string>;
   total_project_quotas?: object; // undefined if viewing as admin
   site_license_upgrades?: object;
   all_upgrades_to_this_project?: object;
@@ -70,7 +68,6 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     project_id,
     site_license_upgrades,
     total_project_quotas,
-    user_map,
     is_commercial,
     project_state,
     project_status,
@@ -78,6 +75,8 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     all_upgrades_to_this_project = {},
     expand_admin_only = false,
   } = props;
+
+  const user_map = useTypedRedux("users", "user_map");
 
   const is_admin = account_groups.includes("admin");
 
@@ -287,34 +286,26 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     if (is_admin) {
       if (editing) {
         return (
-          <Row>
-            <Col sm={6} smOffset={6}>
-              <ButtonToolbar style={{ float: "right" }}>
-                <Button
-                  onClick={save_admin_editing}
-                  bsStyle="warning"
-                  disabled={!valid_admin_inputs()}
-                >
-                  <Icon name="thumbs-up" /> Done
-                </Button>
-                <Button onClick={cancel_admin_editing}>Cancel</Button>
-              </ButtonToolbar>
-            </Col>
-          </Row>
+          <div style={{ textAlign: "right" }}>
+            <Space.Compact>
+              <Button
+                onClick={save_admin_editing}
+                danger
+                disabled={!valid_admin_inputs()}
+              >
+                <Icon name="thumbs-up" /> Done
+              </Button>
+              <Button onClick={cancel_admin_editing}>Cancel</Button>
+            </Space.Compact>
+          </div>
         );
       } else {
         return (
-          <Row>
-            <Col sm={6} smOffset={6}>
-              <Button
-                onClick={start_admin_editing}
-                bsStyle="warning"
-                style={{ float: "right" }}
-              >
-                <Icon name="pencil" /> Admin Quotas...
-              </Button>
-            </Col>
-          </Row>
+          <div style={{ textAlign: "right" }}>
+            <Button onClick={start_admin_editing}>
+              <Icon name="pencil" /> Admin Quotas...
+            </Button>
+          </div>
         );
       }
     }
@@ -348,7 +339,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
       return (
         <Checkbox
           key={label}
-          checked={quota_state[label]}
+          checked={!!quota_state[label]}
           style={{ marginLeft: 0 }}
           onChange={(e) =>
             setQuotaState({ ...quota_state, [label]: e.target.checked ? 1 : 0 })
@@ -380,7 +371,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     }
     return (
       <span>
-        <Space /> (<b>{disk} MB</b> used)
+        <Gap /> (<b>{disk} MB</b> used)
       </span>
     );
   }
@@ -391,7 +382,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     }
     return (
       <span>
-        <Space /> (<b>{memory} MB</b> used)
+        <Gap /> (<b>{memory} MB</b> used)
       </span>
     );
   }
@@ -445,7 +436,7 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
       ),
       edit: (
         <span>
-          <b>{render_input("disk_quota")} MB</b> disk space limit <Space />{" "}
+          <b>{render_input("disk_quota")} MB</b> disk space limit <Gap />{" "}
           {render_disk_used(disk)}
         </span>
       ),

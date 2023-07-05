@@ -6,7 +6,8 @@
 // offline -- it's not connected, but is **trying**
 // online -- it's connected and working
 // destroyed -- it's not connected and not trying to connect either.
-export type WebsocketState = "offline" | "online" | "destroyed";
+import type { WebsocketState } from "@cocalc/sync/client/types";
+export type { WebsocketState };
 
 import { Map } from "immutable";
 

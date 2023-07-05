@@ -19,7 +19,7 @@ import {
   Actions as EditorActions,
   CodeMirrorEditor,
 } from "@cocalc/frontend/jupyter/codemirror-editor";
-import { codemirror_to_jupyter_pos } from "@cocalc/frontend/jupyter/util";
+import { codemirror_to_jupyter_pos } from "@cocalc/jupyter/util/misc";
 import { three_way_merge as threeWayMerge } from "@cocalc/sync/editor/generic/util";
 import { Actions as WhiteboardActions } from "../../actions";
 import { useFrameContext } from "../../hooks";

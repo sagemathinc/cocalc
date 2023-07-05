@@ -8,22 +8,46 @@ Datastore (kucalc only!)
 */
 
 import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusCircleOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Form,
+  Input,
+  Popconfirm,
+  Space,
+  Switch,
+  Table,
+  Tooltip,
+  Typography,
+} from "antd";
+
+import {
   React,
-  useState,
-  useIsMountedRef,
   useActions,
-} from "../../app-framework";
-import { webapp_client } from "../../webapp-client";
+  useIsMountedRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import {
+  A,
+  ErrorDisplay,
+  Icon,
+  SettingBox,
+  Tip,
+} from "@cocalc/frontend/components";
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { DUMMY_SECRET } from "@cocalc/util/consts";
+import { DATASTORE_TITLE } from "@cocalc/util/db-schema/site-defaults";
+import { unreachable } from "@cocalc/util/misc";
 import { useProjectState } from "../page/project-state-hook";
 import { useProjectHasInternetAccess } from "./has-internet-access-hook";
-import { ReloadOutlined, DeleteOutlined } from "@ant-design/icons";
-import { PlusCircleOutlined, EditOutlined } from "@ant-design/icons";
-import { Button, Table, Typography, Form, Input, Checkbox } from "antd";
-import { Space, Alert, Switch, Popconfirm, Tooltip } from "antd";
-import { ErrorDisplay, SettingBox, Icon, Tip, A } from "../../components";
 import { RestartProject } from "./restart-project";
-import { unreachable } from "@cocalc/util/misc";
-import { DUMMY_SECRET } from "@cocalc/util/consts";
 import { DatastoreConfig as Config } from "./types";
 
 const SECRET_TOOLTIP = `\nSecrets can't be edited. Either keep "${DUMMY_SECRET}" as it is to retain the current value, or enter a new secret to replace the existing one.`;
@@ -75,10 +99,14 @@ const READONLY_DEFAULT = false;
 
 interface Props {
   project_id: string;
+  mode?: "project" | "flyout";
+  reloadTrigger?: number;
 }
 
 export const Datastore: React.FC<Props> = React.memo((props: Props) => {
-  const { project_id } = props;
+  const { project_id, mode = "project", reloadTrigger = 0 } = props;
+  const isFlyout = mode === "flyout";
+  const size = isFlyout ? "small" : undefined; // for buttons
   const project_actions = useActions({ project_id });
   const state = useProjectState(project_id);
   const has_internet = useProjectHasInternetAccess(project_id);
@@ -133,6 +161,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     return (
       <Alert
         type={"warning"}
+        showIcon={false}
+        banner
         message={
           <div>
             <Typography.Text strong>
@@ -142,8 +172,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
               <RestartProject
                 project_id={project_id}
                 text={"Restart…"}
-                bsStyle={"default"}
-                bsSize={"small"}
+                size={"small"}
               />
             </span>
           </div>
@@ -238,10 +267,10 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  // reload once after mounting
+  // reload once after mounting and when the reload prop changes
   React.useEffect(() => {
     reload();
-  }, []);
+  }, [reloadTrigger]);
 
   // when we change the new_config data, we also want to reflect that in the corresponding form values
   React.useEffect(() => {
@@ -269,17 +298,6 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     set_form_readonly(conf.readonly ?? READONLY_DEFAULT);
   }
 
-  function render_list_ro_title() {
-    return (
-      <Tip
-        title="Read-only"
-        tip="An open lock indicates the cloud store / remote file system will be mounted with read/write rights, while a closed lock means it will be mounted with read-only options."
-      >
-        <Icon name="edit" />
-      </Tip>
-    );
-  }
-
   async function confirm_del(name) {
     try {
       del(name);
@@ -294,13 +312,21 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
 
   function render_action_buttons(_, record) {
     return (
-      <Space>
+      <Space.Compact
+        size={size}
+        direction={isFlyout ? "vertical" : "horizontal"}
+      >
         <Tooltip title={`Modify ${record.name}'s configuration.`}>
-          <Button onClick={() => edit(record)} icon={<EditOutlined />}></Button>
+          <Button
+            size={size}
+            onClick={() => edit(record)}
+            icon={<EditOutlined />}
+          ></Button>
         </Tooltip>
 
         <Tooltip title={`Open ${record.name} in Files`}>
           <Button
+            size={size}
             onClick={() => open(record)}
             icon={<Icon name="external-link" />}
           ></Button>
@@ -313,10 +339,10 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           cancelText="No"
         >
           <Tooltip title={`Delete ${record.name}.`}>
-            <Button icon={<DeleteOutlined />}></Button>{" "}
+            <Button size={size} icon={<DeleteOutlined />}></Button>{" "}
           </Tooltip>
         </Popconfirm>
-      </Space>
+      </Space.Compact>
     );
   }
 
@@ -328,24 +354,32 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           title={"Name"}
           dataIndex="name"
           ellipsis={true}
-          render={(name) => <Typography.Text strong>{name}</Typography.Text>}
+          render={(name, record) => (
+            <>
+              <Typography.Text strong>{name}</Typography.Text>
+              <br />({record.type})
+            </>
+          )}
         />
-        <Table.Column<Config> key="type" title="Type" dataIndex="type" />
         <Table.Column<Config>
           key="about"
           title="About"
           dataIndex="about"
-          render={(about) => (
-            <div style={{ whiteSpace: "pre", fontSize: "80%" }}>{about}</div>
-          )}
-        />
-        <Table.Column<Config>
-          key="readonly"
-          title={render_list_ro_title()}
-          dataIndex="readonly"
-          align={"right"}
-          render={(_, record) => (
-            <Icon name={record.readonly ?? false ? "lock" : "lock-open"} />
+          render={(about, record) => (
+            <>
+              <div style={{ whiteSpace: "pre", fontSize: "80%" }}>{about}</div>
+              <Tip
+                title="Read-only"
+                tip="An open lock indicates the cloud store / remote file system will be mounted with read/write rights, while a closed lock means it will be mounted with read-only options."
+              >
+                <div style={{ fontSize: "90%" }}>
+                  <Icon
+                    name={record.readonly ?? false ? "lock" : "lock-open"}
+                  />{" "}
+                  {record.readonly ? "Read-only" : "Read/write"}
+                </div>
+              </Tip>
+            </>
           )}
         />
         <Table.Column<Config>
@@ -360,9 +394,17 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_controls() {
+    const C = isFlyout ? Space.Compact : Space;
     return (
-      <Space style={{ marginBottom: "10px" }}>
+      <C
+        size={size}
+        style={{
+          marginBottom: "10px",
+          ...(isFlyout ? { padding: "5px" } : {}),
+        }}
+      >
         <Button
+          size={size}
           icon={<PlusCircleOutlined />}
           onClick={() => add("sshfs")}
           type={"primary"}
@@ -372,6 +414,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         </Button>
 
         <Button
+          size={size}
           icon={<PlusCircleOutlined />}
           onClick={() => add("gcs")}
           type={"primary"}
@@ -381,6 +424,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         </Button>
 
         <Button
+          size={size}
           icon={<PlusCircleOutlined />}
           onClick={() => add("s3")}
           type={"primary"}
@@ -389,10 +433,24 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           AWS S3
         </Button>
 
-        <Form.Item label="Help:" style={{ marginBottom: 0 }}>
-          <Switch checked={show_help} onChange={(val) => set_show_help(val)} />
-        </Form.Item>
-      </Space>
+        {isFlyout ? (
+          <BSButton
+            bsSize={"xsmall"}
+            active={show_help}
+            onClick={() => set_show_help((val) => !val)}
+          >
+            Help
+          </BSButton>
+        ) : (
+          <Form.Item label="Help:" style={{ marginBottom: 0 }}>
+            <Switch
+              size={size}
+              checked={show_help}
+              onChange={(val) => set_show_help(val)}
+            />
+          </Form.Item>
+        )}
+      </C>
     );
   }
 
@@ -400,6 +458,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     if (!show_help) return;
     return (
       <Alert
+        showIcon={false}
+        banner
         type="info"
         message={
           <div>
@@ -424,7 +484,9 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
             </p>
             <p>
               More information:{" "}
-              <A href={DOC}>Project Settings / Cloud storage & remote file systems</A>
+              <A href={DOC}>
+                Project Settings / Cloud storage & remote file systems
+              </A>
             </p>
           </div>
         }
@@ -437,6 +499,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     return (
       <Alert
         type="error"
+        banner
+        showIcon={false}
         message={
           <div>
             <h3>No internet access</h3>
@@ -451,9 +515,14 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  const form_layout = { labelCol: { span: 6 }, wrapperCol: { span: 18 } };
+  const form_layout = isFlyout
+    ? { labelCol: { span: 8 }, wrapperCol: { span: 16 } }
+    : { labelCol: { span: 6 }, wrapperCol: { span: 18 } };
   const form_layout_tail = {
-    wrapperCol: { offset: 6, span: 18 },
+    wrapperCol: {
+      offset: form_layout.labelCol.span,
+      span: form_layout.wrapperCol.span,
+    },
   };
 
   function cancel() {
@@ -528,6 +597,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         form={props.form}
         onFinish={(v) => form_finish(v, props.type)}
         onFinishFailed={process_failure}
+        size="small"
       >
         {props.children}
       </Form>
@@ -673,9 +743,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   function render_title() {
     return (
       <>
-        <span>
-          Cloud storage & remote file-systems
-        </span>
+        <span>{DATASTORE_TITLE}</span>
         <Button
           icon={<ReloadOutlined />}
           onClick={reload}
@@ -687,11 +755,21 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  return (
-    <SettingBox title={render_title()} icon="database">
-      {error != "" ? <ErrorDisplay error={error} /> : undefined}
-      {render_internet_warning()}
-      {render_body()}
-    </SettingBox>
-  );
+  if (isFlyout) {
+    return (
+      <>
+        {error != "" ? <ErrorDisplay banner error={error} /> : undefined}
+        {render_internet_warning()}
+        {render_body()}
+      </>
+    );
+  } else {
+    return (
+      <SettingBox title={render_title()} icon="database">
+        {error != "" ? <ErrorDisplay error={error} /> : undefined}
+        {render_internet_warning()}
+        {render_body()}
+      </SettingBox>
+    );
+  }
 });

@@ -4,7 +4,7 @@
  */
 
 import { List, Map } from "immutable";
-import { Icon, IconName, Space, TimeAgo } from "@cocalc/frontend/components";
+import { Icon, IconName, Gap, TimeAgo } from "@cocalc/frontend/components";
 import { server_time } from "../generic/client";
 import { Message } from "./types";
 import { capitalize, is_different } from "@cocalc/util/misc";
@@ -98,15 +98,15 @@ export class RenderedMessage extends Component<MessageProps, {}> {
           }}
         >
           <Icon name={message_icon(message.severity)} />
-          <Space />
+          <Gap />
           {message.pos_line !== undefined && message.pos_col !== undefined
             ? render_pos(message.pos_line, message.pos_col)
             : undefined}
-          <Space />
+          <Gap />
           {message.severity !== undefined
             ? render_severity(message.severity)
             : undefined}
-          <Space />
+          <Gap />
           {message.caption !== undefined
             ? render_caption(message.caption)
             : undefined}
@@ -181,9 +181,9 @@ class LeanMessages extends Component<Props, {}> {
         }}
       >
         <Icon name="cocalc-ring" spin />
-        <Space />
+        <Gap />
         {capitalize(task.desc)}
-        <Space /> (Processing lines {task.pos_line}-{task.end_pos_line})
+        <Gap /> (Processing lines {task.pos_line}-{task.end_pos_line})
       </div>
     );
   }

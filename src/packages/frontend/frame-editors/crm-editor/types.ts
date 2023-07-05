@@ -1,1 +1,1 @@
-export type ViewType = "gallery" | "calendar" | "grid" | "kanban";
+export type ViewType = "gallery" | "calendar" | "grid" | "kanban" | "retention";

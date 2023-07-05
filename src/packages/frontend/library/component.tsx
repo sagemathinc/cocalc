@@ -7,6 +7,7 @@ import { join } from "path";
 
 import { path_split, search_match, search_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import track from "@cocalc/frontend/user-tracking";
 
 declare var $: any;
 
@@ -55,8 +56,8 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
 
   const library_docs_sorted = useMemo<any>(() => {
     if (library == null) return;
-    let docs = library?.getIn(["examples", "documents"]);
-    const metadata = library?.getIn(["examples", "metadata"]);
+    let docs = library?.getIn(["examples", "documents"]) as any;
+    const metadata = library?.getIn(["examples", "metadata"]) as any;
     if (docs != null && library_search) {
       const search = search_split(library_search);
       // Using JSON of the doc is pretty naive but it's fast enough
@@ -83,7 +84,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
   }, [library, library_search]);
 
   function metadata() {
-    return library?.getIn(["examples", "metadata"]);
+    return library?.getIn(["examples", "metadata"]) as any;
   }
 
   // The purpose is to prepare the target for the rsync operation.
@@ -117,6 +118,11 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
     doc = library_selected;
     if (doc == null || actions == null) return;
     actions.set_library_is_copying(true);
+    track("library", {
+      action: "copy",
+      id: doc.get("id"),
+      title: doc.get("title"),
+    });
     actions.copy_from_library({
       src: doc.get("src"),
       target: target_path(),

@@ -11,11 +11,12 @@ TODO:
   - [ ] when stopping project, kill xpra's
 */
 
-import { spawn, SpawnOptions } from "child_process";
+import { spawn, SpawnOptions } from "node:child_process";
 import { callback } from "awaiting";
+import { clone } from "lodash";
+
 import abspath from "@cocalc/backend/misc/abspath";
 import { path_split } from "@cocalc/util/misc";
-import { clone } from "underscore";
 
 const x11_channels = {};
 

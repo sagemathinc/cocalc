@@ -7,14 +7,20 @@
 Terminal server
 */
 
-const { spawn } = require("node-pty");
-import { readFile, writeFile } from "fs";
-import { promises as fsPromises } from "fs";
-const { readlink } = fsPromises;
-import { console_init_filename, len, merge, path_split } from "@cocalc/util/misc";
-import { exists } from "../jupyter/async-utils-node";
-import { isEqual, throttle } from "lodash";
 import { callback, delay } from "awaiting";
+import { isEqual, throttle } from "lodash";
+import { spawn } from "node-pty";
+import { readFile, writeFile } from "node:fs";
+import { readlink, realpath } from "node:fs/promises";
+
+import { envForSpawn } from "@cocalc/backend/misc";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
+import {
+  console_init_filename,
+  len,
+  merge,
+  path_split,
+} from "@cocalc/util/misc";
 
 interface Terminal {
   channel: any;
@@ -28,6 +34,7 @@ interface Terminal {
     command?: string;
     args?: string[];
     env?: { [key: string]: string };
+    cwd?: string; // if not set, the cwd is directory of "path"
   };
   size?: any;
   term?: any; // node-pty
@@ -49,11 +56,26 @@ export function pid2path(pid: number): string | undefined {
   }
 }
 
+function getCWD(path_head, cwd?): string {
+  // working dir can be set explicitly, and either be an empty string or $HOME
+  if (cwd != null) {
+    const HOME = process.env.HOME ?? "/home/user";
+    if (cwd === "") {
+      return HOME;
+    } else if (cwd.startsWith("$HOME")) {
+      return cwd.replace("$HOME", HOME);
+    } else {
+      return cwd;
+    }
+  }
+  return path_head;
+}
+
 export async function terminal(
   primus: any,
   logger: any,
   path: string,
-  options: any
+  options: Terminal["options"]
 ): Promise<string> {
   const name = `${PREFIX}${path}`;
   if (terminals[name] !== undefined) {
@@ -69,7 +91,7 @@ export async function terminal(
     channel,
     history: "",
     client_sizes: {},
-    last_truncate_time: new Date().valueOf(),
+    last_truncate_time: Date.now(),
     truncating: 0,
     last_exit: 0,
     options: options ?? {},
@@ -93,8 +115,8 @@ export async function terminal(
       }
     }
 
-    const s = path_split(path);
-    const env = merge({ COCALC_TERMINAL_FILENAME: s.tail }, process.env);
+    const { head: path_head, tail: path_tail } = path_split(path);
+    const env = merge({ COCALC_TERMINAL_FILENAME: path_tail }, envForSpawn());
     if (options.env != null) {
       merge(env, options.env);
     }
@@ -108,7 +130,7 @@ export async function terminal(
     }
 
     const command = options.command ? options.command : "/bin/bash";
-    const cwd = s.head;
+    const cwd = getCWD(path_head, options.cwd);
 
     try {
       terminals[name].history = (await callback(readFile, path)).toString();
@@ -254,7 +276,7 @@ export async function terminal(
       logger.debug("terminal", name, "EXIT -- spawning again");
       const now = new Date().getTime();
       if (now - terminals[name].last_exit <= 15000) {
-        // frequent exit; we wait a few seconds, since otherwise
+        // frequent exit; we wait a few seconds, since otherwisechannel
         // restarting could burn all cpu and break everything.
         logger.debug(
           "terminal",
@@ -390,14 +412,16 @@ export async function terminal(
           case "cwd":
             // we reply with the current working directory of the underlying terminal process
             const pid = terminals[name].term.pid;
-            const home = process.env.HOME ?? "/home/user";
+            // [hsy/dev] wrapping in realpath, because I had the odd case, where the project's
+            // home included a symlink, hence the "startsWith" below didn't remove the home dir.
+            const home = await realpath(process.env.HOME ?? "/home/user");
             try {
               const cwd = await readlink(`/proc/${pid}/cwd`);
-              logger.debug(`terminal cwd sent back: ${cwd}`);
               // we send back a relative path, because the webapp does not understand absolute paths
               const path = cwd.startsWith(home)
                 ? cwd.slice(home.length + 1)
                 : cwd;
+              logger.debug(`terminal cwd sent back: cwd=${cwd} path=${path}`);
               spark.write({ cmd: "cwd", payload: path });
             } catch {
               // ignoring errors

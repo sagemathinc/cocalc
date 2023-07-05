@@ -28,7 +28,7 @@
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "events": "3.3.0",
-    "immutable": "^3.8.2",
+    "immutable": "^4.3.0",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21",
     "sha1": "^1.1.1"
@@ -39,7 +39,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/node": "^18.11.18",
+    "@types/node": "^18.16.14",
     "ts-jest": "^29.0.3"
   }
 }

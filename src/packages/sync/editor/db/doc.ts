@@ -383,7 +383,7 @@ export class DBDocument implements Document {
   }
 
   public set(obj: SetCondition | SetCondition[]): DBDocument {
-    if (is_array(obj)) {
+    if (Array.isArray(obj)) {
       let z: DBDocument = this;
       for (const x of obj as SetCondition[]) {
         z = z.set(x);
@@ -728,6 +728,6 @@ export function from_str(
   return new DBDocument(
     new Set(primary_keys),
     new Set(string_cols),
-    immutable.fromJS(obj)
+    immutable.fromJS(obj) as Records
   );
 }

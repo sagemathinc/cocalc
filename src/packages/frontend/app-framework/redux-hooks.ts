@@ -140,18 +140,17 @@ function useReduxProjectStore(path: string[], project_id: string) {
 function useReduxEditorStore(
   path: string[],
   project_id: string,
-  filename: string,
-  is_public?: boolean
+  filename: string
 ) {
   const [value, set_value] = React.useState(() =>
     // the editor itself might not be defined hence the ?. below:
     redux
-      .getEditorStore(project_id, filename, is_public)
+      .getEditorStore(project_id, filename)
       ?.getIn(path as [string, string, string, string, string])
   );
 
   useDeepCompareEffect(() => {
-    let store = redux.getEditorStore(project_id, filename, is_public);
+    let store = redux.getEditorStore(project_id, filename);
     let last_value = value;
     const f = (obj) => {
       if (obj == null || !f.is_mounted) return; // see comment for useReduxNamedStore
@@ -178,14 +177,14 @@ function useReduxEditorStore(
           unsubscribe();
           return;
         }
-        store = redux.getEditorStore(project_id, filename, is_public);
+        store = redux.getEditorStore(project_id, filename);
         if (store != null) {
           unsubscribe();
           f(store); // may have missed an initial change
           store.on("change", f);
         }
       };
-      const unsubscribe = redux._redux_store.subscribe(g);
+      const unsubscribe = redux.reduxStore.subscribe(g);
     }
 
     return () => {
@@ -209,6 +208,7 @@ export interface StoreStates {
   page: types.PageState;
   projects: types.ProjectsState;
   users: types.UsersState;
+  news: types.NewsState;
 }
 
 export function useTypedRedux<
@@ -273,16 +273,11 @@ export function useEditorRedux(
 export function useRedux(
   path: string | string[],
   project_id?: string,
-  filename?: string,
-  is_public?: boolean
+  filename?: string
 ) {
   if (typeof path == "string") {
     // good typed version!! -- path specifies store
-    if (
-      typeof project_id != "string" ||
-      typeof filename != "undefined" ||
-      typeof is_public != "undefined"
-    ) {
+    if (typeof project_id != "string" || typeof filename != "undefined") {
       throw Error(
         "if first argument of useRedux is a string then second argument must also be and no other arguments can be specified"
       );
@@ -304,7 +299,7 @@ export function useRedux(
       return useReduxProjectStore(path, project_id);
     }
   }
-  return useReduxEditorStore(path, project_id, filename, is_public);
+  return useReduxEditorStore(path, project_id, filename);
 }
 
 /*
@@ -343,6 +338,7 @@ export function useActions(name: "mentions"): types.MentionsActions;
 export function useActions(name: "page"): types.PageActions;
 export function useActions(name: "projects"): types.ProjectsActions;
 export function useActions(name: "users"): types.UsersActions;
+export function useActions(name: "news"): types.NewsActions;
 
 // If it is none of the explicitly named ones... it's a project or just some general actions.
 // That said *always* use {project_id} as below to get the actions for a project, so you
@@ -390,7 +386,7 @@ export function useActions(x, path?: string) {
 // in actions-and-stores.ts but it did NOT work. All
 // the types just became any or didn't match.  Don't
 // move this unless you also fully test it!!
-import { Store } from "./Store";
+import { Store } from "@cocalc/util/redux/Store";
 export interface Stores {
   account: types.AccountStore;
   "admin-site-licenses": types.SiteLicensesStore;
@@ -403,6 +399,7 @@ export interface Stores {
   page: types.PageStore;
   projects: types.ProjectsStore;
   users: types.UsersStore;
+  news: types.NewsStore;
 }
 
 // If it is none of the explicitly named ones... it's a project.

@@ -15,7 +15,7 @@ export const InputDone: React.FC<InputDoneProps> = React.memo(
   (props: InputDoneProps) => {
     const { message } = props;
 
-    const prompt: string = message.getIn(["opts", "prompt"], "");
+    const prompt: string = message.getIn(["opts", "prompt"], "") as string;
     const value: string = message.get("value", "");
     const type = message.getIn(["opts", "password"]) ? "password" : "text";
 

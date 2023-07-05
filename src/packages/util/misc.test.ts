@@ -137,3 +137,24 @@ test("firstLetterUppercase", () => {
   expect(s("ABC")).toBe("ABC");
   expect(s("aBC")).toBe("ABC");
 });
+
+test("hexColorToRGBA", () => {
+  const c1 = misc.hexColorToRGBA("#000000");
+  expect(c1).toEqual("rgb(0,0,0)");
+  const c2 = misc.hexColorToRGBA("#ffffff", 0.5);
+  expect(c2).toEqual("rgba(255,255,255,0.5)");
+});
+
+test("strictMod", () => {
+  const mod = misc.strictMod;
+  expect(mod(0, 3)).toBe(0);
+  expect(mod(1, 3)).toBe(1);
+  expect(mod(-2, 3)).toBe(1);
+  expect(mod(-3, 3)).toBe(0);
+  expect(mod(-1, 10)).toBe(9);
+});
+
+test("EDITOR_PREFIX", () => {
+  // don't change it, because codebase is not using the global variable everywhere
+  expect(misc.EDITOR_PREFIX).toBe("editor-");
+});

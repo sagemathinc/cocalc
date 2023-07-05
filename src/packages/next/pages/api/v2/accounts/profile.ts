@@ -25,7 +25,7 @@ export default async function handle(req, res) {
 }
 
 async function getPrivate(req, noCache) {
-  const account_id = await getAccountId(req, noCache);
+  const account_id = await getAccountId(req, { noCache });
   if (account_id == null) {
     return {};
   }

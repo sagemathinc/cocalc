@@ -5,7 +5,7 @@
 
 import { callback, delay } from "awaiting";
 import { throttle } from "lodash";
-import { WebappClient } from "./client";
+import type { WebappClient } from "./client";
 import { delete_cookie } from "../misc/cookies";
 import { QueryParams } from "../misc/query-params";
 import {

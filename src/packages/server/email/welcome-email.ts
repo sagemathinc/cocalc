@@ -26,7 +26,7 @@ export default async function sendWelcomeEmail(
   await sendEmail(
     {
       to: email_address,
-      subject: "Welcome!",
+      subject: randomOnboardingSubject(),
       text,
       html,
       categories: ["welcome"],
@@ -34,6 +34,21 @@ export default async function sendWelcomeEmail(
     },
     account_id
   );
+}
+
+const WELCOMES = [
+  "Begin Your CoCalc Adventure: Discover a New World of Collaborative Computation",
+  "Welcome to CoCalc: Your Gateway to Collaborative Calculations!",
+  "Dive Into the World of CoCalc: Collaborative Computation Made Easy",
+  "CoCalc: Unleash the Power of Collaborative Mathematics",
+  "Get Started with CoCalc: Collaborative Online Calculations & More Awaits",
+  "CoCalc Welcomes You: Start Exploring Infinite Mathematical Possibilities",
+  "Welcome Aboard! Your CoCalc Account Is Ready for Liftoff",
+];
+
+export function randomOnboardingSubject(): string {
+  const randomIndex = Math.floor(Math.random() * WELCOMES.length);
+  return WELCOMES[randomIndex];
 }
 
 async function getWelcomeEmail(

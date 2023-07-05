@@ -23,51 +23,7 @@ that get used in testing.
 
 import { copy, is_array, startswith } from "@cocalc/util/misc";
 import { state_to_value } from "./cell-types";
-
-// Enough description of what a Jupyter notebook is for our purposes here.
-interface Cell {
-  cell_type: "code" | "markdown" | "raw";
-  execution_count: number;
-  metadata?: {
-    collapsed?: boolean;
-    nbgrader?: {
-      grade: boolean;
-      grade_id: string;
-      locked: boolean;
-      points?: number;
-      schema_version: number;
-      solution: boolean;
-      task: boolean;
-    };
-  };
-  source: string[];
-  outputs?: object[];
-}
-
-interface NotebookMetadata {
-  kernelspec: {
-    display_name: string;
-    language: string;
-    metadata?: object;
-    name: string;
-  };
-  language_info: {
-    codemirror_mode?: { name: string; version: number };
-    file_extension: string;
-    mimetype: string;
-    name: string;
-    nbconvert_exporter: string;
-    pygments_lexer: string;
-    version: string;
-  };
-}
-
-export interface JupyterNotebook {
-  metadata: NotebookMetadata;
-  nbformat: number;
-  nbformat_minor: number;
-  cells: Cell[];
-}
+import type { JupyterNotebook, Cell } from "@cocalc/jupyter/nbgrader/types";
 
 export function create_autograde_ipynb(
   instructor_ipynb: string,

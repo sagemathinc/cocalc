@@ -11,11 +11,10 @@ import {
   Col,
   Descriptions,
   Popover,
-  Radio,
   Row,
   Typography,
 } from "antd";
-import { List, Map as ImmutableMap, OrderedMap } from "immutable";
+import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 
 import {
   CSS,
@@ -26,17 +25,19 @@ import {
 } from "@cocalc/frontend//app-framework";
 import { Icon, Loading, Paragraph, Text } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
+import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
-import { Kernel as KernelType } from "./util";
 import Logo from "./logo";
+import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
+import { KernelStar } from "../components/run-button/kernel-star";
 
 const MAIN_STYLE: CSS = {
   padding: "20px 10px",
   overflowY: "auto",
   overflowX: "hidden",
-  background: "#eee",
+  background: COLORS.GRAY_LL,
 } as const;
 
 const SELECTION_STYLE: CSS = {
@@ -73,10 +74,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       actions.name,
       "kernel_info",
     ]);
-    const kernel_selection: undefined | ImmutableMap<string, any> = useRedux([
-      actions.name,
-      "kernel_selection",
-    ]);
+    const kernel_selection: undefined | ImmutableMap<string, string> = useRedux(
+      [actions.name, "kernel_selection"]
+    );
     const kernels_by_name:
       | undefined
       | OrderedMap<string, ImmutableMap<string, string>> = useRedux([
@@ -114,14 +114,30 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_kernel_button(name: string): Rendered {
       const lang = kernel_attr(name, "language");
+      const priority: number = kernels_by_name
+        ?.get(name)
+        ?.getIn(["metadata", "cocalc", "priority"]) as number;
       return (
-        <Radio.Button
+        <Button
           key={`kernel-${lang}-${name}`}
-          onClick={() => actions.select_kernel(name)}
+          onClick={() => {
+            actions.select_kernel(name);
+            track("jupyter", {
+              action: "select-kernel",
+              kernel: name,
+              how: "click-button-in-dialog",
+            });
+          }}
           style={{ marginBottom: "5px", height: "35px" }}
         >
-          <Logo kernel={name} size={30} /> {kernel_name(name) || name}
-        </Radio.Button>
+          <Logo
+            kernel={name}
+            size={30}
+            style={{ marginTop: "-2.5px", marginRight: "5px" }}
+          />{" "}
+          {kernel_name(name) || name}
+          <KernelStar priority={priority} />
+        </Button>
       );
     }
 
@@ -133,16 +149,16 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
       kernel_selection
         .sort((a, b) => {
-          // try to find the display name, otherwise fallback to kernel ID
-          const name_a = kernel_name(a) || a;
-          const name_b = kernel_name(b) || b;
-          return name_a.localeCompare(name_b);
+          return -misc.cmp(
+            kbn.getIn([a, "metadata", "cocalc", "priority"], 0),
+            kbn.getIn([b, "metadata", "cocalc", "priority"], 0)
+          );
         })
         .map((name, lang) => {
           const cocalc: ImmutableMap<string, any> = kbn.getIn(
             [name, "metadata", "cocalc"],
             null
-          );
+          ) as any;
           if (cocalc == null) return;
           const prio: number = cocalc.get("priority", 0);
 
@@ -188,7 +204,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     function render_no_kernels(): Rendered[] {
       return [
         <Descriptions.Item key="no_kernels" label={<Icon name="ban" />}>
-          <Radio.Group buttonStyle={"solid"} defaultValue={null}>
+          <Button.Group>
             <Paragraph>
               There are no kernels available. <SiteName /> searches the standard
               paths of Jupyter{" "}
@@ -213,7 +229,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
               </a>
               .
             </Paragraph>
-          </Radio.Group>
+          </Button.Group>
         </Descriptions.Item>,
       ];
     }
@@ -231,9 +247,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
         all.push(
           <Descriptions.Item key={lang} label={label}>
-            <Radio.Group buttonStyle={"solid"} defaultValue={null}>
+            <Button.Group style={{ display: "flex", flexWrap: "wrap" }}>
               {kernels}
-            </Radio.Group>
+            </Button.Group>
           </Descriptions.Item>
         );
         return true;
@@ -279,7 +295,13 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           <Descriptions.Item label={"Make default"}>
             <Checkbox
               checked={!ask_jupyter_kernel}
-              onChange={(e) => dont_ask_again_click(e.target.checked)}
+              onChange={(e) => {
+                track("jupyter", {
+                  action: "dont_ask_kernel",
+                  dont_ask: e.target.checked,
+                });
+                dont_ask_again_click(e.target.checked);
+              }}
             >
               Do not ask again. Instead, default to your most recent selection.
             </Checkbox>

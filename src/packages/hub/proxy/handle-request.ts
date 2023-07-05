@@ -10,7 +10,7 @@ import { stripBasePath } from "./util";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import siteUrl from "@cocalc/server/settings/site-url";
 
-const winston = getLogger("proxy: handle-request");
+const logger = getLogger("proxy:handle-request");
 
 interface Options {
   projectControl: ProjectControlFunction;
@@ -27,6 +27,7 @@ export default function init({ projectControl, isPersonal }: Options) {
    issues.  Invalidating cache entries quickly is also good from
    a permissions and security point of view.
 */
+
   const cache = new LRU({
     max: 5000,
     ttl: 1000 * 60 * 3,
@@ -38,44 +39,46 @@ export default function init({ projectControl, isPersonal }: Options) {
   });
 
   async function handleProxyRequest(req, res): Promise<void> {
-    const dbg = (m) => {
+    const dbg = (...args) => {
       // for low level debugging -- silly isn't logged by default
-      winston.silly(`${req.url}: ${m}`);
+      logger.silly(req.url, ...args);
     };
     dbg("got request");
+    dbg("headers = ", req.headers);
 
     if (!isPersonal && versionCheckFails(req, res)) {
       dbg("version check failed");
       // note that the versionCheckFails function already sent back an error response.
-      return;
+      throw Error("version check failed");
     }
 
     // Before doing anything further with the request on to the proxy, we remove **all** cookies whose
     // name contains "remember_me", to prevent the project backend from getting at
     // the user's session cookie, since one project shouldn't be able to get
     // access to any user's account.
-    let remember_me;
+    let remember_me, api_key;
     if (req.headers["cookie"] != null) {
       let cookie;
-      ({ cookie, remember_me } = stripRememberMeCookie(req.headers["cookie"]));
+      ({ cookie, remember_me, api_key } = stripRememberMeCookie(
+        req.headers["cookie"]
+      ));
       req.headers["cookie"] = cookie;
     }
 
-    if (!isPersonal && !remember_me) {
+    if (!isPersonal && !remember_me && !api_key) {
       dbg("no rememember me set, so blocking");
-      // Not in personal mode and there is no remember me set all, so
+      // Not in personal mode and there is no remember_me or api_key set all, so
       // definitely block access.  4xx since this is a *client* problem.
-      res.writeHead(426, { "Content-Type": "text/html" });
       const url = await siteUrl();
-      res.end(
+      throw Error(
         `Please login to <a target='_blank' href='${url}'>${url}</a> with cookies enabled, then refresh this page.`
       );
-      return;
     }
 
     const url = stripBasePath(req.url);
     const { host, port, internal_url } = await getTarget({
       remember_me,
+      api_key,
       url,
       isPersonal,
       projectControl,
@@ -83,7 +86,7 @@ export default function init({ projectControl, isPersonal }: Options) {
 
     // It's http here because we've already got past the ssl layer.  This is all internal.
     const target = `http://${host}:${port}`;
-    dbg(`target resolves to ${target}`);
+    dbg("target resolves to", target);
 
     let proxy;
     if (cache.has(target)) {
@@ -91,7 +94,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       dbg("using cached proxy");
       proxy = cache.get(target);
     } else {
-      dbg(`make a new proxy server to ${target}`);
+      dbg("make a new proxy server to", target);
       proxy = createProxyServer({
         ws: false,
         target,
@@ -108,7 +111,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       };
 
       proxy.on("error", (e) => {
-        dbg(`http proxy error event (ending proxy) -- ${e}`);
+        dbg("http proxy error event (ending proxy)", e);
         remove_from_cache();
       });
 
@@ -116,7 +119,7 @@ export default function init({ projectControl, isPersonal }: Options) {
     }
 
     if (internal_url != null) {
-      dbg(`changing req url from ${req.url} to ${internal_url}`);
+      dbg("changing req url from ", req.url, " to ", internal_url);
       req.url = internal_url;
     }
     dbg("handling the request using the proxy");
@@ -128,11 +131,11 @@ export default function init({ projectControl, isPersonal }: Options) {
       await handleProxyRequest(req, res);
     } catch (err) {
       const msg = `WARNING: error proxying request ${req.url} -- ${err}`;
-      res.writeHead(500, { "Content-Type": "text/html" });
+      res.writeHead(426, { "Content-Type": "text/html" });
       res.end(msg);
-      // Not something to log as an error; it's normal for it to happen, e.g., when
+      // Not something to log as an error -- just debug; it's normal for it to happen, e.g., when
       // a project isn't running.
-      winston.debug(msg);
+      logger.debug(msg);
     }
   };
 }

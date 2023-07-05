@@ -1,8 +1,3 @@
-export interface NbconvertParams {
-  args: string[];
-  directory?: string;
-  timeout?: number; // in seconds!
-}
 
 export function parseTo(args: string[]): { to: string; j: number } {
   let j: number = 0;

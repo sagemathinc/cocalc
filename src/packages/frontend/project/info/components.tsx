@@ -230,7 +230,7 @@ const prog_small = { format, size: "small" as "small" } as const;
 const prog_medium = { format } as const;
 const prog_large = { format, steps: 20 } as const;
 
-function useProgressProps() {
+function useProgressProps(mode: "full" | "flyout" = "full") {
   const [props, set_props] = React.useState<any>({});
   const screens = Grid.useBreakpoint();
 
@@ -238,12 +238,16 @@ function useProgressProps() {
     if (prop != props) set_props(prop);
   }
 
-  if (screens["xxl"]) {
-    set(prog_large);
-  } else if (screens["md"]) {
-    set(prog_medium);
-  } else {
+  if (mode === "flyout") {
     set(prog_small);
+  } else {
+    if (screens["xxl"]) {
+      set(prog_large);
+    } else if (screens["md"]) {
+      set(prog_medium);
+    } else {
+      set(prog_small);
+    }
   }
   return props;
 }
@@ -298,6 +302,8 @@ interface CGroupProps {
   pt_stats;
   start_ts;
   project_status?: immutable.Map<string, any>;
+  mode?: "full" | "flyout";
+  style?: CSS;
 }
 
 export const CGroup: React.FC<CGroupProps> = React.memo(
@@ -309,8 +315,11 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
       pt_stats,
       start_ts,
       project_status,
+      mode = "full",
+      style,
     } = props;
-    const progprops = useProgressProps();
+    const isFlyout = mode === "flyout";
+    const progprops = useProgressProps(mode);
     const all_alerts = project_status?.get("alerts") ?? immutable.Map();
     const status_alerts: Readonly<string[]> = all_alerts.map((a) =>
       a.get("type")
@@ -415,7 +424,12 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
     } else {
       // for now, we only show row 2
       return (
-        <Descriptions bordered={true} column={3} size={"middle"}>
+        <Descriptions
+          bordered={true}
+          column={isFlyout ? 1 : 3}
+          size={isFlyout ? "small" : "middle"}
+          style={style}
+        >
           {false && render_row1()}
           {render_row2()}
         </Descriptions>
@@ -591,3 +605,11 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
     }
   }
 );
+
+export function render_cocalc_btn({ title, onClick }) {
+  return (
+    <Button shape="round" onClick={onClick}>
+      {title}
+    </Button>
+  );
+}

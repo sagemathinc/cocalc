@@ -76,6 +76,7 @@ const MAIN_COLORS = {
   BLUE_L: "#80afff",
   BLUE_LL: "#94B3E5",
   BLUE_LLL: "#c7d9f5",
+  BLUE_LLLL: "#e6f4ff",
   BLUE_DOC: "#4375c1", // the blue used in the documentation
   BRWN: "#593E05",
   YELL_D: "#bf7b00",
@@ -107,6 +108,7 @@ const MAIN_COLORS = {
   FG_BLUE: "#428bca", // blue used for text
 
   ANTD_LINK_BLUE: "#1677ff", // blue used for links
+  ANTD_LINK_BLUE_DARK: "#003eb3", // dark blue used for links
 
   ATND_BG_RED_M: "#ff7875",
   ATND_BG_RED_L: "#fff2f0",
@@ -143,6 +145,7 @@ export const COLORS = {
 
   PROJECT: {
     FIXED_LEFT_ACTIVE: MAIN_COLORS.ANTD_LINK_BLUE,
+    FIXED_LEFT_OPENED: MAIN_COLORS.ANTD_LINK_BLUE_DARK,
   },
 
   // landing page
