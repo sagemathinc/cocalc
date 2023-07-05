@@ -20,6 +20,13 @@ import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dy
 import track0 from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
 
+// when checking user has sufficient credits to run project with
+// upgrade, require that they have enough for this many hours.
+// Otherwise, it is way too easy to start project with upgrades,
+// then have it just stop again an hour or less later, which is
+// just annoying.
+const MIN_HOURS = 12;
+
 function track(obj) {
   track0("pay-as-you-go-project-upgrade", obj);
 }
@@ -176,14 +183,14 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       const { allowed, reason } =
         await webapp_client.purchases_client.isPurchaseAllowed(
           "project-upgrade",
-          cost
+          cost * MIN_HOURS
         );
       if (!allowed) {
         await webapp_client.purchases_client.quotaModal({
           service: "project-upgrade",
           reason,
           allowed,
-          cost,
+          cost: cost * MIN_HOURS,
         });
         {
           // Check again, since result of modal may not be sufficient.
@@ -191,7 +198,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           const { allowed, reason } =
             await webapp_client.purchases_client.isPurchaseAllowed(
               "project-upgrade",
-              cost
+              cost * MIN_HOURS
             );
           if (!allowed) {
             throw Error(reason);

@@ -76,9 +76,11 @@ export async function isPurchaseAllowed({
   if (amountAfterPurchase + 0.01 < minBalance) {
     return {
       allowed: false,
-      reason: `You do not have enough credits to spend ${currency(
+      reason: `You do not have enough credits to spend up to ${currency(
         cost
-      )} since your balance is ${currency(balance)}, and spending ${currency(
+      )} since your balance is ${currency(
+        balance
+      )}, and spending up to ${currency(
         cost
       )} would cause your balance to go below your allowed minimum balance of ${currency(
         minBalance
