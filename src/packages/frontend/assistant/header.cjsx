@@ -9,7 +9,7 @@ immutable = require('immutable')
 # react elements
 {Col, Row, Panel, Button, FormGroup, Checkbox, FormControl, Well, Alert, Modal, Table, Nav, NavItem, ListGroup, ListGroupItem, InputGroup} = require('react-bootstrap')
 {React, ReactDOM, redux, Redux, Actions, Store, rtypes, rclass} = require('../app-framework')
-{Loading, Icon, Markdown, Space, SearchInput} = require('../components')
+{Loading, Icon, Markdown, Gap, SearchInput} = require('../components')
 # cocalc libs
 {defaults, required, optional} = misc = require('@cocalc/util/misc')
 {ICON_NAME} = require('./common')
@@ -26,8 +26,8 @@ inner_style =
 
 # this is similar to Object.assign, but compatible with IE
 title_style  = _.defaults({flex: '0 0 auto'}, inner_style)
-nav_style    = _.defaults({flex: '1 0 auto'}, inner_style)
-search_style = _.defaults({flex: '0 1 auto', marginRight: '50px'}, inner_style)
+nav_style    = _.defaults({flex: '1 1 auto'}, inner_style)
+search_style = _.defaults({flex: '1 1 auto', marginRight: '0', marginLeft: "50%"}, inner_style)
 
 exports.ExamplesHeader = rclass
     displayName : 'ExamplesHeader'
@@ -72,6 +72,7 @@ exports.ExamplesHeader = rclass
                         key      = {idx}
                         eventKey = {key}
                         title    = {name}
+                        style    = {{ padding: 0 }}
                     >
                         {name}
                     </NavItem>
@@ -97,14 +98,16 @@ exports.ExamplesHeader = rclass
             <div style={title_style}>
                 <h2>
                     <Icon name={ICON_NAME} />
-                    <Space/>
+                    <Gap/>
                     {misc.jupyter_language_to_name(@props.lang) if not @props.lang_select} Code Snippets
                 </h2>
             </div>
-            <div style={nav_style}>
-                {@render_nav() if show_lang_nav}
-            </div>
-            <div style={search_style}>
-                {@render_search() if not @props.unknown_lang}
+            <div style={{display: "flex", flexDirection: "column", flex: "1 1 auto", textAlign: "right"}}>
+                <div style={nav_style}>
+                    {@render_nav() if show_lang_nav}
+                </div>
+                <div style={search_style}>
+                    {@render_search() if not @props.unknown_lang}
+                </div>
             </div>
         </div>
