@@ -11,6 +11,7 @@ import { Actions } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { open_new_tab } from "../../misc";
 import getTour from "./tour";
+import { TopBarActions } from "../../project/page/types";
 
 const HELP_URL = "https://doc.cocalc.com/terminal.html";
 
@@ -110,6 +111,10 @@ export class TerminalActions extends Actions {
 
   tour(_id, refs) {
     return getTour(refs);
+  }
+
+  public getTopBarActions(): TopBarActions {
+    return [{ label: "Guide", icon: "magic", action: () => this.guide() }];
   }
 }
 

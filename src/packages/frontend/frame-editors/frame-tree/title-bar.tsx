@@ -1167,7 +1167,7 @@ export const FrameTitleBar: React.FC<Props> = (props: Props) => {
           title={descr}
           bsSize={button_size()}
           onClick={() => {
-            if (typeof props.actions.help === "function") {
+            if (typeof props.actions.guide === "function") {
               props.actions.guide(props.id, props.type);
               track("guide");
             }

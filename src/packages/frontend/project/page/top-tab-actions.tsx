@@ -10,12 +10,14 @@ top right hand side in a project.
 import { Button as AntdButton, Tooltip } from "antd";
 
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import {
   redux,
   redux_name,
   useActions,
   useAsyncEffect,
   useIsMountedRef,
+  useMemo,
   useRedux,
   useState,
   useTypedRedux,
@@ -30,7 +32,6 @@ import { TimeTravelActions } from "@cocalc/frontend/frame-editors/time-travel-ed
 import { getJupyterActions } from "@cocalc/frontend/frame-editors/whiteboard-editor/elements/code/actions";
 import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Button } from "../../antd-bootstrap";
 import { ChatButton } from "./chat-button";
 import { ShareIndicator } from "./share-indicator";
 import { TopBarActions } from "./types";
@@ -79,6 +80,8 @@ function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
 
   useAsyncEffect(async () => {
     setActions(null); // to avoid calling wrong actions
+    setTopBarActions(null);
+    setLoading(true);
     for (let i = 0; i < 100; i++) {
       if (!isMounted.current) return;
       const actions = await redux.getEditorActions(project_id, path);
@@ -86,6 +89,7 @@ function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
         setLoading(false);
         setTopBarActions(actions.getTopBarActions?.());
         setActions(actions);
+        console.log("actions", actions);
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -95,42 +99,47 @@ function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
   if (loading) {
     return <Loading style={{ color: COLORS.GRAY_M, padding: "8px 10px" }} />;
   } else {
+    const name = redux_name(project_id, path);
     return (
       <>
-        {topBarActions?.map((el, index) => {
-          const { action, label, icon } = el;
-          return (
-            <Button key={`${index}`} onClick={action}>
-              <Icon name={icon} /> {label}
-            </Button>
-          );
-        })}
+        <ExtraButtons topBarActions={topBarActions} name={name} />
         <ChatIndicatorTab activeTab={activeTab} project_id={project_id} />
         <ShareIndicatorTab activeTab={activeTab} project_id={project_id} />
-        <TopBarSaveButton
-          project_id={project_id}
-          path={path}
-          actions={actions}
-        />
+        <TopBarSaveButton name={name} actions={actions} />
         <CloseEditor activeTab={activeTab} project_id={project_id} />
       </>
     );
   }
 }
 
+function ExtraButtons({ topBarActions, name }): JSX.Element | null {
+  const local_view_state: Map<string, any> = useRedux(name, "local_view_state");
+
+  function renderButton(conf, index) {
+    const { getAction, label, icon } = conf;
+    const action = conf.action ?? getAction?.(local_view_state);
+
+    return (
+      <Button key={`${index}`} onClick={action} disabled={action == null}>
+        <Icon name={icon} /> {label}
+      </Button>
+    );
+  }
+
+  // the active_id or other view related aspects might change, so we need to
+  // re-render this component if that happens.
+  return useMemo(() => topBarActions?.map(renderButton), [local_view_state]);
+}
+
 interface TopBarSaveButtonProps {
-  project_id: string;
-  path: string;
+  name: string;
   actions: EditorActions | null;
 }
 
 function TopBarSaveButton({
-  project_id,
-  path,
+  name,
   actions,
 }: TopBarSaveButtonProps): JSX.Element | null {
-  const name = redux_name(project_id, path);
-
   const read_only: boolean = useRedux([name, "read_only"]);
   const has_unsaved_changes: boolean = useRedux([name, "has_unsaved_changes"]);
   const has_uncommitted_changes: boolean = useRedux([

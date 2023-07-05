@@ -69,6 +69,7 @@ import {
 import chatgptCreatechat from "../chatgpt/create-chat";
 import type { Scope as ChatGPTScope } from "../chatgpt/types";
 import { default_opts } from "../codemirror/cm-options";
+import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { print_code } from "../frame-tree/print-code";
 import * as tree_ops from "../frame-tree/tree-ops";
 import {
@@ -2114,6 +2115,16 @@ export class Actions<
     return `Format the entire document using '${tool}'.`;
   }
 
+  private _get_available_features() {
+    // Important: this function may be called even if there is no format support,
+    // because it can be called via a keyboard shortcut.  That's why we gracefully
+    // handle this case -- see https://github.com/sagemathinc/cocalc/issues/4180
+    const s = this.redux.getProjectStore(this.project_id);
+    if (s == null) return;
+    // TODO: Using any here since TypeMap is just not working right...
+    return s.get("available_features") as any;
+  }
+
   // ATTN to enable a formatter, you also have to let it show up in the format bar
   // e.g. look into frame-editors/code-editor/editor.ts
   // and the action has_format_support.
@@ -2128,13 +2139,7 @@ export class Actions<
       return;
     }
 
-    // Important: this function may be called even if there is no format support,
-    // because it can be called via a keyboard shortcut.  That's why we gracefully
-    // handle this case -- see https://github.com/sagemathinc/cocalc/issues/4180
-    const s = this.redux.getProjectStore(this.project_id);
-    if (s == null) return;
-    // TODO: Using any here since TypeMap is just not working right...
-    const af: any = s.get("available_features");
+    const af = this._get_available_features();
     if (!this.has_format_support(id, af)) return;
 
     // Definitely have format support
@@ -2939,6 +2944,27 @@ export class Actions<
   }
 
   public getTopBarActions(): TopBarActions {
-    return [];
+    return [
+      {
+        label: "Format",
+        icon: FORMAT_SOURCE_ICON,
+        getAction: () => {
+          const id = this._get_active_id();
+          const af = this._get_available_features();
+          if (this.has_format_support(id, af)) {
+            return () => this.format(id);
+          }
+        },
+      },
+      {
+        label: "Print",
+        icon: "print",
+        getAction: () => {
+          const id = this._get_active_id();
+          if (id == null) return;
+          return () => this.print(id);
+        },
+      },
+    ];
   }
 }
