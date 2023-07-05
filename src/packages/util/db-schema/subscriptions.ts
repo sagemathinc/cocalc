@@ -27,7 +27,7 @@ export interface Subscription {
 
 export const STATUS_TO_COLOR = {
   active: "green",
-  blue: "red",
+  canceled: "blue",
   unpaid: "red",
   past_due: "red",
 };

@@ -21,9 +21,22 @@ The subscriptions look like this in the database:
 ];
 */
 
-import { Alert, Button, Collapse, Spin, Table, Tag } from "antd";
+import {
+  Alert,
+  Button,
+  Collapse,
+  Popconfirm,
+  Space,
+  Spin,
+  Table,
+  Tag,
+} from "antd";
 import { useEffect, useState } from "react";
-import { getSubscriptions as getSubscriptionsUsingApi } from "./api";
+import {
+  getSubscriptions as getSubscriptionsUsingApi,
+  cancelSubscription,
+  resumeSubscription,
+} from "./api";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import { STATUS_TO_COLOR } from "@cocalc/util/db-schema/subscriptions";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
@@ -66,6 +79,7 @@ const columns = [
     },
   },
   {
+    width: "20%",
     title: "Current Period",
     key: "period",
     render: (_, record) => {
@@ -86,9 +100,12 @@ const columns = [
     title: "Status",
     dataIndex: "status",
     key: "status",
-    render: (status) => {
-      return <Tag color={STATUS_TO_COLOR[status]}>{capitalize(status)}</Tag>;
-    },
+    render: (status) => <LicenseStatus status={status} />,
+  },
+  {
+    title: "Action",
+    key: "action",
+    render: (_, { status, id }) => <LicenseActions id={id} status={status} />,
   },
   {
     width: "40%",
@@ -103,6 +120,70 @@ const columns = [
   },
 ];
 
+function LicenseStatus({ status }) {
+  return (
+    <Tag color={STATUS_TO_COLOR[status]}>
+      {capitalize(status.replace("_", " "))}
+    </Tag>
+  );
+}
+
+function LicenseActions({ id, status }) {
+  const [error, setError] = useState<string>("");
+  const handleCancel = async () => {
+    try {
+      setError("");
+      await cancelSubscription(id);
+    } catch (error) {
+      setError(`${error}`);
+    }
+  };
+  const handleResume = async () => {
+    try {
+      setError("");
+      await resumeSubscription(id);
+    } catch (error) {
+      setError(`${error}`);
+    }
+  };
+
+  return (
+    <Space direction="vertical">
+      {error && (
+        <Alert
+          type="error"
+          description={error}
+          style={{ marginBottom: "15px" }}
+          closable
+          onClose={() => setError("")}
+        />
+      )}
+      {(status === "unpaid" || status === "past_due") && (
+        <Button type="primary">Pay Now</Button>
+      )}
+      {status !== "canceled" && (
+        <Popconfirm
+          title="Are you sure you want to cancel this subscription?"
+          onConfirm={handleCancel}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Button type="default">Cancel</Button>
+        </Popconfirm>
+      )}
+      {status == "canceled" && (
+        <Popconfirm
+          title="Are you sure you want to resume this subscription?"
+          onConfirm={handleResume}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Button type="default">Resume</Button>
+        </Popconfirm>
+      )}
+    </Space>
+  );
+}
 function LicenseDescription({ license_id }) {
   return (
     <Collapse>
@@ -141,6 +222,7 @@ export default function Subscriptions() {
     <SettingBox
       title={
         <>
+          <Icon name="calendar" /> Subscriptions
           <Button
             style={{ marginRight: "15px", float: "right" }}
             onClick={() => {
@@ -162,11 +244,14 @@ export default function Subscriptions() {
       {loading ? (
         <Spin />
       ) : (
-        <Table
-          pagination={{ hideOnSinglePage: true, defaultPageSize: 10 }}
-          dataSource={subscriptions ?? undefined}
-          columns={columns}
-        />
+        <div style={{ overflow: "auto", width: "100%" }}>
+          <Table
+            rowKey={"id"}
+            pagination={{ hideOnSinglePage: true, defaultPageSize: 10 }}
+            dataSource={subscriptions ?? undefined}
+            columns={columns}
+          />
+        </div>
       )}
     </SettingBox>
   );

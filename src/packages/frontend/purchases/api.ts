@@ -215,3 +215,15 @@ export async function adminSetMinBalance(
 export async function getLicense(license_id: string) {
   return await api("licenses/get-license", { license_id });
 }
+
+export async function cancelSubscription(subscription_id: number) {
+  return await api("purchases/cancel-subscription", {
+    subscription_id,
+  });
+}
+
+export async function resumeSubscription(subscription_id: number) {
+  return await api("purchases/resume-subscription", {
+    subscription_id,
+  });
+}
