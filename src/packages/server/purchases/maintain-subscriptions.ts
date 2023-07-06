@@ -59,5 +59,13 @@ import getLogger from "@cocalc/backend/logger";
 const logger = getLogger("purchases:maintain-subscriptions");
 
 export default async function maintainSubscriptions() {
-  logger.debug("maintaining active subscriptions");
+  logger.debug("maintaining subscriptions");
+  await updateStatus();
+}
+
+/*
+Update the status field of all subscriptions.
+*/
+async function updateStatus() {
+  logger.debug("updateStatus");
 }

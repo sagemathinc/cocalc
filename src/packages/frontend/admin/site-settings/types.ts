@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export type State = "view" | "load" | "edit" | "save" | "error";
+export type State = "load" | "edit" | "save" | "error";
 
 export type Data = { [name: string]: string };
 

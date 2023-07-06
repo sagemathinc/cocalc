@@ -6,19 +6,13 @@
 import { Alert, Button, Col, Input, InputRef, Modal, Row, Tag } from "antd";
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Well } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
-import {
-  Gap,
-  Icon,
-  Loading,
-  Paragraph,
-  Title,
-} from "@cocalc/frontend/components";
+import { Gap, Icon, Loading, Paragraph } from "@cocalc/frontend/components";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { deep_copy, keys, unreachable } from "@cocalc/util/misc";
@@ -28,11 +22,11 @@ import { Data, IsReadonly, State } from "./types";
 
 const { CheckableTag } = Tag;
 
-export default function SiteSettings({}) {
+export default function SiteSettings({ close }) {
   const { inc: change } = useCounter();
   const testEmailRef = useRef<InputRef>(null);
   const [disableTests, setDisableTests] = useState<boolean>(false);
-  const [state, setState] = useState<State>("view");
+  const [state, setState] = useState<State>("load");
   const [error, setError] = useState<string>("");
   const [data, setData] = useState<Data | null>(null);
   const [filter, setFilter] = useState<string>("");
@@ -42,6 +36,10 @@ export default function SiteSettings({}) {
   const update = () => {
     setData(deep_copy(editedRef.current));
   };
+
+  useEffect(() => {
+    load();
+  }, []);
 
   async function load(): Promise<void> {
     setState("load");
@@ -69,16 +67,6 @@ export default function SiteSettings({}) {
     editedRef.current = deep_copy(data);
     savedRef.current = deep_copy(data);
     setDisableTests(false);
-  }
-
-  function toggleView() {
-    switch (state) {
-      case "view":
-      case "error":
-        load();
-      case "edit":
-        cancel();
-    }
   }
 
   // returns true if the given settings key is a header
@@ -164,7 +152,7 @@ export default function SiteSettings({}) {
         return new Promise<void>(async (done, error) => {
           try {
             await store();
-            setState("view");
+            setState("edit");
             await load();
             done();
           } catch (err) {
@@ -173,7 +161,7 @@ export default function SiteSettings({}) {
         });
       },
       onCancel() {
-        setState("edit");
+        close();
       },
     });
   }
@@ -199,11 +187,6 @@ export default function SiteSettings({}) {
     }
   }
 
-  function cancel(): void {
-    setState("view");
-    setData(deep_copy(savedRef.current));
-  }
-
   function SaveButton() {
     if (data == null || savedRef.current == null) return null;
     let disabled: boolean = true;
@@ -223,7 +206,7 @@ export default function SiteSettings({}) {
   }
 
   function CancelButton() {
-    return <Button onClick={cancel}>Cancel</Button>;
+    return <Button onClick={close}>Cancel</Button>;
   }
 
   function onChangeEntry(name: string, val: string) {
@@ -416,24 +399,6 @@ export default function SiteSettings({}) {
     );
   }, [state, data, filter]);
 
-  function Header() {
-    return (
-      <Title
-        level={4}
-        onClick={() => toggleView()}
-        style={{ cursor: "pointer" }}
-      >
-        <Icon
-          style={{ width: "20px" }}
-          name={state == "edit" ? "caret-down" : "caret-right"}
-        />{" "}
-        Site Settings
-      </Title>
-    );
-  }
-
-  if (state == "view") return <Header />;
-
   return (
     <div>
       {state == "save" && (
@@ -450,7 +415,6 @@ export default function SiteSettings({}) {
           text="Loading site configuration..."
         />
       )}
-      <Header />
       <Well
         style={{
           margin: "auto",

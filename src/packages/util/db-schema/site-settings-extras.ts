@@ -118,7 +118,8 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_min_payment"
   | "pay_as_you_go_openai_markup_percentage"
   | "pay_as_you_go_max_project_upgrades"
-  | "pay_as_you_go_price_project_upgrades";
+  | "pay_as_you_go_price_project_upgrades"
+  | "subscription_maintenance";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -479,6 +480,15 @@ export const EXTRAS: SettingsExtras = {
     name: "Pay As You Go - Price for Project Upgrades",
     desc: 'Example -- `{"cores":50, "memory":7, "disk_quota":0.25, "member_host":4}`. This is a json object, where\n\n- cores = price per month for 1 vCPU\n- memory = price per month for 1GB of RAM\n- disk_quota = price per month for 1GB of disk\n- member_host = non-disk part of non-member hosting cost is divided by this',
     default: '{"cores":50, "memory":7, "disk_quota":0.25, "member_host":4}',
+    show: only_commercial,
+    to_val: from_json,
+    to_display: displayJson,
+    valid: parsableJson,
+  },
+  subscription_maintenance: {
+    name: "Pay As You Go - Subscription Maintenance Parameters",
+    desc: 'Example -- {"email":6, "renew":1, "grace":3}" -- which means:\n\n- **email:** send an email 6 days before the subscription ends with instructions to renew or cancel\n- **renew:** automatically attempt renewal 1 day before subscription ends by debiting account if there is credit in the account\n- **grace:** provide a grace period of 3 days before actually cancelling the subscription and ending the license (user will get charged for those 3 days)',
+    default: '{"email":6, "renew":1, "grace":3}',
     show: only_commercial,
     to_val: from_json,
     to_display: displayJson,
