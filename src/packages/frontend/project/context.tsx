@@ -40,14 +40,20 @@ export const ProjectContext: Context<ProjectContextState> =
     group: undefined,
     project: undefined,
     is_active: false,
-    project_id: "", // this will be defined
+    project_id: "",
     isRunning: undefined,
     status: INIT_PROJECT_STATE,
     hasInternet: undefined,
   });
 
 export function useProjectContext() {
-  return useContext(ProjectContext);
+  const context = useContext(ProjectContext);
+  if (context.project_id === "") {
+    throw new Error(
+      "useProjectContext() must be used inside a <ProjectContext.Provider>"
+    );
+  }
+  return context;
 }
 
 export function useProjectContextProvider(
