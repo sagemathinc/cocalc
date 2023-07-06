@@ -4,57 +4,88 @@
  */
 
 import { path as ASSETS_DIR } from "@cocalc/assets";
+import { Transporter, createTransport } from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
-import { Email } from "email-templates"; // https://email-templates.js.org/
 import { join } from "node:path";
 import { Message } from "./message";
+import { getLogger } from "@cocalc/backend/logger";
+
+const L = getLogger("email:send-templates");
 
 // set this environment variable for your own set of templates
 const TEMPLATES_ROOT =
   process.env.COCALC_EMAIL_TEMPLATES_ROOT ?? join(ASSETS_DIR, "emails");
 
-console.log("TEMPLATES_ROOT", TEMPLATES_ROOT);
+L.debug({ TEMPLATES_ROOT });
 
-let templates: Email | null = null;
+let templates: EmailTemplateSender | null = null;
 
-export function init(transport) {
-  templates = new Email({
-    send: true, // since we do not use NODE_ENV
-    juice: true,
-    // Override juice global settings <https://github.com/Automattic/juice#juicecodeblocks>
-    juiceSettings: {
-      tableElements: ["TABLE"],
-    },
-    juiceResources: {
-      // set this to `true` (since as of v11 it is `false` by default)
-      applyStyleTags: true,
-      webResources: {
-        relativeTo: join(TEMPLATES_ROOT, "assets"),
-      },
-    },
-    transport,
-    views: {
-      root: TEMPLATES_ROOT,
-      options: {
-        extension: "ejs",
-      },
-    },
-  });
+export function init(conf: SMTPTransport.Options, settings) {
+  templates = new EmailTemplateSender(conf, settings);
 }
 
-export async function send(msg: Message): Promise<any> {
+export async function send({ to, subject }): Promise<any> {
   if (templates == null) {
     throw new Error("email templates not initialized");
   }
   return await templates.send({
-    template: "welcome",
-    message: {
-      to: "hsy@cocalc.com",
-    },
+    channel: "welcome",
+    message: { to, subject },
     locals: {
       name: "Test Name",
       siteName: "CoCalc",
-      ...msg,
     },
   });
+}
+
+interface EmailTemplateSendConfig {
+  channel: string;
+  message: { to: string; subject: string; name?: string };
+  locals: Record<string, string>;
+}
+
+class EmailTemplateSender {
+  private mailer: Transporter;
+  private from: string; // email address
+  private name: string; // sender's name
+  private dns: string; // domain name
+
+  constructor(
+    conf: SMTPTransport.Options,
+    settings: { from: string; name: string; dns: string }
+  ) {
+    this.mailer = createTransport({ ...conf, pool: true });
+    this.from = settings.from;
+    this.name = settings.name;
+    this.dns = settings.dns;
+  }
+
+  public async send(conf: EmailTemplateSendConfig): Promise<any> {
+    const { channel, message, locals } = conf;
+
+    const html = `render ${channel} with ${JSON.stringify(locals)}}`;
+    const text = html;
+
+    const msg: Message & { list: any } = {
+      from: `"${this.name}" <${this.from}>`,
+      to: `${message.name ?? ""} <${message.to}>`,
+      subject: message.subject,
+      html,
+      text,
+      list: {
+        unsubscribe: {
+          url: `https://${this.dns}/email/unsubscribe?channel=${channel}&email=${message.to}`,
+          comment: "Unsubscribe from this channel",
+        },
+      },
+    };
+
+    try {
+      const status = await this.mailer.sendMail(msg);
+      L.debug("success sending email:", status);
+    } catch (err) {
+      L.warn("error sending email:", err);
+    }
+  }
 }

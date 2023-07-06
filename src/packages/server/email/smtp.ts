@@ -6,12 +6,11 @@
 import type { Transporter } from "nodemailer";
 import { createTransport } from "nodemailer";
 
+import { DNS } from "@cocalc/util/theme";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { getServerSettings } from "../settings/server-settings";
-// import appendFooter from "./footer";
 import getHelpEmail from "./help";
 import type { Message } from "./message";
-import SMTPTransport from "nodemailer/lib/smtp-transport";
-
 import { init as initTemplates, send as sendTemplates } from "./send-templates";
 
 type BackendType = "email" | "password_reset";
@@ -30,11 +29,7 @@ export default async function sendEmail(
   }
 
   if (!message.from) {
-    if (settings.from) {
-      message.from = settings.from;
-    } else {
-      message.from = await getHelpEmail(); // fallback
-    }
+    message.from = settings.from;
   }
 
   const server = await getServer(settings);
@@ -61,12 +56,18 @@ async function getServer(settings): Promise<{ sendMail: (Message) => any }> {
   server = await createTransport(conf);
   cacheSettings = s;
 
-  initTemplates({ jsonTransport: true });
+  await getServerSettings();
+  initTemplates(conf, {
+    from: settings.from,
+    name: settings.name,
+    dns: settings.dns,
+  });
 
   return { sendMail: sendTemplates };
 }
 
 interface SMTPSettings {
+  dns: string;
   server: string;
   login: string;
   password: string;
@@ -74,6 +75,7 @@ interface SMTPSettings {
   from?: string;
   port?: number;
   pooling?: boolean;
+  name: string;
 }
 
 /**
@@ -88,14 +90,20 @@ async function getEmailServerSettings(
 ): Promise<SMTPSettings> {
   const settings = await getServerSettings();
 
+  const name = settings.site_name || "CoCalc";
+  const from = settings.email_smtp_from || (await getHelpEmail()); // fallback
+  const dns = settings.dns || DNS; // fallback
+
   const defaultSMTP = {
     server: settings.email_smtp_server,
     login: settings.email_smtp_login,
     password: settings.email_smtp_password,
     secure: settings.email_smtp_secure,
-    from: settings.email_smtp_from,
+    from,
     port: settings.email_smtp_port,
     pooling: settings.email_smtp_pooling,
+    name,
+    dns,
   };
 
   if (type == "email") {
@@ -115,6 +123,8 @@ async function getEmailServerSettings(
         from: settings.password_reset_smtp_from,
         port: settings.password_reset_smtp_port,
         pooling: settings.email_smtp_pooling,
+        name,
+        dns,
       };
   }
   throw new Error(
