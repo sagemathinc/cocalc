@@ -29,6 +29,10 @@ export default function costToEditLicense(
   if (info.type == "vouchers") {
     throw Error("bug -- a license for vouchers makes no sense");
   }
+  if (info.subscription) {
+    info = { ...info };
+    info.subscription = "no";
+  }
   log({ info, changes });
 
   const now = new Date();

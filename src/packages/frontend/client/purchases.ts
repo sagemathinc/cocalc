@@ -154,6 +154,12 @@ export class PurchasesClient {
   async getLicense(license_id: string) {
     return await purchasesApi.getLicense(license_id);
   }
+
+  async renewSubscription(
+    subscription_id: number
+  ): Promise<{ purchase_id: number | null }> {
+    return await purchasesApi.renewSubscription(subscription_id);
+  }
 }
 
 async function waitUntilPayAsYouGoModalCloses() {

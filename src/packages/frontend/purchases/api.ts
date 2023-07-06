@@ -227,3 +227,11 @@ export async function resumeSubscription(subscription_id: number) {
     subscription_id,
   });
 }
+
+export async function renewSubscription(
+  subscription_id: number
+): Promise<{ purchase_id: number|null }> {
+  return await api("purchases/renew-subscription", {
+    subscription_id,
+  });
+}

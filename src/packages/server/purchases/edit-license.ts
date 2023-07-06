@@ -18,12 +18,13 @@ interface Options {
   account_id: string;
   license_id: string;
   changes: Changes;
+  cost?: number;
 }
 
 export default async function editLicense(
   opts: Options
 ): Promise<{ purchase_id: number; cost: number }> {
-  const { account_id, license_id, changes } = opts;
+  const { account_id, license_id, changes, cost: cost0 } = opts;
   logger.debug("editLicense", opts);
   if (!(await isManager(license_id, account_id))) {
     throw Error(`${account_id} must be a manager of ${license_id}`);
@@ -54,10 +55,17 @@ export default async function editLicense(
     }
   }
 
-  const { cost, modifiedInfo } = costToEditLicense(info, changes);
-  logger.debug("editLicense -- cost to make the edit: ", cost, modifiedInfo);
+  const { cost: changeCost, modifiedInfo } = costToEditLicense(info, changes);
 
   const service = "edit-license";
+
+  // If a cost is explicitly passed in, then we possibly use that.
+  // This happens for subscriptions.  Note that even for a subscription
+  // we give the user the best of their subscription price or the current
+  // going rate.
+  const cost = cost0 ? Math.min(changeCost, cost0) : changeCost;
+  
+  logger.debug("editLicense -- cost to make the edit: ", cost, modifiedInfo);
   // Is it possible for this user to purchase this change?
   if (cost > 0) {
     await assertPurchaseAllowed({ account_id, service, cost });
