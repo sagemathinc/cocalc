@@ -27,7 +27,7 @@ import {
 } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
-import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
+import type { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
 
 export const LICENSES_STYLE: CSS = {
   margin: "30px 0",

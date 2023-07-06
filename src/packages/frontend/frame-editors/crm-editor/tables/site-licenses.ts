@@ -22,6 +22,7 @@ register({
         run_limit: null,
         apply_limit: null,
         voucher_code: null,
+        subscription_id: null,
       },
     ],
   },

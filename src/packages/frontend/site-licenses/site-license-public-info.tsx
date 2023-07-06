@@ -24,7 +24,7 @@ import {
 } from "@cocalc/frontend/components";
 import { useProjectState } from "@cocalc/frontend/project/page/project-state-hook";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
-import { trunc, unreachable } from "@cocalc/util/misc";
+import { trunc, unreachable, cmp } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import {
@@ -215,8 +215,8 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
 
     setData(
       Object.entries(infos)
-        // sort by UUID, to make the table stable
-        .sort(([a, _a], [b, _b]) => (a < b ? -1 : a > b ? 1 : 0))
+        // sort by most recently created, since recent licenses are more likely to be of interest
+        .sort(([_id, a], [_id2, b]) => -cmp(a.created, b.created))
         // process all values
         .map(([k, v], idx) => {
           // we check if we definitely know the status, otherwise use the date

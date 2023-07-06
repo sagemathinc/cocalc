@@ -15,6 +15,7 @@ export interface SiteLicensePublicInfo {
   id: string;
   title: string;
   description: string;
+  created: Date;
   activates?: Date;
   expires?: Date;
   run_limit?: number;
