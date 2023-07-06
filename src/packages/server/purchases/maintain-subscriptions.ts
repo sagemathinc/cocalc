@@ -54,6 +54,8 @@ subscription, you can be encouraged to have a payment method on file.
 
 */
 
+import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("purchases:maintain-subscriptions");
@@ -65,7 +67,50 @@ export default async function maintainSubscriptions() {
 
 /*
 Update the status field of all subscriptions.
+
+- Set status to 'unpaid' for every subscription with status 'active' for which
+  current_period_end is within subscription_maintenance.request days
+  from right now.
+- Set to 'past_due' every subscription with status 'unpaid' for which current_period_end
+  is in the past.
+- Set to 'canceled' every subscription with status 'unpaid' for which current_period_end
+  is at least subscription_maintenance.grace days in the past.
 */
 async function updateStatus() {
-  logger.debug("updateStatus");
+  const { subscription_maintenance } = await getServerSettings();
+  logger.debug("updateStatus", subscription_maintenance);
+  const pool = getPool();
+
+  // active --> unpaid
+  logger.debug(
+    "updateStatus: active-->unpaid",
+    await pool.query(
+      `UPDATE subscriptions
+   SET status = 'unpaid'
+   WHERE status = 'active'
+   AND current_period_end <= NOW() + INTERVAL '1' DAY * $1`,
+      [subscription_maintenance.request ?? 6]
+    )
+  );
+
+  // unpaid --> past_due
+  logger.debug(
+    "updateStatus: unpaid-->past_due",
+    await pool.query(`UPDATE subscriptions
+   SET status = 'past_due'
+   WHERE status = 'unpaid'
+   AND current_period_end <= NOW()`)
+  );
+
+  // past_due --> canceled
+  logger.debug(
+    "updateStatus: past_due-->canceled",
+    await pool.query(
+      `UPDATE subscriptions
+   SET status = 'canceled'
+   WHERE status = 'past_due'
+   AND current_period_end < NOW() - INTERVAL '1' DAY * $1`,
+      [subscription_maintenance.grace ?? 3]
+    )
+  );
 }

@@ -487,8 +487,8 @@ export const EXTRAS: SettingsExtras = {
   },
   subscription_maintenance: {
     name: "Pay As You Go - Subscription Maintenance Parameters",
-    desc: 'Example -- {"email":6, "renew":1, "grace":3}" -- which means:\n\n- **email:** send an email 6 days before the subscription ends with instructions to renew or cancel\n- **renew:** automatically attempt renewal 1 day before subscription ends by debiting account if there is credit in the account\n- **grace:** provide a grace period of 3 days before actually cancelling the subscription and ending the license (user will get charged for those 3 days)',
-    default: '{"email":6, "renew":1, "grace":3}',
+    desc: 'Example -- {"request":6, "renew":1, "grace":3}" -- which means:\n\n- **requrest:** request payment 6 days before the subscription ends with instructions to renew or cancel\n- **renew:** automatically attempt renewal 1 day before subscription ends by debiting account if there is credit in the account\n- **grace:** provide a grace period of 3 days before actually cancelling the subscription and ending the license (user will get charged for those 3 days)',
+    default: '{"request":6, "renew":1, "grace":3}',
     show: only_commercial,
     to_val: from_json,
     to_display: displayJson,
