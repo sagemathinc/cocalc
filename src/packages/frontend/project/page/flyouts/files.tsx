@@ -11,11 +11,9 @@ import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import {
-  ProjectActions,
   React,
   TypedMap,
   redux,
-  useActions,
   useEffect,
   useIsMountedRef,
   useLayoutEffect,
@@ -51,8 +49,8 @@ import {
   unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../../context";
 import { FIX_BORDER } from "../common";
-import { useProjectState } from "../project-state-hook";
 import { FileListItem, fileItemStyle } from "./components";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 import { FilesBottom } from "./files-bottom";
@@ -86,14 +84,16 @@ function searchToFilename(search: string): string {
   return `${search}.${DEFAULT_EXT}`;
 }
 
-export function FilesFlyout({ project_id }): JSX.Element {
+export function FilesFlyout(): JSX.Element {
+  const {
+    isRunning: projectIsRunning,
+    project_id,
+    actions,
+  } = useProjectContext();
   const isMountedRef = useIsMountedRef();
   const rootRef = useRef<HTMLDivElement>(null);
   const [rootHeightPx, setRootHeightPx] = useState<number>(0);
   const refInput = useRef<InputRef>(null);
-  const actions: ProjectActions | undefined = useActions({ project_id });
-  const project_state = useProjectState(project_id);
-  const projectIsRunning = project_state?.get("state") === "running";
   const current_path = useTypedRedux({ project_id }, "current_path");
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
   const directoryListings = useTypedRedux({ project_id }, "directory_listings");

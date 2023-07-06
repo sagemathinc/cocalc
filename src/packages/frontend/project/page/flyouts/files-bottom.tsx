@@ -68,7 +68,7 @@ interface FilesBottomProps {
   checked_files: immutable.Set<string>;
   activeFile: DirectoryListingEntry | null;
   directoryData: [DirectoryListing, FileMap];
-  projectIsRunning: boolean;
+  projectIsRunning?: boolean;
   rootHeightPx: number;
   open: (
     e: React.MouseEvent | React.KeyboardEvent,
@@ -182,7 +182,7 @@ export function FilesBottom({
   }, [collapseRef.current]);
 
   function renderTerminal() {
-    if (!projectIsRunning) {
+    if (projectIsRunning === false) {
       return (
         <div style={{ padding: FLYOUT_PADDING }}>
           You have to start the project to be able to run a terminal.

@@ -28,6 +28,8 @@ import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 
+export type UserGroup = "admin" | "owner" | "collaborator" | "public";
+
 const openAICache = new LRU<string, boolean>({ max: 50, ttl: 1000 * 60 });
 
 const ZERO_QUOTAS = fromPairs(
@@ -213,9 +215,7 @@ export class ProjectsStore extends Store<ProjectsState> {
        admin and not on the project at all
   'admin' - user is not owner/collaborator but is an admin, hence has rights.
   */
-  public get_my_group(
-    project_id: string
-  ): undefined | "admin" | "owner" | "collaborator" | "public" {
+  public get_my_group(project_id: string): UserGroup | undefined {
     const account_store = redux.getStore("account");
     if (account_store == null) {
       return;

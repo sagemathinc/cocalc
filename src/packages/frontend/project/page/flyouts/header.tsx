@@ -5,7 +5,6 @@
 
 import { Tooltip } from "antd";
 
-import { useActions } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
 import { PathNavigator } from "../../explorer/path-navigator";
@@ -14,17 +13,17 @@ import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log";
+import { useProjectContext } from "../../context";
 
 interface Props {
-  project_id: string;
   flyoutWidth: number;
   flyout: FixedTab;
   narrowerPX: number;
 }
 
 export function FlyoutHeader(_: Readonly<Props>) {
-  const { flyout, flyoutWidth, project_id, narrowerPX = 0 } = _;
-  const actions = useActions({ project_id });
+  const { flyout, flyoutWidth, narrowerPX = 0 } = _;
+  const { actions, project_id } = useProjectContext();
 
   function renderDefaultTitle() {
     const title = FIXED_PROJECT_TABS[flyout].flyoutTitle;

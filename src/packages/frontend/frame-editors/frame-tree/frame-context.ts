@@ -11,11 +11,12 @@
 // and you get the project_id, path, and id of that particular
 // frame, and probably more as we need it.
 
-import { createContext, useContext } from "react";
-import { Actions } from "../code-editor/actions";
 import { Map } from "immutable";
+import { createContext, useContext } from "react";
+
 import { useRedux } from "@cocalc/frontend/app-framework/redux-hooks";
 import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema/defaults";
+import { Actions } from "../code-editor/actions";
 
 export interface IFrameContext<T = Actions> {
   id: string;
