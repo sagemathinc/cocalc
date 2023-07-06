@@ -37,12 +37,27 @@ export default async function sendEmail(
   await server.sendMail(message);
 }
 
-let server: undefined | Transporter = undefined;
-let cacheSettings = ""; // what settings were used to compute cached server.
-async function getServer(settings): Promise<{ sendMail: (Message) => any }> {
-  const s = JSON.stringify(settings);
-  if (server !== undefined && s == cacheSettings) return server;
-  // https://nodemailer.com/smtp/pooled/ -- missing in @types/nodemailer
+export async function sendTemplateEmail(message: {
+  to: string;
+  name: string;
+  channel: string;
+  locals: Record<string, string>;
+  subject: string;
+}): Promise<void> {
+  const settings = await getSMTPSettings("email");
+
+  const conf = getConf(settings);
+
+  initTemplates(conf, {
+    from: settings.from,
+    name: settings.name,
+    dns: settings.dns,
+  });
+
+  await sendTemplates(message);
+}
+
+function getConf(settings) {
   const conf: SMTPTransport.Options & { pool: boolean } = {
     host: settings.server,
     port: settings.port,
@@ -53,17 +68,19 @@ async function getServer(settings): Promise<{ sendMail: (Message) => any }> {
     },
     pool: settings.pooling === true,
   };
+  return conf;
+}
+
+let server: undefined | Transporter = undefined;
+let cacheSettings = ""; // what settings were used to compute cached server.
+async function getServer(settings): Promise<{ sendMail: (Message) => any }> {
+  const s = JSON.stringify(settings);
+  if (server !== undefined && s == cacheSettings) return server;
+  // https://nodemailer.com/smtp/pooled/ -- missing in @types/nodemailer
+  const conf = getConf(settings);
   server = await createTransport(conf);
   cacheSettings = s;
-
-  await getServerSettings();
-  initTemplates(conf, {
-    from: settings.from,
-    name: settings.name,
-    dns: settings.dns,
-  });
-
-  return { sendMail: sendTemplates };
+  return server;
 }
 
 interface SMTPSettings {
