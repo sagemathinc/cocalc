@@ -1,3 +1,19 @@
+/*
+Edit an existing license.  Most changes are allowed, and the user is automatically charged for
+the requested changes.
+
+Some interesting notes and special cases:
+
+- One special case is when a subscription changes a license by updating the end date.  Subscriptions
+  have a fixed cost associated with them, and that is explicitly passed in to ensure that even if rates
+  go up, users still get the subscription price. Also, the price each month is the same, even though
+  the number of days in a month varies.
+
+- Another special case is editing a license that happens to be associated to a subscription. When this
+  happens, we update the cost of the subscription.  Otherwise, the user could change the license to
+  be much more expensive, but still get the subscription rate.
+*/
+
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
@@ -64,7 +80,7 @@ export default async function editLicense(
   // we give the user the best of their subscription price or the current
   // going rate.
   const cost = cost0 ? Math.min(changeCost, cost0) : changeCost;
-  
+
   logger.debug("editLicense -- cost to make the edit: ", cost, modifiedInfo);
   // Is it possible for this user to purchase this change?
   if (cost > 0) {

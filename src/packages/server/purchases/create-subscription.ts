@@ -51,5 +51,11 @@ export default async function createSubscription(
     ]
   );
   const { id } = rows[0];
+  if (opts.metadata.type == "license") {
+    await pool.query(
+      "UPDATE site_licenses SET subscription_id=$1 WHERE id=$2",
+      [id, opts.metadata.license_id]
+    );
+  }
   return id;
 }

@@ -96,6 +96,11 @@ Table({
       type: "string",
       desc: "If this license was created using a voucher, then this is the code of that voucher.",
     },
+    subscription_id: {
+      type: "integer",
+      descr:
+        "If this license automatically renews due to a subscription, then this is the id of that subscription.",
+    },
   },
   rules: {
     desc: "Site Licenses",
@@ -128,6 +133,7 @@ Table({
           run_limit: null,
           apply_limit: null,
           voucher_code: null,
+          subscription_id: null,
         },
       },
       set: {
@@ -175,6 +181,7 @@ Table({
     quota: true,
     run_limit: true,
     apply_limit: true,
+    subscription_id: true,
   },
   rules: {
     virtual: true, // don't make an actual table
@@ -200,6 +207,7 @@ Table({
           quota: null,
           run_limit: null,
           apply_limit: null,
+          subscription_id: null,
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         // We also completely ignore the user-requested fields and just return everything, since
@@ -550,6 +558,7 @@ Table({
     run_limit: true,
     apply_limit: true,
     voucher_code: true,
+    subscription_id: true,
   },
   rules: {
     virtual: "site_licenses", // don't make an actual table
@@ -574,6 +583,7 @@ Table({
           run_limit: null,
           apply_limit: null,
           voucher_code: null,
+          subscription_id: null,
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         // We also completely ignore the user-requested fields and just return everything, since

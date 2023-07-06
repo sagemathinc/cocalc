@@ -58,6 +58,21 @@ export default function Checkout() {
     updateParams();
   }, []);
 
+  // handle ?complete -- i.e., what happens after successfully paying
+  // for a purchase - we do ANOTHER completePurchase, and for the second
+  // one no additional payment is required, so in this case user actually
+  // gets the items and goes to the congrats page.  Unless, of course,
+  // they try to be sneaky and add something to their cart right *after*
+  // paying... in which case they will just get asked for additional
+  // money for that last thing. :-)
+  useEffect(() => {
+    if (router.query.complete == null) {
+      // nothing to handle
+      return;
+    }
+    completePurchase();
+  }, []);
+  
   if (error) {
     return (
       <Alert
@@ -118,21 +133,6 @@ export default function Checkout() {
       setError(err.message);
     }
   };
-
-  // handle ?complete -- i.e., what happens after successfully paying
-  // for a purchase - we do ANOTHER completePurchase, and for the second
-  // one no additional payment is required, so in this case user actually
-  // gets the items and goes to the congrats page.  Unless, of course,
-  // they try to be sneaky and add something to their cart right *after*
-  // paying... in which case they will just get asked for additional
-  // money for that last thing. :-)
-  useEffect(() => {
-    if (router.query.complete == null) {
-      // nothing to handle
-      return;
-    }
-    completePurchase();
-  }, []);
 
   if (params == null) {
     return (
