@@ -641,7 +641,11 @@ function compute_snapshot_display_names(listing): void {
 }
 
 // Mutates data to include info on public paths.
-function mutate_data_to_compute_public_files(data, public_paths, current_path) {
+export function mutate_data_to_compute_public_files(
+  data,
+  public_paths,
+  current_path
+) {
   const { listing } = data;
   const pub = data.public;
   if (public_paths != null && public_paths.size > 0) {

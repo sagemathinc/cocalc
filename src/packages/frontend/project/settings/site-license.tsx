@@ -7,19 +7,22 @@
 // src/@cocalc/frontend/course/configuration/upgrades.tsx
 
 import { Button, Card, Popover } from "antd";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   redux,
   Rendered,
+  useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Paragraph, Text } from "@cocalc/frontend/components";
+import { Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
+import track from "@cocalc/frontend/user-tracking";
 import { unreachable } from "@cocalc/util/misc";
 import {
   licenseToGroupKey,
@@ -27,11 +30,11 @@ import {
 } from "@cocalc/util/upgrades/quota";
 import { isBoostLicense } from "@cocalc/util/upgrades/utils";
 import { SiteLicense as SiteLicenseT } from "./types";
-import track from "@cocalc/frontend/user-tracking";
 
 interface Props {
   project_id: string;
   site_license?: SiteLicenseT; // of that project!
+  mode?: "project" | "flyout";
 }
 
 interface ALOpts {
@@ -56,7 +59,13 @@ export async function applyLicense(opts: ALOpts): Promise<void> {
 }
 
 export const SiteLicense: React.FC<Props> = (props: Props) => {
-  const { project_id, site_license } = props;
+  const { project_id, site_license, mode = "project" } = props;
+  const isFlyout = mode === "flyout";
+
+  const haveLicenses = useMemo(
+    () => (site_license?.size ?? 0) > 0,
+    [site_license]
+  );
 
   // all licenses known to the client, not just for the project
   const managed_licenses = useTypedRedux("billing", "managed_licenses");
@@ -161,6 +170,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
           site_licenses={site_licenses}
           project_id={project_id}
           restartAfterRemove={true}
+          mode={mode}
         />
       </div>
     );
@@ -168,9 +178,17 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
 
   function render_title(): Rendered {
     return (
-      <h4>
+      <Title
+        level={4}
+        style={
+          isFlyout ? { paddingLeft: "5px", paddingRight: "5px" } : undefined
+        }
+      >
         <Icon name="key" /> Licenses
-      </h4>
+        {isFlyout ? (
+          <span style={{ float: "right" }}>{render_extra()}</span>
+        ) : undefined}
+      </Title>
     );
   }
 
@@ -187,31 +205,58 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
     );
   }
 
-  return (
-    <Card
-      title={render_title()}
-      extra={render_extra()}
-      type="inner"
-      style={{ marginTop: "15px" }}
-      bodyStyle={{ padding: "0px" }}
-    >
-      {render_current_licenses()}
-      <br />
-      <div style={{ padding: "15px" }}>
-        <Button
-          size="large"
-          onClick={() => set_show_site_license(true)}
-          disabled={show_site_license}
-        >
-          <Icon name="key" /> Upgrade using a license key...
-        </Button>
-        {render_site_license_text()}
+  function renderBody() {
+    return (
+      <>
+        {isFlyout && haveLicenses ? (
+          <Paragraph type="secondary" style={{ padding: "5px" }}>
+            Information about attached licenses. Click on a row to expand
+            details.
+          </Paragraph>
+        ) : undefined}
+        {render_current_licenses()}
         <br />
-        <br />
-        <span style={{ fontSize: "13pt" }}>
-          <BuyLicenseForProject project_id={project_id} />
-        </span>
+        <div style={{ padding: isFlyout ? "5px" : "15px" }}>
+          <Button
+            size={isFlyout ? "middle" : "large"}
+            onClick={() => set_show_site_license(true)}
+            disabled={show_site_license}
+          >
+            <Icon name="key" /> Upgrade using a license key...
+          </Button>
+          {render_site_license_text()}
+          <br />
+          <br />
+          <span style={{ fontSize: "13pt" }}>
+            <BuyLicenseForProject
+              wrap={isFlyout}
+              project_id={project_id}
+              size={isFlyout ? "middle" : "large"}
+            />
+          </span>
+        </div>
+      </>
+    );
+  }
+
+  if (isFlyout) {
+    return (
+      <div style={{ marginTop: "20px" }}>
+        {render_title()}
+        {renderBody()}
       </div>
-    </Card>
-  );
+    );
+  } else {
+    return (
+      <Card
+        title={render_title()}
+        extra={render_extra()}
+        type="inner"
+        style={{ marginTop: "15px" }}
+        bodyStyle={{ padding: "0px" }}
+      >
+        {renderBody()}
+      </Card>
+    );
+  }
 };

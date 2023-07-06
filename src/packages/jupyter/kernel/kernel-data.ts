@@ -22,6 +22,28 @@ const cache = new LRU<"kernel_data", KernelSpec[]>({
   max: 5 /* silly since only one possible key */,
 });
 
+/**
+ * just an edge case for Macaulay2. Full data looks like this:
+ * m2: {
+    name: 'm2',
+    files: [ ... ],
+    resources_dir: '...',
+    spec: {
+      argv: [...],
+      display_name: 'M2',
+      language: 'text/x-macaulay2',
+      codemirror_mode: 'macaulay2'
+    }
+  },
+ */
+function spec2language(spec): string {
+  if (spec.language === "text/x-macaulay2") {
+    return "Macaulay2";
+  } else {
+    return spec.language;
+  }
+}
+
 export async function get_kernel_data(): Promise<KernelSpec[]> {
   let x = cache.get("kernel_data");
   if (x != null) {
@@ -34,7 +56,7 @@ export async function get_kernel_data(): Promise<KernelSpec[]> {
     v.push({
       name: kernel,
       display_name: value.spec.display_name,
-      language: value.spec.language,
+      language: spec2language(value.spec),
       // @ts-ignore
       interrupt_mode: value.spec.interrupt_mode,
       env: value.spec.env ?? {},

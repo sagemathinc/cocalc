@@ -6,10 +6,9 @@
 // This is for selecting the "standard" compute images Ubuntu XX.YY, etc.
 
 import { DownOutlined } from "@ant-design/icons";
-import { Button, Dropdown, MenuProps } from "antd";
+import { Button, Dropdown, MenuProps, Col, Row } from "antd";
 import { fromJS } from "immutable";
 
-import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Gap, Text } from "@cocalc/frontend/components";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
@@ -127,7 +126,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   function render_selector() {
     return (
       <Dropdown menu={getMenu()} trigger={["click"]}>
-        <Button onBlur={onBlur} onFocus={onFocus}>
+        <Button onBlur={onBlur} onFocus={onFocus} size="small">
           {selected_title} <DownOutlined />
         </Button>
       </Dropdown>
@@ -153,10 +152,17 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
     const extra = registry && tag ? `(${registry}:${tag})` : null;
 
     return (
-      <Text italic={italic}>
-        {desc}
-        {extra ? <Text type="secondary"> {extra}</Text> : null}
-      </Text>
+      <>
+        <Text italic={italic}>{desc}</Text>
+        {extra ? (
+          <>
+            {" "}
+            <Text type="secondary" italic={italic}>
+              {extra}
+            </Text>
+          </>
+        ) : null}
+      </>
     );
   }
 
@@ -164,30 +170,36 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
     case "vertical":
       // used in project settings → project control
       return (
-        <Col xs={12}>
-          <Row style={{ fontSize: "12pt" }}>
+        <Row gutter={[10, 10]} style={{ marginRight: 0, marginLeft: 0 }}>
+          <Col xs={24}>
             <Icon name={"hdd"} style={{ marginTop: "5px" }} />
             <Gap />
             Selected image
             <Gap />
             {render_selector()}
-            <Gap />
+          </Col>
+          <Col xs={24} style={{ marginRight: 0, marginLeft: 0 }}>
             {render_doubt()}
-          </Row>
-          <Row>{render_info(true)}</Row>
-        </Col>
+          </Col>
+          <Col xs={24} style={{ marginRight: 0, marginLeft: 0 }}>
+            {render_info(true)}
+          </Col>
+        </Row>
       );
     case "horizontal":
       // used in projects → create new project
       return (
-        <Col xs={12}>
-          <Icon name={"hdd"} />
-          <Gap />
-          <span style={{ fontSize: "12pt", fontWeight: "bold" }}>
-            {render_selector()}
-          </span>
-          <span style={{ marginLeft: "10px" }}>{render_info(false)}</span>
-        </Col>
+        <Row gutter={[10, 10]}>
+          <Col xs={24}>
+            <Icon name={"hdd"} />
+            <Gap />
+            <span style={{ fontSize: "12pt", fontWeight: "bold" }}>
+              {render_selector()}
+            </span>
+            <Gap />
+            <span>{render_info(false)}</span>
+          </Col>
+        </Row>
       );
     default:
       unreachable(layout);

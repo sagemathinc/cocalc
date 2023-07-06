@@ -3,23 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Typography } from "antd";
+import { replace } from "lodash";
+
 import { SSHKeyAdder } from "@cocalc/frontend/account/ssh-keys/ssh-key-adder";
 import { SSHKeyList } from "@cocalc/frontend/account/ssh-keys/ssh-key-list";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { replace } from "lodash";
 import { Project } from "./types";
-import { Typography } from "antd";
 
 const { Text, Paragraph } = Typography;
 
 interface Props {
   project: Project;
   account_id?: string;
+  mode?: "project" | "flyout";
 }
 
-export function SSHPanel({ project }: Props) {
+export function SSHPanel({ project, mode = "project" }: Props) {
   const ssh_gateway_dns = useTypedRedux("customize", "ssh_gateway_dns");
   const ssh_gateway_fingerprint = useTypedRedux(
     "customize",
@@ -52,18 +54,12 @@ export function SSHPanel({ project }: Props) {
         <hr />
         <Paragraph>
           Use the following <Text code>username@host</Text> to connect to this
-          project:
-        </Paragraph>
-        <Paragraph
-          copyable={{ text }}
-          style={{
-            textAlign: "center",
-            fontSize: "115%",
-          }}
-        >
-          <Text strong code>
-            {text}
-          </Text>
+          project:{" "}
+          <Paragraph copyable={{ text }} style={{ display: "inline" }}>
+            <Text code style={{ fontWeight: "bold", whiteSpace: "pre-wrap" }}>
+              {text}
+            </Text>
+          </Paragraph>
         </Paragraph>
         {render_fingerprint()}
         <Paragraph>
@@ -82,7 +78,11 @@ export function SSHPanel({ project }: Props) {
   ]);
 
   return (
-    <SSHKeyList ssh_keys={ssh_keys} project_id={project.get("project_id")}>
+    <SSHKeyList
+      ssh_keys={ssh_keys}
+      project_id={project.get("project_id")}
+      mode={mode}
+    >
       <>
         <p>
           Easily access this project directly via SSH by adding an ssh public

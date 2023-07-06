@@ -33,6 +33,7 @@ interface Props {
   title?: string;
   style?: React.CSSProperties;
   body_style?: React.CSSProperties;
+  componentStyle?: React.CSSProperties;
   bsStyle?: string;
   onClose?: () => void;
   banner?: boolean;
@@ -44,6 +45,7 @@ export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
     error_component,
     title,
     body_style,
+    componentStyle,
     style,
     bsStyle,
     onClose,
@@ -128,7 +130,7 @@ export const ErrorDisplay: React.FC<Props> = React.memo((props: Props) => {
   const divprops = banner ? { className: "cc-error-display" } : undefined;
 
   return (
-    <div {...divprops}>
+    <div {...divprops} style={componentStyle}>
       {render_close()}
       {render_alert()}
     </div>

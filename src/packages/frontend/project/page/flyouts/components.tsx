@@ -8,13 +8,15 @@ import {
   orange as ANTD_ORANGE,
   yellow as ANTD_YELLOW,
 } from "@ant-design/colors";
-import { Tooltip } from "antd";
+import { Button, Tooltip } from "antd";
 
-import { CSS, useRef } from "@cocalc/frontend/app-framework";
+import { CSS, React, useRef, useState } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import { file_options } from "@cocalc/frontend/editor-tmp";
 import { hexColorToRGBA } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
+import { FLYOUT_PADDING } from "./consts";
 
 // make sure two types of borders are of the same width
 const BORDER_WIDTH_PX = "4px";
@@ -47,7 +49,7 @@ const FILE_ITEM_BODY_STYLE: CSS = {
   display: "flex",
   flexDirection: "row",
   flex: "1",
-  padding: "5px",
+  padding: FLYOUT_PADDING,
 } as const;
 
 const FILE_ITEM_LINE_STYLE: CSS = {
@@ -63,35 +65,55 @@ const FILE_ITEM_LINE_STYLE: CSS = {
   color: COLORS.GRAY_D,
 } as const;
 
-const ICON_STYLE: CSS = { fontSize: "120%", marginRight: "5px" } as const;
+const ICON_STYLE: CSS = {
+  fontSize: "120%",
+  marginRight: FLYOUT_PADDING,
+} as const;
+
+const BTN_STYLE: CSS = {
+  fontSize: "11px",
+  height: "20px",
+  width: "20px",
+} as const;
 
 interface Item {
   isopen?: boolean;
+  isdir?: boolean;
   isactive?: boolean;
+  is_public?: boolean;
   name: string;
 }
 
 interface FileListItemProps {
   onClick?: (e: React.MouseEvent) => void;
   onClose?: (e: React.MouseEvent | undefined, name: string) => void;
+  onPublic?: (e: React.MouseEvent) => void;
+  onMouseDown?: (e: React.MouseEvent, name: string) => void;
+  onChecked?: (state: boolean) => void;
   itemStyle?: CSS;
   item: Item;
-  renderIcon: (item: Item, style: CSS) => JSX.Element;
   tooltip?: JSX.Element | string;
   selected?: boolean;
   multiline?: boolean;
+  showCheckbox?: boolean;
 }
 
-export function FileListItem({
-  onClick,
-  onClose,
-  item,
-  renderIcon,
-  itemStyle,
-  tooltip,
-  selected,
-  multiline = false,
-}: FileListItemProps): JSX.Element {
+export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
+  const {
+    onClick,
+    onClose,
+    onPublic,
+    onChecked,
+    item,
+    itemStyle,
+    tooltip,
+    selected,
+    onMouseDown,
+    multiline = false,
+    showCheckbox,
+  } = props;
+  const [hover, setHover] = useState(false);
+
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +128,24 @@ export function FileListItem({
           onClose?.(e, name);
         }}
       />
+    );
+  }
+
+  function renderPublishedIcon(): JSX.Element | undefined {
+    if (!item.is_public) return undefined;
+    return (
+      <Tooltip title="File is published" placement="right">
+        <Button
+          size="small"
+          type="ghost"
+          style={BTN_STYLE}
+          icon={<Icon name="bullhorn" />}
+          onClick={(e) => {
+            e.stopPropagation();
+            onPublic?.(e);
+          }}
+        />
+      </Tooltip>
     );
   }
 
@@ -124,19 +164,50 @@ export function FileListItem({
   }
 
   function handleClick(e: React.MouseEvent): void {
-    // this prevents clicks on the dropdown menu (and it its items) from
-    // triggering the onClick handler – TODO will be replaced by something better
     if (e.target === itemRef.current || e.target === bodyRef.current) {
       e.stopPropagation();
       onClick?.(e);
     }
   }
 
+  function renderBodyLeft(): JSX.Element {
+    const iconName =
+      (showCheckbox || hover) && item.name !== ".."
+        ? selected
+          ? "check-square"
+          : "square"
+        : item.isdir
+        ? "folder-open"
+        : file_options(item.name)?.icon ?? "file";
+
+    return (
+      <Icon
+        name={iconName}
+        style={ICON_STYLE}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        onClick={(e) => {
+          e?.stopPropagation();
+          onChecked?.(!selected);
+        }}
+      />
+    );
+  }
+
   function renderBody(): JSX.Element {
     const el = (
-      <div ref={bodyRef} style={FILE_ITEM_BODY_STYLE} onClick={handleClick}>
-        {renderIcon(item, ICON_STYLE)} {renderItem()}
-        {item.isopen ? renderCloseItem(item) : null}
+      <div
+        ref={bodyRef}
+        style={FILE_ITEM_BODY_STYLE}
+        onClick={handleClick}
+        onMouseDown={(e) => {
+          onMouseDown?.(e, item.name);
+        }}
+        // additional mouseLeave to prevent stale hover state icon
+        onMouseLeave={() => setHover(false)}
+      >
+        {renderBodyLeft()} {renderItem()} {renderPublishedIcon()}
+        {item.isopen ? renderCloseItem(item) : undefined}
       </div>
     );
 
@@ -156,6 +227,8 @@ export function FileListItem({
   return (
     <div
       className="cc-project-flyout-file-item"
+      // additional mouseLeave to prevent stale hover state icon
+      onMouseLeave={() => setHover(false)}
       style={{
         ...FILE_ITEM_LINE_STYLE,
         ...(item.isopen
@@ -170,7 +243,7 @@ export function FileListItem({
       {renderBody()}
     </div>
   );
-}
+});
 
 // Depending on age, highlight  entries from the past past 24 hours and week
 export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {

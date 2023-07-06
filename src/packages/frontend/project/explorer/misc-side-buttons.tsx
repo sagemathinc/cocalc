@@ -18,6 +18,7 @@ import React from "react";
 import { serverURL, SPEC } from "../named-server-panel";
 import track from "@cocalc/frontend/user-tracking";
 import TourButton from "./tour/button";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 interface Props {
   actions: ProjectActions;
@@ -94,7 +95,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   function render_backup(): JSX.Element | undefined {
     // NOTE -- snapshots aren't available except in "kucalc" version
     // -- they are complicated nontrivial thing that isn't usually setup...
-    if (kucalc !== "yes") {
+    if (kucalc !== KUCALC_COCALC_COM) {
       return;
     }
     return (

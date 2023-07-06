@@ -18,6 +18,7 @@ import {
 import {
   Icon,
   Loading,
+  Paragraph,
   SettingBox,
   Title,
   UpgradeAdjustor,
@@ -77,6 +78,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       dedicated_resources,
       mode,
     } = props;
+    const isFlyout = mode === "flyout";
     const actions: ProjectsActions = useActions("projects");
     const project_actions = useActions({ project_id });
     const account_groups: List<string> =
@@ -272,18 +274,19 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     function renderOpenDisk(disk: DedicatedDisk): Rendered {
       if (typeof disk === "boolean" || disk.name == null) return; // should never happen
       return (
-        <Button
-          type="link"
-          onClick={() =>
+        <a
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             // NOTE: there is usually symlink disks/x → /local/... but we can't rely on it,
             // because the project only creates that symlink if there isn't a file/dir already with that name
             project_actions?.open_directory(
               join(".smc/root/", ROOT, `/${disk.name}/`)
-            )
-          }
+            );
+          }}
         >
           {dedicatedDiskDisplay(disk)} <Icon name="external-link" />
-        </Button>
+        </a>
       );
     }
 
@@ -323,12 +326,31 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       return (
         <>
           <hr />
-          <span style={{ color: COLORS.GRAY }}>
+          <Paragraph type="secondary">
             If you have any questions about upgrading a project, create a{" "}
-            <ShowSupportLink />, or email <HelpEmailLink /> and include the
-            following URL:
-            <URLBox />
-          </span>
+            <ShowSupportLink />
+            {isFlyout ? (
+              <>
+                , or email <HelpEmailLink /> and mention the project id:{" "}
+                <Paragraph
+                  style={{
+                    display: "inline",
+                    color: COLORS.GRAY,
+                    fontWeight: "bold",
+                  }}
+                  copyable={{ text: project_id }}
+                >
+                  {project_id}
+                </Paragraph>
+                .
+              </>
+            ) : (
+              <>
+                , or email <HelpEmailLink /> and include the following URL:
+                <URLBox />
+              </>
+            )}
+          </Paragraph>
         </>
       );
     }
@@ -340,9 +362,13 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         <SiteLicense
           project_id={project_id}
           site_license={project.get("site_license") as any}
+          mode={mode}
         />
       );
     }
+
+    // This is is just a precaution, since "project" isn't properly typed
+    if (project == null) return <Loading theme="medium" transparent />;
 
     switch (mode) {
       case "project":
@@ -365,9 +391,21 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       case "flyout":
         return (
           <>
-            <Title level={4}>Usage and quotas</Title>
+            <Title level={4}>Usage and Quotas</Title>
+            <Paragraph
+              type="secondary"
+              ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
+            >
+              This table lists project quotas, their current usage, and their
+              value/limit. Click on a row to show more details about it. If the
+              project is not running, you see the last known quota values.
+            </Paragraph>
             {render_run_quota()}
-            {/* TODO add more of the other things later, as collapsable blocks */}
+            {render_upgrades_button()}
+            {render_quota_console()}
+            {render_dedicated_disks()}
+            {render_site_license()}
+            {render_support()}
           </>
         );
     }

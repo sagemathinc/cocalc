@@ -10,7 +10,7 @@ of course, a disaster waiting to happen.  They all need to
 be in a single namespace somehow...!
 */
 
-import { Button, Card, Col, Row, Space, Switch, Tag } from "antd";
+import { Button, Card, Col, Row, Space, Tag } from "antd";
 
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -147,68 +147,56 @@ export const ProjectSearchBody: React.FC<{
   }
 
   function renderHeaderFlyout() {
-    const divStyle = { cursor: "pointer", padding: "2px 5px" };
     return (
-      <Space style={{ padding: "5px" }} direction="vertical">
+      <div style={{ flexDirection: "column", padding: "5px" }}>
         <ProjectSearchInput
           project_id={project_id}
           neural={neural_search}
           git={!neural_search && git_grep}
           small={true}
         />
-        <div
-          onClick={() => actions?.toggle_search_checkbox_subdirectories()}
-          style={divStyle}
+        <Checkbox
+          disabled={neural_search}
+          checked={subdirectories}
+          onChange={() => actions?.toggle_search_checkbox_subdirectories()}
         >
-          <Switch
-            size="small"
-            disabled={neural_search}
-            checked={subdirectories}
-          />{" "}
           <Icon name="folder-open" /> Sub-directories
-        </div>
-        <div
-          onClick={() => actions?.toggle_search_checkbox_case_sensitive()}
-          style={divStyle}
+        </Checkbox>
+        <Checkbox
+          disabled={neural_search}
+          checked={case_sensitive}
+          onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
         >
-          <Switch
-            size="small"
-            disabled={neural_search}
-            checked={case_sensitive}
-          />{" "}
           <Icon name="font-size" /> Case-sensitive
-        </div>
-        <div
-          onClick={() => actions?.toggle_search_checkbox_hidden_files()}
-          style={divStyle}
+        </Checkbox>
+        <Checkbox
+          disabled={neural_search}
+          checked={hidden_files}
+          onChange={() => actions?.toggle_search_checkbox_hidden_files()}
         >
-          <Switch
-            size="small"
-            disabled={neural_search}
-            checked={hidden_files}
-          />{" "}
           <Icon name="eye-slash" /> Hidden files{" "}
           <HelpIcon title="Hidden files">
             On Linux, hidden files start with a dot, e.g., ".bashrc".
           </HelpIcon>
-        </div>
-        <div
-          onClick={() => actions?.toggle_search_checkbox_git_grep()}
-          style={divStyle}
+        </Checkbox>
+        <Checkbox
+          disabled={neural_search}
+          checked={git_grep}
+          onChange={() => actions?.toggle_search_checkbox_git_grep()}
         >
-          <Switch size="small" disabled={neural_search} checked={git_grep} />{" "}
           <Icon name="git" /> Git search{" "}
           <HelpIcon title="Git search">
             If directory is in a Git repository, uses "git grep" to search for
             files.
           </HelpIcon>
-        </div>
+        </Checkbox>
         {neural_search_enabled && (
-          <div
-            onClick={() => actions?.setState({ neural_search: !neural_search })}
-            style={divStyle}
+          <Checkbox
+            checked={neural_search}
+            onChange={() =>
+              actions?.setState({ neural_search: !neural_search })
+            }
           >
-            <Switch size="small" checked={neural_search} />{" "}
             <Icon name="robot" /> Neural search <Tag color="green">New</Tag>{" "}
             <HelpIcon title="Neural search">
               This novel search uses{" "}
@@ -219,9 +207,9 @@ export const ProjectSearchBody: React.FC<{
               recently edited files using a neural network similarity algorithm.
               Indexed file types: jupyter, tasks, chat, whiteboards, and slides.
             </HelpIcon>
-          </div>
+          </Checkbox>
         )}
-      </Space>
+      </div>
     );
   }
 
@@ -583,7 +571,7 @@ function ProjectSearchResultLine(_: Readonly<ProjectSearchResultLineProps>) {
         onClick={click_filename}
         extra={
           <CopyButton
-            value={description}
+            value={stripLineNumber(description)}
             noText
             size="small"
             style={{ padding: "0 5px" }}
@@ -631,4 +619,17 @@ function Snippet({
       style={style}
     />
   );
+}
+
+/**
+ * If the description starts with a line number and a colon, e.g. "21:foo", remove it.
+ * https://github.com/sagemathinc/cocalc/issues/6794
+ */
+function stripLineNumber(description: string): string {
+  const match = description.match(/^\d+:/);
+  if (match) {
+    return description.slice(match[0].length);
+  } else {
+    return description;
+  }
 }

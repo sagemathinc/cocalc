@@ -12,6 +12,7 @@ import { PathNavigator } from "../../explorer/path-navigator";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
+import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log";
 
 interface Props {
@@ -52,7 +53,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
           style={{
             flex: "0",
             float: "right",
-            padding: "5px",
+            padding: FLYOUT_PADDING,
             borderRadius: "2px",
             margin: "0",
           }}
@@ -84,6 +85,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              fontWeight: "bold",
             }}
           >
             <Icon
@@ -100,7 +102,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
         );
       default:
         return (
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, fontWeight: "bold" }}>
             {renderIcon()} {renderDefaultTitle()}
           </div>
         );
@@ -121,7 +123,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
         paddingLeft: "10px",
         paddingTop: "10px",
         fontSize: "1.2em",
-        marginRight: "5px",
+        marginRight: FLYOUT_PADDING,
       }}
     >
       {renderTitle()}

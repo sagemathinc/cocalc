@@ -6,22 +6,22 @@
 // TODO: Remove `as any`s in this file.
 // Refer to https://github.com/microsoft/TypeScript/issues/13948
 
+import { Button, Space } from "antd";
 import * as immutable from "immutable";
 import React, { useEffect, useState } from "react";
-import { Checkbox, Row, Col } from "@cocalc/frontend/antd-bootstrap";
-import { Button } from "antd";
 
 import { alert_message } from "@cocalc/frontend/alerts";
+import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
 import {
   Rendered,
   usePrevious,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
+  Gap,
   Icon,
   LabeledRow,
   Loading,
-  Gap,
   Tip,
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -286,30 +286,26 @@ export const QuotaConsole: React.FC<Props> = (props: Props) => {
     if (is_admin) {
       if (editing) {
         return (
-          <Row>
-            <Col sm={6} smOffset={6}>
-              <Button.Group style={{ float: "right" }}>
-                <Button
-                  onClick={save_admin_editing}
-                  danger
-                  disabled={!valid_admin_inputs()}
-                >
-                  <Icon name="thumbs-up" /> Done
-                </Button>
-                <Button onClick={cancel_admin_editing}>Cancel</Button>
-              </Button.Group>
-            </Col>
-          </Row>
+          <div style={{ textAlign: "right" }}>
+            <Space.Compact>
+              <Button
+                onClick={save_admin_editing}
+                danger
+                disabled={!valid_admin_inputs()}
+              >
+                <Icon name="thumbs-up" /> Done
+              </Button>
+              <Button onClick={cancel_admin_editing}>Cancel</Button>
+            </Space.Compact>
+          </div>
         );
       } else {
         return (
-          <Row>
-            <Col sm={6} smOffset={6}>
-              <Button onClick={start_admin_editing} style={{ float: "right" }}>
-                <Icon name="pencil" /> Admin Quotas...
-              </Button>
-            </Col>
-          </Row>
+          <div style={{ textAlign: "right" }}>
+            <Button onClick={start_admin_editing}>
+              <Icon name="pencil" /> Admin Quotas...
+            </Button>
+          </div>
         );
       }
     }

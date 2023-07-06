@@ -7,12 +7,8 @@ declare let DEBUG;
 
 import { Alert, Table } from "antd";
 
-import {
-  ProjectActions,
-  React,
-  Rendered,
-} from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
+import { ProjectActions } from "@cocalc/frontend/app-framework";
+import { Loading, Paragraph } from "@cocalc/frontend/components";
 import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
 import {
   Process,
@@ -51,10 +47,7 @@ interface Props {
   start_ts: number | undefined;
   sync: WSProjectInfo | null;
   render_cocalc: (proc: ProcessRow) => JSX.Element | undefined;
-  render_val: (
-    index: string,
-    to_str: (val) => Rendered | React.ReactText
-  ) => (val: number, proc: ProcessRow) => { props: any; children: any };
+  onCellProps;
 }
 
 export function Flyout(_: Readonly<Props>): JSX.Element {
@@ -68,11 +61,16 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     loading,
     project_state,
     project_status,
+    status,
     pt_stats,
     ptree,
     start_ts,
-    render_val,
+    onCellProps,
+    sync,
+    chan,
   } = _;
+
+  const projectIsRunning = project_state === "running";
 
   // mimic a table of processes program like htop – with tailored descriptions for cocalc
   function render_top() {
@@ -112,7 +110,8 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
           width="25%"
           dataIndex="cpu_pct"
           align={"right"}
-          render={render_val("cpu_pct", (val) => `${Math.round(val)}%`)}
+          render={onCellProps("cpu_pct", (val) => `${Math.round(val)}%`)}
+          onCell={onCellProps("cpu_pct")}
           sorter={field_cmp("cpu_pct")}
         />
         <Table.Column<ProcessRow>
@@ -121,7 +120,8 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
           dataIndex="mem"
           width="25%"
           align={"right"}
-          render={render_val("mem", (val) => `${val.toFixed(0)}M`)}
+          render={onCellProps("mem", (val) => `${val.toFixed(0)}M`)}
+          onCell={onCellProps("mem")}
           sorter={field_cmp("mem")}
         />
       </Table>
@@ -143,6 +143,25 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     );
   }
 
+  function render_general_status() {
+    if (!DEBUG) return null;
+    return (
+      <Paragraph type="secondary">
+        Timestamp:{" "}
+        {info?.timestamp != null ? (
+          <code>{new Date(info.timestamp).toISOString()}</code>
+        ) : (
+          "no timestamp"
+        )}{" "}
+        <br />
+        Connections sync=<code>{`${sync != null}`}</code> chan=
+        <code>{`${chan != null}`}</code>
+        <br />
+        Status: <code>{status}</code>
+      </Paragraph>
+    );
+  }
+
   function body() {
     return (
       <div
@@ -157,6 +176,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
         <ProjectProblems project_status={project_status} />
         {renderCgroup()}
         {wrap ? wrap(render_top()) : render_top()}
+        {render_general_status()}
       </div>
     );
   }
@@ -167,7 +187,7 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
   }
 
   function notRunning() {
-    if (project_state !== "running") {
+    if (!projectIsRunning) {
       return (
         <Alert
           type="warning"
@@ -178,8 +198,8 @@ export function Flyout(_: Readonly<Props>): JSX.Element {
     }
   }
 
-  if (loading) {
-    return <Loading />;
+  if (projectIsRunning && loading) {
+    return <Loading theme="medium" transparent />;
   }
 
   return (

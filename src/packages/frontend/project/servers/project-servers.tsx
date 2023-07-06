@@ -6,7 +6,7 @@
 import { Col, Divider, Modal, Row } from "antd";
 import { Gutter } from "antd/es/grid/row";
 
-import { CSS, useState } from "@cocalc/frontend/app-framework";
+import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { NamedServerName } from "@cocalc/util/types/servers";
@@ -14,13 +14,7 @@ import { NamedServerPanel } from "../named-server-panel";
 import { NewFileButton } from "../new/new-file-button";
 import { SagewsControl } from "../settings/sagews-control";
 import { useAvailableFeatures } from "../use-available-features";
-import { ICON_NAME, TITLE } from "./consts";
-
-const ROOT_STYLE: CSS = {
-  paddingLeft: "20px",
-  paddingRight: "20px",
-  maxWidth: "1000px",
-} as const;
+import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
 
 // Antd's 24 grid system
 const md = 6;

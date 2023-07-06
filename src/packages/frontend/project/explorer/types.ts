@@ -25,6 +25,12 @@ export interface DirectoryListingEntry {
   mask?: boolean;
   isopen?: boolean; // opened in an editor
   isactive?: boolean; // opeend in the currently active editor
+  is_public?: boolean; // a shared file
+  public?: any; // some data about the shared file (TODO type?)
 }
 
 export type DirectoryListing = DirectoryListingEntry[];
+
+export type FileMap = {
+  [path: string]: DirectoryListingEntry;
+};

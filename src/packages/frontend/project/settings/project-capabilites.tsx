@@ -18,23 +18,14 @@ import { COLORS } from "@cocalc/util/theme";
 declare let DEBUG;
 
 interface ReactProps {
-  name: string;
   project: Project;
   project_id: string;
-}
-
-function dont_render(prev, next) {
-  return !misc.is_different(prev, next, [
-    "project",
-    "configuration",
-    "configuration_loading",
-    "available_features",
-  ]);
+  mode?: "project" | "flyout";
 }
 
 export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
   (props: ReactProps) => {
-    const { project, project_id } = props;
+    const { project, project_id, mode = "project" } = props;
 
     const available_features = useTypedRedux(
       { project_id },
@@ -222,12 +213,30 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
 
     const conf = configuration;
 
-    return (
-      <SettingBox title={render_title()} icon={"clipboard-check"}>
-        {render_debug_info(conf)}
-        {render_available()}
-      </SettingBox>
-    );
+    if (mode === "flyout") {
+      return (
+        <>
+          {render_debug_info(conf)}
+          {render_available()}
+        </>
+      );
+    } else {
+      return (
+        <SettingBox title={render_title()} icon={"clipboard-check"}>
+          {render_debug_info(conf)}
+          {render_available()}
+        </SettingBox>
+      );
+    }
   },
   dont_render
 );
+
+function dont_render(prev, next) {
+  return !misc.is_different(prev, next, [
+    "project",
+    "configuration",
+    "configuration_loading",
+    "available_features",
+  ]);
+}

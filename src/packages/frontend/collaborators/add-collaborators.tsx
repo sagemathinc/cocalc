@@ -74,6 +74,7 @@ interface Props {
   project_id: string;
   autoFocus?: boolean;
   where: string; // used for tracking only right now, so we know from where people add collaborators.
+  mode?: "project" | "flyout";
 }
 
 type State = "input" | "searching" | "searched" | "invited" | "invited_errors";
@@ -82,7 +83,9 @@ export const AddCollaborators: React.FC<Props> = ({
   autoFocus,
   project_id,
   where,
+  mode = "project",
 }) => {
+  const isFlyout = mode === "flyout";
   const student = useStudentProjectFunctionality(project_id);
   const user_map = useTypedRedux("users", "user_map");
   const project_map = useTypedRedux("projects", "project_map");
@@ -662,7 +665,9 @@ export const AddCollaborators: React.FC<Props> = ({
   }
 
   return (
-    <div>
+    <div
+      style={isFlyout ? { paddingLeft: "5px", paddingRight: "5px" } : undefined}
+    >
       {err && <ErrorDisplay error={err} onClose={() => set_err("")} />}
       {state == "searching" && <Loading />}
       {render_search()}
