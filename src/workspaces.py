@@ -104,6 +104,7 @@ def all_packages() -> List[str]:
     v = [
         'packages/',  # top level workspace
         'packages/cdn',  # packages/hub assumes this is built
+        'packages/assets', # hsy: moved this higher up, otherwise next fails
         'packages/util',
         'packages/sync',
         'packages/sync-client',
@@ -112,7 +113,6 @@ def all_packages() -> List[str]:
         'packages/jupyter',
         'packages/compute',
         'packages/project',  # frontend depends on project (and project on frontend!) right now...
-        'packages/assets',
         'packages/frontend',  # static depends on frontend
         'packages/static',  # packages/hub assumes this is built (for webpack dev server)
         'packages/hub',
