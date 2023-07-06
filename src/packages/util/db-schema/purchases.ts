@@ -81,6 +81,7 @@ export interface EditLicense {
   license_id: string;
   origInfo: PurchaseInfo;
   modifiedInfo: PurchaseInfo;
+  note: string; // not explaining the cost
 }
 
 // not used yet.

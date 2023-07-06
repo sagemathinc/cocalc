@@ -79,7 +79,7 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
                 step={1}
                 value={info.quantity}
                 onChange={handleFieldChange("quantity")}
-                addonAfter={"Simultanous running projects"}
+                addonAfter={"Projects"}
               />
             ),
           },

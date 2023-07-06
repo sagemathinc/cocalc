@@ -453,6 +453,12 @@ function Description({ description }: { description?: Description }) {
             <br />
             <b>To:</b> {describeQuotaFromInfo(description.modifiedInfo)}{" "}
             <LicenseDates info={description.modifiedInfo} />
+            {description.note != null && (
+              <div>
+                <br />
+                NOTE: {description.note}
+              </div>
+            )}
           </div>
         )}
       >

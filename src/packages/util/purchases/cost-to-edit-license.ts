@@ -29,7 +29,10 @@ export default function costToEditLicense(
   if (info.type == "vouchers") {
     throw Error("bug -- a license for vouchers makes no sense");
   }
+  const originalSubscription = info.subscription;
   if (info.subscription) {
+    // We set subscription to 'no' for rest of this function since otherwise
+    // compute_cost would ignore the start and end dates.
     info = { ...info };
     info.subscription = "no";
   }
@@ -175,6 +178,8 @@ export default function costToEditLicense(
 
   const cost = modifiedPrice.discounted_cost - price.discounted_cost;
   log({ cost });
+  // We removed subscription so it didn't impact price calculation.  Now we put it back.
+  modifiedInfo.subscription = originalSubscription;
   return { cost, modifiedInfo };
 }
 

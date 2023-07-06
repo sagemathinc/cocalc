@@ -21,6 +21,7 @@ import { isManager } from "@cocalc/server/licenses/get-license";
 import costToEditLicense, {
   Changes,
 } from "@cocalc/util/purchases/cost-to-edit-license";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { getQuota } from "@cocalc/server/licenses/purchase/create-license";
 import { assertPurchaseAllowed } from "./is-purchase-allowed";
 import createPurchase from "./create-purchase";
@@ -35,6 +36,7 @@ interface Options {
   license_id: string;
   changes: Changes;
   cost?: number;
+  note?: string;
 }
 
 export default async function editLicense(
@@ -80,6 +82,20 @@ export default async function editLicense(
   // we give the user the best of their subscription price or the current
   // going rate.
   const cost = cost0 ? Math.min(changeCost, cost0) : changeCost;
+  let note = opts.note ?? "";
+  if (note != "") {
+    note += " ";
+  }
+  if (cost0 != null) {
+    if (cost < cost0) {
+      note += "We use prorated cost at current rates, since it is cheaper.";
+    } else {
+      note +=
+        "We use the fixed cost instead of current rates, since the fixed cost is cheaper.";
+    }
+  } else {
+    note += "We use the current prorated cost.";
+  }
 
   logger.debug("editLicense -- cost to make the edit: ", cost, modifiedInfo);
   // Is it possible for this user to purchase this change?
@@ -98,6 +114,7 @@ export default async function editLicense(
     license_id,
     origInfo: info,
     modifiedInfo,
+    note,
   } as const;
   const purchase_id = await createPurchase({
     account_id,
@@ -105,6 +122,9 @@ export default async function editLicense(
     description,
     cost,
   });
+
+  // Update subscription cost, if necessary
+  await updateSubscriptionCost(license_id, info, modifiedInfo, changes);
 
   if (requiresRestart(info, changes)) {
     logger.debug(
@@ -189,6 +209,68 @@ async function changeLicense(license_id: string, info: PurchaseInfo) {
       license_id,
     ]
   );
+}
+
+async function updateSubscriptionCost(
+  license_id: string,
+  info: PurchaseInfo,
+  modifiedInfo: PurchaseInfo,
+  changes: Changes
+) {
+  if (
+    info.type == "vouchers" ||
+    info.subscription == null ||
+    info.subscription == "no"
+  ) {
+    logger.debug(
+      "updateSubscriptionCost",
+      license_id,
+      "not a subscription",
+      info
+    );
+    // no subscription associated to this license
+    return;
+  }
+  let costChange = false;
+  for (const key in changes) {
+    if (key == "start" || key == "end") {
+      continue;
+    }
+    if (info[key] != modifiedInfo[key]) {
+      costChange = true;
+      break;
+    }
+  }
+  if (!costChange) {
+    logger.debug("updateSubscriptionCost", license_id, "no relevant change");
+    // no changes that would impact subscription cost
+    return;
+  }
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT subscription_id FROM site_licenses WHERE id=$1",
+    [license_id]
+  );
+  const subscription_id = rows[0]?.subscription_id;
+  if (!subscription_id) {
+    // no subscription
+    logger.debug("updateSubscriptionCost", license_id, "no subscription id");
+    return;
+  }
+  // current subscription cost for modified license.
+  // note that the start/end dates aren't used in compute_cost
+  // since subscription != 'no'.
+  const newCost = compute_cost(modifiedInfo).discounted_cost;
+  logger.debug(
+    "updateSubscriptionCost",
+    license_id,
+    "changing cost to",
+    newCost
+  );
+  await pool.query("UPDATE subscriptions SET cost=$1 WHERE id=$2", [
+    newCost,
+    subscription_id,
+  ]);
 }
 
 export async function getPurchaseInfo(

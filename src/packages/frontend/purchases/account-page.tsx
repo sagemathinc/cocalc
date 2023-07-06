@@ -16,6 +16,7 @@ export default function PurchasesPage() {
     <div>
       <AccountStatus />
       <Collapse
+        destroyInactivePanel /* so that data is refreshed when they are shown */
         activeKey={activeKey}
         onChange={(x) => {
           cache.activeKey = x;
