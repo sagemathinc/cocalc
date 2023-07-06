@@ -218,10 +218,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     if (!flyout) return;
     return (
       <div style={{ display: "flex", flexDirection: "row" }}>
-        <FlyoutBody
-          flyout={flyout}
-          flyoutWidth={flyoutWidth}
-        />
+        <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
         <DndContext
           onDragStart={() => setOldFlyoutWidth(flyoutWidth)}
           onDragEnd={(e) => updateDrag(e)}
@@ -264,7 +261,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <RamWarning project_id={project_id} />
         <OOMWarning project_id={project_id} />
         <SoftwareEnvUpgrade project_id={project_id} />
-        <ProjectWarningBanner project_id={project_id} />
+        <ProjectWarningBanner />
         {(!fullscreen || fullscreen == "project") && (
           <div style={{ display: "flex", margin: "0" }}>
             <HomePageButton
