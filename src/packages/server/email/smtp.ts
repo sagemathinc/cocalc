@@ -43,18 +43,19 @@ export async function sendTemplateEmail(message: {
   channel: string;
   locals: Record<string, string>;
   subject: string;
+  test?: boolean;
 }): Promise<void> {
   const settings = await getSMTPSettings("email");
+  const serverSettings = await getServerSettings();
 
-  const conf = getConf(settings);
-
-  initTemplates(conf, {
+  initTemplates(getConf(settings), {
     from: settings.from,
     name: settings.name,
     dns: settings.dns,
+    siteName: serverSettings.site_name,
   });
 
-  await sendTemplates(message);
+  return await sendTemplates(message);
 }
 
 function getConf(settings) {
@@ -89,7 +90,7 @@ interface SMTPSettings {
   login: string;
   password: string;
   secure: boolean;
-  from?: string;
+  from: string;
   port?: number;
   pooling?: boolean;
   name: string;

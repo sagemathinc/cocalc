@@ -74,7 +74,7 @@ export default function Email(props: Props) {
 
   return (
     <Customize value={customize}>
-      <Head title={`${siteName} News`} />
+      <Head title={`${siteName} Email Channels`} />
       <Layout>
         <Header />
         <Layout.Content
