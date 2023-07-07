@@ -5,6 +5,7 @@ import AccountStatus from "./account-status";
 import Quotas from "./all-quotas-config";
 import CostBarChart from "./cost-bar-chart";
 import Subscriptions from "./subscriptions";
+import UnpaidSubscriptions from "./unpaid-subscriptions";
 
 type Key = string[] | string | number[] | number;
 
@@ -15,6 +16,10 @@ export default function PurchasesPage() {
   return (
     <div>
       <AccountStatus />
+      <UnpaidSubscriptions
+        style={{ margin: "15px 0", textAlign: "center" }}
+        showWhen="unpaid"
+      />
       <Collapse
         destroyInactivePanel /* so that data is refreshed when they are shown */
         activeKey={activeKey}
@@ -32,7 +37,17 @@ export default function PurchasesPage() {
         <Collapse.Panel key="spend" header="Spend">
           <CostBarChart />
         </Collapse.Panel>
-        <Collapse.Panel key="subscriptions" header="Subscriptions">
+        <Collapse.Panel
+          key="subscriptions"
+          header=<>
+            Subscriptions
+            <UnpaidSubscriptions style={{ float: "right" }} showWhen="paid" />
+          </>
+        >
+          <UnpaidSubscriptions
+            style={{ margin: "15px 0", textAlign: "center" }}
+            showWhen="both"
+          />
           <Subscriptions />
         </Collapse.Panel>
       </Collapse>

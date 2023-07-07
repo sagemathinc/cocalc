@@ -1,7 +1,10 @@
 /*
-Get all unpaid and past_due subscriptions for the given account.
+Get limited info about all unpaid, past_due and active subscriptions for the given account.
 
-More precisely, gets array [{id:number;cost:number;status:'unpaid'|'past_due'}, ...]
+This is used mainly for informing user about unpaid subscriptions, but we include active as
+well to provide a better overall view.
+
+More precisely, gets array [{id:number;cost:number;status:'unpaid'|'past_due'|'active'}, ...]
 */
 
 import getLogger from "@cocalc/backend/logger";
@@ -15,7 +18,7 @@ export default async function getUnpaidSubscriptions(
   logger.debug("account_id = ", account_id);
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id, cost, status FROM subscriptions WHERE (status = 'unpaid' OR status = 'past_due') AND account_id=$1",
+    "SELECT id, cost, status FROM subscriptions WHERE (status = 'unpaid' OR status = 'past_due' OR status = 'active') AND account_id=$1",
     [account_id]
   );
   return rows;

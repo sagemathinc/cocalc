@@ -68,9 +68,12 @@ export async function getSubscriptions(opts: {
   return await api("purchases/get-subscriptions", opts);
 }
 
-export async function getUnpaidSubscriptions(): Promise<
-  { id: number; cost: number; status: "unpaid" | "past_due" }[]
-> {
+export interface UnpaidSubscription {
+  id: number;
+  cost: number;
+  status: "unpaid" | "past_due" | "active";
+}
+export async function getUnpaidSubscriptions(): Promise<UnpaidSubscription[]> {
   return await api("purchases/get-unpaid-subscriptions");
 }
 
