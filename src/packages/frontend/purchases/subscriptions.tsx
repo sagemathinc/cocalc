@@ -46,6 +46,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { currency } from "./util";
 import { capitalize } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 function SubscriptionStatus({ status }) {
   return (
@@ -66,8 +67,9 @@ function SubscriptionActions({ id, status, refresh }) {
       await cancelSubscription(id);
       refresh();
     } catch (error) {
-      setLoading(false);
       setError(`${error}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -78,8 +80,9 @@ function SubscriptionActions({ id, status, refresh }) {
       await resumeSubscription(id);
       refresh();
     } catch (error) {
-      setLoading(true);
       setError(`${error}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -87,11 +90,19 @@ function SubscriptionActions({ id, status, refresh }) {
     try {
       setLoading(true);
       setError("");
-      await renewSubscription(id);
+      try {
+        await renewSubscription(id);
+      } catch (_) {
+        await webapp_client.purchases_client.quotaModal({
+          service: "edit-license",
+          cost: 10, // test
+        });
+      }
       refresh();
     } catch (error) {
-      setLoading(true);
       setError(`${error}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -168,7 +179,7 @@ function LicenseDescription({ license_id }) {
     <Collapse>
       <Collapse.Panel
         key="license"
-        header={`Automatically renews the license ${license_id}`}
+        header={`Subscription for the license ${license_id}`}
       >
         <SiteLicensePublicInfo license_id={license_id} />
       </Collapse.Panel>
