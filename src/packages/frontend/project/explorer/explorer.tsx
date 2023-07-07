@@ -5,11 +5,11 @@
 
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
+  TypedMap,
+  project_redux_name,
   rclass,
   redux,
   rtypes,
-  TypedMap,
-  project_redux_name,
 } from "@cocalc/frontend/app-framework";
 import { ShallowTypedMap } from "@cocalc/frontend/app-framework/ShallowTypedMap";
 import { BillingPage } from "@cocalc/frontend/billing/billing-page";
@@ -26,6 +26,7 @@ import {
 } from "@cocalc/frontend/components";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { CustomSoftwareReset } from "@cocalc/frontend/custom-software/reset-bar";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { Library } from "@cocalc/frontend/library";
 import {
@@ -40,6 +41,7 @@ import React from "react";
 import { Alert, Button, ButtonGroup, Col, Row } from "react-bootstrap";
 import * as underscore from "underscore";
 import AskNewFilename from "../ask-filename";
+import { useProjectContext } from "../context";
 import { CourseProjectExtraHelp } from "../warnings/course-project";
 import { AccessErrors } from "./access-errors";
 import { ActionBar } from "./action-bar";
@@ -52,9 +54,8 @@ import { MiscSideButtons } from "./misc-side-buttons";
 import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
-import { ListingItem } from "./types";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
 import ExplorerTour from "./tour/tour";
+import { ListingItem } from "./types";
 
 const STUDENT_COURSE_PRICE = require("@cocalc/util/upgrade-spec").upgrades
   .subscription.student_course.price.month4;
@@ -136,7 +137,8 @@ interface State {
   shift_is_down: boolean;
 }
 
-export function Explorer({ project_id }) {
+export function Explorer() {
+  const { project_id } = useProjectContext();
   return (
     <Explorer0
       name={project_redux_name(project_id)}

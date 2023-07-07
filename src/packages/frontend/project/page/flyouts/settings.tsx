@@ -21,6 +21,7 @@ import {
   Title,
 } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { AboutBox } from "@cocalc/frontend/project/settings/about-box";
 import { ApiKeys } from "@cocalc/frontend/project/settings/api-keys";
 import { Datastore } from "@cocalc/frontend/project/settings/datastore";
@@ -40,25 +41,23 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { FIX_BORDER, useProject } from "../common";
-import { useProjectState } from "../project-state-hook";
+import { FIX_BORDER } from "../common";
 import { FLYOUT_PADDING } from "./consts";
 import { getFlyoutSettings, storeFlyoutState } from "./state";
 
 interface Props {
   project_id: string;
-  wrap: Function;
+  wrap: (content: JSX.Element) => JSX.Element;
 }
 
 export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   const { project_id, wrap } = _;
 
+  const { status, project } = useProjectContext();
   const account_id = useTypedRedux("account", "account_id");
   const actions = useActions({ project_id });
-  const state = useProjectState(project_id);
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const projectIsVisible = active_top_tab === project_id;
-  const { project } = useProject(project_id);
   const [datastoreReload, setDatastoreReload] = useState<number>(0);
   const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
   const configuration_loading = useTypedRedux(
@@ -81,8 +80,8 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   }, []);
 
   function renderState() {
-    if (state == null) return <Loading />;
-    const s = state.get("state");
+    if (status == null) return <Loading />;
+    const s = status?.get("state");
     const iconName = COMPUTE_STATES[s]?.icon;
     const str = COMPUTE_STATES[s]?.display ?? s;
 
@@ -130,7 +129,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
           <RestartProject project_id={project_id} short={true} />
           <StopProject
             project_id={project_id}
-            disabled={state.get("state") !== "running"}
+            disabled={status.get("state") !== "running"}
             short={true}
           />
         </Button.Group>
@@ -178,7 +177,6 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
           size="small"
           onClick={(e) => {
             e.stopPropagation();
-            const project_id = project.get("project_id");
             const pa = redux.getProjectActions(project_id);
             pa.reload_configuration();
           }}
@@ -205,6 +203,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   }
 
   function renderSettings() {
+    if (project == null) return <Loading theme="medium" transparent />;
     return (
       <Collapse
         style={{ borderRadius: 0, borderLeft: "none", borderRight: "none" }}

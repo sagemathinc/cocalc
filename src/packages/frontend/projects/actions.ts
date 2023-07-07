@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Set } from "immutable";
+import { isEqual } from "lodash";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
@@ -25,8 +28,6 @@ import {
 import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/types";
-import { Set } from "immutable";
-import { isEqual } from "lodash";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
 

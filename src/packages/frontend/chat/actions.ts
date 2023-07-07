@@ -4,23 +4,24 @@
  */
 
 import { fromJS, Map as immutableMap } from "immutable";
-import { SyncDB } from "@cocalc/sync/editor/db";
-import track from "@cocalc/frontend/user-tracking";
+
 import { Actions } from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { ChatState, ChatStore } from "./store";
-import { getSortedDates } from "./chat-log";
-import { message_to_markdown } from "./message";
 import type {
   HashtagState,
   SelectedHashtags,
 } from "@cocalc/frontend/editors/task-editor/types";
-import { getSelectedHashtagsSearch } from "./utils";
-import { cmp, parse_hashtags } from "@cocalc/util/misc";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { History as ChatGPTHistory } from "@cocalc/frontend/misc/openai";
-import type { Model } from "@cocalc/util/db-schema/openai";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
+import track from "@cocalc/frontend/user-tracking";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { SyncDB } from "@cocalc/sync/editor/db";
+import type { Model } from "@cocalc/util/db-schema/openai";
+import { cmp, parse_hashtags } from "@cocalc/util/misc";
+import { getSortedDates } from "./chat-log";
+import { message_to_markdown } from "./message";
+import { ChatState, ChatStore } from "./store";
+import { getSelectedHashtagsSearch } from "./utils";
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;

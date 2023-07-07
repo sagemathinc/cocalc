@@ -376,7 +376,7 @@ export default function ChatGPTGenerateJupyterNotebook({
         <Alert
           description={
             kernelSpecs == "start" ? (
-              <StartButton project_id={project_id} />
+              <StartButton />
             ) : (
               kernelSpecs
             )
