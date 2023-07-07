@@ -68,13 +68,13 @@ export async function getSubscriptions(opts: {
   return await api("purchases/get-subscriptions", opts);
 }
 
-export interface UnpaidSubscription {
+export interface LiveSubscription {
   id: number;
   cost: number;
   status: "unpaid" | "past_due" | "active";
 }
-export async function getUnpaidSubscriptions(): Promise<UnpaidSubscription[]> {
-  return await api("purchases/get-unpaid-subscriptions");
+export async function getLiveSubscriptions(): Promise<LiveSubscription[]> {
+  return await api("purchases/get-live-subscriptions");
 }
 
 export async function editLicense(opts: {

@@ -161,8 +161,8 @@ export class PurchasesClient {
     return await purchasesApi.renewSubscription(subscription_id);
   }
 
-  async getUnpaidSubscriptions() {
-    return await purchasesApi.getUnpaidSubscriptions();
+  async getLiveSubscriptions() {
+    return await purchasesApi.getLiveSubscriptions();
   }
 }
 

@@ -1,7 +1,7 @@
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import {
-  getUnpaidSubscriptions,
-  UnpaidSubscription,
+  getLiveSubscriptions,
+  LiveSubscription,
   renewSubscription,
 } from "./api";
 import { currency } from "./util";
@@ -19,14 +19,14 @@ export default function UnpaidSubscriptions({ style, showWhen }: Props) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [unpaidSubscriptions, setUnpaidSubscriptions] = useState<
-    UnpaidSubscription[] | null
+    LiveSubscription[] | null
   >(null);
   const [numActive, setNumActive] = useState<number | null>(null);
 
   const update = async () => {
     try {
       setLoading(true);
-      const subs = await getUnpaidSubscriptions();
+      const subs = await getLiveSubscriptions();
       setUnpaidSubscriptions(subs.filter((x) => x.status != "active"));
       setNumActive(subs.filter((x) => x.status == "active").length);
     } catch (err) {

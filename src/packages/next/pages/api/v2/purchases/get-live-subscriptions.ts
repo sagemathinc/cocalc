@@ -1,10 +1,9 @@
 /*
-List of all unpaid subscriptions [{id:number;cost:number;status:'unpaid'|'past_due'}, ...]
+List of all live subscriptions [{id:number;cost:number;status:'unpaid'|'past_due'|'active'}, ...]
 */
 
 import getAccountId from "lib/account/get-account";
-import getUnpaidSubscriptions from "@cocalc/server/purchases/get-unpaid-subscriptions";
-import getParams from "lib/api/get-params";
+import getLiveSubscriptions from "@cocalc/server/purchases/get-live-subscriptions";
 
 export default async function handle(req, res) {
   try {
@@ -20,6 +19,5 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  const { limit, offset } = getParams(req);
-  return await getUnpaidSubscriptions(account_id);
+  return await getLiveSubscriptions(account_id);
 }

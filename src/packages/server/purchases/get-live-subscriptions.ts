@@ -12,9 +12,11 @@ import getPool from "@cocalc/database/pool";
 
 const logger = getLogger("purchases:get-unpaid-subscriptions");
 
-export default async function getUnpaidSubscriptions(
+export default async function getLiveSubscriptions(
   account_id: string
-): Promise<{ id: number; cost: number; status: "unpaid" | "past_due" }[]> {
+): Promise<
+  { id: number; cost: number; status: "unpaid" | "past_due" | "active" }[]
+> {
   logger.debug("account_id = ", account_id);
   const pool = getPool();
   const { rows } = await pool.query(
