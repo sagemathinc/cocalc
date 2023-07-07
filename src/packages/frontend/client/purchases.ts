@@ -160,6 +160,10 @@ export class PurchasesClient {
   ): Promise<{ purchase_id: number | null }> {
     return await purchasesApi.renewSubscription(subscription_id);
   }
+
+  async getUnpaidSubscriptions() {
+    return await purchasesApi.getUnpaidSubscriptions();
+  }
 }
 
 async function waitUntilPayAsYouGoModalCloses() {

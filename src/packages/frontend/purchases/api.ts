@@ -68,6 +68,12 @@ export async function getSubscriptions(opts: {
   return await api("purchases/get-subscriptions", opts);
 }
 
+export async function getUnpaidSubscriptions(): Promise<
+  { id: number; cost: number; status: "unpaid" | "past_due" }[]
+> {
+  return await api("purchases/get-unpaid-subscriptions");
+}
+
 export async function editLicense(opts: {
   license_id: string;
   changes: EditLicenseChanges;
@@ -230,7 +236,7 @@ export async function resumeSubscription(subscription_id: number) {
 
 export async function renewSubscription(
   subscription_id: number
-): Promise<{ purchase_id: number|null }> {
+): Promise<{ purchase_id: number | null }> {
   return await api("purchases/renew-subscription", {
     subscription_id,
   });
