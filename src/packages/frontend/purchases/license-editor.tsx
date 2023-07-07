@@ -43,13 +43,17 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
     return <Alert type="error" message="Editing vouchers is not allowed." />;
   }
 
+  const isSubscription = info.subscription != null && info.subscription != "no";
+
   const data = [
     {
       key: "1",
       field: "Start Date",
       value: (
         <DatePicker
-          disabled={info.start != null && info.start <= new Date()}
+          disabled={
+            (info.start != null && info.start <= new Date()) || isSubscription
+          }
           value={info.start ? dayjs(info.start) : undefined}
           onChange={handleFieldChange("start")}
           disabledDate={(current) => current < dayjs().startOf("day")}
@@ -60,11 +64,19 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
       key: "2",
       field: "End Date",
       value: (
-        <DatePicker
-          value={info.end ? dayjs(info.end) : undefined}
-          onChange={handleFieldChange("end")}
-          disabledDate={(current) => current <= dayjs().startOf("day")}
-        />
+        <div>
+          <DatePicker
+            disabled={isSubscription}
+            value={info.end ? dayjs(info.end) : undefined}
+            onChange={handleFieldChange("end")}
+            disabledDate={(current) => current <= dayjs().startOf("day")}
+          />
+          {isSubscription && (
+            <div style={{ color: "#666", marginTop: "15px" }}>
+              Editing the end date of a subscription license is not allowed.
+            </div>
+          )}
+        </div>
       ),
     },
 

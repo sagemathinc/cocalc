@@ -38,6 +38,11 @@ export default function EditLicense({ license_id, refresh }: Props) {
   const [cost, setCost] = useState<number>(0);
   const [makingChange, setMakingChange] = useState<boolean>(false);
 
+  const isSubscription =
+    info?.type != "vouchers" &&
+    info?.subscription != null &&
+    info?.subscription != "no";
+
   const fetchLicense = async () => {
     try {
       setLoading(true);
@@ -101,6 +106,15 @@ export default function EditLicense({ license_id, refresh }: Props) {
         <Card
           title={
             <div style={{ textAlign: "center" }}>
+              <Button
+                style={{ marginRight: "8px" }}
+                onClick={() => {
+                  setModifiedInfo(info);
+                  setLicense(null);
+                }}
+              >
+                Cancel
+              </Button>
               <Popconfirm
                 title="Change the license"
                 description="Are you sure to change this license?"
@@ -163,11 +177,25 @@ export default function EditLicense({ license_id, refresh }: Props) {
             />
           )}
           <div style={{ marginBottom: "15px", color: "#666" }}>
-            The {cost >= 0 ? "charge" : "credit"} of {currency(Math.abs(cost))}{" "}
-            is the prorated difference between the cost of the original license
-            and the edited one. You may edit a license at any time with no
-            change fee, but{" "}
-            <b>any projects using the license may be restarted</b>.
+            You may edit a license at any time, but{" "}
+            <b>projects using the license might be restarted</b>.
+            {cost != 0 && (
+              <span>
+                {" "}
+                The {cost >= 0 ? "charge" : "credit"} of{" "}
+                <b>{currency(Math.abs(cost))}</b> is the prorated difference
+                between the cost of the original license and the edited one.
+              </span>
+            )}
+            {isSubscription && (
+              <Alert
+                showIcon
+                style={{ margin: "15px" }}
+                type="info"
+                message="Subscription License"
+                description="This is a subscription license, so editing it will also impact the cost of your monthly subscription going forward."
+              />
+            )}
             <Button
               style={{ float: "right" }}
               type="text"

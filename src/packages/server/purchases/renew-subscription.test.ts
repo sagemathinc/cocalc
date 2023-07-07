@@ -9,74 +9,6 @@ import renewSubscription, { test } from "./renew-subscription";
 import dayjs from "dayjs";
 import { getMockPool } from "@cocalc/database/pool";
 
-describe("whether or not to use fixed cost", () => {
-  const now = new Date();
-  const month = dayjs(now).add(1, "month").toDate();
-  it("uses fix cost when expires is null", () => {
-    expect(
-      test.useFixedCost({
-        activates: now,
-        expires: null,
-        current_period_end: month,
-      })
-    ).toBe(true);
-  });
-
-  it("does not uses fix cost when activates in future", () => {
-    expect(
-      test.useFixedCost({
-        activates: month,
-        expires: null,
-        current_period_end: month,
-      })
-    ).toBe(false);
-    expect(
-      test.useFixedCost({
-        activates: dayjs(now).add(12, "hour").toDate(),
-        expires: null,
-        current_period_end: month,
-      })
-    ).toBe(false);
-  });
-
-  it("uses fix cost when expires equals current_period_end", () => {
-    expect(
-      test.useFixedCost({
-        activates: now,
-        expires: month,
-        current_period_end: month,
-      })
-    ).toBe(true);
-  });
-
-  it("uses fix cost when expires is 1.5 days from current_period_end", () => {
-    expect(
-      test.useFixedCost({
-        activates: now,
-        expires: dayjs(month).add(1.5, "day").toDate(),
-        current_period_end: month,
-      })
-    ).toBe(true);
-    expect(
-      test.useFixedCost({
-        activates: now,
-        expires: dayjs(month).subtract(1.5, "day").toDate(),
-        current_period_end: month,
-      })
-    ).toBe(true);
-  });
-
-  it("does not uses fix cost when expire is more than 2 days from current_period_end", () => {
-    expect(
-      test.useFixedCost({
-        activates: month,
-        expires: dayjs(month).subtract(3, "day").toDate(),
-        current_period_end: month,
-      })
-    ).toBe(false);
-  });
-});
-
 describe("adding and subtracting month and year to a date", () => {
   it("adds a month to Feb 2 and gets March 2", () => {
     expect(
@@ -173,11 +105,6 @@ describe("test renewing a license", () => {
       [{ account_id, metadata, cost, interval, current_period_end }]
     );
     pool.mock(
-      "SELECT activates, expires FROM site_licenses WHERE id=$1",
-      [license_id],
-      [{ activates: current_period_start, expires: current_period_end }]
-    );
-    pool.mock(
       "SELECT COUNT(*)::INT AS count FROM site_licenses WHERE id=$1 AND $2=ANY(managers)",
       [license_id, account_id],
       [{ count: 1 }]
@@ -251,7 +178,7 @@ describe("test renewing a license", () => {
           license_id,
           origInfo: origInfo.purchased,
           modifiedInfo: modifiedInfo.purchased,
-          note: "This is a subscription, and we will use the cheaper of the fixed cost and the prorated cost. We use the fixed cost $5.00 instead of the current rate $9.55, since the fixed cost is cheaper.",
+          note: "This is a subscription with a fixed cost per period. We use the fixed cost $5.00.",
         },
         null,
         null,
@@ -275,5 +202,6 @@ describe("test renewing a license", () => {
       subscription_id,
     });
     expect(computed_purchase_id).toBe(purchase_id);
+    expect(pool.getUnused()).toEqual([]);
   });
 });

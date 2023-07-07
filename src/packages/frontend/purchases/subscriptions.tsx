@@ -56,7 +56,7 @@ function SubscriptionStatus({ status }) {
   );
 }
 
-function SubscriptionActions({ id, status, refresh }) {
+function SubscriptionActions({ id, status, refresh, cost }) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -95,8 +95,9 @@ function SubscriptionActions({ id, status, refresh }) {
       } catch (_) {
         await webapp_client.purchases_client.quotaModal({
           service: "edit-license",
-          cost: 10, // test
+          cost,
         });
+        await renewSubscription(id);
       }
       refresh();
     } catch (error) {
@@ -271,11 +272,12 @@ export default function Subscriptions() {
       {
         title: "Action",
         key: "action",
-        render: (_, { status, id }) => (
+        render: (_, { status, cost, id }) => (
           <SubscriptionActions
             id={id}
             status={status}
             refresh={getSubscriptions}
+            cost={cost}
           />
         ),
       },

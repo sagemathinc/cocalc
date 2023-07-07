@@ -20,6 +20,35 @@ for students).
 import { is_valid_uuid_string } from "../misc";
 import { SCHEMA } from "./index";
 import { Table } from "./types";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+
+export interface License {
+  id: string;
+  title?: string;
+  description?: string;
+  info?: { purchased: PurchaseInfo };
+  expires?: Date;
+  activates: Date;
+  created?: Date; // some old licenses don't have this
+  last_used?: Date;
+  managers: string[];
+  upgrades?: object;
+  quota?: {
+    cpu: number;
+    ram: number;
+    disk: number;
+    user: "business" | "academic";
+    boost: boolean;
+    member: boolean;
+    idle_timeout: "short" | "medium" | "day";
+    dedicated_cpu: number;
+    dedicated_ram: number;
+    always_running: boolean;
+  };
+  run_limit: number;
+  voucher_code?: string;
+  subscription_id?: number;
+}
 
 Table({
   name: "site_licenses",
@@ -44,7 +73,7 @@ Table({
     },
     expires: {
       type: "timestamp",
-      desc: "Date when the license expires.  At this point in time the license no longer upgrades projects, and any running upgraded projects have their upgrades removed, which may result in thosoe projects being stoped.",
+      desc: "Date when the license expires.  At this point in time the license no longer upgrades projects, and any running upgraded projects have their upgrades removed, which may result in thosoe projects being stoped.  NOTE: licenses may exist in db with expires not set, but we intend to always require it to be set at some point.",
       render: { type: "timestamp", editable: true },
     },
     activates: {
@@ -76,7 +105,7 @@ Table({
     },
     upgrades: {
       type: "map",
-      desc: "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  This matches with our older purchases and our internal system.  Instead of this one can give quota.",
+      desc: "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  This matches with our older purchases and our internal system.  Instead of this one can give quota.  (DEPRECATED but supported?)",
     },
     quota: {
       type: "map",

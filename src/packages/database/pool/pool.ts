@@ -51,6 +51,7 @@ export function getClient(): Client {
 
 class MockPool {
   private mocked: { [key: string]: any[] } = {};
+  private used: Set<string> = new Set();
 
   private key(query: string, params: any[] | undefined): string {
     return json_stable({ query, params: params ?? [] });
@@ -62,13 +63,27 @@ class MockPool {
 
   reset() {
     this.mocked = {};
+    this.used = new Set();
+  }
+
+  getUnused(): string[] {
+    const unused: string[] = [];
+    for (const key in this.mocked) {
+      if (!this.used.has(key)) {
+        unused.push(key);
+      }
+    }
+    return unused;
   }
 
   query(query: string, params?: any[]): { rows: any[] } {
     const key = this.key(query, params);
     const rows = this.mocked[key];
+    this.used.add(key);
     if (rows == null) {
-      throw Error(`Add this:   pool.mock("${query}",${JSON.stringify(params)}, [])`);
+      throw Error(
+        `Add this:   pool.mock("${query}",${JSON.stringify(params)}, [])`
+      );
     }
     // console.log({ query, params, rows });
     return { rows };

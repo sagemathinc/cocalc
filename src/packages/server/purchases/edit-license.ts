@@ -38,12 +38,19 @@ interface Options {
   changes: Changes;
   cost?: number;
   note?: string;
+  isSubscriptionRenewal?: boolean; // set to true if this is a subscription renewal.
 }
 
 export default async function editLicense(
   opts: Options
 ): Promise<{ purchase_id: number; cost: number }> {
-  const { account_id, license_id, changes, cost: cost0 } = opts;
+  const {
+    account_id,
+    license_id,
+    changes,
+    cost: cost0,
+    isSubscriptionRenewal = false,
+  } = opts;
   logger.debug("editLicense", opts);
   if (!(await isManager(license_id, account_id))) {
     throw Error(`${account_id} must be a manager of ${license_id}`);
@@ -54,6 +61,17 @@ export default async function editLicense(
   logger.debug("editLicense -- initial info = ", info);
   if (info.type == "vouchers") {
     throw Error("editing vouchers is not supported");
+  }
+  if (
+    !isSubscriptionRenewal &&
+    info.subscription != null &&
+    info.subscription != "no"
+  ) {
+    if (changes.start != null || changes.end != null) {
+      throw Error(
+        "editing the start and end dates of a subscription license is not allowed"
+      );
+    }
   }
 
   // account_id isn't defined in the schema for PurchaseInfo,
@@ -78,29 +96,15 @@ export default async function editLicense(
 
   const service = "edit-license";
 
-  // If a cost is explicitly passed in, then we possibly use that.
-  // This happens for subscriptions.  Note that even for a subscription
-  // we give the user the best of their subscription price or the current
-  // going rate.
-  const cost = cost0 ? Math.min(changeCost, cost0) : changeCost;
+  // If a cost is explicitly passed in, then we use that.
+  // This happens for subscriptions.
+  const cost = cost0 ? cost0 : changeCost;
   let note = opts.note ?? "";
   if (note != "") {
     note += " ";
   }
-  if (cost0 != null) {
-    if (cost < cost0) {
-      note += `We use prorated cost ${currency(
-        changeCost
-      )} at current rates, since it is cheaper than the fixed cost ${currency(
-        cost0
-      )}.`;
-    } else {
-      note += `We use the fixed cost ${currency(
-        cost0
-      )} instead of the current rate ${currency(
-        changeCost
-      )}, since the fixed cost is cheaper.`;
-    }
+  if (cost0) {
+    note += `We use the fixed cost ${currency(cost)}.`;
   } else {
     note += `We use the current prorated cost ${currency(cost)}.`;
   }
@@ -112,6 +116,8 @@ export default async function editLicense(
   }
 
   // [ ] TODO: make changing the license and creating the purchase a single atomic transaction
+
+  // TODO -- start atomic transaction
 
   // Change license
   await changeLicense(license_id, modifiedInfo);
@@ -131,8 +137,12 @@ export default async function editLicense(
     cost,
   });
 
-  // Update subscription cost, if necessary
-  await updateSubscriptionCost(license_id, info, modifiedInfo, changes);
+  if (!isSubscriptionRenewal) {
+    // Update subscription cost, if necessary
+    await updateSubscriptionCost(license_id, info, modifiedInfo, changes);
+  }
+
+  // TODO -- end atomic transaction
 
   if (requiresRestart(info, changes)) {
     logger.debug(
