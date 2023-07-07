@@ -29,7 +29,7 @@ export default function costToEditLicense(
   if (info.type == "vouchers") {
     throw Error("bug -- a license for vouchers makes no sense");
   }
-  const originalSubscription = info.subscription;
+  const originalInfo = cloneDeep(info);
   if (info.subscription) {
     // We set subscription to 'no' for rest of this function since otherwise
     // compute_cost would ignore the start and end dates.
@@ -179,7 +179,12 @@ export default function costToEditLicense(
   const cost = modifiedPrice.discounted_cost - price.discounted_cost;
   log({ cost });
   // We removed subscription so it didn't impact price calculation.  Now we put it back.
-  modifiedInfo.subscription = originalSubscription;
+  modifiedInfo.subscription = originalInfo.subscription;
+  // In case of a subscription, we changed start to correctly compute the cost
+  // of the change.  Set it back:
+  if (modifiedInfo.subscription != "no") {
+    modifiedInfo.start = originalInfo.start;
+  }
   return { cost, modifiedInfo };
 }
 

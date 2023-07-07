@@ -36,6 +36,7 @@ import {
   getSubscriptions as getSubscriptionsUsingApi,
   cancelSubscription,
   resumeSubscription,
+  renewSubscription,
 } from "./api";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import { STATUS_TO_COLOR } from "@cocalc/util/db-schema/subscriptions";
@@ -46,7 +47,7 @@ import { currency } from "./util";
 import { capitalize } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 
-function LicenseStatus({ status }) {
+function SubscriptionStatus({ status }) {
   return (
     <Tag color={STATUS_TO_COLOR[status]}>
       {capitalize(status.replace("_", " "))}
@@ -54,30 +55,50 @@ function LicenseStatus({ status }) {
   );
 }
 
-function LicenseActions({ id, status, refresh }) {
+function SubscriptionActions({ id, status, refresh }) {
   const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+
   const handleCancel = async () => {
     try {
+      setLoading(true);
       setError("");
       await cancelSubscription(id);
       refresh();
     } catch (error) {
+      setLoading(false);
       setError(`${error}`);
     }
   };
+
   const handleResume = async () => {
     try {
+      setLoading(true);
       setError("");
       await resumeSubscription(id);
       refresh();
     } catch (error) {
+      setLoading(true);
+      setError(`${error}`);
+    }
+  };
+
+  const handleRenewSubscription = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      await renewSubscription(id);
+      refresh();
+    } catch (error) {
+      setLoading(true);
       setError(`${error}`);
     }
   };
 
   return (
     <Space direction="vertical">
-      {error && (
+      {loading && <Spin />}
+      {error && !loading && (
         <Alert
           type="error"
           description={error}
@@ -87,7 +108,22 @@ function LicenseActions({ id, status, refresh }) {
         />
       )}
       {(status === "unpaid" || status === "past_due") && (
-        <Button type="primary">Pay Now</Button>
+        <Popconfirm
+          title={
+            <div style={{ maxWidth: "450px" }}>
+              Are you sure you want to pay for the next month of this
+              subscription? The corresponding license will be renewed and your
+              balance will be reduced by the subscription amount.
+            </div>
+          }
+          onConfirm={handleRenewSubscription}
+          okText="Yes"
+          cancelText="No"
+        >
+          <Button disabled={loading} type="primary">
+            Pay Now
+          </Button>
+        </Popconfirm>
       )}
       {status !== "canceled" && (
         <Popconfirm
@@ -102,7 +138,9 @@ function LicenseActions({ id, status, refresh }) {
           okText="Yes"
           cancelText="No"
         >
-          <Button type="default">Cancel</Button>
+          <Button disabled={loading} type="default">
+            Cancel
+          </Button>
         </Popconfirm>
       )}
       {status == "canceled" && (
@@ -117,7 +155,9 @@ function LicenseActions({ id, status, refresh }) {
           okText="Yes"
           cancelText="No"
         >
-          <Button type="default">Resume</Button>
+          <Button disabled={loading} type="default">
+            Resume
+          </Button>
         </Popconfirm>
       )}
     </Space>
@@ -215,13 +255,17 @@ export default function Subscriptions() {
         title: "Status",
         dataIndex: "status",
         key: "status",
-        render: (status) => <LicenseStatus status={status} />,
+        render: (status) => <SubscriptionStatus status={status} />,
       },
       {
         title: "Action",
         key: "action",
         render: (_, { status, id }) => (
-          <LicenseActions id={id} status={status} refresh={getSubscriptions} />
+          <SubscriptionActions
+            id={id}
+            status={status}
+            refresh={getSubscriptions}
+          />
         ),
       },
       {

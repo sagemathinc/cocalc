@@ -28,6 +28,7 @@ import createPurchase from "./create-purchase";
 import getName from "@cocalc/server/accounts/get-name";
 import { query_projects_using_site_license } from "@cocalc/database/postgres/site-license/analytics";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
+import { currency } from "./util";
 
 const logger = getLogger("purchases:edit-license");
 
@@ -88,13 +89,20 @@ export default async function editLicense(
   }
   if (cost0 != null) {
     if (cost < cost0) {
-      note += "We use prorated cost at current rates, since it is cheaper.";
+      note += `We use prorated cost ${currency(
+        changeCost
+      )} at current rates, since it is cheaper than the fixed cost ${currency(
+        cost0
+      )}.`;
     } else {
-      note +=
-        "We use the fixed cost instead of current rates, since the fixed cost is cheaper.";
+      note += `We use the fixed cost ${currency(
+        cost0
+      )} instead of the current rate ${currency(
+        changeCost
+      )}, since the fixed cost is cheaper.`;
     }
   } else {
-    note += "We use the current prorated cost.";
+    note += `We use the current prorated cost ${currency(cost)}.`;
   }
 
   logger.debug("editLicense -- cost to make the edit: ", cost, modifiedInfo);
@@ -273,23 +281,32 @@ async function updateSubscriptionCost(
   ]);
 }
 
+// Gets PurchaseInfo for this license, but with any modifications
+// to the activates and expires timestamps made.   Those take precedence
+// over whatever was used for the original purchase.
 export async function getPurchaseInfo(
   license_id: string
 ): Promise<PurchaseInfo> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT info->'purchased' AS info FROM site_licenses WHERE id=$1",
+    "SELECT info->'purchased' as info, activates, expires FROM site_licenses WHERE id=$1",
     [license_id]
   );
   if (rows.length == 0) {
     throw Error(`no license with id ${license_id}`);
   }
-  const { info } = rows[0];
-  if (info.start != null) {
+  const { info, activates, expires } = rows[0];
+  if (activates != null) {
+    info.start = activates;
+  } else if (info.start != null) {
     info.start = new Date(info.start);
   }
-  if (info.end != null) {
-    info.end = new Date(info.end);
+  if (expires != null) {
+    info.end = expires;
+  } else {
+    if (info.end != null) {
+      info.end = new Date(info.end);
+    }
   }
   return info;
 }
