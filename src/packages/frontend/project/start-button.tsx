@@ -15,28 +15,20 @@ happens, and also when the system is heavily loaded.
 import { Alert, Button } from "antd";
 import { CSSProperties, useRef } from "react";
 
-import {
-  React,
-  redux,
-  useMemo,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
   Delay,
+  Gap,
   Icon,
   ProjectState,
-  Gap,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { server_seconds_ago } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
+import { useProjectContext } from "./context";
 import { DOC_TRIAL } from "./project-banner";
-
-interface Props {
-  project_id: string;
-}
 
 const STYLE: CSSProperties = {
   fontSize: "40px",
@@ -44,8 +36,8 @@ const STYLE: CSSProperties = {
   color: COLORS.GRAY_M,
 } as const;
 
-export const StartButton: React.FC<Props> = (props: Props) => {
-  const { project_id } = props;
+export function StartButton() {
+  const { project_id } = useProjectContext();
   const project_websockets = useTypedRedux("projects", "project_websockets");
   const connected = project_websockets?.get(project_id) == "online";
   const project_map = useTypedRedux("projects", "project_map");
@@ -69,9 +61,9 @@ export const StartButton: React.FC<Props> = (props: Props) => {
     if (state?.get("state") == "starting" || state?.get("state") == "opening")
       return true;
     if (state?.get("state") == "running") return false;
-    const action_request = (project_map
-      ?.getIn([project_id, "action_request"]) as any)
-      ?.toJS() as any;
+    const action_request = (
+      project_map?.getIn([project_id, "action_request"]) as any
+    )?.toJS() as any;
     if (action_request == null) {
       return false; // no action request at all
     }
@@ -231,4 +223,4 @@ export const StartButton: React.FC<Props> = (props: Props) => {
         : render_normal_view()}
     </div>
   );
-};
+}
