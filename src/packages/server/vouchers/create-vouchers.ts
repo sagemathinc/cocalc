@@ -108,17 +108,6 @@ export default async function createVouchers({
     }
   }
 
-  if (whenPay == "invoice") {
-    // This should already get checked elsewhere,
-    // but let's check again to be sure.
-    // It would be very bad if random users could create vouchers
-    // that get invoiced later, since we need a good trust model
-    // for that.
-    if (!(await userIsInGroup(account_id, "partner"))) {
-      throw Error("only partners can create vouchers");
-    }
-  }
-
   if (!count || count < 1 || !isFinite(count)) {
     throw Error("must create at least 1 voucher");
   }
@@ -127,26 +116,7 @@ export default async function createVouchers({
       `there is a hard limit of at most ${MAX_VOUCHERS[whenPay]} vouchers`
     );
   }
-  if (whenPay == "invoice") {
-    if (!active) {
-      throw Error("active must be defined");
-    }
-    if (!expire || expire <= new Date()) {
-      throw Error("expire must be in the future");
-    }
-    if (expire <= active) {
-      throw Error("expire must be after active");
-    }
-    if (dayjs(expire) > dayjs().add(61, "day")) {
-      throw Error("expire must at most 60 days in the future");
-    }
-    if (dayjs(cancelBy) >= dayjs(expire).add(-1, "day")) {
-      throw Error("cancel by date must be before expire date");
-    }
-    if (dayjs(expire) > dayjs().add(31, "day")) {
-      throw Error("expire must at most 30 days in the future");
-    }
-  }
+
   if (generate != null) {
     if (generate.length != null && generate.length < 8) {
       throw Error(
@@ -163,19 +133,18 @@ export default async function createVouchers({
       throw Error("postfix must have length at most 10");
     }
   }
-  if (whenPay != "invoice") {
-    // make sure that this get set to null in the database when initially creating the vouchers, since
-    // we don't want the vouchers to *work* unless payment goes through.  This is just a safety measure
-    // for us to not get scammed.
-    active = cancelBy = null;
-    if (whenPay == "admin") {
-      // We leave expire as is, since admin can set shorter expiration date
-    } else {
-      // if they pay now, then their vouchers last a long time.
-      // If after 10 years, things are still around and their is a complaint,
-      // a support person can easily extend this.
-      expire = dayjs().add(10, "year").toDate();
-    }
+
+  // make sure that this get set to null in the database when initially creating the vouchers, since
+  // we don't want the vouchers to *work* unless payment goes through.  This is just a safety measure
+  // for us to not get scammed.
+  active = cancelBy = null;
+  if (whenPay == "admin") {
+    // We leave expire as is, since admin can set shorter expiration date
+  } else {
+    // if they pay now, then their vouchers last a long time.
+    // If after 10 years, things are still around and their is a complaint,
+    // a support person can easily extend this.
+    expire = dayjs().add(10, "year").toDate();
   }
 
   /*
@@ -250,58 +219,55 @@ export default async function createVouchers({
   }
 
   // Success!
-  if (whenPay != "invoice") {
-    let paid = false;
-    try {
-      if (whenPay == "admin") {
-        paid = true;
-      } else {
-        // Actually charge the user for the vouchers.
-        const stripe = new StripeClient({ account_id });
-        const info = {
-          type: "vouchers",
-          quantity: count,
-          cost,
-          tax,
-          title,
-          id,
-        } as const;
-        log.debug("charging user; info =", info);
-        const { id: stripe_invoice_id } = await chargeUser(stripe, info);
-        const purchased = {
-          time: new Date(),
-          quantity: count,
-          stripe_invoice_id,
-        };
-        log.debug("purchased = ", purchased);
-        await pool.query("UPDATE vouchers SET purchased=$1 WHERE id=$2", [
-          purchased,
-          id,
-        ]);
-        paid = true;
-      }
-    } finally {
-      if (paid) {
-        // Payment succeeded - Make the voucher valid:
-        //     active - as of now.
-        //     expire - in the very distant future (just to keep code simple)
-        //     cancel - now, since can't be canceled
-        // If somehow this query right here fails but everything else worked, user would have something
-        // broken that they paid for.  At least there is clear evidence of it they can point at, and we
-        // can easily edit the database (via our crm) to fix the problem manually.
-        await pool.query(
-          "UPDATE vouchers SET active=NOW(), cancel_by=NOW() WHERE id=$1",
-          [id]
-        );
-      } else {
-        // payment failed -- delete all the vouchers from the database.  Even if this fails
-        // this is just clutter, since the vouchers are not valid until the step below.
-        await pool.query("DELETE FROM vouchers WHERE id=$1", [id]);
-        await pool.query("DELETE FROM voucher_codes WHERE id=$1", [id]);
-      }
+  let paid = false;
+  try {
+    if (whenPay == "admin") {
+      paid = true;
+    } else {
+      // Actually charge the user for the vouchers.
+      const stripe = new StripeClient({ account_id });
+      const info = {
+        type: "vouchers",
+        quantity: count,
+        cost,
+        tax,
+        title,
+        id,
+      } as const;
+      log.debug("charging user; info =", info);
+      const { id: stripe_invoice_id } = await chargeUser(stripe, info);
+      const purchased = {
+        time: new Date(),
+        quantity: count,
+        stripe_invoice_id,
+      };
+      log.debug("purchased = ", purchased);
+      await pool.query("UPDATE vouchers SET purchased=$1 WHERE id=$2", [
+        purchased,
+        id,
+      ]);
+      paid = true;
+    }
+  } finally {
+    if (paid) {
+      // Payment succeeded - Make the voucher valid:
+      //     active - as of now.
+      //     expire - in the very distant future (just to keep code simple)
+      //     cancel - now, since can't be canceled
+      // If somehow this query right here fails but everything else worked, user would have something
+      // broken that they paid for.  At least there is clear evidence of it they can point at, and we
+      // can easily edit the database (via our crm) to fix the problem manually.
+      await pool.query(
+        "UPDATE vouchers SET active=NOW(), cancel_by=NOW() WHERE id=$1",
+        [id]
+      );
+    } else {
+      // payment failed -- delete all the vouchers from the database.  Even if this fails
+      // this is just clutter, since the vouchers are not valid until the step below.
+      await pool.query("DELETE FROM vouchers WHERE id=$1", [id]);
+      await pool.query("DELETE FROM voucher_codes WHERE id=$1", [id]);
     }
   }
 
-  // Success!
   return { id, codes, cost, tax, cart };
 }

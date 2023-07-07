@@ -35,14 +35,13 @@ export default function Checkout() {
   const [session, setSession] = useState<{ id: string; url: string } | null>(
     null
   );
-  const [params, setParams] = useState<CheckoutParams | null>(null);
-
   const updateSession = async () => {
     const session = await purchasesApi.getCurrentCheckoutSession();
     setSession(session);
     return session;
   };
 
+  const [params, setParams] = useState<CheckoutParams | null>(null);
   const updateParams = async () => {
     try {
       setParams(await purchasesApi.getShoppingCartCheckoutParams());
@@ -72,7 +71,7 @@ export default function Checkout() {
     }
     completePurchase();
   }, []);
-  
+
   if (error) {
     return (
       <Alert
@@ -605,7 +604,7 @@ function ProjectID({ project_id }: { project_id: string }): JSX.Element | null {
   );
 }
 
-function ExplainPaymentSituation({
+export function ExplainPaymentSituation({
   params,
   style,
 }: {
@@ -627,14 +626,21 @@ function ExplainPaymentSituation({
   if (chargeAmount == 0) {
     return (
       <Alert
+        showIcon
         type="info"
         style={style}
-        message={<>{curBalance}No payment required</>}
+        message={
+          <>
+            {curBalance}
+            <b>No payment required</b>
+          </>
+        }
         description={
           <>
-            <b>You can complete this purchase without making a payment now</b>,
-            since your account balance is {currency(balance)}, which is at least{" "}
-            {currency(total)}.
+            <i>
+              You can complete this purchase <b>without making a payment now</b>
+            </i>
+            , since your account balance is {currency(balance)}.
           </>
         }
       />
@@ -648,15 +654,15 @@ function ExplainPaymentSituation({
         message={<>{curBalance}Minimal payment required</>}
         description={
           <>
-            <b>
-              To complete this purchase, pay {currency(chargeAmount)} (+ TAX).
-            </b>{" "}
+            <i>
+              To complete this purchase,{" "}
+              <b>pay {currency(chargeAmount)} (+ TAX)</b>.
+            </i>{" "}
             {chargeAmount > amountDue && (
               <>
-                This is more than {currency(amountDue)}, since our minimum
-                transaction amount is {currency(minPayment)}. The difference
-                will be credited to your account, and you can use it toward
-                future purchases.
+                The minimum transaction amount is {currency(minPayment)}. The
+                difference will be credited to your account, and you can use it
+                toward future purchases.
               </>
             )}
           </>
@@ -671,15 +677,16 @@ function ExplainPaymentSituation({
       message={<>{curBalance}Payment required</>}
       description={
         <>
-          <b>
-            To complete this purchase, you must pay {currency(chargeAmount)} (+
-            TAX) to add sufficient credit to your account
-          </b>
+          <i>
+            To complete this purchase,{" "}
+            <b>pay {currency(chargeAmount)} (+ TAX)</b> to add sufficient credit
+            to your account
+          </i>
           .{" "}
           {chargeAmount > total && (
             <>
-              This is larger than the total, because your account balance must
-              always be at least {currency(params.minBalance)}.
+              Your account balance must always be at least{" "}
+              {currency(params.minBalance)}.
             </>
           )}
         </>

@@ -3,7 +3,7 @@ import { CREATED, CREATED_BY, ID, NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 
-export type WhenPay = "now" | "invoice" | "admin";
+export type WhenPay = "now" | "admin";
 
 export interface PurchaseInfo {
   // TODO: maybe a stripe invoice id...?

@@ -40,7 +40,7 @@ export class PurchasesClient {
   async isPurchaseAllowed(
     service: Service,
     cost?: number
-  ): Promise<{ allowed: boolean; reason?: string }> {
+  ): Promise<{ allowed: boolean; reason?: string; chargeAmount?: number }> {
     return await purchasesApi.isPurchaseAllowed(service, cost);
   }
 
@@ -141,6 +141,10 @@ export class PurchasesClient {
   // this is only used in the nextjs store app right now...
   async getShoppingCartCheckoutParams() {
     return await purchasesApi.getShoppingCartCheckoutParams();
+  }
+
+  async getVoucherCartCheckoutParams(count: number) {
+    return await purchasesApi.getVoucherCartCheckoutParams(count);
   }
 
   async adminGetMinBalance(account_id: string): Promise<number> {

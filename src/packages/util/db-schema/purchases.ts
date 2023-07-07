@@ -18,6 +18,7 @@ export type Service =
   | "openai-text-embedding-ada-002"
   | "project-upgrade"
   | "license"
+  | "voucher"
   | "edit-license";
 
 export interface OpenaiGPT4 {
@@ -76,6 +77,12 @@ export interface License {
   license_id: string;
 }
 
+export interface Voucher {
+  type: "voucher";
+  codes: string[];
+  cost_per_voucher: number;
+}
+
 export interface EditLicense {
   type: "edit-license";
   license_id: string;
@@ -83,11 +90,6 @@ export interface EditLicense {
   modifiedInfo: PurchaseInfo;
   note: string; // not explaining the cost
 }
-
-// not used yet.
-//export interface OpenaiImage {
-//  type: "openai-image";
-//}
 
 export interface Credit {
   type: "credit";
@@ -103,6 +105,7 @@ export type Description =
   | ProjectUpgrade
   | Credit
   | License
+  | Voucher
   | EditLicense;
 
 // max number of purchases a user can get in one query.

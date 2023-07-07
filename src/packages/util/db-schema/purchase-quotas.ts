@@ -46,6 +46,11 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: "#5498fb",
     noSet: true,
   },
+  voucher: {
+    display: "Voucher",
+    color: "#8b0000",
+    noSet: true,
+  },
 };
 
 // For pay-as-you-go project quota upgrades

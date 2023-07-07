@@ -64,7 +64,6 @@ export default function Created({ customize }) {
   const { loading, value, error, setError, query } = useDatabase(QUERY);
   const profile = useProfile({ noCache: true });
   const router = useRouter();
-  const [showUnpaidOnly, setShowUnpaidOnly] = useState<boolean>(false);
   const [showExpiredOnly, setShowExpiredOnly] = useState<boolean>(false);
   const [showAdminOnly, setShowAdminOnly] = useState<boolean>(false);
   const [showPaidOnly, setShowPaidOnly] = useState<boolean>(false);
@@ -90,9 +89,6 @@ export default function Created({ customize }) {
     if (error) return [];
     const cmp = field_cmp("created");
     let v: Voucher[] = (value?.crm_vouchers ?? []).sort((a, b) => -cmp(a, b));
-    if (showUnpaidOnly) {
-      v = v.filter((x) => x.when_pay == "invoice" && x.purchased == null);
-    }
     if (showExpiredOnly) {
       const now = new Date();
       v = v.filter((x) => new Date(x.expire) <= now);
@@ -107,7 +103,6 @@ export default function Created({ customize }) {
     return v;
   }, [
     value,
-    showUnpaidOnly,
     showExpiredOnly,
     showPaidOnly,
     showAdminOnly,
@@ -176,13 +171,6 @@ export default function Created({ customize }) {
                     <div>
                       <Checkbox
                         disabled={charging}
-                        checked={showUnpaidOnly}
-                        onClick={() => setShowUnpaidOnly(!showUnpaidOnly)}
-                      >
-                        Show unpaid only
-                      </Checkbox>
-                      <Checkbox
-                        disabled={charging}
                         checked={showExpiredOnly}
                         onClick={() => setShowExpiredOnly(!showExpiredOnly)}
                       >
@@ -209,7 +197,7 @@ export default function Created({ customize }) {
                       </div>
                     </div>
                   )}
-                  {!loading && showUnpaidOnly && showExpiredOnly && (
+                  {!loading  && showExpiredOnly && (
                     <div>
                       <Button
                         style={{ marginTop: "30px" }}

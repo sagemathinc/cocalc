@@ -6,6 +6,7 @@ import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "./util";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { getMaxCost, Model } from "@cocalc/util/db-schema/openai";
+import { round2up } from "@cocalc/util/misc";
 
 // Throws an exception if purchase is not allowed.  Code should
 // call this before giving the thing and doing createPurchase.
@@ -20,11 +21,17 @@ interface Options {
   cost?: number;
 }
 
+// balance, minPayment, amountDue, chargeAmount, total, minBalance
+
 export async function isPurchaseAllowed({
   account_id,
   service,
   cost,
-}: Options): Promise<{ allowed: boolean; reason?: string }> {
+}: Options): Promise<{
+  allowed: boolean;
+  reason?: string;
+  chargeAmount?: number; // if purchase is not allowed entirely because balance is too low -- this is how much you must pay, taking into account the configured minPayment. The reason will explain this.
+}> {
   if (!(await isValidAccount(account_id))) {
     return { allowed: false, reason: `${account_id} is not a valid account` };
   }
@@ -74,8 +81,12 @@ export async function isPurchaseAllowed({
   const amountAfterPurchase = balance - cost;
   // add 0.01 due to potential rounding errors
   if (amountAfterPurchase + 0.01 < minBalance) {
+    const { pay_as_you_go_min_payment } = await getServerSettings();
+    const required = round2up(cost - (balance - minBalance));
+    const chargeAmount = Math.max(pay_as_you_go_min_payment, required);
     return {
       allowed: false,
+      chargeAmount,
       reason: `You do not have enough credits to spend up to ${currency(
         cost
       )} since your balance is ${currency(
@@ -84,9 +95,13 @@ export async function isPurchaseAllowed({
         cost
       )} would cause your balance to go below your allowed minimum balance of ${currency(
         minBalance
-      )}.  Please add at least ${currency(
-        cost - (balance - minBalance)
-      )} to your account.`,
+      )}.  Please add at least ${currency(chargeAmount)} to your account.${
+        required < pay_as_you_go_min_payment
+          ? " There is a minimum payment of " +
+            currency(pay_as_you_go_min_payment) +
+            "."
+          : ""
+      }`,
     };
   }
   // Next check that the quota for the specific service is not exceeded.

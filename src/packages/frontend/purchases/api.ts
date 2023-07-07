@@ -1,5 +1,7 @@
 /*
 Functions for interfacing with the purchases functionality.
+
+Some of these are only used by the nextjs app!
 */
 
 import api from "@cocalc/frontend/client/api";
@@ -46,7 +48,7 @@ export async function setQuota(
 export async function isPurchaseAllowed(
   service: Service,
   cost?: number
-): Promise<{ allowed: boolean; reason?: string }> {
+): Promise<{ allowed: boolean; reason?: string; chargeAmount?: number }> {
   return await api("purchases/is-purchase-allowed", { service, cost });
 }
 
@@ -196,6 +198,19 @@ export async function getShoppingCartCheckoutParams() {
   return await api("purchases/get-shopping-cart-checkout-params");
 }
 
+export async function vouchersCheckout(opts: {
+  success_url: string;
+  cancel_url?: string;
+  config: any;
+}): Promise<
+  { done: true } | { done: false; session: { url: string; id: string } }
+> {
+  return await api("purchases/vouchers-checkout", opts);
+}
+
+export async function getVoucherCartCheckoutParams(count: number) {
+  return await api("purchases/get-vouchers-checkout-params", { count });
+}
 // get your own min balance
 export async function getMinBalance(): Promise<number> {
   return await api("purchases/get-min-balance");

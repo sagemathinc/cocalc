@@ -53,12 +53,18 @@ export default async function shoppingCartCheckout({
   return { done: false, session };
 }
 
-async function getCheckoutCart(account_id: string) {
+export async function getCheckoutCart(
+  account_id: string,
+  filter?: (item) => boolean // optional filter on shopping cart items; this is useful for the voucher checkout
+) {
   // Get the list of items in the cart that haven't been purchased
   // or saved for later, and are currently checked.
-  const cart: any[] = (
+  let cart: any[] = (
     await getCart({ account_id, purchased: false, removed: false })
   ).filter((item) => item.checked);
+  if (filter != null) {
+    cart = cart.filter(filter);
+  }
 
   // compute the total cost and also set the costs for each item
   let total = 0;
