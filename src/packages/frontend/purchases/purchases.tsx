@@ -415,18 +415,27 @@ function Description({ description }: { description?: Description }) {
   }
   //             <pre>{JSON.stringify(description, undefined, 2)}</pre>
   if (description.type == "license") {
+    const { license_id } = description;
     return (
       <Popover
-        title="License"
-        content={() => (
+        title={
           <>
-            {description.license_id && (
-              <License license_id={description.license_id} />
+            Licenses:{" "}
+            {license_id && (
+              <Next href={`licenses/how-used?license_id=${license_id}`}>
+                {license_id}
+              </Next>
             )}
           </>
-        )}
+        }
+        content={() => <>{license_id && <License license_id={license_id} />}</>}
       >
-        License
+        License:{" "}
+        {license_id && (
+          <Next href={`licenses/how-used?license_id=${license_id}`}>
+            {license_id}
+          </Next>
+        )}
       </Popover>
     );
   }
@@ -437,12 +446,26 @@ function Description({ description }: { description?: Description }) {
     const quota = description?.quota ?? {};
     return <DisplayProjectQuota quota={quota} />;
   }
+  if (description.type == "voucher") {
+    const { title, quantity, voucher_id } = description;
+    return (
+      <div>
+        <Next href={`vouchers/${voucher_id}`}>
+          {quantity} {plural(quantity, "voucher")}: {title}
+        </Next>
+      </div>
+    );
+  }
   if (description.type == "edit-license") {
+    const { license_id } = description;
     return (
       <Popover
         title={
           <div style={{ fontSize: "13pt" }}>
-            <Icon name="pencil" /> Change License
+            <Icon name="pencil" /> Edited License:{" "}
+            <Next href={`licenses/how-used?license_id=${license_id}`}>
+              {license_id}
+            </Next>
           </div>
         }
         content={() => (

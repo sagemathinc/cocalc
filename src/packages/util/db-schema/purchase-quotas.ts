@@ -42,13 +42,13 @@ export const QUOTA_SPEC: QuotaSpec = {
     noSet: true,
   },
   "edit-license": {
-    display: "Change License",
+    display: "Edit License",
     color: "#5498fb",
     noSet: true,
   },
   voucher: {
     display: "Voucher",
-    color: "#008b00",
+    color: "#00238b",
     noSet: true,
   },
 };
