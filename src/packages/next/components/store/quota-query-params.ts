@@ -240,6 +240,11 @@ export function decodeFormValues(
         }
         break;
 
+      case "title":
+      case "description":
+        data[key] = val;
+        break;
+
       default:
         console.log(`decodingFormValues: unknown key '${key}'`);
         delete data[key];

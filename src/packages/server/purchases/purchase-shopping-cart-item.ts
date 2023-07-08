@@ -109,7 +109,7 @@ export default async function purchaseShoppingCartItem(item) {
     { purchase_id, license_id, item_id: item.id }
   );
 
-  if (item.description.period) {
+  if (item.description.period != "range") {
     let interval = item.description.period;
     if (interval.endsWith("ly")) {
       interval = interval.slice(0, -2); // get rid of the ly

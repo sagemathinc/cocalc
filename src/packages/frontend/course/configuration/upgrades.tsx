@@ -38,7 +38,7 @@ import {
   UPGRADE_ERROR_STYLE,
 } from "@cocalc/frontend/components";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
-import { PurchaseOneLicenseLink } from "@cocalc/frontend/site-licenses/purchase";
+import Next from "@cocalc/frontend/components/next";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
 import { ShowSupportLink } from "@cocalc/frontend/support";
@@ -61,6 +61,7 @@ import {
 } from "../store";
 import { SiteLicenseStrategy, UpgradeGoal } from "../types";
 import { ConfigurationActions } from "./actions";
+import { delay } from "awaiting";
 
 const radioStyle: CSS = {
   display: "block",
@@ -538,13 +539,15 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function add_site_license_id(license_id: string): void {
+  async function add_site_license_id(license_id: string) {
     course_actions.configuration.add_site_license_id(license_id);
+    await delay(100);
     course_actions.configuration.configure_all_projects();
   }
 
-  function remove_site_license_id(license_id: string): void {
+  async function remove_site_license_id(license_id: string) {
     course_actions.configuration.remove_site_license_id(license_id);
+    await delay(100);
     course_actions.configuration.configure_all_projects();
   }
 
@@ -560,8 +563,8 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
         a project is started.{" "}
         {is_commercial && (
           <>
-            Create a <ShowSupportLink /> if you would like to purchase a license
-            key.
+            Create a <ShowSupportLink /> if you need to purchase a license key
+            via a purchase order.
           </>
         )}
         <SiteLicenseInput
@@ -677,25 +680,23 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
 
   function render_remove_all_licenses() {
     return (
-      <>
-        <br />
-        <Button
-          onClick={async () => {
-            try {
-              await course_actions.student_projects.remove_all_project_licenses();
-              alert_message({
-                type: "info",
-                message:
-                  "Successfully removed all licenses from student projects.",
-              });
-            } catch (err) {
-              alert_message({ type: "error", message: `${err}` });
-            }
-          }}
-        >
-          Remove all licenses from student projects
-        </Button>
-      </>
+      <Button
+        style={{ marginTop: "15px" }}
+        onClick={async () => {
+          try {
+            await course_actions.student_projects.remove_all_project_licenses();
+            alert_message({
+              type: "info",
+              message:
+                "Successfully removed all licenses from student projects.",
+            });
+          } catch (err) {
+            alert_message({ type: "error", message: `${err}` });
+          }
+        }}
+      >
+        Remove all licenses from student projects
+      </Button>
     );
   }
 
@@ -704,29 +705,44 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     return (
       <div>
         {render_current_licenses()}
-        <Button
-          onClick={() => set_show_site_license(true)}
-          disabled={show_site_license}
-        >
-          <Icon name="key" />{" "}
-          {n == 0
-            ? "Upgrade using a license key"
-            : "Add another license key (more students or better upgrades)"}
-          ...
-        </Button>
-        {render_site_license_text()}
-        <br />
+        <div>
+          <Button
+            onClick={() => set_show_site_license(true)}
+            disabled={show_site_license}
+          >
+            <Icon name="key" />{" "}
+            {n == 0
+              ? "Upgrade using a license key"
+              : "Add another license key (more students or better upgrades)"}
+            ...
+          </Button>
+          {render_site_license_text()}
+        </div>
         {is_commercial && (
-          <>
-            <br />
-            <div style={{ fontSize: "13pt" }}>
-              <PurchaseOneLicenseLink />
-            </div>
-          </>
+          <div style={{ marginTop: "15px" }}>
+            <Next
+              href={"store/site-license"}
+              query={{
+                user: "academic",
+                period: "range",
+                run_limit: (get_store()?.num_students() ?? 0) + 2,
+                member: true,
+                uptime: "short",
+                cpu: 1,
+                ram: 2,
+                disk: 3,
+                title: settings.get("title") ?? "",
+                description: settings.get("description") ?? "",
+              }}
+            >
+              <Button>Buy a license...</Button>
+            </Next>
+          </div>
         )}
         {n == 0 && render_remove_all_licenses()}
-        <br />
-        <ToggleUpgradingHostProject actions={actions} settings={settings} />
+        <div>
+          <ToggleUpgradingHostProject actions={actions} settings={settings} />
+        </div>
       </div>
     );
   }
