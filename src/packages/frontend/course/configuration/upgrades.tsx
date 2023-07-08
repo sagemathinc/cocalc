@@ -794,25 +794,12 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     return <div>{render_site_license()}</div>;
   }
 
-  function box_style(): { bg: string; style: CSS } {
-    let bg, style;
-    if (is_onprem || student_pay || institute_pay) {
-      style = bg = undefined;
-    } else {
-      style = { fontWeight: "bold" };
-      bg = "#fcf8e3";
-    }
-    return { style, bg };
-  }
-
-  const { bg, style } = box_style();
-
   function render_title(): React.ReactNode {
     if (is_onprem) {
-      return <div style={style}>Upgrade Student Projects</div>;
+      return <div>Upgrade Student Projects</div>;
     } else {
       return (
-        <div style={style}>
+        <div>
           <Icon name="dashboard" /> Upgrade all Student Projects (Institute
           Pays)
         </div>
@@ -834,7 +821,13 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
   }
 
   return (
-    <Card style={{ background: bg }} title={render_title()}>
+    <Card
+      style={{
+        background:
+          is_onprem || student_pay || institute_pay ? undefined : "#fcf8e3",
+      }}
+      title={render_title()}
+    >
       {render_body()}
     </Card>
   );
