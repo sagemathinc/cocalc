@@ -1,30 +1,22 @@
-import { Alert, Button, Card, Checkbox, Spin } from "antd";
-import { useMemo, useState } from "react";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
-  DateTimePicker,
-  Gap,
-  Icon,
-  TimeAgo,
-} from "@cocalc/frontend/components";
-import { upgrades } from "@cocalc/util/upgrade-spec";
+  Alert,
+  Button,
+  Card,
+  Checkbox,
+  DatePicker,
+  Spin,
+  Statistic,
+} from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
 import { days_ago } from "@cocalc/util/misc";
 import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
+import { currency } from "@cocalc/frontend/purchases/util";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-//import dayjs from "dayjs";
-
-// interface StudentPayConfig {
-//   grace: number; // grace period in days (at least 0)
-//   cpu: number; // shared vCPU (at least 1)
-//   ram: number; // GB (at least 1)
-//   disk: number; // GB (at least 3)
-//   start: Date; // timestamp
-//   end: Date; // after start
-//   member: boolean;
-//   uptime: "short" | "medium" | "day" | "always_running";
-// }
-
-const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
+import dayjs from "dayjs";
 
 const DEFAULT_PURCHASE_INFO = {
   type: "quota",
@@ -42,9 +34,26 @@ const DEFAULT_PURCHASE_INFO = {
 } as const;
 
 export default function StudentPay({ actions, settings }) {
-  const [info, setInfo] = useState<PurchaseInfo>(
-    DEFAULT_PURCHASE_INFO as PurchaseInfo
-  );
+  const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
+  const updateMinPayment = () => {
+    (async () => {
+      setMinPayment(await webapp_client.purchases_client.getMinimumPayment());
+    })();
+  };
+  useEffect(() => {
+    updateMinPayment();
+  }, []);
+  const [info, setInfo] = useState<PurchaseInfo>({
+    ...(DEFAULT_PURCHASE_INFO as PurchaseInfo),
+    start: dayjs(),
+  });
+  const cost = useMemo(() => {
+    try {
+      return compute_cost(info).discounted_cost;
+    } catch (_) {
+      return null;
+    }
+  }, [info]);
   const [showStudentPay, setShowStudentPay] = useState<boolean>(false);
   const paySelected = useMemo(() => {
     if (!settings) return false;
@@ -78,10 +87,15 @@ export default function StudentPay({ actions, settings }) {
       return (
         <span>
           <b>
-            Your students will see a warning until <TimeAgo date={date} />.
+            Your students will see a warning until <TimeAgo date={date} />;
+            after that they will be required to upgrade.
           </b>{" "}
-          They will then be required to upgrade for a special discounted
-          one-time fee of ${STUDENT_COURSE_PRICE}.
+          {cost != null && (
+            <>
+              They will then be required to upgrade for a special discounted
+              one-time fee of {currency(cost)}.
+            </>
+          )}
         </span>
       );
     } else {
@@ -102,19 +116,14 @@ export default function StudentPay({ actions, settings }) {
     }
 
     return (
-      <div style={{ margin: "15px 0" }}>
-        <div style={{ width: "50%", marginLeft: "3em", marginBottom: "10px" }}>
-          <DateTimePicker
-            style={{ width: "20em" }}
-            placeholder={"Student Pay Deadline"}
-            value={
-              typeof settings.get("pay") === "string"
-                ? new Date(settings.get("pay"))
-                : settings.get("pay")
-            }
+      <div style={{ marginBottom: "15px" }}>
+        <div style={{ textAlign: "center", marginBottom: "15px" }}>
+          <DatePicker
+            disabledDate={(current) => current < dayjs()}
+            value={dayjs(settings.get("pay"))}
             onChange={(date) => {
               actions.configuration.set_course_info(
-                date != null ? date.toISOString() : undefined
+                date != null ? date.toDate().toISOString() : undefined
               );
             }}
           />
@@ -163,14 +172,16 @@ export default function StudentPay({ actions, settings }) {
     } else {
       return (
         <span>
-          Require that all students in the course pay a one-time $
-          {STUDENT_COURSE_PRICE} fee to move their projects off trial servers
-          and enable full internet access, for four months. This is strongly
-          recommended, and ensures that your students have a better experience,
-          and do not see a large{" "}
-          <span style={{ color: "red" }}>RED warning banner</span> all the time.
-          Alternatively, you (or your university) can pay for all students at
-          one for a significant discount -- see below.
+          Require that all students in the course pay a one-time fee to upgrade
+          their project. This is strongly recommended, and ensures that your
+          students have a much better experience, and do not see a large{" "}
+          <span
+            style={{ color: "white", background: "darkred", padding: "0 5px" }}
+          >
+            RED warning banner
+          </span>{" "}
+          all the time. Alternatively, you (or your university) can pay for all
+          students -- see below.
         </span>
       );
     }
@@ -185,7 +196,7 @@ export default function StudentPay({ actions, settings }) {
       style={!paySelected ? { background: "#fcf8e3" } : undefined}
       title={
         <>
-          <Icon name="dashboard" /> Require students to upgrade (students pay)
+          <Icon name="dashboard" /> Require Students to Upgrade (students pay)
         </>
       }
     >
@@ -207,28 +218,29 @@ export default function StudentPay({ actions, settings }) {
                     their Project
                   </h3>
                   <hr />
+                  <div
+                    style={{
+                      height: "65px",
+                      textAlign: "center",
+                      fontSize: "12pt",
+                      marginTop: "-15px",
+                    }}
+                  >
+                    {cost != null && (
+                      <MoneyStatistic
+                        title="Student Cost"
+                        value={Math.max(minPayment, cost)}
+                      />
+                    )}
+                  </div>
                   <LicenseEditor
                     info={info}
                     onChange={setInfo}
                     hiddenFields={new Set(["quantity", "custom_member"])}
                   />
-                  <span>
-                    Click the following checkbox to require that all students in
-                    the course pay a special discounted{" "}
-                    <b>one-time ${STUDENT_COURSE_PRICE}</b> fee to move their
-                    project from trial servers to better members-only servers,
-                    enable full internet access, and not see a large red warning
-                    message. This lasts four months, and{" "}
-                    <em>
-                      you will not be charged (only students are charged).
-                    </em>
-                  </span>
-                  <Checkbox
-                    checked={!!settings.get("pay")}
-                    onChange={handle_students_pay_checkbox}
-                  >
+                  <div style={{ margin: "15px 0" }}>
                     {render_students_pay_checkbox_label()}
-                  </Checkbox>
+                  </div>
                   {settings.get("pay")
                     ? render_require_students_pay_when()
                     : undefined}

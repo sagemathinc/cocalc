@@ -34,19 +34,18 @@ export default function Payment({ balance, update, cost }: Props) {
   const [paymentAmount, setPaymentAmount] = useState<number | null>(
     Math.max(DEFAULT_AMOUNT, balance ?? 0)
   );
-  const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const [session, setSession] = useState<
     { id: string; url: string } | null | "loading"
   >("loading");
   const [cancelling, setCancelling] = useState<boolean>(false);
   const [paying, setPaying] = useState<boolean>(false);
 
+  const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const updateMinPayment = () => {
     (async () => {
       setMinPayment(await webapp_client.purchases_client.getMinimumPayment());
     })();
   };
-
   useEffect(() => {
     updateMinPayment();
   }, []);

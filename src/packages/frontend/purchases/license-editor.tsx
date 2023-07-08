@@ -105,7 +105,7 @@ export default function LicenseEditor({
         ))}
       </div>
     );
-  }, [isSubscription, info.end]);
+  }, [isSubscription, info.start]);
 
   let data = [
     {
@@ -113,11 +113,7 @@ export default function LicenseEditor({
       field: "Start Date",
       value: (
         <DatePicker
-          disabled={
-            (info.start != null && info.start <= new Date()) ||
-            isSubscription ||
-            disabledFields?.has("start")
-          }
+          disabled={isSubscription || disabledFields?.has("start")}
           value={info.start ? dayjs(info.start) : undefined}
           onChange={handleFieldChange("start")}
           disabledDate={(current) => current < dayjs().startOf("day")}

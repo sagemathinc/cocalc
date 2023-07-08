@@ -195,7 +195,15 @@ export default function EditLicense({ license_id, refresh }: Props) {
               Reset
             </Button>
           </div>
-          <LicenseEditor info={modifiedInfo} onChange={setModifiedInfo} />
+          <LicenseEditor
+            info={modifiedInfo}
+            onChange={setModifiedInfo}
+            disabledFields={
+              info.start != null && info.start <= new Date()
+                ? new Set(["start"])
+                : undefined
+            }
+          />
           <div style={{ marginTop: "15px" }}>
             You may edit a license at any time, but{" "}
             <b>projects using the license might be restarted</b>.
