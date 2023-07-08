@@ -336,8 +336,8 @@ function AddPaymentMethod(props: AddPaymentMethodProps) {
     if (stripe != null) {
       stripe.card.mount(ReactDOM.findDOMNode(cardRef.current));
     } else {
-      if (window.Stripe == null) return;
-      const stripe = window.Stripe(stripePublishableKey);
+      if ((window as any).Stripe == null) return;
+      const stripe = (window as any).Stripe(stripePublishableKey);
       const card = stripe.elements().create("card");
       if (card == null) throw Error("bug -- card cannot be null");
       setStripe({ stripe, card });
@@ -363,7 +363,7 @@ function AddPaymentMethod(props: AddPaymentMethodProps) {
           <Script
             src={STRIPE_CLIENT_LIBRARY}
             onLoad={() => {
-              const stripe = window.Stripe(stripePublishableKey);
+              const stripe = (window as any).Stripe(stripePublishableKey);
               const card = stripe.elements().create("card");
               if (card == null) throw Error("bug -- card cannot be null");
               setStripe({ stripe, card });
