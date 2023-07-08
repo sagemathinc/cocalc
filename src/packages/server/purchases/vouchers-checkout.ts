@@ -7,7 +7,7 @@ import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getChargeAmount from "@cocalc/util/purchases/charge-amount";
 import type { CheckoutParams } from "./shopping-cart-checkout";
 import createVouchers from "@cocalc/server/vouchers/create-vouchers";
-
+import type { WhenPay } from "@cocalc/util/vouchers";
 const logger = getLogger("purchases:vouchers-checkout");
 
 export default async function vouchersCheckout({
@@ -19,7 +19,20 @@ export default async function vouchersCheckout({
   account_id: string;
   success_url: string;
   cancel_url?: string;
-  config: any;
+  config: {
+    count: number;
+    expire: Date;
+    active: Date;
+    cancelBy: Date;
+    title: string;
+    whenPay: WhenPay;
+    generate: {
+      length: number;
+      charset: string;
+      prefix: string;
+      postfix: string;
+    };
+  };
 }) {
   logger.debug({
     account_id,

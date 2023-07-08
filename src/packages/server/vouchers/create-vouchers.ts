@@ -43,7 +43,7 @@ interface Options {
 
 export default async function createVouchers({
   account_id,
-  whenPay,
+  whenPay, // createVouchers *does* check if they claim to be an admin that they actually are.
   count,
   active,
   expire,

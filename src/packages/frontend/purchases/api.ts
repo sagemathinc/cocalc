@@ -198,10 +198,25 @@ export async function getShoppingCartCheckoutParams() {
   return await api("purchases/get-shopping-cart-checkout-params");
 }
 
+import type { WhenPay } from "@cocalc/util/vouchers";
+
 export async function vouchersCheckout(opts: {
   success_url: string;
   cancel_url?: string;
-  config: any;
+  config: {
+    count: number;
+    expire: Date;
+    active: Date;
+    cancelBy: Date;
+    title: string;
+    whenPay: WhenPay;
+    generate: {
+      length: number;
+      charset: string;
+      prefix: string;
+      postfix: string;
+    };
+  };
 }): Promise<
   { done: true } | { done: false; session: { url: string; id: string } }
 > {

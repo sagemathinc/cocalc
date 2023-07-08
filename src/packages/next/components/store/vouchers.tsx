@@ -57,53 +57,66 @@ import {
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ExplainPaymentSituation } from "./checkout";
 
+interface Config {
+  whenPay: WhenPay;
+  numVouchers: number;
+  length: number;
+  title: string;
+  prefix: string;
+  postfix: string;
+  charset: CharSet;
+  expire: dayjs.Dayjs;
+}
+
 export default function CreateVouchers() {
   const router = useRouter();
   const isMounted = useIsMounted();
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
-  const [whenPay, setWhenPay] = useState<WhenPay>("now");
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
 
   // user configurable options: start
-  const [numVouchers, setNumVouchers] = useState<number | null>(
-    typeof router.query.num_vouchers == "string"
-      ? parseInt(router.query.num_vouchers)
-      : 1
-  );
-  const [length, setLength] = useState<number>(
-    typeof router.query.length == "string" ? parseInt(router.query.length) : 8
-  );
-  const [title, setTitle] = useState<string>(
-    typeof router.query.title == "string" ? router.query.title : ""
-  );
-  const [prefix, setPrefix] = useState<string>(
-    typeof router.query.prefix == "string" ? router.query.prefix : ""
-  );
-  const [postfix, setPostfix] = useState<string>(
-    typeof router.query.postfix == "string" ? router.query.postfix : ""
-  );
-  const [charset, setCharset] = useState<CharSet>(
-    typeof router.query.charset == "string"
-      ? router.query.charset
-      : "alphanumeric"
-  );
-  const [expire, setExpire] = useState<dayjs.Dayjs | null>(
-    typeof router.query.expire == "string"
-      ? dayjs(router.query.expire)
-      : dayjs().add(30, "day")
-  );
-  const updateQuery = () => {
-    const { query } = router;
-    query.length = `${length}`;
-    router.replace({ query }, undefined, {
+  const [query, setQuery0] = useState<Config>(() => {
+    const q = router.query;
+    return {
+      whenPay: typeof q.whenPay == "string" ? (q.whenPay as WhenPay) : "now",
+      numVouchers:
+        typeof q.numVouchers == "string" ? parseInt(q.numVouchers) : 1,
+      length: typeof q.length == "string" ? parseInt(q.length) : 8,
+      title: typeof q.title == "string" ? q.title : "",
+      prefix: typeof q.prefix == "string" ? q.prefix : "",
+      postfix: typeof q.postfix == "string" ? q.postfix : "",
+      charset: typeof q.charset == "string" ? q.charset : "alphanumeric",
+      expire:
+        typeof q.expire == "string" ? dayjs(q.expire) : dayjs().add(30, "day"),
+    };
+  });
+  const {
+    whenPay,
+    numVouchers,
+    length,
+    title,
+    prefix,
+    postfix,
+    charset,
+    expire,
+  } = query;
+  const setQuery = (obj) => {
+    const query1 = { ...query };
+    for (const key in obj) {
+      const value = obj[key];
+      router.query[key] =
+        key == "expire" ? value.toDate().toISOString() : `${value}`;
+      query1[key] = value;
+    }
+    router.replace({ query: router.query }, undefined, {
       shallow: true,
       scroll: false,
     });
+    setQuery0(query1);
   };
-  // user configurable options: start
 
   const [params, setParams] = useState<CheckoutParams | null>(null);
   const updateParams = async (count, whenPay) => {
@@ -161,8 +174,10 @@ export default function CreateVouchers() {
       // This api call tells the backend, "make a session that, when successfully finished, results in
       // buying everything in my shopping cart", or, if it returns {done:true}, then
       // It succeeds if the purchase goes through.
-      const currentUrl = window.location.href.split("?")[0];
-      const success_url = `${currentUrl}?complete=true`;
+      const currentUrl = window.location.href;
+      const success_url = `${currentUrl}${
+        currentUrl.includes("?") ? "&" : "?"
+      }complete=true`;
       // This api call: "create requested vouchers from everything in my
       // shopping cart that is not a subscription" if possible; otherwise, give me a stripe
       // checkout session for the right amount.
@@ -171,15 +186,17 @@ export default function CreateVouchers() {
         cancel_url: currentUrl,
         config: {
           count: numVouchers ?? 1,
-          expire,
-          cancelBy: dayjs().add(14, "day"),
-          active: dayjs(),
+          expire: expire.toDate(),
+          cancelBy: dayjs().add(14, "day").toDate(),
+          active: dayjs().toDate(),
           title,
-          length,
-          charset,
-          prefix,
-          postfix,
           whenPay,
+          generate: {
+            length,
+            charset,
+            prefix,
+            postfix,
+          },
         },
       });
       if (result.done) {
@@ -222,7 +239,7 @@ export default function CreateVouchers() {
 
   useEffect(() => {
     if ((numVouchers ?? 0) > MAX_VOUCHERS[whenPay]) {
-      setNumVouchers(MAX_VOUCHERS[whenPay]);
+      setQuery({ numVouchers: MAX_VOUCHERS[whenPay] });
     }
   }, [whenPay]);
 
@@ -380,7 +397,7 @@ export default function CreateVouchers() {
                 <Radio.Group
                   value={whenPay}
                   onChange={(e) => {
-                    setWhenPay(e.target.value as WhenPay);
+                    setQuery({ whenPay: e.target.value as WhenPay });
                   }}
                 >
                   <Space
@@ -421,7 +438,7 @@ export default function CreateVouchers() {
                 min={1}
                 max={MAX_VOUCHERS[whenPay]}
                 value={numVouchers}
-                onChange={(value) => setNumVouchers(value)}
+                onChange={(value) => setQuery({ numVouchers: value })}
               />
             </div>
           </Paragraph>
@@ -465,7 +482,7 @@ export default function CreateVouchers() {
                         value: dayjs().add(1, "year"),
                       },
                     ]}
-                    onChange={setExpire}
+                    onChange={(expire) => setQuery({ expire })}
                     disabledDate={(current) => {
                       if (!current) {
                         return true;
@@ -489,7 +506,7 @@ export default function CreateVouchers() {
             Describe this voucher so you can easily find it later.
             <Input
               style={{ marginBottom: "15px", marginTop: "5px" }}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => setQuery({ title: e.target.value })}
               value={title}
               addonBefore={"Description"}
             />
@@ -501,21 +518,20 @@ export default function CreateVouchers() {
                   min={8}
                   max={16}
                   onChange={(length) => {
-                    setLength(length ?? 8);
-                    setTimeout(updateQuery, 1);
+                    setQuery({ length: length ?? 8 });
                   }}
                   value={length}
                 />
                 <Input
                   maxLength={10 /* also enforced via api */}
-                  onChange={(e) => setPrefix(e.target.value)}
+                  onChange={(e) => setQuery({ prefix: e.target.value })}
                   value={prefix}
                   addonBefore={"Prefix"}
                   allowClear
                 />
                 <Input
                   maxLength={10 /* also enforced via api */}
-                  onChange={(e) => setPostfix(e.target.value)}
+                  onChange={(e) => setQuery({ postfix: e.target.value })}
                   value={postfix}
                   addonBefore={"Postfix"}
                   allowClear
@@ -524,7 +540,7 @@ export default function CreateVouchers() {
               <Space>
                 <Radio.Group
                   onChange={(e) => {
-                    setCharset(e.target.value);
+                    setQuery({ charset: e.target.value });
                   }}
                   defaultValue={charset}
                 >
