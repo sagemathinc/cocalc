@@ -199,7 +199,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
             info={modifiedInfo}
             onChange={setModifiedInfo}
             disabledFields={
-              info.start != null && info.start <= new Date()
+              (info as any).start != null && (info as any).start <= new Date()
                 ? new Set(["start"])
                 : undefined
             }

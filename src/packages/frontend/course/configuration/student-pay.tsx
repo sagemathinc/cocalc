@@ -1,12 +1,4 @@
-import {
-  Alert,
-  Button,
-  Card,
-  Checkbox,
-  DatePicker,
-  Spin,
-  Statistic,
-} from "antd";
+import { Alert, Button, Card, Checkbox, DatePicker, Spin } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
@@ -44,9 +36,12 @@ export default function StudentPay({ actions, settings }) {
     updateMinPayment();
   }, []);
   const [info, setInfo] = useState<PurchaseInfo>({
-    ...(DEFAULT_PURCHASE_INFO as PurchaseInfo),
-    start: dayjs(),
-  });
+    ...DEFAULT_PURCHASE_INFO,
+    start: new Date(),
+  } as PurchaseInfo);
+  if (info.type == "vouchers") {
+    throw Error("bug");
+  }
   const cost = useMemo(() => {
     try {
       return compute_cost(info).discounted_cost;
@@ -131,14 +126,6 @@ export default function StudentPay({ actions, settings }) {
         {settings.get("pay") ? render_require_students_pay_desc() : undefined}
       </div>
     );
-  }
-
-  function handle_students_pay_checkbox(e): void {
-    if (e.target.checked) {
-      actions.configuration.set_course_info(get_student_pay_when());
-    } else {
-      actions.configuration.set_course_info("");
-    }
   }
 
   function render_students_pay_checkbox_label() {
@@ -229,7 +216,7 @@ export default function StudentPay({ actions, settings }) {
                     {cost != null && (
                       <MoneyStatistic
                         title="Student Cost"
-                        value={Math.max(minPayment, cost)}
+                        value={Math.max(minPayment ?? 0, cost)}
                       />
                     )}
                   </div>
