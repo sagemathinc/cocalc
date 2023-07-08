@@ -9,6 +9,9 @@ import {
 } from "@cocalc/frontend/components";
 import { upgrades } from "@cocalc/util/upgrade-spec";
 import { days_ago } from "@cocalc/util/misc";
+import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+//import dayjs from "dayjs";
 
 // interface StudentPayConfig {
 //   grace: number; // grace period in days (at least 0)
@@ -23,7 +26,25 @@ import { days_ago } from "@cocalc/util/misc";
 
 const STUDENT_COURSE_PRICE = upgrades.subscription.student_course.price.month4;
 
+const DEFAULT_PURCHASE_INFO = {
+  type: "quota",
+  user: "academic",
+  upgrade: "custom",
+  quantity: 1,
+  subscription: "no",
+  custom_cpu: 1,
+  custom_dedicated_cpu: 0,
+  custom_ram: 2,
+  custom_dedicated_ram: 0,
+  custom_disk: 3,
+  custom_member: true,
+  custom_uptime: "short",
+} as const;
+
 export default function StudentPay({ actions, settings }) {
+  const [info, setInfo] = useState<PurchaseInfo>(
+    DEFAULT_PURCHASE_INFO as PurchaseInfo
+  );
   const [showStudentPay, setShowStudentPay] = useState<boolean>(false);
   const paySelected = useMemo(() => {
     if (!settings) return false;
@@ -182,9 +203,15 @@ export default function StudentPay({ actions, settings }) {
               message={
                 <div>
                   <h3>
-                    <Icon name="arrow-circle-up" /> Require Students to Pay
+                    <Icon name="arrow-circle-up" /> Require Students to Upgrade
+                    their Project
                   </h3>
                   <hr />
+                  <LicenseEditor
+                    info={info}
+                    onChange={setInfo}
+                    hiddenFields={new Set(["quantity", "custom_member"])}
+                  />
                   <span>
                     Click the following checkbox to require that all students in
                     the course pay a special discounted{" "}

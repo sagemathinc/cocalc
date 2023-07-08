@@ -177,16 +177,6 @@ export default function EditLicense({ license_id, refresh }: Props) {
             />
           )}
           <div style={{ marginBottom: "15px", color: "#666" }}>
-            You may edit a license at any time, but{" "}
-            <b>projects using the license might be restarted</b>.
-            {cost != 0 && (
-              <span>
-                {" "}
-                The {cost >= 0 ? "charge" : "credit"} of{" "}
-                <b>{currency(Math.abs(cost))}</b> is the prorated difference
-                between the cost of the original license and the edited one.
-              </span>
-            )}
             {isSubscription && (
               <Alert
                 showIcon
@@ -206,6 +196,18 @@ export default function EditLicense({ license_id, refresh }: Props) {
             </Button>
           </div>
           <LicenseEditor info={modifiedInfo} onChange={setModifiedInfo} />
+          <div style={{ marginTop: "15px" }}>
+            You may edit a license at any time, but{" "}
+            <b>projects using the license might be restarted</b>.
+            {cost != 0 && (
+              <span>
+                {" "}
+                The {cost >= 0 ? "charge" : "credit"} of{" "}
+                <b>{currency(Math.abs(cost))}</b> is the prorated difference
+                between the cost of the original license and the edited one.
+              </span>
+            )}
+          </div>
         </Card>
       )}
     </div>

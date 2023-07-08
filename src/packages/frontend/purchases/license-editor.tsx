@@ -6,14 +6,35 @@ or anything like that.
 
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
-import { Alert, DatePicker, InputNumber, Switch, Select, Table } from "antd";
+import {
+  Alert,
+  DatePicker,
+  InputNumber,
+  Switch,
+  Select,
+  Table,
+  Tag,
+} from "antd";
 import dayjs from "dayjs";
 import { MAX } from "@cocalc/util/licenses/purchase/consts";
+import { useMemo } from "react";
+
+type Field =
+  | "start"
+  | "end"
+  | "quantity"
+  | "custom_cpu"
+  | "custom_ram"
+  | "custom_disk"
+  | "custom_member"
+  | "custom_uptime";
 
 interface Props {
   info: PurchaseInfo;
   onChange: (info: PurchaseInfo) => void;
   style?;
+  disabledFields?: Set<Field>;
+  hiddenFields?: Set<Field>;
 }
 
 const columns = [
@@ -31,7 +52,25 @@ const columns = [
   },
 ];
 
-export default function LicenseEditor({ info, onChange, style }: Props) {
+const END_PRESETS: {
+  label: string;
+  number: number;
+  interval: "week" | "month" | "year";
+}[] = [
+  { label: "Week", number: 1, interval: "week" },
+  { label: "Month", number: 1, interval: "month" },
+  { label: "3 Months", number: 3, interval: "month" },
+  { label: "4 Months", number: 4, interval: "month" },
+  { label: "Year", number: 1, interval: "year" },
+];
+
+export default function LicenseEditor({
+  info,
+  onChange,
+  style,
+  disabledFields,
+  hiddenFields,
+}: Props) {
   const handleFieldChange = (field: keyof Changes) => (value: any) => {
     if (field == "start" || field == "end") {
       value = value?.toDate();
@@ -45,14 +84,39 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
 
   const isSubscription = info.subscription != null && info.subscription != "no";
 
-  const data = [
+  const endPresets = useMemo(() => {
+    if (isSubscription || info.start == null) {
+      return null;
+    }
+
+    const start = dayjs(info.start);
+    return (
+      <div style={{ marginTop: "8px" }}>
+        {END_PRESETS.map(({ label, interval, number }) => (
+          <Tag
+            style={{ cursor: "pointer" }}
+            color="blue"
+            onClick={() =>
+              handleFieldChange("end")(start.add(number, interval))
+            }
+          >
+            {label}
+          </Tag>
+        ))}
+      </div>
+    );
+  }, [isSubscription, info.end]);
+
+  let data = [
     {
-      key: "1",
+      key: "start",
       field: "Start Date",
       value: (
         <DatePicker
           disabled={
-            (info.start != null && info.start <= new Date()) || isSubscription
+            (info.start != null && info.start <= new Date()) ||
+            isSubscription ||
+            disabledFields?.has("start")
           }
           value={info.start ? dayjs(info.start) : undefined}
           onChange={handleFieldChange("start")}
@@ -61,21 +125,30 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
       ),
     },
     {
-      key: "2",
+      key: "end",
       field: "End Date",
       value: (
         <div>
           <DatePicker
-            disabled={isSubscription}
+            disabled={isSubscription || disabledFields?.has("end")}
             value={info.end ? dayjs(info.end) : undefined}
             onChange={handleFieldChange("end")}
-            disabledDate={(current) => current <= dayjs().startOf("day")}
+            disabledDate={(current) => {
+              if (current <= dayjs().startOf("day")) {
+                return true;
+              }
+              if (info.start != null && current <= dayjs(info.start)) {
+                return true;
+              }
+              return false;
+            }}
           />
           {isSubscription && (
             <div style={{ color: "#666", marginTop: "15px" }}>
               Editing the end date of a subscription license is not allowed.
             </div>
           )}
+          {endPresets}
         </div>
       ),
     },
@@ -83,10 +156,11 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
     ...(info.type == "quota"
       ? [
           {
-            key: "3",
+            key: "quantity",
             field: "Run Limit",
             value: (
               <InputNumber
+                disabled={disabledFields?.has("quantity")}
                 min={1}
                 step={1}
                 value={info.quantity}
@@ -96,10 +170,11 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
             ),
           },
           {
-            key: "4",
+            key: "custom_ram",
             field: "RAM",
             value: (
               <InputNumber
+                disabled={disabledFields?.has("custom_ram")}
                 min={1}
                 max={MAX.ram}
                 step={1}
@@ -110,11 +185,12 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
             ),
           },
           {
-            key: "5",
+            key: "custom_disk",
             field: "Disk",
             value: (
               <InputNumber
-                min={1}
+                disabled={disabledFields?.has("custom_disk")}
+                min={3}
                 max={MAX.disk}
                 step={1}
                 value={info.custom_disk}
@@ -124,10 +200,11 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
             ),
           },
           {
-            key: "6",
+            key: "custom_cpu",
             field: "CPU",
             value: (
               <InputNumber
+                disabled={disabledFields?.has("custom_cpu")}
                 min={1}
                 max={MAX.cpu}
                 step={1}
@@ -138,20 +215,22 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
             ),
           },
           {
-            key: "7",
+            key: "custom_member",
             field: "Member Hosting",
             value: (
               <Switch
+                disabled={disabledFields?.has("custom_member")}
                 checked={info.custom_member}
                 onChange={handleFieldChange("custom_member")}
               />
             ),
           },
           {
-            key: "8",
+            key: "custom_uptime",
             field: "Idle Timeout",
             value: (
               <Select
+                disabled={disabledFields?.has("custom_uptime")}
                 style={{ width: "100%" }}
                 value={info.custom_uptime}
                 onChange={handleFieldChange("custom_uptime")}
@@ -168,6 +247,10 @@ export default function LicenseEditor({ info, onChange, style }: Props) {
         ]
       : []),
   ];
+
+  if (hiddenFields) {
+    data = data.filter((x) => !hiddenFields.has(x.key as Field));
+  }
 
   return (
     <Table
