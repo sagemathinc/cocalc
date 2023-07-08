@@ -6,6 +6,7 @@ import getBalance from "./get-balance";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getChargeAmount from "@cocalc/util/purchases/charge-amount";
 import type { CheckoutParams } from "./shopping-cart-checkout";
+import createVouchers from "@cocalc/server/vouchers/create-vouchers";
 
 const logger = getLogger("purchases:vouchers-checkout");
 
@@ -27,12 +28,25 @@ export default async function vouchersCheckout({
     config,
   });
 
-  // [ ] TODO: admin case!!
+  if (!config.count || config.count < 0) {
+    throw Error("config.count must be positive");
+  }
+
+  if (config.whenPay == "admin") {
+    const info = await createVouchers({
+      ...config,
+      account_id,
+    });
+    return { done: true, info };
+  }
 
   const params = await getVoucherCartCheckoutParams(account_id, config.count);
   if (params.chargeAmount <= 0) {
-    // [ ]  TODO: here we would make the vouchers.
-    return { done: true };
+    const info = await createVouchers({
+      ...config,
+      account_id,
+    });
+    return { done: true, info };
   }
 
   const session = await createStripeCheckoutSession({
@@ -47,6 +61,13 @@ export default async function vouchersCheckout({
   return { done: false, session };
 }
 
+export async function getVoucherCheckoutCart(account_id) {
+  return await getCheckoutCart(
+    account_id,
+    (item) => item.checked && item.description?.["period"] == "range"
+  );
+}
+
 export async function getVoucherCartCheckoutParams(
   account_id: string,
   count: number
@@ -54,10 +75,7 @@ export async function getVoucherCartCheckoutParams(
   if (!count) {
     throw Error("count must be specified");
   }
-  const { total, cart } = await getCheckoutCart(
-    account_id,
-    (item) => item.checked && item.description?.["period"] == "range"
-  );
+  const { total, cart } = await getVoucherCheckoutCart(account_id);
   const minBalance = await getMinBalance(account_id);
   const balance = await getBalance(account_id);
   const { pay_as_you_go_min_payment: minPayment } = await getServerSettings();

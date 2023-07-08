@@ -48,7 +48,7 @@ export const QUOTA_SPEC: QuotaSpec = {
   },
   voucher: {
     display: "Voucher",
-    color: "#8b0000",
+    color: "#008b00",
     noSet: true,
   },
 };

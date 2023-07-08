@@ -220,8 +220,8 @@ export default function Congrats() {
             <br />
             <br />
             <ul>
-              {vouchers.result.map((item) => (
-                <Voucher {...item} />
+              {vouchers.result.map((item, n) => (
+                <Voucher key={n} {...item} />
               ))}
             </ul>
           </Card>

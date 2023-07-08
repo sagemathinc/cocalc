@@ -10,7 +10,6 @@ that is checked and in the shopping cart.
 
 import getPool from "@cocalc/database/pool";
 import multiInsert from "@cocalc/database/pool/multi-insert";
-import getCart from "@cocalc/server/shopping/cart/get";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import dayjs from "dayjs";
 import generateVouchers, {
@@ -20,11 +19,8 @@ import generateVouchers, {
   WhenPay,
 } from "@cocalc/util/vouchers";
 import { getLogger } from "@cocalc/backend/logger";
-import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
-import salesTax from "@cocalc/server/stripe/sales-tax";
-import { getStripeCustomerId } from "@cocalc/database/postgres/stripe";
-import { chargeUser } from "@cocalc/server/licenses/purchase/charge";
-import { StripeClient } from "@cocalc/server/stripe/client";
+import { getVoucherCheckoutCart } from "@cocalc/server/purchases/vouchers-checkout";
+import createPurchase from "@cocalc/server/purchases/create-purchase";
 
 const log = getLogger("createVouchers");
 
@@ -58,32 +54,12 @@ export default async function createVouchers({
   id: string;
   codes: string[];
   cost: number; // cost to redeem one voucher
-  tax: number; // tax on redeeming one voucher
   cart: any[];
 }> {
   // Get the list of items in the cart that haven't been purchased
   // or saved for later, and are currently checked, and are
   // NOT subscriptions (i.e, a date range).
-  const cart = (
-    await getCart({ account_id, purchased: false, removed: false })
-  ).filter((item) => item.checked && item.description?.["period"] == "range");
-
-  let cost = 0;
-  for (const item of cart) {
-    if (whenPay == "now") {
-      // compute *discounted* cost per voucher
-      cost += computeCost(item.description as any)?.discounted_cost ?? 0;
-    } else {
-      // full cost per voucher
-      for (const item of cart) {
-        cost += computeCost(item.description as any)?.cost ?? 0;
-      }
-    }
-  }
-  const customerId = await getStripeCustomerId(account_id);
-  const taxRate = customerId ? await salesTax(customerId) : 0;
-  const tax = cost * taxRate;
-
+  const { cart, total: cost } = await getVoucherCheckoutCart(account_id);
   log.debug({
     account_id,
     whenPay,
@@ -95,7 +71,6 @@ export default async function createVouchers({
     generate,
     cart,
     cost,
-    tax,
   });
 
   const pool = getPool();
@@ -142,7 +117,7 @@ export default async function createVouchers({
     // We leave expire as is, since admin can set shorter expiration date
   } else {
     // if they pay now, then their vouchers last a long time.
-    // If after 10 years, things are still around and their is a complaint,
+    // If after 10 years, things are still around and there is a complaint,
     // a support person can easily extend this.
     expire = dayjs().add(10, "year").toDate();
   }
@@ -158,19 +133,8 @@ export default async function createVouchers({
 
   */
   const { rows } = await pool.query(
-    "INSERT INTO vouchers(created, created_by, title, active, expire, cancel_by, cart, cost, tax, count, when_pay) VALUES(NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
-    [
-      account_id,
-      title,
-      active,
-      expire,
-      cancelBy,
-      cart,
-      cost,
-      tax,
-      count,
-      whenPay,
-    ]
+    "INSERT INTO vouchers(created, created_by, title, active, expire, cancel_by, cart, cost, count, when_pay) VALUES(NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+    [account_id, title, active, expire, cancelBy, cart, cost, count, whenPay]
   );
   const { id } = rows[0];
 
@@ -225,21 +189,24 @@ export default async function createVouchers({
       paid = true;
     } else {
       // Actually charge the user for the vouchers.
-      const stripe = new StripeClient({ account_id });
-      const info = {
-        type: "vouchers",
+      const description = {
+        type: "voucher",
         quantity: count,
         cost,
-        tax,
         title,
-        id,
+        voucher_id: id,
       } as const;
-      log.debug("charging user; info =", info);
-      const { id: stripe_invoice_id } = await chargeUser(stripe, info);
+      log.debug("charging user; description =", description);
+      const purchase_id = await createPurchase({
+        account_id,
+        cost,
+        service: "voucher",
+        description,
+      });
       const purchased = {
         time: new Date(),
         quantity: count,
-        stripe_invoice_id,
+        purchase_id,
       };
       log.debug("purchased = ", purchased);
       await pool.query("UPDATE vouchers SET purchased=$1 WHERE id=$2", [
@@ -269,5 +236,5 @@ export default async function createVouchers({
     }
   }
 
-  return { id, codes, cost, tax, cart };
+  return { id, codes, cost, cart };
 }

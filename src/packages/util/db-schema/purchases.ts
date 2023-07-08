@@ -79,8 +79,10 @@ export interface License {
 
 export interface Voucher {
   type: "voucher";
-  codes: string[];
-  cost_per_voucher: number;
+  quantity: number;
+  cost: number; // per voucher
+  title: string;
+  voucher_id: number;
 }
 
 export interface EditLicense {

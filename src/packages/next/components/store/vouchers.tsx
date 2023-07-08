@@ -66,15 +66,44 @@ export default function CreateVouchers() {
   const [whenPay, setWhenPay] = useState<WhenPay>("now");
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
-  const [numVouchers, setNumVouchers] = useState<number | null>(1);
-  const [length, setLength] = useState<number>(8);
-  const [title, setTitle] = useState<string>("");
-  const [prefix, setPrefix] = useState<string>("");
-  const [postfix, setPostfix] = useState<string>("");
-  const [charset, setCharset] = useState<CharSet>("alphanumeric");
-  const [expire, setExpire] = useState<dayjs.Dayjs | null>(
-    dayjs().add(30, "day")
+
+  // user configurable options: start
+  const [numVouchers, setNumVouchers] = useState<number | null>(
+    typeof router.query.num_vouchers == "string"
+      ? parseInt(router.query.num_vouchers)
+      : 1
   );
+  const [length, setLength] = useState<number>(
+    typeof router.query.length == "string" ? parseInt(router.query.length) : 8
+  );
+  const [title, setTitle] = useState<string>(
+    typeof router.query.title == "string" ? router.query.title : ""
+  );
+  const [prefix, setPrefix] = useState<string>(
+    typeof router.query.prefix == "string" ? router.query.prefix : ""
+  );
+  const [postfix, setPostfix] = useState<string>(
+    typeof router.query.postfix == "string" ? router.query.postfix : ""
+  );
+  const [charset, setCharset] = useState<CharSet>(
+    typeof router.query.charset == "string"
+      ? router.query.charset
+      : "alphanumeric"
+  );
+  const [expire, setExpire] = useState<dayjs.Dayjs | null>(
+    typeof router.query.expire == "string"
+      ? dayjs(router.query.expire)
+      : dayjs().add(30, "day")
+  );
+  const updateQuery = () => {
+    const { query } = router;
+    query.length = `${length}`;
+    router.replace({ query }, undefined, {
+      shallow: true,
+      scroll: false,
+    });
+  };
+  // user configurable options: start
 
   const [params, setParams] = useState<CheckoutParams | null>(null);
   const updateParams = async (count, whenPay) => {
@@ -116,6 +145,7 @@ export default function CreateVouchers() {
     }
     completePurchase();
   }, []);
+
   async function completePurchase() {
     try {
       setOrderError("");
@@ -255,7 +285,6 @@ export default function CreateVouchers() {
   });
 
   const disabled =
-    (params != null && params?.chargeAmount > 0) ||
     !numVouchers ||
     completingPurchase ||
     !title?.trim() ||
@@ -282,6 +311,7 @@ export default function CreateVouchers() {
             Create {numVouchers ?? 0} {v}
             {whenPay == "now"}
             {whenPay == "admin" && " (no charge)"}
+            {!title?.trim() && " (enter description above!)"}
           </>
         )}
       </Button>
@@ -470,7 +500,10 @@ export default function CreateVouchers() {
                   addonBefore={"Length"}
                   min={8}
                   max={16}
-                  onChange={(length) => setLength(length ?? 8)}
+                  onChange={(length) => {
+                    setLength(length ?? 8);
+                    setTimeout(updateQuery, 1);
+                  }}
                   value={length}
                 />
                 <Input
@@ -523,7 +556,9 @@ export default function CreateVouchers() {
           cart (vouchers cannot be used to create subscriptions). When used, the
           voucher code is redeemed for one or more license starting at the time
           of redemption and running for the same length of time as each license
-          listed below.
+          listed below. The license obtained using this voucher can also be
+          canceled early for a prorated refund resulting in credit to the
+          account holder, or edited to better fit the recipient's requirements.
         </Paragraph>
         <div style={{ border: "1px solid #eee" }}>
           <Table
