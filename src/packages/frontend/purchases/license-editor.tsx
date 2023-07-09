@@ -33,24 +33,10 @@ interface Props {
   info: PurchaseInfo;
   onChange: (info: PurchaseInfo) => void;
   style?;
+  cellStyle?;
   disabledFields?: Set<Field>;
   hiddenFields?: Set<Field>;
 }
-
-const columns = [
-  {
-    title: <div style={{ textAlign: "center" }}>Field</div>,
-    dataIndex: "field",
-    key: "field",
-    render: (field) => <div style={{ margin: "15px" }}>{field}</div>,
-  },
-  {
-    title: <div style={{ textAlign: "center" }}>Value</div>,
-    dataIndex: "value",
-    key: "value",
-    render: (field) => <div style={{ margin: "15px" }}>{field}</div>,
-  },
-];
 
 const END_PRESETS: {
   label: string;
@@ -70,7 +56,23 @@ export default function LicenseEditor({
   style,
   disabledFields,
   hiddenFields,
+  cellStyle,
 }: Props) {
+  const columns = [
+    {
+      title: <div style={{ textAlign: "center" }}>Field</div>,
+      dataIndex: "field",
+      key: "field",
+      render: (field) => <div style={cellStyle}>{field}</div>,
+    },
+    {
+      title: <div style={{ textAlign: "center" }}>Value</div>,
+      dataIndex: "value",
+      key: "value",
+      render: (field) => <div style={cellStyle}>{field}</div>,
+    },
+  ];
+
   const handleFieldChange = (field: keyof Changes) => (value: any) => {
     if (field == "start" || field == "end") {
       value = value?.toDate();
@@ -94,6 +96,7 @@ export default function LicenseEditor({
       <div style={{ marginTop: "8px" }}>
         {END_PRESETS.map(({ label, interval, number }) => (
           <Tag
+            key={label}
             style={{ cursor: "pointer" }}
             color="blue"
             onClick={() =>

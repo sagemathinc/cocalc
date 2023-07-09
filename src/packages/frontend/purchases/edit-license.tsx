@@ -196,6 +196,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
             </Button>
           </div>
           <LicenseEditor
+            cellStyle={{ margin: "8px" }}
             info={modifiedInfo}
             onChange={setModifiedInfo}
             disabledFields={

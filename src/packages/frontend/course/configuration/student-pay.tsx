@@ -18,7 +18,7 @@ const DEFAULT_PURCHASE_INFO = {
   subscription: "no",
   custom_cpu: 1,
   custom_dedicated_cpu: 0,
-  custom_ram: 2,
+  custom_ram: 4,
   custom_dedicated_ram: 0,
   custom_disk: 3,
   custom_member: true,
@@ -35,13 +35,29 @@ export default function StudentPay({ actions, settings }) {
   useEffect(() => {
     updateMinPayment();
   }, []);
-  const [info, setInfo] = useState<PurchaseInfo>({
-    ...DEFAULT_PURCHASE_INFO,
-    start: new Date(),
-  } as PurchaseInfo);
+
+  const [info, setInfo0] = useState<PurchaseInfo>(() => {
+    const cur = settings.get("payInfo")?.toJS();
+    if (cur != null) {
+      return cur;
+    }
+    const info = {
+      ...DEFAULT_PURCHASE_INFO,
+      start: new Date(),
+    } as PurchaseInfo;
+    actions.configuration.setStudentPay({ info });
+    return info;
+  });
+  const setInfo = (info) => {
+    setInfo0(info);
+    actions.configuration.setStudentPay({ info });
+  };
+
   if (info.type == "vouchers") {
+    // for typescript
     throw Error("bug");
   }
+
   const cost = useMemo(() => {
     try {
       return compute_cost(info).discounted_cost;
@@ -49,7 +65,17 @@ export default function StudentPay({ actions, settings }) {
       return null;
     }
   }, [info]);
+
   const [showStudentPay, setShowStudentPay] = useState<boolean>(false);
+  useEffect(() => {
+    if (showStudentPay) {
+      const cur = settings.get("payInfo")?.toJS();
+      if (cur != null) {
+        setInfo0(cur);
+      }
+    }
+  }, [showStudentPay]);
+
   const paySelected = useMemo(() => {
     if (!settings) return false;
     return settings.get("student_pay") || settings.get("institute_pay");
@@ -64,31 +90,19 @@ export default function StudentPay({ actions, settings }) {
     }
   }
 
-  function handle_student_pay_button(): void {
-    setShowStudentPay(true);
-  }
-
-  function handle_student_pay_choice(e): void {
-    actions.configuration.set_pay_choice("student", e.target.checked);
-    if (e.target.checked) {
-      setShowStudentPay(true);
-      actions.configuration.set_course_info(get_student_pay_when());
-    }
-  }
-
   function render_require_students_pay_desc() {
     const date = new Date(settings.get("pay"));
     if (date > webapp_client.server_time()) {
       return (
         <span>
           <b>
-            Your students will see a warning until <TimeAgo date={date} />;
-            after that they will be required to upgrade.
+            Your students will see a warning until <TimeAgo date={date} />.
           </b>{" "}
           {cost != null && (
             <>
-              They will then be required to upgrade for a special discounted
-              one-time fee of {currency(cost)}.
+              They will then be required to upgrade for a one-time fee of{" "}
+              {currency(cost)}. This cost in USD is locked in, even if the rates
+              on our site change.
             </>
           )}
         </span>
@@ -114,12 +128,13 @@ export default function StudentPay({ actions, settings }) {
       <div style={{ marginBottom: "15px" }}>
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <DatePicker
+            allowClear={false}
             disabledDate={(current) => current < dayjs()}
             value={dayjs(settings.get("pay"))}
             onChange={(date) => {
-              actions.configuration.set_course_info(
-                date != null ? date.toDate().toISOString() : undefined
-              );
+              actions.configuration.setStudentPay({
+                when: date?.toDate() ?? new Date(),
+              });
             }}
           />
         </div>
@@ -188,20 +203,39 @@ export default function StudentPay({ actions, settings }) {
       }
     >
       <Checkbox
-        checked={!!(settings != null ? settings.get("student_pay") : undefined)}
-        onChange={handle_student_pay_choice}
+        checked={!!settings?.get("student_pay")}
+        onChange={(e) => {
+          actions.configuration.set_pay_choice("student", e.target.checked);
+          if (e.target.checked) {
+            setShowStudentPay(true);
+            actions.configuration.setStudentPay({
+              when: get_student_pay_when(),
+              info,
+            });
+          }
+        }}
       >
-        Students will pay for this course
+        Students will pay directly
       </Checkbox>
       {settings?.get("student_pay") && (
         <div>
-          {showStudentPay ? (
+          <div style={{ textAlign: "center", margin: "15px 0" }}>
+            <Button
+              type={showStudentPay ? "default" : "primary"}
+              onClick={() => {
+                setShowStudentPay(!showStudentPay);
+              }}
+            >
+              <Icon name="credit-card" /> Configure how students will pay...
+            </Button>
+          </div>
+          {showStudentPay && (
             <Alert
               style={{ margin: "15px 0" }}
               message={
                 <div>
                   <h3>
-                    <Icon name="arrow-circle-up" /> Require Students to Upgrade
+                    <Icon name="credit-card" /> Require Students to Upgrade
                     their Project
                   </h3>
                   <hr />
@@ -214,13 +248,16 @@ export default function StudentPay({ actions, settings }) {
                     }}
                   >
                     {cost != null && (
-                      <MoneyStatistic
-                        title="Student Cost"
-                        value={Math.max(minPayment ?? 0, cost)}
-                      />
+                      <>
+                        <MoneyStatistic
+                          title="Student Cost"
+                          value={Math.max(minPayment ?? 0, cost)}
+                        />
+                      </>
                     )}
                   </div>
                   <LicenseEditor
+                    cellStyle={{ padding: 0, margin: 0 }}
                     info={info}
                     onChange={setInfo}
                     hiddenFields={new Set(["quantity", "custom_member"])}
@@ -237,13 +274,6 @@ export default function StudentPay({ actions, settings }) {
                 </div>
               }
             />
-          ) : (
-            <div style={{ textAlign: "center", margin: "15px 0" }}>
-              <Button type="primary" onClick={handle_student_pay_button}>
-                <Icon name="arrow-circle-up" /> Configure how students will
-                pay...
-              </Button>
-            </div>
           )}
           <hr />
           <div style={{ color: "#666" }}>{render_student_pay_desc()}</div>

@@ -748,10 +748,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
   }
 
   function handle_institute_pay_checkbox(e): void {
-    return course_actions.configuration.set_pay_choice(
-      "institute",
-      e.target.checked
-    );
+    course_actions.configuration.set_pay_choice("institute", e.target.checked);
   }
 
   function render_checkbox() {

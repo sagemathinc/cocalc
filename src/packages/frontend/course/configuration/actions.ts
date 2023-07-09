@@ -20,6 +20,7 @@ import { CourseActions, primary_key } from "../actions";
 import { DEFAULT_LICENSE_UPGRADE_HOST_PROJECT } from "../store";
 import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
 import { StudentProjectFunctionality } from "./customize-student-project-functionality";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -88,7 +89,7 @@ export class ConfigurationActions {
     this.set({ site_license_strategy, table: "settings" });
   }
 
-  public set_pay_choice(type: string, value: boolean): void {
+  public set_pay_choice(type: "student" | "institute", value: boolean): void {
     this.set({ [type + "_pay"]: value, table: "settings" });
     if (type == "student") {
       if (value) {
@@ -124,17 +125,20 @@ export class ConfigurationActions {
   // Set the pay option for the course, and ensure that the course fields are
   // set on every student project in the course (see schema.coffee for format
   // of the course field) to reflect this change in the database.
-  public async set_course_info(pay: string | Date = ""): Promise<void> {
-    if (typeof pay != "string") {
-      pay = pay.toISOString();
-    }
+  async setStudentPay({
+    when,
+    info,
+  }: {
+    when?: Date | string; // date when they need to pay
+    info?: PurchaseInfo; // what they must buy for the course
+  }) {
     this.set({
-      pay,
       table: "settings",
+      ...(info != null ? { payInfo: info } : undefined),
+      ...(when != null
+        ? { pay: typeof when != "string" ? when.toISOString() : when }
+        : undefined),
     });
-    await this.course_actions.student_projects.set_all_student_project_course_info(
-      pay
-    );
   }
 
   public async configure_host_project(): Promise<void> {
