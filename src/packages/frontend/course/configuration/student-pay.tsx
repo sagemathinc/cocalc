@@ -226,9 +226,19 @@ export default function StudentPay({ actions, settings }) {
       </Checkbox>
       {settings?.get("student_pay") && (
         <div>
-          <div style={{ textAlign: "center", margin: "15px 0" }}>
-            {showStudentPay ? (
-              <>
+          <div style={{ margin: "15px 0" }}>
+            <Button
+              type={"primary"}
+              disabled={showStudentPay}
+              onClick={() => {
+                setShowStudentPay(true);
+              }}
+            >
+              <Icon name="credit-card" /> Configure dates and upgrades...
+            </Button>
+            {showStudentPay && (
+              <div style={{ float: "right" }}>
+                {" "}
                 <Button
                   onClick={() => {
                     setShowStudentPay(false);
@@ -240,7 +250,7 @@ export default function StudentPay({ actions, settings }) {
                 <Button
                   disabled={
                     isEqual(info, settings.get("payInfo")?.toJS()) &&
-                    when == dayjs(settings.get("pay"))
+                    when.isSame(dayjs(settings.get("pay")))
                   }
                   type="primary"
                   onClick={() => {
@@ -248,18 +258,9 @@ export default function StudentPay({ actions, settings }) {
                     setShowStudentPay(false);
                   }}
                 >
-                  Save
+                  Save Changes
                 </Button>
-              </>
-            ) : (
-              <Button
-                type={"primary"}
-                onClick={() => {
-                  setShowStudentPay(true);
-                }}
-              >
-                <Icon name="credit-card" /> Configure how students will pay...
-              </Button>
+              </div>
             )}
           </div>
           {showStudentPay && (
