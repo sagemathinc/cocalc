@@ -9,6 +9,7 @@ import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import dayjs from "dayjs";
+import { isEqual } from "lodash";
 
 const DEFAULT_PURCHASE_INFO = {
   type: "quota",
@@ -36,7 +37,8 @@ export default function StudentPay({ actions, settings }) {
     updateMinPayment();
   }, []);
 
-  const [info, setInfo0] = useState<PurchaseInfo>(() => {
+  const [when, setWhen] = useState<dayjs.Dayjs>(dayjs(settings.get("pay")));
+  const [info, setInfo] = useState<PurchaseInfo>(() => {
     const cur = settings.get("payInfo")?.toJS();
     if (cur != null) {
       return cur;
@@ -48,10 +50,6 @@ export default function StudentPay({ actions, settings }) {
     actions.configuration.setStudentPay({ info });
     return info;
   });
-  const setInfo = (info) => {
-    setInfo0(info);
-    actions.configuration.setStudentPay({ info });
-  };
 
   if (info.type == "vouchers") {
     // for typescript
@@ -67,14 +65,27 @@ export default function StudentPay({ actions, settings }) {
   }, [info]);
 
   const [showStudentPay, setShowStudentPay] = useState<boolean>(false);
+  const reset = () => {
+    const cur = settings.get("payInfo")?.toJS();
+    if (cur != null) {
+      setInfo(cur);
+    }
+    setWhen(dayjs(settings.get("pay")));
+  };
+
   useEffect(() => {
+    // whenever opening the panel to edit, set controls to what is in the store.
     if (showStudentPay) {
-      const cur = settings.get("payInfo")?.toJS();
-      if (cur != null) {
-        setInfo0(cur);
-      }
+      reset();
     }
   }, [showStudentPay]);
+
+  useEffect(() => {
+    // this makes it sync with any other editor when closed.
+    if (!showStudentPay) {
+      reset();
+    }
+  }, [settings.get("payInfo")]);
 
   const paySelected = useMemo(() => {
     if (!settings) return false;
@@ -100,9 +111,9 @@ export default function StudentPay({ actions, settings }) {
           </b>{" "}
           {cost != null && (
             <>
-              They will then be required to upgrade for a one-time fee of{" "}
-              {currency(cost)}. This cost in USD is locked in, even if the rates
-              on our site change.
+              They will then be required to upgrade for a{" "}
+              <b>one-time fee of {currency(cost)}</b>. This cost in USD is
+              locked in, even if the rates on our site change.
             </>
           )}
         </span>
@@ -130,12 +141,8 @@ export default function StudentPay({ actions, settings }) {
           <DatePicker
             allowClear={false}
             disabledDate={(current) => current < dayjs()}
-            value={dayjs(settings.get("pay"))}
-            onChange={(date) => {
-              actions.configuration.setStudentPay({
-                when: date?.toDate() ?? new Date(),
-              });
-            }}
+            value={when}
+            onChange={(day) => setWhen(day ?? dayjs())}
           />
         </div>
         {settings.get("pay") ? render_require_students_pay_desc() : undefined}
@@ -198,7 +205,7 @@ export default function StudentPay({ actions, settings }) {
       style={!paySelected ? { background: "#fcf8e3" } : undefined}
       title={
         <>
-          <Icon name="dashboard" /> Require Students to Upgrade (students pay)
+          <Icon name="dashboard" /> Require Students to Upgrade (Students Pay)
         </>
       }
     >
@@ -215,19 +222,45 @@ export default function StudentPay({ actions, settings }) {
           }
         }}
       >
-        Students will pay directly
+        Students pay directly
       </Checkbox>
       {settings?.get("student_pay") && (
         <div>
           <div style={{ textAlign: "center", margin: "15px 0" }}>
-            <Button
-              type={showStudentPay ? "default" : "primary"}
-              onClick={() => {
-                setShowStudentPay(!showStudentPay);
-              }}
-            >
-              <Icon name="credit-card" /> Configure how students will pay...
-            </Button>
+            {showStudentPay ? (
+              <>
+                <Button
+                  onClick={() => {
+                    setShowStudentPay(false);
+                    reset();
+                  }}
+                >
+                  Cancel
+                </Button>{" "}
+                <Button
+                  disabled={
+                    isEqual(info, settings.get("payInfo")?.toJS()) &&
+                    when == dayjs(settings.get("pay"))
+                  }
+                  type="primary"
+                  onClick={() => {
+                    actions.configuration.setStudentPay({ info, when });
+                    setShowStudentPay(false);
+                  }}
+                >
+                  Save
+                </Button>
+              </>
+            ) : (
+              <Button
+                type={"primary"}
+                onClick={() => {
+                  setShowStudentPay(true);
+                }}
+              >
+                <Icon name="credit-card" /> Configure how students will pay...
+              </Button>
+            )}
           </div>
           {showStudentPay && (
             <Alert
