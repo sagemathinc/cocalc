@@ -76,6 +76,8 @@ Table({
         },
       },
       set: {
+        // NOTE: for security reasons users CANNOT set the course field via a user query;
+        // instead use the api/v2/projects/course/set-course-field api endpoint.
         fields: {
           project_id: "project_write",
           title: true,
@@ -88,7 +90,6 @@ Table({
           },
           action_request: true, // used to request that an action be performed, e.g., "save"; handled by before_change
           compute_image: true,
-          course: true,
           site_license: true,
           env: true,
           sandbox: true,
@@ -244,7 +245,7 @@ Table({
     },
     course: {
       type: "map",
-      desc: "{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.",
+      desc: "{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, payInfo:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must pay. If payInfo is set, it specifies the parameters of the license the students should purchase.",
       date: ["pay"],
     },
     storage_server: {
@@ -604,3 +605,40 @@ Table({
     },
   },
 });
+
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+export type Datastore = boolean | string[] | undefined;
+// in the future, we might want to extend this to include custom environmment variables
+export interface EnvVarsRecord {
+  inherit?: boolean;
+}
+export type EnvVars = EnvVarsRecord | undefined;
+export interface StudentProjectFunctionality {
+  disableActions?: boolean;
+  disableJupyterToggleReadonly?: boolean;
+  disableJupyterClassicServer?: boolean;
+  disableJupyterClassicMode?: boolean;
+  disableJupyterLabServer?: boolean;
+  disableVSCodeServer?: boolean;
+  disablePlutoServer?: boolean;
+  disableTerminals?: boolean;
+  disableUploads?: boolean;
+  disableNetwork?: boolean;
+  disableSSH?: boolean;
+  disableCollaborators?: boolean;
+  disableChatGPT?: boolean;
+  disableSharing?: boolean;
+}
+
+export interface CourseInfo {
+  type: "student" | "shared" | "nbgrader";
+  account_id?: string; // account_id of the student that this project is for.
+  project_id: string; // the course project, i.e., project with the .course file
+  path: string; // path to the .course file in project_id
+  pay?: string; // iso timestamp or ""
+  payInfo?: PurchaseInfo;
+  email_address?: string;
+  datastore: Datastore;
+  student_project_functionality?: StudentProjectFunctionality;
+  envvars?: EnvVars;
+}

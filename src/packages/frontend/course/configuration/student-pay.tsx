@@ -237,8 +237,9 @@ export default function StudentPay({ actions, settings }) {
       </Checkbox>
       {settings?.get("student_pay") && (
         <div>
-          <div style={{ margin: "15px 0" }}>
+          <div style={{ margin: "10px 0" }}>
             <Button
+              style={{ marginTop: "5px" }}
               disabled={showStudentPay}
               onClick={() => {
                 setShowStudentPay(true);
@@ -247,9 +248,10 @@ export default function StudentPay({ actions, settings }) {
               <Icon name="credit-card" /> Start and end dates and upgrades...
             </Button>
             {showStudentPay && (
-              <div style={{ float: "right" }}>
+              <>
                 {" "}
                 <Button
+                  style={{ marginTop: "5px" }}
                   onClick={() => {
                     setShowStudentPay(false);
                     reset();
@@ -258,6 +260,7 @@ export default function StudentPay({ actions, settings }) {
                   Cancel
                 </Button>{" "}
                 <Button
+                  style={{ marginTop: "5px" }}
                   disabled={
                     isEqual(info, settings.get("payInfo")?.toJS()) &&
                     when.isSame(dayjs(settings.get("pay")))
@@ -270,54 +273,56 @@ export default function StudentPay({ actions, settings }) {
                 >
                   Save Changes
                 </Button>
-              </div>
+              </>
             )}
           </div>
-          {showStudentPay && (
-            <Alert
-              style={{ margin: "15px 0" }}
-              message={
-                <>
-                  <Icon name="credit-card" /> Require Students to Upgrade their
-                  Project
-                </>
-              }
-              description={
-                <div>
-                  The cost is determined by the course length and desired
-                  upgrades, which you configure below:
-                  <div
-                    style={{
-                      height: "65px",
-                      textAlign: "center",
-                    }}
-                  >
-                    {cost != null && (
-                      <MoneyStatistic
-                        title="Cost"
-                        value={Math.max(minPayment ?? 0, cost)}
-                      />
-                    )}
+          <div>
+            {showStudentPay && (
+              <Alert
+                style={{ margin: "15px 0" }}
+                message={
+                  <>
+                    <Icon name="credit-card" /> Require Students to Upgrade
+                    their Project
+                  </>
+                }
+                description={
+                  <div>
+                    The cost is determined by the course length and desired
+                    upgrades, which you configure below:
+                    <div
+                      style={{
+                        height: "65px",
+                        textAlign: "center",
+                      }}
+                    >
+                      {cost != null && (
+                        <MoneyStatistic
+                          title="Cost"
+                          value={Math.max(minPayment ?? 0, cost)}
+                        />
+                      )}
+                    </div>
+                    <Divider>Configuration</Divider>
+                    <LicenseEditor
+                      cellStyle={{ padding: 0, margin: "-10px 0" }}
+                      info={info}
+                      onChange={setInfo}
+                      hiddenFields={new Set(["quantity", "custom_member"])}
+                    />
+                    <div style={{ margin: "15px 0" }}>
+                      {render_students_pay_checkbox_label()}
+                    </div>
+                    {settings.get("pay")
+                      ? render_require_students_pay_when()
+                      : undefined}
                   </div>
-                  <Divider>Configuration</Divider>
-                  <LicenseEditor
-                    cellStyle={{ padding: 0, margin: "-10px 0" }}
-                    info={info}
-                    onChange={setInfo}
-                    hiddenFields={new Set(["quantity", "custom_member"])}
-                  />
-                  <div style={{ margin: "15px 0" }}>
-                    {render_students_pay_checkbox_label()}
-                  </div>
-                  {settings.get("pay")
-                    ? render_require_students_pay_when()
-                    : undefined}
-                </div>
-              }
-            />
-          )}
-          <hr />
-          <div style={{ color: "#666" }}>{render_student_pay_desc()}</div>
+                }
+              />
+            )}
+            <hr />
+            <div style={{ color: "#666" }}>{render_student_pay_desc()}</div>
+          </div>
         </div>
       )}
     </Card>

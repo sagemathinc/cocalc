@@ -14,23 +14,8 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
-
-export interface StudentProjectFunctionality {
-  disableActions?: boolean;
-  disableJupyterToggleReadonly?: boolean;
-  disableJupyterClassicServer?: boolean;
-  disableJupyterClassicMode?: boolean;
-  disableJupyterLabServer?: boolean;
-  disableVSCodeServer?: boolean;
-  disablePlutoServer?: boolean;
-  disableTerminals?: boolean;
-  disableUploads?: boolean;
-  disableNetwork?: boolean;
-  disableSSH?: boolean;
-  disableCollaborators?: boolean;
-  disableChatGPT?: boolean;
-  disableSharing?: boolean;
-}
+import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
+export type { StudentProjectFunctionality };
 
 interface Option {
   name: string;
