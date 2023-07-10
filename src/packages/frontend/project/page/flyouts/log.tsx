@@ -215,6 +215,12 @@ export function LogFlyout({
           e.stopPropagation();
           actions?.close_tab(path);
         }}
+        onMouseDown={(e: React.MouseEvent) => {
+          if (e.button === 1) {
+            // middle mouse click
+            actions?.close_tab(path);
+          }
+        }}
         tooltip={
           <>
             Last opened <TimeAgo date={time} /> by{" "}

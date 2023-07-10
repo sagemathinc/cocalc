@@ -556,6 +556,7 @@ export function FilesFlyout(): JSX.Element {
         onMouseDown={(e: React.MouseEvent, name: string) => {
           setSelectionOnMouseDown(window.getSelection()?.toString() ?? "");
           if (e.button === 1) {
+            // middle mouse click
             actions?.close_tab(path_to_file(current_path, name));
           }
         }}
