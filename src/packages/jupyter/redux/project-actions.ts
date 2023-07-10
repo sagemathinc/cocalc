@@ -497,6 +497,9 @@ export class JupyterActions extends JupyterActions0 {
   sync_exec_state = () => {
     const dbg = this.dbg("sync_exec_state");
     let change = false;
+    if (this.store == null || this._state !== "ready") {
+      return;
+    }
     const cells = this.store.get("cells");
     // First verify that all actual cells that are said to be running
     // (according to the store) are in fact running.

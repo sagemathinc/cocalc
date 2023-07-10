@@ -37,12 +37,10 @@ const FILE_ITEM_ACTIVE_STYLE: CSS = {
 };
 
 const FILE_ITEM_STYLE: CSS = {
-  flex: "1 1 auto",
-  display: "flex",
-  flexDirection: "row",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
+  overflowWrap: "break-word",
 } as const;
 
 const FILE_ITEM_BODY_STYLE: CSS = {
@@ -50,11 +48,10 @@ const FILE_ITEM_BODY_STYLE: CSS = {
   flexDirection: "row",
   flex: "1",
   padding: FLYOUT_PADDING,
+  overflow: "hidden",
 } as const;
 
 const FILE_ITEM_LINE_STYLE: CSS = {
-  display: "flex",
-  flexDirection: "row",
   width: "100%",
   cursor: "pointer",
   whiteSpace: "nowrap",
