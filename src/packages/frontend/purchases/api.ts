@@ -274,3 +274,7 @@ export async function renewSubscription(
     subscription_id,
   });
 }
+
+export async function studentPay(project_id: string) {
+  return await api("purchases/student-pay", { project_id });
+}

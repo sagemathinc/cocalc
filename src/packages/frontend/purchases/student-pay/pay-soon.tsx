@@ -1,26 +1,52 @@
-import { Alert, Button } from "antd";
+import { Button, Collapse } from "antd";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import dayjs from "dayjs";
-import { TimeAgo } from "@cocalc/frontend/components";
+import { Icon, TimeAgo } from "@cocalc/frontend/components";
+import { useState } from "react";
+import Cost from "./cost";
 
 interface Props {
   when: dayjs.Dayjs;
   purchaseInfo: PurchaseInfo;
-  project_id: string;
+  setOpen: (open: boolean) => void;
 }
 
-export default function PaySoon({ when, purchaseInfo, project_id }: Props) {
+export default function PaySoon({ when, purchaseInfo, setOpen }: Props) {
+  const [hide, setHide] = useState<boolean>(false);
+  if (hide) {
+    return null;
+  }
   return (
-    <Alert
-      message="Course Fee"
-      description={
-        <div>
-          Please pay the one-time course fee to upgrade this project.{" "}
-          <TimeAgo date={when} />
+    <div style={{ margin: "0 2.5px" }}>
+      <Collapse>
+        <Collapse.Panel
+          key="it"
+          header=<>
+            Course Fee: Please pay the course fee{" "}
+            <Cost purchaseInfo={purchaseInfo} /> to upgrade this project.{" "}
+            <b>
+              Due: <TimeAgo date={when} />.
+            </b>
+            <Button
+              size="small"
+              style={{ float: "right", fontSize: "9pt" }}
+              onClick={() => setHide(true)}
+            >
+              <Icon name="times" /> Dismiss
+            </Button>{" "}
+          </>
+        >
+          <Button
+            type="primary"
+            onClick={() => {
+              setOpen(true);
+            }}
+          >
+            Pay Now...
+          </Button>
           <pre>{JSON.stringify(purchaseInfo, undefined, 2)}</pre>
-          <Button>Dismiss</Button> <Button type="primary">Pay Now</Button>
-        </div>
-      }
-    />
+        </Collapse.Panel>
+      </Collapse>
+    </div>
   );
 }

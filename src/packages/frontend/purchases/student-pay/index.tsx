@@ -1,13 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import dayjs from "dayjs";
 import PayNow from "./pay-now";
 import PaySoon from "./pay-soon";
 import InstructorBanner from "./instructor-banner";
-import { DEFAULT_PURCHASE_INFO } from "@cocalc/frontend/course/configuration/student-pay";
+import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
 
 export default function StudentPayUpgrade({ project_id }) {
+  const [open, setOpen] = useState<boolean>(false);
   const course = useRedux(
     ["project_map", project_id, "course"],
     "projects"
@@ -35,23 +36,23 @@ export default function StudentPayUpgrade({ project_id }) {
           project_id={project_id}
           when={when}
           purchaseInfo={purchaseInfo}
+          open={true}
         />
       );
     }
     return (
-      <PaySoon
-        project_id={project_id}
-        when={when}
-        purchaseInfo={purchaseInfo}
-      />
+      <>
+        <PaySoon when={when} purchaseInfo={purchaseInfo} setOpen={setOpen} />
+        <PayNow
+          open={open}
+          setOpen={setOpen}
+          project_id={project_id}
+          when={when}
+          purchaseInfo={purchaseInfo}
+        />
+      </>
     );
   } else {
-    return (
-      <InstructorBanner
-        project_id={project_id}
-        when={when}
-        purchaseInfo={purchaseInfo}
-      />
-    );
+    return <InstructorBanner when={when} purchaseInfo={purchaseInfo} />;
   }
 }

@@ -5,25 +5,11 @@ import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
 import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
 import { currency } from "@cocalc/frontend/purchases/util";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import dayjs from "dayjs";
 import { isEqual } from "lodash";
-
-export const DEFAULT_PURCHASE_INFO = {
-  type: "quota",
-  user: "academic",
-  upgrade: "custom",
-  quantity: 1,
-  subscription: "no",
-  custom_cpu: 1,
-  custom_dedicated_cpu: 0,
-  custom_ram: 4,
-  custom_dedicated_ram: 0,
-  custom_disk: 3,
-  custom_member: true,
-  custom_uptime: "short",
-} as const;
 
 export default function StudentPay({ actions, settings }) {
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
@@ -36,9 +22,6 @@ export default function StudentPay({ actions, settings }) {
     updateMinPayment();
   }, []);
 
-  const [when, setWhen] = useState<dayjs.Dayjs>(
-    settings.get("pay") ? dayjs(settings.get("pay")) : dayjs().add(7, "day")
-  );
   const [info, setInfo] = useState<PurchaseInfo>(() => {
     const cur = settings.get("payInfo")?.toJS();
     if (cur != null) {
@@ -58,6 +41,18 @@ export default function StudentPay({ actions, settings }) {
     throw Error("bug");
   }
 
+  const getWhenFromSettings = () => {
+    const pay = settings.get("pay");
+    if (pay) {
+      return dayjs(pay);
+    }
+    if (info.start) {
+      return dayjs(info.start);
+    }
+    return dayjs().add(7, "day");
+  };
+
+  const [when, setWhen] = useState<dayjs.Dayjs>(getWhenFromSettings);
   const cost = useMemo(() => {
     try {
       return compute_cost(info).discounted_cost;
@@ -93,15 +88,6 @@ export default function StudentPay({ actions, settings }) {
     if (!settings) return false;
     return settings.get("student_pay") || settings.get("institute_pay");
   }, [settings]);
-
-  function getWhenFromSettings(): dayjs.Dayjs {
-    const date = settings.get("pay");
-    if (date) {
-      return dayjs(date);
-    } else {
-      return dayjs().add(7, "day");
-    }
-  }
 
   function render_require_students_pay_desc() {
     if (when > dayjs()) {
