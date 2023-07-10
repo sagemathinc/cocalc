@@ -10,7 +10,7 @@ import {
 } from "@ant-design/colors";
 import { Button, Tooltip } from "antd";
 
-import { CSS, React, useRef, useState } from "@cocalc/frontend/app-framework";
+import { CSS, React, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { hexColorToRGBA } from "@cocalc/util/misc";
@@ -89,10 +89,12 @@ interface FileListItemProps {
   onChecked?: (state: boolean) => void;
   itemStyle?: CSS;
   item: Item;
+  index?: number;
   tooltip?: JSX.Element | string;
   selected?: boolean;
   multiline?: boolean;
   showCheckbox?: boolean;
+  setShowCheckboxIndex?: (index: number | null) => void;
 }
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
@@ -102,16 +104,16 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     onPublic,
     onChecked,
     item,
+    index,
     itemStyle,
     tooltip,
     selected,
     onMouseDown,
     multiline = false,
     showCheckbox,
+    setShowCheckboxIndex,
   } = props;
   const selectable = onChecked != null;
-  const [hover, setHover] = useState(false);
-
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -169,18 +171,18 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function handleMouseEnter(): void {
-    if (!selectable) return;
-    setHover(true);
+    if (!selectable || index == null) return;
+    setShowCheckboxIndex?.(index);
   }
 
   function handleMouseLeave(): void {
     if (!selectable) return;
-    setHover(false);
+    setShowCheckboxIndex?.(null);
   }
 
   function renderBodyLeft(): JSX.Element {
     const iconName =
-      selectable && (showCheckbox || hover) && item.name !== ".."
+      selectable && showCheckbox && item.name !== ".."
         ? selected
           ? "check-square"
           : "square"

@@ -93,6 +93,9 @@ export function FilesFlyout(): JSX.Element {
   const isMountedRef = useIsMountedRef();
   const rootRef = useRef<HTMLDivElement>(null);
   const [rootHeightPx, setRootHeightPx] = useState<number>(0);
+  const [showCheckboxIndex, setShowCheckboxIndex] = useState<number | null>(
+    null
+  );
   const refInput = useRef<InputRef>(null);
   const current_path = useTypedRedux({ project_id }, "current_path");
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
@@ -297,6 +300,10 @@ export function FilesFlyout(): JSX.Element {
     }
     setScrollIdx(null);
   }, [current_path]);
+
+  useEffect(() => {
+    setShowCheckboxIndex(null);
+  }, [directoryListings, current_path]);
 
   const triggerRootResize = debounce(
     () => setRootHeightPx(rootRef.current?.clientHeight ?? 0),
@@ -544,6 +551,7 @@ export function FilesFlyout(): JSX.Element {
     return (
       <FileListItem
         item={item}
+        index={index}
         onClick={(e) => handleFileClick(e, index)}
         onMouseDown={(e: React.MouseEvent, name: string) => {
           setSelectionOnMouseDown(window.getSelection()?.toString() ?? "");
@@ -558,7 +566,12 @@ export function FilesFlyout(): JSX.Element {
         }}
         onPublic={() => showFileSharingDialog(directoryFiles[index])}
         selected={isSelected}
-        showCheckbox={mode === "select" || checked_files?.size > 0}
+        showCheckbox={
+          mode === "select" ||
+          checked_files?.size > 0 ||
+          showCheckboxIndex === index
+        }
+        setShowCheckboxIndex={setShowCheckboxIndex}
         onChecked={(nextState: boolean) => {
           toggleSelected(index, item.name, nextState);
         }}
@@ -575,6 +588,7 @@ export function FilesFlyout(): JSX.Element {
         ref={virtuosoRef}
         style={{}}
         increaseViewportBy={10}
+        onMouseLeave={() => setShowCheckboxIndex(null)}
         totalCount={directoryFiles.length}
         itemContent={(index) => {
           const file = directoryFiles[index];
