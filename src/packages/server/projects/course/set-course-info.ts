@@ -21,8 +21,9 @@ It would be unfair to increase their price.
 
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getPool from "@cocalc/database/pool";
-//import { isEqual } from "lodash";
+import { isEqual } from "lodash";
 import type { CourseInfo } from "@cocalc/util/db-schema/projects";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 
 interface Options {
   account_id: string; // who is setting the course field
@@ -64,8 +65,19 @@ export default async function setCourseInfo({
       );
     }
   }
-  
-  // [ ] TODO: pricing
+
+  // Compute cost
+  if (course?.payInfo != null) {
+    const currentPayInfo = currentCourse?.payInfo;
+    const payInfo = { ...course.payInfo };
+    delete currentPayInfo?.cost;
+    delete payInfo.cost;
+    if (!isEqual(payInfo, currentPayInfo)) {
+      // changed -- so we compute cost
+      // important that payInfo has cost deleted so it isn't just used for the cost computation.
+      course.payInfo.cost = compute_cost(payInfo);
+    }
+  }
 
   await pool.query("UPDATE projects SET course=$1 WHERE project_id=$2", [
     course,

@@ -114,7 +114,13 @@ export default function StudentPay({ actions, settings }) {
             <>
               They will then be required to upgrade for a{" "}
               <b>one-time fee of {currency(cost)}</b>. This cost in USD is
-              locked in, even if the rates on our site change.
+              locked in, even if the rates on our site change.{" "}
+              {minPayment != null && cost < minPayment
+                ? `NOTE: Students will have
+               to pay ${currency(
+                 minPayment
+               )} since that is the minimum transaction; they can use excess credit for other purchases.`
+                : ""}
             </>
           )}
         </span>
@@ -213,10 +219,7 @@ export default function StudentPay({ actions, settings }) {
     >
       {cost != null && !showStudentPay && !!settings?.get("student_pay") && (
         <div style={{ float: "right" }}>
-          <MoneyStatistic
-            title="Cost Per Student"
-            value={Math.max(minPayment ?? 0, cost)}
-          />
+          <MoneyStatistic title="Cost Per Student" value={cost} />
         </div>
       )}
       <Checkbox
@@ -297,10 +300,7 @@ export default function StudentPay({ actions, settings }) {
                       }}
                     >
                       {cost != null && (
-                        <MoneyStatistic
-                          title="Cost"
-                          value={Math.max(minPayment ?? 0, cost)}
-                        />
+                        <MoneyStatistic title="Cost" value={cost} />
                       )}
                     </div>
                     <Divider>Configuration</Divider>
