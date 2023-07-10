@@ -9,6 +9,9 @@ import Cost from "./cost";
 import { load_target } from "@cocalc/frontend/history";
 import { QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 
+// Ensure the billing Actions and Store are created, which are needed for purchases, etc., to work...
+import "@cocalc/frontend/billing/actions";
+
 export const zIndex = 2000;
 
 export default function PayAsYouGoModal({}) {

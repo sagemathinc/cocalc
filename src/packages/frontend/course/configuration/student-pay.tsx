@@ -10,7 +10,7 @@ import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import dayjs from "dayjs";
 import { isEqual } from "lodash";
 
-const DEFAULT_PURCHASE_INFO = {
+export const DEFAULT_PURCHASE_INFO = {
   type: "quota",
   user: "academic",
   upgrade: "custom",
@@ -147,7 +147,7 @@ export default function StudentPay({ actions, settings }) {
         <div style={{ textAlign: "center", marginBottom: "15px" }}>
           <DatePicker
             allowClear={false}
-            disabledDate={(current) => current < dayjs()}
+            disabledDate={(current) => current < dayjs().subtract(1, "day")}
             value={when}
             onChange={(date) => {
               setWhen(date ?? dayjs());

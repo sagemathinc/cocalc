@@ -50,7 +50,7 @@ import {
 import HomePageButton from "./home-page/button";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
-//import FirstSteps from "@cocalc/frontend/project/explorer/file-listing/first-steps";
+import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
@@ -256,6 +256,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   return (
     <ProjectContext.Provider value={projectCtx}>
       <div className="container-content" style={style}>
+        <StudentPayUpgrade project_id={project_id} />
         <AnonymousName project_id={project_id} />
         <DiskSpaceWarning project_id={project_id} />
         <RamWarning project_id={project_id} />
