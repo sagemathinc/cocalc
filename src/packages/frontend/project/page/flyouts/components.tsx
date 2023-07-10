@@ -109,6 +109,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     multiline = false,
     showCheckbox,
   } = props;
+  const selectable = onChecked != null;
   const [hover, setHover] = useState(false);
 
   const itemRef = useRef<HTMLDivElement>(null);
@@ -167,9 +168,19 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     }
   }
 
+  function handleMouseEnter(): void {
+    if (!selectable) return;
+    setHover(true);
+  }
+
+  function handleMouseLeave(): void {
+    if (!selectable) return;
+    setHover(false);
+  }
+
   function renderBodyLeft(): JSX.Element {
     const iconName =
-      (showCheckbox || hover) && item.name !== ".."
+      selectable && (showCheckbox || hover) && item.name !== ".."
         ? selected
           ? "check-square"
           : "square"
@@ -181,8 +192,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       <Icon
         name={iconName}
         style={ICON_STYLE}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         onClick={(e) => {
           e?.stopPropagation();
           onChecked?.(!selected);
@@ -201,7 +212,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           onMouseDown?.(e, item.name);
         }}
         // additional mouseLeave to prevent stale hover state icon
-        onMouseLeave={() => setHover(false)}
+        onMouseLeave={handleMouseLeave}
       >
         {renderBodyLeft()} {renderItem()} {renderPublishedIcon()}
         {item.isopen ? renderCloseItem(item) : undefined}
@@ -225,7 +236,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     <div
       className="cc-project-flyout-file-item"
       // additional mouseLeave to prevent stale hover state icon
-      onMouseLeave={() => setHover(false)}
+      onMouseLeave={handleMouseLeave}
       style={{
         ...FILE_ITEM_LINE_STYLE,
         ...(item.isopen
