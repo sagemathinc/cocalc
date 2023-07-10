@@ -37,6 +37,7 @@ const FILE_ITEM_ACTIVE_STYLE: CSS = {
 };
 
 const FILE_ITEM_STYLE: CSS = {
+  flex: "1",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -196,9 +197,13 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         style={ICON_STYLE}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        onClick={(e) => {
+        onClick={(e: React.MouseEvent) => {
           e?.stopPropagation();
-          onChecked?.(!selected);
+          if (onChecked != null) {
+            onChecked?.(!selected);
+          } else {
+            onClick?.(e);
+          }
         }}
       />
     );
