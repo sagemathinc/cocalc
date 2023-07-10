@@ -820,6 +820,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
   return (
     <Card
       style={{
+        marginTop: "20px",
         background:
           is_onprem || student_pay || institute_pay ? undefined : "#fcf8e3",
       }}

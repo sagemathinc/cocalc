@@ -1,8 +1,7 @@
-import { Alert, Button, Card, Checkbox, DatePicker, Spin } from "antd";
+import { Alert, Button, Card, Checkbox, DatePicker, Divider, Spin } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
-import { days_ago } from "@cocalc/util/misc";
 import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
 import { currency } from "@cocalc/frontend/purchases/util";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
@@ -37,7 +36,9 @@ export default function StudentPay({ actions, settings }) {
     updateMinPayment();
   }, []);
 
-  const [when, setWhen] = useState<dayjs.Dayjs>(dayjs(settings.get("pay")));
+  const [when, setWhen] = useState<dayjs.Dayjs>(
+    settings.get("pay") ? dayjs(settings.get("pay")) : dayjs().add(7, "day")
+  );
   const [info, setInfo] = useState<PurchaseInfo>(() => {
     const cur = settings.get("payInfo")?.toJS();
     if (cur != null) {
@@ -46,8 +47,9 @@ export default function StudentPay({ actions, settings }) {
     const info = {
       ...DEFAULT_PURCHASE_INFO,
       start: new Date(),
+      end: dayjs().add(3, "month").toDate(),
     } as PurchaseInfo;
-    actions.configuration.setStudentPay({ info });
+    actions.configuration.setStudentPay({ info, cost });
     return info;
   });
 
@@ -70,7 +72,7 @@ export default function StudentPay({ actions, settings }) {
     if (cur != null) {
       setInfo(cur);
     }
-    setWhen(dayjs(settings.get("pay")));
+    setWhen(getWhenFromSettings());
   };
 
   useEffect(() => {
@@ -92,22 +94,21 @@ export default function StudentPay({ actions, settings }) {
     return settings.get("student_pay") || settings.get("institute_pay");
   }, [settings]);
 
-  function get_student_pay_when(): Date | string {
+  function getWhenFromSettings(): dayjs.Dayjs {
     const date = settings.get("pay");
     if (date) {
-      return date;
+      return dayjs(date);
     } else {
-      return days_ago(-7);
+      return dayjs().add(7, "day");
     }
   }
 
   function render_require_students_pay_desc() {
-    const date = new Date(settings.get("pay"));
-    if (date > webapp_client.server_time()) {
+    if (when > dayjs()) {
       return (
         <span>
           <b>
-            Your students will see a warning until <TimeAgo date={date} />.
+            Your students will see a warning until <TimeAgo date={when} />.
           </b>{" "}
           {cost != null && (
             <>
@@ -142,7 +143,9 @@ export default function StudentPay({ actions, settings }) {
             allowClear={false}
             disabledDate={(current) => current < dayjs()}
             value={when}
-            onChange={(day) => setWhen(day ?? dayjs())}
+            onChange={(date) => {
+              setWhen(date ?? dayjs());
+            }}
           />
         </div>
         {settings.get("pay") ? render_require_students_pay_desc() : undefined}
@@ -157,8 +160,7 @@ export default function StudentPay({ actions, settings }) {
       } else {
         return (
           <span>
-            Require that students upgrade by{" "}
-            <TimeAgo date={settings.get("pay")} />:{" "}
+            Require that students upgrade by <TimeAgo date={when} />:{" "}
           </span>
         );
       }
@@ -209,6 +211,14 @@ export default function StudentPay({ actions, settings }) {
         </>
       }
     >
+      {cost != null && !showStudentPay && !!settings?.get("student_pay") && (
+        <div style={{ float: "right" }}>
+          <MoneyStatistic
+            title="Cost Per Student"
+            value={Math.max(minPayment ?? 0, cost)}
+          />
+        </div>
+      )}
       <Checkbox
         checked={!!settings?.get("student_pay")}
         onChange={(e) => {
@@ -216,8 +226,9 @@ export default function StudentPay({ actions, settings }) {
           if (e.target.checked) {
             setShowStudentPay(true);
             actions.configuration.setStudentPay({
-              when: get_student_pay_when(),
+              when: getWhenFromSettings(),
               info,
+              cost,
             });
           }
         }}
@@ -228,13 +239,12 @@ export default function StudentPay({ actions, settings }) {
         <div>
           <div style={{ margin: "15px 0" }}>
             <Button
-              type={"primary"}
               disabled={showStudentPay}
               onClick={() => {
                 setShowStudentPay(true);
               }}
             >
-              <Icon name="credit-card" /> Configure dates and upgrades...
+              <Icon name="credit-card" /> Start and end dates and upgrades...
             </Button>
             {showStudentPay && (
               <div style={{ float: "right" }}>
@@ -254,7 +264,7 @@ export default function StudentPay({ actions, settings }) {
                   }
                   type="primary"
                   onClick={() => {
-                    actions.configuration.setStudentPay({ info, when });
+                    actions.configuration.setStudentPay({ info, when, cost });
                     setShowStudentPay(false);
                   }}
                 >
@@ -267,31 +277,31 @@ export default function StudentPay({ actions, settings }) {
             <Alert
               style={{ margin: "15px 0" }}
               message={
+                <>
+                  <Icon name="credit-card" /> Require Students to Upgrade their
+                  Project
+                </>
+              }
+              description={
                 <div>
-                  <h3>
-                    <Icon name="credit-card" /> Require Students to Upgrade
-                    their Project
-                  </h3>
-                  <hr />
+                  The cost is determined by the course length and desired
+                  upgrades, which you configure below:
                   <div
                     style={{
                       height: "65px",
                       textAlign: "center",
-                      fontSize: "12pt",
-                      marginTop: "-15px",
                     }}
                   >
                     {cost != null && (
-                      <>
-                        <MoneyStatistic
-                          title="Student Cost"
-                          value={Math.max(minPayment ?? 0, cost)}
-                        />
-                      </>
+                      <MoneyStatistic
+                        title="Cost"
+                        value={Math.max(minPayment ?? 0, cost)}
+                      />
                     )}
                   </div>
+                  <Divider>Configuration</Divider>
                   <LicenseEditor
-                    cellStyle={{ padding: 0, margin: 0 }}
+                    cellStyle={{ padding: 0, margin: "-10px 0" }}
                     info={info}
                     onChange={setInfo}
                     hiddenFields={new Set(["quantity", "custom_member"])}
@@ -302,9 +312,6 @@ export default function StudentPay({ actions, settings }) {
                   {settings.get("pay")
                     ? render_require_students_pay_when()
                     : undefined}
-                  <Button onClick={() => setShowStudentPay(false)}>
-                    Close
-                  </Button>
                 </div>
               }
             />

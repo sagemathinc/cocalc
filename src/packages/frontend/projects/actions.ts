@@ -30,6 +30,7 @@ import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 
 export type Datastore = boolean | string[] | undefined;
 
@@ -289,6 +290,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     course_project_id: string,
     path: string,
     pay: Date | "",
+    payInfo: PurchaseInfo | null,
     account_id: string | null,
     email_address: string | null,
     datastore: Datastore,
@@ -306,6 +308,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       project_id: course_project_id,
       path,
       pay,
+      payInfo,
       datastore,
       type,
     };

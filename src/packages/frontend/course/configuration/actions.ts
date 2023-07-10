@@ -92,12 +92,8 @@ export class ConfigurationActions {
   public set_pay_choice(type: "student" | "institute", value: boolean): void {
     this.set({ [type + "_pay"]: value, table: "settings" });
     if (type == "student") {
-      if (value) {
-        this.course_actions.student_projects.set_all_student_project_course_info();
-      } else {
-        this.course_actions.student_projects.set_all_student_project_course_info(
-          ""
-        );
+      if (!value) {
+        this.setStudentPay({ when: "" });
       }
     }
   }
@@ -128,16 +124,27 @@ export class ConfigurationActions {
   async setStudentPay({
     when,
     info,
+    cost,
   }: {
     when?: Date | string; // date when they need to pay
     info?: PurchaseInfo; // what they must buy for the course
+    cost?: number;
   }) {
-    this.set({
-      table: "settings",
+    const value = {
       ...(info != null ? { payInfo: info } : undefined),
       ...(when != null
         ? { pay: typeof when != "string" ? when.toISOString() : when }
         : undefined),
+      ...(cost != null ? { payCost: cost } : undefined),
+    };
+    const store = this.course_actions.get_store();
+    // wait until store changes with new settings, then configure student projects
+    store.once("change", async () => {
+      await this.course_actions.student_projects.set_all_student_project_course_info();
+    });
+    await this.set({
+      table: "settings",
+      ...value,
     });
   }
 
@@ -244,6 +251,7 @@ export class ConfigurationActions {
           store.get("course_project_id"),
           store.get("course_filename"),
           "", // pay
+          null, // payInfo
           null, // account_id
           null, // email_address
           datastore,
