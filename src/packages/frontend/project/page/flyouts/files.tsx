@@ -23,9 +23,16 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { ErrorDisplay, Icon, Loading, Text } from "@cocalc/frontend/components";
+import {
+  ErrorDisplay,
+  Icon,
+  Loading,
+  Text,
+  TimeAgo,
+} from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
@@ -38,7 +45,9 @@ import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_st
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import {
+  capitalize,
   copy_without,
+  human_readable_size,
   path_to_file,
   search_match,
   search_split,
@@ -52,7 +61,12 @@ import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../../context";
 import { FIX_BORDER } from "../common";
 import { FileListItem, fileItemStyle } from "./components";
-import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
+import {
+  DEFAULT_EXT,
+  FLYOUT_EXTRA2_WIDTH_PX,
+  FLYOUT_EXTRA_WIDTH_PX,
+  FLYOUT_PADDING,
+} from "./consts";
 import { FilesBottom } from "./files-bottom";
 
 type ActiveFileSort = TypedMap<{
@@ -84,7 +98,11 @@ function searchToFilename(search: string): string {
   return `${search}.${DEFAULT_EXT}`;
 }
 
-export function FilesFlyout(): JSX.Element {
+export function FilesFlyout({
+  flyoutWidth,
+}: {
+  flyoutWidth: number;
+}): JSX.Element {
   const {
     isRunning: projectIsRunning,
     project_id,
@@ -319,6 +337,13 @@ export function FilesFlyout(): JSX.Element {
     return () => observer.disconnect();
   }, []);
 
+  const [showExtra, showExtra2] = useMemo(() => {
+    return [
+      flyoutWidth > FLYOUT_EXTRA_WIDTH_PX,
+      flyoutWidth > FLYOUT_EXTRA2_WIDTH_PX,
+    ];
+  }, [flyoutWidth]);
+
   // *** END HOOKS ***
 
   if (directoryListings == null) {
@@ -538,6 +563,46 @@ export function FilesFlyout(): JSX.Element {
     actions?.set_file_action("share");
   }
 
+  function renderListItemExtra(item: DirectoryListingEntry) {
+    if (!showExtra) return null;
+    const col = activeFileSort.get("column_name");
+    switch (col) {
+      case "time":
+        const { mtime } = item;
+        if (typeof mtime === "number") {
+          return <TimeAgo date={1000 * mtime} />;
+        }
+        break;
+      case "type":
+        if (item.isdir) return "Folder";
+        const { ext } = separate_file_extension(item.name);
+        return capitalize(file_options(item.name).name) || ext;
+      case "name":
+      case "size":
+        return human_readable_size(item.size, true);
+      default:
+        return null;
+    }
+  }
+
+  function renderListItemExtra2(item: DirectoryListingEntry) {
+    if (!showExtra2) return;
+    const col = activeFileSort.get("column_name");
+    switch (col) {
+      case "time":
+      case "type":
+        return human_readable_size(item.size, true);
+      case "size":
+      case "name":
+        const { mtime } = item;
+        if (typeof mtime === "number") {
+          return <TimeAgo date={1000 * mtime} />;
+        }
+      default:
+        return null;
+    }
+  }
+
   function renderListItem(index: number, item: DirectoryListingEntry) {
     const { mtime, mask = false } = item;
     const age = typeof mtime === "number" ? 1000 * mtime : null;
@@ -552,6 +617,8 @@ export function FilesFlyout(): JSX.Element {
       <FileListItem
         item={item}
         index={index}
+        extra={renderListItemExtra(item)}
+        extra2={renderListItemExtra2(item)}
         onClick={(e) => handleFileClick(e, index)}
         onMouseDown={(e: React.MouseEvent, name: string) => {
           setSelectionOnMouseDown(window.getSelection()?.toString() ?? "");
