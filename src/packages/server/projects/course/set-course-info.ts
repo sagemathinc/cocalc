@@ -17,6 +17,9 @@ field (ignoring the cost fields for comparison), then we compute
 and fill in the cost.  This is used to lock in the purchase price
 when the instructor decides on what license the students should buy.
 It would be unfair to increase their price.
+
+- If course.paid field is set currently in the database, then it is
+always maintained, rather than just being deleted.
 */
 
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
@@ -28,17 +31,23 @@ import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 interface Options {
   account_id: string; // who is setting the course field
   project_id: string; // the project id of the student project
-  course: CourseInfo | null; // what it is being set to
+  course: CourseInfo; // what it is being set to
+  noCheck?: boolean; // if set to true, don't check permissions for account_id.  This is for internal use and not accessible via the api.
 }
 export default async function setCourseInfo({
   account_id,
   project_id,
   course,
-}: Options): Promise<{ course: CourseInfo | null }> {
-  if (!(await isCollaborator({ account_id, project_id }))) {
+  noCheck,
+}: Options): Promise<{ course: CourseInfo }> {
+  if (!noCheck && !(await isCollaborator({ account_id, project_id }))) {
     throw Error(
       "you must be a collaborator on the the project to set the course info"
     );
+  }
+  if (typeof course != "object") {
+    // just in case
+    throw Error("course must be an object of type CourseInfo");
   }
   const pool = getPool();
 
@@ -52,7 +61,7 @@ export default async function setCourseInfo({
     throw Error("no such project");
   }
   const currentCourse: CourseInfo | undefined = rows[0].course;
-  if (currentCourse?.project_id != null) {
+  if (!noCheck && currentCourse?.project_id != null) {
     // check that account_id is a collab, so allowed to edit course field.
     if (
       !(await isCollaborator({
@@ -64,6 +73,11 @@ export default async function setCourseInfo({
         "you must be a collaborator on the the project the contains the course (i.e., only TA's and instructors can set the course field)"
       );
     }
+  }
+
+  // Maintain paid field
+  if (course != null && currentCourse?.paid && !course?.paid) {
+    course = { ...course, paid: currentCourse.paid };
   }
 
   // Compute cost

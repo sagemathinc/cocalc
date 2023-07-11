@@ -15,12 +15,13 @@ export default function StudentPayUpgrade({ project_id }) {
   )?.toJS();
   const account_id = useTypedRedux("account", "account_id");
 
-  const { when, purchaseInfo, student_account_id } = useMemo(() => {
+  const { when, paid, purchaseInfo, student_account_id } = useMemo(() => {
     if (course == null) {
-      return { when: null, purchaseInfo: null };
+      return { when: null, purchaseInfo: null, paid: null };
     }
     return {
       when: course.pay ? dayjs(course.pay) : null,
+      paid: course.paid ? dayjs(course.paid) : null,
       purchaseInfo: (course.payInfo ?? DEFAULT_PURCHASE_INFO) as PurchaseInfo,
       student_account_id: course.account_id,
     };
@@ -30,6 +31,9 @@ export default function StudentPayUpgrade({ project_id }) {
     return null;
   }
   if (account_id == student_account_id) {
+    if (paid) {
+      return null;
+    }
     if (when <= dayjs()) {
       return (
         <PayNow
@@ -53,6 +57,13 @@ export default function StudentPayUpgrade({ project_id }) {
       </>
     );
   } else {
-    return <InstructorBanner when={when} purchaseInfo={purchaseInfo} />;
+    return (
+      <InstructorBanner
+        when={when}
+        purchaseInfo={purchaseInfo}
+        paid={paid}
+        course={course}
+      />
+    );
   }
 }

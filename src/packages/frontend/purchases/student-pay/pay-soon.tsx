@@ -36,15 +36,17 @@ export default function PaySoon({ when, purchaseInfo, setOpen }: Props) {
             </Button>{" "}
           </>
         >
-          <Button
-            type="primary"
-            onClick={() => {
-              setOpen(true);
-            }}
-          >
-            Pay Now...
-          </Button>
-          <pre>{JSON.stringify(purchaseInfo, undefined, 2)}</pre>
+          <div style={{ textAlign: "center" }}>
+            <Button
+              size="large"
+              type="primary"
+              onClick={() => {
+                setOpen(true);
+              }}
+            >
+              <Icon name='credit-card'/> Pay Course Fee...
+            </Button>
+          </div>
         </Collapse.Panel>
       </Collapse>
     </div>

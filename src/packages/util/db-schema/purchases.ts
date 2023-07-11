@@ -73,8 +73,8 @@ export interface ProjectUpgrade {
 export interface License {
   type: "license";
   info: PurchaseInfo;
-  item; // item in shopping cart
   license_id: string;
+  item?; // item in shopping cart
 }
 
 export interface Voucher {

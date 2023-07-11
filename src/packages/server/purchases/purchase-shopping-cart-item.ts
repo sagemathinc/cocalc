@@ -157,7 +157,7 @@ async function markItemPurchased(item, license_id: string) {
   );
 }
 
-async function addLicenseToProject(
+export async function addLicenseToProject(
   database,
   project_id: string,
   license_id: string

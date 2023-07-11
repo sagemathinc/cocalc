@@ -91,14 +91,22 @@ export default function PayNow({
       <Divider />
       <div style={{ textAlign: "center" }}>
         {allowed && (
-          <Button
-            disabled={purchasing}
-            size="large"
-            type="primary"
-            onClick={completePurchase}
-          >
-            Complete Purchase... {purchasing && <Spin />}
-          </Button>
+          <div>
+            <Alert
+              showIcon
+              style={{ marginBottom: "15px " }}
+              type="success"
+              message="You have enough credit to complete this purchase."
+            />
+            <Button
+              disabled={purchasing}
+              size="large"
+              type="primary"
+              onClick={completePurchase}
+            >
+              Complete Purchase... {purchasing && <Spin />}
+            </Button>
+          </div>
         )}
         {!allowed && (
           <Button onClick={() => update()} type="primary">
@@ -106,7 +114,15 @@ export default function PayNow({
           </Button>
         )}
       </div>
-      {!allowed ? <div>{reason}</div> : undefined}
+      {!allowed && (
+        <Alert
+          style={{ marginTop: "15px" }}
+          type="warning"
+          showIcon
+          message="Add Credit"
+          description={reason}
+        />
+      )}
     </Modal>
   );
 }
