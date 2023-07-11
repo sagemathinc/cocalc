@@ -25,10 +25,10 @@ import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
 import { TITLE as SERVERS_TITLE } from "../servers";
 import {
-  ICON_USERS,
   ICON_UPGRADES,
-  TITLE_USERS,
+  ICON_USERS,
   TITLE_UPGRADES,
+  TITLE_USERS,
 } from "../servers/consts";
 import {
   CollabsFlyout,
@@ -64,7 +64,11 @@ type FixedTabs = {
   [name in FixedTab]: {
     label: string | ReactNode;
     icon: IconName;
-    flyout: (props: { project_id: string; wrap: Function }) => JSX.Element;
+    flyout: (props: {
+      project_id: string;
+      wrap: (content: JSX.Element, style?: CSS) => JSX.Element;
+      flyoutWidth: number;
+    }) => JSX.Element;
     flyoutTitle?: string | ReactNode;
     noAnonymous?: boolean;
   };

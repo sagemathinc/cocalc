@@ -633,23 +633,26 @@ export function bind_methods<T extends object>(
   return obj;
 }
 
-export function human_readable_size(bytes: number | null | undefined): string {
+export function human_readable_size(
+  bytes: number | null | undefined,
+  short = false
+): string {
   if (bytes == null) {
     return "?";
   }
   if (bytes < 1000) {
-    return `${bytes} bytes`;
+    return `${bytes} ${short ? "b" : "bytes"}`;
   }
   if (bytes < 1000000) {
     const b = Math.floor(bytes / 100);
-    return `${b / 10} KB`;
+    return `${b / 10} ${short ? "K" : "KB"}`;
   }
   if (bytes < 1000000000) {
     const b = Math.floor(bytes / 100000);
-    return `${b / 10} MB`;
+    return `${b / 10} ${short ? "M" : "MB"}`;
   }
   const b = Math.floor(bytes / 100000000);
-  return `${b / 10} GB`;
+  return `${b / 10} ${short ? "G" : "GB"}`;
 }
 
 // Regexp used to test for URLs in a string.

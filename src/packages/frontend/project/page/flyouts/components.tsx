@@ -10,13 +10,13 @@ import {
 } from "@ant-design/colors";
 import { Button, Tooltip } from "antd";
 
-import { CSS, React, useRef, useState } from "@cocalc/frontend/app-framework";
+import { CSS, React, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { hexColorToRGBA } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
-import { FLYOUT_PADDING } from "./consts";
+import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
 
 // make sure two types of borders are of the same width
 const BORDER_WIDTH_PX = "4px";
@@ -37,6 +37,7 @@ const FILE_ITEM_ACTIVE_STYLE: CSS = {
 };
 
 const FILE_ITEM_STYLE: CSS = {
+  flex: "1",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -79,6 +80,7 @@ interface Item {
   isactive?: boolean;
   is_public?: boolean;
   name: string;
+  size?: number;
 }
 
 interface FileListItemProps {
@@ -89,10 +91,14 @@ interface FileListItemProps {
   onChecked?: (state: boolean) => void;
   itemStyle?: CSS;
   item: Item;
+  index?: number;
   tooltip?: JSX.Element | string;
   selected?: boolean;
   multiline?: boolean;
   showCheckbox?: boolean;
+  setShowCheckboxIndex?: (index: number | null) => void;
+  extra?: JSX.Element | string | null; // null means don't show anything
+  extra2?: JSX.Element | string | null; // null means don't show anything
 }
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
@@ -102,15 +108,18 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     onPublic,
     onChecked,
     item,
+    index,
     itemStyle,
     tooltip,
     selected,
     onMouseDown,
     multiline = false,
     showCheckbox,
+    setShowCheckboxIndex,
+    extra,
+    extra2,
   } = props;
-  const [hover, setHover] = useState(false);
-
+  const selectable = onChecked != null;
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -146,10 +155,11 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function renderItem(): JSX.Element {
+  function renderName(): JSX.Element {
     return (
       <div
         ref={itemRef}
+        title={item.name}
         style={{
           ...FILE_ITEM_STYLE,
           ...(multiline ? { whiteSpace: "normal" } : {}),
@@ -167,9 +177,19 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     }
   }
 
+  function handleMouseEnter(): void {
+    if (!selectable || index == null) return;
+    setShowCheckboxIndex?.(index);
+  }
+
+  function handleMouseLeave(): void {
+    if (!selectable) return;
+    setShowCheckboxIndex?.(null);
+  }
+
   function renderBodyLeft(): JSX.Element {
     const iconName =
-      (showCheckbox || hover) && item.name !== ".."
+      selectable && showCheckbox && item.name !== ".."
         ? selected
           ? "check-square"
           : "square"
@@ -181,13 +201,60 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       <Icon
         name={iconName}
         style={ICON_STYLE}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        onClick={(e) => {
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={(e: React.MouseEvent) => {
           e?.stopPropagation();
-          onChecked?.(!selected);
+          if (onChecked != null) {
+            onChecked?.(!selected);
+          } else {
+            onClick?.(e);
+          }
         }}
       />
+    );
+  }
+
+  function renderExtra(type: 1 | 2): JSX.Element | undefined {
+    if (extra == null) return;
+    const marginRight =
+      type === 1
+        ? (item.is_public ? 0 : 20) + (item.isopen ? 0 : 18)
+        : undefined;
+    const widthPx = FLYOUT_DEFAULT_WIDTH_PX * 0.33;
+    // if the 2nd extra shows up, fix the width to align the columns
+    const width = type === 1 && extra2 != null ? `${widthPx}px` : undefined;
+    const maxWidth =
+      type === 1 ? `${widthPx}px` : `${FLYOUT_DEFAULT_WIDTH_PX * 0.33}px`;
+    const textAlign = "right";
+    return (
+      <div
+        title={typeof extra === "string" ? extra : undefined}
+        style={{
+          flex: "0 1 auto",
+          display: "inline-block",
+          color: COLORS.GRAY_M,
+          paddingLeft: FLYOUT_PADDING,
+          paddingRight: FLYOUT_PADDING,
+          marginRight,
+          width,
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.(e);
+        }}
+      >
+        <div
+          style={{
+            maxWidth,
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            textAlign,
+          }}
+        >
+          {type === 1 ? extra : extra2}
+        </div>
+      </div>
     );
   }
 
@@ -201,9 +268,10 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           onMouseDown?.(e, item.name);
         }}
         // additional mouseLeave to prevent stale hover state icon
-        onMouseLeave={() => setHover(false)}
+        onMouseLeave={handleMouseLeave}
       >
-        {renderBodyLeft()} {renderItem()} {renderPublishedIcon()}
+        {renderBodyLeft()} {renderName()} {renderExtra(2)} {renderExtra(1)}{" "}
+        {renderPublishedIcon()}
         {item.isopen ? renderCloseItem(item) : undefined}
       </div>
     );
@@ -225,7 +293,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     <div
       className="cc-project-flyout-file-item"
       // additional mouseLeave to prevent stale hover state icon
-      onMouseLeave={() => setHover(false)}
+      onMouseLeave={handleMouseLeave}
       style={{
         ...FILE_ITEM_LINE_STYLE,
         ...(item.isopen

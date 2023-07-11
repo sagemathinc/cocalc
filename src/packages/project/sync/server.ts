@@ -117,6 +117,7 @@ class SyncTableChannel {
   private query_string: string;
   private channel: Channel;
   private closed: boolean = false;
+  private closing: boolean = false;
   private num_connections: { n: number; changed: Date } = {
     n: 0,
     changed: new Date(),
@@ -357,13 +358,13 @@ class SyncTableChannel {
   }
 
   private send_synctable_to_browser(spark: Spark): void {
-    if (this.closed) return;
+    if (this.closed || this.closing) return;
     this.log("send_synctable_to_browser");
     spark.write({ init: this.synctable.initial_version_for_browser_client() });
   }
 
   private broadcast_synctable_to_browsers(): void {
-    if (this.closed) return;
+    if (this.closed || this.closing) return;
     this.log("broadcast_synctable_to_browsers");
     const x = { init: this.synctable.initial_version_for_browser_client() };
     this.channel.write(x);
@@ -413,11 +414,13 @@ class SyncTableChannel {
   }
 
   private async save_and_close_if_possible(): Promise<void> {
-    if (this.closed) return; // already done.
+    if (this.closed || this.closing) {
+      return; // closing or already closed
+    }
     this.log("save_and_close_if_possible: no connections, so saving...");
     await this.synctable.save();
     const { n, changed } = this.num_connections;
-    const delay = new Date().valueOf() - changed.valueOf();
+    const delay = Date.now() - changed.valueOf();
     this.log(
       `save_and_close_if_possible: after save there are ${n} connections and delay=${delay}`
     );
@@ -445,6 +448,7 @@ class SyncTableChannel {
       return;
     }
     this.log("close: closing");
+    this.closing = true;
     delete synctable_channels[this.name];
     this.channel.destroy();
     this.synctable.close_no_async();
