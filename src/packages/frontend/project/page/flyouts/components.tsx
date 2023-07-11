@@ -10,7 +10,7 @@ import {
 } from "@ant-design/colors";
 import { Button, Tooltip } from "antd";
 
-import { CSS, React, useRef, useState } from "@cocalc/frontend/app-framework";
+import { CSS, React, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { hexColorToRGBA } from "@cocalc/util/misc";
@@ -37,6 +37,7 @@ const FILE_ITEM_ACTIVE_STYLE: CSS = {
 };
 
 const FILE_ITEM_STYLE: CSS = {
+  flex: "1",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -89,10 +90,12 @@ interface FileListItemProps {
   onChecked?: (state: boolean) => void;
   itemStyle?: CSS;
   item: Item;
+  index?: number;
   tooltip?: JSX.Element | string;
   selected?: boolean;
   multiline?: boolean;
   showCheckbox?: boolean;
+  setShowCheckboxIndex?: (index: number | null) => void;
 }
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
@@ -102,15 +105,16 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     onPublic,
     onChecked,
     item,
+    index,
     itemStyle,
     tooltip,
     selected,
     onMouseDown,
     multiline = false,
     showCheckbox,
+    setShowCheckboxIndex,
   } = props;
-  const [hover, setHover] = useState(false);
-
+  const selectable = onChecked != null;
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -167,9 +171,19 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     }
   }
 
+  function handleMouseEnter(): void {
+    if (!selectable || index == null) return;
+    setShowCheckboxIndex?.(index);
+  }
+
+  function handleMouseLeave(): void {
+    if (!selectable) return;
+    setShowCheckboxIndex?.(null);
+  }
+
   function renderBodyLeft(): JSX.Element {
     const iconName =
-      (showCheckbox || hover) && item.name !== ".."
+      selectable && showCheckbox && item.name !== ".."
         ? selected
           ? "check-square"
           : "square"
@@ -181,11 +195,15 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       <Icon
         name={iconName}
         style={ICON_STYLE}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        onClick={(e) => {
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={(e: React.MouseEvent) => {
           e?.stopPropagation();
-          onChecked?.(!selected);
+          if (onChecked != null) {
+            onChecked?.(!selected);
+          } else {
+            onClick?.(e);
+          }
         }}
       />
     );
@@ -201,7 +219,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           onMouseDown?.(e, item.name);
         }}
         // additional mouseLeave to prevent stale hover state icon
-        onMouseLeave={() => setHover(false)}
+        onMouseLeave={handleMouseLeave}
       >
         {renderBodyLeft()} {renderItem()} {renderPublishedIcon()}
         {item.isopen ? renderCloseItem(item) : undefined}
@@ -225,7 +243,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     <div
       className="cc-project-flyout-file-item"
       // additional mouseLeave to prevent stale hover state icon
-      onMouseLeave={() => setHover(false)}
+      onMouseLeave={handleMouseLeave}
       style={{
         ...FILE_ITEM_LINE_STYLE,
         ...(item.isopen
