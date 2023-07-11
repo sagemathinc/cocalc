@@ -89,39 +89,44 @@ export default function PayNow({
         <Cost purchaseInfo={purchaseInfo} />
       </div>
       <Divider />
-      <div style={{ textAlign: "center" }}>
-        {allowed && (
-          <div>
-            <Alert
-              showIcon
-              style={{ marginBottom: "15px " }}
-              type="success"
-              message="You have enough credit to complete this purchase."
-            />
-            <Button
-              disabled={purchasing}
-              size="large"
-              type="primary"
-              onClick={completePurchase}
-            >
-              Complete Purchase... {purchasing && <Spin />}
-            </Button>
+      {allowed == null && <Spin />}
+      {allowed != null && (
+        <>
+          <div style={{ textAlign: "center" }}>
+            {allowed && (
+              <div>
+                <Button
+                  disabled={purchasing}
+                  size="large"
+                  type="primary"
+                  onClick={completePurchase}
+                >
+                  Complete Purchase... {purchasing && <Spin />}
+                </Button>
+                <Alert
+                  showIcon
+                  style={{ marginTop: "15px " }}
+                  type="success"
+                  message="You have enough credit to complete this purchase."
+                />
+              </div>
+            )}
+            {!allowed && (
+              <Button onClick={() => update()} type="primary">
+                Add to Balance...
+              </Button>
+            )}
           </div>
-        )}
-        {!allowed && (
-          <Button onClick={() => update()} type="primary">
-            Add to Balance...
-          </Button>
-        )}
-      </div>
-      {!allowed && (
-        <Alert
-          style={{ marginTop: "15px" }}
-          type="warning"
-          showIcon
-          message="Add Credit"
-          description={reason}
-        />
+          {!allowed && reason && (
+            <Alert
+              style={{ marginTop: "15px" }}
+              type="warning"
+              showIcon
+              message="Add Credit"
+              description={reason}
+            />
+          )}
+        </>
       )}
     </Modal>
   );

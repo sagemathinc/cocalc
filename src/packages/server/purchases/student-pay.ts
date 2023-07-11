@@ -26,7 +26,7 @@ export default async function studentPay({
   // get current value of course field of this project
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT course FROM projects WHERE project_id=$1",
+    "SELECT course, title, description FROM projects WHERE project_id=$1",
     [project_id]
   );
   if (rows.length == 0) {
@@ -40,7 +40,12 @@ export default async function studentPay({
   if (currentCourse.paid) {
     throw Error("course fee already paid");
   }
-  const purchaseInfo = currentCourse.payInfo ?? DEFAULT_PURCHASE_INFO;
+  const { title, description } = rows[0];
+  const purchaseInfo = {
+    ...(currentCourse.payInfo ?? DEFAULT_PURCHASE_INFO),
+    title,
+    description,
+  };
   const cost = getCost(purchaseInfo);
   await assertPurchaseAllowed({ account_id, service: "license", cost });
 
@@ -56,7 +61,12 @@ export default async function studentPay({
     account_id,
     service: "license",
     cost,
-    description: { type: "license", license_id, info: purchaseInfo },
+    description: {
+      type: "license",
+      license_id,
+      info: purchaseInfo,
+      course: currentCourse,
+    },
   });
 
   // Change purchaseInfo to indicate that purchase is done

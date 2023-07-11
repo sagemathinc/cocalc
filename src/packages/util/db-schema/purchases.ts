@@ -3,6 +3,7 @@ import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { NOTES } from "./crm";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { CourseInfo } from "./projects";
 
 // The general categories of services we offer.  These must
 // be at most 127 characters, and users can set an individual
@@ -75,6 +76,7 @@ export interface License {
   info: PurchaseInfo;
   license_id: string;
   item?; // item in shopping cart
+  course?: CourseInfo;
 }
 
 export interface Voucher {
