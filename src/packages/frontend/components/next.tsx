@@ -21,7 +21,10 @@ export default function Next({ href, style, children, query }: Props) {
       .join("&");
   }
   return (
-    <A style={style} href={join(appBasePath, href) + "?" + query}>
+    <A
+      style={style}
+      href={`${join(appBasePath, href)}${query ? "?" + query : ""}`}
+    >
       {children}
     </A>
   );

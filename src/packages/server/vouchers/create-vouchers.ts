@@ -56,6 +56,9 @@ export default async function createVouchers({
   cost: number; // cost to redeem one voucher
   cart: any[];
 }> {
+  if (!count || count < 1) {
+    throw Error("count must be a positive integer");
+  }
   // Get the list of items in the cart that haven't been purchased
   // or saved for later, and are currently checked, and are
   // NOT subscriptions (i.e, a date range).
@@ -199,7 +202,7 @@ export default async function createVouchers({
       log.debug("charging user; description =", description);
       const purchase_id = await createPurchase({
         account_id,
-        cost,
+        cost: cost * count,
         service: "voucher",
         description,
       });
