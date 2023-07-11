@@ -25,7 +25,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { List, Map, fromJS, Set as iSet } from "immutable";
-import { debounce } from "underscore";
+import { debounce } from "lodash";
 
 import {
   Actions as BaseActions,
@@ -221,8 +221,10 @@ export class Actions<
 
     this.format = reuseInFlight(this.format);
 
-    this.set_resize = this.set_resize.bind(this);
-    window.addEventListener("resize", this.set_resize);
+    this.set_resize = debounce(this.set_resize.bind(this), 20, {
+      leading: false,
+      trailing: true,
+    });
 
     if (is_public) {
       this._init_value();
