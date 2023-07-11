@@ -27,19 +27,21 @@ export default function PayNow({
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [reason, setReason] = useState<string | undefined | null>(null);
   const [error, setError] = useState<string>("");
-  const update = async () => {
+  const update = async (addBalance = false) => {
     const cost = getCost(purchaseInfo);
     try {
       let { allowed, reason } = await isPurchaseAllowed("license", cost);
-      if (!allowed) {
-        await webapp_client.purchases_client.quotaModal({
-          service: "license",
-          reason,
-          allowed,
-          cost,
-        });
+      if (open && addBalance) {
+        if (!allowed) {
+          await webapp_client.purchases_client.quotaModal({
+            service: "license",
+            reason,
+            allowed,
+            cost,
+          });
+        }
+        ({ allowed, reason } = await isPurchaseAllowed("license", cost));
       }
-      ({ allowed, reason } = await isPurchaseAllowed("license", cost));
       setAllowed(allowed);
       setReason(reason);
     } catch (err) {
@@ -112,7 +114,7 @@ export default function PayNow({
               </div>
             )}
             {!allowed && (
-              <Button onClick={() => update()} type="primary">
+              <Button onClick={() => update(true)} type="primary">
                 Add to Balance...
               </Button>
             )}
