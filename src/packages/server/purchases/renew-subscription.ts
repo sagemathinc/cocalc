@@ -76,7 +76,7 @@ export const test = {
   subtractInterval,
 };
 
-async function getSubscription(subscription_id: number): Promise<{
+export async function getSubscription(subscription_id: number): Promise<{
   account_id: string;
   metadata: any;
   cost: number;

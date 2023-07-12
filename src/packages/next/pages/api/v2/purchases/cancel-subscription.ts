@@ -1,5 +1,7 @@
 /*
 Cancel a subscription.
+
+- now: if true, cancels license now and provides a refund.  Otherwise, cancels at period end.
 */
 
 import getAccountId from "lib/account/get-account";
@@ -20,7 +22,7 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  const { subscription_id } = getParams(req);
-  await cancelSubscription({ account_id, subscription_id });
+  const { subscription_id, now } = getParams(req);
+  await cancelSubscription({ account_id, subscription_id, now });
   return { status: "ok" };
 }

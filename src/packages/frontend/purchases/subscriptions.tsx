@@ -25,6 +25,7 @@ import {
   Alert,
   Button,
   Collapse,
+  Modal,
   Popconfirm,
   Space,
   Spin,
@@ -59,12 +60,13 @@ function SubscriptionStatus({ status }) {
 function SubscriptionActions({ id, status, refresh, cost }) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
 
-  const handleCancel = async () => {
+  const handleCancel = async (now: boolean = false) => {
     try {
       setLoading(true);
       setError("");
-      await cancelSubscription(id);
+      await cancelSubscription({ subscription_id: id, now });
       refresh();
     } catch (error) {
       setError(`${error}`);
@@ -138,22 +140,52 @@ function SubscriptionActions({ id, status, refresh, cost }) {
         </Popconfirm>
       )}
       {status !== "canceled" && (
-        <Popconfirm
-          title={
-            <div style={{ maxWidth: "450px" }}>
-              Are you sure you want to cancel this subscription? The
-              corresponding license will not be renewed. To receive a pro-rated
-              credit, you can also edit the end date of the license.
-            </div>
-          }
-          onConfirm={handleCancel}
-          okText="Yes"
-          cancelText="No"
+        <Button
+          disabled={loading}
+          type="default"
+          onClick={() => setModalVisible(true)}
         >
-          <Button disabled={loading} type="default">
-            Cancel
-          </Button>
-        </Popconfirm>
+          Cancel...
+        </Button>
+      )}
+      {status !== "canceled" && modalVisible && (
+        <Modal
+          title="Cancel Subscription"
+          visible={modalVisible}
+          onCancel={() => setModalVisible(false)}
+          footer={[
+            <Button key="nothing" onClick={() => setModalVisible(false)}>
+              Make No Change
+            </Button>,
+            <Button key="cancelNow" onClick={() => handleCancel(true)}>
+              Cancel Now
+            </Button>,
+            <Button
+              key="cancelEnd"
+              type="primary"
+              onClick={() => handleCancel(false)}
+            >
+              Cancel at Period End
+            </Button>,
+          ]}
+        >
+          <div style={{ maxWidth: "450px" }}>
+            Are you sure you want to cancel this subscription? The corresponding
+            license will not be renewed.
+            <ul style={{ margin: "15px 0" }}>
+              <li>
+                Select "Cancel at Period End" to let your license continue to
+                the end of the current period.
+              </li>
+              <li>
+                To receive a prorated credit for the remainder of this license,
+                select "Cancel Now". You can spend your credit on another
+                license, pay-as-you-go project upgrades, etc.
+              </li>
+              <li>You can always resume a canceled subscription later.</li>
+            </ul>
+          </div>
+        </Modal>
       )}
       {status == "canceled" && (
         <Popconfirm

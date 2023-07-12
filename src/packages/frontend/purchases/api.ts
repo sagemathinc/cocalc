@@ -255,9 +255,16 @@ export async function getLicense(license_id: string) {
   return await api("licenses/get-license", { license_id });
 }
 
-export async function cancelSubscription(subscription_id: number) {
+export async function cancelSubscription({
+  subscription_id,
+  now,
+}: {
+  subscription_id: number;
+  now?: boolean;
+}) {
   return await api("purchases/cancel-subscription", {
     subscription_id,
+    now,
   });
 }
 
