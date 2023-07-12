@@ -61,20 +61,23 @@ Here's what a typical shopping cart item looks like:
 }
 */
 
-import getPool from "@cocalc/database/pool";
+import getPool, { PoolClient } from "@cocalc/database/pool";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
 import { sanity_checks } from "@cocalc/util/licenses/purchase/sanity-checks";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
-import { db } from "@cocalc/database";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import getLogger from "@cocalc/backend/logger";
 import createSubscription from "./create-subscription";
+import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 
 const logger = getLogger("purchases:purchase-shopping-cart-item");
 
-export default async function purchaseShoppingCartItem(item) {
+export default async function purchaseShoppingCartItem(
+  item,
+  client: PoolClient
+) {
   logger.debug("purchaseShoppingCartItem", item);
   if (item.product != "site-license") {
     // This *ONLY* implements purchasing the site-license product, which is the only
@@ -87,7 +90,10 @@ export default async function purchaseShoppingCartItem(item) {
     throw Error(`invalid account_id - ${item.account_id}`);
   }
 
-  const { license_id, info } = await createLicenseFromShoppingCartItem(item);
+  const { license_id, info } = await createLicenseFromShoppingCartItem(
+    item,
+    client
+  );
   logger.debug(
     "purchaseShoppingCartItem -- created license from shopping cart item",
     license_id,
@@ -103,6 +109,7 @@ export default async function purchaseShoppingCartItem(item) {
     tag: "license-purchase",
     period_start: info.start,
     period_end: info.end,
+    client,
   });
   logger.debug(
     "purchaseShoppingCartItem -- created purchase from shopping cart item",
@@ -114,55 +121,59 @@ export default async function purchaseShoppingCartItem(item) {
     if (interval.endsWith("ly")) {
       interval = interval.slice(0, -2); // get rid of the ly
     }
-    const subscription_id = await createSubscription({
-      account_id: item.account_id,
-      cost: item.cost.discounted_cost,
-      interval,
-      current_period_start: info.start,
-      current_period_end: info.end,
-      latest_purchase_id: purchase_id,
-      status: "active",
-      metadata: { type: "license", license_id },
-    });
+    const subscription_id = await createSubscription(
+      {
+        account_id: item.account_id,
+        cost: item.cost.discounted_cost,
+        interval,
+        current_period_start: info.start,
+        current_period_end: info.end,
+        latest_purchase_id: purchase_id,
+        status: "active",
+        metadata: { type: "license", license_id },
+      },
+      client
+    );
     logger.debug(
       "purchaseShoppingCartItem -- created subscription from shopping cart item",
       { subscription_id, license_id, item_id: item.id }
     );
   }
 
-  await markItemPurchased(item, license_id);
+  await markItemPurchased(item, license_id, client);
   logger.debug("moved shopping cart item to purchased.");
 }
 
 async function createLicenseFromShoppingCartItem(
-  item
+  item,
+  client: PoolClient
 ): Promise<{ license_id: string; info }> {
   const info = getPurchaseInfo(item.description);
   logger.debug("running sanity checks on license...");
-  const pool = getPool();
+  const pool = client ?? getPool();
   await sanity_checks(pool, info);
-  const license_id = await createLicense(item.account_id, info);
+  const license_id = await createLicense(item.account_id, info, pool);
   if (item.project_id) {
-    addLicenseToProject(item.project_id, license_id);
+    addLicenseToProjectAndRestart(item.project_id, license_id, client);
   }
   return { info, license_id };
 }
 
-async function markItemPurchased(item, license_id: string) {
-  const pool = getPool();
+async function markItemPurchased(item, license_id: string, client: PoolClient) {
+  const pool = client ?? getPool();
   await pool.query(
     "UPDATE shopping_cart_items SET purchased=$3 WHERE account_id=$1 AND id=$2",
     [item.account_id, item.id, { success: true, time: new Date(), license_id }]
   );
 }
 
-export async function addLicenseToProject(
+export async function addLicenseToProjectAndRestart(
   project_id: string,
-  license_id: string
+  license_id: string,
+  client: PoolClient
 ) {
-  const database = db();
   try {
-    await database.add_license_to_project(project_id, license_id);
+    await addLicenseToProject({ project_id, license_id, client });
     await restartProjectIfRunning(project_id);
   } catch (err) {
     // non-fatal, since it's just a convenience.

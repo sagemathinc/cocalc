@@ -156,7 +156,7 @@ export default async function editLicense(
 
     await client.query("COMMIT");
   } catch (err) {
-    logger.debug("editLicense -- error -- reverting transaction");
+    logger.debug("editLicense -- error -- reverting transaction", err);
     await client.query("ROLLBACK");
     throw err;
   } finally {

@@ -23,7 +23,7 @@ always maintained, rather than just being deleted.
 */
 
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import getPool from "@cocalc/database/pool";
+import getPool, { PoolClient } from "@cocalc/database/pool";
 import { isEqual } from "lodash";
 import type { CourseInfo } from "@cocalc/util/db-schema/projects";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
@@ -33,12 +33,14 @@ interface Options {
   project_id: string; // the project id of the student project
   course: CourseInfo; // what it is being set to
   noCheck?: boolean; // if set to true, don't check permissions for account_id.  This is for internal use and not accessible via the api.
+  client?: PoolClient;
 }
 export default async function setCourseInfo({
   account_id,
   project_id,
   course,
   noCheck,
+  client,
 }: Options): Promise<{ course: CourseInfo }> {
   if (!noCheck && !(await isCollaborator({ account_id, project_id }))) {
     throw Error(
@@ -49,7 +51,7 @@ export default async function setCourseInfo({
     // just in case
     throw Error("course must be an object of type CourseInfo");
   }
-  const pool = getPool();
+  const pool = client ?? getPool();
 
   // get current value of course:
   const { rows } = await pool.query(

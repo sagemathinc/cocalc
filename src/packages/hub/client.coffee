@@ -63,6 +63,9 @@ underscore = require('underscore')
 
 {PW_RESET_ENDPOINT, PW_RESET_KEY} = require('./password')
 
+removeLicenseFromProject = require('@cocalc/server/licenses/remove-from-project').default
+addLicenseToProject = require('@cocalc/server/licenses/add-to-project').default
+
 DEBUG2 = !!process.env.SMC_DEBUG2
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
@@ -1295,7 +1298,7 @@ class exports.Client extends EventEmitter
                 @error_to_client(id:mesg.id, error:"must have write access to #{mesg.project_id} -- #{err}")
                 return
             try
-                await @database.add_license_to_project(mesg.project_id, mesg.license_id)
+                await addLicenseToProject({project_id:mesg.project_id, license_id:mesg.license_id})
                 @success_to_client(id:mesg.id)
             catch err
                 @error_to_client(id:mesg.id, error:"#{err}")
@@ -1310,7 +1313,7 @@ class exports.Client extends EventEmitter
                 @error_to_client(id:mesg.id, error:"must have write access to #{mesg.project_id} -- #{err}")
                 return
             try
-                await @database.remove_license_from_project(mesg.project_id, mesg.license_id)
+                await removeLicenseFromProject({project_id:mesg.project_id, license_id:mesg.license_id})
                 @success_to_client(id:mesg.id)
             catch err
                 @error_to_client(id:mesg.id, error:"#{err}")

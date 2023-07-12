@@ -8,7 +8,7 @@ import createPurchase from "@cocalc/server/purchases/create-purchase";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import { assertPurchaseAllowed } from "./is-purchase-allowed";
 import setCourseInfo from "@cocalc/server/projects/course/set-course-info";
-import { addLicenseToProject } from "@cocalc/server/purchases/purchase-shopping-cart-item";
+import { addLicenseToProjectAndRestart } from "@cocalc/server/purchases/purchase-shopping-cart-item";
 
 const logger = getLogger("purchases:student-pay");
 
@@ -48,35 +48,50 @@ export default async function studentPay({
   const cost = getCost(purchaseInfo);
   await assertPurchaseAllowed({ account_id, service: "license", cost });
 
-  // [ ] TODO: make this atomic...
+  // Creating the license and the purchase and recording that student paid all happen as a single PostgreSQL atomic transaction.
+  const client = await pool.connect();
+  try {
+    // start atomic transaction
+    await client.query("BEGIN");
 
-  // Create the license
-  const license_id = await createLicense(account_id, purchaseInfo);
-  addLicenseToProject(project_id, license_id);
+    // Create the license
+    const license_id = await createLicense(account_id, purchaseInfo, client);
 
-  // Create the purchase
-  const purchase_id = await createPurchase({
-    account_id,
-    service: "license",
-    cost,
-    description: {
-      type: "license",
-      license_id,
-      info: purchaseInfo,
+    addLicenseToProjectAndRestart(project_id, license_id, client);
+
+    // Create the purchase
+    const purchase_id = await createPurchase({
+      account_id,
+      service: "license",
+      cost,
+      description: {
+        type: "license",
+        license_id,
+        info: purchaseInfo,
+        course: currentCourse,
+      },
+      client,
+    });
+
+    // Change purchaseInfo to indicate that purchase is done
+    currentCourse.paid = new Date().toISOString();
+    await setCourseInfo({
+      project_id,
+      account_id,
       course: currentCourse,
-    },
-  });
+      noCheck: true,
+      client,
+    });
 
-  // Change purchaseInfo to indicate that purchase is done
-  currentCourse.paid = new Date().toISOString();
-  await setCourseInfo({
-    project_id,
-    account_id,
-    course: currentCourse,
-    noCheck: true,
-  });
-
-  return { purchase_id };
+    return { purchase_id };
+  } catch (err) {
+    logger.debug("error -- reverting transaction", err);
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    // end atomic transaction
+    client.release();
+  }
 }
 
 export function getCost(purchaseInfo: PurchaseInfo): number {

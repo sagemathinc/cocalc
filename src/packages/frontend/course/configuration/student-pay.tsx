@@ -47,7 +47,7 @@ export default function StudentPay({ actions, settings }) {
       return dayjs(pay);
     }
     if (info.start) {
-      return dayjs(info.start);
+      return dayjs(info.start).add(7, "day");
     }
     return dayjs().add(7, "day");
   };

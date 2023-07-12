@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// TODO: I THINK THIS IS DEPRECATED AND NO LONGER USED
+
 /*
 Purchase everything that is checked and in the shopping cart.
 
@@ -17,7 +19,6 @@ If this successfully runs, then the checked items in the shopping
 cart are changed in the database so that the purchased field is set.
 */
 
-import { db } from "@cocalc/database";
 import getPool from "@cocalc/database/pool";
 import purchaseLicense from "@cocalc/server/licenses/purchase";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
@@ -26,6 +27,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
 import getCart from "./get";
 import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
+import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 
 export default async function checkout(account_id: string): Promise<void> {
   // Get the list of items in the cart that haven't been purchased
@@ -54,7 +56,7 @@ export default async function checkout(account_id: string): Promise<void> {
     );
 
     if (typeof project_id == "string" && isValidUUID(project_id)) {
-      await db().add_license_to_project(project_id, license_id);
+      await addLicenseToProject({ project_id, license_id });
       restartProjects.add(project_id);
     }
   }
@@ -97,4 +99,3 @@ export async function createLicenseWithoutPurchase({
   delete info.cost; // so user isn't charged.
   return await purchaseLicense(account_id, info, true); // true = no throttle; otherwise, only first item would get bought.
 }
-

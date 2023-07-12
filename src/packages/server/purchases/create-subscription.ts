@@ -1,15 +1,14 @@
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
-import getPool from "@cocalc/database/pool";
+import type { PoolClient } from "@cocalc/database/pool";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { is_date as isDate, is_integer } from "@cocalc/util/misc";
 
 type Options = Omit<Subscription, "id" | "created" | "notes">;
 
 export default async function createSubscription(
-  opts: Options
+  opts: Options,
+  client: PoolClient
 ): Promise<number> {
-  const pool = getPool();
-
   // some consistency checks below.  It's very likely this should always hold,
   // since data isn't user supplied, but it's still good to be careful.
 
@@ -38,7 +37,7 @@ export default async function createSubscription(
     throw Error("metadata must be a nontrivial object with type field");
   }
 
-  const { rows } = await pool.query(
+  const { rows } = await client.query(
     "INSERT INTO subscriptions (account_id,created,cost,interval,current_period_start,current_period_end,latest_purchase_id,status,metadata) VALUES($1,NOW(),$2,$3,$4,$5,$6,'active',$7)  RETURNING id",
     [
       opts.account_id,
@@ -52,7 +51,7 @@ export default async function createSubscription(
   );
   const { id } = rows[0];
   if (opts.metadata.type == "license") {
-    await pool.query(
+    await client.query(
       "UPDATE site_licenses SET subscription_id=$1 WHERE id=$2",
       [id, opts.metadata.license_id]
     );

@@ -1,3 +1,4 @@
+import getPool from "@cocalc/database/pool";
 import getCart from "@cocalc/server/shopping/cart/get";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import getBalance from "./get-balance";
@@ -34,10 +35,30 @@ export default async function shoppingCartCheckout({
   const params = await getShoppingCartCheckoutParams(account_id);
   if (params.chargeAmount <= 0) {
     // immediately create all the purchase items and products for the user.
-    // No need to make a stripe checkout session.
-    for (const item of params.cart) {
-      await purchaseShoppingCartItem(item);
+    // No need to make a stripe checkout session, since user has sufficient
+    // balance in their account to make the purchase.
+    // **We do the purchase of everything as one big database transaction.**
+    const pool = getPool();
+    const client = await pool.connect();
+    try {
+      // start atomic transaction
+      await client.query("BEGIN");
+      for (const item of params.cart) {
+        await purchaseShoppingCartItem(item, client);
+      }
+      await client.query("COMMIT");
+    } catch (err) {
+      logger.debug(
+        "shoppingCartCheckout -- error -- rolling back entire transaction",
+        err
+      );
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      // end atomic transaction
+      client.release();
     }
+
     return { done: true };
   }
 
