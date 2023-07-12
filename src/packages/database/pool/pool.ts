@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Client, Pool } from "pg";
+import { Client, Pool, PoolClient } from "pg";
 
 import {
   pgdatabase as database,
@@ -43,6 +43,19 @@ export default function getPool(cacheLength?: Length): Pool {
     });
   }
   return pool;
+}
+
+export async function getTransactionClient(): Promise<PoolClient> {
+  const pool = await getPool();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    client.release();
+    throw err;
+  }
+  return client;
 }
 
 export function getClient(): Client {

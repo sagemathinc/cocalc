@@ -12,6 +12,7 @@ interface Options {
   account_id: string;
   service: Service;
   description: Description;
+  client: PoolClient | null; // all purchases have to explicitly set client (possibly to null), to strongly encourage doing them as part of an atomic transaction.
   project_id?: string;
   cost?: number; // if cost not known yet, don't give.  E.g., for project-upgrade, the cost isn't known until project stops (or we close out a purchase interval).
   cost_per_hour?: number;
@@ -20,7 +21,6 @@ interface Options {
   invoice_id?: string;
   notes?: string;
   tag?: string;
-  client?: PoolClient;
 }
 
 export default async function createPurchase(opts: Options): Promise<number> {
@@ -38,13 +38,12 @@ export default async function createPurchase(opts: Options): Promise<number> {
     tag,
     client,
   } = opts;
-  const pool = client ?? getPool();
   if (cost == null && (cost_per_hour == null || period_start == null)) {
     throw Error(
       "if cost is not set, then cost_per_hour and period_start must both be set"
     );
   }
-  const { rows } = await pool.query(
+  const { rows } = await (client ?? getPool()).query(
     "INSERT INTO purchases (time, account_id, project_id, cost, cost_per_hour, period_start, period_end, service, description,invoice_id, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id",
     [
       account_id,

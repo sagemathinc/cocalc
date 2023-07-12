@@ -1,3 +1,4 @@
+import type { PoolClient } from "@cocalc/database/pool";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { getPurchaseQuotas } from "./purchase-quotas";
 import getBalance from "./get-balance";
@@ -19,6 +20,7 @@ interface Options {
   account_id: string;
   service: Service;
   cost?: number;
+  client?: PoolClient;
 }
 
 // balance, minPayment, amountDue, chargeAmount, total, minBalance
@@ -27,6 +29,7 @@ export async function isPurchaseAllowed({
   account_id,
   service,
   cost,
+  client,
 }: Options): Promise<{
   allowed: boolean;
   reason?: string;
@@ -75,9 +78,9 @@ export async function isPurchaseAllowed({
     }
     return { allowed: false, reason: `cost must be positive` };
   }
-  const { services, minBalance } = await getPurchaseQuotas(account_id);
+  const { services, minBalance } = await getPurchaseQuotas(account_id, client);
   // First check that making purchase won't reduce our balance below the minBalance.
-  const balance = await getBalance(account_id);
+  const balance = await getBalance(account_id, client);
   const amountAfterPurchase = balance - cost;
   // add 0.01 due to potential rounding errors
   if (amountAfterPurchase + 0.01 < minBalance) {
@@ -123,7 +126,8 @@ export async function isPurchaseAllowed({
     // they can still limit their monthly spend on a particular service, as a safety.
     const chargesForService = await getTotalChargesThisMonth(
       account_id,
-      service
+      service,
+      client
     );
     if (chargesForService + cost > quotaForService) {
       return {

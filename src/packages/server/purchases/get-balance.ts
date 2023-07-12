@@ -1,5 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import { getLastClosingDate } from "./closing-date";
+import type { PoolClient } from "@cocalc/database/pool";
 
 /*
 compute the sum of the following, over all rows of the table for a given account_id:
@@ -14,8 +15,11 @@ compute the sum of the following, over all rows of the table for a given account
 export const COST_OR_METERED_COST =
   "COALESCE(cost, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)";
 
-export default async function getBalance(account_id: string): Promise<number> {
-  const pool = getPool();
+export default async function getBalance(
+  account_id: string,
+  client?: PoolClient
+): Promise<number> {
+  const pool = client ?? getPool();
   const { rows } = await pool.query(
     `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1`,
     [account_id]

@@ -5,13 +5,17 @@
 
 /*
 Create certain number of vouchers for everything non-subscription
-that is checked and in the shopping cart.
+that is checked and in the shopping cart and create corresponding
+purchase charging the user.
+
+Everything is done as one big atomic transaction, so if anything
+goes wrong the database is unchanged and the user is not charged
+and no vouchers get left sitting around.
 */
 
-import getPool from "@cocalc/database/pool";
+import { getTransactionClient } from "@cocalc/database/pool";
 import multiInsert from "@cocalc/database/pool/multi-insert";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
-import dayjs from "dayjs";
 import generateVouchers, {
   CharSet,
   MAX_VOUCHERS,
@@ -21,6 +25,7 @@ import generateVouchers, {
 import { getLogger } from "@cocalc/backend/logger";
 import { getVoucherCheckoutCart } from "@cocalc/server/purchases/vouchers-checkout";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
+import dayjs from "dayjs";
 
 const log = getLogger("createVouchers");
 
@@ -67,16 +72,12 @@ export default async function createVouchers({
     account_id,
     whenPay,
     count,
-    active,
     expire,
-    cancelBy,
     title,
     generate,
     cart,
     cost,
   });
-
-  const pool = getPool();
 
   // Make some checks.
   if (whenPay == "admin") {
@@ -112,10 +113,6 @@ export default async function createVouchers({
     }
   }
 
-  // make sure that this get set to null in the database when initially creating the vouchers, since
-  // we don't want the vouchers to *work* unless payment goes through.  This is just a safety measure
-  // for us to not get scammed.
-  active = cancelBy = null;
   if (whenPay == "admin") {
     // We leave expire as is, since admin can set shorter expiration date
   } else {
@@ -125,72 +122,54 @@ export default async function createVouchers({
     expire = dayjs().add(10, "year").toDate();
   }
 
-  /*
-  Now actually modify the database.  We create two things:
-
-  1. A record in the "vouchers" table that explains what the voucher
-     is for, and records the title and expire date.
-
-  2. We create [count] records in the "voucher_codes" table.
-     These point to the voucher_create record and can be redeemed.
-
-  */
-  const { rows } = await pool.query(
-    "INSERT INTO vouchers(created, created_by, title, active, expire, cancel_by, cart, cost, count, when_pay) VALUES(NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
-    [account_id, title, active, expire, cancelBy, cart, cost, count, whenPay]
-  );
-  const { id } = rows[0];
-
-  let error: any = false,
-    i,
-    codes;
-  for (i = 0; i < 10; i++) {
-    try {
-      // create the voucher codes:
-      const now = new Date();
-      codes = generateVouchers({ ...generate, count });
-      const { query, values } = multiInsert(
-        "INSERT INTO voucher_codes(code, id, created)",
-        codes.map((code) => [code, id, now])
-      );
-      await pool.query(query, values);
-      // Did it!
-      break;
-    } catch (err) {
-      error = err;
-      // It is possible there is an error due to one of our new
-      // randomly generated voucher codes just randomly matching
-      // something already in the database.  This is very, very
-      // highly unlikely, so if this happens, we just try again...
-      // up to 10 times.
-      // In case any codes got created, delete them.  I suspect this
-      // never does anything.
-      // NOTE: obviously we assume you can't create new codes for an already
-      // created voucher.   We assume that in many places.  Please, just create
-      // a new voucher instead.
-      await pool.query("DELETE FROM voucher_codes WHERE id=$1", [id]);
-    }
-  }
-  if (i >= 10 && error) {
-    // Failed 10 times. Weird. Report error. Maybe database is
-    // down or something else.
-    try {
-      // Try to delete the voucher object itself.
-      await pool.query("DELETE FROM vouchers WHERE id=$1", [id]);
-    } catch (err) {
-      // nonfatal -- maybe db down, and this doesn't provide user with anything,
-      // since no voucher_codes.
-      log.debug("WARNING: error deleting voucher", err);
-    }
-    throw Error(`Problem creating vouchers -- ${error}`);
-  }
-
-  // Success!
-  let paid = false;
+  const client = await getTransactionClient();
   try {
-    if (whenPay == "admin") {
-      paid = true;
-    } else {
+    // start atomic transaction
+
+    /*
+    Now actually modify the database.  We create two things:
+
+    1. A record in the "vouchers" table that explains what the voucher
+       is for, and records the title and expire date.
+
+    2. We create [count] records in the "voucher_codes" table.
+       These point to the voucher_create record and can be redeemed.
+
+    */
+    const now = dayjs();
+    const { rows } = await client.query(
+      "INSERT INTO vouchers(created, created_by, title, active, expire, cancel_by, cart, cost, count, when_pay) VALUES(NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+      [
+        account_id,
+        title,
+        active ?? now.toDate(),
+        expire ?? now.add(10, "years").toDate(),
+        cancelBy ?? now.add(14, "days").toDate(),
+        cart,
+        cost,
+        count,
+        whenPay,
+      ]
+    );
+    const { id } = rows[0];
+
+    // create the voucher codes:
+    const codes = generateVouchers({ ...generate, count });
+    const { query, values } = multiInsert(
+      "INSERT INTO voucher_codes(code, id, created)",
+      codes.map((code) => [code, id, now.toDate()])
+    );
+    await client.query(query, values);
+    /* NOTE: There is a VERY VERY VERY small probability that some
+    voucher we randomly created matches something in the database
+    already, in which case the above query fails.  That's fine,
+    as the entire transaction fails and the user sees an error, and
+    can just try again.  The odds of some other bug or a database
+    outage is probably much higher.
+    */
+
+    // Success!
+    if (whenPay != "admin") {
       // Actually charge the user for the vouchers.
       const description = {
         type: "voucher",
@@ -205,6 +184,7 @@ export default async function createVouchers({
         cost: cost * count,
         service: "voucher",
         description,
+        client,
       });
       const purchased = {
         time: new Date(),
@@ -212,32 +192,19 @@ export default async function createVouchers({
         purchase_id,
       };
       log.debug("purchased = ", purchased);
-      await pool.query("UPDATE vouchers SET purchased=$1 WHERE id=$2", [
+      await client.query("UPDATE vouchers SET purchased=$1 WHERE id=$2", [
         purchased,
         id,
       ]);
-      paid = true;
     }
+    await client.query("COMMIT");
+    return { id, codes, cost, cart };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    log.debug("error -- rolling back entire transaction", err);
+    throw err;
   } finally {
-    if (paid) {
-      // Payment succeeded - Make the voucher valid:
-      //     active - as of now.
-      //     expire - in the very distant future (just to keep code simple)
-      //     cancel - now, since can't be canceled
-      // If somehow this query right here fails but everything else worked, user would have something
-      // broken that they paid for.  At least there is clear evidence of it they can point at, and we
-      // can easily edit the database (via our crm) to fix the problem manually.
-      await pool.query(
-        "UPDATE vouchers SET active=NOW(), cancel_by=NOW() WHERE id=$1",
-        [id]
-      );
-    } else {
-      // payment failed -- delete all the vouchers from the database.  Even if this fails
-      // this is just clutter, since the vouchers are not valid until the step below.
-      await pool.query("DELETE FROM vouchers WHERE id=$1", [id]);
-      await pool.query("DELETE FROM voucher_codes WHERE id=$1", [id]);
-    }
+    // end atomic transaction
+    client.release();
   }
-
-  return { id, codes, cost, cart };
 }

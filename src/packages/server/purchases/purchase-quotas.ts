@@ -1,6 +1,7 @@
 import getPool from "@cocalc/database/pool";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import getMinBalance from "./get-min-balance";
+import type { PoolClient } from "@cocalc/database/pool";
 
 export async function setPurchaseQuota({
   account_id,
@@ -47,9 +48,10 @@ export interface PurchaseQuotas {
 }
 
 export async function getPurchaseQuotas(
-  account_id: string
+  account_id: string,
+  client?: PoolClient
 ): Promise<PurchaseQuotas> {
-  const pool = getPool();
+  const pool = client ?? getPool();
   const { rows } = await pool.query(
     "SELECT service, value FROM purchase_quotas WHERE account_id=$1",
     [account_id]
@@ -58,15 +60,16 @@ export async function getPurchaseQuotas(
   for (const { service, value } of rows) {
     services[service] = value ?? 0;
   }
-  const minBalance = await getMinBalance(account_id);
+  const minBalance = await getMinBalance(account_id, client);
   return { services, minBalance };
 }
 
 export async function getPurchaseQuota(
   account_id: string,
-  service: Service
+  service: Service,
+  client?: PoolClient
 ): Promise<number | null> {
-  const pool = getPool();
+  const pool = client ?? getPool();
   const { rows } = await pool.query(
     "SELECT value FROM purchase_quotas WHERE account_id=$1 AND service=$2",
     [account_id, service]

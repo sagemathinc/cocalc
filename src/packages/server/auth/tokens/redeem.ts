@@ -7,7 +7,7 @@ then returns no matter what the input is.
 */
 
 import getRequiresTokens from "./get-requires-token";
-import getPool from "@cocalc/database/pool";
+import { getTransactionClient } from "@cocalc/database/pool";
 
 export default async function redeem(token: string): Promise<void> {
   const required = await getRequiresTokens();
@@ -20,11 +20,9 @@ export default async function redeem(token: string): Promise<void> {
     throw Error("no registration token provided");
   }
 
-  const client = getPool(); // no caching since the current count matters, etc.
+  const client = await getTransactionClient();
 
   try {
-    await client.query("BEGIN");
-
     // overview: first, we check if the token matches.
     // → check if it is disabled?
     // → check expiration date → abort if expired
@@ -73,5 +71,7 @@ export default async function redeem(token: string): Promise<void> {
   } catch (err) {
     await client.query("ROLLBACK");
     throw err;
+  } finally {
+    client.release();
   }
 }

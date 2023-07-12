@@ -116,6 +116,7 @@ export async function evaluate({
             completion_tokens,
           },
           tag: `openai:${tag ?? ""}`,
+          client: null,
         });
       } catch (err) {
         // we maybe just lost some money?!

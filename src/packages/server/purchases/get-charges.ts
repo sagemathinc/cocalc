@@ -2,12 +2,14 @@ import getPool from "@cocalc/database/pool";
 import { getLastClosingDate } from "./closing-date";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { COST_OR_METERED_COST } from "./get-balance";
+import type { PoolClient } from "@cocalc/database/pool";
 
 export async function getTotalChargesThisMonth(
   account_id: string,
-  service?: Service
+  service: Service,
+  client?: PoolClient
 ): Promise<number> {
-  const pool = getPool();
+  const pool = client ?? getPool();
   const closing_date = await getLastClosingDate(account_id);
   let query = `SELECT SUM(${COST_OR_METERED_COST}) as total FROM purchases WHERE account_id=$1 AND time > $2 AND cost > 0`;
   const params = [account_id, closing_date];

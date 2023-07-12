@@ -1,4 +1,4 @@
-import getPool from "@cocalc/database/pool";
+import { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
@@ -22,37 +22,35 @@ export default async function studentPay({
   project_id,
 }: Options): Promise<{ purchase_id: number }> {
   logger.debug({ account_id, project_id });
-  // get current value of course field of this project
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "SELECT course, title, description FROM projects WHERE project_id=$1",
-    [project_id]
-  );
-  if (rows.length == 0) {
-    throw Error("no such project");
-  }
-  const currentCourse: CourseInfo | undefined = rows[0].course;
-  // ensure account_id matches the student; this also ensures that currentCourse is not null.
-  if (currentCourse?.account_id != account_id) {
-    throw Error(`only ${account_id} can pay the course fee`);
-  }
-  if (currentCourse.paid) {
-    throw Error("course fee already paid");
-  }
-  const { title, description } = rows[0];
-  const purchaseInfo = {
-    ...(currentCourse.payInfo ?? DEFAULT_PURCHASE_INFO),
-    title,
-    description,
-  };
-  const cost = getCost(purchaseInfo);
-  await assertPurchaseAllowed({ account_id, service: "license", cost });
-
-  // Creating the license and the purchase and recording that student paid all happen as a single PostgreSQL atomic transaction.
-  const client = await pool.connect();
+  const client = await getTransactionClient();
   try {
-    // start atomic transaction
-    await client.query("BEGIN");
+    // start atomic transaction:
+    // Creating the license and the purchase and recording that student paid all happen as a single PostgreSQL atomic transaction.
+    
+    // Get current value of course field of this project
+    const { rows } = await client.query(
+      "SELECT course, title, description FROM projects WHERE project_id=$1",
+      [project_id]
+    );
+    if (rows.length == 0) {
+      throw Error("no such project");
+    }
+    const currentCourse: CourseInfo | undefined = rows[0].course;
+    // ensure account_id matches the student; this also ensures that currentCourse is not null.
+    if (currentCourse?.account_id != account_id) {
+      throw Error(`only ${account_id} can pay the course fee`);
+    }
+    if (currentCourse.paid) {
+      throw Error("course fee already paid");
+    }
+    const { title, description } = rows[0];
+    const purchaseInfo = {
+      ...(currentCourse.payInfo ?? DEFAULT_PURCHASE_INFO),
+      title,
+      description,
+    };
+    const cost = getCost(purchaseInfo);
+    await assertPurchaseAllowed({ account_id, service: "license", cost, client });
 
     // Create the license
     const license_id = await createLicense(account_id, purchaseInfo, client);

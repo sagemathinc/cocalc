@@ -1,9 +1,10 @@
-import getPool from "@cocalc/database/pool";
+import getPool, { PoolClient } from "@cocalc/database/pool";
 
 export default async function getMinBalance(
-  account_id: string
+  account_id: string,
+  client?: PoolClient
 ): Promise<number> {
-  const pool = getPool("short");
+  const pool = client ?? getPool("short");
   const { rows } = await pool.query(
     "SELECT min_balance FROM accounts WHERE account_id=$1",
     [account_id]

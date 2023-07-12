@@ -57,6 +57,7 @@ export async function handlePayAsYouGoQuotas(
     const start = Date.now();
     choice.quota.start = start; // useful for some purposes here
     const purchase_id = await createPurchase({
+      client: null,
       account_id: choice.account_id,
       project_id,
       service: "project-upgrade",

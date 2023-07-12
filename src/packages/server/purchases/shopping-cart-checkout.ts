@@ -1,4 +1,4 @@
-import getPool from "@cocalc/database/pool";
+import { getTransactionClient } from "@cocalc/database/pool";
 import getCart from "@cocalc/server/shopping/cart/get";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import getBalance from "./get-balance";
@@ -38,11 +38,9 @@ export default async function shoppingCartCheckout({
     // No need to make a stripe checkout session, since user has sufficient
     // balance in their account to make the purchase.
     // **We do the purchase of everything as one big database transaction.**
-    const pool = getPool();
-    const client = await pool.connect();
+    const client = await getTransactionClient();
     try {
       // start atomic transaction
-      await client.query("BEGIN");
       for (const item of params.cart) {
         await purchaseShoppingCartItem(item, client);
       }

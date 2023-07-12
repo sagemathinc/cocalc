@@ -459,6 +459,7 @@ export async function setPurchaseMetadata(
       description: { type: "license", info, license_id, item: {} },
       invoice_id,
       tag: "license-purchase",
+      client: null,
     });
     await createCredit({
       account_id,

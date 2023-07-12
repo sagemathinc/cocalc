@@ -14,7 +14,7 @@ Some interesting notes and special cases:
   be much more expensive, but still get the subscription rate.
 */
 
-import getPool, { PoolClient } from "@cocalc/database/pool";
+import getPool, { getTransactionClient, PoolClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { isManager } from "@cocalc/server/licenses/get-license";
@@ -110,20 +110,18 @@ export default async function editLicense(
   }
 
   logger.debug("editLicense -- cost to make the edit: ", cost, modifiedInfo);
-  // Is it possible for this user to purchase this change?
-  if (cost > 0) {
-    await assertPurchaseAllowed({ account_id, service, cost });
-  }
 
   // Changing the license and creating the purchase are a single PostgreSQL atomic transaction.
 
-  const pool = getPool();
-  const client = await pool.connect();
+  // start atomic transaction
+  const client = await getTransactionClient();
   let purchase_id;
   try {
-    // start atomic transaction
-    await client.query("BEGIN");
-
+    // Is it possible for this user to purchase this change?
+    if (cost > 0) {
+      await assertPurchaseAllowed({ account_id, service, cost, client });
+    }
+    
     // Change license
     await changeLicense(license_id, modifiedInfo, client);
 
