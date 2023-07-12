@@ -14,7 +14,7 @@ Some interesting notes and special cases:
   be much more expensive, but still get the subscription rate.
 */
 
-import getPool from "@cocalc/database/pool";
+import getPool, { PoolClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { isManager } from "@cocalc/server/licenses/get-license";
@@ -115,34 +115,54 @@ export default async function editLicense(
     await assertPurchaseAllowed({ account_id, service, cost });
   }
 
-  // [ ] TODO: make changing the license and creating the purchase a single atomic transaction
+  // Changing the license and creating the purchase are a single PostgreSQL atomic transaction.
 
-  // TODO -- start atomic transaction
+  const pool = getPool();
+  const client = await pool.connect();
+  let purchase_id;
+  try {
+    // start atomic transaction
+    await client.query("BEGIN");
 
-  // Change license
-  await changeLicense(license_id, modifiedInfo);
+    // Change license
+    await changeLicense(license_id, modifiedInfo, client);
 
-  // Make purchase
-  const description = {
-    type: "edit-license",
-    license_id,
-    origInfo: info,
-    modifiedInfo,
-    note,
-  } as const;
-  const purchase_id = await createPurchase({
-    account_id,
-    service,
-    description,
-    cost,
-  });
+    // Make purchase
+    const description = {
+      type: "edit-license",
+      license_id,
+      origInfo: info,
+      modifiedInfo,
+      note,
+    } as const;
+    purchase_id = await createPurchase({
+      account_id,
+      service,
+      description,
+      cost,
+      client,
+    });
 
-  if (!isSubscriptionRenewal) {
-    // Update subscription cost, if necessary
-    await updateSubscriptionCost(license_id, info, modifiedInfo, changes);
+    if (!isSubscriptionRenewal) {
+      // Update subscription cost, if necessary
+      await updateSubscriptionCost(
+        license_id,
+        info,
+        modifiedInfo,
+        changes,
+        client
+      );
+    }
+
+    await client.query("COMMIT");
+  } catch (err) {
+    logger.debug("editLicense -- error -- reverting transaction");
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    // end atomic transaction
+    client.release();
   }
-
-  // TODO -- end atomic transaction
 
   if (requiresRestart(info, changes)) {
     logger.debug(
@@ -210,13 +230,16 @@ function requiresRestart(info: PurchaseInfo, changes: Changes): boolean {
   return false;
 }
 
-async function changeLicense(license_id: string, info: PurchaseInfo) {
+async function changeLicense(
+  license_id: string,
+  info: PurchaseInfo,
+  client: PoolClient
+) {
   if (info.type == "vouchers") {
     throw Error("BUG -- info.type must not be vouchers");
   }
   const quota = getQuota(info, license_id);
-  const pool = getPool();
-  await pool.query(
+  await client.query(
     "UPDATE site_licenses SET quota=$1,run_limit=$2,info=$3,expires=$4,activates=$5 WHERE id=$6",
     [
       quota,
@@ -233,7 +256,8 @@ async function updateSubscriptionCost(
   license_id: string,
   info: PurchaseInfo,
   modifiedInfo: PurchaseInfo,
-  changes: Changes
+  changes: Changes,
+  client: PoolClient
 ) {
   if (
     info.type == "vouchers" ||
@@ -264,8 +288,7 @@ async function updateSubscriptionCost(
     // no changes that would impact subscription cost
     return;
   }
-  const pool = getPool();
-  const { rows } = await pool.query(
+  const { rows } = await client.query(
     "SELECT subscription_id FROM site_licenses WHERE id=$1",
     [license_id]
   );
@@ -285,7 +308,7 @@ async function updateSubscriptionCost(
     "changing cost to",
     newCost
   );
-  await pool.query("UPDATE subscriptions SET cost=$1 WHERE id=$2", [
+  await client.query("UPDATE subscriptions SET cost=$1 WHERE id=$2", [
     newCost,
     subscription_id,
   ]);

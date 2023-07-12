@@ -1,4 +1,4 @@
-import getPool from "@cocalc/database/pool";
+import getPool, { PoolClient } from "@cocalc/database/pool";
 import type { Description } from "@cocalc/util/db-schema/purchases";
 import getLogger from "@cocalc/backend/logger";
 import { Service } from "@cocalc/util/db-schema/purchase-quotas";
@@ -20,6 +20,7 @@ interface Options {
   invoice_id?: string;
   notes?: string;
   tag?: string;
+  client?: PoolClient;
 }
 
 export default async function createPurchase(opts: Options): Promise<number> {
@@ -35,8 +36,9 @@ export default async function createPurchase(opts: Options): Promise<number> {
     invoice_id,
     notes,
     tag,
+    client,
   } = opts;
-  const pool = getPool();
+  const pool = client ?? getPool();
   if (cost == null && (cost_per_hour == null || period_start == null)) {
     throw Error(
       "if cost is not set, then cost_per_hour and period_start must both be set"

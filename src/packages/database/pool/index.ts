@@ -6,6 +6,6 @@
 import getPool, { getClient, getMockPool } from "./pool";
 export default getPool;
 export { getClient, getMockPool };
-export type { Client } from "pg";
+export type { Client, PoolClient } from "pg";
 
 export { timeInSeconds } from "./util";
