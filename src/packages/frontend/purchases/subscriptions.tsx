@@ -45,9 +45,10 @@ import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { currency } from "./util";
-import { capitalize } from "@cocalc/util/misc";
+import { capitalize /*, cmp*/ } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import UnpaidSubscriptions from "./unpaid-subscriptions";
 
 function SubscriptionStatus({ status }) {
   return (
@@ -60,7 +61,7 @@ function SubscriptionStatus({ status }) {
 function SubscriptionActions({ id, status, refresh, cost }) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
 
   const handleCancel = async (now: boolean = false) => {
     try {
@@ -143,18 +144,18 @@ function SubscriptionActions({ id, status, refresh, cost }) {
         <Button
           disabled={loading}
           type="default"
-          onClick={() => setModalVisible(true)}
+          onClick={() => setModalOpen(true)}
         >
           Cancel...
         </Button>
       )}
-      {status !== "canceled" && modalVisible && (
+      {status !== "canceled" && modalOpen && (
         <Modal
           title="Cancel Subscription"
-          visible={modalVisible}
-          onCancel={() => setModalVisible(false)}
+          open={modalOpen}
+          onCancel={() => setModalOpen(false)}
           footer={[
-            <Button key="nothing" onClick={() => setModalVisible(false)}>
+            <Button key="nothing" onClick={() => setModalOpen(false)}>
               Make No Change
             </Button>,
             <Button key="cancelNow" onClick={() => handleCancel(true)}>
@@ -207,14 +208,14 @@ function SubscriptionActions({ id, status, refresh, cost }) {
     </Space>
   );
 }
-function LicenseDescription({ license_id }) {
+function LicenseDescription({ license_id, refresh }) {
   return (
     <Collapse>
       <Collapse.Panel
         key="license"
         header={`Subscription for the license ${license_id}`}
       >
-        <SiteLicensePublicInfo license_id={license_id} />
+        <SiteLicensePublicInfo license_id={license_id} refresh={refresh} />
       </Collapse.Panel>
     </Collapse>
   );
@@ -226,17 +227,39 @@ export default function Subscriptions() {
   );
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [counter, setCounter] = useState<number>(0);
 
   const getSubscriptions = async () => {
     try {
       setLoading(true);
       setError("");
       // [ ] TODO: pager, which is only needed if one user has more than 100 subscriptions...
-      setSubscriptions(await getSubscriptionsUsingApi({ limit: 100 }));
+      const subs = await getSubscriptionsUsingApi({ limit: 100 });
+      // sorting like this is nice, but it is very confusing when you change state of the
+      // subscription and then the one you just paid moves.
+      /*
+      subs.sort((a, b) => {
+        if (a.status == "unpaid" || a.status == "past_due") {
+          return -1;
+        }
+        if (b.status == "unpaid" || b.status == "past_due") {
+          return +1;
+        }
+        if (a.status == "canceled") {
+          return 1;
+        }
+        if (b.status == "canceled") {
+          return -1;
+        }
+        return -cmp(a.id, b.id);
+      });
+      */
+      setSubscriptions(subs);
     } catch (err) {
       setError(`${err}`);
     } finally {
       setLoading(false);
+      setCounter(counter + 1);
     }
   };
 
@@ -319,7 +342,12 @@ export default function Subscriptions() {
         key: "desc",
         render: (_, { metadata }) => {
           if (metadata.type == "license" && metadata.license_id) {
-            return <LicenseDescription license_id={metadata.license_id} />;
+            return (
+              <LicenseDescription
+                license_id={metadata.license_id}
+                refresh={getSubscriptions}
+              />
+            );
           }
           return <>{JSON.stringify(metadata, undefined, 2)}</>;
         },
@@ -355,9 +383,16 @@ export default function Subscriptions() {
         <Spin />
       ) : (
         <div style={{ overflow: "auto", width: "100%" }}>
+          <UnpaidSubscriptions
+            size="large"
+            style={{ margin: "15px 0", textAlign: "center" }}
+            showWhen="unpaid"
+            counter={counter}
+            refresh={getSubscriptions}
+          />
           <Table
             rowKey={"id"}
-            pagination={{ hideOnSinglePage: true, defaultPageSize: 10 }}
+            pagination={{ hideOnSinglePage: true, defaultPageSize: 25 }}
             dataSource={subscriptions ?? undefined}
             columns={columns}
           />

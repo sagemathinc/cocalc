@@ -26,7 +26,11 @@ export interface License {
   id: string;
   title?: string;
   description?: string;
-  info?: { purchased: PurchaseInfo };
+  info?: {
+    purchased: PurchaseInfo & {
+      account_id: string; // who bought this license
+    };
+  };
   expires?: Date;
   activates: Date;
   created?: Date; // some old licenses don't have this

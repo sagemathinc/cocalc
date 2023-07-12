@@ -56,6 +56,7 @@ interface Props {
   warn_if?: (info) => void | string;
   restartAfterRemove?: boolean; // default false
   tableMode?: boolean; // if true, used via SiteLicensePublicInfoTable
+  refresh?: () => void; // called if license is edited.
 }
 
 export const SiteLicensePublicInfo: React.FC<Props> = (
@@ -69,6 +70,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     warn_if,
     restartAfterRemove = false,
     tableMode = false,
+    refresh,
   } = props;
   const [info, set_info] = useState<Info | undefined>(undefined);
   const [err, set_err] = useState<string | undefined>(undefined);
@@ -106,6 +108,14 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
   // in doubt, we assume the best and the license is valid
   const license_status = getLicenseStatus();
   const provides_upgrades = licenseStatusProvidesUpgrades(license_status);
+
+  useEffect(() => {
+    if (managedLicenses == null) {
+      // make sure managedLicenses is defined, it's used for checking if the
+      // license editing button should be displayed.
+      redux.getActions("billing").update_managed_licenses();
+    }
+  }, []);
 
   useEffect(() => {
     // Optimization: check in redux store for first approximation of
@@ -919,7 +929,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
           ]) == redux.getStore("account").get("account_id") && (
             <EditLicense
               license_id={license_id}
-              refresh={() => fetch_info(true)}
+              refresh={() => {
+                fetch_info(true);
+                refresh?.();
+              }}
             />
           ) /* we can only edit license we bought */
       }

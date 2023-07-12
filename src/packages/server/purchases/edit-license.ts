@@ -1,6 +1,12 @@
 /*
-Edit an existing license.  Most changes are allowed, and the user is automatically charged for
-the requested changes.
+Edit an existing license.  Most changes are allowed, and the user is charged
+or credited for the requested changes.
+
+** ONLY the user that purchased the license can edit it. **
+Justification: They can easily make a purchase, then let another user
+manage the license, and the other user could then edit it and get all
+the remaining money.  Imagine a $20K university purchase for a single 
+license.
 
 Some interesting notes and special cases:
 
@@ -14,10 +20,12 @@ Some interesting notes and special cases:
   be much more expensive, but still get the subscription rate.
 */
 
-import getPool, { getTransactionClient, PoolClient } from "@cocalc/database/pool";
+import getPool, {
+  getTransactionClient,
+  PoolClient,
+} from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import { isManager } from "@cocalc/server/licenses/get-license";
 import costToEditLicense, {
   Changes,
 } from "@cocalc/util/purchases/cost-to-edit-license";
@@ -52,16 +60,17 @@ export default async function editLicense(
     isSubscriptionRenewal = false,
   } = opts;
   logger.debug("editLicense", opts);
-  if (!(await isManager(license_id, account_id))) {
-    throw Error(`${account_id} must be a manager of ${license_id}`);
-  }
 
   // Get data about current license. See below.
   const info = await getPurchaseInfo(license_id);
   logger.debug("editLicense -- initial info = ", info);
   if (info.type == "vouchers") {
-    throw Error("editing vouchers is not supported");
+    throw Error("editing voucher licenses is not supported");
   }
+  if (info.account_id != account_id) {
+    throw Error("only the user who the purchased a license can edit it");
+  }
+
   if (
     !isSubscriptionRenewal &&
     info.subscription != null &&
@@ -121,7 +130,7 @@ export default async function editLicense(
     if (cost > 0) {
       await assertPurchaseAllowed({ account_id, service, cost, client });
     }
-    
+
     // Change license
     await changeLicense(license_id, modifiedInfo, client);
 
@@ -317,7 +326,7 @@ async function updateSubscriptionCost(
 // over whatever was used for the original purchase.
 export async function getPurchaseInfo(
   license_id: string
-): Promise<PurchaseInfo> {
+): Promise<PurchaseInfo & { account_id: string }> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT info->'purchased' as info, activates, expires FROM site_licenses WHERE id=$1",

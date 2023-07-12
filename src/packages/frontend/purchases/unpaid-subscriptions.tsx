@@ -13,9 +13,18 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 interface Props {
   style?: CSSProperties;
   showWhen: "paid" | "unpaid" | "both";
+  counter?: number; // option -- change to force update
+  refresh?: () => void; // called after renewal/payment attempt
+  size?;
 }
 
-export default function UnpaidSubscriptions({ style, showWhen }: Props) {
+export default function UnpaidSubscriptions({
+  style,
+  showWhen,
+  counter,
+  refresh,
+  size,
+}: Props) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [unpaidSubscriptions, setUnpaidSubscriptions] = useState<
@@ -38,7 +47,7 @@ export default function UnpaidSubscriptions({ style, showWhen }: Props) {
 
   useEffect(() => {
     update();
-  }, []);
+  }, [counter]);
 
   const cost = useMemo(() => {
     if (unpaidSubscriptions == null || unpaidSubscriptions.length == 0)
@@ -55,8 +64,9 @@ export default function UnpaidSubscriptions({ style, showWhen }: Props) {
       cost == 0 ||
       unpaidSubscriptions == null ||
       unpaidSubscriptions.length == 0
-    )
+    ) {
       return;
+    }
     try {
       setLoading(true);
       setError("");
@@ -75,6 +85,7 @@ export default function UnpaidSubscriptions({ style, showWhen }: Props) {
       setError(`${error}`);
     } finally {
       update();
+      refresh?.();
     }
   };
 
@@ -131,7 +142,7 @@ export default function UnpaidSubscriptions({ style, showWhen }: Props) {
         okText="Renew Subscriptions"
         cancelText="Cancel"
       >
-        <Button type="primary" onClick={update}>
+        <Button type="primary" size={size} onClick={update}>
           <Icon name="credit-card" />
           Payment of {currency(cost)} is due to renew{" "}
           {unpaidSubscriptions?.length}{" "}

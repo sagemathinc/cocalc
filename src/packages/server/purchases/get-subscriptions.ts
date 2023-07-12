@@ -15,7 +15,7 @@ export default async function getSubscriptions({
   if (limit > MAX_API_LIMIT || !limit) {
     throw Error(`limit must be specified and at most ${MAX_API_LIMIT}`);
   }
-  const pool = getPool("medium");
+  const pool = getPool(); // don't cache, e.g., frontend calls this right after paying for subscription and want to see change.
   let query =
     "SELECT id, account_id, created, cost, interval, current_period_start, current_period_end, latest_purchase_id, status, metadata FROM subscriptions WHERE account_id=$1";
   const params: any[] = [account_id];

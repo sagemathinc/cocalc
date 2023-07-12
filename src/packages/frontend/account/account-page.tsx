@@ -26,7 +26,8 @@ import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { UpgradesPage } from "./upgrades/upgrades-page";
-import PurchasesPage from "@cocalc/frontend/purchases/account-page";
+import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
+import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
 
 export const AccountPage: React.FC = () => {
   const active_page = useTypedRedux("account", "active_page");
@@ -137,6 +138,15 @@ export const AccountPage: React.FC = () => {
           </span>
         ),
         children: active_page === "purchases" && <PurchasesPage />,
+      });
+      items.push({
+        key: "subscriptions",
+        label: (
+          <span>
+            <Icon name="money" /> Subscriptions
+          </span>
+        ),
+        children: active_page === "subscriptions" && <SubscriptionsPage />,
       });
     }
 

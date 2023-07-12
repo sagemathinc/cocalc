@@ -81,8 +81,8 @@ export default function CostBarChart({}) {
         Cumulative Spend
       </Checkbox>
       <br />
-      {costPerDay != null && (
-        <Button.Group style={{ float: "right" }}>
+      {costPerDay != null && (costPerDay.length >= LIMIT || offset != 0) && (
+        <Button.Group>
           <Button
             disabled={costPerDay.length < LIMIT}
             onClick={() => setOffset(offset + LIMIT)}
@@ -99,19 +99,21 @@ export default function CostBarChart({}) {
       )}
       {costPerDay == null && <Spin delay={500} />}
       {costPerDay != null && (
-        <Plot
-          data={createPlotData(costPerDay)}
-          layout={{
-            title: cumulative ? "Cumulative Spend" : "Spend Each Day",
-            xaxis: {
-              title: "Date",
-            },
-            yaxis: {
-              title: cumulative ? "Cumulative Cost" : "Total Cost",
-            },
-            width: 800,
-          }}
-        />
+        <div style={{ overflow: "auto" }}>
+          <Plot
+            data={createPlotData(costPerDay)}
+            layout={{
+              title: cumulative ? "Cumulative Spend" : "Spend Each Day",
+              xaxis: {
+                title: "Date",
+              },
+              yaxis: {
+                title: cumulative ? "Cumulative Cost" : "Total Cost",
+              },
+              width: 1000,
+            }}
+          />
+        </div>
       )}
       {error && (
         <Alert type="error" description={error} onClose={updateData} closable />
