@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+// **TODO: I think this is deprecated and replaced by server/purchases/purchase-shopping-cart-item.ts **
+
 /*
 Handle purchasing a licenses by customers. This is the server side of
    @cocalc/frontend/site-licenses/purchase/
@@ -75,8 +77,7 @@ export default async function purchaseLicense(
   }
 
   logger.debug("creating the license...");
-  const database = db();
-  const license_id = await createLicense(database, account_id, info);
+  const license_id = await createLicense(account_id, info);
 
   if (purchase != null) {
     logger.debug("set metadata on purchase...");
@@ -120,6 +121,7 @@ export default async function purchaseLicense(
     }
     // Sets the license expire date if the subscription is NOT
     // active at this point (e.g., due to credit card failure).
+    const database = db();
     await database.sync_site_license_subscriptions(account_id);
   }
 

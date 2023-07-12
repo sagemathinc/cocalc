@@ -141,10 +141,9 @@ async function createLicenseFromShoppingCartItem(
   logger.debug("running sanity checks on license...");
   const pool = getPool();
   await sanity_checks(pool, info);
-  const database = db();
-  const license_id = await createLicense(database, item.account_id, info);
+  const license_id = await createLicense(item.account_id, info);
   if (item.project_id) {
-    addLicenseToProject(database, item.project_id, license_id);
+    addLicenseToProject(item.project_id, license_id);
   }
   return { info, license_id };
 }
@@ -158,10 +157,10 @@ async function markItemPurchased(item, license_id: string) {
 }
 
 export async function addLicenseToProject(
-  database,
   project_id: string,
   license_id: string
 ) {
+  const database = db();
   try {
     await database.add_license_to_project(project_id, license_id);
     await restartProjectIfRunning(project_id);

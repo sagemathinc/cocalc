@@ -8,7 +8,6 @@ import createPurchase from "@cocalc/server/purchases/create-purchase";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import { assertPurchaseAllowed } from "./is-purchase-allowed";
 import setCourseInfo from "@cocalc/server/projects/course/set-course-info";
-import { db } from "@cocalc/database";
 import { addLicenseToProject } from "@cocalc/server/purchases/purchase-shopping-cart-item";
 
 const logger = getLogger("purchases:student-pay");
@@ -52,9 +51,8 @@ export default async function studentPay({
   // [ ] TODO: make this atomic...
 
   // Create the license
-  const database = db();
-  const license_id = await createLicense(database, account_id, purchaseInfo);
-  addLicenseToProject(database, project_id, license_id);
+  const license_id = await createLicense(account_id, purchaseInfo);
+  addLicenseToProject(project_id, license_id);
 
   // Create the purchase
   const purchase_id = await createPurchase({
