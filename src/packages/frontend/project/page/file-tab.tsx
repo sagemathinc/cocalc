@@ -188,11 +188,21 @@ export function FileTab(props: Readonly<Props>) {
     actions.close_tab(path);
   }
 
+  function setActiveTab(name: string) {
+    actions?.set_active_tab(name);
+    track("switch-to-fixed-tab", {
+      project_id,
+      name,
+      how: "click-on-tab",
+    });
+  }
+
   function click(e: React.MouseEvent) {
     e.stopPropagation();
     if (actions == null) return;
+    const anyModifierKey = e.ctrlKey || e.shiftKey || e.metaKey;
     if (path != null) {
-      if (e.ctrlKey || e.shiftKey || e.metaKey) {
+      if (anyModifierKey) {
         // shift/ctrl/option clicking on *file* tab opens in a new popout window.
         actions.open_file({
           path,
@@ -213,14 +223,13 @@ export function FileTab(props: Readonly<Props>) {
       }
     } else if (name != null) {
       if (flyout != null && flyoutsDefault) {
-        actions?.toggleFlyout(flyout);
+        if (anyModifierKey) {
+          setActiveTab(name);
+        } else {
+          actions?.toggleFlyout(flyout);
+        }
       } else {
-        actions.set_active_tab(name);
-        track("switch-to-fixed-tab", {
-          project_id,
-          name,
-          how: "click-on-tab",
-        });
+        setActiveTab(name);
       }
     }
   }

@@ -61,7 +61,8 @@ export class OtherSettings extends Component<Props> {
         checked={!this.props.other_settings.get("show_global_info2")}
         onChange={(e) => this.toggle_global_banner(e.target.checked)}
       >
-        Show announcement banner (only shows up if there is a message)
+        <strong>Show announcement banner</strong>: only shows up if there is a
+        message
       </Checkbox>
     );
   }
@@ -72,8 +73,8 @@ export class OtherSettings extends Component<Props> {
         checked={!!this.props.other_settings.get("time_ago_absolute")}
         onChange={(e) => this.on_change("time_ago_absolute", e.target.checked)}
       >
-        Display timestamps as absolute points in time instead of relative to the
-        current time
+        Display <strong>timestamps as absolute points in time</strong> instead
+        of relative to the current time
       </Checkbox>
     );
   }
@@ -85,7 +86,8 @@ export class OtherSettings extends Component<Props> {
           checked={!!this.props.other_settings.get("confirm_close")}
           onChange={(e) => this.on_change("confirm_close", e.target.checked)}
         >
-          Confirm: always ask for confirmation before closing the browser window
+          <strong>Confirm Close:</strong> always ask for confirmation before
+          closing the browser window
         </Checkbox>
       );
     }
@@ -97,8 +99,9 @@ export class OtherSettings extends Component<Props> {
         checked={!!this.props.other_settings.get("katex")}
         onChange={(e) => this.on_change("katex", e.target.checked)}
       >
-        KaTeX: attempt to render formulas with KaTeX if possible (much faster,
-        but missing context menu options)
+        <strong>KaTeX:</strong> attempt to render formulas with{" "}
+        <A href={"https://katex.org/"}>KaTeX</A> (much faster, but missing
+        context menu options)
       </Checkbox>
     );
   }
@@ -126,8 +129,8 @@ export class OtherSettings extends Component<Props> {
         checked={!!this.props.other_settings.get("mask_files")}
         onChange={(e) => this.on_change("mask_files", e.target.checked)}
       >
-        Mask files: grey out files in the files viewer that you probably do not
-        want to open
+        <strong>Mask files:</strong> grey out files in the files viewer that you
+        probably do not want to open
       </Checkbox>
     );
   }
@@ -140,8 +143,8 @@ export class OtherSettings extends Component<Props> {
           this.on_change("hide_project_popovers", e.target.checked)
         }
       >
-        Hide Project Tab Popovers: do not show the popovers over the project
-        tabs
+        <strong>Hide Project Tab Popovers:</strong> do not show the popovers
+        over the project tabs
       </Checkbox>
     );
   }
@@ -152,7 +155,8 @@ export class OtherSettings extends Component<Props> {
         checked={!!this.props.other_settings.get("hide_file_popovers")}
         onChange={(e) => this.on_change("hide_file_popovers", e.target.checked)}
       >
-        Hide File Tab Popovers: do not show the popovers over file tabs
+        <strong>Hide File Tab Popovers:</strong> do not show the popovers over
+        file tabs
       </Checkbox>
     );
   }
@@ -165,7 +169,8 @@ export class OtherSettings extends Component<Props> {
           this.on_change("hide_button_tooltips", e.target.checked)
         }
       >
-        Hide Button Tooltips: hides some button tooltips (this is only partial)
+        <strong>Hide Button Tooltips:</strong> hides some button tooltips (this
+        is only partial)
       </Checkbox>
     );
   }
@@ -326,8 +331,8 @@ export class OtherSettings extends Component<Props> {
               redux.getStore("projects").clearOpenAICache();
             }}
           >
-            Disable all OpenAI/ChatGPT integrations, e.g., extra buttons in
-            Jupyter, @chatgpt mentions, etc.
+            <strong>Disable all OpenAI/ChatGPT integrations</strong>, e.g.,
+            extra buttons in Jupyter, @chatgpt mentions, etc.
           </Checkbox>
         )}
         <Checkbox
@@ -336,8 +341,9 @@ export class OtherSettings extends Component<Props> {
             this.on_change("disable_markdown_codebar", e.target.checked);
           }}
         >
-          Disable the markdown code bar in all markdown documents. Checking this
-          hides the extra run, copy, and explain buttons in fenced code blocks.
+          <strong>Disable the markdown code bar</strong> in all markdown
+          documents. Checking this hides the extra run, copy, and explain
+          buttons in fenced code blocks.
         </Checkbox>
         <Checkbox
           checked={!!this.props.other_settings.get("flyouts_default")}
@@ -346,7 +352,8 @@ export class OtherSettings extends Component<Props> {
           }}
         >
           <strong>Flyouts as default</strong>: Enabling this makes the vertical
-          bars for files, logs, settings, etc. the default.
+          bars for files, logs, settings, etc. the default. Use Shift-Click to
+          open full page.
         </Checkbox>
         {this.render_new_filenames()}
         {this.render_default_file_sort()}
