@@ -1224,8 +1224,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (show_files) {
           this.set_active_tab("files", {
             update_file_listing: false,
-            change_history: change_history,
+            change_history: false, // see "if" below
           });
+        }
+        if (change_history) {
+          // i.e. regardless of show_files is true or false, we might want to record this in the history
+          this.set_url_to_path(store.get("current_path") ?? "", "");
         }
         this.set_all_files_unchecked();
       }
