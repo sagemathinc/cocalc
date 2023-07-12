@@ -3,7 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Tip } from "@cocalc/frontend/components";
+import { Tooltip } from "antd";
+
 import { CSS } from "@cocalc/frontend/app-framework";
 
 interface Props {
@@ -41,9 +42,9 @@ export function createPathSegmentLink(props: Readonly<Props>): PathSegmentItem {
   function render_content(): JSX.Element | string | undefined {
     if (full_name && full_name !== display) {
       return (
-        <Tip tip={full_name} placement="bottom" title="Full name">
+        <Tooltip title={full_name} placement="bottom">
           {display}
-        </Tip>
+        </Tooltip>
       );
     } else {
       return display;
