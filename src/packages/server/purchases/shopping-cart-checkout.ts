@@ -25,15 +25,17 @@ export default async function shoppingCartCheckout({
   account_id,
   success_url,
   cancel_url,
+  paymentAmount,
 }: {
   account_id: string;
   success_url: string;
   cancel_url?: string;
+  paymentAmount?: number;
 }) {
   logger.debug("shoppingCartCheckout", { account_id, success_url, cancel_url });
 
   const params = await getShoppingCartCheckoutParams(account_id);
-  if (params.chargeAmount <= 0) {
+  if (Math.max(paymentAmount ?? 0, params.chargeAmount) <= 0) {
     // immediately create all the purchase items and products for the user.
     // No need to make a stripe checkout session, since user has sufficient
     // balance in their account to make the purchase.
@@ -64,7 +66,7 @@ export default async function shoppingCartCheckout({
     account_id,
     success_url,
     cancel_url,
-    amount: params.chargeAmount,
+    amount: Math.max(paymentAmount ?? 0, params.chargeAmount),
     description: "Credit Account to Complete Store Purchase",
   });
   // make a stripe checkout session from the chargeAmount.

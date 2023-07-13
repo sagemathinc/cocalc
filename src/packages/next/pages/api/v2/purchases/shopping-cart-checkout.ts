@@ -16,6 +16,11 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  const { success_url, cancel_url } = getParams(req);
-  return await shoppingCartCheckout({ account_id, success_url, cancel_url });
+  const { success_url, cancel_url, paymentAmount } = getParams(req);
+  return await shoppingCartCheckout({
+    account_id,
+    success_url,
+    cancel_url,
+    paymentAmount,
+  });
 }

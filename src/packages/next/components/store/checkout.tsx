@@ -23,6 +23,7 @@ import { ChangeEmailAddress } from "components/account/config/account/email";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import { currency } from "@cocalc/frontend/purchases/util";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
+import PaymentConfig from "@cocalc/frontend/purchases/payment-config";
 
 export default function Checkout() {
   const router = useRouter();
@@ -41,10 +42,13 @@ export default function Checkout() {
     return session;
   };
 
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [params, setParams] = useState<CheckoutParams | null>(null);
   const updateParams = async () => {
     try {
-      setParams(await purchasesApi.getShoppingCartCheckoutParams());
+      const params = await purchasesApi.getShoppingCartCheckoutParams();
+      setParams(params);
+      setPaymentAmount(params?.chargeAmount ?? 0);
     } catch (err) {
       setError(`${err}`);
     }
@@ -103,6 +107,7 @@ export default function Checkout() {
       const result = await purchasesApi.shoppingCartCheckout({
         success_url,
         cancel_url: currentUrl,
+        paymentAmount,
       });
       if (result.done) {
         // done -- nothing further to do!
@@ -143,103 +148,6 @@ export default function Checkout() {
 
   const columns = getColumns();
 
-  function CompletePurchase() {
-    return (
-      <Button
-        disabled={
-          params?.total == 0 ||
-          completingPurchase ||
-          !profile?.email_address ||
-          session != null
-        }
-        style={{ marginTop: "7px", marginBottom: "15px" }}
-        size="large"
-        type="primary"
-        onClick={completePurchase}
-      >
-        {completingPurchase ? (
-          <>
-            Completing Purchase...
-            <Spin />
-          </>
-        ) : (
-          `Complete Purchase${session != null ? " (finish payment first)" : ""}`
-        )}
-      </Button>
-    );
-  }
-
-  function EmptyCart() {
-    if (params == null) return null;
-    return (
-      <div style={{ maxWidth: "800px", margin: "auto" }}>
-        <h3>
-          <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
-          {params.cart.length > 0 && (
-            <>
-              Nothing in Your <SiteName />{" "}
-              <A href="/store/cart">Shopping Cart</A> is Selected
-            </>
-          )}
-          {(params.cart.length ?? 0) == 0 && (
-            <>
-              Your <SiteName /> <A href="/store/cart">Shopping Cart</A> is Empty
-            </>
-          )}
-        </h3>
-        <br />
-        <br />
-        You must have at least one item in <A href="/store/cart">
-          your cart
-        </A>{" "}
-        to checkout. Shop for <A href="/store/site-license">upgrades</A>, a{" "}
-        <A href="/store/boost">license boost</A>, or a{" "}
-        <A href="/dedicated">dedicated VM or disk</A>.
-      </div>
-    );
-  }
-
-  function NonemptyCart() {
-    if (params == null) return null;
-    const items = params.cart;
-    return (
-      <>
-        <ShowError error={error} />
-        <Card title={<>1. Review Items ({items.length})</>}>
-          <Table
-            showHeader={false}
-            columns={columns}
-            dataSource={items}
-            rowKey={"id"}
-            pagination={{ hideOnSinglePage: true }}
-          />
-          <GetAQuote items={items} />
-        </Card>
-
-        <div style={{ height: "30px" }} />
-
-        <Card title={<>2. Place Your Order</>}>
-          <ExplainPaymentSituation
-            params={params}
-            style={{ margin: "15px 0" }}
-          />
-          <Row>
-            <Col sm={12}>
-              <CompletePurchase />
-            </Col>
-            <Col sm={12}>
-              <div style={{ fontSize: "15pt" }}>
-                <TotalCost items={items} />
-                <br />
-                <Terms />
-              </div>
-            </Col>
-          </Row>
-        </Card>
-      </>
-    );
-  }
-
   return (
     <>
       {session != null && (
@@ -267,8 +175,104 @@ export default function Checkout() {
       )}
       <div style={session != null ? { opacity: 0.4 } : undefined}>
         <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
-        {params.cart.length == 0 && <EmptyCart />}
-        {params.cart.length > 0 && <NonemptyCart />}
+        {params.cart.length == 0 && (
+          <div style={{ maxWidth: "800px", margin: "auto" }}>
+            <h3>
+              <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
+              {params.cart.length > 0 && (
+                <>
+                  Nothing in Your <SiteName />{" "}
+                  <A href="/store/cart">Shopping Cart</A> is Selected
+                </>
+              )}
+              {(params.cart.length ?? 0) == 0 && (
+                <>
+                  Your <SiteName /> <A href="/store/cart">Shopping Cart</A> is
+                  Empty
+                </>
+              )}
+            </h3>
+            <br />
+            <br />
+            You must have at least one item in{" "}
+            <A href="/store/cart">your cart</A> to checkout. Shop for{" "}
+            <A href="/store/site-license">upgrades</A>, a{" "}
+            <A href="/store/boost">license boost</A>, or a{" "}
+            <A href="/dedicated">dedicated VM or disk</A>.
+          </div>
+        )}
+        {params.cart.length > 0 && (
+          <>
+            <ShowError error={error} />
+            <Card title={<>1. Review Items ({params.cart.length})</>}>
+              <Table
+                showHeader={false}
+                columns={columns}
+                dataSource={params.cart}
+                rowKey={"id"}
+                pagination={{ hideOnSinglePage: true }}
+              />
+              <GetAQuote items={params.cart} />
+            </Card>
+
+            <div style={{ height: "30px" }} />
+
+            <Card title={<>2. Place Your Order</>}>
+              <ExplainPaymentSituation
+                params={params}
+                style={{ margin: "15px 0" }}
+              />
+              <Row>
+                <Col sm={12} style={{ textAlign: "center" }}>
+                  {params.chargeAmount > 0 && (
+                    <PaymentConfig
+                      balance={params.balance}
+                      minAmount={params.chargeAmount}
+                      paymentAmount={paymentAmount}
+                      setPaymentAmount={setPaymentAmount}
+                    />
+                  )}
+                </Col>
+                <Col sm={12}>
+                  <div style={{ fontSize: "15pt" }}>
+                    <TotalCost items={params.cart} />
+                    <br />
+                    <Terms />
+                  </div>
+                </Col>
+              </Row>
+              <div style={{ textAlign: "center" }}>
+                <Divider />
+                <Button
+                  disabled={
+                    params?.total == 0 ||
+                    completingPurchase ||
+                    !profile?.email_address ||
+                    session != null
+                  }
+                  style={{ marginTop: "7px", marginBottom: "15px" }}
+                  size="large"
+                  type="primary"
+                  onClick={completePurchase}
+                >
+                  <Icon name="credit-card" />{" "}
+                  {completingPurchase ? (
+                    <>
+                      Completing Purchase...
+                      <Spin />
+                    </>
+                  ) : params == null || paymentAmount == 0 ? (
+                    `Complete Purchase${
+                      session != null ? " (finish payment first)" : ""
+                    }`
+                  ) : (
+                    `Add ${currency(paymentAmount)} credit to your account...`
+                  )}
+                </Button>
+              </div>
+            </Card>
+          </>
+        )}
         <ShowError error={error} />
       </div>
     </>
@@ -632,7 +636,7 @@ export function ExplainPaymentSituation({
         message={
           <>
             {curBalance}
-            <b>No payment required</b>
+            <b>No Payment Required</b>
           </>
         }
         description={
@@ -651,12 +655,12 @@ export function ExplainPaymentSituation({
       <Alert
         type="info"
         style={style}
-        message={<>{curBalance}Minimal payment required</>}
+        message={<>{curBalance}Payment Required</>}
         description={
           <>
             <i>
               To complete this purchase,{" "}
-              <b>pay {currency(chargeAmount)} (+ TAX)</b>.
+              <b>add at least {currency(chargeAmount)}</b> to your balance.
             </i>{" "}
             {chargeAmount > amountDue && (
               <>
@@ -674,13 +678,13 @@ export function ExplainPaymentSituation({
     <Alert
       type="info"
       style={style}
-      message={<>{curBalance}Payment required</>}
+      message={<>{curBalance}Payment Required</>}
       description={
         <>
           <i>
             To complete this purchase,{" "}
-            <b>pay {currency(chargeAmount)} (+ TAX)</b> to add sufficient credit
-            to your account
+            <b>add at least {currency(chargeAmount)}</b> to your account
+            balance.
           </i>
           .{" "}
           {chargeAmount > total && (

@@ -1,22 +1,12 @@
-import {
-  Button,
-  Divider,
-  InputNumber,
-  Modal,
-  Space,
-  Spin,
-  Tag,
-  Tooltip,
-} from "antd";
+import { Button, Divider, Modal, Spin, Tag } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency } from "./util";
 import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/modal";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { delay } from "awaiting";
-import { cancelCurrentCheckoutSession } from "./api";
-import MoneyStatistic from "./money-statistic";
+import * as api from "./api";
+import PaymentConfig from "./payment-config";
 
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
@@ -31,7 +21,7 @@ interface Props {
 
 export default function Payment({ balance, update, cost }: Props) {
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState<number | null>(
+  const [paymentAmount, setPaymentAmount] = useState<number>(
     Math.max(DEFAULT_AMOUNT, balance ?? 0)
   );
   const [session, setSession] = useState<
@@ -43,7 +33,7 @@ export default function Payment({ balance, update, cost }: Props) {
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const updateMinPayment = () => {
     (async () => {
-      setMinPayment(await webapp_client.purchases_client.getMinimumPayment());
+      setMinPayment(await api.getMinimumPayment());
     })();
   };
   useEffect(() => {
@@ -51,9 +41,7 @@ export default function Payment({ balance, update, cost }: Props) {
   }, []);
 
   const updateSession = async () => {
-    setSession(
-      await webapp_client.purchases_client.getCurrentCheckoutSession()
-    );
+    setSession(await api.getCurrentCheckoutSession());
   };
 
   useEffect(() => {
@@ -106,7 +94,7 @@ export default function Payment({ balance, update, cost }: Props) {
   const cancelPayment = async () => {
     try {
       setCancelling(true);
-      await cancelCurrentCheckoutSession();
+      await api.cancelCurrentCheckoutSession();
       await updateSession();
       setIsModalVisible(false);
     } catch (err) {
@@ -132,7 +120,7 @@ export default function Payment({ balance, update, cost }: Props) {
       // success or cancel url, so they must be
       // window.location.href.  Also, we can't even
       // check the URL unless it is same domain.
-      const session0 = await webapp_client.purchases_client.createCredit({
+      const session0 = await api.createCredit({
         amount: paymentAmount,
         success_url: window.location.href,
         cancel_url: window.location.href,
@@ -165,64 +153,14 @@ export default function Payment({ balance, update, cost }: Props) {
     }
     return (
       <div>
-        <div style={{ textAlign: "center" }}>
-          <MoneyStatistic title={"Current Balance"} value={balance} />
-        </div>
-        <Divider plain orientation="left">
-          Enter payment amount (in US dollars)
-          <Tooltip
-            zIndex={zIndexTip}
-            title="If your payment exceeds your balance, then you will have a negative balance, which can be used for purchases that exceed your spending limit. Credits are nonrefundable, but do not expire."
-          >
-            <Icon name="question-circle" style={{ marginLeft: "30px" }} />
-          </Tooltip>
-        </Divider>
-        <div style={{ textAlign: "center" }}>
-          {minPayment != null && (
-            <div style={{ marginBottom: "15px" }}>
-              {minPayment != null && (
-                <Preset amount={minPayment} setPaymentAmount={setPaymentAmount}>
-                  Minimum: {currency(minPayment)}
-                </Preset>
-              )}
-              {minPayment != null && balance >= minPayment && (
-                <Preset amount={balance} setPaymentAmount={setPaymentAmount}>
-                  Balance: {currency(balance)}
-                </Preset>
-              )}
-              {DEFAULT_AMOUNT >= minPayment && (
-                <Preset
-                  amount={DEFAULT_AMOUNT}
-                  setPaymentAmount={setPaymentAmount}
-                >
-                  ${DEFAULT_AMOUNT}
-                </Preset>
-              )}
-              {20 >= minPayment && (
-                <Preset amount={20} setPaymentAmount={setPaymentAmount}>
-                  $20
-                </Preset>
-              )}
-              {100 >= minPayment && (
-                <Preset amount={100} setPaymentAmount={setPaymentAmount}>
-                  $100
-                </Preset>
-              )}
-            </div>
-          )}
-          <Space>
-            <InputNumber
-              min={minPayment}
-              max={100000} // maximum payment amount is $100,000
-              precision={2} // for two decimal places
-              step={0.01} // smallest possible increment is one cent
-              value={paymentAmount}
-              onChange={(value) => setPaymentAmount(value)}
-              addonAfter="$"
-            />
-            <div>+ TAX</div>
-          </Space>
-        </div>
+        {balance && (
+          <PaymentConfig
+            balance={balance}
+            paymentAmount={paymentAmount}
+            setPaymentAmount={setPaymentAmount}
+            minAmount={cost}
+          />
+        )}
         <Divider plain orientation="left">
           What Happens Next
         </Divider>

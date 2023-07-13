@@ -188,6 +188,7 @@ export async function cancelCurrentCheckoutSession() {
 export async function shoppingCartCheckout(opts: {
   success_url: string;
   cancel_url?: string;
+  paymentAmount?: number;
 }): Promise<
   { done: true } | { done: false; session: { url: string; id: string } }
 > {
