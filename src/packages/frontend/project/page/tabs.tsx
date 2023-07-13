@@ -216,6 +216,7 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
       key,
       onClick: () => {
         account_settings.set_other_settings(VBAR_KEY, key);
+        track("flyout", { aspect: "layout", value: key, how: "button", project_id });
       },
       label: (
         <>

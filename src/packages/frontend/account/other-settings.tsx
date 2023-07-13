@@ -19,6 +19,7 @@ import {
 } from "@cocalc/frontend/components";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
+import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import {
@@ -319,7 +320,10 @@ export class OtherSettings extends Component<Props> {
             style={{ marginBottom: "10px" }}
             selected={selected}
             options={VBAR_OPTIONS}
-            on_change={(value) => this.on_change(VBAR_KEY, value)}
+            on_change={(value) => {
+              this.on_change(VBAR_KEY, value);
+              track("flyout", { aspect: "layout", how: "account", value });
+            }}
           />
           <Paragraph
             type="secondary"
