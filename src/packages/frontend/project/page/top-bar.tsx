@@ -7,23 +7,26 @@
 Top tabs to switch editor + right hand side in a project.
 */
 
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useRef, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useMeasureDimensions } from "@cocalc/frontend/hooks";
+import { useProjectContext } from "../context";
 import FileTabs from "./file-tabs";
 import { TopTabBarActionsContainer } from "./top-tab-actions";
 
-interface PTProps {
-  project_id: string;
-}
+export function TopTabBar() {
+  const { project_id } = useProjectContext();
 
-export function TopTabBar(props: PTProps) {
-  const { project_id } = props;
+  const tabContainerRef = useRef<HTMLDivElement>(null);
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
+
+  const { width: tabWidth } = useMeasureDimensions(tabContainerRef);
 
   if (openFiles.size == 0) return <></>;
 
   return (
     <div
+      ref={tabContainerRef}
       className="smc-file-tabs"
       style={{
         width: "100%",
@@ -52,7 +55,7 @@ export function TopTabBar(props: PTProps) {
             flex: "0 0 auto",
           }}
         >
-          <TopTabBarActionsContainer project_id={project_id} activeTab={activeTab} />
+          <TopTabBarActionsContainer fullTabWidth={tabWidth} />
         </div>
       </div>
     </div>

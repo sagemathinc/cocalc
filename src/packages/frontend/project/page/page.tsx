@@ -272,7 +272,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
             />
             {renderFlyoutHeader()}
             <div style={{ flex: 1, overflow: "hidden" }}>
-              <TopTabBar project_id={project_id} />
+              <TopTabBar />
             </div>
           </div>
         )}

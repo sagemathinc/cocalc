@@ -31,10 +31,11 @@ const SHARE_INDICATOR_STYLE = {
 interface Props {
   project_id: string;
   path: string;
+  compact?: boolean;
 }
 
 export const ShareIndicator: React.FC<Props> = React.memo(
-  ({ project_id, path }) => {
+  ({ project_id, path, compact = false }) => {
     const public_paths = useTypedRedux({ project_id }, "public_paths");
 
     const student_project_functionality =
@@ -59,6 +60,15 @@ export const ShareIndicator: React.FC<Props> = React.memo(
       return <Loading />;
     }
 
+    function renderLabel() {
+      if (compact) return;
+      return (
+        <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
+          {is_public ? "Published" : "Publish"}
+        </HiddenXSSM>
+      );
+    }
+
     return (
       <div style={SHARE_INDICATOR_STYLE}>
         <Button
@@ -70,9 +80,7 @@ export const ShareIndicator: React.FC<Props> = React.memo(
           }}
         >
           <Icon name={is_public ? "bullhorn" : "lock"} />
-          <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
-            {is_public ? "Published" : "Publish"}
-          </HiddenXSSM>
+          {renderLabel()}
         </Button>
       </div>
     );

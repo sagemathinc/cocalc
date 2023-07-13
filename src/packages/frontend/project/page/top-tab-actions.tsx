@@ -19,6 +19,7 @@ import {
   useIsMountedRef,
   useMemo,
   useRedux,
+  useRef,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -30,32 +31,67 @@ import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/cod
 import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { TimeTravelActions } from "@cocalc/frontend/frame-editors/time-travel-editor/actions";
 import { getJupyterActions } from "@cocalc/frontend/frame-editors/whiteboard-editor/elements/code/actions";
+import { useMeasureDimensions } from "@cocalc/frontend/hooks";
 import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../context";
 import { ChatButton } from "./chat-button";
 import { ShareIndicator } from "./share-indicator";
 import { TopBarActions } from "./types";
+import { useAppState } from "../../app/context";
 
 interface TTBAProps {
-  activeTab: string;
-  project_id: string;
+  fullTabWidth: number;
 }
 
 export function TopTabBarActionsContainer(props: Readonly<TTBAProps>) {
-  const { activeTab, project_id } = props;
-  if (!activeTab.startsWith("editor-")) return null;
+  const { fullTabWidth } = props;
+  const topRightRef = useRef<HTMLDivElement>(null);
+  const { active_project_tab: activeTab } = useProjectContext();
+  const { pageWidthPx } = useAppState();
+  const { width: topRightWidth } = useMeasureDimensions(topRightRef);
+
+  // keep track of the threshold width to avoid flickering
+  const [widthTh, setWidthTh] = useState<number>(fullTabWidth);
+
+  function isCompact() {
+    if (pageWidthPx < 500) return true;
+    if (fullTabWidth < 500) return true;
+    if (fullTabWidth / 2 < topRightWidth) return true;
+    return false;
+  }
+
+  const compact = useMemo((): boolean => {
+    if (
+      (widthTh === 0 || fullTabWidth > widthTh + 100) &&
+      compact &&
+      !isCompact()
+    ) {
+      setWidthTh(fullTabWidth);
+      return false;
+    } else if (
+      (widthTh === 0 || fullTabWidth < widthTh - 100) &&
+      !compact &&
+      isCompact()
+    ) {
+      setWidthTh(fullTabWidth);
+      return true;
+    }
+    return false;
+  }, [pageWidthPx, fullTabWidth, topRightWidth]);
+
+  console.log({ compact, pageWidthPx, fullTabWidth, topRightWidth });
+  console.log("calc:", widthTh, fullTabWidth < widthTh, !compact, isCompact());
+
+  if (activeTab == null || !activeTab.startsWith("editor-")) return null;
   const path = tab_to_path(activeTab);
   if (path == null) return null;
 
   return (
-    <div className={"cc-project-tabs-top-right"}>
+    <div ref={topRightRef} className={"cc-project-tabs-top-right"}>
       <div className={"cc-project-tabs-top-right-slant"}></div>
       <div className={"cc-project-tabs-top-right-actions"}>
-        <TopTabBarActions
-          activeTab={activeTab}
-          project_id={project_id}
-          path={path}
-        />
+        <TopTabBarActions path={path} compact={compact} />
       </div>
     </div>
   );
@@ -69,8 +105,9 @@ type EditorActions =
   | CourseActions
   | TimeTravelActions;
 
-function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
-  const { activeTab, project_id, path } = props;
+function TopTabBarActions(props: Readonly<{ path: string; compact: boolean }>) {
+  const { path, compact } = props;
+  const { project_id, active_project_tab: activeTab } = useProjectContext();
   const isMounted = useIsMountedRef();
   const [loading, setLoading] = useState(true);
   const [actions, setActions] = useState<EditorActions | null>(null);
@@ -89,7 +126,6 @@ function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
         setLoading(false);
         setTopBarActions(actions.getTopBarActions?.());
         setActions(actions);
-        console.log("actions", actions);
         return;
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -102,17 +138,33 @@ function TopTabBarActions(props: Readonly<TTBAProps & { path: string }>) {
     const name = redux_name(project_id, path);
     return (
       <>
-        <ExtraButtons topBarActions={topBarActions} name={name} />
-        <ChatIndicatorTab activeTab={activeTab} project_id={project_id} />
-        <ShareIndicatorTab activeTab={activeTab} project_id={project_id} />
-        <TopBarSaveButton name={name} actions={actions} />
+        <ExtraButtons
+          topBarActions={topBarActions}
+          name={name}
+          compact={compact}
+        />
+        <ChatIndicatorTab
+          activeTab={activeTab}
+          project_id={project_id}
+          compact={compact}
+        />
+        <ShareIndicatorTab
+          activeTab={activeTab}
+          project_id={project_id}
+          compact={compact}
+        />
+        <TopBarSaveButton name={name} actions={actions} compact={compact} />
         <CloseEditor activeTab={activeTab} project_id={project_id} />
       </>
     );
   }
 }
 
-function ExtraButtons({ topBarActions, name }): JSX.Element | null {
+function ExtraButtons({
+  topBarActions,
+  name,
+  compact = false,
+}): JSX.Element | null {
   const local_view_state: Map<string, any> = useRedux(name, "local_view_state");
 
   function renderButton(conf, index) {
@@ -121,24 +173,30 @@ function ExtraButtons({ topBarActions, name }): JSX.Element | null {
 
     return (
       <Button key={`${index}`} onClick={action} disabled={action == null}>
-        <Icon name={icon} /> {label}
+        <Icon name={icon} />
+        {compact ? "" : ` ${label}`}
       </Button>
     );
   }
 
   // the active_id or other view related aspects might change, so we need to
   // re-render this component if that happens.
-  return useMemo(() => topBarActions?.map(renderButton), [local_view_state]);
+  return useMemo(
+    () => topBarActions?.map(renderButton),
+    [local_view_state, compact]
+  );
 }
 
 interface TopBarSaveButtonProps {
   name: string;
   actions: EditorActions | null;
+  compact?: boolean;
 }
 
 function TopBarSaveButton({
   name,
   actions,
+  compact = false,
 }: TopBarSaveButtonProps): JSX.Element | null {
   const read_only: boolean = useRedux([name, "read_only"]);
   const has_unsaved_changes: boolean = useRedux([name, "has_unsaved_changes"]);
@@ -175,7 +233,7 @@ function TopBarSaveButton({
       read_only={read_only}
       is_public={is_public}
       is_saving={is_saving}
-      no_labels={false}
+      no_labels={compact}
       size={24}
       style={{}}
       onClick={() => {
@@ -217,12 +275,20 @@ function CloseEditor({ activeTab, project_id }): JSX.Element | null {
 
   return (
     <Tooltip title={<>Close Editor</>}>
-      <AntdButton onClick={handleOnClick} icon={<Icon name="hand-stop" />} />
+      <AntdButton
+        type="ghost"
+        onClick={handleOnClick}
+        icon={<Icon name="times" />}
+      />
     </Tooltip>
   );
 }
 
-function ChatIndicatorTab({ activeTab, project_id }): JSX.Element | null {
+function ChatIndicatorTab({
+  activeTab,
+  project_id,
+  compact,
+}): JSX.Element | null {
   if (!activeTab?.startsWith("editor-")) {
     // TODO: This is the place in the code where we could support project-wide
     // side chat, or side chats for each individual Files/Search, etc. page.
@@ -240,12 +306,12 @@ function ChatIndicatorTab({ activeTab, project_id }): JSX.Element | null {
         path={path}
         style={{ maxWidth: "120px" }}
       />
-      <ChatButton project_id={project_id} path={path} />
+      <ChatButton project_id={project_id} path={path} compact={compact} />
     </>
   );
 }
 
-function ShareIndicatorTab({ activeTab, project_id }) {
+function ShareIndicatorTab({ activeTab, project_id, compact }) {
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const currentPath = useTypedRedux({ project_id }, "current_path");
 
@@ -266,5 +332,7 @@ function ShareIndicatorTab({ activeTab, project_id }) {
     return null;
   }
 
-  return <ShareIndicator project_id={project_id} path={path} />;
+  return (
+    <ShareIndicator project_id={project_id} path={path} compact={compact} />
+  );
 }

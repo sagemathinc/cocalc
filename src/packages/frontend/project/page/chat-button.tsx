@@ -31,10 +31,11 @@ export type ChatState =
 interface Props {
   project_id: string;
   path: string;
+  compact?: boolean;
   chatState?: ChatState;
 }
 
-export function ChatButton({ project_id, path }: Props) {
+export function ChatButton({ project_id, path, compact = false }: Props) {
   const openFileInfo = useTypedRedux({ project_id }, "open_files");
   const fileUse = useTypedRedux("file_use", "file_use");
   const chatState = openFileInfo.getIn([path, "chatState"]) as ChatState;
@@ -66,6 +67,15 @@ export function ChatButton({ project_id, path }: Props) {
     return null;
   }
 
+  function renderLabel() {
+    if (compact) return;
+    return (
+      <HiddenXS>
+        <span style={{ marginLeft: "5px" }}>Chat</span>
+      </HiddenXS>
+    );
+  }
+
   return (
     <Tooltip
       title={
@@ -84,9 +94,7 @@ export function ChatButton({ project_id, path }: Props) {
         onClick={toggleChat}
       >
         <Icon name="comment" />
-        <HiddenXS>
-          <span style={{ marginLeft: "5px" }}>Chat</span>
-        </HiddenXS>
+        {renderLabel()}
       </Button>
     </Tooltip>
   );
