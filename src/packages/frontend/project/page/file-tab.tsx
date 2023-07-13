@@ -42,6 +42,7 @@ import {
   ServersFlyout,
   SettingsFlyout,
 } from "./flyouts";
+import { VBAR_KEY, getValidVBAROption } from "./vbar";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -175,7 +176,7 @@ export function FileTab(props: Readonly<Props>) {
     name === "info" && project_status?.get("alerts")?.size > 0;
   const other_settings = useTypedRedux("account", "other_settings");
   const active_flyout = useTypedRedux({ project_id }, "flyout");
-  const flyoutsDefault = other_settings.get("flyouts_default", false);
+  const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
 
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
@@ -222,8 +223,8 @@ export function FileTab(props: Readonly<Props>) {
         });
       }
     } else if (name != null) {
-      if (flyout != null && flyoutsDefault) {
-        if (anyModifierKey) {
+      if (flyout != null && vbar !== "both") {
+        if (anyModifierKey !== (vbar === "full")) {
           setActiveTab(name);
         } else {
           actions?.toggleFlyout(flyout);
@@ -244,7 +245,7 @@ export function FileTab(props: Readonly<Props>) {
   }
 
   function renderFlyoutCaret() {
-    if (IS_MOBILE || flyout == null || flyoutsDefault) return;
+    if (IS_MOBILE || flyout == null || vbar !== "both") return;
 
     const color =
       flyout === active_flyout

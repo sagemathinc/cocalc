@@ -59,6 +59,7 @@ import {
 } from "./project_configuration";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { webapp_client } from "./webapp-client";
+import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
 const { defaults, required } = misc;
 
 const BAD_FILENAME_CHARACTERS = "\\";
@@ -376,10 +377,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
         const account_store = this.redux.getStore("account") as any;
-        const flyoutsDefault = account_store?.getIn(
-          ["other_settings", "flyouts_default"],
-          false
-        );
+        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
+        const flyoutsDefault = getValidVBAROption(vbar) === "flyout";
         next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;

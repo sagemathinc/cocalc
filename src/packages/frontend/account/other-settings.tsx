@@ -14,12 +14,19 @@ import {
   LabeledRow,
   Loading,
   NumberInput,
+  Paragraph,
   SelectorInput,
 } from "@cocalc/frontend/components";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
+import {
+  VBAR_EXPLANATION,
+  VBAR_KEY,
+  VBAR_OPTIONS,
+  getValidVBAROption,
+} from "../project/page/vbar";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
 
@@ -301,6 +308,30 @@ export class OtherSettings extends Component<Props> {
     );
   }
 
+  render_vertical_fixed_bar_options(): Rendered {
+    const selected = getValidVBAROption(
+      this.props.other_settings.get(VBAR_KEY)
+    );
+    return (
+      <LabeledRow label="Vertical Project Bar">
+        <div>
+          <SelectorInput
+            style={{ marginBottom: "10px" }}
+            selected={selected}
+            options={VBAR_OPTIONS}
+            on_change={(value) => this.on_change(VBAR_KEY, value)}
+          />
+          <Paragraph
+            type="secondary"
+            ellipsis={{ expandable: true, symbol: "more" }}
+          >
+            {VBAR_EXPLANATION}
+          </Paragraph>
+        </div>
+      </LabeledRow>
+    );
+  }
+
   render() {
     if (this.props.other_settings == null) {
       return <Loading />;
@@ -345,16 +376,7 @@ export class OtherSettings extends Component<Props> {
           documents. Checking this hides the extra run, copy, and explain
           buttons in fenced code blocks.
         </Checkbox>
-        <Checkbox
-          checked={!!this.props.other_settings.get("flyouts_default")}
-          onChange={(e) => {
-            this.on_change("flyouts_default", e.target.checked);
-          }}
-        >
-          <strong>Flyouts as default</strong>: Enabling this makes the vertical
-          bars for files, logs, settings, etc. the default. Use Shift-Click to
-          open full page.
-        </Checkbox>
+        {this.render_vertical_fixed_bar_options()}
         {this.render_new_filenames()}
         {this.render_default_file_sort()}
         {this.render_page_size()}
