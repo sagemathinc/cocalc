@@ -253,7 +253,14 @@ export function LogFlyout({
         itemStyle={fileItemStyle(time?.getTime())}
         multiline={true}
         selected={!scollIdxHide && index === scrollIdx}
-        onClick={(e) => handle_log_click(e, path, project_id)}
+        onClick={(e) => {
+          track("open-file", {
+            project_id,
+            path,
+            how: "click-on-log-file-flyout",
+          });
+          handle_log_click(e, path, project_id);
+        }}
         onClose={(e: React.MouseEvent, path: string) => {
           e.stopPropagation();
           actions?.close_tab(path);
@@ -319,7 +326,7 @@ export function LogFlyout({
     track("open-file", {
       project_id,
       path: file.filename,
-      how: "click-on-log-file-flyout",
+      how: "keypress-on-log-file-flyout",
     });
     handle_log_click(e, file.filename, project_id);
   }
