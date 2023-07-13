@@ -9,7 +9,7 @@ Also, the current_period dates for the subscription are updated, and
 the status is active.
 */
 
-import getPool from "@cocalc/database/pool";
+import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import dayjs from "dayjs";
 import editLicense from "./edit-license";
@@ -37,22 +37,32 @@ export default async function renewSubscription({
   }
   const { license_id } = metadata;
   const end = addInterval(current_period_end, interval);
-  const { purchase_id } = await editLicense({
-    account_id,
-    license_id,
-    changes: { end },
-    cost,
-    note: "This is a subscription with a fixed cost per period.",
-    isSubscriptionRenewal: true,
-  });
 
-  const pool = getPool();
-  await pool.query(
-    "UPDATE subscriptions SET status='active',current_period_start=$1,current_period_end=$2,latest_purchase_id=$3 WHERE id=$4",
-    [subtractInterval(end, interval), end, purchase_id, subscription_id]
-  );
+  // Use a transaction so we either edit license and update subscription or do nothing.
+  const client = await getTransactionClient();
+  try {
+    const { purchase_id } = await editLicense({
+      account_id,
+      license_id,
+      changes: { end },
+      cost,
+      note: "This is a subscription with a fixed cost per period.",
+      isSubscriptionRenewal: true,
+      client,
+    });
 
-  return purchase_id;
+    await client.query(
+      "UPDATE subscriptions SET status='active',current_period_start=$1,current_period_end=$2,latest_purchase_id=$3 WHERE id=$4",
+      [subtractInterval(end, interval), end, purchase_id, subscription_id]
+    );
+    await client.query("COMMIT");
+    return purchase_id;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 // add the interval to the date.  The day of the month (and time) should be unchanged
