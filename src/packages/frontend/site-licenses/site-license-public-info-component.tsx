@@ -6,7 +6,6 @@
 import { Alert, Button, Input, Popconfirm, Popover } from "antd";
 import { fromJS } from "immutable";
 import { DebounceInput } from "react-debounce-input";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
@@ -95,6 +94,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
   >(false);
   const user_map = useTypedRedux("users", "user_map");
   const managedLicenses = useTypedRedux("billing", "managed_licenses");
+  const is_commercial = useTypedRedux("customize", "is_commercial");
 
   function getLicenseStatus(): LicenseStatus | undefined {
     const status = upgrades?.get("status");
@@ -920,7 +920,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       {render_err()}
       {render_warning()}
       {
-        license_id &&
+        is_commercial &&
+          license_id &&
           managedLicenses?.getIn([
             license_id,
             "info",
