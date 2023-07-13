@@ -281,21 +281,26 @@ export default function Subscriptions() {
   const columns = useMemo(
     () => [
       {
-        title: "Id",
-        dataIndex: "id",
-        key: "id",
+        width: "40%",
+        title: "Description",
+        key: "desc",
+        render: (_, { metadata }) => {
+          if (metadata.type == "license" && metadata.license_id) {
+            return (
+              <LicenseDescription
+                license_id={metadata.license_id}
+                refresh={getSubscriptions}
+              />
+            );
+          }
+          return <>{JSON.stringify(metadata, undefined, 2)}</>;
+        },
       },
       {
-        title: "Created",
-        dataIndex: "created",
-        key: "created",
-        render: (date) => <TimeAgo date={date} />,
-      },
-      {
-        title: "Cost per Period",
-        dataIndex: "cost",
-        key: "cost",
-        render: (cost) => currency(cost),
+        title: "Status",
+        dataIndex: "status",
+        key: "status",
+        render: (status) => <SubscriptionStatus status={status} />,
       },
       {
         title: "Period",
@@ -311,8 +316,20 @@ export default function Subscriptions() {
           }
         },
       },
+
       {
-        width: "20%",
+        title: "Id",
+        dataIndex: "id",
+        key: "id",
+      },
+      {
+        title: "Created",
+        dataIndex: "created",
+        key: "created",
+        render: (date) => <TimeAgo date={date} />,
+      },
+      {
+        width: "15%",
         title: "Current Period",
         key: "period",
         render: (_, record) => {
@@ -330,12 +347,6 @@ export default function Subscriptions() {
         key: "latest_purchase_id",
       },
       {
-        title: "Status",
-        dataIndex: "status",
-        key: "status",
-        render: (status) => <SubscriptionStatus status={status} />,
-      },
-      {
         title: "Action",
         width: "25%",
         key: "action",
@@ -347,22 +358,6 @@ export default function Subscriptions() {
             cost={cost}
           />
         ),
-      },
-      {
-        width: "40%",
-        title: "Description",
-        key: "desc",
-        render: (_, { metadata }) => {
-          if (metadata.type == "license" && metadata.license_id) {
-            return (
-              <LicenseDescription
-                license_id={metadata.license_id}
-                refresh={getSubscriptions}
-              />
-            );
-          }
-          return <>{JSON.stringify(metadata, undefined, 2)}</>;
-        },
       },
     ],
     []
