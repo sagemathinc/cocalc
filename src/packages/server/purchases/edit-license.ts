@@ -47,11 +47,12 @@ interface Options {
   cost?: number;
   note?: string;
   isSubscriptionRenewal?: boolean; // set to true if this is a subscription renewal.
+  client?: PoolClient;
 }
 
 export default async function editLicense(
   opts: Options
-): Promise<{ purchase_id: number; cost: number }> {
+): Promise<{ purchase_id?: number; cost: number }> {
   const {
     account_id,
     license_id,
@@ -78,7 +79,7 @@ export default async function editLicense(
   ) {
     if (changes.start != null || changes.end != null) {
       throw Error(
-        "editing the start and end dates of a subscription license is not allowed"
+        "editing the start or end dates of a subscription license is not allowed"
       );
     }
   }
@@ -122,8 +123,8 @@ export default async function editLicense(
 
   // Changing the license and creating the purchase are a single PostgreSQL atomic transaction.
 
-  // start atomic transaction
-  const client = await getTransactionClient();
+  // start atomic transaction (unless one passed in)
+  const client = opts.client ?? (await getTransactionClient());
   let purchase_id;
   try {
     // Is it possible for this user to purchase this change?
@@ -134,21 +135,25 @@ export default async function editLicense(
     // Change license
     await changeLicense(license_id, modifiedInfo, client);
 
-    // Make purchase
-    const description = {
-      type: "edit-license",
-      license_id,
-      origInfo: info,
-      modifiedInfo,
-      note,
-    } as const;
-    purchase_id = await createPurchase({
-      account_id,
-      service,
-      description,
-      cost,
-      client,
-    });
+    if (Math.abs(cost) > 0.005) {
+      // we only create a charge if it is bigger than epsilon in absolute value.
+      
+      // Make purchase
+      const description = {
+        type: "edit-license",
+        license_id,
+        origInfo: info,
+        modifiedInfo,
+        note,
+      } as const;
+      purchase_id = await createPurchase({
+        account_id,
+        service,
+        description,
+        cost,
+        client,
+      });
+    }
 
     if (!isSubscriptionRenewal) {
       // Update subscription cost, if necessary
@@ -163,12 +168,16 @@ export default async function editLicense(
 
     await client.query("COMMIT");
   } catch (err) {
-    logger.debug("editLicense -- error -- reverting transaction", err);
-    await client.query("ROLLBACK");
+    if (opts.client == null) {
+      logger.debug("editLicense -- error -- reverting transaction", err);
+      await client.query("ROLLBACK");
+    }
     throw err;
   } finally {
-    // end atomic transaction
-    client.release();
+    if (opts.client == null) {
+      // end atomic transaction
+      client.release();
+    }
   }
 
   if (requiresRestart(info, changes)) {

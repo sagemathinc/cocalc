@@ -133,7 +133,7 @@ export const COSTS: CostsStructure = {
   // disables the discount.
   online_discount: 1,
   min_quote: MIN_QUOTE,
-  min_sale: 1,
+  min_sale: 0 /* This can now be 0; instead we have a min on adding credit to account.  */,
   custom_cost: CUSTOM_COST,
   custom_max: MAX,
   basic: BASIC,

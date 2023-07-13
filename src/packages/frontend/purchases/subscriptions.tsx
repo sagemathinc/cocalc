@@ -155,13 +155,22 @@ function SubscriptionActions({ id, status, refresh, cost }) {
           open={modalOpen}
           onCancel={() => setModalOpen(false)}
           footer={[
-            <Button key="nothing" onClick={() => setModalOpen(false)}>
+            <Button
+              disabled={loading}
+              key="nothing"
+              onClick={() => setModalOpen(false)}
+            >
               Make No Change
             </Button>,
-            <Button key="cancelNow" onClick={() => handleCancel(true)}>
+            <Button
+              disabled={loading}
+              key="cancelNow"
+              onClick={() => handleCancel(true)}
+            >
               Cancel Now
             </Button>,
             <Button
+              disabled={loading}
               key="cancelEnd"
               type="primary"
               onClick={() => handleCancel(false)}
@@ -185,6 +194,11 @@ function SubscriptionActions({ id, status, refresh, cost }) {
               </li>
               <li>You can always resume a canceled subscription later.</li>
             </ul>
+            {loading && (
+              <div style={{ textAlign: "center" }}>
+                <Spin />
+              </div>
+            )}
           </div>
         </Modal>
       )}
@@ -211,10 +225,7 @@ function SubscriptionActions({ id, status, refresh, cost }) {
 function LicenseDescription({ license_id, refresh }) {
   return (
     <Collapse>
-      <Collapse.Panel
-        key="license"
-        header={`Subscription for the license ${license_id}`}
-      >
+      <Collapse.Panel key="license" header={`License ${license_id}`}>
         <SiteLicensePublicInfo license_id={license_id} refresh={refresh} />
       </Collapse.Panel>
     </Collapse>
@@ -326,6 +337,7 @@ export default function Subscriptions() {
       },
       {
         title: "Action",
+        width: "25%",
         key: "action",
         render: (_, { status, cost, id }) => (
           <SubscriptionActions

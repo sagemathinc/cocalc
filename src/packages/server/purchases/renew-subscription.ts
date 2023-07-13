@@ -24,7 +24,8 @@ interface Options {
 export default async function renewSubscription({
   account_id,
   subscription_id,
-}: Options): Promise<number | null> {
+}: Options): Promise<number | null | undefined> {
+  // might not be a purchase in case there's no fee
   logger.debug({ account_id, subscription_id });
   const subscription = await getSubscription(subscription_id);
   if (subscription.account_id != account_id) {
@@ -71,6 +72,27 @@ function subtractInterval(expires: Date, interval: "month" | "year"): Date {
   return newExpires.subtract(1, interval).toDate();
 }
 
+export function intervalContainingNow(
+  end: Date,
+  interval: "month" | "year"
+): { start: Date; end: Date } {
+  const now = new Date();
+  // not being clever, since usually the interval needed is just 1 or 2 steps away.
+  for (let i = 0; i < 1000; i++) {
+    let start = subtractInterval(end, interval);
+    if (start <= now && now <= end) {
+      // now  is in this interval
+      return { start, end };
+    }
+    if (now < start) {
+      end = subtractInterval(end, interval);
+    } else if (now > end) {
+      end = addInterval(end, interval);
+    }
+  }
+  throw Error(`bug in intervalContainingNow ${end} ${interval}`);
+}
+
 export const test = {
   addInterval,
   subtractInterval,
@@ -93,4 +115,3 @@ export async function getSubscription(subscription_id: number): Promise<{
   }
   return rows[0];
 }
-

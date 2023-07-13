@@ -3,7 +3,7 @@ Resume a subscription.
 */
 
 import getAccountId from "lib/account/get-account";
-import { resumeSubscription } from "@cocalc/server/purchases/cancel-subscription";
+import resumeSubscription from "@cocalc/server/purchases/resume-subscription";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
