@@ -3,6 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import * as immutable from "immutable";
+import React from "react";
+import { Alert, Button, ButtonGroup, Col, Row } from "react-bootstrap";
+import * as underscore from "underscore";
+
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
   TypedMap,
@@ -36,10 +41,6 @@ import {
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { ProjectMap, ProjectStatus } from "@cocalc/frontend/todo-types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import * as immutable from "immutable";
-import React from "react";
-import { Alert, Button, ButtonGroup, Col, Row } from "react-bootstrap";
-import * as underscore from "underscore";
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
 import { CourseProjectExtraHelp } from "../warnings/course-project";

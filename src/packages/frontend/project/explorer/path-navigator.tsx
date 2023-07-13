@@ -71,7 +71,7 @@ export const PathNavigator: React.FC<Props> = React.memo(
           // yes, must be called as a normal function.
           createPathSegmentLink({
             path: history_segments.slice(0, i + 1 || undefined).join("/"),
-            display: hide ? <>&middot;</> : trunc_middle(segment, 15),
+            display: hide ? <>&bull;</> : trunc_middle(segment, 15),
             full_name: segment,
             key: i + 1,
             on_click: (path) => actions?.open_directory(path, true, false),
