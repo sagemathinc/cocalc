@@ -37,6 +37,7 @@ import { handle_log_click } from "../../history/utils";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { FileListItem, fileItemStyle } from "./components";
+import { FLYOUT_EXTRA_WIDTH_PX } from "./consts";
 import { FlyoutLogMode, getFlyoutLogMode, isFlyoutLogMode } from "./state";
 
 export const FLYOUT_LOG_DEFAULT_MODE = "files";
@@ -156,12 +157,14 @@ interface Props {
   project_id: string;
   max?: number;
   wrap: (list: JSX.Element, style?: CSS) => JSX.Element;
+  flyoutWidth: number;
 }
 
 export function LogFlyout({
   max = 1000,
   project_id,
   wrap,
+  flyoutWidth,
 }: Props): JSX.Element {
   const actions = useActions({ project_id });
   const mode: FlyoutLogMode = useTypedRedux({ project_id }, "flyout_log_mode");
@@ -197,6 +200,19 @@ export function LogFlyout({
     }
   }, [project_log, project_log_all, searchTerm, max, mode]);
 
+  const showExtra = useMemo(
+    () => flyoutWidth > FLYOUT_EXTRA_WIDTH_PX,
+    [flyoutWidth]
+  );
+
+  // end of hooks
+
+  function renderFileItemExtra(entry: OpenedFile) {
+    if (!showExtra) return null;
+    if (!entry.time) return;
+    return <TimeAgo date={entry.time} />;
+  }
+
   function renderFileItem(index: number, entry: OpenedFile) {
     const time = entry.time;
     const account_id = entry.account_id;
@@ -207,13 +223,27 @@ export function LogFlyout({
     return (
       <FileListItem
         item={{ name: path, isopen: isOpened, isactive: isActive }}
+        extra={renderFileItemExtra(entry)}
         itemStyle={fileItemStyle(time?.getTime())}
         multiline={true}
         selected={!scollIdxHide && index === scrollIdx}
-        onClick={(e) => handle_log_click(e, path, project_id)}
+        onClick={(e) => {
+          track("open-file", {
+            project_id,
+            path,
+            how: "click-on-log-file-flyout",
+          });
+          handle_log_click(e, path, project_id);
+        }}
         onClose={(e: React.MouseEvent, path: string) => {
           e.stopPropagation();
           actions?.close_tab(path);
+        }}
+        onMouseDown={(e: React.MouseEvent) => {
+          if (e.button === 1) {
+            // middle mouse click
+            actions?.close_tab(path);
+          }
         }}
         tooltip={
           <>
@@ -270,7 +300,7 @@ export function LogFlyout({
     track("open-file", {
       project_id,
       path: file.filename,
-      how: "click-on-log-file-flyout",
+      how: "keypress-on-log-file-flyout",
     });
     handle_log_click(e, file.filename, project_id);
   }

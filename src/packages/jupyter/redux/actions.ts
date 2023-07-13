@@ -2116,6 +2116,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   public ensure_positions_are_unique(): void {
+    if (this._state != "ready" || this.store == null) {
+      // because of debouncing, this ensure_positions_are_unique can
+      // be called after jupyter actions are closed.
+      return;
+    }
     const changes = cell_utils.ensure_positions_are_unique(
       this.store.get("cells")
     );

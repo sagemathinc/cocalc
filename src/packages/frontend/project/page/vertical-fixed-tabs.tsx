@@ -11,22 +11,25 @@ import { Switch, Tooltip } from "antd";
 import { debounce, throttle } from "lodash";
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
 import track from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../context";
 import { FIXED_PROJECT_TABS, FileTab, FixedTab } from "./file-tab";
 
 export const FIXED_TABS_BG_COLOR = "rgba(0, 0, 0, 0.02)";
 
 interface FVTProps {
-  project_id: string;
-  activeTab: string;
   setHomePageButtonWidth: (width: number) => void;
 }
 
 export function VerticalFixedTabs(props: Readonly<FVTProps>) {
-  const { project_id, activeTab, setHomePageButtonWidth } = props;
-  const actions = useActions({ project_id });
+  const { setHomePageButtonWidth } = props;
+  const {
+    actions,
+    project_id,
+    active_project_tab: activeTab,
+  } = useProjectContext();
   const active_flyout = useTypedRedux({ project_id }, "flyout");
   const other_settings = useTypedRedux("account", "other_settings");
   const flyoutsDefault = other_settings.get("flyouts_default", false);

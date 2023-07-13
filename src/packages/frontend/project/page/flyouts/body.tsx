@@ -13,21 +13,20 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import { useProjectContext } from "../../context";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../vertical-fixed-tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LSFlyout, lsKey, storeFlyoutState } from "./state";
 
-export function FlyoutBody({
-  flyout,
-  project_id,
-  flyoutWidth,
-}: {
-  project_id: string;
+interface FlyoutBodyProps {
   flyout: FixedTab;
   flyoutWidth: number;
-}) {
+}
+
+export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
+  const { project_id } = useProjectContext();
   // No "Ref", because otherwise we don't trigger the useEffect below
   const [bodyDiv, setBodyDiv] = useState<HTMLDivElement | null>(null);
   const Body = FIXED_PROJECT_TABS[flyout].flyout;
@@ -98,7 +97,7 @@ export function FlyoutBody({
           <Loading />
         </div>
       ) : (
-        <Body project_id={project_id} wrap={wrap} />
+        <Body project_id={project_id} wrap={wrap} flyoutWidth={flyoutWidth} />
       )}
     </div>
   );

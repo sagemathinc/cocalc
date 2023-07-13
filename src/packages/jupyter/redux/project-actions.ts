@@ -343,8 +343,13 @@ export class JupyterActions extends JupyterActions0 {
     this._running_cells = {};
     this.clear_all_cell_run_state();
 
-    // When the kernel closes, make sure a new kernel gets setup.
     this.jupyter_kernel.once("closed", () => {
+      // When the kernel closes, make sure a new kernel gets setup.
+      if (this.store == null || this._state !== "ready") {
+        // This event can also happen when this actions is being closed,
+        // in which case obviously we shouldn't make a new kernel.
+        return;
+      }
       dbg("kernel closed -- make new one.");
       this.ensure_backend_kernel_setup();
     });
@@ -492,6 +497,9 @@ export class JupyterActions extends JupyterActions0 {
   sync_exec_state = () => {
     const dbg = this.dbg("sync_exec_state");
     let change = false;
+    if (this.store == null || this._state !== "ready") {
+      return;
+    }
     const cells = this.store.get("cells");
     // First verify that all actual cells that are said to be running
     // (according to the store) are in fact running.

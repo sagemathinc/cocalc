@@ -8,13 +8,17 @@
  * The main functionality is to calculate a new offset based on the mouse position when dragging stopps.
  */
 
-import React from "react";
 import { Map } from "immutable";
-import { ReactDOM, useState, CSS } from "../../app-framework";
-import { Actions } from "../code-editor/actions";
-import { drag_start_iframe_disable, drag_stop_iframe_enable } from "../../misc";
-import { COLORS } from "@cocalc/util/theme";
+import React from "react";
+
+import { CSS, ReactDOM, useState } from "@cocalc/frontend/app-framework";
 import * as feature from "@cocalc/frontend/feature";
+import {
+  drag_start_iframe_disable,
+  drag_stop_iframe_enable,
+} from "@cocalc/frontend/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { Actions } from "../code-editor/actions";
 
 import Draggable from "react-draggable";
 const DRAG_OFFSET = feature.IS_TOUCH ? 5 : 3; // 3 is consistent with width/height of 6 in several other places in cocalc.
