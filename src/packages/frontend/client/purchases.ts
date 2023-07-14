@@ -11,6 +11,11 @@ import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
 
 export class PurchasesClient {
+  api: typeof purchasesApi;
+
+  constructor() {
+    this.api = purchasesApi;
+  }
   async getQuotas(): Promise<{
     minBalance: number;
     services: { [service: string]: number };
