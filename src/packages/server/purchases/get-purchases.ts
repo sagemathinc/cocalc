@@ -4,7 +4,8 @@ import { getLastClosingDate } from "./closing-date";
 
 interface Options {
   account_id: string;
-  thisMonth?: boolean; // if true, returns all purchases during this billing cycle; limit/offset are ignored.
+  cutoff?: Date; // returns purchases back to this date (limit/offset NOT ignored)
+  thisMonth?: boolean;
   limit?: number;
   offset?: number;
   service?: Service;
@@ -12,10 +13,12 @@ interface Options {
   group?: boolean; // if true, group all results by service, project_id together, along with the sum of the cost.  This provides a nice summary without potentially hundreds of rows for every single chat, etc.
   day_statement_id?: number;
   month_statement_id?: number;
+  no_statement?: boolean; // only purchases not on any statement
 }
 
 export default async function getPurchases({
   account_id,
+  cutoff,
   thisMonth,
   limit = 100,
   offset,
@@ -24,6 +27,7 @@ export default async function getPurchases({
   group,
   day_statement_id,
   month_statement_id,
+  no_statement,
 }: Options) {
   if (limit > MAX_API_LIMIT || !limit) {
     throw Error(`limit must be specified and at most ${MAX_API_LIMIT}`);
@@ -58,6 +62,13 @@ export default async function getPurchases({
     const date = await getLastClosingDate(account_id);
     params.push(date);
     query += ` AND time >= $${params.length}`;
+  }
+  if (cutoff) {
+    params.push(cutoff);
+    query += ` AND time >= $${params.length}`;
+  }
+  if (no_statement) {
+    query += " AND day_statement_id IS NULL AND month_statement_id IS NULL ";
   }
   if (group) {
     query += " GROUP BY service, project_id";

@@ -55,6 +55,7 @@ export async function isPurchaseAllowed(
 
 export async function getPurchases(opts: {
   thisMonth?: boolean; // if true, limit and offset are ignored
+  cutoff?: Date; // if given, returns purchases back to this date (limit/offset NOT ignored)
   limit?: number;
   offset?: number;
   service?: Service;
@@ -62,6 +63,7 @@ export async function getPurchases(opts: {
   group?: boolean;
   day_statement_id?: number;
   month_statement_id?: number;
+  no_statement?: boolean;
 }) {
   return await api("purchases/get-purchases", opts);
 }

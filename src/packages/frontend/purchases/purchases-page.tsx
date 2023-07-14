@@ -1,10 +1,12 @@
-import { Collapse } from "antd";
+import { Collapse, Divider } from "antd";
 import { useState } from "react";
-import Purchases from "./purchases";
+import Purchases, { PurchasesTable } from "./purchases";
 import AccountStatus from "./account-status";
 import Quotas from "./all-quotas-config";
 import CostBarChart from "./cost-bar-chart";
 import { Icon } from "@cocalc/frontend/components/icon";
+import dayjs from "dayjs";
+import { MAX_API_LIMIT } from "@cocalc/util/db-schema/purchases";
 
 type Key = string[] | string | number[] | number;
 
@@ -14,7 +16,19 @@ export default function PurchasesPage() {
   const [activeKey, setActiveKey] = useState<Key>(cache.activeKey);
   return (
     <div>
+      <Divider>Account Balance</Divider>
       <AccountStatus />
+      <Divider style={{ marginTop: "30px" }}>
+        Transactions During the Last Day
+      </Divider>
+      <PurchasesTable
+        limit={MAX_API_LIMIT}
+        cutoff={dayjs().subtract(1, "day").toDate()}
+        showRefresh
+      />
+      <Divider style={{ marginTop: "30px" }}>
+        All Transactions, Spending Limits, and Plots
+      </Divider>
       <Collapse
         destroyInactivePanel /* so that data is refreshed when they are shown */
         activeKey={activeKey}

@@ -26,11 +26,14 @@ async function get(req) {
     service,
     project_id,
     group,
+    cutoff,
     thisMonth,
     day_statement_id,
     month_statement_id,
+    no_statement,
   } = getParams(req);
   return await getPurchases({
+    cutoff,
     thisMonth,
     limit,
     offset,
@@ -40,5 +43,6 @@ async function get(req) {
     group,
     day_statement_id,
     month_statement_id,
+    no_statement,
   });
 }

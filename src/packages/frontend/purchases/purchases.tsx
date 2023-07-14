@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 import {
   Checkbox,
   Button,
@@ -56,6 +56,7 @@ function Purchases0({
 }: Props) {
   const [group, setGroup] = useState<boolean>(!!group0);
   const [thisMonth, setThisMonth] = useState<boolean>(true);
+  const [noStatement, setNoStatement] = useState<boolean>(false);
 
   return (
     <SettingBox
@@ -81,15 +82,30 @@ function Purchases0({
       }
     >
       <div style={{ float: "right" }}>
-        <Checkbox checked={group} onChange={(e) => setGroup(e.target.checked)}>
-          Group transactions
-        </Checkbox>
-        <Checkbox
-          checked={thisMonth}
-          onChange={(e) => setThisMonth(e.target.checked)}
-        >
-          Current billing month
-        </Checkbox>
+        <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project.">
+          <Checkbox
+            checked={group}
+            onChange={(e) => setGroup(e.target.checked)}
+          >
+            Group by service and project
+          </Checkbox>
+        </Tooltip>
+        <Tooltip title="Only show transactions from your current billing month.">
+          <Checkbox
+            checked={thisMonth}
+            onChange={(e) => setThisMonth(e.target.checked)}
+          >
+            Current billing month
+          </Checkbox>
+        </Tooltip>
+        <Tooltip title="Only show transactions that are not on any daily or monthly statement. These should all be from today.">
+          <Checkbox
+            checked={noStatement}
+            onChange={(e) => setNoStatement(e.target.checked)}
+          >
+            Not on any statement yet
+          </Checkbox>
+        </Tooltip>
       </div>
       <PurchasesTable
         project_id={project_id}
@@ -97,6 +113,7 @@ function Purchases0({
         thisMonth={thisMonth}
         day_statement_id={day_statement_id}
         month_statement_id={month_statement_id}
+        noStatement={noStatement}
         showTotal
         showRefresh
       />
@@ -108,23 +125,28 @@ export function PurchasesTable({
   project_id,
   group,
   thisMonth,
+  cutoff,
   day_statement_id,
   month_statement_id,
+  noStatement,
   showTotal,
   showRefresh,
   style,
+  limit = DEFAULT_LIMIT,
 }: Props & {
   thisMonth?: boolean;
+  cutoff?: Date;
+  noStatement?: boolean;
   showTotal?: boolean;
   showRefresh?: boolean;
   style?: CSSProperties;
+  limit?: number;
 }) {
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
   const [groupedPurchases, setGroupedPurchases] = useState<
     Partial<Purchase>[] | null
   >(null);
   const [error, setError] = useState<string>("");
-  const [limit /*, setLimit*/] = useState<number>(DEFAULT_LIMIT);
   const [offset, setOffset] = useState<number>(0);
   const [total, setTotal] = useState<number | null>(null);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
@@ -143,7 +165,8 @@ export function PurchasesTable({
       setPurchases(null);
       setGroupedPurchases(null);
       const x = await api.getPurchases({
-        thisMonth, // if true used instead of limit/offset
+        thisMonth,
+        cutoff,
         limit,
         offset,
         group,
@@ -151,6 +174,7 @@ export function PurchasesTable({
         project_id,
         day_statement_id,
         month_statement_id,
+        no_statement: noStatement,
       });
       if (group) {
         setGroupedPurchases(x);
@@ -169,7 +193,7 @@ export function PurchasesTable({
 
   useEffect(() => {
     getPurchases();
-  }, [limit, offset, group, service, project_id, thisMonth]);
+  }, [limit, offset, group, service, project_id, thisMonth, noStatement]);
 
   return (
     <div style={style}>
@@ -255,6 +279,7 @@ function GroupedPurchaseTable({ purchases }) {
               title: "Items",
               dataIndex: "count",
               key: "count",
+              align: "center" as "center",
               sorter: (a: any, b: any) => (a.count ?? 0) - (b.count ?? 0),
               sortDirections: ["ascend", "descend"],
             },
