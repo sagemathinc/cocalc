@@ -60,6 +60,8 @@ export async function getPurchases(opts: {
   service?: Service;
   project_id?: string;
   group?: boolean;
+  day_statement_id?: number;
+  month_statement_id?: number;
 }) {
   return await api("purchases/get-purchases", opts);
 }

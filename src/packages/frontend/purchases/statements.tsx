@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
 import { currency } from "./util";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
+import { PurchasesTable } from "./purchases";
 
 interface Props {
   interval: Interval;
@@ -91,6 +92,18 @@ export default function Statements({ interval }: Props) {
           dataSource={statements}
           columns={columns}
           pagination={{ hideOnSinglePage: true, defaultPageSize: 30 }}
+          expandable={{
+            expandedRowRender: (record) => {
+              return (
+                <PurchasesTable
+                  day_statement_id={interval == "day" ? record.id : undefined}
+                  month_statement_id={
+                    interval == "month" ? record.id : undefined
+                  }
+                />
+              );
+            },
+          }}
         />
       )}
     </div>

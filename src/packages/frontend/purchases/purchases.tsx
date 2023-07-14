@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Checkbox,
   Button,
   Popover,
@@ -12,7 +11,7 @@ import {
 } from "antd";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
+import * as api from "./api";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import type { Purchase, Description } from "@cocalc/util/db-schema/purchases";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
@@ -29,12 +28,16 @@ import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import { load_target } from "@cocalc/frontend/history";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import Refresh from "@cocalc/frontend/components/refresh";
+import ShowError from "@cocalc/frontend/components/error";
 
-const DEFAULT_LIMIT = 100;
+const DEFAULT_LIMIT = 50;
 
 interface Props {
   project_id?: string; // if given, restrict to only purchases that are for things in this project
-  group?: boolean; // default
+  group?: boolean;
+  day_statement_id?: number; // if given, restrict to purchases on this day statement.
+  month_statement_id?: number; // if given, restrict to purchases on this month statement.
 }
 
 export default function Purchases(props: Props) {
@@ -45,74 +48,19 @@ export default function Purchases(props: Props) {
   return <Purchases0 {...props} />;
 }
 
-function Purchases0({ project_id, group: group0 }: Props) {
-  const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
+function Purchases0({
+  project_id,
+  group: group0,
+  day_statement_id,
+  month_statement_id,
+}: Props) {
   const [group, setGroup] = useState<boolean>(!!group0);
-  const [service /*, setService*/] = useState<Service | undefined>(undefined);
-  const [error, setError] = useState<string>("");
-  const [limit /*, setLimit*/] = useState<number>(DEFAULT_LIMIT);
-  const [offset, setOffset] = useState<number>(0);
   const [thisMonth, setThisMonth] = useState<boolean>(true);
-  const [total, setTotal] = useState<number | null>(null);
-
-  const handleGroupChange = (checked: boolean) => {
-    setTotal(null);
-    setPurchases(null);
-    setGroup(checked);
-  };
-
-  const handleThisMonthChange = (checked: boolean) => {
-    setTotal(null);
-    setPurchases(null);
-    setThisMonth(checked);
-  };
-
-  const getNextPage = () => {
-    setOffset((prevOffset) => prevOffset + limit);
-  };
-
-  const getPrevPage = () => {
-    setOffset((prevOffset) => Math.max(prevOffset - limit, 0));
-  };
-
-  const getPurchases = async () => {
-    try {
-      setTotal(null);
-      setPurchases(null);
-      const x = await webapp_client.purchases_client.getPurchases({
-        thisMonth, // if true used instead of limit/offset
-        limit,
-        offset,
-        group,
-        service,
-        project_id,
-      });
-      setPurchases(x);
-      let t = 0;
-      for (const row of x) {
-        t += row["sum"] ?? row["cost"] ?? 0;
-      }
-      setTotal(t);
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
-  useEffect(() => {
-    getPurchases();
-  }, [limit, offset, group, service, project_id, thisMonth]);
 
   return (
     <SettingBox
       title={
         <>
-          <Button
-            style={{ marginRight: "15px", float: "right" }}
-            onClick={() => {
-              getPurchases();
-            }}
-          >
-            <Icon name="refresh" /> Refresh
-          </Button>
           {project_id ? (
             <span>
               {project_id ? (
@@ -132,14 +80,6 @@ function Purchases0({ project_id, group: group0 }: Props) {
         </>
       }
     >
-      {error && (
-        <Alert
-          type="error"
-          description={error}
-          onClose={getPurchases}
-          closable
-        />
-      )}
       <Next
         style={{ float: "right", fontSize: "11pt" }}
         href={"billing/receipts"}
@@ -148,18 +88,97 @@ function Purchases0({ project_id, group: group0 }: Props) {
           <Icon name="external-link" /> Receipts
         </Button>
       </Next>
-      <Checkbox
-        checked={group}
-        onChange={(e) => handleGroupChange(e.target.checked)}
-      >
+      <Checkbox checked={group} onChange={(e) => setGroup(e.target.checked)}>
         Group transactions
       </Checkbox>
       <Checkbox
         checked={thisMonth}
-        onChange={(e) => handleThisMonthChange(e.target.checked)}
+        onChange={(e) => setThisMonth(e.target.checked)}
       >
         Current billing month
       </Checkbox>
+      <PurchasesTable
+        project_id={project_id}
+        group={group}
+        thisMonth={thisMonth}
+        day_statement_id={day_statement_id}
+        month_statement_id={month_statement_id}
+        showTotal
+        showRefresh
+      />
+    </SettingBox>
+  );
+}
+
+export function PurchasesTable({
+  project_id,
+  group,
+  thisMonth,
+  day_statement_id,
+  month_statement_id,
+  showTotal,
+  showRefresh,
+}: Props & {
+  thisMonth?: boolean;
+  showTotal?: boolean;
+  showRefresh?: boolean;
+}) {
+  const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
+  const [groupedPurchases, setGroupedPurchases] = useState<
+    Partial<Purchase>[] | null
+  >(null);
+  const [error, setError] = useState<string>("");
+  const [limit /*, setLimit*/] = useState<number>(DEFAULT_LIMIT);
+  const [offset, setOffset] = useState<number>(0);
+  const [total, setTotal] = useState<number | null>(null);
+  const [service /*, setService*/] = useState<Service | undefined>(undefined);
+
+  const getNextPage = () => {
+    setOffset((prevOffset) => prevOffset + limit);
+  };
+
+  const getPrevPage = () => {
+    setOffset((prevOffset) => Math.max(prevOffset - limit, 0));
+  };
+
+  const getPurchases = async () => {
+    try {
+      setTotal(null);
+      setPurchases(null);
+      setGroupedPurchases(null);
+      const x = await api.getPurchases({
+        thisMonth, // if true used instead of limit/offset
+        limit,
+        offset,
+        group,
+        service,
+        project_id,
+        day_statement_id,
+        month_statement_id,
+      });
+      if (group) {
+        setGroupedPurchases(x);
+      } else {
+        setPurchases(x);
+      }
+      let t = 0;
+      for (const row of x) {
+        t += row["sum"] ?? row["cost"] ?? 0;
+      }
+      setTotal(t);
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+
+  useEffect(() => {
+    getPurchases();
+  }, [limit, offset, group, service, project_id, thisMonth]);
+
+  return (
+    <div>
+      {showRefresh && <Refresh refresh={getPurchases} />}
+      <ShowError error={error} setError={setError} />
       <div
         style={{
           display: "flex",
@@ -176,7 +195,11 @@ function Purchases0({ project_id, group: group0 }: Props) {
             </div>
           )}
         {!thisMonth && offset > 0 && (
-          <Button type="default" onClick={getPrevPage}>
+          <Button
+            type="default"
+            onClick={getPrevPage}
+            style={{ marginRight: "8px" }}
+          >
             Previous
           </Button>
         )}
@@ -188,14 +211,14 @@ function Purchases0({ project_id, group: group0 }: Props) {
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
         {!group && <DetailedPurchaseTable purchases={purchases} />}
-        {group && <GroupedPurchaseTable purchases={purchases} />}
+        {group && <GroupedPurchaseTable purchases={groupedPurchases} />}
       </div>
-      {total != null && (
+      {showTotal && total != null && (
         <div style={{ fontSize: "12pt", marginTop: "15px" }}>
           Total of Displayed Costs: ${total.toFixed(2)}
         </div>
       )}
-    </SettingBox>
+    </div>
   );
 }
 
@@ -577,9 +600,8 @@ function InvoiceLink({ invoice_id }) {
       onClick={async () => {
         try {
           setLoading(true);
-          const invoiceUrl = (
-            await webapp_client.purchases_client.getInvoice(invoice_id)
-          ).hosted_invoice_url;
+          const invoiceUrl = (await api.getInvoice(invoice_id))
+            .hosted_invoice_url;
           open_new_tab(invoiceUrl, false);
         } finally {
           setLoading(false);

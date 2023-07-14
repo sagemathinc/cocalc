@@ -10,6 +10,8 @@ interface Options {
   service?: Service;
   project_id?: string;
   group?: boolean; // if true, group all results by service, project_id together, along with the sum of the cost.  This provides a nice summary without potentially hundreds of rows for every single chat, etc.
+  day_statement_id?: number;
+  month_statement_id?: number;
 }
 
 export default async function getPurchases({
@@ -20,6 +22,8 @@ export default async function getPurchases({
   service,
   project_id,
   group,
+  day_statement_id,
+  month_statement_id,
 }: Options) {
   if (limit > MAX_API_LIMIT || !limit) {
     throw Error(`limit must be specified and at most ${MAX_API_LIMIT}`);
@@ -41,6 +45,14 @@ export default async function getPurchases({
   if (project_id != null) {
     params.push(project_id);
     query += ` AND project_id=$${params.length}`;
+  }
+  if (day_statement_id != null) {
+    params.push(day_statement_id);
+    query += ` AND day_statement_id=$${params.length}`;
+  }
+  if (month_statement_id != null) {
+    params.push(month_statement_id);
+    query += ` AND month_statement_id=$${params.length}`;
   }
   if (thisMonth) {
     const date = await getLastClosingDate(account_id);
