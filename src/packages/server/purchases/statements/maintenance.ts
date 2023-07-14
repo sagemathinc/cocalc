@@ -8,7 +8,7 @@ we get anywhere close to that level of usage, I can higher somebody else to
 rewrite this to scale better.
 */
 
-import getPool from "@cocalc/database/pool";
+import { getTransactionClient } from "@cocalc/database/pool";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
 import multiInsert from "@cocalc/database/pool/multi-insert";
 
@@ -23,75 +23,89 @@ export default async function maintenance({
     // because we are basically assuming no new purchases happen <= time.
     throw Error("time must be in the past");
   }
-  const pool = getPool();
 
-  /*
+  // Absolutely critical to do everything in a single transaction, so that
+  // we don't end up with a statement that is missing
+  // ${interval}_statement_id that should point to it but were
+  // included in its computation!
+  const client = await getTransactionClient();
+
+  try {
+    /*
   For every purchase where `${interval}_statement_id` is null and purchase_time <= time, compute:
      - total of charges, number of charges
      - total of credits, number of credits
   */
-  const charges = await getData(time, pool, interval, "charges");
-  const credits = await getData(time, pool, interval, "credits");
-  const accounts = new Set(Object.keys(charges));
-  for (const account_id of Object.keys(credits)) {
-    accounts.add(account_id);
-  }
-  const statements: Omit<Omit<Omit<Statement, "id">, "interval">, "time">[] =
-    [];
-  for (const account_id of accounts) {
-    const userCharges = charges[account_id] ?? {
-      total_charges: 0,
-      num_charges: 0,
-    };
-    const userCredits = credits[account_id] ?? {
-      total_credits: 0,
-      num_credits: 0,
-    };
-    const balance =
-      (await getLastStatementBalance(account_id, time, pool, interval)) +
-      userCharges.total_charges +
-      userCredits.total_credits;
-    statements.push({
-      account_id,
-      ...userCharges,
-      ...userCredits,
-      balance,
-    });
-  }
-  if (statements.length > 0) {
-    const { query, values } = multiInsert(
-      "INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits) ",
-      statements.map(
-        ({
-          account_id,
-          balance,
-          total_charges,
-          num_charges,
-          total_credits,
-          num_credits,
-        }) => [
-          interval,
-          time,
-          account_id,
-          balance,
-          total_charges,
-          num_charges,
-          total_credits,
-          num_credits,
-        ]
-      )
-    );
-    const { rows } = await pool.query(
-      query + " RETURNING id, account_id",
-      values
-    );
-    // Finally set the statement id's for all the purchases.
-    for (const { account_id, id } of rows) {
-      await pool.query(
-        `UPDATE purchases SET ${interval}_statement_id=$1 WHERE account_id=$2 AND ${interval}_statement_id IS NULL AND time<=$3`,
-        [id, account_id, time]
-      );
+    const charges = await getData(time, client, interval, "charges");
+    const credits = await getData(time, client, interval, "credits");
+    const accounts = new Set(Object.keys(charges));
+    for (const account_id of Object.keys(credits)) {
+      accounts.add(account_id);
     }
+    const statements: Omit<Omit<Omit<Statement, "id">, "interval">, "time">[] =
+      [];
+    for (const account_id of accounts) {
+      const userCharges = charges[account_id] ?? {
+        total_charges: 0,
+        num_charges: 0,
+      };
+      const userCredits = credits[account_id] ?? {
+        total_credits: 0,
+        num_credits: 0,
+      };
+      const balance =
+        (await getLastStatementBalance(account_id, time, client, interval)) +
+        userCharges.total_charges +
+        userCredits.total_credits;
+      statements.push({
+        account_id,
+        ...userCharges,
+        ...userCredits,
+        balance,
+      });
+    }
+    if (statements.length > 0) {
+      const { query, values } = multiInsert(
+        "INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits) ",
+        statements.map(
+          ({
+            account_id,
+            balance,
+            total_charges,
+            num_charges,
+            total_credits,
+            num_credits,
+          }) => [
+            interval,
+            time,
+            account_id,
+            balance,
+            total_charges,
+            num_charges,
+            total_credits,
+            num_credits,
+          ]
+        )
+      );
+      const { rows } = await client.query(
+        query + " RETURNING id, account_id",
+        values
+      );
+      // Finally set the statement id's for all the purchases.
+      for (const { account_id, id } of rows) {
+        await client.query(
+          `UPDATE purchases SET ${interval}_statement_id=$1 WHERE account_id=$2 AND ${interval}_statement_id IS NULL AND time<=$3`,
+          [id, account_id, time]
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
   }
 }
 
