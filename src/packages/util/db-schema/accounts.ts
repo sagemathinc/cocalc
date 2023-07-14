@@ -201,7 +201,7 @@ Table({
     },
     purchase_closing_day: {
       type: "integer",
-      desc: "Day of the month when pay-as-you-go purchases are cutoff and charged for this user. The monthly spend limit also resets on this day.  It happens at midnight UTC on this day.  This should be an integer between 1 and 28.",
+      desc: "Day of the month when pay-as-you-go purchases are cutoff and charged for this user. It happens at midnight UTC on this day.  This should be an integer between 1 and 28.",
       render: {
         type: "number",
         editable: true,

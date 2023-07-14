@@ -186,6 +186,14 @@ Table({
       pg_type: "varchar(127)",
       desc: "Optional string that can be useful in analytics to understand where and how this purchase was made.",
     },
+    day_statement_id: {
+      type: "integer",
+      desc: "id of the daily statement that includes this purchase",
+    },
+    month_statement_id: {
+      type: "integer",
+      desc: "id of the monthly statement that includes this purchase",
+    },
     notes: NOTES, // for admins to make notes about this purchase
   },
   rules: {

@@ -122,3 +122,29 @@ Table({
   },
   fields: schema.statements.fields,
 });
+
+/*
+NOTES
+
+What's a statement?
+
+- id - numerical
+- account_id -- of the user
+- time -- when statement created; will be midnight UTC for a given day.
+- balance -- current running balance up to exact time of statement, which is by definition sum of all purchase costs ever
+- total_charges -- sum of debits during the statement period (a non-positive number)
+- num_charges
+- total_credits -- sum of the credits during the statement period (a non-negative number)
+- num_credits
+
+A statement contains by definition every transaction with time &lt;= created that is not on some existing monthly or daily statement.  
+
+We make the statement by doing a query for every purchase with timestamp <== cutoff time and daily_statement_id (or monthly_statement_id) not set.  This ensures that even if a statement were somehow missed one day, it would be included the next day. 
+
+- compute total_charges/num_charges and total_credits/num_credits directly via a query
+- compute balance from total_charges, total_credits and the balance number off the previous statement (if there is one).
+
+The transactions that correspond to a statement are in the database and can be queried easily.
+
+We make statements for each account for which there is at least one purchase that isn't associated to a statement.  Thus if there is no statement at a point in time for a given account, then there shouldn't be any purchases.
+*/
