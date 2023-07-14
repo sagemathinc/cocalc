@@ -15,6 +15,9 @@ export interface Statement {
   num_charges: number;
   total_credits: number;
   num_credits: number;
+  // If this statement has been paid, this is the purchase_id of the credit that paid it.
+  // A payment is required exactly if the balance is negative.
+  paid_purchase_id?: number;
 }
 
 Table({
@@ -61,6 +64,11 @@ Table({
     num_credits: {
       title: "Number of Credits",
       desc: "The number of negative charges for purchases that are part of this statement",
+      type: "integer",
+    },
+    paid_purchase_id: {
+      title: "Paid -- purchase id",
+      desc: "Id of the purchase that paid off the balance.",
       type: "integer",
     },
     notes: NOTES, // for admins to make notes about this statement
@@ -159,6 +167,3 @@ but who knows - maybe there is a bug or a clock is off in the database (?)), the
 two valid statements with the same date. There's no overlap between them in terms of the numbers or counts,
 and they just represent different purchases. 
 */
-
-
-

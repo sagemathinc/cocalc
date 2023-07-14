@@ -41,12 +41,18 @@ export default function Statements({
   }, []);
 
   const columns = [
-    { title: "ID", dataIndex: "id", key: "id" },
     {
-      title: "Cutoff Time",
+      title: "Date",
       dataIndex: "time",
       key: "time",
       render: (time) => <TimeAgo date={time} />,
+    },
+    {
+      title: "Balance",
+      dataIndex: "balance",
+      key: "balance",
+      align: "right" as "right",
+      render: (balance) => currency(balance, 2),
     },
     {
       title: "Total Charges",
@@ -74,13 +80,7 @@ export default function Statements({
       dataIndex: "num_credits",
       key: "num_credits",
     },
-    {
-      title: "Balance",
-      dataIndex: "balance",
-      key: "balance",
-      align: "right" as "right",
-      render: (balance) => currency(balance, 2),
-    },
+    { title: "ID", dataIndex: "id", key: "id" },
   ];
 
   if (loading) {

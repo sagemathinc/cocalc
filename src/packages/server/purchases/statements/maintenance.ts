@@ -69,7 +69,7 @@ const lastCalled = new LRU<string, true>({
   max: 1000,
 });
 
-async function createStatements({
+export async function createStatements({
   time, // must be in the past
   interval,
 }: {
@@ -134,10 +134,10 @@ async function createStatements({
         total_credits: 0,
         num_credits: 0,
       };
+      const total = userCharges.total_charges + userCredits.total_credits;
       const balance =
-        (await getLastStatementBalance(account_id, time, client, interval)) +
-        userCharges.total_charges +
-        userCredits.total_credits;
+        (await getLastStatementBalance(account_id, time, client, interval)) -
+        total;
       statements.push({
         account_id,
         ...userCharges,
