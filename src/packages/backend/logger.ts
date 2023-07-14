@@ -17,23 +17,37 @@ import { format } from "util";
 import { dirname, join } from "path";
 import { logs } from "./data";
 
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
+
+const COCALC = debug("cocalc");
 
 function trimLogFileSize(logFilePath: string) {
   const stats = statSync(logFilePath);
+  DEBUGGERS.debug(
+    "logger - trimLogFileSize",
+    logFilePath,
+    stats.size,
+    MAX_FILE_SIZE_BYTES
+  );
   if (stats.size > MAX_FILE_SIZE_BYTES) {
+    DEBUGGERS.debug("logger - trimLogFileSize", "trimming", logFilePath);
     const fileStream = createWriteStream(logFilePath, { flags: "r+" });
-    ftruncate((fileStream as any).fd, MAX_FILE_SIZE_BYTES, (truncateErr) => {
-      if (truncateErr) {
-        console.error(truncateErr);
-        return;
-      }
-      fileStream.close();
+    fileStream.on("open", (fd) => {
+      DEBUGGERS.debug(
+        "logger - trimLogFileSize",
+        "calling ftruncate on fd=",
+        fd
+      );
+      ftruncate(fd, MAX_FILE_SIZE_BYTES, (truncateErr) => {
+        if (truncateErr) {
+          console.error(truncateErr);
+          return;
+        }
+        fileStream.close();
+      });
     });
   }
 }
-
-const COCALC = debug("cocalc");
 
 function myFormat(...args): string {
   if (args.length > 1 && typeof args[0] == "string" && !args[0].includes("%")) {
@@ -95,6 +109,10 @@ function initTransports() {
     setInterval(() => {
       trimLogFileSize(file);
     }, 3 * 60 * 1000);
+    // and now.
+    setTimeout(() => {
+      trimLogFileSize(file);
+    }, 1000);
   }
   let firstLog: boolean = true;
   COCALC.log = (...args) => {
