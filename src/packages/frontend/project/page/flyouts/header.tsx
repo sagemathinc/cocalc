@@ -7,13 +7,13 @@ import { Tooltip } from "antd";
 
 import { Icon } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
+import { useProjectContext } from "../../context";
 import { PathNavigator } from "../../explorer/path-navigator";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../vertical-fixed-tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log";
-import { useProjectContext } from "../../context";
 
 interface Props {
   flyoutWidth: number;
@@ -45,16 +45,13 @@ export function FlyoutHeader(_: Readonly<Props>) {
 
   function closeBtn() {
     return (
-      <Tooltip title="Hide this action panel" placement="bottom">
+      <Tooltip title="Hide this panel" placement="bottom">
         <Icon
-          name="vertical-right-outlined"
+          name="times"
           className="cc-project-fixedtab-close"
           style={{
-            flex: "0",
-            float: "right",
+            marginRight: FLYOUT_PADDING,
             padding: FLYOUT_PADDING,
-            borderRadius: "2px",
-            margin: "0",
           }}
           onClick={() => actions?.toggleFlyout(flyout)}
         />
@@ -113,6 +110,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
       style={{
         display: "flex",
         flexDirection: "row",
+        alignItems: "start",
         borderRight: FIX_BORDER,
         borderTop: FIX_BORDER,
         borderLeft: FIX_BORDER,

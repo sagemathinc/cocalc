@@ -59,6 +59,7 @@ import {
 } from "./project_configuration";
 import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
 import { webapp_client } from "./webapp-client";
+import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
 const { defaults, required } = misc;
 
 const BAD_FILENAME_CHARACTERS = "\\";
@@ -376,10 +377,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       let next_active_tab: string | undefined = undefined;
       if (size === 1) {
         const account_store = this.redux.getStore("account") as any;
-        const flyoutsDefault = account_store?.getIn(
-          ["other_settings", "flyouts_default"],
-          false
-        );
+        const vbar = account_store?.getIn(["other_settings", VBAR_KEY]);
+        const flyoutsDefault = getValidVBAROption(vbar) === "flyout";
         next_active_tab = flyoutsDefault ? "home" : "files";
       } else {
         let path: string | undefined;
@@ -1224,8 +1223,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (show_files) {
           this.set_active_tab("files", {
             update_file_listing: false,
-            change_history: change_history,
+            change_history: false, // see "if" below
           });
+        }
+        if (change_history) {
+          // i.e. regardless of show_files is true or false, we might want to record this in the history
+          this.set_url_to_path(store.get("current_path") ?? "", "");
         }
         this.set_all_files_unchecked();
       }

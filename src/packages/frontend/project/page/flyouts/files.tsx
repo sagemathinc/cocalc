@@ -14,6 +14,7 @@ import {
   React,
   TypedMap,
   redux,
+  useCallback,
   useEffect,
   useIsMountedRef,
   useLayoutEffect,
@@ -127,6 +128,7 @@ export function FilesFlyout({
     { project_id },
     "active_file_sort"
   );
+  const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
   const hidden = useTypedRedux({ project_id }, "show_hidden");
   const kucalc = useTypedRedux("customize", "kucalc");
   const show_masked = useTypedRedux({ project_id }, "show_masked");
@@ -204,13 +206,13 @@ export function FilesFlyout({
     const files: DirectoryListing = filesStore.toJS();
     let activeFile: DirectoryListingEntry | null = null;
     compute_file_masks(files);
-    const searchWords = search_split(search.trim().toLowerCase());
+    const searchWords = search_split(file_search.trim().toLowerCase());
 
     const procFiles = files
       .filter((file: DirectoryListingEntry) => {
         file.name ??= ""; // sanitization
 
-        if (search === "") return true;
+        if (file_search === "") return true;
         const fName = file.name.toLowerCase();
         return (
           search_match(fName, searchWords) ||
@@ -291,7 +293,7 @@ export function FilesFlyout({
     directoryListings,
     activeFileSort,
     hidden,
-    search,
+    file_search,
     openFiles,
     show_masked,
     current_path,
@@ -343,6 +345,37 @@ export function FilesFlyout({
       flyoutWidth > FLYOUT_EXTRA2_WIDTH_PX,
     ];
   }, [flyoutWidth]);
+
+  const setSearchState = debounce(
+    (val: string) => {
+      actions?.set_file_search(val);
+    },
+    50,
+    { leading: false, trailing: true }
+  );
+
+  const handleSearchChange = (val: string) => {
+    setScrollIdx(null);
+    setSearch(val);
+    setSearchState(val);
+  };
+
+  // this was necessary to avoid some flicker, when the search change triggers the effect below
+  const updateSearch = useCallback(
+    debounce(
+      () => {
+        if (search === file_search) return;
+        setScrollIdx(null);
+        setSearch(file_search);
+      },
+      50,
+      { leading: false, trailing: true }
+    ),
+    []
+  );
+
+  // incoming search state change
+  useEffect(updateSearch, [file_search]);
 
   // *** END HOOKS ***
 
@@ -548,8 +581,7 @@ export function FilesFlyout({
 
     // if esc key is pressed, clear search and reset scroll index
     else if (e.key === "Escape") {
-      setSearch("");
-      setScrollIdx(null);
+      handleSearchChange("");
     }
   }
 
@@ -769,7 +801,7 @@ export function FilesFlyout({
             size="small"
             value={search}
             onKeyDown={filterKeyHandler}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             onFocus={() => setScrollIdxHide(false)}
             onBlur={() => setScrollIdxHide(true)}
             style={{ flex: "1" }}

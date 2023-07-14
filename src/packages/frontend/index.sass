@@ -426,8 +426,13 @@ details summary
 div.cc-project-fixedtab:hover
   background-color: $COL_GRAY_LL
 
-span.cc-project-fixedtab-close:hover
-  background-color: $COL_GRAY_L0
+span.cc-project-fixedtab-close
+  flex: 0
+  float: right
+  font-size: 12px  // same as Antd closable tabs
+  color: $COL_GRAY
+  &:hover
+    background-color: $COL_GRAY_L0
 
 span.cc-project-fixedtab-drag:hover
   background-color: $COL_GRAY_L0
