@@ -1,5 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
+import LRU from "lru-cache";
 
 const logger = getLogger("purchase:closing-date");
 
@@ -45,8 +46,16 @@ export async function getNextClosingDate(account_id: string): Promise<Date> {
 }
 
 // Get the closing day for this account.  If not set, we set it to a few days ago.
+// Safe to call frequently; only does work the first time (per hour).
+const closingDateCache = new LRU<string, number>({
+  ttl: 1000 * 60 * 60,
+  max: 10000,
+});
 export async function getClosingDay(account_id: string): Promise<number> {
-  const pool = getPool("medium");
+  if (closingDateCache.has(account_id)) {
+    return closingDateCache.get(account_id) as number;
+  }
+  const pool = getPool();
   let closingDay: number;
 
   try {
@@ -70,7 +79,7 @@ export async function getClosingDay(account_id: string): Promise<number> {
     logger.error(`Error getting closing day: ${e.message}`);
     throw e;
   }
-
+  closingDateCache.set(account_id, closingDay);
   return closingDay;
 }
 

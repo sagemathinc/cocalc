@@ -2,6 +2,7 @@ import getPool, { PoolClient } from "@cocalc/database/pool";
 import type { Description } from "@cocalc/util/db-schema/purchases";
 import getLogger from "@cocalc/backend/logger";
 import { Service } from "@cocalc/util/db-schema/purchase-quotas";
+import { getClosingDay } from "./closing-date";
 
 const logger = getLogger("purchase:create-purchase");
 
@@ -61,5 +62,12 @@ export default async function createPurchase(opts: Options): Promise<number> {
   );
   const { id } = rows[0];
   logger.debug("Created new purchase", "id=", id, "opts = ", opts);
+  ensureClosingDateDefined(account_id);
   return id;
+}
+
+async function ensureClosingDateDefined(account_id: string) {
+  try {
+    await getClosingDay(account_id);
+  } catch (_) {}
 }
