@@ -11,18 +11,92 @@ rewrite this to scale better.
 import { getTransactionClient } from "@cocalc/database/pool";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
 import multiInsert from "@cocalc/database/pool/multi-insert";
+import getLogger from "@cocalc/backend/logger";
+import LRU from "lru-cache";
 
-export default async function maintenance({
-  time,
+const logger = getLogger("purchases:statements-maintenance");
+
+// The default expore -- statementMaintenance -- gets called automatically
+// every few minutes all day long.   It is responsible for ensuring that
+// the 'day' and 'month' statements get created.
+export default async function statementMaintenance() {
+  logger.debug("statementMaintenance -- updating statements");
+  try {
+    await createDayStatements();
+  } catch (err) {
+    logger.debug(`WARNING: Nonfatal error creating day statements -- ${err}`);
+  }
+  try {
+    await createMonthStatements();
+  } catch (err) {
+    logger.debug(`WARNING: Nonfatal error creating month statements -- ${err}`);
+  }
+}
+
+async function createDayStatements() {
+  await createStatements({ time: mostRecentMidnight(), interval: "day" });
+}
+
+async function createMonthStatements() {
+  await createStatements({ time: mostRecentMidnight(), interval: "month" });
+}
+
+function mostRecentMidnight(): Date {
+  const currentDate = new Date();
+  currentDate.setUTCHours(0, 0, 0, 0);
+  return currentDate;
+}
+
+/*
+createStatements -  Create the given type of statements for the given 
+cutoff time and interval.
+
+It should be safe to call this multiple times with the same input
+without causing any trouble. The first time it creates the statements,
+and the second time it finds that there are no purchases that aren't
+attached to a statement, so nothing further happens.
+Even if you called this twice at once it should be fine since everything
+is done in a transaction.
+
+That said, calling this within 4 hours of the last call is a no-op.
+
+The one thing that would be bad would be editing or deleting a purchase
+that has already had its statement_id set. **That should NEVER HAPPEN**,
+and being able to detect that may have happened is a big point of statements.
+*/
+const lastCalled = new LRU<string, true>({
+  ttl: 1000 * 3600 * 4, // once every 4 hours
+  max: 1000,
+});
+
+async function createStatements({
+  time, // must be in the past
   interval,
 }: {
   time: Date;
   interval: Interval;
 }) {
+  logger.debug("createStatements", { time, interval });
   if (time >= new Date()) {
     // because we are basically assuming no new purchases happen <= time.
     throw Error("time must be in the past");
   }
+  const key = `${time.toISOString()}-${interval}`;
+  if (lastCalled.has(key)) {
+    logger.debug(
+      "createStatements",
+      { time, interval },
+      "called within 4 hours, so no-op"
+    );
+    return;
+  } else {
+    logger.debug(
+      "createStatements",
+      { time, interval },
+      "not called recently, so ensuring all statements exist and are up to date"
+    );
+  }
+  lastCalled.set(key, true);
 
   // Absolutely critical to do everything in a single transaction, so that
   // we don't end up with a statement that is missing
@@ -32,16 +106,23 @@ export default async function maintenance({
 
   try {
     /*
-  For every purchase where `${interval}_statement_id` is null and purchase_time <= time, compute:
-     - total of charges, number of charges
-     - total of credits, number of credits
-  */
+    For every purchase where `${interval}_statement_id` is null and purchase_time <= time, compute:
+       - total of charges, number of charges
+       - total of credits, number of credits
+    */
     const charges = await getData(time, client, interval, "charges");
     const credits = await getData(time, client, interval, "credits");
     const accounts = new Set(Object.keys(charges));
     for (const account_id of Object.keys(credits)) {
       accounts.add(account_id);
     }
+    logger.debug(
+      "createStatements",
+      { time, interval },
+      " got purchases for ",
+      accounts.size,
+      " distinct accounts"
+    );
     const statements: Omit<Omit<Omit<Statement, "id">, "interval">, "time">[] =
       [];
     for (const account_id of accounts) {
@@ -65,6 +146,13 @@ export default async function maintenance({
       });
     }
     if (statements.length > 0) {
+      logger.debug(
+        "createStatements",
+        { time, interval },
+        " inserting ",
+        statements.length,
+        " statements into database"
+      );
       const { query, values } = multiInsert(
         "INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits) ",
         statements.map(
@@ -91,7 +179,7 @@ export default async function maintenance({
         query + " RETURNING id, account_id",
         values
       );
-      // Finally set the statement id's for all the purchases.
+      // Finally, set the statement id's for all the purchases.
       for (const { account_id, id } of rows) {
         await client.query(
           `UPDATE purchases SET ${interval}_statement_id=$1 WHERE account_id=$2 AND ${interval}_statement_id IS NULL AND time<=$3`,
@@ -115,13 +203,13 @@ function getQuery(
   type: "charges" | "credits"
 ): string {
   if (interval == "day") {
-    return `SELECT account_id, SUM(cost) AS total_${type}, count(*) AS num_${type} FROM purchases WHERE ${interval}_statement_id IS NULL AND time <= $1 AND cost ${
+    return `SELECT account_id, SUM(cost) AS total_${type}, count(*) AS num_${type} FROM purchases WHERE cost IS NOT NULL AND ${interval}_statement_id IS NULL AND time <= $1 AND cost ${
       type == "charges" ? " > 0" : "< 0"
     } GROUP BY account_id`;
   } else if (interval == "month") {
     // for interval = 'month' we need to add an additional where clause about the purchase_closing_day from the accounts table.
     const purchase_closing_day = time.getDate();
-    return `SELECT purchases.account_id AS account_id, SUM(purchases.cost) AS total_${type}, count(*) AS num_${type} FROM purchases, accounts WHERE purchases.account_id = accounts.account_id AND accounts.purchase_closing_day = ${purchase_closing_day} AND purchases.${interval}_statement_id IS NULL AND purchases.time <= $1 AND purchases.cost ${
+    return `SELECT purchases.account_id AS account_id, SUM(purchases.cost) AS total_${type}, count(*) AS num_${type} FROM purchases, accounts WHERE purchases.cost IS NOT NULL AND purchases.account_id = accounts.account_id AND accounts.purchase_closing_day = ${purchase_closing_day} AND purchases.${interval}_statement_id IS NULL AND purchases.time <= $1 AND purchases.cost ${
       type == "charges" ? " > 0" : "< 0"
     } GROUP BY purchases.account_id`;
   } else {

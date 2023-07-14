@@ -137,14 +137,28 @@ What's a statement?
 - total_credits -- sum of the credits during the statement period (a non-negative number)
 - num_credits
 
-A statement contains by definition every transaction with time &lt;= created that is not on some existing monthly or daily statement.  
+A statement contains by definition every transaction with time <= created that is not on some existing monthly or daily statement.  
 
-We make the statement by doing a query for every purchase with timestamp <== cutoff time and daily_statement_id (or monthly_statement_id) not set.  This ensures that even if a statement were somehow missed one day, it would be included the next day. 
+We make the statement by doing a query for every purchase with timestamp <= cutoff time and daily_statement_id (or monthly_statement_id) not set.  This ensures that even if a statement were somehow missed one day, it would be included the next day. 
 
 - compute total_charges/num_charges and total_credits/num_credits directly via a query
 - compute balance from total_charges, total_credits and the balance number off the previous statement (if there is one).
 
 The transactions that correspond to a statement are in the database and can be queried easily.
 
-We make statements for each account for which there is at least one purchase that isn't associated to a statement.  Thus if there is no statement at a point in time for a given account, then there shouldn't be any purchases.
+We make statements for each account for which there is at least one purchase that isn't associated to a statement. 
+Thus if there is no statement at a point in time for a given account, then there shouldn't be any purchases.
+
+For pay as you go purchases, the purchase isn't included in a statement until the cost is set (i.e., when
+the purchase is finalized).  So if the purchase starts on day 1 and ends on day 2, it goes on the day 2
+statement.
+
+IMPORTANT: I did NOT make the pair (account_id, time) in the statements table uniq.  If somehow a new
+purchase were created that was in the same time period as an existing statement (which should never happen,
+but who knows - maybe there is a bug or a clock is off in the database (?)), then we will end up with
+two valid statements with the same date. There's no overlap between them in terms of the numbers or counts,
+and they just represent different purchases. 
 */
+
+
+
