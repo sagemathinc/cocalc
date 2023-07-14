@@ -59,6 +59,7 @@ import "./shopping-cart-items";
 import "./site-licenses";
 import "./site-settings";
 import "./site-whitelabeling";
+import "./statements";
 import "./stats";
 import "./storage-servers";
 import "./subscriptions";
