@@ -194,6 +194,10 @@ export class ArchiveActions extends Actions<State> {
       loading: false,
     });
   }
+
+  public getTopBarActions() {
+    return [];
+  }
 }
 
 // TODO: change ext below to use keys(COMMANDS).  We don't now, since there are a

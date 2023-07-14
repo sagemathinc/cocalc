@@ -1519,6 +1519,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   public getTopBarActions(): TopBarActions {
     return [
       {
+        priority: 10,
         label: "Build",
         icon: "play-circle",
         action: () => this.force_build(),

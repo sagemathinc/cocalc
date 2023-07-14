@@ -31,11 +31,11 @@ export type ChatState =
 interface Props {
   project_id: string;
   path: string;
-  compact?: boolean;
+  compact?: boolean; // if set, label is controlled externally
   chatState?: ChatState;
 }
 
-export function ChatButton({ project_id, path, compact = false }: Props) {
+export function ChatButton({ project_id, path, compact }: Props) {
   const openFileInfo = useTypedRedux({ project_id }, "open_files");
   const fileUse = useTypedRedux("file_use", "file_use");
   const chatState = openFileInfo.getIn([path, "chatState"]) as ChatState;
@@ -68,12 +68,11 @@ export function ChatButton({ project_id, path, compact = false }: Props) {
   }
 
   function renderLabel() {
-    if (compact) return;
-    return (
-      <HiddenXS>
-        <span style={{ marginLeft: "5px" }}>Chat</span>
-      </HiddenXS>
-    );
+    const label = <span style={{ marginLeft: "5px" }}>Chat</span>;
+    if (typeof compact === "boolean") {
+      return compact ? null : label;
+    }
+    return <HiddenXS>{label}</HiddenXS>;
   }
 
   return (
@@ -89,7 +88,7 @@ export function ChatButton({ project_id, path, compact = false }: Props) {
     >
       <Button
         active={!!chatState}
-        bsStyle={isNewChat ? "danger" : "ghost"}
+        bsStyle={isNewChat ? "danger" : "default"}
         className={isNewChat ? "smc-chat-notification" : undefined}
         onClick={toggleChat}
       >

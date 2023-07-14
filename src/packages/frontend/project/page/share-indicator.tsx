@@ -7,17 +7,18 @@
 Indicator about whether or not file or path is publicly shared.
 */
 
-import { Button } from "antd";
-import { containing_public_path } from "@cocalc/util/misc";
+import { Button, Tooltip } from "antd";
+
 import {
+  CSS,
   React,
   redux,
   useMemo,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading } from "@cocalc/frontend/components";
+import { HiddenXSSM, Icon, Loading } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { HiddenXSSM } from "@cocalc/frontend/components";
+import { containing_public_path } from "@cocalc/util/misc";
 
 const SHARE_INDICATOR_STYLE = {
   fontSize: "14pt",
@@ -31,11 +32,12 @@ const SHARE_INDICATOR_STYLE = {
 interface Props {
   project_id: string;
   path: string;
-  compact?: boolean;
+  compact?: boolean; // if set, label is controlled externally
+  style?: CSS;
 }
 
 export const ShareIndicator: React.FC<Props> = React.memo(
-  ({ project_id, path, compact = false }) => {
+  ({ project_id, path, compact, style }) => {
     const public_paths = useTypedRedux({ project_id }, "public_paths");
 
     const student_project_functionality =
@@ -60,28 +62,38 @@ export const ShareIndicator: React.FC<Props> = React.memo(
       return <Loading />;
     }
 
+    function tooltipTitle() {
+      if (is_public) {
+        return "This file is publicly shared.";
+      } else {
+        return "This file is only visible to project collaborators.";
+      }
+    }
+
     function renderLabel() {
-      if (compact) return;
-      return (
-        <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
-          {is_public ? "Published" : "Publish"}
-        </HiddenXSSM>
-      );
+      const style: CSS = { fontSize: "10.5pt", marginLeft: "5px" };
+      const label = is_public ? "Published" : "Publish";
+      if (typeof compact === "boolean") {
+        return compact ? null : <span style={style}>{label}</span>;
+      }
+      return <HiddenXSSM style={style}>{label}</HiddenXSSM>;
     }
 
     return (
-      <div style={SHARE_INDICATOR_STYLE}>
-        <Button
-          onClick={() => {
-            redux.getProjectActions(project_id).show_file_action_panel({
-              path,
-              action: "share",
-            });
-          }}
-        >
-          <Icon name={is_public ? "bullhorn" : "lock"} />
-          {renderLabel()}
-        </Button>
+      <div style={{ ...SHARE_INDICATOR_STYLE, ...style }}>
+        <Tooltip title={tooltipTitle()} placement="bottom">
+          <Button
+            onClick={() => {
+              redux.getProjectActions(project_id).show_file_action_panel({
+                path,
+                action: "share",
+              });
+            }}
+          >
+            <Icon name={is_public ? "bullhorn" : "lock"} />
+            {renderLabel()}
+          </Button>
+        </Tooltip>
       </div>
     );
   }

@@ -8,6 +8,7 @@ import { IconName } from "@cocalc/frontend/components";
 
 interface TopBarAction {
   label: string;
+  priority?: number; // default 0
   icon: IconName;
   action?: (any) => any; // captures a static action
   getAction?: (

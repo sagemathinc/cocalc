@@ -3,29 +3,27 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// CoCalc libraries
+import { Actions, TypedMap } from "@cocalc/frontend/app-framework";
+import { TopBarActions } from "@cocalc/frontend/project/page/types";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
-import { SyncDBRecord } from "./types";
-// Course Library
-import {
-  CourseState,
-  CourseStore,
-  AssignmentRecord,
-  StudentRecord,
-  HandoutRecord,
-} from "./store";
-import { SharedProjectActions } from "./shared-project/actions";
+import { bind_methods } from "@cocalc/util/misc";
+import { ProjectsStore } from "../projects/store";
 import { ActivityActions } from "./activity/actions";
-import { StudentsActions } from "./students/actions";
-import { StudentProjectsActions } from "./student-projects/actions";
 import { AssignmentsActions } from "./assignments/actions";
-import { HandoutsActions } from "./handouts/actions";
 import { ConfigurationActions } from "./configuration/actions";
 import { ExportActions } from "./export/actions";
-import { ProjectsStore } from "../projects/store";
-import { bind_methods } from "@cocalc/util/misc";
-// React libraries
-import { Actions, TypedMap } from "../app-framework";
+import { HandoutsActions } from "./handouts/actions";
+import { SharedProjectActions } from "./shared-project/actions";
+import {
+  AssignmentRecord,
+  CourseState,
+  CourseStore,
+  HandoutRecord,
+  StudentRecord,
+} from "./store";
+import { StudentProjectsActions } from "./student-projects/actions";
+import { StudentsActions } from "./students/actions";
+import { SyncDBRecord } from "./types";
 
 export const primary_key = {
   students: "student_id",
@@ -369,5 +367,9 @@ export class CourseActions extends Actions<CourseState> {
       }
     }
     this.setState({ [field_name]: adjusted });
+  }
+
+  public getTopBarActions(): TopBarActions {
+    return [];
   }
 }

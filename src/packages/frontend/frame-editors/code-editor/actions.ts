@@ -2948,6 +2948,7 @@ export class Actions<
   public getTopBarActions(): TopBarActions {
     return [
       {
+        priority: 10,
         label: "Format",
         icon: FORMAT_SOURCE_ICON,
         getAction: () => {

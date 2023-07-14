@@ -31,7 +31,7 @@ export function TopTabBar() {
       style={{
         width: "100%",
         height: "40px",
-        padding: "2.5px",
+        padding: "2.5px 0 0 0" /* TODO: that 2.5px looks like a hack */,
         overflow: "hidden",
       }}
     >

@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import type { AppRedux } from "./types";
 import { bind_methods } from "@cocalc/util/misc";
+import type { AppRedux } from "./types";
 
 // NOTE: it is intentional that there is no get method.  Instead, get data
 // from stores.  The table will set stores (via creating actions) as
@@ -36,7 +36,9 @@ export class Actions<T> {
   };
 
   destroy = (): void => {
-    if (this.redux == null) { return; }
+    if (this.redux == null) {
+      return;
+    }
     // On the share server this.redux can be undefined at this point.
     this.redux.removeActions(this.name);
   };

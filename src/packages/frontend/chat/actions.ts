@@ -18,6 +18,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import type { Model } from "@cocalc/util/db-schema/openai";
 import { cmp, parse_hashtags } from "@cocalc/util/misc";
+import { TopBarActions } from "../project/page/types";
 import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
@@ -657,6 +658,10 @@ export class ChatActions extends Actions<ChatState> {
       date,
     });
     this.processChatGPT(message, undefined, "regenerate");
+  }
+
+  public getTopBarActions(): TopBarActions {
+    return [];
   }
 }
 
