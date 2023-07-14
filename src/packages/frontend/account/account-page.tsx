@@ -28,6 +28,7 @@ import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
 import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
+import StatementsPage from "@cocalc/frontend/purchases/statements-page";
 
 export const AccountPage: React.FC = () => {
   const active_page = useTypedRedux("account", "active_page");
@@ -113,7 +114,7 @@ export const AccountPage: React.FC = () => {
       key: "account",
       label: (
         <span>
-          <Icon name="wrench" /> Account Preferences
+          <Icon name="wrench" /> Preferences
         </span>
       ),
       children: (active_page == null || active_page === "account") && (
@@ -147,6 +148,15 @@ export const AccountPage: React.FC = () => {
           </span>
         ),
         children: active_page === "subscriptions" && <SubscriptionsPage />,
+      });
+      items.push({
+        key: "statements",
+        label: (
+          <span>
+            <Icon name="money" /> Statements
+          </span>
+        ),
+        children: active_page === "statements" && <StatementsPage />,
       });
     }
 

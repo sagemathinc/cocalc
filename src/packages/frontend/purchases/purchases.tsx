@@ -31,7 +31,7 @@ import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import Refresh from "@cocalc/frontend/components/refresh";
 import ShowError from "@cocalc/frontend/components/error";
 
-const DEFAULT_LIMIT = 50;
+const DEFAULT_LIMIT = 150;
 
 interface Props {
   project_id?: string; // if given, restrict to only purchases that are for things in this project
@@ -80,23 +80,17 @@ function Purchases0({
         </>
       }
     >
-      <Next
-        style={{ float: "right", fontSize: "11pt" }}
-        href={"billing/receipts"}
-      >
-        <Button type="link" style={{ float: "right" }}>
-          <Icon name="external-link" /> Receipts
-        </Button>
-      </Next>
-      <Checkbox checked={group} onChange={(e) => setGroup(e.target.checked)}>
-        Group transactions
-      </Checkbox>
-      <Checkbox
-        checked={thisMonth}
-        onChange={(e) => setThisMonth(e.target.checked)}
-      >
-        Current billing month
-      </Checkbox>
+      <div style={{ float: "right" }}>
+        <Checkbox checked={group} onChange={(e) => setGroup(e.target.checked)}>
+          Group transactions
+        </Checkbox>
+        <Checkbox
+          checked={thisMonth}
+          onChange={(e) => setThisMonth(e.target.checked)}
+        >
+          Current billing month
+        </Checkbox>
+      </div>
       <PurchasesTable
         project_id={project_id}
         group={group}
@@ -118,10 +112,12 @@ export function PurchasesTable({
   month_statement_id,
   showTotal,
   showRefresh,
+  style,
 }: Props & {
   thisMonth?: boolean;
   showTotal?: boolean;
   showRefresh?: boolean;
+  style?: CSSProperties;
 }) {
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
   const [groupedPurchases, setGroupedPurchases] = useState<
@@ -176,7 +172,7 @@ export function PurchasesTable({
   }, [limit, offset, group, service, project_id, thisMonth]);
 
   return (
-    <div>
+    <div style={style}>
       {showRefresh && <Refresh refresh={getPurchases} />}
       <ShowError error={error} setError={setError} />
       <div
@@ -248,6 +244,7 @@ function GroupedPurchaseTable({ purchases }) {
               title: "Amount (USD)",
               dataIndex: "sum",
               key: "sum",
+              align: "right" as "right",
               render: (amount) =>
                 currency(amount, Math.abs(amount) < 0.1 ? 3 : 2),
               sorter: (a: any, b: any) => (a.sum ?? 0) - (b.sum ?? 0),
@@ -293,9 +290,13 @@ function DetailedPurchaseTable({ purchases }) {
           rowKey="id"
           columns={[
             {
-              title: "Id",
-              dataIndex: "id",
-              key: "id",
+              title: "Description",
+              dataIndex: "description",
+              key: "description",
+              width: "35%",
+              render: (_, record) => (
+                <Description description={record.description} />
+              ),
             },
             {
               title: "Time",
@@ -351,6 +352,7 @@ function DetailedPurchaseTable({ purchases }) {
             },
             {
               title: "Amount (USD)",
+              align: "right" as "right",
               dataIndex: "cost",
               key: "cost",
               render: (amount, record) => {
@@ -377,16 +379,6 @@ function DetailedPurchaseTable({ purchases }) {
               sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
               sortDirections: ["ascend", "descend"],
             },
-
-            {
-              title: "Description",
-              dataIndex: "description",
-              key: "description",
-              width: 250,
-              render: (_, record) => (
-                <Description description={record.description} />
-              ),
-            },
             {
               title: "Project",
               dataIndex: "project_id",
@@ -396,6 +388,12 @@ function DetailedPurchaseTable({ purchases }) {
                   <ProjectTitle project_id={project_id} trunc={20} />
                 ) : null,
             },
+            {
+              title: "Id",
+              dataIndex: "id",
+              key: "id",
+            },
+
             {
               title: "Invoice",
               dataIndex: "invoice_id",

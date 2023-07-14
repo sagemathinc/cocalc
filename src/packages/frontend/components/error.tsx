@@ -3,7 +3,7 @@ import { CSSProperties } from "react";
 
 interface Props {
   error: any;
-  setError: (error: any) => void;
+  setError?: (error: any) => void;
   style?: CSSProperties;
 }
 export default function ShowError({ error, setError, style }: Props) {
@@ -15,8 +15,8 @@ export default function ShowError({ error, setError, style }: Props) {
       message="Error"
       type="error"
       description={`${error}`}
-      onClose={() => setError("")}
-      closable
+      onClose={() => setError?.("")}
+      closable={setError != null}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { Spin, Table } from "antd";
+import { Alert, Spin, Table } from "antd";
 import ShowError from "@cocalc/frontend/components/error";
 import Refresh from "@cocalc/frontend/components/refresh";
 import { getStatements } from "./api";
@@ -10,9 +10,17 @@ import { PurchasesTable } from "./purchases";
 
 interface Props {
   interval: Interval;
+  limit?: number;
+  noRefresh?: boolean;
+  defaultExpandAllRows?: boolean;
 }
 
-export default function Statements({ interval }: Props) {
+export default function Statements({
+  interval,
+  limit,
+  noRefresh,
+  defaultExpandAllRows,
+}: Props) {
   const [statements, setStatements] = useState<Statement[] | null>(null);
   const [error, setError] = useState<any>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -20,7 +28,7 @@ export default function Statements({ interval }: Props) {
   const refresh = async () => {
     try {
       setLoading(true);
-      setStatements(await getStatements({ interval }));
+      setStatements(await getStatements({ interval, limit }));
     } catch (err) {
       setError(err);
     } finally {
@@ -80,18 +88,21 @@ export default function Statements({ interval }: Props) {
   }
   return (
     <div style={{ minHeight: "50px" }}>
-      <Refresh
-        refresh={refresh}
-        style={{ float: "right", marginBottom: "8px", marginLeft: "15px" }}
-      />
+      {!noRefresh && (
+        <Refresh
+          refresh={refresh}
+          style={{ float: "right", marginBottom: "8px", marginLeft: "15px" }}
+        />
+      )}
       <ShowError error={error} setError={setError} />
-      {statements != null && (
+      {statements != null && statements?.length > 0 && (
         <Table
           rowKey="id"
           style={{ marginTop: "8px" }}
           dataSource={statements}
           columns={columns}
           pagination={{ hideOnSinglePage: true, defaultPageSize: 30 }}
+          defaultExpandAllRows={defaultExpandAllRows}
           expandable={{
             expandedRowRender: (record) => {
               return (
@@ -104,6 +115,14 @@ export default function Statements({ interval }: Props) {
               );
             },
           }}
+        />
+      )}
+      {statements?.length == 0 && (
+        <Alert
+          style={{ maxWidth: "500px", margin: "auto", padding: "30px" }}
+          type="info"
+          message="You do not have any statements yet."
+          showIcon
         />
       )}
     </div>
