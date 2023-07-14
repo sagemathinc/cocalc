@@ -4,6 +4,8 @@ import Purchases from "./purchases";
 import AccountStatus from "./account-status";
 import Quotas from "./all-quotas-config";
 import CostBarChart from "./cost-bar-chart";
+import Statements from "./statements";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 type Key = string[] | string | number[] | number;
 
@@ -24,14 +26,47 @@ export default function PurchasesPage() {
       >
         <Collapse.Panel
           key="transactions"
-          header="Transactions: Every Purchase and Credit"
+          header=<>
+            <Icon name="credit-card" style={{ marginRight: "8px" }} />{" "}
+            Transactions: Every Purchase and Credit
+          </>
         >
           <Purchases />
         </Collapse.Panel>
-        <Collapse.Panel key="limits" header="Self-Imposed Spending Limits">
+        <Collapse.Panel
+          key="limits"
+          header=<>
+            <Icon name="ColumnHeightOutlined" style={{ marginRight: "8px" }} />{" "}
+            Self-Imposed Spending Limits
+          </>
+        >
           <Quotas />
         </Collapse.Panel>
-        <Collapse.Panel key="spend" header="Spending Plots">
+        <Collapse.Panel
+          key="monthly-statements"
+          header=<>
+            <Icon name="calendar-check" style={{ marginRight: "8px" }} />
+            Monthly Statements
+          </>
+        >
+          <Statements interval="month" />
+        </Collapse.Panel>
+        <Collapse.Panel
+          key="daily-statements"
+          header=<>
+            <Icon name="calendar-week" style={{ marginRight: "8px" }} />
+            Daily Statements
+          </>
+        >
+          <Statements interval="day" />
+        </Collapse.Panel>
+        <Collapse.Panel
+          key="spend"
+          header=<>
+            <Icon name="graph" style={{ marginRight: "8px" }} />
+            Spending Plots
+          </>
+        >
           <CostBarChart />
         </Collapse.Panel>
       </Collapse>
