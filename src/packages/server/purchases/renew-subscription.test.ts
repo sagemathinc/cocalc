@@ -105,11 +105,6 @@ describe("test renewing a license", () => {
       [{ account_id, metadata, cost, interval, current_period_end }]
     );
     pool.mock(
-      "SELECT COUNT(*)::INT AS count FROM site_licenses WHERE id=$1 AND $2=ANY(managers)",
-      [license_id, account_id],
-      [{ count: 1 }]
-    );
-    pool.mock(
       "SELECT info->'purchased' as info, activates, expires FROM site_licenses WHERE id=$1",
       [license_id],
       [

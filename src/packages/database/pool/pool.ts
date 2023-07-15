@@ -46,6 +46,9 @@ export default function getPool(cacheLength?: Length): Pool {
 }
 
 export async function getTransactionClient(): Promise<PoolClient> {
+  if (mockPool != null) {
+    return mockPool as unknown as PoolClient;
+  }
   const pool = await getPool();
   const client = await pool.connect();
   try {
@@ -59,6 +62,9 @@ export async function getTransactionClient(): Promise<PoolClient> {
 }
 
 export function getClient(): Client {
+  if (mockPool != null) {
+    return mockPool as unknown as Client;
+  }
   return new Client({ password: dbPassword(), user, host, database });
 }
 
@@ -90,6 +96,9 @@ class MockPool {
   }
 
   query(query: string, params?: any[]): { rows: any[] } {
+    if (query == "BEGIN" || query == "COMMIT" || query == "ROLLBACK") {
+      return { rows: [] };
+    }
     const key = this.key(query, params);
     const rows = this.mocked[key];
     this.used.add(key);
@@ -100,6 +109,10 @@ class MockPool {
     }
     // console.log({ query, params, rows });
     return { rows };
+  }
+  
+  release() {
+    
   }
 }
 

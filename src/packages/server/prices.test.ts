@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// test produce ID and pricing
+// test product ID and pricing
 
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
 import type {
