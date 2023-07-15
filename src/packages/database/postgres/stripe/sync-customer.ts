@@ -52,7 +52,9 @@ export default async function syncCustomer({
   }
 
   // get customer data from stripe
-  let customer = await stripe.customers.retrieve(customer_id);
+  let customer = await stripe.customers.retrieve(customer_id, {
+    expand: ["sources"],
+  });
   if (customer.deleted) {
     // we don't delete customers -- this would be a weird situation. TODO
     log.debug("customer exists in stripe but is deleted");

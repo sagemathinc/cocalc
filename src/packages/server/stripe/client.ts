@@ -154,7 +154,9 @@ export class StripeClient {
       customer_id = await this.need_customer_id();
     }
     dbg("now getting stripe customer object");
-    return await (await getConn()).customers.retrieve(customer_id);
+    return await (
+      await getConn()
+    ).customers.retrieve(customer_id, { expand: ["sources"] });
   }
 
   public async handle_mesg(mesg: Message): Promise<void> {
