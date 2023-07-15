@@ -21,23 +21,13 @@ const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
 
 const COCALC = debug("cocalc");
 
-function trimLogFileSize(logFilePath: string) {
-  const stats = statSync(logFilePath);
-  DEBUGGERS.debug(
-    "logger - trimLogFileSize",
-    logFilePath,
-    stats.size,
-    MAX_FILE_SIZE_BYTES
-  );
+let _trimLogFileSizePath = "";
+export function trimLogFileSize() {
+  if (!_trimLogFileSizePath) return;
+  const stats = statSync(_trimLogFileSizePath);
   if (stats.size > MAX_FILE_SIZE_BYTES) {
-    DEBUGGERS.debug("logger - trimLogFileSize", "trimming", logFilePath);
-    const fileStream = createWriteStream(logFilePath, { flags: "r+" });
+    const fileStream = createWriteStream(_trimLogFileSizePath, { flags: "r+" });
     fileStream.on("open", (fd) => {
-      DEBUGGERS.debug(
-        "logger - trimLogFileSize",
-        "calling ftruncate on fd=",
-        fd
-      );
       ftruncate(fd, MAX_FILE_SIZE_BYTES, (truncateErr) => {
         if (truncateErr) {
           console.error(truncateErr);
@@ -105,14 +95,8 @@ function initTransports() {
     fileStream = createWriteStream(file, {
       flags: "a",
     });
-    // trim every 3 minutes
-    setInterval(() => {
-      trimLogFileSize(file);
-    }, 3 * 60 * 1000);
-    // and now.
-    setTimeout(() => {
-      trimLogFileSize(file);
-    }, 1000);
+    _trimLogFileSizePath = file;
+    trimLogFileSize();
   }
   let firstLog: boolean = true;
   COCALC.log = (...args) => {

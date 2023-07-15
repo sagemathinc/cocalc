@@ -36,7 +36,7 @@ import { init_passport } from "./auth";
 import { getClients } from "./clients";
 import { set_agent_endpoint } from "./health-checks";
 import { start as startHubRegister } from "./hub_register";
-import { getLogger } from "./logger";
+import { getLogger, trimLogFileSize } from "./logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
 import initHttpRedirect from "./servers/http-redirect";
@@ -289,6 +289,7 @@ async function startServer(): Promise<void> {
     // upgrades of projects.
     initPurchasesMaintenanceLoop();
     initSalesloftMaintenance();
+    setInterval(trimLogFileSize, 1000 * 60 * 3);
   }
 
   addErrorListeners(uncaught_exception_total);

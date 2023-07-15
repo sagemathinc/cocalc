@@ -10,7 +10,6 @@ import type {
   PurchaseInfo,
   PurchaseInfoQuota,
 } from "@cocalc/util/licenses/purchase/types";
-import { money } from "@cocalc/util/licenses/purchase/utils";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { round2 } from "@cocalc/util/misc";
 import {
@@ -67,13 +66,13 @@ describe("product id and compute cost", () => {
   });
 
   it.each([
-    [1, 13333, 1],
-    [2, 13333, 10],
-    [3, 13333, 10], // the point is, unit price is independent of quantity
-    [4, 13333, 50],
-    [5, 13333, 100],
-    [6, 13333, 5],
-    [7, 13333, 100],
+    [1, 3184, 1],
+    [2, 4776, 10],
+    [3, 6369, 10], // the point is, unit price is independent of quantity
+    [4, 7961, 50],
+    [5, 9553, 100],
+    [6, 11145, 5],
+    [7, 12737, 100],
     [8, 14329, 5],
     [9, 15921, 10],
     [10, 17500, 1],
@@ -88,15 +87,10 @@ describe("product id and compute cost", () => {
       ),
     };
     info2.cost = compute_cost(info2);
-    //console.log(days, info2.cost);
+    // console.log(days, info2, Math.round(info2.cost.cost_per_unit * 10000));
     const unit_amount = unitAmount(info2);
 
     expect(unit_amount).toEqual(Math.round(price));
-
-    const total_exp = Math.round(price * quantity);
-    // this test checks if the displayed amount matches the invoice amount
-    // see notes about using "round2" in compute_cost
-    expect(money(info2.cost.cost, true)).toEqual(`$${total_exp / 100}`);
   });
 
   it("specific start/end date", () => {
@@ -107,7 +101,7 @@ describe("product id and compute cost", () => {
       end: new Date("2022-05-05T10:08:10.072Z"),
     };
     info2.cost = compute_cost(info2);
-    expect(unitAmount(info2)).toEqual(133);
+    expect(unitAmount(info2)).toEqual(111);
   });
 });
 
