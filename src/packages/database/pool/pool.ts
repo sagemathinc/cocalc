@@ -4,6 +4,8 @@
  */
 
 import { Client, Pool, PoolClient } from "pg";
+import { newDb } from "pg-mem";
+import { syncSchema } from "@cocalc/database/postgres/schema";
 
 import {
   pgdatabase as database,
@@ -14,18 +16,17 @@ import { getLogger } from "@cocalc/backend/logger";
 import { STATEMENT_TIMEOUT_MS } from "../consts";
 import getCachedPool, { Length } from "./cached";
 import dbPassword from "./password";
-import json_stable from "json-stable-stringify";
 
 const L = getLogger("db:pool");
 
 export * from "./util";
 
 let pool: Pool | undefined = undefined;
-let mockPool: MockPool | undefined = undefined;
+let pgMem: any = undefined;
 
 export default function getPool(cacheLength?: Length): Pool {
-  if (mockPool != null) {
-    return mockPool as unknown as Pool;
+  if (pgMem != null) {
+    return new pgMem.Pool();
   }
   if (cacheLength != null) {
     return getCachedPool(cacheLength);
@@ -46,9 +47,6 @@ export default function getPool(cacheLength?: Length): Pool {
 }
 
 export async function getTransactionClient(): Promise<PoolClient> {
-  if (mockPool != null) {
-    return mockPool as unknown as PoolClient;
-  }
   const pool = await getPool();
   const client = await pool.connect();
   try {
@@ -62,63 +60,18 @@ export async function getTransactionClient(): Promise<PoolClient> {
 }
 
 export function getClient(): Client {
-  if (mockPool != null) {
-    return mockPool as unknown as Client;
+  if (pgMem != null) {
+    return new pgMem.Client();
   }
   return new Client({ password: dbPassword(), user, host, database });
 }
 
-class MockPool {
-  private mocked: { [key: string]: any[] } = {};
-  private used: Set<string> = new Set();
-
-  private key(query: string, params: any[] | undefined): string {
-    return json_stable({ query, params: params ?? [] });
-  }
-
-  mock(query: string, params: any[], rows: any[]) {
-    this.mocked[this.key(query, params)] = rows;
-  }
-
-  reset() {
-    this.mocked = {};
-    this.used = new Set();
-  }
-
-  getUnused(): string[] {
-    const unused: string[] = [];
-    for (const key in this.mocked) {
-      if (!this.used.has(key)) {
-        unused.push(key);
-      }
-    }
-    return unused;
-  }
-
-  query(query: string, params?: any[]): { rows: any[] } {
-    if (query == "BEGIN" || query == "COMMIT" || query == "ROLLBACK") {
-      return { rows: [] };
-    }
-    const key = this.key(query, params);
-    const rows = this.mocked[key];
-    this.used.add(key);
-    if (rows == null) {
-      throw Error(
-        `Add this:   pool.mock("${query}",${JSON.stringify(params)}, [])`
-      );
-    }
-    // console.log({ query, params, rows });
-    return { rows };
-  }
-  
-  release() {
-    
-  }
+export async function enablePgMem() {
+  if (pgMem != null) return;
+  pgMem = newDb().adapters.createPg();
+  await syncSchema();
 }
 
-export function getMockPool() {
-  if (mockPool == null) {
-    mockPool = new MockPool();
-  }
-  return mockPool;
+export function isPgMemEnabled() {
+  return pgMem != null;
 }
