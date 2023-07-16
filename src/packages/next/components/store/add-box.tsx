@@ -34,7 +34,6 @@ export function AddBox(props: Props) {
     noAccount,
   } = props;
   let disabled = props.disabled ?? false;
-
   // if any of the fields in cost that start with the string "cost" are NaN, disable submission:
   if (
     !cost ||

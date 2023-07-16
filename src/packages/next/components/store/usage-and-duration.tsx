@@ -3,16 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 import { isAcademic } from "@cocalc/util/misc";
 import { Subscription } from "@cocalc/util/licenses/purchase/types";
-import { endOfDay, startOfDay } from "@cocalc/util/stripe/timecalcs";
-import { DateRangeType } from "@cocalc/util/types/store";
 import { Divider, Form, Input, Radio, Space } from "antd";
-import A from "components/misc/A";
 import DateRange from "components/misc/date-range";
 import { ReactNode } from "react";
-import { useTimeFixer } from "./util";
 import useProfile from "lib/hooks/profile";
 
 interface Props {
@@ -39,8 +34,6 @@ export function UsageAndDuration(props: Props) {
   } = props;
 
   const profile = useProfile();
-
-  const { toServerTime } = useTimeFixer();
 
   function renderUsage() {
     if (!showUsage) return;
@@ -73,16 +66,6 @@ export function UsageAndDuration(props: Props) {
     );
   }
 
-  function fixRangeSelector(range: DateRangeType): DateRangeType {
-    // fixes the range to the start/end of day in the timezone of the user
-    const [start, end] = range;
-    const fixedStart =
-      start != null ? toServerTime(startOfDay(start)) : undefined;
-    let fixedEnd = end != null ? toServerTime(endOfDay(end)) : undefined;
-    const fixed: DateRangeType = [fixedStart, fixedEnd];
-    return fixed;
-  }
-
   function renderRangeSelector(getFieldValue) {
     const period = getFieldValue("period");
     if (period !== "range") return;
@@ -101,7 +84,6 @@ export function UsageAndDuration(props: Props) {
           style={{ margin: "5px 0 30px", textAlign: "center" }}
           initialValues={getFieldValue("range")}
           onChange={(range) => {
-            range = fixRangeSelector(range);
             form.setFieldsValue({ range });
             onChange();
           }}
@@ -123,10 +105,13 @@ export function UsageAndDuration(props: Props) {
     );
   }
 
-  function renderSubsDiscount(duration: Subscription) {
-    if (!discount) return;
-    const pct = Math.round(100 * (1 - COSTS.sub_discount[duration]));
-    return ` (discount ${pct}%)`;
+  //   function renderSubsDiscount(duration: Subscription) {
+  //     if (!discount) return;
+  //     const pct = Math.round(100 * (1 - COSTS.sub_discount[duration]));
+  //     return ` (discount ${pct}%)`;
+  //   }
+  function renderSubsDiscount(_duration: Subscription) {
+    return null;
   }
 
   function renderSubsOptions() {
@@ -161,14 +146,16 @@ export function UsageAndDuration(props: Props) {
     if (!showExplanations || !discount) return;
     return (
       <>
-        You receive a discount if you pay for the license monthly or yearly via
-        a{" "}
-        <A href="/pricing/subscriptions" external>
-          recurring subscription
-        </A>
-        . You can also pay once for a specific period of time. Licenses start at
-        midnight in your local timezone on the start date and end at 23:59 your
-        local time zone on the ending date.
+        You can buy a license either via a subscription or a single purchase for
+        specific dates. Once you purchase a license,{" "}
+        <b>you can always edit it later, or cancel it for a prorated refund</b>{" "}
+        as credit that you can use to purchase something else.{" "}
+        {duration == "range" && (
+          <i>
+            Licenses start and end at the indicated times in your local
+            timezone.
+          </i>
+        )}
       </>
     );
   }

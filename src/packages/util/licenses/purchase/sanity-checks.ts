@@ -67,11 +67,8 @@ function sanity_check_start_end(info: PurchaseInfo) {
         );
       }
 
-      const days = Math.round(
-        (end.valueOf() - start.valueOf()) / (24 * 60 * 60 * 1000)
-      );
-      if (days <= 0) {
-        throw Error("end date must be at least one day after start date");
+      if (end <= start) {
+        throw Error("end date must be after start date");
       }
     }
   }

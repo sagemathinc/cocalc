@@ -4,11 +4,6 @@
  */
 
 import { testDedicatedDiskNameBasic } from "@cocalc/util/licenses/check-disk-name-basics";
-import {
-  endOfDay,
-  roundToMidnight,
-  startOfDay,
-} from "@cocalc/util/stripe/timecalcs";
 import { BOOST, REGULAR } from "@cocalc/util/upgrades/consts";
 import {
   DEDICATED_DISK_SIZES,
@@ -27,34 +22,26 @@ import { MAX_ALLOWED_RUN_LIMIT } from "./run-limit";
 // Various support functions for storing quota parameters as a query parameter in the browser URL
 
 export function encodeRange(vals: DateRange): string {
-  // the list of val is encoded as YYYY-MM-DD and separated by a comma
-  // this happens after the "correction" of timestamps in the range selector
-  // that's why here is (yet again) some rounding to the start/end of the day.
-  const start =
-    vals[0] != null
-      ? dayjs(roundToMidnight(vals[0], "start"))?.format("YYYY-MM-DD")
-      : null;
-  const end =
-    vals[1] != null
-      ? dayjs(roundToMidnight(vals[1], "end"))?.format("YYYY-MM-DD")
-      : null;
-  if (start != null && end != null) {
-    return [start, end].join("_");
-  } else {
-    return "";
-  }
+  const [start, end] = vals;
+  if (start == null || end == null) return "";
+  return `${start.toISOString()}_${end.toISOString()}`;
 }
 
 // the inverse of encodeRange
 function decodeRange(val: string): DateRange {
+  if (!val) return [undefined, undefined];
   const vals = val.split("_");
-  const [start, end] = [startOfDay(vals[0]), endOfDay(vals[1])];
-  // if start and end are Date objects, return them
-  if (start instanceof Date && end instanceof Date) {
-    return [start, end];
-  } else {
-    return [undefined, undefined];
+  if (vals.length != 2) return [undefined, undefined];
+  const w: Date[] = [];
+  for (const x of vals) {
+    const d = dayjs(x);
+    if (d.isValid()) {
+      w.push(d.toDate());
+    } else {
+      return [undefined, undefined];
+    }
   }
+  return w as DateRange;
 }
 
 const COMMON_FIELDS = [

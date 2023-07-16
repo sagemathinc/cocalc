@@ -149,14 +149,23 @@ export default async function editLicense(
         modifiedInfo,
         note,
       } as const;
+      // when editing a license, the part the period the payment
+      // applies to is always >= now.  This period_start/period_end
+      // is so far entirely for accounting (i.e., understanding *when*
+      // a purchase is for to better compute accrued revenue).
+      const period_start = new Date(
+        Math.max(modifiedInfo.start.valueOf(), Date.now())
+      );
+      const period_end = modifiedInfo.end;
+
       purchase_id = await createPurchase({
         account_id,
         service,
         description,
         cost,
         client,
-        period_start: modifiedInfo.start,
-        period_end: modifiedInfo.end,
+        period_start,
+        period_end,
       });
     }
 
