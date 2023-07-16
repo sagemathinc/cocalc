@@ -103,6 +103,9 @@ export default async function editLicense(
   }
 
   const { cost: changeCost, modifiedInfo } = costToEditLicense(info, changes);
+  if (modifiedInfo.type != info.type) {
+    throw Error("bug");
+  }
 
   const service = "edit-license";
 
@@ -137,7 +140,7 @@ export default async function editLicense(
 
     if (Math.abs(cost) > 0.005) {
       // we only create a charge if it is bigger than epsilon in absolute value.
-      
+
       // Make purchase
       const description = {
         type: "edit-license",
@@ -152,6 +155,8 @@ export default async function editLicense(
         description,
         cost,
         client,
+        period_start: modifiedInfo.start,
+        period_end: modifiedInfo.end,
       });
     }
 

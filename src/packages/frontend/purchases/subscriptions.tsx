@@ -145,7 +145,7 @@ function SubscriptionActions({ id, status, refresh, cost }) {
           type="default"
           onClick={() => setModalOpen(true)}
         >
-          Cancel...
+          Cancel
         </Button>
       )}
       {status !== "canceled" && modalOpen && (
