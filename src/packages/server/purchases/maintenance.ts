@@ -6,7 +6,8 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("purchases:maintenance");
 
-// For now -- once every 5 minutes
+// For now -- once every 5 minutes -- though NO GUARANTEES, since if it takes longer 
+// than 5 minutes to run a round of maintenance then the next one would be skipped.
 const LOOP_INTERVAL_MS = 1000 * 60 * 5;
 
 const FUNCTIONS = [

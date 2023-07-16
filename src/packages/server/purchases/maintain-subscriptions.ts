@@ -1,5 +1,135 @@
+import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import getPool from "@cocalc/database/pool";
+import getLogger from "@cocalc/backend/logger";
+import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
+import renewSubscription from "@cocalc/server/purchases/renew-subscription";
+
+const logger = getLogger("purchases:maintain-subscriptions");
+
+export default async function maintainSubscriptions() {
+  logger.debug("maintaining subscriptions");
+  try {
+    await renewSubscriptions();
+  } catch (err) {
+    logger.debug("ERROR in renewSubscriptions- ", err);
+  }
+  try {
+    await updateStatus();
+  } catch (err) {
+    logger.debug("ERROR in updateStatus - ", err);
+  }
+}
+
 /*
-For each active subscription, send emails, collect payments, and extend license end dates.
+For each subscription that has status not 'canceled' and current_period_end 
+is in the past or within 1 day, and for which the user has the money/credit 
+to pay the subscription, renew that subscription.  Basically, we renew subscriptions
+1 day before they would automatically cancel for non-payment. Users can of
+course easily get almost any money spent via this automatic process 
+back by just canceling the subscription again.
+*/
+async function renewSubscriptions() {
+  logger.debug("renewSubscriptions");
+  const pool = getPool();
+
+  const { rows } = await pool.query(
+    `SELECT id, cost, account_id FROM subscriptions WHERE status != 'canceled' AND 
+    current_period_end <= NOW() + INTERVAL '1' DAY`
+  );
+  logger.debug(
+    "renewSubscriptions -- there are ",
+    rows.length,
+    "subscriptions that we will try to renew"
+  );
+  for (const { id: subscription_id, cost, account_id } of rows) {
+    const { allowed } = await isPurchaseAllowed({
+      account_id,
+      service: "edit-license",
+      cost,
+    });
+    logger.debug("renewSubscriptions -- considering one:", {
+      subscription_id,
+      cost,
+      account_id,
+      allowed,
+    });
+    if (allowed) {
+      logger.debug("renewSubscriptions -- renewing subscription", {
+        subscription_id,
+      });
+      await renewSubscription({ account_id, subscription_id });
+    }
+  }
+}
+
+/*
+Update the status field of all subscriptions.
+
+- Set status to 'unpaid' for every subscription with status 'active' for which
+  current_period_end is within subscription_maintenance.request days
+  from right now.
+- Set to 'past_due' every subscription with status 'unpaid' for which current_period_end
+  is in the past.
+- Set to 'canceled' every subscription with status 'unpaid' for which current_period_end
+  is at least subscription_maintenance.grace days in the past.
+*/
+async function updateStatus() {
+  const { subscription_maintenance } = await getServerSettings();
+  logger.debug("updateStatus", subscription_maintenance);
+  const pool = getPool();
+
+  // active --> unpaid
+  logger.debug("updateStatus: active-->unpaid");
+  await pool.query(
+    `UPDATE subscriptions
+   SET status = 'unpaid'
+   WHERE status = 'active'
+   AND current_period_end <= NOW() + INTERVAL '1' DAY * $1`,
+    [subscription_maintenance.request ?? 6]
+  );
+
+  // unpaid --> past_due
+  logger.debug("updateStatus: unpaid-->past_due");
+  await pool.query(`UPDATE subscriptions
+   SET status = 'past_due'
+   WHERE status = 'unpaid'
+   AND current_period_end <= NOW()`);
+
+  // past_due --> canceled
+  logger.debug("updateStatus: past_due-->canceled");
+  await pool.query(
+    `UPDATE subscriptions
+   SET status = 'canceled'
+   WHERE status = 'past_due'
+   AND current_period_end < NOW() - INTERVAL '1' DAY * $1`,
+    [subscription_maintenance.grace ?? 3]
+  );
+}
+
+/*
+
+This is a plan regarding how to automate payments:
+
+I think what we need to do is simply empower users fully.  In particular, just make a section somewhere called "Automatic Payments".  A user can choose to configure this or not.  If they configure it:
+
+- we [create a stripe usage-based subscription](https://www.phind.com/agent?cache=clk4hjfhp0007ml08nb36qh0z) for the user using stripe checkout.
+- each month when we create their statement, if there is an amount due, we add that to their usage-based cost
+- when renewing a subscription, we add that amount to their usage-based cost.  This happens several days before the subscription end date.
+- we make sure that the cocalc subscriptions all end on the purchase_close_day
+- we also make sure the stripe subscription is 2 days earlier -- https://www.phind.com/agent?cache=clk4i6jxp0016l308mrfuv799  -- via billing_cycle_anchor.
+- when user pays their subscription the amount is credited to their account (via stripe webhook / sync)
+- at the moment of renewal subscription cost always comes directly from user account in cocalc as usual.
+
+If users do NOT have automatic payments, then instead of adding to their usage a few days earlier, we send them a link so they can add sufficient credit to their account to pay the subscription in any way they want.
+
+-----
+
+This was a plan at some point too:
+
+For each active subscription, possibly do the following:
+
+    send emails, collect payments, and extend license end dates.
+  
 More precisely, the following should happen for all of the user's subscriptions.
 
 - For each subscription whose "current_period_end" is at most X days from now, 
@@ -53,64 +183,3 @@ and allowing to select the default one or delete one. If you have a
 subscription, you can be encouraged to have a payment method on file. 
 
 */
-
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import getPool from "@cocalc/database/pool";
-import getLogger from "@cocalc/backend/logger";
-
-const logger = getLogger("purchases:maintain-subscriptions");
-
-export default async function maintainSubscriptions() {
-  logger.debug("maintaining subscriptions");
-  await updateStatus();
-}
-
-/*
-Update the status field of all subscriptions.
-
-- Set status to 'unpaid' for every subscription with status 'active' for which
-  current_period_end is within subscription_maintenance.request days
-  from right now.
-- Set to 'past_due' every subscription with status 'unpaid' for which current_period_end
-  is in the past.
-- Set to 'canceled' every subscription with status 'unpaid' for which current_period_end
-  is at least subscription_maintenance.grace days in the past.
-*/
-async function updateStatus() {
-  const { subscription_maintenance } = await getServerSettings();
-  logger.debug("updateStatus", subscription_maintenance);
-  const pool = getPool();
-
-  // active --> unpaid
-  logger.debug(
-    "updateStatus: active-->unpaid",
-    await pool.query(
-      `UPDATE subscriptions
-   SET status = 'unpaid'
-   WHERE status = 'active'
-   AND current_period_end <= NOW() + INTERVAL '1' DAY * $1`,
-      [subscription_maintenance.request ?? 6]
-    )
-  );
-
-  // unpaid --> past_due
-  logger.debug(
-    "updateStatus: unpaid-->past_due",
-    await pool.query(`UPDATE subscriptions
-   SET status = 'past_due'
-   WHERE status = 'unpaid'
-   AND current_period_end <= NOW()`)
-  );
-
-  // past_due --> canceled
-  logger.debug(
-    "updateStatus: past_due-->canceled",
-    await pool.query(
-      `UPDATE subscriptions
-   SET status = 'canceled'
-   WHERE status = 'past_due'
-   AND current_period_end < NOW() - INTERVAL '1' DAY * $1`,
-      [subscription_maintenance.grace ?? 3]
-    )
-  );
-}
