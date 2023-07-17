@@ -11,6 +11,7 @@ import {
   TableOfContentsEntry,
   TableOfContentsEntryList,
 } from "@cocalc/frontend/components";
+import { IS_MACOS } from "@cocalc/frontend/feature";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { TopBarActions } from "@cocalc/frontend/project/page/types";
 import { once } from "@cocalc/util/async-utils";
@@ -33,6 +34,7 @@ import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
+import { FORMAT_SOURCE_ICON } from "../frame-tree/config";
 import { print_html } from "../frame-tree/print";
 import { FrameTree } from "../frame-tree/types";
 import { raw_url } from "../frame-tree/util";
@@ -1523,6 +1525,26 @@ export class Actions extends BaseActions<LatexEditorState> {
         label: "Build",
         icon: "play-circle",
         action: () => this.force_build(),
+      },
+      {
+        label: `Sync views (${IS_MACOS ? "⌘" : "Alt"} + Enter)`,
+        icon: "sync",
+        getAction: () => {
+          const id = this._get_active_id();
+          const editor_actions = this.redux.getEditorActions(
+            this.project_id,
+            this.path
+          );
+          return () => this.sync(id, editor_actions);
+        },
+      },
+      {
+        label: "Format",
+        icon: FORMAT_SOURCE_ICON,
+        getAction: () => {
+          const id = this._get_active_id();
+          return () => this.format(id);
+        },
       },
     ];
   }
