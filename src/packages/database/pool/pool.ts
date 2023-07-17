@@ -61,7 +61,9 @@ export function getClient(): Client {
 // This is used for testing.  Call this to reset the ephemeral
 // database to a clean state with the schema loaded.
 const TEST = "smc_ephemeral_testing_database";
-export async function initEphemeralDatabase() {
+export async function initEphemeralDatabase({
+  reset,
+}: { reset?: boolean } = {}) {
   if (database != TEST) {
     throw Error(
       `You can't use initEphemeralDatabase() and test using the database if the env variabe PGDATABASE is not set to ${TEST}!`
@@ -86,7 +88,7 @@ export async function initEphemeralDatabase() {
   await db.end();
   // sync the schema
   await syncSchema();
-  if (databaseExists) {
+  if (databaseExists && reset) {
     // Drop all data from all tables for a clean slate.
     // Unfortunately, this can take a little while.
     await dropAllData();
