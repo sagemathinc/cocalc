@@ -1,4 +1,4 @@
-import { getClient, Client, isPgMemEnabled } from "@cocalc/database/pool";
+import { getClient, Client } from "@cocalc/database/pool";
 import type { DBSchema, TableSchema } from "./types";
 import { quoteField } from "./util";
 import { pgType } from "./pg-type";
@@ -186,9 +186,6 @@ async function syncTableSchemaIndexes(
 
 // Names of all tables owned by the current user.
 async function getAllTables(db: Client): Promise<Set<string>> {
-  if (isPgMemEnabled()) {
-    return new Set([]);
-  }
   const { rows } = await db.query(
     "SELECT tablename FROM pg_tables WHERE tableowner = current_user"
   );

@@ -5,8 +5,7 @@
 
 // test some functions in renew-subscriptions
 
-import renewSubscription, { test } from "./renew-subscription";
-import dayjs from "dayjs";
+import { test } from "./renew-subscription";
 
 describe("adding and subtracting month and year to a date", () => {
   it("adds a month to Feb 2 and gets March 2", () => {
@@ -40,4 +39,3 @@ describe("adding and subtracting month and year to a date", () => {
     ).toBe("2022-02-02T00:00:00.000Z");
   });
 });
-

@@ -2,7 +2,7 @@ import { client_db } from "@cocalc/util/schema";
 import getLogger from "@cocalc/backend/logger";
 import { quoteField } from "./util";
 import { pgType } from "./pg-type";
-import { Client } from "@cocalc/database/pool";
+import type { Client } from "@cocalc/database/pool";
 import { createIndexes } from "./indexes";
 import type { TableSchema } from "./types";
 

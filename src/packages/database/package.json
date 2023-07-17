@@ -35,7 +35,6 @@
     "lru-cache": "^7.14.1",
     "node-fetch": "2.6.7",
     "pg": "^8.7.1",
-    "pg-mem": "^2.6.13",
     "prom-client": "^13.0.0",
     "random-key": "^0.3.2",
     "read": "^1.0.7",

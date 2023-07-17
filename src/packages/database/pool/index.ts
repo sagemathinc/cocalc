@@ -6,11 +6,10 @@
 import getPool, {
   getClient,
   getTransactionClient,
-  enablePgMem,
-  isPgMemEnabled,
+  initEphemeralDatabase,
 } from "./pool";
 export default getPool;
-export { getClient, enablePgMem, isPgMemEnabled, getTransactionClient };
+export { getClient, getTransactionClient, initEphemeralDatabase };
 export type { Client, PoolClient } from "pg";
 
 export { timeInSeconds } from "./util";

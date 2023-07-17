@@ -4,7 +4,6 @@
  */
 
 import { Client, Pool, PoolClient } from "pg";
-import { newDb } from "pg-mem";
 import { syncSchema } from "@cocalc/database/postgres/schema";
 
 import {
@@ -22,12 +21,8 @@ const L = getLogger("db:pool");
 export * from "./util";
 
 let pool: Pool | undefined = undefined;
-let pgMem: any = undefined;
 
 export default function getPool(cacheLength?: Length): Pool {
-  if (pgMem != null) {
-    return new pgMem.Pool();
-  }
   if (cacheLength != null) {
     return getCachedPool(cacheLength);
   }
@@ -60,18 +55,22 @@ export async function getTransactionClient(): Promise<PoolClient> {
 }
 
 export function getClient(): Client {
-  if (pgMem != null) {
-    return new pgMem.Client();
-  }
   return new Client({ password: dbPassword(), user, host, database });
 }
 
-export async function enablePgMem() {
-  if (pgMem != null) return;
-  pgMem = newDb().adapters.createPg();
+// This is used for testing.  Call this to reset the ephemeral
+// database to a clean state with the schema loaded.
+export async function initEphemeralDatabase() {
+  const db = new Pool({
+    password: dbPassword(),
+    user,
+    host,
+    database: "smc",
+    statement_timeout: STATEMENT_TIMEOUT_MS,
+  });
+  await db.query(`DROP DATABASE IF EXISTS smc_ephemeral_testing_database`);
+  await db.query(`CREATE DATABASE smc_ephemeral_testing_database`);
+  await db.end();
+  // load the schema
   await syncSchema();
-}
-
-export function isPgMemEnabled() {
-  return pgMem != null;
 }

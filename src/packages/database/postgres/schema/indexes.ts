@@ -1,5 +1,5 @@
 import getLogger from "@cocalc/backend/logger";
-import { Client, isPgMemEnabled } from "@cocalc/database/pool";
+import type { Client } from "@cocalc/database/pool";
 import type { TableSchema } from "./types";
 import { make_valid_name } from "@cocalc/util/misc";
 
@@ -44,7 +44,6 @@ export async function createIndexes(
   db: Client,
   schema: TableSchema
 ): Promise<void> {
-  if(isPgMemEnabled()) return;
   log.debug("createIndexes", schema.name, " creating SQL query");
   for (const { name, query, unique } of createIndexesQueries(schema)) {
     // Shorthand index is just the part in parens.
