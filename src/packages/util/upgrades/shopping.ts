@@ -55,11 +55,11 @@ export type SiteLicenseDescriptionDB =
       user: User;
       run_limit: number;
       period: Period;
-      range?: [string, string]; // should be converted to [Date, Date]
+      range?: readonly [string, string]; // should be converted to [Date, Date]
       ram: number;
       cpu: number;
       disk: number;
-      always_running: boolean;
+      always_running?: boolean;
       member: boolean;
       uptime: keyof typeof LicenseIdleTimeouts | "always_running";
       boost?: boolean;

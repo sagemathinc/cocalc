@@ -11,7 +11,7 @@ import {
 } from "./closing-date";
 import { uuid } from "@cocalc/util/misc";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
-import createAccount from "../accounts/create-account";
+import createAccount from "@cocalc/server/accounts/create-account";
 
 beforeAll(async () => {
   await initEphemeralDatabase();

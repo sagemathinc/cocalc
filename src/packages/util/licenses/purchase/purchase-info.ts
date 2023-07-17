@@ -77,7 +77,7 @@ export default function getPurchaseInfo(
 // Later, when actually saving the range to the database, we will maybe append
 // a portion of the start which is in the past.
 export function fixRange(
-  rangeOrig: [Date0 | string, Date0 | string] | undefined | null,
+  rangeOrig: readonly [Date0 | string, Date0 | string] | undefined | null,
   period: Period
 ): StartEndDates {
   const now = new Date();
