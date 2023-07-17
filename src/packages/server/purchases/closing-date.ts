@@ -59,11 +59,11 @@ export async function getClosingDay(account_id: string): Promise<number> {
   let closingDay: number;
 
   try {
-    const result = await pool.query(
+    const { rows } = await pool.query(
       "SELECT purchase_closing_day FROM accounts WHERE account_id = $1",
       [account_id]
     );
-    closingDay = result.rows?.[0]?.["purchase_closing_day"];
+    closingDay = rows[0]?.["purchase_closing_day"];
     if (closingDay == null) {
       // If no closing day exists, set it to a few days ago.
       // We compute the current day of the month, then subtract 3,
@@ -71,13 +71,13 @@ export async function getClosingDay(account_id: string): Promise<number> {
 
       const today = new Date();
       const currentDayOfMonth = today.getDate();
-      const closingDay = (Math.max(currentDayOfMonth - 3, 1) % 28) + 1;
+      closingDay = (Math.max(currentDayOfMonth - 3, 1) % 28) + 1;
 
       await setClosingDay(account_id, closingDay);
     }
   } catch (e) {
     logger.error(`Error getting closing day: ${e.message}`);
-    throw e;
+    throw Error(e);
   }
   closingDateCache.set(account_id, closingDay);
   return closingDay;
@@ -92,6 +92,7 @@ export async function setClosingDay(
     throw Error("day must be between 1 and 28");
   }
   try {
+    closingDateCache.delete(account_id);
     await pool.query(
       "UPDATE accounts SET purchase_closing_day = $1 WHERE account_id = $2",
       [day, account_id]

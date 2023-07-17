@@ -1,4 +1,8 @@
 /*
+**DEPRECATED** we are using stripe checkout (e.g., to fully support sales tax, etc.), which doesn't
+need invoices like this.
+
+
 Create a stripe invoice for a specific amount of money so that when paid
 this invoice counts toward your purchases balance.  It has
 metadata = {account_id, service:'credit'}
