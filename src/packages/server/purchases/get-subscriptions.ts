@@ -9,7 +9,7 @@ export default async function getSubscriptions({
   offset,
 }: {
   account_id: string;
-  limit: number;
+  limit?: number;
   offset?: number;
 }): Promise<Subscription[]> {
   if (limit > MAX_API_LIMIT || !limit) {

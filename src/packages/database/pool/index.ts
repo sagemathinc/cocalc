@@ -3,13 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import getPool, {
-  getClient,
-  getTransactionClient,
-  initEphemeralDatabase,
-} from "./pool";
+import getPool from "./pool";
 export default getPool;
-export { getClient, getTransactionClient, initEphemeralDatabase };
+export * from "./pool";
 export type { Client, PoolClient } from "pg";
 
 export { timeInSeconds } from "./util";

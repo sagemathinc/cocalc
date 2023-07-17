@@ -42,8 +42,7 @@ export default function getPool(cacheLength?: Length): Pool {
 }
 
 export async function getTransactionClient(): Promise<PoolClient> {
-  const pool = await getPool();
-  const client = await pool.connect();
+  const client = await getPoolClient();
   try {
     await client.query("BEGIN");
   } catch (err) {
@@ -52,6 +51,11 @@ export async function getTransactionClient(): Promise<PoolClient> {
     throw err;
   }
   return client;
+}
+
+export async function getPoolClient(): Promise<PoolClient> {
+  const pool = await getPool();
+  return await pool.connect();
 }
 
 export function getClient(): Client {

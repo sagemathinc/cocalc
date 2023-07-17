@@ -10,8 +10,14 @@ import getLicense from "@cocalc/server/licenses/get-license";
 import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
 import createPurchase from "./create-purchase";
 import { uuid } from "@cocalc/util/misc";
-import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
+import getPool, {
+  initEphemeralDatabase,
+  getPoolClient,
+} from "@cocalc/database/pool";
 import dayjs from "dayjs";
+import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import getSubscriptions from "./get-subscriptions";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -165,6 +171,61 @@ describe("create a license and then edit it in various ways", () => {
   });
 });
 
-// describe("create a subscription license and edit it and confirm the subscription cost changes", () => {
-//   const account_id = uuid();
-// });
+describe("create a subscription license and edit it and confirm the subscription cost changes", () => {
+  // this is a shopping cart item, which I basically copied from the database...
+  const item = {
+    account_id: uuid(),
+    id: 58,
+    added: new Date(),
+    product: "site-license",
+    description: {
+      cpu: 1,
+      ram: 2,
+      disk: 3,
+      type: "quota",
+      user: "academic",
+      boost: false,
+      member: true,
+      period: "monthly",
+      uptime: "short",
+      run_limit: 1,
+    },
+    cost: {} as any,
+  };
+  item.cost = computeCost(item.description as any);
+  it("make a subscription", async () => {
+    await createAccount({
+      email: "",
+      password: "xyz",
+      firstName: "Test",
+      lastName: "User",
+      account_id: item.account_id,
+    });
+    const client = await getPoolClient();
+    await purchaseShoppingCartItem(item, client);
+    client.release();
+  });
+
+  it("gets our subscription and license and edits the license in a way that changes the subscription cost", async () => {
+    await createPurchase({
+      account_id: item.account_id,
+      service: "credit",
+      description: {} as any,
+      client: null,
+      cost: -1000,
+    });
+    const subs = await getSubscriptions({ account_id: item.account_id });
+    expect(subs.length).toBe(1);
+    expect(subs[0].status).toBe("active");
+    const license_id = subs[0].metadata.license_id;
+    const {  cost } = await editLicense({
+      account_id: item.account_id,
+      license_id,
+      changes: { custom_ram: 8, custom_cpu: 3 },
+    });
+    const subs2 = await getSubscriptions({ account_id: item.account_id });
+    // the montly cost doesn't change *exactly* as the cost to edit, due
+    // to the date range, particular month, etc.
+    expect(Math.abs(subs2[0].cost - (subs[0].cost + cost))).toBeLessThan(3);
+  });
+});
