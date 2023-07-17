@@ -9,16 +9,16 @@ import { uuid } from "@cocalc/util/misc";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import dayjs from "dayjs";
 
+beforeAll(async () => {
+  await initEphemeralDatabase();
+}, 15000);
+
+afterAll(async () => {
+  await getPool().end();
+});
+
 describe("test computing balance under various conditions", () => {
   const account_id = uuid();
-
-  beforeAll(async () => {
-    await initEphemeralDatabase();
-  });
-
-  afterAll(async () => {
-    await getPool().end();
-  });
 
   it("get the balance for a new user with no purchases", async () => {
     expect(await getBalance(account_id)).toBe(0);

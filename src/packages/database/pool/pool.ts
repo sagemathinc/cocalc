@@ -60,7 +60,13 @@ export function getClient(): Client {
 
 // This is used for testing.  Call this to reset the ephemeral
 // database to a clean state with the schema loaded.
+const TEST = "smc_ephemeral_testing_database";
 export async function initEphemeralDatabase() {
+  if (database != TEST) {
+    throw Error(
+      `You can't use initEphemeralDatabase() and test using the database if the env variabe PGDATABASE is not set to ${TEST}!`
+    );
+  }
   const db = new Pool({
     password: dbPassword(),
     user,
@@ -68,9 +74,45 @@ export async function initEphemeralDatabase() {
     database: "smc",
     statement_timeout: STATEMENT_TIMEOUT_MS,
   });
-  await db.query(`DROP DATABASE IF EXISTS smc_ephemeral_testing_database`);
-  await db.query(`CREATE DATABASE smc_ephemeral_testing_database`);
+  const { rows } = await db.query(
+    "SELECT COUNT(*) AS count FROM pg_catalog.pg_database WHERE datname = $1",
+    [TEST]
+  );
+  //await db.query(`DROP DATABASE IF EXISTS ${TEST}`);
+  const databaseExists = rows[0].count > 0;
+  if (!databaseExists) {
+    await db.query(`CREATE DATABASE ${TEST}`);
+  }
   await db.end();
-  // load the schema
+  // sync the schema
   await syncSchema();
+  if (databaseExists) {
+    // Drop all data from all tables for a clean slate.
+    // Unfortunately, this can take a little while.
+    await dropAllData();
+  }
+}
+
+async function dropAllData() {
+  const pool = getPool();
+  if (pool?.["options"]?.database != TEST) {
+    // safety check!
+    throw Error(
+      `You can't use dropAllData() if the env variabe PGDATABASE is not set to ${TEST}!`
+    );
+  }
+  const client = await pool.connect();
+
+  try {
+    // Get all table names
+    const result = await client.query(
+      "SELECT tablename FROM pg_tables WHERE schemaname='public'"
+    );
+    const tableNames = result.rows.map((row) => row.tablename);
+    await client.query(`TRUNCATE ${tableNames.join(",")}`);
+  } catch (err) {
+    throw err;
+  } finally {
+    client.release();
+  }
 }
