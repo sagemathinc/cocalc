@@ -14,7 +14,6 @@ import {
   React,
   TypedMap,
   redux,
-  useCallback,
   useEffect,
   useIsMountedRef,
   useLayoutEffect,
@@ -35,6 +34,7 @@ import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-h
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
   DirectoryListing,
@@ -59,7 +59,6 @@ import {
   unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { useProjectContext } from "../../context";
 import { FIX_BORDER } from "../common";
 import { FileListItem, fileItemStyle } from "./components";
 import {
@@ -69,6 +68,13 @@ import {
   FLYOUT_PADDING,
 } from "./consts";
 import { FilesBottom } from "./files-bottom";
+
+const EMPTY_LISTING: [DirectoryListing, FileMap, null, boolean] = [
+  [],
+  {},
+  null,
+  true,
+];
 
 type ActiveFileSort = TypedMap<{
   column_name: string;
@@ -134,7 +140,6 @@ export function FilesFlyout({
   const show_masked = useTypedRedux({ project_id }, "show_masked");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
-  const [search, setSearch] = useState<string>("");
   // mainly controls what a single click does, plus additional UI elements
   const [mode, setMode] = useState<"open" | "select">("open");
   const [prevSelected, setPrevSelected] = useState<number | null>(null);
@@ -190,18 +195,12 @@ export function FilesFlyout({
     DirectoryListingEntry | null,
     boolean
   ] => {
-    const empty: [DirectoryListing, FileMap, null, boolean] = [
-      [],
-      {},
-      null,
-      true,
-    ];
-    if (directoryListings == null) return empty;
+    if (directoryListings == null) return EMPTY_LISTING;
     const filesStore = directoryListings.get(current_path);
-    if (filesStore == null) return empty;
+    if (filesStore == null) return EMPTY_LISTING;
 
     // TODO this is an error, process it
-    if (typeof filesStore === "string") return empty;
+    if (typeof filesStore === "string") return EMPTY_LISTING;
 
     const files: DirectoryListing = filesStore.toJS();
     let activeFile: DirectoryListingEntry | null = null;
@@ -346,36 +345,19 @@ export function FilesFlyout({
     ];
   }, [flyoutWidth]);
 
-  const setSearchState = debounce(
-    (val: string) => {
-      actions?.set_file_search(val);
-    },
-    50,
-    { leading: false, trailing: true }
-  );
+  const setSearchState = (val: string) => {
+    actions?.set_file_search(val);
+  };
 
   const handleSearchChange = (val: string) => {
     setScrollIdx(null);
-    setSearch(val);
     setSearchState(val);
   };
 
-  // this was necessary to avoid some flicker, when the search change triggers the effect below
-  const updateSearch = useCallback(
-    debounce(
-      () => {
-        if (search === file_search) return;
-        setScrollIdx(null);
-        setSearch(file_search);
-      },
-      50,
-      { leading: false, trailing: true }
-    ),
-    []
-  );
-
   // incoming search state change
-  useEffect(updateSearch, [file_search]);
+  useEffect(() => {
+    setScrollIdx(null);
+  }, [file_search]);
 
   // *** END HOOKS ***
 
@@ -415,7 +397,7 @@ export function FilesFlyout({
       if (file.isdir) {
         // true: change history, false: do not show "files" page
         actions?.open_directory(fullPath, true, false);
-        setSearch("");
+        setSearchState("");
       } else {
         const foreground = should_open_in_foreground(e);
         track("open-file", {
@@ -541,7 +523,7 @@ export function FilesFlyout({
   }
 
   async function createFileOrFolder() {
-    const fn = searchToFilename(search);
+    const fn = searchToFilename(file_search);
     await actions?.create_file({
       name: fn,
       current_path,
@@ -569,8 +551,8 @@ export function FilesFlyout({
       if (scrollIdx != null) {
         open(e, scrollIdx);
         setScrollIdx(null);
-      } else if (search != "") {
-        setSearch("");
+      } else if (file_search != "") {
+        setSearchState("");
         if (!isEmpty) {
           open(e, 0);
         } else {
@@ -799,7 +781,7 @@ export function FilesFlyout({
             ref={refInput}
             placeholder="Filter..."
             size="small"
-            value={search}
+            value={file_search}
             onKeyDown={filterKeyHandler}
             onChange={(e) => handleSearchChange(e.target.value)}
             onFocus={() => setScrollIdxHide(false)}
@@ -867,9 +849,9 @@ export function FilesFlyout({
   }
 
   function createFileIfNotExists() {
-    if (search === "" || !isEmpty) return;
+    if (file_search === "" || !isEmpty) return;
 
-    const what = search.trim().endsWith("/") ? "directory" : "file";
+    const what = file_search.trim().endsWith("/") ? "directory" : "file";
     return (
       <Alert
         type="info"
@@ -879,7 +861,7 @@ export function FilesFlyout({
         description={
           <>
             Hit <Text code>Return</Text> to create the {what}{" "}
-            <Text code>{searchToFilename(search)}</Text>
+            <Text code>{searchToFilename(file_search)}</Text>
           </>
         }
       />
