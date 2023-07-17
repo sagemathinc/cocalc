@@ -14,6 +14,7 @@ interface Options {
   day_statement_id?: number;
   month_statement_id?: number;
   no_statement?: boolean; // only purchases not on any statement
+  noCache?: boolean;
 }
 
 export default async function getPurchases({
@@ -28,11 +29,12 @@ export default async function getPurchases({
   day_statement_id,
   month_statement_id,
   no_statement,
+  noCache,
 }: Options) {
   if (limit > MAX_API_LIMIT || !limit) {
     throw Error(`limit must be specified and at most ${MAX_API_LIMIT}`);
   }
-  const pool = getPool("medium");
+  const pool = getPool(noCache ? undefined : "medium");
   let query;
   if (group) {
     query =
