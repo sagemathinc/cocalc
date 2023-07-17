@@ -1,5 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import { Service, MAX_API_LIMIT } from "@cocalc/util/db-schema/purchases";
+import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { getLastClosingDate } from "./closing-date";
 
 interface Options {
@@ -30,7 +31,7 @@ export default async function getPurchases({
   month_statement_id,
   no_statement,
   noCache,
-}: Options) {
+}: Options): Promise<Purchase[]> {
   if (limit > MAX_API_LIMIT || !limit) {
     throw Error(`limit must be specified and at most ${MAX_API_LIMIT}`);
   }
@@ -90,5 +91,5 @@ export default async function getPurchases({
   }
 
   const { rows } = await pool.query(query, params);
-  return rows;
+  return rows as unknown as Purchase[];
 }
