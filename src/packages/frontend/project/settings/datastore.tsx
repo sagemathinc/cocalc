@@ -27,6 +27,7 @@ import {
   Typography,
 } from "antd";
 
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   useActions,
@@ -40,17 +41,16 @@ import {
   SettingBox,
   Tip,
 } from "@cocalc/frontend/components";
-import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { DUMMY_SECRET } from "@cocalc/util/consts";
 import { DATASTORE_TITLE } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
+import { FLYOUT_PADDING } from "../page/flyouts/consts";
 import { useProjectState } from "../page/project-state-hook";
 import { useProjectHasInternetAccess } from "./has-internet-access-hook";
 import { RestartProject } from "./restart-project";
 import { DatastoreConfig as Config } from "./types";
 
-const SECRET_TOOLTIP = `\nSecrets can't be edited. Either keep "${DUMMY_SECRET}" as it is to retain the current value, or enter a new secret to replace the existing one.`;
+const SECRET_TOOLTIP = `\nSecrets can't be edited. Keep the field empty to retain the current value, or enter a new secret to replace the existing one.`;
 
 const DOC = "https://doc.cocalc.com/project-settings.html#datastore";
 
@@ -293,7 +293,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   function edit(record) {
     if (record == null) return;
     const conf: Config = Object.assign({}, record);
-    conf.secret = DUMMY_SECRET;
+    conf.secret = "";
     set_new_config(conf);
     set_form_readonly(conf.readonly ?? READONLY_DEFAULT);
   }
@@ -477,10 +477,9 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
               directory.
             </p>
             <p>
-              When editing, the secret stays hidden. Keep the dummy text{" "}
-              <Typography.Text code>{DUMMY_SECRET}</Typography.Text> as it is in
-              order to not modify it – otherwise it gets replaced by the newly
-              entered value.
+              When editing, the secret stays hidden. Keep the credentials text
+              empty in order to not modify it – otherwise it gets replaced by
+              the newly entered value.
             </p>
             <p>
               More information:{" "}
@@ -597,6 +596,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         form={props.form}
         onFinish={(v) => form_finish(v, props.type)}
         onFinishFailed={process_failure}
+        style={isFlyout ? { paddingRight: FLYOUT_PADDING } : undefined}
         size="small"
       >
         {props.children}
@@ -622,7 +622,6 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         <Form.Item
           label="Credentials"
           name="secret"
-          rules={RULE_REQUIRED}
           tooltip={creds_help + SECRET_TOOLTIP}
         >
           <Input.TextArea rows={5} placeholder={creds_help} />
@@ -655,7 +654,6 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         <Form.Item
           label="Secret"
           name="secret"
-          rules={RULE_REQUIRED}
           tooltip={"The secret key" + SECRET_TOOLTIP}
         >
           <Input placeholder="fie$kf2&ifw..." />
@@ -699,7 +697,6 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         <Form.Item
           label="Private Key"
           name="secret"
-          rules={RULE_REQUIRED}
           tooltip={pk_help + SECRET_TOOLTIP}
         >
           <Input.TextArea rows={5} placeholder={pk_example} />
