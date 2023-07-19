@@ -62,6 +62,7 @@ const codemirror_associations: { [ext: string]: string } = {
   h: "text/x-c++hdr",
   hpp: "text/x-c++hdr",
   hs: "text/x-haskell",
+  ini: "text/x-ini",
   lhs: "text/x-haskell",
   html: "htmlmixed",
   init: "shell",
