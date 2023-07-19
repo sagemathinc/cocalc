@@ -448,7 +448,6 @@ export const ProjectInfo: React.FC<Props> = React.memo(
             ptree={ptree}
             select_proc={select_proc}
             selected={selected}
-            set_expanded={set_expanded}
             set_modal={set_modal}
             set_selected={set_selected}
             show_explanation={show_explanation}

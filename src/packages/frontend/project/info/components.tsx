@@ -2,47 +2,60 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import { React, CSS } from "../../app-framework";
-import * as immutable from "immutable";
+
+import { PauseCircleOutlined, QuestionCircleOutlined } from "@ant-design/icons";
 import {
-  Descriptions,
-  Progress,
   Button,
-  Space,
+  Descriptions,
   Form,
-  Popconfirm,
   Grid,
+  Popconfirm,
+  Progress,
+  Space,
   //Badge,
   Switch,
+  Tooltip,
 } from "antd";
-import { QuestionCircleOutlined, PauseCircleOutlined } from "@ant-design/icons";
+import humanizeList from "humanize-list";
+import * as immutable from "immutable";
+
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
-import { plural, seconds2hms, unreachable } from "@cocalc/util/misc";
-import { Tip, TimeElapsed, Icon, IconName } from "../../components";
-import { CGroupInfo, DUState } from "./types";
-import { warning_color_pct, warning_color_disk, filename } from "./utils";
+import { CSS, React } from "@cocalc/frontend/app-framework";
+import { Icon, IconName, TimeElapsed, Tip } from "@cocalc/frontend/components";
+import { FLYOUT_PADDING } from "@cocalc/frontend/project/page/flyouts/consts";
+import { Channel } from "@cocalc/frontend/project/websocket/types";
 import {
-  State,
-  ProjectInfoCmds,
   Process,
   Processes,
+  ProjectInfoCmds,
   Signal,
+  State,
 } from "@cocalc/project/project-info/types";
 import { AlertType, ComponentName } from "@cocalc/project/project-status/types";
-import { Channel } from "../websocket/types";
+import { plural, seconds2hms, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import humanizeList from "humanize-list";
+import { CGroupInfo, DUState } from "./types";
+import { filename, warning_color_disk, warning_color_pct } from "./utils";
 
 interface AboutContentProps {
-  proc: Process;
+  proc?: Process;
+  buttons?: React.ReactNode;
+  mode?: "full" | "flyout";
+  closePid?: (pid: number) => void;
 }
 
 export const AboutContent: React.FC<AboutContentProps> = ({
   proc,
+  buttons,
+  mode = "full",
+  closePid,
 }: AboutContentProps) => {
+  const isFlyout = mode === "flyout";
   const [raw, set_raw] = React.useState<boolean>(false);
 
-  const style: CSS = { maxHeight: "35vw", height: "35vw", overflow: "auto" };
+  const style: CSS = isFlyout
+    ? { paddingTop: FLYOUT_PADDING }
+    : { maxHeight: "35vw", height: "35vw", overflow: "auto" };
 
   function render_raw() {
     const style: CSS = {
@@ -56,6 +69,13 @@ export const AboutContent: React.FC<AboutContentProps> = ({
   }
 
   function render_nice() {
+    if (proc == null) {
+      return (
+        <Descriptions.Item label="Error" span={2}>
+          No such process
+        </Descriptions.Item>
+      );
+    }
     const cpu_time = proc.stat.stime + proc.stat.utime;
     const mem = proc.stat.mem.rss.toFixed(1);
     const cpu_time_ch = proc.stat.cstime + proc.stat.cutime;
@@ -91,21 +111,52 @@ export const AboutContent: React.FC<AboutContentProps> = ({
     );
   }
 
+  function renderTitle() {
+    return (
+      <>
+        <div style={{ padding: FLYOUT_PADDING }}>
+          Process {proc?.pid ?? "<none>"}
+        </div>
+        {buttons ? buttons : undefined}
+      </>
+    );
+  }
+
   return (
-    <Descriptions
-      bordered
-      style={style}
-      title={`Process ${proc.pid}`}
-      size={"small"}
-      column={2}
-      extra={
-        <>
-          Raw view: <Switch checked={raw} onChange={(val) => set_raw(val)} />
-        </>
-      }
-    >
-      {raw ? render_raw() : render_nice()}
-    </Descriptions>
+    <>
+      <Descriptions
+        bordered
+        className={
+          isFlyout
+            ? "cc-project-info-about-flyout"
+            : "cc-project-info-about-full"
+        }
+        style={style}
+        title={renderTitle()}
+        size={"small"}
+        column={2}
+        extra={
+          isFlyout ? (
+            <Tooltip title="Close expanded process info panel">
+              <Button
+                onClick={() => closePid?.(proc?.pid ?? -1)}
+                icon={<Icon name="times" />}
+                size="small"
+                type="text"
+                style={{ color: COLORS.GRAY_M }}
+              />
+            </Tooltip>
+          ) : (
+            <>
+              Raw view:{" "}
+              <Switch checked={raw} onChange={(val) => set_raw(val)} />
+            </>
+          )
+        }
+      >
+        {raw ? render_raw() : render_nice()}
+      </Descriptions>
+    </>
   );
 };
 
@@ -426,7 +477,9 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
       return (
         <Descriptions
           className={
-            isFlyout ? "cc-project-info-cgroup-table-flyout" : "cc-project-info-cgroup-table-page"
+            isFlyout
+              ? "cc-project-info-cgroup-table-flyout"
+              : "cc-project-info-cgroup-table-page"
           }
           bordered={true}
           column={isFlyout ? 1 : 3}
@@ -483,11 +536,13 @@ export const CoCalcFile: React.FC<CoCalcFileProps> = React.memo(
 
 interface SignalButtonsProps {
   chan: Channel | null;
-  selected: number[];
-  set_selected: Function;
+  pid?: number;
+  selected?: number[];
+  set_selected?: Function;
   loading: boolean;
-  disabled: boolean;
+  disabled?: boolean;
   processes: Processes;
+  small?: boolean;
 }
 
 export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
@@ -497,13 +552,15 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       selected: selected_user,
       set_selected,
       loading,
-      disabled,
+      disabled = false,
+      pid,
       processes,
+      small = false,
     } = props;
 
     // we don't let users send signals to processes classified as "project" or "ssh daemon"
     const dont_kill = ["project", "sshd"];
-    const selected = selected_user.filter((pid) => {
+    const selected: number[] = (selected_user ?? [pid ?? 0]).filter((pid) => {
       const type = processes[pid]?.cocalc?.type;
       if (type == null) return true;
       return !dont_kill.includes(type);
@@ -550,7 +607,7 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
         pids: selected,
       };
       chan.write(payload);
-      set_selected([]);
+      set_selected?.([]);
     }
 
     function render_signal(signal: Signal) {
@@ -569,17 +626,20 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
       ].includes(signal);
       const button = (
         <Button
+          key={signal}
           type={signal === 2 ? "primary" : signal === 9 ? "dashed" : undefined}
           danger={dangerous}
           icon={icon}
           disabled={disabled}
           loading={loading}
+          size={small ? "small" : undefined}
         >
           {name}
         </Button>
       );
       return (
         <Popconfirm
+          key={signal}
           title={<div style={{ maxWidth: "300px" }}>{poptitle}</div>}
           onConfirm={() => onConfirm(signal)}
           okText="Yes"
@@ -594,15 +654,21 @@ export const SignalButtons: React.FC<SignalButtonsProps> = React.memo(
     if (selected.length == 0) {
       return null;
     } else {
-      return (
+      const btns = [
+        render_signal(Signal.Interrupt),
+        render_signal(Signal.Terminate),
+        render_signal(Signal.Kill),
+        render_signal(Signal.Pause),
+        render_signal(Signal.Resume),
+      ];
+      return small ? (
+        <Space size="small" wrap>
+          <Space.Compact size={"small"}>{btns.slice(0, 3)}</Space.Compact>
+          <Space.Compact size={"small"}>{btns.slice(3)}</Space.Compact>
+        </Space>
+      ) : (
         <Form.Item label="Send signal:">
-          <Space>
-            {render_signal(Signal.Interrupt)}
-            {render_signal(Signal.Terminate)}
-            {render_signal(Signal.Kill)}
-            {render_signal(Signal.Pause)}
-            {render_signal(Signal.Resume)}
-          </Space>
+          <Space>{btns}</Space>
         </Form.Item>
       );
     }
