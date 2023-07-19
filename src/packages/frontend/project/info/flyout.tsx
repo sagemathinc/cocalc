@@ -32,7 +32,6 @@ interface Props {
   loading: boolean;
   modal: string | Process | undefined;
   project_actions: ProjectActions | undefined;
-  project_id: string;
   project_state: string | undefined;
   project_status: Immutable.Map<string, any> | undefined;
   pt_stats: PTStats;

@@ -425,6 +425,9 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
       // for now, we only show row 2
       return (
         <Descriptions
+          className={
+            isFlyout ? "cc-project-info-cgroup-table-flyout" : "cc-project-info-cgroup-table-page"
+          }
           bordered={true}
           column={isFlyout ? 1 : 3}
           size={isFlyout ? "small" : "middle"}
