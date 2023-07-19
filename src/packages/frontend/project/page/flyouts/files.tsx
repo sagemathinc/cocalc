@@ -178,13 +178,14 @@ export function FilesFlyout({
     };
   }, [project_id, current_path]);
 
-  // selecting files switches over to "select" mode
+  // selecting files switches over to "select" mode or back to "open"
   useEffect(() => {
     if (mode === "open" && checked_files.size > 0) {
       setMode("select");
     }
-    // this doesn't switch back to open mode, if no files are selected,
-    // because it's nicer to keep the checkboxes if everything is deselected
+    if (mode === "select" && checked_files.size === 0) {
+      setMode("open");
+    }
   }, [checked_files]);
 
   // active file: current editor is the file in the listing
@@ -427,8 +428,6 @@ export function FilesFlyout({
       // deselects the file
       actions?.set_file_list_unchecked(List([fn]));
       if (checked_files.size <= 1) {
-        // because the above will remove the last checked item, we revert back to "open" mode
-        setMode("open");
         setPrevSelected(null);
       } else {
         setPrevSelected(index);
@@ -437,7 +436,6 @@ export function FilesFlyout({
       // selects the file
       actions?.set_file_list_checked([fn]);
       setPrevSelected(index);
-      setMode("select");
     }
   }
 
@@ -470,24 +468,30 @@ export function FilesFlyout({
     }
 
     // shift-click selects whole range from last selected (if not null) to current index
-    if (e.shiftKey && prevSelected != null) {
-      const start = Math.min(prevSelected, index);
-      const end = Math.max(prevSelected, index);
-      const add = !checked_files.includes(
-        path_to_file(current_path, directoryFiles[index].name)
-      );
-      let fileNames: string[] = [];
-      for (let i = start; i <= end; i++) {
-        const fn = directoryFiles[i].name;
-        if (fn === "..") continue; // don't select parent dir, just calls for trouble
-        fileNames.push(path_to_file(current_path, fn));
-      }
-      if (add) {
-        actions?.set_file_list_checked(fileNames);
+    if (e.shiftKey) {
+      if (prevSelected != null) {
+        const start = Math.min(prevSelected, index);
+        const end = Math.max(prevSelected, index);
+        const add = !checked_files.includes(
+          path_to_file(current_path, directoryFiles[index].name)
+        );
+        let fileNames: string[] = [];
+        for (let i = start; i <= end; i++) {
+          const fn = directoryFiles[i].name;
+          if (fn === "..") continue; // don't select parent dir, just calls for trouble
+          fileNames.push(path_to_file(current_path, fn));
+        }
+        if (add) {
+          actions?.set_file_list_checked(fileNames);
+        } else {
+          actions?.set_file_list_unchecked(List(fileNames));
+        }
+        return;
       } else {
-        actions?.set_file_list_unchecked(List(fileNames));
+        toggleSelected(index, file.name);
+        setPrevSelected(index);
+        return;
       }
-      return;
     }
 
     switch (mode) {
@@ -938,7 +942,6 @@ export function FilesFlyout({
           actions?.set_all_files_unchecked();
         }}
         selectAllFiles={() => {
-          setMode("select");
           actions?.set_file_list_checked(
             directoryFiles
               .filter((f) => f.name !== "..")
