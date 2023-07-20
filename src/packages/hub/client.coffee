@@ -61,7 +61,7 @@ underscore = require('underscore')
 
 {RESEND_INVITE_INTERVAL_DAYS} = require("@cocalc/util/consts/invites")
 
-{PW_RESET_ENDPOINT, PW_RESET_KEY} = require('./password')
+{PW_RESET_ENDPOINT} = require('./password')
 
 removeLicenseFromProject = require('@cocalc/server/licenses/remove-from-project').default
 addLicenseToProject = require('@cocalc/server/licenses/add-to-project').default
@@ -2078,7 +2078,7 @@ class exports.Client extends EventEmitter
             # as admins send one manually, they typically need more time, so 1 day instead.
             # We used 8 hours for a while and it is often not enough time.
             id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:24*60*60});
-            mesg.link = "#{PW_RESET_ENDPOINT}?#{PW_RESET_KEY}=#{id}"
+            mesg.link = "#{PW_RESET_ENDPOINT}/#{id}"
             @push_to_client(mesg)
         catch err
             dbg("failed -- #{err}")
