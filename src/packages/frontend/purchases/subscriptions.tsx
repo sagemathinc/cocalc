@@ -38,7 +38,9 @@ import {
   cancelSubscription,
   resumeSubscription,
   renewSubscription,
+  getLicense,
 } from "./api";
+import type { License } from "@cocalc/util/db-schema/site-licenses";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import { STATUS_TO_COLOR } from "@cocalc/util/db-schema/subscriptions";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
@@ -57,16 +59,27 @@ function SubscriptionStatus({ status }) {
   );
 }
 
-function SubscriptionActions({ id, status, refresh, cost }) {
+function SubscriptionActions({
+  subscription_id,
+  license_id,
+  status,
+  refresh,
+  cost,
+}) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [license, setLicense] = useState<License | null>(null);
+
+  const updateLicense = async () => {
+    setLicense(await getLicense(license_id));
+  };
 
   const handleCancel = async (now: boolean = false) => {
     try {
       setLoading(true);
       setError("");
-      await cancelSubscription({ subscription_id: id, now });
+      await cancelSubscription({ subscription_id, now });
       refresh();
     } catch (error) {
       setError(`${error}`);
@@ -79,7 +92,7 @@ function SubscriptionActions({ id, status, refresh, cost }) {
     try {
       setLoading(true);
       setError("");
-      await resumeSubscription(id);
+      await resumeSubscription(subscription_id);
       refresh();
     } catch (error) {
       setError(`${error}`);
@@ -93,13 +106,13 @@ function SubscriptionActions({ id, status, refresh, cost }) {
       setLoading(true);
       setError("");
       try {
-        await renewSubscription(id);
+        await renewSubscription(subscription_id);
       } catch (_) {
         await webapp_client.purchases_client.quotaModal({
           service: "edit-license",
           cost,
         });
-        await renewSubscription(id);
+        await renewSubscription(subscription_id);
       }
       refresh();
     } catch (error) {
@@ -135,7 +148,7 @@ function SubscriptionActions({ id, status, refresh, cost }) {
           cancelText="No"
         >
           <Button disabled={loading} type="primary">
-            Pay Now
+            Pay Now...
           </Button>
         </Popconfirm>
       )}
@@ -143,9 +156,12 @@ function SubscriptionActions({ id, status, refresh, cost }) {
         <Button
           disabled={loading}
           type="default"
-          onClick={() => setModalOpen(true)}
+          onClick={() => {
+            updateLicense();
+            setModalOpen(true);
+          }}
         >
-          Cancel
+          Cancel...
         </Button>
       )}
       {status !== "canceled" && modalOpen && (
@@ -161,21 +177,42 @@ function SubscriptionActions({ id, status, refresh, cost }) {
             >
               Make No Change
             </Button>,
-            <Button
-              disabled={loading}
-              key="cancelNow"
-              onClick={() => handleCancel(true)}
+            <Popconfirm
+              title={
+                <div style={{ maxWidth: "450px" }}>
+                  Are you sure you want to cancel this subscription immediately?
+                  The license will immediately become invalid and any projects
+                  using it will be terminated.
+                  {license?.info?.purchased.type == "disk" && (
+                    <b> All data on the disk will be permanently deleted.</b>
+                  )}
+                </div>
+              }
+              onConfirm={() => handleCancel(true)}
+              okText="Yes"
+              cancelText="No"
             >
-              Cancel Now
-            </Button>,
-            <Button
-              disabled={loading}
-              key="cancelEnd"
-              type="primary"
-              onClick={() => handleCancel(false)}
+              <Button disabled={loading} key="cancelNow" danger>
+                Cancel Now
+              </Button>
+            </Popconfirm>,
+            <Popconfirm
+              title={
+                <div style={{ maxWidth: "450px" }}>
+                  Are you sure you want to cancel this subscription at period
+                  end? The license will still be valid until the subscription
+                  period ends. You can always restart the subscription or edit
+                  the license to change the subscription price.
+                </div>
+              }
+              onConfirm={() => handleCancel(false)}
+              okText="Yes"
+              cancelText="No"
             >
-              Cancel at Period End
-            </Button>,
+              <Button disabled={loading} key="cancelEnd" type="primary">
+                Cancel at Period End
+              </Button>
+            </Popconfirm>,
           ]}
         >
           <div style={{ maxWidth: "450px" }}>
@@ -193,6 +230,14 @@ function SubscriptionActions({ id, status, refresh, cost }) {
               </li>
               <li>You can always resume a canceled subscription later.</li>
             </ul>
+            {license?.info?.purchased.type == "disk" && (
+              <Alert
+                showIcon
+                type="warning"
+                message="Dedicated Disk"
+                description="This is a dedicated disk, so when the license ends, all data on the disk will be permanently deleted."
+              />
+            )}
             {loading && (
               <div style={{ textAlign: "center" }}>
                 <Spin />
@@ -214,7 +259,7 @@ function SubscriptionActions({ id, status, refresh, cost }) {
           cancelText="No"
         >
           <Button disabled={loading} type="default">
-            Resume
+            Resume...
           </Button>
         </Popconfirm>
       )}
@@ -349,9 +394,10 @@ export default function Subscriptions() {
         title: "Action",
         width: "25%",
         key: "action",
-        render: (_, { status, cost, id }) => (
+        render: (_, { cost, id, metadata, status }) => (
           <SubscriptionActions
-            id={id}
+            subscription_id={id}
+            license_id={metadata.license_id}
             status={status}
             refresh={getSubscriptions}
             cost={cost}

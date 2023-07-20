@@ -38,7 +38,6 @@ import {
   licenseStatusProvidesUpgrades,
 } from "@cocalc/util/upgrades/quota";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
-import { LicensePurchaseInfo } from "./purchase-info-about-license";
 import { LICENSE_ACTIVATION_RULES } from "./rules";
 import {
   SiteLicensePublicInfo as Info,
@@ -418,7 +417,6 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
           {render_run_limit()}
           {render_running()}
           {render_activated()}
-          {render_purchased()}
           {render_managers()}
           {render_description()}
         </div>
@@ -513,7 +511,6 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
         {show_run && render_run_limit()}
         {show_run && render_running()}
         {render_activated()}
-        {render_purchased()}
         {render_managers()}
         {render_description()}
       </ul>
@@ -617,12 +614,6 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
         </li>
       );
     }
-  }
-
-  // render information about when and how the license was purchased
-  function render_purchased(): JSX.Element | undefined {
-    if (!info?.is_manager) return; // definitely didn't purchase this license
-    return <LicensePurchaseInfo license_id={license_id} />;
   }
 
   function render_title(): JSX.Element | undefined {
