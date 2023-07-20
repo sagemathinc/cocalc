@@ -382,7 +382,7 @@ export const CGroup: React.FC<CGroupProps> = React.memo(
     // (but it is immutable js)
     const alert = {
       cpu: status_alerts.includes("cpu-cgroup" as AlertType),
-      memory: status_alerts.includes("memoryy" as AlertType),
+      memory: status_alerts.includes("memory" as AlertType),
       disk: status_alerts.includes("disk" as AlertType),
     } as const;
 
