@@ -144,7 +144,7 @@ export const AccountPage: React.FC = () => {
         key: "subscriptions",
         label: (
           <span>
-            <Icon name="money" /> Subscriptions
+            <Icon name="calendar" /> Subscriptions
           </span>
         ),
         children: active_page === "subscriptions" && <SubscriptionsPage />,

@@ -29,7 +29,8 @@ const ICON_STYLE_LARGE = {
 
 interface Props {
   name: string;
-  on_click: (ext?: string) => void;
+  href?: string;
+  on_click?: (ext?: string) => void;
   ext?: string;
   className?: string;
   disabled?: boolean;
@@ -41,6 +42,7 @@ interface Props {
 
 export function NewFileButton({
   name,
+  href,
   on_click,
   ext,
   icon: propsIcon,
@@ -99,6 +101,7 @@ export function NewFileButton({
       onClick={(): void => {
         on_click?.(ext);
       }}
+      href={href}
       style={style}
       className={className}
       disabled={disabled || loading}

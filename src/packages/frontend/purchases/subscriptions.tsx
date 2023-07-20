@@ -44,7 +44,7 @@ import { STATUS_TO_COLOR } from "@cocalc/util/db-schema/subscriptions";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { capitalize /*, cmp*/ } from "@cocalc/util/misc";
+import { capitalize } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import UnpaidSubscriptions from "./unpaid-subscriptions";

@@ -8,7 +8,6 @@ import { redux } from "../app-framework";
 import { QueryParams } from "../misc/query-params";
 import { WelcomeFile } from "./welcome-file";
 import { WebappClient } from "./client";
-import { NAME as LAUNCH_NAME } from "../launch/actions";
 import { PROJECT_INVITE_QUERY_PARAM } from "../collaborators/handle-project-invite";
 import { hasRememberMe } from "@cocalc/frontend/misc/remember-me";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -83,7 +82,9 @@ export async function do_anonymous_setup(client: WebappClient): Promise<void> {
     }
 
     // "share" and "custom software images" create projects on their own!
-    const launch_store = redux.getStore(LAUNCH_NAME);
+    const launch_store = redux.getStore(
+      (await import("../launch/actions")).NAME
+    );
     const need_project = !launch_store.get("type");
     if (need_project) {
       await setup_default_project(log);
