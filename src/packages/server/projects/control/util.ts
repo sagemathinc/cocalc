@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "path";
 import { exec as exec0, spawn } from "child_process";
 import spawnAsync from "await-spawn";
 import * as fs from "fs";
-
+import { writeFile } from "fs/promises";
 import { projects, root, blobstore } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
@@ -78,6 +78,18 @@ export async function setupDataPath(HOME: string, uid?: number): Promise<void> {
   }
 }
 
+async function logLaunchParams(params): Promise<void> {
+  const data = dataPath(params.env.HOME);
+  const path = join(data, "launch-params.json");
+  try {
+    await writeFile(path, JSON.stringify(params, undefined, 2));
+  } catch (err) {
+    winston.debug(
+      `WARNING: failed to write ${path}, which is ONLY used for debugging -- ${err}`
+    );
+  }
+}
+
 export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   winston.debug(`launching project daemon at "${env.HOME}"...`);
   const cwd = join(root, "packages/project");
@@ -93,6 +105,7 @@ export async function launchProjectDaemon(env, uid?: number): Promise<void> {
   winston.debug(
     `"${cmd} ${args.join(" ")} from "${cwd}" as user with uid=${uid}`
   );
+  logLaunchParams({ cwd, env, cmd, args, uid });
   await promisify((cb: Function) => {
     const child = spawn(cmd, args, {
       env,
