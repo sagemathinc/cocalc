@@ -139,26 +139,42 @@ We check if there is a corresponding credit in the
 purchases table, and if not we create the credit
 corresponding to this invoice in some cases.
 
-- if invoice.metadata = {account_id, service:'credit'} which indicates this
+- if invoice.metadata == {account_id, service:'credit'} which indicates this
   invoice was for adding credit to the user's purchases balance.
-- TODO...
+- if invoice?.lines?.data?.[0]?.metadata == {account_id, service:'credit'} then 
+  this is from a usage subscription, which exists to regularly add credit
+  to the account so that the user can pay subscriptions, etc.
 */
 export async function createCreditFromPaidStripeInvoice(invoice) {
-  if (
-    invoice?.metadata == null ||
-    !invoice.paid ||
-    invoice.metadata.service != "credit" ||
-    !invoice.metadata.account_id
-  ) {
+  if (!invoice?.paid) {
     logger.debug(
-      "createCreditFromPaidStripeInvoice -- skipping since not a service credit",
-      invoice.id
+      "createCreditFromPaidStripeInvoice -- skipping since invoice not yet paid.",
+      invoice?.id
     );
-    // Some other sort of invoice, e.g, for a subscription or something else.
-    // We don't handle them here yet.
     return;
   }
-  const { account_id } = invoice.metadata;
+  let metadata = invoice?.metadata;
+  if (
+    metadata == null ||
+    metadata.service != "credit" ||
+    !metadata.account_id
+  ) {
+    metadata = invoice?.lines?.data?.[0]?.metadata;
+    if (
+      metadata == null ||
+      metadata.service != "credit" ||
+      !metadata.account_id
+    ) {
+      logger.debug(
+        "createCreditFromPaidStripeInvoice -- skipping since not a service credit",
+        invoice.id
+      );
+      // Some other sort of invoice, e.g, for a subscription or something else.
+      // We don't handle them here.
+      return;
+    }
+  }
+  const { account_id } = metadata;
   if (!(await isValidAccount(account_id))) {
     logger.debug(
       "createCreditFromPaidStripeInvoice -- invalid account_id!",
