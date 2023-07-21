@@ -169,3 +169,39 @@ export async function setUsageSubscription({
     [subscription_id, account_id]
   );
 }
+
+export async function addToUsageSubscription({
+  account_id,
+  cost, // in dollars; is rounded up to pennies.
+}: {
+  account_id: string;
+  cost: number;
+}) {
+  const stripe = await getConn();
+  let subscription_id = await getUsageSubscriptionId(account_id);
+  if (!subscription_id) {
+    // maybe it is known to stripe but not in our db for some reason?
+    const subs = await getUsageSubscriptions(account_id);
+    if (subs.data.length > 0) {
+      subscription_id = subs.data[0].id;
+      await setUsageSubscription({
+        account_id,
+        subscription_id,
+      });
+    } else {
+      throw Error("You do not have a usage subscription -- please create one.");
+    }
+  }
+  const sub = await stripe.subscriptions.retrieve(subscription_id);
+  if (sub.status != "active") {
+    await setUsageSubscription({ account_id, subscription_id: "" });
+    throw Error("Usage subscription is not active -- please create a new one.");
+  }
+  const subscription_item = sub.items.data[0]?.id;
+  if (!subscription_item) {
+    throw Error("Usage subscription is invalid -- please create a new one.");
+  }
+  await stripe.subscriptionItems.createUsageRecord(subscription_item, {
+    quantity: Math.ceil(cost * 100),
+  });
+}
