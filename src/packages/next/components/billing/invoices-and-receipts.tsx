@@ -113,8 +113,8 @@ export default function InvoicesAndReceipts() {
     <div>
       <Title level={2}>Invoices and Receipts</Title>
       <Paragraph style={{ marginBottom: "30px" }}>
-        Your invoices and receipts are listed below. Click on the "Invoice" link
-        to get a printable invoice or receipt version.
+        Your recent invoices and receipts are listed below. Click on the
+        "Invoice" link to get a printable invoice or receipt version.
       </Paragraph>
       <Table
         columns={columns as any}
