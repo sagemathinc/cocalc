@@ -2,7 +2,7 @@
 Stripe Webhook to handle some events:
 
 - invoice.paid -- 
-
+- customer.subscription.created -- used for the webhook side of @cocalc/server/purchases/create-stripe-usage-based-subscription.ts
 
 We *do* check the stripe signature to only handle requests that actually come from stripe.
 See https://stripe.com/docs/webhooks/signatures for where the code comes from.
@@ -19,6 +19,8 @@ import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getConn from "@cocalc/server/stripe/connection";
 import { createCreditFromPaidStripeInvoice } from "@cocalc/server/purchases/create-invoice";
 import * as express from "express";
+import { isValidUUID } from "@cocalc/util/misc";
+import { setUsageSubscription } from "@cocalc/server/purchases/create-stripe-usage-based-subscription";
 
 const logger = getLogger("hub:stripe-webhook");
 
@@ -63,6 +65,17 @@ async function handleRequest(req) {
       // Then define and call a function to handle the event invoice.paid
       logger.debug("invoice = ", invoice);
       await createCreditFromPaidStripeInvoice(invoice);
+      break;
+    case "customer.subscription.created":
+      logger.debug("event = ", event);
+      const { id, object } = (event.data?.object ?? {}) as any;
+      if (object == "subscription") {
+        const { account_id, service } =
+          (event.data?.object as any)?.metadata ?? {};
+        if (isValidUUID(account_id) && service == "credit") {
+          await setUsageSubscription({ account_id, subscription_id: id });
+        }
+      }
       break;
     default:
       // we don't handle any other event types yet.

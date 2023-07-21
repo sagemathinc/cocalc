@@ -34,7 +34,7 @@ export default async function createStripeUsageBasedSubscription(
   if ((await getCurrentSession(account_id)) != null) {
     throw Error("there is already an active stripe checkout session");
   }
-  if (await hasUsageSubscription(account_id)) {
+  if (await getUsageSubscriptionId(account_id)) {
     throw Error("user already has a usage based subscription");
   }
   if (!(await isValidAccount(account_id))) {
@@ -126,7 +126,9 @@ async function getPriceId(): Promise<string> {
   return priceIdCache.price_id;
 }
 
-export async function hasUsageSubscription(account_id): Promise<boolean> {
+export async function getUsageSubscriptionId(
+  account_id
+): Promise<string | undefined> {
   const db = getPool();
   const { rows } = await db.query(
     "SELECT stripe_usage_subscription FROM accounts WHERE account_id=$1",
@@ -135,7 +137,7 @@ export async function hasUsageSubscription(account_id): Promise<boolean> {
   if (rows.length == 0) {
     throw Error(`no such account ${account_id}`);
   }
-  return !!rows[0].stripe_usage_subscription;
+  return rows[0].stripe_usage_subscription;
 }
 
 export async function getUsageSubscriptions(account_id) {
@@ -150,6 +152,20 @@ export async function getUsageSubscriptions(account_id) {
     };
   const stripe = await getConn();
   return await stripe.subscriptions.search({
-    query: `metadata['account_id']:'${account_id}' AND metadata['service']:'credit'`,
+    query: `status:"active" AND metadata['account_id']:'${account_id}' AND metadata['service']:'credit'`,
   });
+}
+
+export async function setUsageSubscription({
+  account_id,
+  subscription_id,
+}: {
+  account_id: string;
+  subscription_id: string;
+}) {
+  const pool = getPool();
+  await pool.query(
+    "UPDATE accounts SET stripe_usage_subscription=$1 WHERE account_id=$2",
+    [subscription_id, account_id]
+  );
 }
