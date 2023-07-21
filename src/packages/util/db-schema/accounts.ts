@@ -223,7 +223,12 @@ Table({
     },
     stripe_checkout_session: {
       type: "map",
-      desc: "Part of the currnet open stripe checkout session object, namely {id:?, url:?}, but none of the other info.  When user is going to add credit to their account, we create a stripe checkout session and store it here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
+      desc: "Part of the current open stripe checkout session object, namely {id:?, url:?}, but none of the other info.  When user is going to add credit to their account, we create a stripe checkout session and store it here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
+    },
+    stripe_usage_subscription: {
+      type: "string",
+      pg_type: "varchar(256)",
+      desc: "Id of this user's stripe metered usage subscription, if they have one.",
     },
   },
   rules: {

@@ -47,7 +47,6 @@
     "@types/nodemailer": "^6.4.4",
     "@types/passport": "^1.0.9",
     "@types/passport-google-oauth20": "^2.0.11",
-    "@types/stripe": "^8.0.417",
     "async-await-utils": "^3.0.1",
     "await-spawn": "^4.0.2",
     "awaiting": "^3.0.0",
@@ -80,7 +79,7 @@
     "passport-twitter": "^1.0.4",
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
-    "stripe": "^12.10.0",
+    "stripe": "^12.14.0",
     "uuid": "^8.3.2"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/server",
