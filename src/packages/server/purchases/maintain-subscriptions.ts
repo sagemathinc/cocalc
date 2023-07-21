@@ -1,7 +1,6 @@
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import renewSubscription from "@cocalc/server/purchases/renew-subscription";
 
 const logger = getLogger("purchases:maintain-subscriptions");
@@ -22,11 +21,15 @@ export default async function maintainSubscriptions() {
 
 /*
 For each subscription that has status not 'canceled' and current_period_end 
-is in the past or within 1 day, and for which the user has the money/credit 
-to pay the subscription, renew that subscription.  Basically, we renew subscriptions
-1 day before they would automatically cancel for non-payment. Users can of
-course easily get almost any money spent via this automatic process 
-back by just canceling the subscription again.
+is in the past or within 1 day, renew that subscription.  Basically, we renew
+subscriptions 1 day before they would automatically cancel for non-payment. 
+We renew them here EVEN if that pushes the user's balance below the limit.
+
+There's another maintenance task to actually cancel and refund the subscription
+if the user doesn't pay.
+
+Users can of course easily get almost any money spent via this automatic 
+process  back by just canceling the subscription again.
 */
 async function renewSubscriptions() {
   logger.debug("renewSubscriptions");
@@ -42,23 +45,15 @@ async function renewSubscriptions() {
     "subscriptions that we will try to renew"
   );
   for (const { id: subscription_id, cost, account_id } of rows) {
-    const { allowed } = await isPurchaseAllowed({
-      account_id,
-      service: "edit-license",
-      cost,
-    });
     logger.debug("renewSubscriptions -- considering one:", {
       subscription_id,
       cost,
       account_id,
-      allowed,
     });
-    if (allowed) {
-      logger.debug("renewSubscriptions -- renewing subscription", {
-        subscription_id,
-      });
-      await renewSubscription({ account_id, subscription_id });
-    }
+    logger.debug("renewSubscriptions -- renewing subscription", {
+      subscription_id,
+    });
+    await renewSubscription({ account_id, subscription_id, force: true });
   }
 }
 

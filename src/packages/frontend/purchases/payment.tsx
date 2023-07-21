@@ -15,7 +15,7 @@ const DEFAULT_AMOUNT = 10;
 
 interface Props {
   balance: number;
-  update: () => void;
+  update?: () => void;
   cost?: number; // optional amount that we want to encourage the user to pay
 }
 
@@ -76,7 +76,7 @@ export default function Payment({ balance, update, cost }: Props) {
     } catch (_) {}
     setIsModalVisible(false);
     updateSession();
-    update();
+    update?.();
   };
 
   const showModal = () => {

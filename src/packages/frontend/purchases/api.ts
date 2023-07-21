@@ -24,6 +24,10 @@ export async function getBalance(): Promise<number> {
   return await api("purchases/get-balance");
 }
 
+export async function getPendingBalance(): Promise<number> {
+  return await api("purchases/get-pending-balance");
+}
+
 export async function getSpendRate(): Promise<number> {
   return await api("purchases/get-spend-rate");
 }

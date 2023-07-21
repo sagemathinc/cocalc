@@ -19,6 +19,7 @@ register({
         num_charges: null,
         total_credits: null,
         num_credits: null,
+        automatic_payment: null,
         notes: null,
       },
     ],

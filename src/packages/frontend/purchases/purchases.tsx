@@ -315,12 +315,21 @@ function DetailedPurchaseTable({ purchases }) {
           rowKey="id"
           columns={[
             {
+              width: "100px",
+              title: "Id",
+              dataIndex: "id",
+              key: "id",
+            },
+            {
               title: "Description",
               dataIndex: "description",
               key: "description",
               width: "35%",
-              render: (_, record) => (
-                <Description description={record.description} />
+              render: (_, { description, invoice_id }) => (
+                <div>
+                  <Description description={description} />
+                  {invoice_id && <InvoiceLink invoice_id={invoice_id} />}
+                </div>
               ),
             },
             {
@@ -380,27 +389,12 @@ function DetailedPurchaseTable({ purchases }) {
               align: "right" as "right",
               dataIndex: "cost",
               key: "cost",
-              render: (amount, record) => {
-                if (
-                  amount == null &&
-                  record.period_start != null &&
-                  record.cost_per_hour != null
-                ) {
-                  return (
-                    <Space>
-                      <DynamicallyUpdatingCost
-                        costPerHour={record.cost_per_hour}
-                        start={new Date(record.period_start).valueOf()}
-                      />
-                      <Tag color="green">Active</Tag>
-                    </Space>
-                  );
-                }
-                if (amount != null) {
-                  return currency(amount, Math.abs(amount) < 0.1 ? 3 : 2);
-                }
-                return "-";
-              },
+              render: (_, record) => (
+                <>
+                  <Amount record={record} />
+                  <Pending record={record} />
+                </>
+              ),
               sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
               sortDirections: ["ascend", "descend"],
             },
@@ -412,24 +406,6 @@ function DetailedPurchaseTable({ purchases }) {
                 project_id ? (
                   <ProjectTitle project_id={project_id} trunc={20} />
                 ) : null,
-            },
-            {
-              title: "Id",
-              dataIndex: "id",
-              key: "id",
-            },
-
-            {
-              title: "Invoice",
-              dataIndex: "invoice_id",
-              key: "invoice_id",
-              sorter: (a, b) =>
-                (a.invoice_id ?? "").localeCompare(b.invoice_id ?? "") ?? -1,
-              sortDirections: ["ascend", "descend"],
-              render: (invoice_id) => {
-                if (!invoice_id) return null;
-                return <InvoiceLink invoice_id={invoice_id} />;
-              },
             },
           ]}
         />
@@ -634,5 +610,41 @@ function InvoiceLink({ invoice_id }) {
       <Icon name="external-link" /> Invoice
       {loading && <Spin style={{ marginLeft: "30px" }} />}
     </Button>
+  );
+}
+
+function Amount({ record }) {
+  const { cost } = record;
+  if (
+    cost == null &&
+    record.period_start != null &&
+    record.cost_per_hour != null
+  ) {
+    return (
+      <Space>
+        <DynamicallyUpdatingCost
+          costPerHour={record.cost_per_hour}
+          start={new Date(record.period_start).valueOf()}
+        />
+        <Tag color="green">Active</Tag>
+      </Space>
+    );
+  }
+  if (cost != null) {
+    return <>{currency(cost, Math.abs(cost) < 0.1 ? 3 : 2)}</>;
+  }
+  return <>-</>;
+}
+
+function Pending({ record }) {
+  if (!record.pending) return null;
+  return (
+    <div>
+      <Tooltip title="The transaction does not yet count against your spending limits.">
+        <Tag style={{ marginRight: 0 }} color="red">
+          Pending
+        </Tag>
+      </Tooltip>
+    </div>
   );
 }

@@ -68,8 +68,13 @@ Table({
     },
     paid_purchase_id: {
       title: "Paid -- purchase id",
-      desc: "Id of the purchase that paid off the balance.",
+      desc: "Transaction id (in purchases table) of the credit that paid off the statement balance.",
       type: "integer",
+    },
+    automatic_payment: {
+      title: "Automatic Payment",
+      type: "timestamp",
+      desc: "If an automatic payment was issued for this statement (and any subscriptions that will soon renew), then this the timestamp of that payment.  This is only used for monthly statements, when a user has elected to have a stripe metered usage subscription setup, so stripe_usage_subscription is set in the accounts table.  If this is issued and the user successfully pays it, then when the payment is processed the paid_purchase_id field above will get set.",
     },
     notes: NOTES, // for admins to make notes about this statement
   },
@@ -90,6 +95,7 @@ Table({
           num_charges: null,
           total_credits: null,
           num_credits: null,
+          automatic_payment: null,
         },
       },
     },
@@ -115,6 +121,7 @@ Table({
           num_charges: null,
           total_credits: null,
           num_credits: null,
+          automatic_payment: null,
           notes: null,
         },
       },

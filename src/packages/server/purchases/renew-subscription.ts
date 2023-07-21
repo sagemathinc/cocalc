@@ -19,11 +19,13 @@ const logger = getLogger("purchases:renew-subscription");
 interface Options {
   account_id: string;
   subscription_id: number;
+  force?: boolean;
 }
 
 export default async function renewSubscription({
   account_id,
   subscription_id,
+  force,
 }: Options): Promise<number | null | undefined> {
   // might not be a purchase in case there's no fee
   logger.debug({ account_id, subscription_id });
@@ -49,6 +51,7 @@ export default async function renewSubscription({
       note: "This is a subscription with a fixed cost per period.",
       isSubscriptionRenewal: true,
       client,
+      force,
     });
 
     await client.query(

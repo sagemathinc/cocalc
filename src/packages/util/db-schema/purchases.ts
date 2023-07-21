@@ -121,12 +121,18 @@ export interface Purchase {
   start?: Date;
   end?: Date;
   account_id: string;
-  cost: number;
+  cost?: number;
+  cost_per_hour?: number;
+  period_start?: Date;
+  period_end?: Date;
+  pending?: boolean;
   service: Service;
   description: Description;
   invoice_id?: string;
   project_id?: string;
   tag?: string;
+  day_statement_id?: number;
+  month_statement_id?: number;
   notes?: string;
 }
 
@@ -141,6 +147,10 @@ Table({
       desc: "The cost in US dollars. Not set if the purchase isn't finished, e.g., when upgrading a project this is only set when project stops or purchase is finalized. This takes precedence over the cost_per_hour times the length of the period when active.",
       type: "number",
       pg_type: "real",
+    },
+    pending: {
+      type: "boolean",
+      desc: "If true, then this transaction is considered pending, which means that for a few days it doesn't count against the user's quotas for the purposes of deciding whether or not a purchase is allowed.  This is needed so we can charge a user for their subscriptions, then collect the money from them, without all of the running pay-as-you-go project upgrades suddenly breaking (etc.).",
     },
     cost_per_hour: {
       title: "Cost ($)",
@@ -210,6 +220,7 @@ Table({
           period_end: null,
           account_id: null,
           cost: null,
+          pending: null,
           cost_per_hour: null,
           service: null,
           description: null,
@@ -238,6 +249,7 @@ Table({
           period_end: null,
           account_id: null,
           cost: null,
+          pending: null,
           cost_per_hour: null,
           service: null,
           description: null,

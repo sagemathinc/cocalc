@@ -12,6 +12,7 @@ import SpendRate from "./spend-rate";
 import { useEffect, useState } from "react";
 import {
   getBalance as getBalanceUsingApi,
+  getPendingBalance as getPendingBalanceUsingApi,
   getMinBalance as getMinBalanceUsingApi,
   getSpendRate as getSpendRateUsingApi,
 } from "./api";
@@ -19,6 +20,7 @@ import {
 export default function AccountStatus() {
   const [loading, setLoading] = useState<boolean>(true);
   const [balance, setBalance] = useState<number | null>(null);
+  const [pendingBalance, setPendingBalance] = useState<number | null>(null);
   const [minBalance, setMinBalance] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
   const [spendRate, setSpendRate] = useState<number | null>(null);
@@ -29,6 +31,9 @@ export default function AccountStatus() {
   const getBalance = async () => {
     setBalance(await getBalanceUsingApi());
   };
+  const getPendingBalance = async () => {
+    setPendingBalance(await getPendingBalanceUsingApi());
+  };
   const getMinBalance = async () => {
     setMinBalance(await getMinBalanceUsingApi());
   };
@@ -37,10 +42,16 @@ export default function AccountStatus() {
     try {
       setLoading(true);
       setBalance(null);
+      setPendingBalance(null);
       setMinBalance(null);
       setSpendRate(null);
       setError("");
-      await Promise.all([getSpendRate(), getBalance(), getMinBalance()]);
+      await Promise.all([
+        getSpendRate(),
+        getBalance(),
+        getMinBalance(),
+        getPendingBalance(),
+      ]);
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -77,7 +88,11 @@ export default function AccountStatus() {
       )}
       <div style={{ textAlign: "center" }}>
         <Space style={{ margin: "auto", alignItems: "flex-start" }}>
-          <Balance balance={balance} refresh={handleRefresh} />
+          <Balance
+            balance={balance}
+            pendingBalance={pendingBalance}
+            refresh={handleRefresh}
+          />
           <div style={{ width: "30px" }} />
           <MinBalance minBalance={minBalance} />
           <div style={{ width: "30px" }} />

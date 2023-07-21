@@ -5,7 +5,7 @@ register({
 
   title: "Purchases",
 
-  icon: "shopping-cart",
+  icon: "credit-card",
 
   query: {
     crm_purchases: [
@@ -16,6 +16,7 @@ register({
         period_end: null,
         account_id: null,
         cost: null,
+        pending: null,
         service: null,
         description: null,
         invoice_id: null,

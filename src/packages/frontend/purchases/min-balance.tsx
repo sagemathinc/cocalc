@@ -1,5 +1,5 @@
 import { Card } from "antd";
-import { Support } from "./unpaid-invoices";
+import Support from "./support";
 import MoneyStatistic from "./money-statistic";
 
 interface Props {

@@ -20,7 +20,20 @@ export default async function getBalance(
 ): Promise<number> {
   const pool = client ?? getPool();
   const { rows } = await pool.query(
-    `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1`,
+    `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1 AND PENDING IS NOT true`,
+    [account_id]
+  );
+  return rows[0]?.balance ?? 0;
+}
+
+// get sum of the *pending* transactions only for this user.
+export async function getPendingBalance(
+  account_id: string,
+  client?: PoolClient
+) {
+  const pool = client ?? getPool();
+  const { rows } = await pool.query(
+    `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1 AND PENDING=true`,
     [account_id]
   );
   return rows[0]?.balance ?? 0;
