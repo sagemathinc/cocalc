@@ -130,6 +130,14 @@ export async function createCredit(opts: {
 }): Promise<any> {
   return await api("purchases/create-credit", opts);
 }
+
+export async function setupAutomaticBilling(opts: {
+  success_url: string;
+  cancel_url?: string;
+}): Promise<any> {
+  return await api("purchases/setup-automatic-billing", opts);
+}
+
 export async function getUnpaidInvoices(): Promise<any[]> {
   return await api("purchases/get-unpaid-invoices");
 }

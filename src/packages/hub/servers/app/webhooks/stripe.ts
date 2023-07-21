@@ -2,7 +2,7 @@
 Stripe Webhook to handle some events:
 
 - invoice.paid -- 
-- customer.subscription.created -- used for the webhook side of @cocalc/server/purchases/create-stripe-usage-based-subscription.ts
+- customer.subscription.created -- used for the webhook side of @cocalc/server/purchases/stripe-usage-based-subscription.ts
 
 We *do* check the stripe signature to only handle requests that actually come from stripe.
 See https://stripe.com/docs/webhooks/signatures for where the code comes from.
@@ -20,7 +20,7 @@ import getConn from "@cocalc/server/stripe/connection";
 import { createCreditFromPaidStripeInvoice } from "@cocalc/server/purchases/create-invoice";
 import * as express from "express";
 import { isValidUUID } from "@cocalc/util/misc";
-import { setUsageSubscription } from "@cocalc/server/purchases/create-stripe-usage-based-subscription";
+import { setUsageSubscription } from "@cocalc/server/purchases/stripe-usage-based-subscription";
 
 const logger = getLogger("hub:stripe-webhook");
 

@@ -1,5 +1,45 @@
 /*
-Create a stripe checkout session for a usage based subscription for this user.
+Managing a Stripe usage-based subscription created via Stripe Checkout.
+
+- creating a new subscription
+- retrieving the subscription ID for a user
+- retrieving a list of usage-based subscriptions for a user
+- setting the subscription ID
+- adding usage to a subscription. 
+
+
+This is basically a *hack* to provide a way to automatically collect
+money from a user periodically.  The problem is that Stripe Checkout's 
+mode:'setup' requires figuring out exactly what payment methods to
+support, which makes absolutely no sense at all.  See 
+             create-stripe-payment-method-session.ts
+for more details.
+
+The way this hack works is that we -- once and for all -- make a 
+product called "cocalc-automatic-billing" in stripe, if it doesn't
+already exist.  This product costs exactly one penny and is metered,
+so we can add any amount we want of it.
+
+For each user there is a day d, once per month, when the following happens:
+
+- A: we create their monthly statement, which shows their balance on this day
+- B: we compute the cost to renew all of their active monthly (or yearly) 
+  subscriptions. These subscriptions should all be defined so that their
+  renewal is on day d + 3.
+- we add to the usage-based subscription the sum of the above amounts: A+B
+- we update the subscription's billing_cycle_anchor to now as explained here
+   https://stripe.com/docs/api/subscriptions/update
+  which causes an immediate invoice of the subscription and crediting the 
+  user's account.
+- if their account is credited with a credit coming from their usage-based 
+  subscription, we credit their account, then immediately renew their subscriptions.
+
+Note that we assume 1 <= d+3 <= 28, so that d <= 25.  This provides plenty of
+wiggle room in case the usage-based subscription fails.
+
+If the user doesn't have a usage based subscription we still compute A,B, but
+we also send the user an email encouraging them to sign in and add credit to
+their account (if necessary) so that their subscriptions will renew.
 */
 
 import getConn from "@cocalc/server/stripe/connection";
@@ -12,8 +52,9 @@ import {
   getCurrentSession,
 } from "./create-stripe-checkout-session";
 import type { Stripe } from "stripe";
+import { currency } from "./util";
 
-const logger = getLogger("purchases:create-stripe-checkout-session");
+const logger = getLogger("purchases:stripe-usage-based-subscription");
 
 interface Options {
   account_id: string;
@@ -21,7 +62,7 @@ interface Options {
   cancel_url?: string;
 }
 
-export default async function createStripeUsageBasedSubscription(
+export async function createStripeUsageBasedSubscription(
   opts: Options
 ): Promise<Stripe.Checkout.Session> {
   const { account_id, success_url, cancel_url } = opts;
@@ -30,18 +71,18 @@ export default async function createStripeUsageBasedSubscription(
   };
   log(opts);
 
+  if (!success_url) {
+    throw Error("success_url must be set");
+  }
   // check if there is already a stripe checkout session; if so throw error.
   if ((await getCurrentSession(account_id)) != null) {
     throw Error("there is already an active stripe checkout session");
   }
-  if (await getUsageSubscriptionId(account_id)) {
-    throw Error("user already has a usage based subscription");
+  if ((await getUsageSubscription(account_id)) != null) {
+    throw Error("user already has an active usage-based subscription");
   }
   if (!(await isValidAccount(account_id))) {
     throw Error("account must be valid");
-  }
-  if (!success_url) {
-    throw Error("success_url must be nontrivial");
   }
   const stripe = await getConn();
   const customer = await getStripeCustomerId({ account_id, create: true });
@@ -126,9 +167,11 @@ async function getPriceId(): Promise<string> {
   return priceIdCache.price_id;
 }
 
-export async function getUsageSubscriptionId(
-  account_id
-): Promise<string | undefined> {
+// Returns the usage subscription if it exists and is active.
+// Otherwise, returns "null" and clears the entry the entry in the database.
+// This always checks with stripe that the subscription exists and is
+// currently active so do not call it too much.
+export async function getUsageSubscription(account_id: string) {
   const db = getPool();
   const { rows } = await db.query(
     "SELECT stripe_usage_subscription FROM accounts WHERE account_id=$1",
@@ -137,10 +180,32 @@ export async function getUsageSubscriptionId(
   if (rows.length == 0) {
     throw Error(`no such account ${account_id}`);
   }
-  return rows[0].stripe_usage_subscription;
+  const subscription_id = rows[0].stripe_usage_subscription;
+  if (!subscription_id) {
+    return null;
+  }
+  try {
+    const stripe = await getConn();
+    const sub = await stripe.subscriptions.retrieve(subscription_id);
+    if (sub.status != "active") {
+      await setUsageSubscription({ account_id, subscription_id: null });
+      return null;
+    }
+    return sub;
+  } catch (err) {
+    if (err.statusCode == 404) {
+      // 404 means the subscription just doesn't exist at all in stripe.
+      // record that in database.
+      await setUsageSubscription({ account_id, subscription_id: null });
+      return null;
+    }
+    throw err;
+  }
 }
 
-export async function getUsageSubscriptions(account_id) {
+// not used, but might be useful:
+/*
+async function getAllUsageSubscriptions(account_id) {
   const customer = await getStripeCustomerId({ account_id, create: false });
   if (!customer)
     return {
@@ -155,13 +220,14 @@ export async function getUsageSubscriptions(account_id) {
     query: `status:"active" AND metadata['account_id']:'${account_id}' AND metadata['service']:'credit'`,
   });
 }
+*/
 
 export async function setUsageSubscription({
   account_id,
   subscription_id,
 }: {
   account_id: string;
-  subscription_id: string;
+  subscription_id: string | null;
 }) {
   const pool = getPool();
   await pool.query(
@@ -170,38 +236,37 @@ export async function setUsageSubscription({
   );
 }
 
-export async function addToUsageSubscription({
+// minimum of $1 or it is an error.  Stripe I think hardcodes a min of $0.50, so this
+// gives us a little room.
+export const MINIMUM_PAYMENT = 1;
+
+// This puts in motion collecting money ASAP from the user for the given amount.
+// For a credit card it's basically instant.  For other payment methods, I suppose
+// it could take days (?).  There's of course no guarantee, even if it returns
+// successfully without an error, that payment will ever arrive.
+
+// NOTE: do not make this accessible to call via any api exposed to users.
+export async function collectPayment({
   account_id,
-  cost, // in dollars; is rounded up to pennies.
+  amount, // in dollars; is rounded up to pennies.
 }: {
   account_id: string;
-  cost: number;
+  amount: number;
 }) {
-  const stripe = await getConn();
-  let subscription_id = await getUsageSubscriptionId(account_id);
-  if (!subscription_id) {
-    // maybe it is known to stripe but not in our db for some reason?
-    const subs = await getUsageSubscriptions(account_id);
-    if (subs.data.length > 0) {
-      subscription_id = subs.data[0].id;
-      await setUsageSubscription({
-        account_id,
-        subscription_id,
-      });
-    } else {
-      throw Error("You do not have a usage subscription -- please create one.");
-    }
+  const sub = await getUsageSubscription(account_id);
+  if (sub == null) {
+    throw Error("No active usage subscription -- please create a new one.");
   }
-  const sub = await stripe.subscriptions.retrieve(subscription_id);
-  if (sub.status != "active") {
-    await setUsageSubscription({ account_id, subscription_id: "" });
-    throw Error("Usage subscription is not active -- please create a new one.");
+  if (amount < MINIMUM_PAYMENT) {
+    throw Error(`Amount must be at least ${currency(MINIMUM_PAYMENT)}.`);
   }
   const subscription_item = sub.items.data[0]?.id;
   if (!subscription_item) {
     throw Error("Usage subscription is invalid -- please create a new one.");
   }
+  const stripe = await getConn();
   await stripe.subscriptionItems.createUsageRecord(subscription_item, {
-    quantity: Math.ceil(cost * 100),
+    quantity: Math.ceil(amount * 100),
   });
+  await stripe.subscriptions.update(sub.id, { billing_cycle_anchor: "now" });
 }
