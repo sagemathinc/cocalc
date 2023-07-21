@@ -50,6 +50,7 @@ import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import {
   getStripeCustomerId,
   getCurrentSession,
+  setStripeCheckoutSession,
 } from "./create-stripe-checkout-session";
 import type { Stripe } from "stripe";
 import { currency } from "./util";
@@ -112,11 +113,7 @@ export async function createStripeUsageBasedSubscription(
       shipping: "auto",
     },
   });
-  const db = getPool();
-  await db.query(
-    "UPDATE accounts SET stripe_checkout_session=$2 WHERE account_id=$1",
-    [account_id, { id: session.id, url: session.url }]
-  );
+  await setStripeCheckoutSession({ account_id, session });
   return session;
 }
 
@@ -167,6 +164,19 @@ async function getPriceId(): Promise<string> {
   return priceIdCache.price_id;
 }
 
+export async function cancelUsageSubscription(account_id: string) {
+  const sub = await getUsageSubscription(account_id);
+  if (sub == null) {
+    // already disabled or disabled due to checks
+    return;
+  }
+  // there is an active subscription -- let's cancel it in stripe, and
+  // also nullify it in the database:
+  const stripe = await getConn();
+  await stripe.subscriptions.cancel(sub.id);
+  await setUsageSubscription({ account_id, subscription_id: "" });
+}
+
 // Returns the usage subscription if it exists and is active.
 // Otherwise, returns "null" and clears the entry the entry in the database.
 // This always checks with stripe that the subscription exists and is
@@ -188,7 +198,7 @@ export async function getUsageSubscription(account_id: string) {
     const stripe = await getConn();
     const sub = await stripe.subscriptions.retrieve(subscription_id);
     if (sub.status != "active") {
-      await setUsageSubscription({ account_id, subscription_id: null });
+      await setUsageSubscription({ account_id, subscription_id: "" });
       return null;
     }
     return sub;
@@ -196,7 +206,7 @@ export async function getUsageSubscription(account_id: string) {
     if (err.statusCode == 404) {
       // 404 means the subscription just doesn't exist at all in stripe.
       // record that in database.
-      await setUsageSubscription({ account_id, subscription_id: null });
+      await setUsageSubscription({ account_id, subscription_id: "" });
       return null;
     }
     throw err;
@@ -227,7 +237,7 @@ export async function setUsageSubscription({
   subscription_id,
 }: {
   account_id: string;
-  subscription_id: string | null;
+  subscription_id: string; // note: set to "" instead of null so that frontend will update properly; this is just a shortcoming in our changefeeds
 }) {
   const pool = getPool();
   await pool.query(

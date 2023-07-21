@@ -359,6 +359,7 @@ Table({
           tours: null,
           min_balance: null,
           purchase_closing_day: null,
+          stripe_usage_subscription: null,
         },
       },
       set: {

@@ -3,6 +3,7 @@ import { useState } from "react";
 import Statements from "./statements";
 import Statement from "./statement";
 import { Icon } from "@cocalc/frontend/components/icon";
+import AutomaticPayments from "./automatic-payments";
 
 type Key = string[] | string | number[] | number;
 
@@ -12,7 +13,11 @@ export default function StatementsPage() {
   const [activeKey, setActiveKey] = useState<Key>(cache.activeKey);
   return (
     <div>
-      <h3><Icon name="calendar" style={{ marginRight: "8px" }} /> Monthly and Daily Statements</h3>
+      <AutomaticPayments />
+      <h3>
+        <Icon name="calendar" style={{ marginRight: "8px" }} /> Monthly and
+        Daily Statements
+      </h3>
       <div style={{ color: "#666", maxWidth: "800px", margin: "auto" }}>
         You can make purchases and add credit to your account. Once per month
         all transactions from the previous month are included in a statement.

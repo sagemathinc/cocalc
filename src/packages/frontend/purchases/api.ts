@@ -138,6 +138,10 @@ export async function setupAutomaticBilling(opts: {
   return await api("purchases/setup-automatic-billing", opts);
 }
 
+export async function cancelAutomaticBilling() {
+  return await api("purchases/cancel-automatic-billing");
+}
+
 export async function getUnpaidInvoices(): Promise<any[]> {
   return await api("purchases/get-unpaid-invoices");
 }

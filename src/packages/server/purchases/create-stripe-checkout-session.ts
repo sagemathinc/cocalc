@@ -87,12 +87,16 @@ export default async function createStripeCheckoutSession(
       shipping: "auto",
     },
   });
+  await setStripeCheckoutSession({ account_id, session });
+  return session;
+}
+
+export async function setStripeCheckoutSession({ account_id, session }) {
   const db = getPool();
   await db.query(
     "UPDATE accounts SET stripe_checkout_session=$2 WHERE account_id=$1",
     [account_id, { id: session.id, url: session.url }]
   );
-  return session;
 }
 
 export async function getStripeCustomerId({
@@ -224,11 +228,13 @@ export async function getCurrentSession(
     throw Error(`no such account ${account_id}`);
   }
   const session = rows[0].stripe_checkout_session;
-  if (!session) return;
+  if (!session?.id) return;
   const status = await getSessionStatus(session.id);
   if (status != "open") {
+    // We use {} instead of NULL due to shortcomings in changefeeds, since we want
+    // changing this to update the frontend state.
     await db.query(
-      "UPDATE accounts SET stripe_checkout_session=NULL WHERE account_id=$1",
+      "UPDATE accounts SET stripe_checkout_session='{}' WHERE account_id=$1",
       [account_id]
     );
     return undefined;

@@ -84,4 +84,6 @@ export interface AccountState {
   tableError?: TypedMap<{ error: string; query: any }>;
   tags?: string[];
   tours?: string[];
+  stripe_usage_subscription?: string;
+  stripe_checkout_session?: TypedMap<{ id: string; url: string }>;
 }
