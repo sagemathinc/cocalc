@@ -1,10 +1,5 @@
 /*
 Create a stripe checkout session for a usage based subscription for this user.
-
-NOTE: We only allow one stripe checkout session at a time for a given
-user, across both usage-based subscription creation and normal purchases.
-This is for simplicity and should be fine, since why should somebody be
-adding credit/creating a subscription at the exact same time?
 */
 
 import getConn from "@cocalc/server/stripe/connection";
