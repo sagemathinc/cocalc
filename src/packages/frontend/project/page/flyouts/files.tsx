@@ -99,6 +99,7 @@ function searchToFilename(search: string): string {
   if (search === "") return "";
   // if last character is "/" return the search string
   if (search.endsWith("/")) return search;
+  if (search.endsWith(".")) return `${search}${DEFAULT_EXT}`;
   const { ext } = separate_file_extension(search);
   if (ext.length > 0) return search;
   if (ext === "") return `${search}.${DEFAULT_EXT}`;
@@ -729,109 +730,136 @@ export function FilesFlyout({
 
   function renderHeader() {
     return (
-      <Space
-        direction="vertical"
-        style={{
-          flex: "0 0 auto",
-          paddingBottom: FLYOUT_PADDING,
-          paddingRight: FLYOUT_PADDING,
-          borderBottom: FIX_BORDER,
-        }}
-      >
-        {wrapDropzone(
+      <>
+        <Space
+          direction="vertical"
+          style={{
+            flex: "0 0 auto",
+            paddingBottom: FLYOUT_PADDING,
+            paddingRight: FLYOUT_PADDING,
+          }}
+        >
+          {wrapDropzone(
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+              }}
+            >
+              <Radio.Group size="small">
+                {renderSortButton("name", "Name")}
+                {renderSortButton("size", "Size")}
+                {renderSortButton("time", "Time")}
+                {renderSortButton("type", "Type")}
+              </Radio.Group>
+              <Space.Compact direction="horizontal" size={"small"}>
+                <Button
+                  className={uploadClassName}
+                  size="small"
+                  disabled={!projectIsRunning || disableUploads}
+                >
+                  <Icon name={"upload"} />
+                </Button>
+                <Tooltip title="Create a new file" placement="bottom">
+                  <Button
+                    size="small"
+                    type="primary"
+                    onClick={() => actions?.toggleFlyout("new")}
+                  >
+                    <Icon name={"plus-circle"} />
+                  </Button>
+                </Tooltip>
+              </Space.Compact>
+            </div>
+          )}
           <div
             style={{
               display: "flex",
               flexDirection: "row",
               justifyContent: "space-between",
+              width: "100%",
+              gap: FLYOUT_PADDING,
             }}
           >
-            <Radio.Group size="small">
-              {renderSortButton("name", "Name")}
-              {renderSortButton("size", "Size")}
-              {renderSortButton("time", "Time")}
-              {renderSortButton("type", "Type")}
-            </Radio.Group>
-            <Space.Compact direction="horizontal" size={"small"}>
-              <Button
-                className={uploadClassName}
-                size="small"
-                disabled={!projectIsRunning || disableUploads}
+            <Input
+              ref={refInput}
+              placeholder="Filter..."
+              size="small"
+              value={file_search}
+              onKeyDown={filterKeyHandler}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onFocus={() => setScrollIdxHide(false)}
+              onBlur={() => setScrollIdxHide(true)}
+              style={{ flex: "1" }}
+              allowClear
+              prefix={<Icon name="search" />}
+            />
+            <Space.Compact direction="horizontal" size="small">
+              <BootstrapButton
+                title={hidden ? "Hide hidden files" : "Show hidden files"}
+                bsSize="xsmall"
+                style={{ flex: "0" }}
+                onClick={() => actions?.setState({ show_hidden: !hidden })}
               >
-                <Icon name={"upload"} />
-              </Button>
-              <Tooltip title="Create a new file" placement="bottom">
-                <Button
-                  size="small"
-                  type="primary"
-                  onClick={() => actions?.toggleFlyout("new")}
-                >
-                  <Icon name={"plus-circle"} />
-                </Button>
-              </Tooltip>
+                <Icon name={hidden ? "eye" : "eye-slash"} />
+              </BootstrapButton>
+              <BootstrapButton
+                title={show_masked ? "Hide masked files" : "Show masked files"}
+                bsSize="xsmall"
+                style={{ flex: "0" }}
+                active={!show_masked}
+                onClick={() => actions?.setState({ show_masked: !show_masked })}
+              >
+                <Icon name={"mask"} />
+              </BootstrapButton>
             </Space.Compact>
+            {kucalc === KUCALC_COCALC_COM ? (
+              <Space.Compact direction="horizontal" size="small">
+                <Button
+                  onClick={() => {
+                    actions?.open_directory(".snapshots");
+                    track("snapshots", {
+                      action: "open",
+                      where: "flyout-files",
+                    });
+                  }}
+                  title={
+                    "Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."
+                  }
+                  icon={<Icon name={"life-ring"} />}
+                />
+              </Space.Compact>
+            ) : undefined}
           </div>
-        )}
-        <div
+        </Space>
+        <Space
+          direction="vertical"
           style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            width: "100%",
-            gap: FLYOUT_PADDING,
+            flex: "0 0 auto",
+            borderBottom: FIX_BORDER,
           }}
         >
-          <Input
-            ref={refInput}
-            placeholder="Filter..."
-            size="small"
-            value={file_search}
-            onKeyDown={filterKeyHandler}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onFocus={() => setScrollIdxHide(false)}
-            onBlur={() => setScrollIdxHide(true)}
-            style={{ flex: "1" }}
-            allowClear
-            prefix={<Icon name="search" />}
-          />
-          <Space.Compact direction="horizontal" size="small">
-            <BootstrapButton
-              title={hidden ? "Hide hidden files" : "Show hidden files"}
-              bsSize="xsmall"
-              style={{ flex: "0" }}
-              onClick={() => actions?.setState({ show_hidden: !hidden })}
-            >
-              <Icon name={hidden ? "eye" : "eye-slash"} />
-            </BootstrapButton>
-            <BootstrapButton
-              title={show_masked ? "Hide masked files" : "Show masked files"}
-              bsSize="xsmall"
-              style={{ flex: "0" }}
-              active={!show_masked}
-              onClick={() => actions?.setState({ show_masked: !show_masked })}
-            >
-              <Icon name={"mask"} />
-            </BootstrapButton>
-          </Space.Compact>
-          {kucalc === KUCALC_COCALC_COM ? (
-            <Space.Compact direction="horizontal" size="small">
-              <Button
-                onClick={() => {
-                  actions?.open_directory(".snapshots");
-                  track("snapshots", { action: "open", where: "flyout-files" });
-                }}
-                title={
-                  "Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."
-                }
-                icon={<Icon name={"life-ring"} />}
-              />
-            </Space.Compact>
-          ) : undefined}
-        </div>
-        {staleListingWarning()}
-        {createFileIfNotExists()}
-        {renderFileCreationError()}
-      </Space>
+          {staleListingWarning()}
+          {activeFilterWarning()}
+          {createFileIfNotExists()}
+          {renderFileCreationError()}
+        </Space>
+      </>
+    );
+  }
+
+  function renderClearSearchSmall() {
+    return (
+      <Tooltip title="Clear search" placement="bottom">
+        <Button
+          size="small"
+          type="text"
+          style={{ float: "right", color: COLORS.GRAY_M }}
+          onClick={() => setSearchState("")}
+          icon={<Icon name="close-circle-filled" />}
+        />
+      </Tooltip>
     );
   }
 
@@ -852,6 +880,26 @@ export function FilesFlyout({
     );
   }
 
+  function activeFilterWarning() {
+    if (file_search === "") return;
+    if (!isEmpty) {
+      return (
+        <Alert
+          type="info"
+          banner
+          showIcon={false}
+          style={{ padding: FLYOUT_PADDING, margin: 0 }}
+          description={
+            <>
+              {renderClearSearchSmall()}
+              Only showing files matching "<Text code>{file_search}</Text>".
+            </>
+          }
+        />
+      );
+    }
+  }
+
   function createFileIfNotExists() {
     if (file_search === "" || !isEmpty) return;
 
@@ -864,8 +912,14 @@ export function FilesFlyout({
         style={{ padding: FLYOUT_PADDING, margin: 0 }}
         description={
           <>
-            Hit <Text code>Return</Text> to create the {what}{" "}
-            <Text code>{searchToFilename(file_search)}</Text>
+            <div>
+              {renderClearSearchSmall()}
+              No files match the current filter.
+            </div>
+            <div>
+              Hit <Text code>Return</Text> to create the {what}{" "}
+              <Text code>{searchToFilename(file_search)}</Text>
+            </div>
           </>
         }
       />
