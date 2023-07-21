@@ -4,9 +4,9 @@
  */
 
 import { CaretRightOutlined } from "@ant-design/icons";
-import { Button, Collapse, Descriptions, Space, Tooltip } from "antd";
+import { Button, Collapse, Descriptions, Modal, Space, Tooltip } from "antd";
 import immutable from "immutable";
-import { debounce } from "lodash";
+import { capitalize, debounce } from "lodash";
 
 import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -50,6 +50,7 @@ import {
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { FLYOUT_PADDING } from "./consts";
+import { FilesAction } from "./files-action";
 import { TerminalFlyout } from "./files-terminal";
 import { getFlyoutFiles, storeFlyoutState } from "./state";
 
@@ -206,6 +207,23 @@ export function FilesBottom({
     );
   }
 
+  function renderModalAction(action: string) {
+    if (checked_files.size === 0) return;
+    const basename = path_split(checked_files.first()).tail;
+    Modal.confirm({
+      title: `${capitalize(action)} ${checked_files.size} files`,
+      content: <FilesAction action={action} />,
+      // width: window.innerWidth * 0.8,
+      okText: "Delete",
+      cancelText: "Cancel",
+      onOk: () => {
+        window.alert(
+          `TODO: ${action} ${checked_files.size} files, basename: ${basename}`
+        );
+      },
+    });
+  }
+
   function renderButtons(names) {
     return (
       <Space direction="horizontal" wrap>
@@ -225,12 +243,13 @@ export function FilesBottom({
                   key={name}
                   disabled={disabled}
                   onClick={() => {
-                    // TODO re-using the existing controls is a stopgap. make this part of the flyouts.
-                    actions?.set_active_tab("files");
-                    actions?.set_file_action(
-                      name,
-                      () => path_split(checked_files.first()).tail
-                    );
+                    renderModalAction(name);
+                    // // TODO re-using the existing controls is a stopgap. make this part of the flyouts.
+                    // actions?.set_active_tab("files");
+                    // actions?.set_file_action(
+                    //   name,
+                    //   () => path_split(checked_files.first()).tail
+                    // );
                   }}
                 >
                   <Icon name={icon} />
