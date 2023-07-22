@@ -31,11 +31,11 @@ is in the past or within 1 day, renew that subscription.  Basically, we renew
 subscriptions 1 day before they would automatically cancel for non-payment. 
 We renew them here EVEN if that pushes the user's balance below the limit.
 
-There's another maintenance task to actually cancel and refund the subscription
-if the user doesn't pay.
+There's another maintenance task -- cancelAllPendingSubscriptions below -- 
+to actually cancel and refund the subscription if the user doesn't pay.
 
 Users can of course easily get almost any money spent via this automatic 
-process  back by just canceling the subscription again.
+process back by just canceling the subscription again.
 */
 async function renewSubscriptions() {
   logger.debug("renewSubscriptions");
@@ -59,7 +59,20 @@ async function renewSubscriptions() {
     logger.debug("renewSubscriptions -- renewing subscription", {
       subscription_id,
     });
-    await renewSubscription({ account_id, subscription_id, force: true });
+    try {
+      await renewSubscription({ account_id, subscription_id, force: true });
+    } catch (err) {
+      logger.debug(
+        "renewSubscriptions -- nonfatal error renewing subscription",
+        {
+          subscription_id,
+          err,
+        }
+      );
+      if (test.failOnError) {
+        throw err;
+      }
+    }
   }
 }
 
@@ -180,6 +193,7 @@ async function cancelOnePendingSubscription({ account_id, purchase_id }) {
 // This export is only to make some private functions in this file available for unit testing.
 // Don't otherwise use or instead change those to explicit exports if needed for some reason.
 export const test = {
+  renewSubscriptions,
   updateStatus,
   cancelAllPendingSubscriptions,
   getGracePeriodDays,

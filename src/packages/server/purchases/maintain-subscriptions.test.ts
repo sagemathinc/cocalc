@@ -8,20 +8,134 @@ import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
 import getSubscriptions from "./get-subscriptions";
 import getBalance, { getPendingBalance } from "./get-balance";
+import createCredit from "./create-credit";
 import { test } from "./maintain-subscriptions";
 import { license0 } from "./test-data";
 import dayjs from "dayjs";
 
 beforeAll(async () => {
   test.failOnError = true;
-  await initEphemeralDatabase();
+  await initEphemeralDatabase({});
 }, 15000);
 
 afterAll(async () => {
   await getPool().end();
 });
 
-describe("testing that updateStatus works as it should", () => {
+describe("test renewSubscriptions", () => {
+  it("run renewSubscriptions and it doesn't crash", async () => {
+    try {
+      await test.renewSubscriptions();
+    } catch (_) {
+      // rare case that some muck left in database due to half-failed tests, so clean up
+      // once and try again.  A little iffy do to tests running in parallel, but should
+      // never happen if there is a clean slate.
+      await initEphemeralDatabase({ reset: true });
+      await test.renewSubscriptions();
+    }
+  });
+
+  const account_id = uuid();
+  const x: any = {};
+  it("creates an account, license and subscription", async () => {
+    await createAccount({
+      email: "",
+      password: "xyz",
+      firstName: "Test",
+      lastName: "User",
+      account_id,
+    });
+    const info = getPurchaseInfo(license0);
+    x.license_id = await createLicense(account_id, info);
+    x.subscription_id = await createSubscription(
+      {
+        account_id,
+        cost: 10,
+        interval: "month",
+        current_period_start: dayjs().toDate(),
+        current_period_end: dayjs().add(1, "month").toDate(),
+        status: "active",
+        metadata: { type: "license", license_id: x.license_id },
+        latest_purchase_id: 0,
+      },
+      null
+    );
+  });
+
+  it("runs renewSubscriptions and checks that our subscription didn't renew yet", async () => {
+    await test.renewSubscriptions();
+    const subs = await getSubscriptions({ account_id });
+    expect(
+      Math.abs(subs[0].current_period_start.valueOf() - Date.now())
+    ).toBeLessThan(1000 * 10);
+  });
+
+  it("modifies our subscription so the start date is a month ago and the end date is 12 hours from now", async () => {
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "UPDATE subscriptions SET current_period_start=$1, current_period_end=$2 WHERE id=$3",
+      [
+        dayjs().subtract(1, "month").toDate(),
+        dayjs().add(12, "hour").toDate(),
+        x.subscription_id,
+      ]
+    );
+  });
+
+  it("runs renewSubscriptions and checks that our subscription did renew", async () => {
+    await test.renewSubscriptions();
+    const subs = await getSubscriptions({ account_id });
+    // within 3 days of a month from now:
+    expect(
+      Math.abs(
+        subs[0].current_period_end.valueOf() -
+          dayjs().add(1, "month").toDate().valueOf()
+      )
+    ).toBeLessThan(1000 * 3600 * 24 * 2);
+    // within 3 days of now:
+    expect(
+      Math.abs(subs[0].current_period_start.valueOf() - Date.now())
+    ).toBeLessThan(1000 * 3600 * 24 * 2);
+    // the purchase should be pending so we don't have any money.
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "SELECT pending FROM purchases where id=$1",
+      [subs[0].latest_purchase_id]
+    );
+    expect(rows[0].pending).toBe(true);
+  });
+
+  it("add some money and purchase should suddenly not be pending", async () => {
+    await createCredit({ account_id, amount: 1000 });
+    const subs = await getSubscriptions({ account_id });
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "SELECT pending FROM purchases where id=$1",
+      [subs[0].latest_purchase_id]
+    );
+    expect(rows[0].pending).toBe(false);
+  });
+
+  it("reset the subscription period again, and do subscription renewal. This time purchase will NOT be pending since we have so much money.", async () => {
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "UPDATE subscriptions SET current_period_start=$1, current_period_end=$2 WHERE id=$3",
+      [
+        dayjs().subtract(1, "month").toDate(),
+        dayjs().add(12, "hour").toDate(),
+        x.subscription_id,
+      ]
+    );
+    await test.renewSubscriptions();
+    const subs = await getSubscriptions({ account_id });
+    const y = await pool.query("SELECT pending FROM purchases where id=$1", [
+      subs[0].latest_purchase_id,
+    ]);
+    expect(!!y.rows[0].pending).toBe(false);
+  });
+});
+
+describe("test that updateStatus works as it should", () => {
   it("run updateStatus and it doesn't crash", async () => {
     await test.updateStatus();
   });
@@ -38,6 +152,7 @@ describe("testing that updateStatus works as it should", () => {
   });
 
   const x: any = {};
+
   it("create a new subscription, run updateStatus, and observe that it doesn't change the status", async () => {
     x.subscription_id = await createSubscription(
       {

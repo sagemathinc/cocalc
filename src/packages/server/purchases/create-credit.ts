@@ -57,7 +57,7 @@ export default async function createCredit({
     "INSERT INTO purchases (service, time, account_id, cost, description, invoice_id, notes, tag) VALUES('credit', CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6) RETURNING id",
     [account_id, -amount, { type: "credit" } as Credit, invoice_id, notes, tag]
   );
-  updatePending(account_id); // don't block on this async call that won't throw.
+  await updatePending(account_id);
 
   return rows[0].id;
 }
