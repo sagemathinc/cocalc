@@ -3,6 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+/*
+[ ] TODO: I think this is entirely deprecated??
+*/
+
 import { getLogger } from "@cocalc/backend/logger";
 import { Stripe, StripeClient } from "@cocalc/server/stripe/client";
 import getConn from "@cocalc/server/stripe/connection";

@@ -52,7 +52,7 @@ export default function Balance({
       <>
         <Space style={{ marginBottom: "30px" }}>{stat}</Space>
         <Payment balance={balance} update={refresh} cost={cost} />
-        {pendingBalance && (
+        {pendingBalance != null && pendingBalance > 0 && (
           <Tooltip title="Pending charges are not included in your spending limit.">
             <div style={{ maxWidth: "200px", color: "#666" }}>
               <Divider />

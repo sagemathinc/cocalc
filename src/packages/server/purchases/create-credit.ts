@@ -11,6 +11,7 @@ import getPool from "@cocalc/database/pool";
 import type { Credit } from "@cocalc/util/db-schema/purchases";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import getLogger from "@cocalc/backend/logger";
+import updatePendingPurchases from "./update-pending-purchases";
 
 const logger = getLogger("purchases:create-credit");
 
@@ -45,7 +46,7 @@ export default async function createCredit({
       logger.debug(
         "createCredit",
         { invoice_id },
-        " already exists, so doing nothing further"
+        " already exists, so doing nothing further (this credit was already processed)"
       );
       return x.rows[0].id;
     }
@@ -56,5 +57,21 @@ export default async function createCredit({
     "INSERT INTO purchases (service, time, account_id, cost, description, invoice_id, notes, tag) VALUES('credit', CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6) RETURNING id",
     [account_id, -amount, { type: "credit" } as Credit, invoice_id, notes, tag]
   );
+  updatePending(account_id); // don't block on this async call that won't throw.
+
   return rows[0].id;
+}
+
+async function updatePending(account_id) {
+  try {
+    await updatePendingPurchases(account_id);
+  } catch (err) {
+    // if something goes wrong this just means some pending flags weren't flipped.
+    // They'll get flipped later, and this basically only gives the user a little
+    // bit of temporary credit.
+    logger.debug(
+      "createCredit -- WARNING -- nonfatal error updating pending purchases",
+      err
+    );
+  }
 }

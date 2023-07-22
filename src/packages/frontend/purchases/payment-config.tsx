@@ -68,9 +68,9 @@ export default function PaymentConfig({
                 Due: {currency(minAmount)}
               </Preset>
             )}
-            {balance >= Math.max(minAmount, minPayment) && (
-              <Preset amount={balance} setPaymentAmount={setPaymentAmount}>
-                Balance: {currency(balance)}
+            {-balance >= Math.max(minAmount, minPayment) && (
+              <Preset amount={-balance} setPaymentAmount={setPaymentAmount}>
+                Balance: {currency(-balance)}
               </Preset>
             )}
             {DEFAULT_AMOUNT >= Math.max(minAmount, minPayment) && (

@@ -2,9 +2,9 @@ import knapsack from "@cocalc/util/knapsack";
 
 describe("knapsack", () => {
   const input = {
-    banana: { c: 5, b: 33 },
-    apple: { c: 1, b: 12 },
-    kiwi: { c: 1, b: 7 },
+    banana: { cost: 5, benefit: 33 },
+    apple: { cost: 1, benefit: 12 },
+    kiwi: { cost: 1, benefit: 7 },
   };
 
   it("should return the correct result for the first example", () => {

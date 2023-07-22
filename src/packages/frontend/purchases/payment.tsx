@@ -22,7 +22,7 @@ interface Props {
 export default function Payment({ balance, update, cost }: Props) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number>(
-    Math.max(DEFAULT_AMOUNT, balance ?? 0)
+    Math.max(DEFAULT_AMOUNT, balance != null && balance < 0 ? -balance : 0)
   );
   const [session, setSession] = useState<
     { id: string; url: string } | null | "loading"
@@ -83,7 +83,10 @@ export default function Payment({ balance, update, cost }: Props) {
     setPaymentAmount(
       cost
         ? Math.max(minPayment ?? 0, cost)
-        : Math.max(minPayment ?? 0, balance ?? 0)
+        : Math.max(
+            minPayment ?? 0,
+            balance != null && balance < 0 ? -balance : 0
+          )
     );
     setIsModalVisible(true);
     if (typeof session == "object" && session?.url) {
