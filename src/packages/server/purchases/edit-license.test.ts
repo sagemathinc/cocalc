@@ -18,6 +18,7 @@ import dayjs from "dayjs";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import getSubscriptions from "./get-subscriptions";
+import { license0 } from "./test-data";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -30,25 +31,6 @@ afterAll(async () => {
 describe("create a license and then edit it in various ways", () => {
   const account_id = uuid();
 
-  const description = {
-    cpu: 1,
-    ram: 2,
-    disk: 3,
-    type: "quota",
-    user: "academic",
-    boost: true,
-    range: [
-      dayjs().add(1, "week").toISOString(),
-      dayjs().add(1, "month").toISOString(),
-    ],
-    title: "as",
-    member: true,
-    period: "range",
-    uptime: "short",
-    run_limit: 1,
-    description: "xxxx",
-  } as const;
-
   const x = { license_id: "" };
 
   it("create an account and a license so we can edit it", async () => {
@@ -59,7 +41,7 @@ describe("create a license and then edit it in various ways", () => {
       lastName: "User",
       account_id,
     });
-    const info = getPurchaseInfo(description);
+    const info = getPurchaseInfo(license0);
     x.license_id = await createLicense(account_id, info);
   });
 
@@ -88,7 +70,7 @@ describe("create a license and then edit it in various ways", () => {
     expect(license.is_manager).toBe(true);
     expect(license.number_running).toBe(0);
     expect(new Date(license.activates ?? 0).toISOString()).toBe(
-      description.range[0]
+      license0.range[0]
     );
     expect(new Date(license.expires ?? 0).toISOString()).toBe(
       end.toISOString()
@@ -218,7 +200,7 @@ describe("create a subscription license and edit it and confirm the subscription
     expect(subs.length).toBe(1);
     expect(subs[0].status).toBe("active");
     const license_id = subs[0].metadata.license_id;
-    const {  cost } = await editLicense({
+    const { cost } = await editLicense({
       account_id: item.account_id,
       license_id,
       changes: { custom_ram: 8, custom_cpu: 3 },

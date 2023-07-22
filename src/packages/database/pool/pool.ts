@@ -62,8 +62,14 @@ export function getClient(): Client {
   return new Client({ password: dbPassword(), user, host, database });
 }
 
-// This is used for testing.  Call this to reset the ephemeral
+// This is used for testing.  It ensures the schema is loaded and
+// test database is defined.
+
+// Call this with {reset:true} to reset the ephemeral
 // database to a clean state with the schema loaded.
+// You *can't* just initEphemeralDatabase({reset:true}) in the pre-amble
+// of jest tests though, since all the tests are running in parallel, and
+// they would mess up each other's state...
 const TEST = "smc_ephemeral_testing_database";
 export async function initEphemeralDatabase({
   reset,

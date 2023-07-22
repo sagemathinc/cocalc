@@ -2,6 +2,7 @@ import getPool, { PoolClient } from "@cocalc/database/pool";
 import editLicense from "./edit-license";
 import { getSubscription } from "./renew-subscription";
 import dayjs from "dayjs";
+import getLicense from "@cocalc/server/licenses/get-license";
 
 interface Options {
   account_id: string;
@@ -24,8 +25,19 @@ export default async function cancelSubscription({
   if (now) {
     const subscription = await getSubscription(subscription_id);
     const { metadata, current_period_end } = subscription;
-    const end = dayjs().add(10, "minutes").toDate(); // 10 minutes in the future to avoid issues.
-    if (current_period_end <= end) {
+    const license = await getLicense(metadata.license_id);
+    let end;
+    if (license.activates != null && new Date(license.activates) > new Date()) {
+      // activation in the future
+      end = new Date(license.activates);
+    } else {
+      // 10 minutes in the future to avoid issues.
+      end = dayjs().add(10, "minutes").toDate();
+    }
+    if (
+      (license.expires != null && new Date(license.expires) <= end) ||
+      current_period_end <= end
+    ) {
       // license already ended
       return;
     }

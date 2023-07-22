@@ -114,13 +114,17 @@ and provide a prorated refund.  Also, set the corresponding payment
 to no longer be pending (most of it will be included in the refund).
 */
 
-async function cancelAllPendingSubscriptions() {
+async function getGracePeriodDays(): Promise<number> {
   const { subscription_maintenance } = await getServerSettings();
-  const { grace = 3 } = subscription_maintenance ?? {};
+  return subscription_maintenance?.grace ?? 3;
+}
+
+async function cancelAllPendingSubscriptions() {
+  const grace = await getGracePeriodDays();
 
   const pool = getPool();
   const { rows } = await pool.query(`
-SELECT account_id, id as purchase_id FROM purchases WHERE pending=true AND time <= NOW() - interval '${grace} days' AND description->>'type'='edit-license';
+SELECT account_id, id as purchase_id FROM purchases WHERE pending=true AND time <= NOW() - interval '${grace} days' AND service = 'edit-license';
 `);
   logger.debug(
     "cancelPendingSubscriptions -- pending subscription purchases = ",
@@ -131,10 +135,15 @@ SELECT account_id, id as purchase_id FROM purchases WHERE pending=true AND time 
       await cancelOnePendingSubscription(obj);
     } catch (err) {
       logger.debug("WARNING: cancelOnePendingSubscription failed", obj, err);
+      if (test.failOnError) {
+        throw err;
+      }
     }
   }
 }
 
+// [ ] TODO: send email when canceling a subscription/license this way
+// with instructions to restart it?
 async function cancelOnePendingSubscription({ account_id, purchase_id }) {
   const client = await getTransactionClient();
   try {
@@ -166,7 +175,11 @@ async function cancelOnePendingSubscription({ account_id, purchase_id }) {
   }
 }
 
-export const test = { cancelAllPendingSubscriptions };
+export const test = {
+  cancelAllPendingSubscriptions,
+  getGracePeriodDays,
+  failOnError: false, // test mode can set this to true so that exceptions are fatal instead of just logged
+};
 
 /*
 

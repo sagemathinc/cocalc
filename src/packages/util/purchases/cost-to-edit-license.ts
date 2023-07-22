@@ -60,8 +60,10 @@ export default function costToEditLicense(
         "if you're changing the end date, then you can't change it to be in the past"
       );
     }
-    if (changes.start == null && changes.end <= info.start) {
-      throw Error("you can't change the end date to be before the start date");
+    if (changes.start == null && changes.end < info.start) {
+      throw Error(
+        `you can't change the end date ${changes.end} to be before the start date ${info.start}`
+      );
     }
   }
 
