@@ -42,27 +42,21 @@ export default function Statements({
 
   const columns = [
     {
-      title: "Date",
+      title: "Cutoff Date",
       dataIndex: "time",
       key: "time",
       render: (time) => <TimeAgo date={time} />,
-    },
-    {
-      title: "Balance",
-      dataIndex: "balance",
-      key: "balance",
-      align: "right" as "right",
-      render: (balance) => currency(balance, 2),
     },
     {
       title: "Total Charges",
       dataIndex: "total_charges",
       key: "total_charges",
       align: "right" as "right",
-      render: (total) => currency(total, 2),
+      render: (total) => (total ? currency(total, 2) : "-"),
     },
     {
-      title: "Charges",
+      width: "100px",
+      title: "Number of Charges",
       align: "center" as "center",
       dataIndex: "num_charges",
       key: "num_charges",
@@ -72,13 +66,21 @@ export default function Statements({
       dataIndex: "total_credits",
       key: "total_credits",
       align: "right" as "right",
-      render: (total) => currency(total, 2),
+      render: (total) => (total ? currency(total, 2) : "-"),
     },
     {
-      title: "Credits",
+      width: "100px",
+      title: "Number of Credits",
       align: "center" as "center",
       dataIndex: "num_credits",
       key: "num_credits",
+    },
+    {
+      title: "Balance at Cutoff",
+      dataIndex: "balance",
+      key: "balance",
+      align: "right" as "right",
+      render: (balance) => currency(balance, 2),
     },
     { title: "ID", dataIndex: "id", key: "id" },
   ];
@@ -107,6 +109,11 @@ export default function Statements({
             expandedRowRender: (record) => {
               return (
                 <PurchasesTable
+                  filename={`${
+                    interval == "day" ? "daily" : "monthly"
+                  }-statement-${
+                    new Date(record.time).toISOString().split("T")[0]
+                  }`}
                   day_statement_id={interval == "day" ? record.id : undefined}
                   month_statement_id={
                     interval == "month" ? record.id : undefined

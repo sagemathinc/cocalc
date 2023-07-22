@@ -72,7 +72,7 @@ describe("test renewSubscriptions", () => {
 
   it("modifies our subscription so the start date is a month ago and the end date is 12 hours from now", async () => {
     const pool = getPool();
-    const { rows } = await pool.query(
+    await pool.query(
       "UPDATE subscriptions SET current_period_start=$1, current_period_end=$2 WHERE id=$3",
       [
         dayjs().subtract(1, "month").toDate(),
@@ -118,7 +118,7 @@ describe("test renewSubscriptions", () => {
 
   it("reset the subscription period again, and do subscription renewal. This time purchase will NOT be pending since we have so much money.", async () => {
     const pool = getPool();
-    const { rows } = await pool.query(
+    await pool.query(
       "UPDATE subscriptions SET current_period_start=$1, current_period_end=$2 WHERE id=$3",
       [
         dayjs().subtract(1, "month").toDate(),

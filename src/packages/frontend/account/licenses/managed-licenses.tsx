@@ -131,7 +131,7 @@ export const ManagedLicenses: React.FC = () => {
         <div style={{ float: "right" }}>
           {render_show_all()}
           <Button onClick={reload} disabled={loading}>
-            <Icon name="redo" />
+            <Icon name="refresh" />
             <Gap /> <Gap /> {loading ? "Loading..." : "Refresh all"}
           </Button>
         </div>

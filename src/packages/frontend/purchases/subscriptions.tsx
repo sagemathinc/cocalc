@@ -51,6 +51,7 @@ import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-licen
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
 import { currency } from "./util";
+import Export from "./export";
 
 function SubscriptionStatus({ status }) {
   return (
@@ -420,14 +421,20 @@ export default function Subscriptions() {
       title={
         <>
           <Icon name="calendar" /> Subscriptions
-          <Button
-            style={{ marginRight: "15px", float: "right" }}
-            onClick={() => {
-              getSubscriptions();
-            }}
-          >
-            <Icon name="refresh" /> Refresh
-          </Button>
+          <div style={{ marginLeft: "15px", float: "right", display: "flex" }}>
+            <Button
+              onClick={() => {
+                getSubscriptions();
+              }}
+            >
+              <Icon name="refresh" /> Refresh
+            </Button>
+            <Export
+              data={subscriptions}
+              name="subscriptions"
+              style={{ marginLeft: "8px" }}
+            />
+          </div>
         </>
       }
     >

@@ -30,6 +30,7 @@ import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import Refresh from "@cocalc/frontend/components/refresh";
 import ShowError from "@cocalc/frontend/components/error";
+import Export from "./export";
 
 const DEFAULT_LIMIT = 150;
 
@@ -133,6 +134,7 @@ export function PurchasesTable({
   showRefresh,
   style,
   limit = DEFAULT_LIMIT,
+  filename,
 }: Props & {
   thisMonth?: boolean;
   cutoff?: Date;
@@ -141,6 +143,7 @@ export function PurchasesTable({
   showRefresh?: boolean;
   style?: CSSProperties;
   limit?: number;
+  filename?: string;
 }) {
   const [purchases, setPurchases] = useState<Partial<Purchase>[] | null>(null);
   const [groupedPurchases, setGroupedPurchases] = useState<
@@ -195,6 +198,8 @@ export function PurchasesTable({
     getPurchases();
   }, [limit, offset, group, service, project_id, thisMonth, noStatement]);
 
+  //const download = (format: "csv" | "json") => {};
+
   return (
     <div style={style}>
       {showRefresh && <Refresh refresh={getPurchases} />}
@@ -228,6 +233,14 @@ export function PurchasesTable({
             Next
           </Button>
         )}
+        <Export
+          style={{ marginLeft: "8px" }}
+          name={
+            filename ??
+            getFilename({ thisMonth, cutoff, limit, offset, noStatement })
+          }
+          data={purchases}
+        />
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
         {!group && <DetailedPurchaseTable purchases={purchases} />}
@@ -647,4 +660,24 @@ function Pending({ record }) {
       </Tooltip>
     </div>
   );
+}
+
+function getFilename({ thisMonth, cutoff, limit, offset, noStatement }) {
+  const v: string[] = [];
+  if (thisMonth) {
+    v.push("since_last_statement");
+  }
+  if (noStatement) {
+    v.push("not_on_statement");
+  }
+  if (cutoff) {
+    v.push(new Date(cutoff).toISOString().split("T")[0]);
+  }
+  if (limit) {
+    v.push(`limit${limit}`);
+  }
+  if (offset) {
+    v.push(`offset${offset}`);
+  }
+  return v.join("-");
 }

@@ -7,6 +7,7 @@ import { QuestionCircleOutlined } from "@ant-design/icons";
 import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
 import { reuseInFlight } from "async-await-utils/hof";
 import { isEqual } from "lodash";
+import Export from "@cocalc/frontend/purchases/export";
 
 import {
   React,
@@ -474,13 +475,16 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     ));
   }
 
-  function renderReload(): JSX.Element {
+  function renderButtons(): JSX.Element {
     return (
-      <Tooltip placement="bottom" title={"Reload license information"}>
-        <Button onClick={() => fetchInfos(true)}>
-          <Icon name="redo" />
-        </Button>
-      </Tooltip>
+      <div style={{ display: "flex" }}>
+        <Tooltip placement="bottom" title={"Reload license information"}>
+          <Button onClick={() => fetchInfos(true)}>
+            <Icon name="refresh" /> Refresh
+          </Button>
+        </Tooltip>
+        <Export data={data} name="licenses" style={{ marginLeft: "8px" }} />
+      </div>
     );
   }
 
@@ -524,7 +528,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         {isFlyout ? undefined : (
           <Table.Column<TableRow>
             key="actions"
-            title={renderReload()}
+            title={renderButtons()}
             dataIndex="license_id"
             align={"right"}
             render={(license_id) => renderRemove(license_id)}
