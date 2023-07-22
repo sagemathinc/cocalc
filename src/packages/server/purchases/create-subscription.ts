@@ -1,5 +1,5 @@
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
-import type { PoolClient } from "@cocalc/database/pool";
+import { getPoolClient, PoolClient } from "@cocalc/database/pool";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { is_date as isDate, is_integer } from "@cocalc/util/misc";
 
@@ -7,8 +7,9 @@ type Options = Omit<Subscription, "id" | "created" | "notes">;
 
 export default async function createSubscription(
   opts: Options,
-  client: PoolClient
+  client: PoolClient | null // useful to allow null for unit testing, but must be explicit
 ): Promise<number> {
+  const db = client ?? (await getPoolClient());
   // some consistency checks below.  It's very likely this should always hold,
   // since data isn't user supplied, but it's still good to be careful.
 
@@ -37,7 +38,7 @@ export default async function createSubscription(
     throw Error("metadata must be a nontrivial object with type field");
   }
 
-  const { rows } = await client.query(
+  const { rows } = await db.query(
     "INSERT INTO subscriptions (account_id,created,cost,interval,current_period_start,current_period_end,latest_purchase_id,status,metadata) VALUES($1,NOW(),$2,$3,$4,$5,$6,'active',$7)  RETURNING id",
     [
       opts.account_id,
@@ -51,10 +52,13 @@ export default async function createSubscription(
   );
   const { id } = rows[0];
   if (opts.metadata.type == "license") {
-    await client.query(
-      "UPDATE site_licenses SET subscription_id=$1 WHERE id=$2",
-      [id, opts.metadata.license_id]
-    );
+    await db.query("UPDATE site_licenses SET subscription_id=$1 WHERE id=$2", [
+      id,
+      opts.metadata.license_id,
+    ]);
+  }
+  if (client == null) {
+    db.release();
   }
   return id;
 }

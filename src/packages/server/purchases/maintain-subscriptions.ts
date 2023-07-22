@@ -72,7 +72,9 @@ Update the status field of all subscriptions.
 - Set to 'past_due' every subscription with status 'unpaid' for which current_period_end
   is in the past.
 - Set to 'canceled' every subscription with status 'unpaid' for which current_period_end
-  is at least subscription_maintenance.grace days in the past.
+  is at least subscription_maintenance.grace days in the past.  Note that subscriptions
+  normally get canceled via cancelOnePendingSubscription after a pending payment attempt 
+  fails.
 */
 async function updateStatus() {
   const { subscription_maintenance } = await getServerSettings();
@@ -175,7 +177,10 @@ async function cancelOnePendingSubscription({ account_id, purchase_id }) {
   }
 }
 
+// This export is only to make some private functions in this file available for unit testing.
+// Don't otherwise use or instead change those to explicit exports if needed for some reason.
 export const test = {
+  updateStatus,
   cancelAllPendingSubscriptions,
   getGracePeriodDays,
   failOnError: false, // test mode can set this to true so that exceptions are fatal instead of just logged

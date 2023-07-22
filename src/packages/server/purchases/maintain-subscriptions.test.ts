@@ -1,8 +1,5 @@
 import { uuid } from "@cocalc/util/misc";
-import getPool, {
-  getPoolClient,
-  initEphemeralDatabase,
-} from "@cocalc/database/pool";
+import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import createSubscription from "./create-subscription";
@@ -16,6 +13,7 @@ import { license0 } from "./test-data";
 import dayjs from "dayjs";
 
 beforeAll(async () => {
+  test.failOnError = true;
   await initEphemeralDatabase();
 }, 15000);
 
@@ -23,9 +21,81 @@ afterAll(async () => {
   await getPool().end();
 });
 
+describe("testing that updateStatus works as it should", () => {
+  it("run updateStatus and it doesn't crash", async () => {
+    await test.updateStatus();
+  });
+
+  const account_id = uuid();
+  it("makes an account for testing", async () => {
+    await createAccount({
+      email: "",
+      password: "xyz",
+      firstName: "Test",
+      lastName: "User",
+      account_id,
+    });
+  });
+
+  const x: any = {};
+  it("create a new subscription, run updateStatus, and observe that it doesn't change the status", async () => {
+    x.subscription_id = await createSubscription(
+      {
+        account_id,
+        cost: 10,
+        interval: "month",
+        current_period_start: dayjs().toDate(),
+        current_period_end: dayjs().add(1, "month").toDate(),
+        status: "active",
+        metadata: { type: "license", license_id: uuid() }, // fake
+        latest_purchase_id: 0, // fake
+      },
+      null
+    );
+    await test.updateStatus();
+    const subs = await getSubscriptions({ account_id });
+    expect(subs[0].status).toBe("active");
+  });
+
+  it("modifies the subscription so current_period_end is within 1 day of now, runs updateStatus, and observe that it changes the status to unpaid", async () => {
+    const pool = getPool();
+    await pool.query(
+      "UPDATE subscriptions SET current_period_start=NOW()-interval '1 month', current_period_end=NOW()+interval '1 day' WHERE id=$1",
+      [x.subscription_id]
+    );
+    await test.updateStatus();
+    const subs = await getSubscriptions({ account_id });
+    expect(subs[0].status).toBe("unpaid");
+  });
+
+  it("modifies the subscription so current_period_end is in the past, runs updateStatus, and observe that it changes the status to past_due", async () => {
+    const pool = getPool();
+    await pool.query(
+      "UPDATE subscriptions SET current_period_end=NOW()-interval '1 hour' WHERE id=$1",
+      [x.subscription_id]
+    );
+    await test.updateStatus();
+    const subs = await getSubscriptions({ account_id });
+    expect(subs[0].status).toBe("past_due");
+  });
+
+  it("modifies the subscription so current_period_end is at least grace period does in the past, runs updateStatus, and observe that it changes the status to canceled", async () => {
+    const grace = await test.getGracePeriodDays();
+    const pool = getPool();
+    await pool.query(
+      `UPDATE subscriptions SET current_period_end=NOW()-interval '${
+        grace + 1
+      } days' WHERE id=$1`,
+      [x.subscription_id]
+    );
+    await test.updateStatus();
+    const subs = await getSubscriptions({ account_id });
+    expect(subs[0].status).toBe("canceled");
+  });
+});
+
 describe("testing cancelAllPendingSubscriptions works as it should", () => {
   const account_id = uuid();
-  test.failOnError = true;
 
   it("run cancelAllPendingSubscriptions when there might be nothing pending in the database works; this gives us a clean slate", async () => {
     await test.cancelAllPendingSubscriptions();
@@ -61,7 +131,6 @@ describe("testing cancelAllPendingSubscriptions works as it should", () => {
   });
 
   it("creates a subscription for that license", async () => {
-    const client = await getPoolClient();
     x.subscription_id = await createSubscription(
       {
         account_id,
@@ -73,9 +142,8 @@ describe("testing cancelAllPendingSubscriptions works as it should", () => {
         metadata: { type: "license", license_id: x.license_id },
         latest_purchase_id: x.purchase_id,
       },
-      client
+      null
     );
-    client.release();
   });
 
   it("run cancelAllPendingSubscriptions and verifies our subscription is not canceled", async () => {
