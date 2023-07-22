@@ -1,4 +1,4 @@
-import getPool from "@cocalc/database/pool";
+import getPool, { PoolClient } from "@cocalc/database/pool";
 import editLicense from "./edit-license";
 import { getSubscription } from "./renew-subscription";
 import dayjs from "dayjs";
@@ -7,14 +7,16 @@ interface Options {
   account_id: string;
   subscription_id: number;
   now?: boolean;
+  client?: PoolClient;
 }
 
 export default async function cancelSubscription({
   account_id,
   subscription_id,
   now,
+  client,
 }: Options) {
-  const pool = getPool();
+  const pool = client ?? getPool();
   await pool.query(
     "UPDATE subscriptions SET status='canceled', canceled_at=NOW() WHERE id=$1 AND account_id=$2",
     [subscription_id, account_id]
@@ -38,6 +40,7 @@ export default async function cancelSubscription({
       license_id: metadata.license_id,
       changes: { end },
       note: "Canceling a subscription immediately.",
+      client,
     });
   }
 }

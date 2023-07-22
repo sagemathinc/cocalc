@@ -52,12 +52,14 @@ export default function Balance({
       <>
         <Space style={{ marginBottom: "30px" }}>{stat}</Space>
         <Payment balance={balance} update={refresh} cost={cost} />
-        {pendingBalance != null && pendingBalance > 0 && (
-          <Tooltip title="Pending charges are not included in your spending limit.">
+        {pendingBalance != null && pendingBalance < 0 && (
+          <Tooltip title="Pending charges are not included in your spending limit.  They need to be paid soon by a credit to your account.">
             <div style={{ maxWidth: "200px", color: "#666" }}>
               <Divider />
-              {currency(pendingBalance)} is pending and not included in the
-              above balance.
+              You have <b>
+                {currency(-pendingBalance)} in pending charges
+              </b>{" "}
+              that are not included in the above balance.
             </div>
           </Tooltip>
         )}

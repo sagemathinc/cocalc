@@ -1,7 +1,8 @@
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import getPool from "@cocalc/database/pool";
+import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import renewSubscription from "@cocalc/server/purchases/renew-subscription";
+import cancelSubscription from "./cancel-subscription";
 
 const logger = getLogger("purchases:maintain-subscriptions");
 
@@ -10,12 +11,17 @@ export default async function maintainSubscriptions() {
   try {
     await renewSubscriptions();
   } catch (err) {
-    logger.debug("ERROR in renewSubscriptions- ", err);
+    logger.debug("nonfatal ERROR in renewSubscriptions- ", err);
   }
   try {
     await updateStatus();
   } catch (err) {
-    logger.debug("ERROR in updateStatus - ", err);
+    logger.debug("nonfatal ERROR in updateStatus - ", err);
+  }
+  try {
+    await cancelAllPendingSubscriptions();
+  } catch (err) {
+    logger.debug("nonfatal ERROR in cancelAllPendingSubscriptions- ", err);
   }
 }
 
@@ -100,6 +106,67 @@ async function updateStatus() {
     [subscription_maintenance.grace ?? 3]
   );
 }
+
+/*
+For each subscription for which the last payment has been pending
+for at least `grace` days, cancel that subscription immediately
+and provide a prorated refund.  Also, set the corresponding payment
+to no longer be pending (most of it will be included in the refund).
+*/
+
+async function cancelAllPendingSubscriptions() {
+  const { subscription_maintenance } = await getServerSettings();
+  const { grace = 3 } = subscription_maintenance ?? {};
+
+  const pool = getPool();
+  const { rows } = await pool.query(`
+SELECT account_id, id as purchase_id FROM purchases WHERE pending=true AND time <= NOW() - interval '${grace} days' AND description->>'type'='edit-license';
+`);
+  logger.debug(
+    "cancelPendingSubscriptions -- pending subscription purchases = ",
+    rows
+  );
+  for (const obj of rows) {
+    try {
+      await cancelOnePendingSubscription(obj);
+    } catch (err) {
+      logger.debug("WARNING: cancelOnePendingSubscription failed", obj, err);
+    }
+  }
+}
+
+async function cancelOnePendingSubscription({ account_id, purchase_id }) {
+  const client = await getTransactionClient();
+  try {
+    const x = await client.query(
+      "SELECT id FROM subscriptions WHERE latest_purchase_id=$1",
+      [purchase_id]
+    );
+    const subscription_id = x.rows[0]?.id;
+    if (!subscription_id) {
+      throw Error(
+        `there is no subscription with latest purchase id ${purchase_id}`
+      );
+    }
+    await cancelSubscription({
+      account_id,
+      subscription_id,
+      now: true,
+      client,
+    });
+    await client.query("UPDATE purchases SET pending=false WHERE id=$1", [
+      purchase_id,
+    ]);
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export const test = { cancelAllPendingSubscriptions };
 
 /*
 

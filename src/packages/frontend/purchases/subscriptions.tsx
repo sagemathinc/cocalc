@@ -50,6 +50,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
+import { currency } from "./util";
 
 function SubscriptionStatus({ status }) {
   return (
@@ -325,6 +326,11 @@ export default function Subscriptions() {
   const columns = useMemo(
     () => [
       {
+        title: "Id",
+        dataIndex: "id",
+        key: "id",
+      },
+      {
         width: "40%",
         title: "Description",
         key: "desc",
@@ -360,12 +366,13 @@ export default function Subscriptions() {
           }
         },
       },
-
       {
-        title: "Id",
-        dataIndex: "id",
-        key: "id",
+        title: "Cost",
+        dataIndex: "cost",
+        key: "cost",
+        render: (cost, record) => `${currency(cost)} / ${record.interval}`,
       },
+
       {
         title: "Created",
         dataIndex: "created",
