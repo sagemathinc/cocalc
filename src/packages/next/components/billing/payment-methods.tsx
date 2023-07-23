@@ -11,47 +11,17 @@ There are other types of sources, e.g., "ACH credit transfer".
 In the *near* future we will support more payment methods!
 */
 
-import { Alert, Button, Popconfirm, Table } from "antd";
-import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
-import ReactDOM from "react-dom";
-
+import { Alert, Button, Divider, Popconfirm, Table } from "antd";
+import { useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { cmp } from "@cocalc/util/misc";
-import salesTax from "@cocalc/util/stripe/sales-tax";
-import { COLORS } from "@cocalc/util/theme";
-import { Paragraph, Title } from "components/misc";
+import { Title } from "components/misc";
 import A from "components/misc/A";
-import HelpEmail from "components/misc/help-email";
 import Loading from "components/share/loading";
-import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
-import useCustomize from "lib/use-customize";
-import Script from "next/script";
-
-const STRIPE_CLIENT_LIBRARY = "https://js.stripe.com/v3/";
-
-function Brand({ brand }) {
-  return (
-    <>
-      {brand?.includes(" ") ? (
-        ""
-      ) : (
-        <Icon name={`cc-${brand?.toLowerCase()}` as any} />
-      )}{" "}
-      {brand}
-    </>
-  );
-}
-
-function Number({ last4 }) {
-  return <>{`**** **** **** ${last4}`}</>;
-}
-
-function ExpirationDate({ exp_month, exp_year }) {
-  return <>{`${exp_month}/${exp_year}`}</>;
-}
+import SiteName from "components/share/site-name";
 
 function PaymentSourceActions({ onChange, default_source, brand, last4, id }) {
   const isMounted = useIsMounted();
@@ -200,22 +170,13 @@ const columns = (onChange) => [
   },
 ];
 
-interface Props {
-  startMinimized?: boolean;
-  setTaxRate?: (rate: number) => void; // use to find out the sales tax rate for default billing method
-  setHaveCreditCard?: (have: boolean) => void;
-}
-
-export default function PaymentMethods({
-  startMinimized,
-  setTaxRate,
-  setHaveCreditCard,
-}: Props) {
-  const [minimized, setMinimized] = useState<boolean>(!!startMinimized);
+export default function PaymentMethods() {
   const { result, error, call } = useAPI("billing/get-customer");
+
   const cols: any = useMemo(() => {
     return columns(call);
   }, [call]);
+
   const cards = useMemo(() => {
     if (result?.sources == null) return [];
     // set default so can use in table
@@ -224,11 +185,6 @@ export default function PaymentMethods({
     for (const row of result.sources.data) {
       if (row.id == default_source) {
         row.default_source = true;
-        if (setTaxRate != null) {
-          // TODO: setTimeout as a quick fix. You can't change the state while the parent is rendering
-          // Cannot update a component (`Checkout`) while rendering a different component `PaymentMethods`).
-          setTimeout(() => setTaxRate(salesTax(row.address_zip)), 0);
-        }
       }
       if (row.id.startsWith("card_")) {
         cards.push(row);
@@ -237,9 +193,6 @@ export default function PaymentMethods({
     // sort by data rather than what comes back, so changing
     // default stays stable (since moving is confusing).
     cards.sort((x, y) => cmp(x.id, y.id));
-
-    // Tell the parent if we have a credit card or not.
-    setTimeout(() => setHaveCreditCard?.(cards.length > 0), 0);
 
     return cards;
   }, [result?.sources]);
@@ -251,218 +204,67 @@ export default function PaymentMethods({
     return <Loading center />;
   }
 
-  if (minimized) {
-    let defaultCard: undefined | CardProps = undefined;
-    for (const card of cards) {
-      if (card.default_source) {
-        defaultCard = card;
-        break;
-      }
-    }
-    if (defaultCard) {
-      return (
-        <div>
-          <A onClick={() => setMinimized(false)}>Change</A>
-          <CreditCard {...defaultCard} />
-        </div>
-      );
-    }
+  if (cards.length == 0) {
+    return <div>x</div>;
   }
 
   return (
     <div>
-      {startMinimized && cards.length > 0 && (
-        <div style={{ float: "right", marginRight: "15px" }}>
-          <A onClick={() => setMinimized(true)}>
-            Close <Icon name="times" />
-          </A>
-        </div>
-      )}
-      {!startMinimized && (
-        <>
-          <Title level={2}>Credit Cards ({cards.length})</Title>
-          <Paragraph>
-            {cards.length > 0 ? (
-              <>These are the credit cards that you have currently setup.</>
-            ) : (
-              <>Please enter your credit card below.</>
-            )}
-          </Paragraph>
-        </>
-      )}
-      <AddPaymentMethod
-        defaultAdding={cards.length == 0}
-        onChange={call}
-        style={{ marginTop: "15px", marginBottom: "5px" }}
-      />
+      <Title level={2}>Credit Cards ({cards.length})</Title>
+      <SiteName /> used to use a credit card on file for automatic subscription
+      payments. We now use a new more flexible and powerful automatic payments
+      system that works with far more payment providers. To configure it,{" "}
+      <A href="/settings/subscriptions" external>
+        click on <Button size="small">Enable Automatic Payments...</Button> in
+        subscription settings...
+      </A>
       {cards.length > 0 && (
-        <Table
-          columns={cols}
-          dataSource={cards}
-          rowKey={"id"}
-          style={{ marginTop: "15px", overflowX: "auto" }}
-          pagination={{ hideOnSinglePage: true, pageSize: 100 }}
-        />
-      )}
-      {result.sources?.has_more && (
-        <Alert
-          type="warning"
-          showIcon
-          message="WARNING: Some of your cards may not be displayed above, since there are so many."
-        />
-      )}
-    </div>
-  );
-}
-
-interface AddPaymentMethodProps {
-  onChange?: () => void;
-  style?: CSSProperties;
-  defaultAdding?: boolean; // starts initially in creating mode
-}
-
-function AddPaymentMethod(props: AddPaymentMethodProps) {
-  const { onChange, style, defaultAdding } = props;
-  const [error, setError] = useState<string>("");
-  const [adding, setAdding] = useState<boolean>(!!defaultAdding);
-  const [creating, setCreating] = useState<boolean>(false);
-  const [stripe, setStripe] = useState<null | { stripe: any; card: any }>(null);
-  const cardRef = useRef<any>();
-  const { stripePublishableKey } = useCustomize();
-  const isMounted = useIsMounted();
-
-  useEffect(() => {
-    if (!adding || !cardRef.current) return;
-    if (stripe != null) {
-      stripe.card.mount(ReactDOM.findDOMNode(cardRef.current));
-    } else {
-      if ((window as any).Stripe == null) return;
-      const stripe = (window as any).Stripe(stripePublishableKey);
-      const card = stripe.elements().create("card");
-      if (card == null) throw Error("bug -- card cannot be null");
-      setStripe({ stripe, card });
-      card.mount(ReactDOM.findDOMNode(cardRef.current));
-    }
-  }, [adding, stripe]);
-
-  return (
-    <div style={style}>
-      <Button disabled={adding} onClick={() => setAdding(true)}>
-        <Icon name="plus-circle" /> Add Credit Card
-      </Button>
-      {adding && (
-        <div
-          style={{
-            border: "1px solid #ddd",
-            padding: "15px",
-            borderRadius: "5px",
-            maxWidth: "600px",
-            margin: "15px auto",
-          }}
-        >
-          <Script
-            src={STRIPE_CLIENT_LIBRARY}
-            onLoad={() => {
-              const stripe = (window as any).Stripe(stripePublishableKey);
-              const card = stripe.elements().create("card");
-              if (card == null) throw Error("bug -- card cannot be null");
-              setStripe({ stripe, card });
-            }}
-            onError={() => {
-              setError(
-                `Stripe script failed to load. Make sure your browser is not blocking ${STRIPE_CLIENT_LIBRARY}, then refresh this page.`
-              );
-            }}
+        <div>
+          <Divider>Legacy Cards</Divider>
+          <>
+            These are the credit cards that you have currently setup. Your
+            default card may continue to be used for a few more months if you
+            don't configure automatic payments as explained above.
+          </>
+          <Table
+            columns={cols}
+            dataSource={cards}
+            rowKey={"id"}
+            style={{ marginTop: "15px", overflowX: "auto" }}
+            pagination={{ hideOnSinglePage: true, pageSize: 100 }}
           />
-          {error && (
+          {result.sources?.has_more && (
             <Alert
-              type="error"
+              type="warning"
               showIcon
-              message={error}
-              style={{ margin: "15px 0" }}
+              message="WARNING: Some of your cards may not be displayed above, since there are so many."
             />
           )}
-          <div style={{ textAlign: "center" }}>
-            <div
-              ref={cardRef}
-              style={{
-                border: "1px solid lightgray",
-                borderRadius: "5px",
-                margin: "5px auto 20px auto",
-                maxWidth: "400px",
-                padding: "15px 10px",
-                boxShadow: "5px 5px 5px lightgray",
-              }}
-            >
-              {/* a Stripe Element will be inserted here. */}
-            </div>
-
-            <Button
-              style={{ marginRight: "5px" }}
-              onClick={() => setAdding(false)}
-              disabled={creating}
-            >
-              Cancel
-            </Button>
-            <Button
-              disabled={creating}
-              type="primary"
-              onClick={async () => {
-                setCreating(true);
-                try {
-                  let token;
-                  try {
-                    const result = await stripe?.stripe.createToken(
-                      stripe.card
-                    );
-                    if (!isMounted.current) return;
-                    if (result.error) {
-                      throw Error(result.error.message);
-                    }
-                    ({ token } = result);
-                  } catch (err) {
-                    if (!isMounted.current) return;
-                    setError(err.message);
-                    return;
-                  }
-                  try {
-                    await apiPost("/billing/create-payment-method", {
-                      id: token.id,
-                    });
-                    if (!isMounted.current) return;
-                    onChange?.();
-                    setAdding(false);
-                  } catch (err) {
-                    setError(err.message);
-                  }
-                } finally {
-                  if (!isMounted.current) return;
-                  setCreating(false);
-                }
-              }}
-            >
-              {creating ? (
-                <Loading center delay={0}>
-                  Adding Card...
-                </Loading>
-              ) : (
-                "Add Card"
-              )}
-            </Button>
-          </div>
-          <Paragraph style={{ color: COLORS.GRAY, margin: "25px 0 0 0" }}>
-            <SiteName /> does not directly store any credit card numbers;
-            instead they are stored securely by{" "}
-            <A href="https://stripe.com/" external>
-              Stripe
-            </A>
-            . Wire transfers for non-recurring purchases above $100 are also
-            possible. <HelpEmail />.
-          </Paragraph>
         </div>
       )}
     </div>
   );
+}
+
+function Brand({ brand }) {
+  return (
+    <>
+      {brand?.includes(" ") ? (
+        ""
+      ) : (
+        <Icon name={`cc-${brand?.toLowerCase()}` as any} />
+      )}{" "}
+      {brand}
+    </>
+  );
+}
+
+function Number({ last4 }) {
+  return <>{`**** **** **** ${last4}`}</>;
+}
+
+function ExpirationDate({ exp_month, exp_year }) {
+  return <>{`${exp_month}/${exp_year}`}</>;
 }
 
 interface CardProps {

@@ -929,10 +929,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
           <div>
             {info?.subscription_id && (
               <div style={{ marginTop: "15px" }}>
-                <Subscription
-                  subscription_id={info.subscription_id}
-                  style={{ margin: "auto" }}
-                />
+                <Subscription subscription_id={info.subscription_id} />
               </div>
             )}
             <EditLicense
