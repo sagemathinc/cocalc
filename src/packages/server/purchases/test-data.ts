@@ -1,4 +1,6 @@
 import dayjs from "dayjs";
+import createAccount0 from "@cocalc/server/accounts/create-account";
+import { uuid } from "@cocalc/util/misc";
 
 export const license0 = {
   cpu: 1,
@@ -18,3 +20,13 @@ export const license0 = {
   run_limit: 1,
   description: "xxxx",
 } as const;
+
+export async function createAccount(account_id: string) {
+  await createAccount0({
+    email: `${uuid()}@test.com`,
+    password: "cocalcrulez",
+    firstName: "Test",
+    lastName: "User",
+    account_id,
+  });
+}
