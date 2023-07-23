@@ -53,7 +53,7 @@ import UnpaidSubscriptions from "./unpaid-subscriptions";
 import { currency } from "./util";
 import Export from "./export";
 
-function SubscriptionStatus({ status }) {
+export function SubscriptionStatus({ status }) {
   return (
     <Tag color={STATUS_TO_COLOR[status]}>
       {capitalize(status.replace("_", " "))}
@@ -271,7 +271,7 @@ function SubscriptionActions({
 function LicenseDescription({ license_id, refresh }) {
   return (
     <Collapse>
-      <Collapse.Panel key="license" header={`License ${license_id}`}>
+      <Collapse.Panel key="license" header={`License: ${license_id}`}>
         <SiteLicensePublicInfo license_id={license_id} refresh={refresh} />
       </Collapse.Panel>
     </Collapse>

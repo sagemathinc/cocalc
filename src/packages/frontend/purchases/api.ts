@@ -79,6 +79,29 @@ export async function getSubscriptions(opts: {
   return await api("purchases/get-subscriptions", opts);
 }
 
+export async function getSubscription(
+  subscription_id: number
+): Promise<Subscription> {
+  const x = await api("user-query", {
+    query: {
+      subscriptions: {
+        id: subscription_id,
+        created: null,
+        cost: null,
+        interval: null,
+        status: null,
+        canceled_at: null,
+        resumed_at: null,
+        current_period_start: null,
+        current_period_end: null,
+        latest_purchase_id: null,
+        metadata: null,
+      },
+    },
+  });
+  return x.query.subscriptions;
+}
+
 export interface LiveSubscription {
   id: number;
   cost: number;

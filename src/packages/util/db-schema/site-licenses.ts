@@ -490,6 +490,7 @@ Table({
     quota: SCHEMA.site_licenses.fields.quota,
     run_limit: SCHEMA.site_licenses.fields.run_limit,
     managers: SCHEMA.site_licenses.fields.managers,
+    subscription_id: SCHEMA.site_licenses.fields.subscription_id,
     running: {
       type: "integer",
       desc: "Number of running projects currently using this license.   Regarding security, we assume that if the user knows the license id, then they are allowed to know how many projects are using it.",
@@ -519,10 +520,11 @@ Table({
           managers: null,
           running: null,
           is_manager: null,
+          subscription_id: null,
         },
         // Actual query is implemented using this code below rather than an
         // actual query directly.  TODO: Also, we're lazy and return all fields we
-        // know, even if user doesn't request them all.
+        // know from the site_license_public_info call, even if user doesn't request them all.
         // If the user making the query is a manager of this license they get a list of
         // the managers (otherwise managers isn't set for them.)
         async instead_of_query(database, opts, cb): Promise<void> {

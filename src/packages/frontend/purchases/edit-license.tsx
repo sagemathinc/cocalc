@@ -87,7 +87,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
   }
   return (
     <div>
-      <Divider>
+      <Divider orientation="left">
         <Button
           disabled={loading}
           onClick={() => {

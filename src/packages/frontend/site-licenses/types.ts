@@ -25,6 +25,7 @@ export interface SiteLicensePublicInfo {
   running?: number;
   applied?: number;
   quota?: SiteLicenseQuota;
+  subscription_id?: number;
 }
 
 export type SiteLicenses = {

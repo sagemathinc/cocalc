@@ -45,6 +45,7 @@ import {
 } from "./types";
 import { site_license_public_info, trunc_license_id } from "./util";
 import EditLicense from "@cocalc/frontend/purchases/edit-license";
+import Subscription from "@cocalc/frontend/purchases/subscription";
 
 interface Props {
   license_id: string;
@@ -910,15 +911,23 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       {render_upgrades()}
       {render_err()}
       {render_warning()}
-      {
-        is_commercial &&
-          license_id &&
-          managedLicenses?.getIn([
-            license_id,
-            "info",
-            "purchased",
-            "account_id",
-          ]) == redux.getStore("account").get("account_id") && (
+      {is_commercial &&
+        license_id &&
+        managedLicenses?.getIn([
+          license_id,
+          "info",
+          "purchased",
+          "account_id",
+        ]) == redux.getStore("account").get("account_id") && (
+          <div>
+            {info?.subscription_id && (
+              <div style={{ marginTop: "15px" }}>
+                <Subscription
+                  subscription_id={info.subscription_id}
+                  style={{ margin: "auto" }}
+                />
+              </div>
+            )}
             <EditLicense
               license_id={license_id}
               refresh={() => {
@@ -926,8 +935,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
                 refresh?.();
               }}
             />
-          ) /* we can only edit license we bought */
-      }
+          </div>
+        )}
     </div>
   );
   return (
