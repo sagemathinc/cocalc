@@ -13,7 +13,7 @@ import {
   DEFAULT_DEDICATED_VM_MACHINE,
   PRICES,
 } from "@cocalc/util/upgrades/dedicated";
-import { DateRange } from "@cocalc/util/upgrades/shopping";
+import type { DateRange } from "@cocalc/util/upgrades/shopping";
 import { clamp, isDate } from "lodash";
 import dayjs from "dayjs";
 import { NextRouter } from "next/router";
@@ -21,10 +21,14 @@ import { MAX_ALLOWED_RUN_LIMIT } from "./run-limit";
 
 // Various support functions for storing quota parameters as a query parameter in the browser URL
 
-export function encodeRange(vals: DateRange): string {
+export function encodeRange(
+  vals: [Date | string | undefined, Date | string | undefined]
+): string {
   const [start, end] = vals;
-  if (start == null || end == null) return "";
-  return `${start.toISOString()}_${end.toISOString()}`;
+  if (start == null || end == null) {
+    return "";
+  }
+  return `${new Date(start).toISOString()}_${new Date(end).toISOString()}`;
 }
 
 // the inverse of encodeRange

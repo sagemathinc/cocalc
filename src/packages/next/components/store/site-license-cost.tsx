@@ -234,7 +234,7 @@ export function describePeriod({
     }
 
     // but the displayed end mimics what will happen later on the backend
-    // i.e. if the day alreaday started, we append the already elapsed period to the end
+    // i.e. if the day already started, we append the already elapsed period to the end
     const endDisplay = appendAfterNowToDate({
       now: serverTimeDate,
       start,
@@ -260,8 +260,8 @@ export function describePeriod({
     } else {
       return (
         <>
-          <Timestamp dateOnly datetime={start} absolute /> to{" "}
-          <Timestamp dateOnly datetime={endDisplay} absolute />, {days}{" "}
+          <Timestamp datetime={start} absolute /> to{" "}
+          <Timestamp datetime={endDisplay} absolute />, {days}{" "}
           {plural(days, "day")}
         </>
       );
