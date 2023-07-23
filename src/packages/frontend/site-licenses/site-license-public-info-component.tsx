@@ -243,7 +243,14 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       <li
         style={expired ? { fontSize: "110%", fontWeight: "bold" } : undefined}
       >
-        {word} {when}.
+        {word} {when}
+        {!!info?.expires && (
+          <>
+            {info?.subscription_id
+              ? " depending on subscription status."
+              : " unless it is edited."}
+          </>
+        )}
       </li>
     );
   }

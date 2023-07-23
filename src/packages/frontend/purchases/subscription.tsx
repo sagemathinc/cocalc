@@ -55,12 +55,6 @@ export default function Subscription({ subscription_id, style }: Props) {
     })();
   }, []);
 
-  if (error) {
-    return <ShowError error={error} setError={setError} />;
-  }
-  if (loading || subscription == null) {
-    return <Spin />;
-  }
   return (
     <Card
       style={{ ...style, maxWidth: "600px" }}
