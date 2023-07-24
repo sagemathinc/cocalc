@@ -3,11 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Button, Descriptions, Layout } from "antd";
+import { Alert, Button, Descriptions, Dropdown, Layout } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { useState } from "react";
 
-import { EmailTemplateSendResult } from "@cocalc/server/email/send-templates";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { EmailTemplateSendResult } from "@cocalc/server/email/templates";
+import {
+  EmailTemplateName,
+  TEMPLATE_NAMES,
+} from "@cocalc/server/email/templates-data";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -28,6 +33,7 @@ export default function TestEmail(props: Props) {
   const { customize } = props;
   const { siteName } = customize;
   const profile = useProfile();
+  const [template, setTemplate] = useState<EmailTemplateName>("welcome");
   const [sending, setSending] = useState<boolean>(false);
   const [result, setResult] = useState<EmailTemplateSendResult | null>(null);
 
@@ -38,6 +44,7 @@ export default function TestEmail(props: Props) {
         test: true,
         email_address: profile.email_address,
         name: `${profile.first_name} ${profile.last_name}`,
+        template,
       });
       setResult(ret);
     } catch (err) {
@@ -66,7 +73,11 @@ export default function TestEmail(props: Props) {
                 <A href={url}>{comment}</A>
               </Descriptions.Item>
               <Descriptions.Item label="HTML">
-                <iframe srcDoc={value.html ?? "NO HTML"} />
+                <iframe
+                  width={800}
+                  height={600}
+                  srcDoc={value.html ?? "NO HTML"}
+                />
               </Descriptions.Item>
               <Descriptions.Item label="raw HTML">
                 <pre style={{ whiteSpace: "pre-wrap" }}>
@@ -98,6 +109,22 @@ export default function TestEmail(props: Props) {
       <>
         <Paragraph>test. email: {profile.email_address}</Paragraph>
         <Paragraph>
+          <Dropdown.Button
+            icon={<Icon name="caret-down" />}
+            menu={{
+              items: TEMPLATE_NAMES.map((t) => ({
+                label: t,
+                key: t,
+                onClick: () => {
+                  setTemplate(t);
+                },
+              })),
+            }}
+          >
+            {template}
+          </Dropdown.Button>
+        </Paragraph>
+        <Paragraph>
           <Button disabled={sending} onClick={sendTestEmail}>
             Send Test Email
           </Button>
@@ -108,7 +135,7 @@ export default function TestEmail(props: Props) {
   }
 
   function renderBody() {
-    if (profile == null) return <Loading large />;
+    if (profile == null) return <Loading large center />;
     if (!profile.is_admin) {
       return (
         <Alert

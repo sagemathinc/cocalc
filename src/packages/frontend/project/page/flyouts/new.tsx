@@ -38,7 +38,6 @@ import { COLORS } from "@cocalc/util/theme";
 import { ChatGPTGenerateNotebookButton } from "../home-page/chatgpt-generate-jupyter";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
 
-
 export function NewFlyout({
   project_id,
   wrap,
@@ -176,7 +175,9 @@ export function NewFlyout({
     const name: IconName = isNewFiletypeIconName(ext)
       ? NEW_FILETYPE_ICONS[ext!]
       : file_options(`foo.${ext}`)?.icon ?? "file";
-    return <Icon name={name} style={{ fontSize: "150%" }} />;
+    return (
+      <Icon name={name} style={{ fontSize: "150%", marginRight: FLYOUT_PADDING }} />
+    );
   }
 
   function selectType(nextExt?: string) {

@@ -18,6 +18,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
 import { Channel } from "@cocalc/frontend/project/websocket/types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -85,8 +86,9 @@ const pt_stats_init = {
 } as const;
 
 export const ProjectInfo: React.FC<Props> = React.memo(
-  ({ project_id, mode = "full", wrap }: Props) => {
+  ({ mode = "full", wrap }: Props) => {
     const isMountedRef = useIsMountedRef();
+    const { project_id } = useProjectContext();
     const project_actions = useActions({ project_id });
     const [idle_timeout, set_idle_timeout] = useState<number>(30 * 60);
     const show_explanation =
@@ -440,14 +442,12 @@ export const ProjectInfo: React.FC<Props> = React.memo(
             loading={loading}
             modal={modal}
             project_actions={project_actions}
-            project_id={project_id}
             project_state={project_state}
             project_status={project_status}
             pt_stats={pt_stats}
             ptree={ptree}
             select_proc={select_proc}
             selected={selected}
-            set_expanded={set_expanded}
             set_modal={set_modal}
             set_selected={set_selected}
             show_explanation={show_explanation}

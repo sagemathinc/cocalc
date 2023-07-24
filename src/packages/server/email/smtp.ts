@@ -11,7 +11,8 @@ import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { getServerSettings } from "../settings/server-settings";
 import getHelpEmail from "./help";
 import type { Message } from "./message";
-import { init as initTemplates, send as sendTemplates } from "./send-templates";
+import { init as initTemplates, send as sendTemplates } from "./templates";
+import { EmailTemplateName } from "./templates-data";
 
 type BackendType = "email" | "password_reset";
 
@@ -40,7 +41,7 @@ export default async function sendEmail(
 export async function sendTemplateEmail(message: {
   to: string;
   name: string;
-  channel: string;
+  template: EmailTemplateName;
   locals: Record<string, string>;
   subject: string;
   test?: boolean;
@@ -49,10 +50,11 @@ export async function sendTemplateEmail(message: {
   const serverSettings = await getServerSettings();
 
   initTemplates(getConf(settings), {
-    from: settings.from,
-    name: settings.name,
+    fromEmail: settings.from,
+    fromName: settings.name,
     dns: settings.dns,
     siteName: serverSettings.site_name,
+    logoSquare: serverSettings.logo_square,
   });
 
   return await sendTemplates(message);

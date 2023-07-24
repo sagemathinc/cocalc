@@ -51,3 +51,18 @@ export interface ProjectStatus {
     mem_rss?: number; // mb
   };
 }
+
+export function getAlertName(type: string): string {
+  switch (type) {
+    case "disk":
+      return "Disk";
+    case "memory":
+      return "Memory";
+    case "cpu-process":
+    case "cpu-cgroup":
+      return "CPU";
+    case "component":
+      return "Component";
+  }
+  return "Unknown";
+}
