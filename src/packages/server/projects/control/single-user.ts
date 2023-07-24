@@ -39,11 +39,6 @@ import {
   getProject,
 } from "./base";
 import getLogger from "@cocalc/backend/logger";
-import { query } from "@cocalc/database/postgres/query";
-import { db } from "@cocalc/database";
-import { quota } from "@cocalc/util/upgrades/quota";
-import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
-import { handlePayAsYouGoQuotas } from "./pay-as-you-go";
 
 const logger = getLogger("project-control:single-user");
 
@@ -161,39 +156,7 @@ class Project extends BaseProject {
     return "";
   }
 
-  // despite not being used, this is useful for development and
-  // the run_quota is shown in the UI (in project settings).
-  async setRunQuota(): Promise<void> {
-    let run_quota;
 
-    try {
-      run_quota = await handlePayAsYouGoQuotas(this.project_id);
-    } catch (err) {
-      logger.debug("issue handling run as you go quota", err);
-      run_quota = null;
-    }
-    if (run_quota == null) {
-      const { settings, users, site_license } = await query({
-        db: db(),
-        select: ["site_license", "settings", "users"],
-        table: "projects",
-        where: { project_id: this.project_id },
-        one: true,
-      });
-
-      const site_settings = await getQuotaSiteSettings(); // quick, usually cached
-      run_quota = quota(settings, users, site_license, site_settings);
-    }
-
-    await query({
-      db: db(),
-      query: "UPDATE projects",
-      where: { project_id: this.project_id },
-      set: { run_quota },
-    });
-
-    logger.debug("updated run_quota=", run_quota);
-  }
 }
 
 export default function get(project_id: string): Project {

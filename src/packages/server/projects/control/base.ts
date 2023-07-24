@@ -33,6 +33,8 @@ import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
 import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
 import getPool from "@cocalc/database/pool";
 import { closePayAsYouGoPurchases } from "@cocalc/server/purchases/project-quotas";
+import { handlePayAsYouGoQuotas } from "./pay-as-you-go";
+import { query } from "@cocalc/database/postgres/query";
 
 export type { ProjectState, ProjectStatus };
 
@@ -236,6 +238,43 @@ export abstract class BaseProject extends EventEmitter {
         }
       })();
     }
+  }
+
+  // despite not being used explicitly in singule-user and multi-user
+  // to control what actually happens with the project,
+  // this is still very useful for development and
+  // the run_quota is shown in the UI (in project settings).
+  async setRunQuota(): Promise<void> {
+    let run_quota;
+
+    try {
+      run_quota = await handlePayAsYouGoQuotas(this.project_id);
+    } catch (err) {
+      logger.debug("issue handling run as you go quota", err);
+      run_quota = null;
+    }
+    
+    if (run_quota == null) {
+      const { settings, users, site_license } = await query({
+        db: db(),
+        select: ["site_license", "settings", "users"],
+        table: "projects",
+        where: { project_id: this.project_id },
+        one: true,
+      });
+
+      const site_settings = await getQuotaSiteSettings(); // quick, usually cached
+      run_quota = quota(settings, users, site_license, site_settings);
+    }
+
+    await query({
+      db: db(),
+      query: "UPDATE projects",
+      where: { project_id: this.project_id },
+      set: { run_quota },
+    });
+
+    logger.debug("updated run_quota=", run_quota);
   }
 }
 
