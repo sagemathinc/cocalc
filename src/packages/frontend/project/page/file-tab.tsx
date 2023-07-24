@@ -348,7 +348,12 @@ export function FileTab(props: Readonly<Props>) {
       <div>
         <Icon style={{ ...icon_style }} name={icon} />
       </div>
-      <DisplayedLabel path={path} label={label} inline={!isFixedTab} />
+      <DisplayedLabel
+        path={path}
+        label={label}
+        inline={!isFixedTab}
+        project_id={project_id}
+      />
       {tags}
     </>
   );

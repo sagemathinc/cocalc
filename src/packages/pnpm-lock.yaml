@@ -1,4 +1,4 @@
-lockfileVersion: '6.0'
+lockfileVersion: '6.1'
 
 settings:
   autoInstallPeers: true
@@ -183,6 +183,9 @@ importers:
       immutable:
         specifier: ^4.3.0
         version: 4.3.0
+      json-stable-stringify:
+        specifier: ^1.0.1
+        version: 1.0.1
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1268,9 +1271,6 @@ importers:
       express-rate-limit:
         specifier: ^6.3.0
         version: 6.7.0(express@4.18.2)
-      fast-json-stable-stringify:
-        specifier: ^2.1.0
-        version: 2.1.0
       formidable:
         specifier: ^1.2.2
         version: 1.2.6
@@ -1498,8 +1498,8 @@ importers:
         specifier: ^1.2.0
         version: 1.2.0
       stripe:
-        specifier: ^8.78.0
-        version: 8.78.0
+        specifier: ^12.14.0
+        version: 12.14.0
       uuid:
         specifier: ^8.3.2
         version: 8.3.2
@@ -1838,6 +1838,9 @@ importers:
         specifier: ^4.3.0
         version: 4.3.0
       json-stable-stringify:
+        specifier: ^1.0.1
+        version: 1.0.1
+      jsonic:
         specifier: ^1.0.1
         version: 1.0.1
       lodash:
@@ -17312,11 +17315,11 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /stripe@8.78.0:
-    resolution: {integrity: sha512-G/mcFDzqDdcNnt8jS/9bQHtWMx2loRt6VvpjhxIvADPM2VyQEImeMQdHz2/IsNuXqu4qvgyDU3MtvGM7TGq9Sg==}
-    engines: {node: ^8.1 || >=10.*}
+  /stripe@12.14.0:
+    resolution: {integrity: sha512-WrDlYH1p5jliY7uzSU5nLDY7OCIeRe6FkC0hhScpTGwMthP/Muk38WXGeggjDHKeXAGCs43jUheZ7Ud/NEAJdg==}
+    engines: {node: '>=12.*'}
     dependencies:
-      '@types/node': 18.16.14
+      '@types/node': 18.17.0
       qs: 6.11.0
     dev: false
 
