@@ -1,4 +1,5 @@
 import type { PurchaseInfo } from "./types";
+import dayjs from "dayjs";
 
 export const DEFAULT_PURCHASE_INFO = {
   type: "quota",
@@ -13,4 +14,6 @@ export const DEFAULT_PURCHASE_INFO = {
   custom_disk: 3,
   custom_member: true,
   custom_uptime: "short",
+  start: new Date(),
+  end: dayjs().add(3, "month").toDate(),
 } as PurchaseInfo;

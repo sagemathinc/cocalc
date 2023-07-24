@@ -21,10 +21,10 @@ export default async function addLicenseToProject({
   const pool = client ?? getPool();
   await pool.query(
     `
-  UPDATE projects
-  SET site_license = JSONB_SET(site_license, $2, '{}')
-  WHERE project_id = $1
+UPDATE projects
+SET site_license = coalesce(site_license,'{}'::jsonb) || JSONB_BUILD_OBJECT($2::VARCHAR, '{}'::jsonb)
+WHERE project_id = $1
 `,
-    [project_id, [license_id]]
+    [project_id, license_id]
   );
 }

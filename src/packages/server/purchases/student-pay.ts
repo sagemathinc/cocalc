@@ -1,3 +1,16 @@
+/*
+Run this function so that the user buys a license and upgrades the given project
+with that license exactly as prescribed by "student pay" for a course.
+
+This fails if:
+
+ - The user doesn't have sufficient funds on their account to pay for the license.
+ - The user is not the STUDENT that the project is meant for.
+ - The course fee was already paid.
+ 
+Everything is done in a single atomic transaction.
+*/
+
 import { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
@@ -8,7 +21,8 @@ import createPurchase from "@cocalc/server/purchases/create-purchase";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import { assertPurchaseAllowed } from "./is-purchase-allowed";
 import setCourseInfo from "@cocalc/server/projects/course/set-course-info";
-import { addLicenseToProjectAndRestart } from "@cocalc/server/purchases/purchase-shopping-cart-item";
+import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
+import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 
 const logger = getLogger("purchases:student-pay");
 
@@ -26,7 +40,7 @@ export default async function studentPay({
   try {
     // start atomic transaction:
     // Creating the license and the purchase and recording that student paid all happen as a single PostgreSQL atomic transaction.
-    
+
     // Get current value of course field of this project
     const { rows } = await client.query(
       "SELECT course, title, description FROM projects WHERE project_id=$1",
@@ -50,12 +64,29 @@ export default async function studentPay({
       description,
     };
     const cost = getCost(purchaseInfo);
-    await assertPurchaseAllowed({ account_id, service: "license", cost, client });
+    await assertPurchaseAllowed({
+      account_id,
+      service: "license",
+      cost,
+      client,
+    });
 
     // Create the license
     const license_id = await createLicense(account_id, purchaseInfo, client);
 
-    addLicenseToProjectAndRestart(project_id, license_id, client);
+    // Add license to the project.
+    await addLicenseToProject({ project_id, license_id, client });
+
+    // nonblocking restart if running - not part of transaction, could take a while,
+    // and no need to block everything else on this.
+    (async () => {
+      try {
+        await restartProjectIfRunning(project_id);
+      } catch (err) {
+        // non-fatal, since it's just a convenience.
+        logger.debug("WARNING -- issue restarting project ", err);
+      }
+    })();
 
     // Create the purchase
     const purchase_id = await createPurchase({
