@@ -20,13 +20,12 @@ import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { FLYOUT_PADDING } from "./consts";
 import { LSFlyout, lsKey, storeFlyoutState } from "./state";
 
-export function FlyoutBody({
-  flyout,
-  flyoutWidth,
-}: {
+interface FlyoutBodyProps {
   flyout: FixedTab;
   flyoutWidth: number;
-}) {
+}
+
+export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
   const { project_id } = useProjectContext();
   // No "Ref", because otherwise we don't trigger the useEffect below
   const [bodyDiv, setBodyDiv] = useState<HTMLDivElement | null>(null);
@@ -98,7 +97,7 @@ export function FlyoutBody({
           <Loading />
         </div>
       ) : (
-        <Body project_id={project_id} wrap={wrap} />
+        <Body project_id={project_id} wrap={wrap} flyoutWidth={flyoutWidth} />
       )}
     </div>
   );

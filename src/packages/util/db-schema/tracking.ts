@@ -115,5 +115,9 @@ Table({
       type: "map",
       desc: "optional further info about the event (as a map)",
     },
+    expire: {
+      type: "timestamp",
+      desc: "future date, when the entry will be deleted",
+    },
   },
 });

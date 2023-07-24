@@ -23,10 +23,18 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { ErrorDisplay, Icon, Loading, Text } from "@cocalc/frontend/components";
+import {
+  ErrorDisplay,
+  Icon,
+  Loading,
+  Text,
+  TimeAgo,
+} from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
   DirectoryListing,
@@ -38,7 +46,9 @@ import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_st
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import {
+  capitalize,
   copy_without,
+  human_readable_size,
   path_to_file,
   search_match,
   search_split,
@@ -49,11 +59,22 @@ import {
   unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { useProjectContext } from "../../context";
 import { FIX_BORDER } from "../common";
 import { FileListItem, fileItemStyle } from "./components";
-import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
+import {
+  DEFAULT_EXT,
+  FLYOUT_EXTRA2_WIDTH_PX,
+  FLYOUT_EXTRA_WIDTH_PX,
+  FLYOUT_PADDING,
+} from "./consts";
 import { FilesBottom } from "./files-bottom";
+
+const EMPTY_LISTING: [DirectoryListing, FileMap, null, boolean] = [
+  [],
+  {},
+  null,
+  true,
+];
 
 type ActiveFileSort = TypedMap<{
   column_name: string;
@@ -84,7 +105,11 @@ function searchToFilename(search: string): string {
   return `${search}.${DEFAULT_EXT}`;
 }
 
-export function FilesFlyout(): JSX.Element {
+export function FilesFlyout({
+  flyoutWidth,
+}: {
+  flyoutWidth: number;
+}): JSX.Element {
   const {
     isRunning: projectIsRunning,
     project_id,
@@ -93,6 +118,9 @@ export function FilesFlyout(): JSX.Element {
   const isMountedRef = useIsMountedRef();
   const rootRef = useRef<HTMLDivElement>(null);
   const [rootHeightPx, setRootHeightPx] = useState<number>(0);
+  const [showCheckboxIndex, setShowCheckboxIndex] = useState<number | null>(
+    null
+  );
   const refInput = useRef<InputRef>(null);
   const current_path = useTypedRedux({ project_id }, "current_path");
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
@@ -106,12 +134,12 @@ export function FilesFlyout(): JSX.Element {
     { project_id },
     "active_file_sort"
   );
+  const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
   const hidden = useTypedRedux({ project_id }, "show_hidden");
   const kucalc = useTypedRedux("customize", "kucalc");
   const show_masked = useTypedRedux({ project_id }, "show_masked");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
-  const [search, setSearch] = useState<string>("");
   // mainly controls what a single click does, plus additional UI elements
   const [mode, setMode] = useState<"open" | "select">("open");
   const [prevSelected, setPrevSelected] = useState<number | null>(null);
@@ -167,29 +195,23 @@ export function FilesFlyout(): JSX.Element {
     DirectoryListingEntry | null,
     boolean
   ] => {
-    const empty: [DirectoryListing, FileMap, null, boolean] = [
-      [],
-      {},
-      null,
-      true,
-    ];
-    if (directoryListings == null) return empty;
+    if (directoryListings == null) return EMPTY_LISTING;
     const filesStore = directoryListings.get(current_path);
-    if (filesStore == null) return empty;
+    if (filesStore == null) return EMPTY_LISTING;
 
     // TODO this is an error, process it
-    if (typeof filesStore === "string") return empty;
+    if (typeof filesStore === "string") return EMPTY_LISTING;
 
     const files: DirectoryListing = filesStore.toJS();
     let activeFile: DirectoryListingEntry | null = null;
     compute_file_masks(files);
-    const searchWords = search_split(search.trim().toLowerCase());
+    const searchWords = search_split(file_search.trim().toLowerCase());
 
     const procFiles = files
       .filter((file: DirectoryListingEntry) => {
         file.name ??= ""; // sanitization
 
-        if (search === "") return true;
+        if (file_search === "") return true;
         const fName = file.name.toLowerCase();
         return (
           search_match(fName, searchWords) ||
@@ -270,7 +292,7 @@ export function FilesFlyout(): JSX.Element {
     directoryListings,
     activeFileSort,
     hidden,
-    search,
+    file_search,
     openFiles,
     show_masked,
     current_path,
@@ -298,6 +320,10 @@ export function FilesFlyout(): JSX.Element {
     setScrollIdx(null);
   }, [current_path]);
 
+  useEffect(() => {
+    setShowCheckboxIndex(null);
+  }, [directoryListings, current_path]);
+
   const triggerRootResize = debounce(
     () => setRootHeightPx(rootRef.current?.clientHeight ?? 0),
     50,
@@ -311,6 +337,27 @@ export function FilesFlyout(): JSX.Element {
     observer.observe(rootRef.current);
     return () => observer.disconnect();
   }, []);
+
+  const [showExtra, showExtra2] = useMemo(() => {
+    return [
+      flyoutWidth > FLYOUT_EXTRA_WIDTH_PX,
+      flyoutWidth > FLYOUT_EXTRA2_WIDTH_PX,
+    ];
+  }, [flyoutWidth]);
+
+  const setSearchState = (val: string) => {
+    actions?.set_file_search(val);
+  };
+
+  const handleSearchChange = (val: string) => {
+    setScrollIdx(null);
+    setSearchState(val);
+  };
+
+  // incoming search state change
+  useEffect(() => {
+    setScrollIdx(null);
+  }, [file_search]);
 
   // *** END HOOKS ***
 
@@ -350,7 +397,7 @@ export function FilesFlyout(): JSX.Element {
       if (file.isdir) {
         // true: change history, false: do not show "files" page
         actions?.open_directory(fullPath, true, false);
-        setSearch("");
+        setSearchState("");
       } else {
         const foreground = should_open_in_foreground(e);
         track("open-file", {
@@ -476,7 +523,7 @@ export function FilesFlyout(): JSX.Element {
   }
 
   async function createFileOrFolder() {
-    const fn = searchToFilename(search);
+    const fn = searchToFilename(file_search);
     await actions?.create_file({
       name: fn,
       current_path,
@@ -504,8 +551,8 @@ export function FilesFlyout(): JSX.Element {
       if (scrollIdx != null) {
         open(e, scrollIdx);
         setScrollIdx(null);
-      } else if (search != "") {
-        setSearch("");
+      } else if (file_search != "") {
+        setSearchState("");
         if (!isEmpty) {
           open(e, 0);
         } else {
@@ -516,8 +563,7 @@ export function FilesFlyout(): JSX.Element {
 
     // if esc key is pressed, clear search and reset scroll index
     else if (e.key === "Escape") {
-      setSearch("");
-      setScrollIdx(null);
+      handleSearchChange("");
     }
   }
 
@@ -529,6 +575,46 @@ export function FilesFlyout(): JSX.Element {
     actions?.set_all_files_unchecked();
     actions?.set_file_list_checked([fullPath]);
     actions?.set_file_action("share");
+  }
+
+  function renderListItemExtra(item: DirectoryListingEntry) {
+    if (!showExtra) return null;
+    const col = activeFileSort.get("column_name");
+    switch (col) {
+      case "time":
+        const { mtime } = item;
+        if (typeof mtime === "number") {
+          return <TimeAgo date={1000 * mtime} />;
+        }
+        break;
+      case "type":
+        if (item.isdir) return "Folder";
+        const { ext } = separate_file_extension(item.name);
+        return capitalize(file_options(item.name).name) || ext;
+      case "name":
+      case "size":
+        return human_readable_size(item.size, true);
+      default:
+        return null;
+    }
+  }
+
+  function renderListItemExtra2(item: DirectoryListingEntry) {
+    if (!showExtra2) return;
+    const col = activeFileSort.get("column_name");
+    switch (col) {
+      case "time":
+      case "type":
+        return human_readable_size(item.size, true);
+      case "size":
+      case "name":
+        const { mtime } = item;
+        if (typeof mtime === "number") {
+          return <TimeAgo date={1000 * mtime} />;
+        }
+      default:
+        return null;
+    }
   }
 
   function renderListItem(index: number, item: DirectoryListingEntry) {
@@ -544,10 +630,14 @@ export function FilesFlyout(): JSX.Element {
     return (
       <FileListItem
         item={item}
+        index={index}
+        extra={renderListItemExtra(item)}
+        extra2={renderListItemExtra2(item)}
         onClick={(e) => handleFileClick(e, index)}
         onMouseDown={(e: React.MouseEvent, name: string) => {
           setSelectionOnMouseDown(window.getSelection()?.toString() ?? "");
           if (e.button === 1) {
+            // middle mouse click
             actions?.close_tab(path_to_file(current_path, name));
           }
         }}
@@ -558,7 +648,12 @@ export function FilesFlyout(): JSX.Element {
         }}
         onPublic={() => showFileSharingDialog(directoryFiles[index])}
         selected={isSelected}
-        showCheckbox={mode === "select" || checked_files?.size > 0}
+        showCheckbox={
+          mode === "select" ||
+          checked_files?.size > 0 ||
+          showCheckboxIndex === index
+        }
+        setShowCheckboxIndex={setShowCheckboxIndex}
         onChecked={(nextState: boolean) => {
           toggleSelected(index, item.name, nextState);
         }}
@@ -575,6 +670,7 @@ export function FilesFlyout(): JSX.Element {
         ref={virtuosoRef}
         style={{}}
         increaseViewportBy={10}
+        onMouseLeave={() => setShowCheckboxIndex(null)}
         totalCount={directoryFiles.length}
         itemContent={(index) => {
           const file = directoryFiles[index];
@@ -685,9 +781,9 @@ export function FilesFlyout(): JSX.Element {
             ref={refInput}
             placeholder="Filter..."
             size="small"
-            value={search}
+            value={file_search}
             onKeyDown={filterKeyHandler}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             onFocus={() => setScrollIdxHide(false)}
             onBlur={() => setScrollIdxHide(true)}
             style={{ flex: "1" }}
@@ -753,9 +849,9 @@ export function FilesFlyout(): JSX.Element {
   }
 
   function createFileIfNotExists() {
-    if (search === "" || !isEmpty) return;
+    if (file_search === "" || !isEmpty) return;
 
-    const what = search.trim().endsWith("/") ? "directory" : "file";
+    const what = file_search.trim().endsWith("/") ? "directory" : "file";
     return (
       <Alert
         type="info"
@@ -765,7 +861,7 @@ export function FilesFlyout(): JSX.Element {
         description={
           <>
             Hit <Text code>Return</Text> to create the {what}{" "}
-            <Text code>{searchToFilename(search)}</Text>
+            <Text code>{searchToFilename(file_search)}</Text>
           </>
         }
       />

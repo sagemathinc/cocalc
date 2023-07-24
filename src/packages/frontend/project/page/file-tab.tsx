@@ -26,10 +26,10 @@ import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
 import { TITLE as SERVERS_TITLE } from "../servers";
 import {
-  ICON_USERS,
   ICON_UPGRADES,
-  TITLE_USERS,
+  ICON_USERS,
   TITLE_UPGRADES,
+  TITLE_USERS,
 } from "../servers/consts";
 import {
   CollabsFlyout,
@@ -42,6 +42,7 @@ import {
   ServersFlyout,
   SettingsFlyout,
 } from "./flyouts";
+import { VBAR_KEY, getValidVBAROption } from "./vbar";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -64,7 +65,11 @@ type FixedTabs = {
   [name in FixedTab]: {
     label: string | ReactNode;
     icon: IconName;
-    flyout: (props: { project_id: string; wrap: Function }) => JSX.Element;
+    flyout: (props: {
+      project_id: string;
+      wrap: (content: JSX.Element, style?: CSS) => JSX.Element;
+      flyoutWidth: number;
+    }) => JSX.Element;
     flyoutTitle?: string | ReactNode;
     noAnonymous?: boolean;
   };
@@ -171,7 +176,7 @@ export function FileTab(props: Readonly<Props>) {
     name === "info" && project_status?.get("alerts")?.size > 0;
   const other_settings = useTypedRedux("account", "other_settings");
   const active_flyout = useTypedRedux({ project_id }, "flyout");
-  const flyoutsDefault = other_settings.get("flyouts_default", false);
+  const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
 
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
@@ -184,11 +189,21 @@ export function FileTab(props: Readonly<Props>) {
     actions.close_tab(path);
   }
 
+  function setActiveTab(name: string) {
+    actions?.set_active_tab(name);
+    track("switch-to-fixed-tab", {
+      project_id,
+      name,
+      how: "click-on-tab",
+    });
+  }
+
   function click(e: React.MouseEvent) {
     e.stopPropagation();
     if (actions == null) return;
+    const anyModifierKey = e.ctrlKey || e.shiftKey || e.metaKey;
     if (path != null) {
-      if (e.ctrlKey || e.shiftKey || e.metaKey) {
+      if (anyModifierKey) {
         // shift/ctrl/option clicking on *file* tab opens in a new popout window.
         actions.open_file({
           path,
@@ -208,15 +223,14 @@ export function FileTab(props: Readonly<Props>) {
         });
       }
     } else if (name != null) {
-      if (flyout != null && flyoutsDefault) {
-        actions?.toggleFlyout(flyout);
+      if (flyout != null && vbar !== "both") {
+        if (anyModifierKey !== (vbar === "full")) {
+          setActiveTab(name);
+        } else {
+          actions?.toggleFlyout(flyout);
+        }
       } else {
-        actions.set_active_tab(name);
-        track("switch-to-fixed-tab", {
-          project_id,
-          name,
-          how: "click-on-tab",
-        });
+        setActiveTab(name);
       }
     }
   }
@@ -231,7 +245,7 @@ export function FileTab(props: Readonly<Props>) {
   }
 
   function renderFlyoutCaret() {
-    if (IS_MOBILE || flyout == null || flyoutsDefault) return;
+    if (IS_MOBILE || flyout == null || vbar !== "both") return;
 
     const color =
       flyout === active_flyout
