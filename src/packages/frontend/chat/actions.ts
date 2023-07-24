@@ -22,10 +22,17 @@ import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
 import { getSelectedHashtagsSearch } from "./utils";
+import { isValidUUID } from "@cocalc/util/misc";
+import type { ChatStream } from "@cocalc/frontend/client/openai";
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
   private store?: ChatStore;
+  // We use this to ensure at most once chatgpt output is streaming
+  // at a time in a given chatroom.  I saw a bug where hundreds started
+  // at once and it really did send them all to openai at once, and
+  // this prevents that at least.
+  private chatStream: ChatStream | null = null;
 
   public set_syncdb(syncdb: SyncDB, store: ChatStore): void {
     this.syncdb = syncdb;
@@ -502,8 +509,11 @@ export class ChatActions extends Actions<ChatState> {
       // We also do the check when replying.
       return;
     }
-    if (message.getIn(["history", 0, "author_id"])?.startsWith("chatgpt")) {
-      // do NOT respond to a message from chatgpt!!!!
+    if (!isValidUUID(message.getIn(["history", 0, "author_id"]))) {
+      // do NOT respond to a message that chatgpt is sending, because that would
+      // result in an infinite recursion.
+      // Note that openai chatgpt etc., do not use a uuid for the author_id,
+      // but instead use "chatgpt" or "openai-", etc.
       return;
     }
     let input = message.getIn(["history", 0, "content"]);
@@ -527,11 +537,39 @@ export class ChatActions extends Actions<ChatState> {
       // it mentions chatgpt -- which model?
       model = getChatGPTModel(input);
     }
+
     // without any mentions, of course:
     input = stripMentions(input);
     // also important to strip details, since they tend to confuse chatgpt:
     //input = stripDetails(input);
     const sender_id = `openai-${model}`;
+    let date: string = this.send_reply({
+      message,
+      reply: ":robot: Thinking...",
+      from: sender_id,
+      noNotification: true,
+    });
+
+    if (this.chatStream != null) {
+      console.trace("processChatGPT called during chat stream");
+      if (this.syncdb != null) {
+        this.syncdb.set({
+          date,
+          history: [
+            {
+              author_id: sender_id,
+              content: `\n\n<span style='color:#b71c1c'>There is already a ChatGPT response being written. Please try again once it finishes.</span>\n\n`,
+              date,
+            },
+          ],
+          event: "chat",
+          sender_id,
+        });
+        this.syncdb.commit();
+      }
+      return;
+    }
+
     // keep updating that chatgpt is doing something:
     const project_id = store.get("project_id");
     const path = store.get("path");
@@ -539,7 +577,7 @@ export class ChatActions extends Actions<ChatState> {
       tag = "reply";
     }
 
-    // submit question to chatgpt
+    // record that we're about to submit message to chatgpt.
     track("chatgpt", {
       project_id,
       path,
@@ -548,7 +586,8 @@ export class ChatActions extends Actions<ChatState> {
       tag,
     });
 
-    const stream = webapp_client.openai_client.chatgptStream({
+    // submit question to chatgpt
+    this.chatStream = webapp_client.openai_client.chatgptStream({
       input,
       history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
       project_id,
@@ -556,20 +595,16 @@ export class ChatActions extends Actions<ChatState> {
       model,
       tag,
     });
-    let date: string = this.send_reply({
-      message,
-      reply: ":robot: Thinking...",
-      from: sender_id,
-      noNotification: true,
-    });
     this.scrollToBottom();
     let content: string = "";
     let halted = false;
-    stream.on("token", (token) => {
+    this.chatStream.on("token", (token) => {
+      console.log("token = ", { token });
       if (halted || this.syncdb == null) return;
       const cur = this.syncdb.get_one({ event: "chat", sender_id, date });
       if (cur?.get("generating") === false) {
         halted = true;
+        this.chatStream = null;
         return;
       }
       if (token != null) {
@@ -582,6 +617,7 @@ export class ChatActions extends Actions<ChatState> {
           generating: true,
         });
       } else {
+        this.chatStream = null;
         this.syncdb.set({
           event: "chat",
           sender_id,
@@ -592,7 +628,8 @@ export class ChatActions extends Actions<ChatState> {
         this.syncdb.commit();
       }
     });
-    stream.on("error", (err) => {
+    this.chatStream.on("error", (err) => {
+      this.chatStream = null;
       if (this.syncdb == null || halted) return;
       content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
       this.syncdb.set({
