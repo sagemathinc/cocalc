@@ -24,7 +24,13 @@ const COCALC = debug("cocalc");
 let _trimLogFileSizePath = "";
 export function trimLogFileSize() {
   if (!_trimLogFileSizePath) return;
-  const stats = statSync(_trimLogFileSizePath);
+  let stats;
+  try {
+    stats = statSync(_trimLogFileSizePath);
+  } catch(_) {
+    // this happens if the file doesn't exist, which is fine since "trimming" it would be a no-op
+    return;
+  }
   if (stats.size > MAX_FILE_SIZE_BYTES) {
     const fileStream = createWriteStream(_trimLogFileSizePath, { flags: "r+" });
     fileStream.on("open", (fd) => {
