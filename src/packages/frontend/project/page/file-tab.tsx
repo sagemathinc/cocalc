@@ -9,7 +9,7 @@ A single tab in a project.
    - There is ALSO one for each of the fixed tabs -- files, new, log, search, settings.
 */
 
-import { Popover } from "antd";
+import { Popover, Tag } from "antd";
 import { CSSProperties, ReactNode } from "react";
 import {
   CSS,
@@ -17,9 +17,15 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { HiddenXSSM, Icon, IconName } from "@cocalc/frontend/components";
+import {
+  HiddenXSSM,
+  Icon,
+  IconName,
+  r_join,
+} from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import track from "@cocalc/frontend/user-tracking";
+import { getAlertName } from "@cocalc/project/project-status/types";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PROJECT_INFO_TITLE } from "../info";
@@ -172,8 +178,14 @@ export function FileTab(props: Readonly<Props>) {
   const actions = useActions({ project_id });
   // this is @cocalc/project/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
-  const status_alert =
-    name === "info" && project_status?.get("alerts")?.size > 0;
+  const status_alerts: string[] =
+    name === "info"
+      ? project_status
+          ?.get("alerts")
+          ?.map((a) => a.get("type"))
+          .toJS() ?? []
+      : [];
+
   const other_settings = useTypedRedux("account", "other_settings");
   const active_flyout = useTypedRedux({ project_id }, "flyout");
   const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
@@ -282,7 +294,7 @@ export function FileTab(props: Readonly<Props>) {
     style = {};
   } else {
     // highlight info tab if there is at least one alert
-    if (status_alert) {
+    if (status_alerts.length > 0) {
       style = { backgroundColor: COLORS.ATND_BG_RED_L };
     } else {
       style = { flex: "none" };
@@ -308,17 +320,36 @@ export function FileTab(props: Readonly<Props>) {
       ? file_options(path)?.icon ?? "code-o"
       : FIXED_PROJECT_TABS[name!].icon;
 
+  const tags =
+    status_alerts.length > 0 ? (
+      <div>
+        {r_join(
+          status_alerts.map((a) => (
+            <Tag
+              key={a}
+              style={{
+                display: "inline",
+                fontSize: "85%",
+                paddingInline: "2px",
+                marginInlineEnd: "4px",
+              }}
+              color={COLORS.ATND_BG_RED_M}
+            >
+              {getAlertName(a)}
+            </Tag>
+          )),
+          <br />
+        )}
+      </div>
+    ) : undefined;
+
   const btnLeft = (
     <>
       <div>
         <Icon style={{ ...icon_style }} name={icon} />
       </div>
-      <DisplayedLabel
-        path={path}
-        label={label}
-        inline={!isFixedTab}
-        project_id={project_id}
-      />
+      <DisplayedLabel path={path} label={label} inline={!isFixedTab} />
+      {tags}
     </>
   );
 

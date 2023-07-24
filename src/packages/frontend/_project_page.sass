@@ -4,21 +4,21 @@
  */
 
 .smc-project-files-dropdown>a
-  overflow      : hidden
-  text-overflow : ellipsis
+  overflow: hidden
+  text-overflow: ellipsis
 
 .smc-project-files-dropdown
   > a
-    overflow      : hidden
-    text-overflow : ellipsis
+    overflow: hidden
+    text-overflow: ellipsis
   > ul
-    width : 100%
+    width: 100%
 
 dl.cc-project-settings-features
   > dt
-    width       : 20px
+    width: 20px
   > dd
-    margin-left : 30px
+    margin-left: 30px
 
 .cocalc-files-tabs-more
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15)
@@ -27,3 +27,37 @@ dl.cc-project-settings-features
     .anticon
       font-size: 125%
       margin-right: 10px
+
+.cc-project-info-cgroup-table-flyout
+  div.ant-descriptions-view
+    border-left: 0 !important
+    border-right: 0 !important
+    border-radius: 0
+  th.ant-descriptions-item-label
+    width: 25%
+  td.ant-descriptions-item-content
+    width: 75%
+
+.cc-project-info-cgroup-table-page
+  table
+    td.ant-descriptions-item-content
+      width: 250px // due to width auto, this is a proportion, not absolute value
+
+.cc-project-info-procs-flyout-row-expanded
+  td
+    margin: 0 !important
+    padding: 0 !important
+
+.cc-project-info-about-flyout
+  div.ant-descriptions-header
+    align-items: flex-start
+    margin: 5px
+    .ant-descriptions-title
+      font-size: 14px
+      line-height: 1.2
+  div.ant-descriptions-view
+    border-radius: 0
+    td, th
+      padding: 5px !important
+    code
+      font-size: 90%
