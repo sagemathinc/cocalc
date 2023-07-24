@@ -156,7 +156,7 @@ export default function Payment({ balance, update, cost }: Props) {
     }
     return (
       <div>
-        {balance && (
+        {balance != null && (
           <PaymentConfig
             balance={balance}
             paymentAmount={paymentAmount}

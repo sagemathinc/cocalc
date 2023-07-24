@@ -50,7 +50,7 @@ export default async function createStripeCheckoutSession(
     throw Error("success_url must be nontrivial");
   }
   const stripe = await getConn();
-  const customer = await getStripeCustomerId({ account_id, create: false });
+  const customer = await getStripeCustomerId({ account_id, create: true });
   logger.debug("createStripeCheckoutSession", { customer });
   const session = await stripe.checkout.sessions.create({
     mode: "payment",

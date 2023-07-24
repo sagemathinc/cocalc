@@ -150,7 +150,6 @@ export default function AutomaticPayments({ style }: Props) {
               </div>
             ) : (
               <div style={{ maxWidth: "500px" }}>
-                {JSON.stringify(stripe_checkout_session)}
                 Would you like to enable automatic payments? You will
                 automatically be charged for any subscriptions, etc., once per
                 month.
