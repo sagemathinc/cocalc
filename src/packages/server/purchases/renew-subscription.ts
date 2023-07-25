@@ -1,5 +1,7 @@
 /*
 Right now cocalc subscriptions are ONLY for licenses and nothing else.
+Of course, licenses are for a lot of things: upgrading projects, dedicated vm's, dedicated disks.
+
 Renewing a subscription means that two big things happen:
 
  - the license end date is increased by the period: 'month' or 'year'
@@ -19,7 +21,7 @@ const logger = getLogger("purchases:renew-subscription");
 interface Options {
   account_id: string;
   subscription_id: number;
-  force?: boolean;
+  force?: boolean; // subscription renews even if we are out of money, but via a *pending* purchase
 }
 
 export default async function renewSubscription({
