@@ -2,7 +2,7 @@ import { Alert, Button, InputNumber, Space, Spin } from "antd";
 import { useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { currency } from "@cocalc/frontend/purchases/util";
+import { currency } from "@cocalc/util/misc";
 
 export default function PayAsYouGoMinBalance({ account_id }) {
   const [minBalance, setMinBalance] = useState<number | null>(null);

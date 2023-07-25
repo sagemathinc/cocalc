@@ -5,7 +5,7 @@ A dynamically updating cost, which is useful for pay as you go.
 import { Tooltip } from "antd";
 import { useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { currency } from "../util";
+import { currency } from "@cocalc/util/misc";
 import { useInterval } from "react-interval-hook";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 

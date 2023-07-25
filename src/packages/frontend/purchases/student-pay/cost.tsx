@@ -1,5 +1,5 @@
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import { currency } from "../util";
+import { currency } from "@cocalc/util/misc";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 
 export function getCost(purchaseInfo: PurchaseInfo): number {

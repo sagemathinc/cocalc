@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
 import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
-import { currency } from "@cocalc/frontend/purchases/util";
+import { currency } from "@cocalc/util/misc";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";

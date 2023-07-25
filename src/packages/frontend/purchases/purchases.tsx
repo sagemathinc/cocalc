@@ -22,7 +22,7 @@ import { capitalize, plural } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import Next from "@cocalc/frontend/components/next";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import { load_target } from "@cocalc/frontend/history";

@@ -1,7 +1,7 @@
 import { Divider, InputNumber, Space, Spin, Tag, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/consts";
 import * as api from "./api";
 import MoneyStatistic from "./money-statistic";

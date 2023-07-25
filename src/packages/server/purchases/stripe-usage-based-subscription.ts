@@ -53,7 +53,7 @@ import {
   setStripeCheckoutSession,
 } from "./create-stripe-checkout-session";
 import type { Stripe } from "stripe";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 
 const logger = getLogger("purchases:stripe-usage-based-subscription");
 
@@ -280,5 +280,3 @@ export async function collectPayment({
   });
   await stripe.subscriptions.update(sub.id, { billing_cycle_anchor: "now" });
 }
-
-

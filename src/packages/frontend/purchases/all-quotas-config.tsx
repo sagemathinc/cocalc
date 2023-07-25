@@ -13,7 +13,7 @@ import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { cloneDeep, isEqual } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ServiceTag from "./service";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 import Cost from "./pay-as-you-go/cost";
 
 export const PRESETS = [0, 5, 20, 1000];

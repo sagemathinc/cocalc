@@ -1723,6 +1723,13 @@ export function to_money(n: number, d = 2): string {
   return n.toFixed(d).replace(/(\d)(?=(\d{3})+\.)/g, "$1,");
 }
 
+// Display currency with a dollar sign, rounded to *nearest*, and
+// if d is not given and n is less than 10 cents, will show 3 digits
+// instead of 2.
+export function currency(n: number, d?: number) {
+  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.1 ? 3 : 2))}`;
+}
+
 export function stripeAmount(
   unitPrice: number,
   currency: string,

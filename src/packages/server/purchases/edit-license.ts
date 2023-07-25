@@ -36,7 +36,7 @@ import createPurchase from "./create-purchase";
 import getName from "@cocalc/server/accounts/get-name";
 import { query_projects_using_site_license } from "@cocalc/database/postgres/site-license/analytics";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 
 const logger = getLogger("purchases:edit-license");
 

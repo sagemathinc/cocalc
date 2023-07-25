@@ -50,7 +50,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 import Export from "./export";
 
 export function SubscriptionStatus({ status }) {

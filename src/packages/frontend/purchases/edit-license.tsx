@@ -11,7 +11,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import LicenseEditor from "./license-editor";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import costToEditLicense from "@cocalc/util/purchases/cost-to-edit-license";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
 import { isEqual } from "lodash";
 import { webapp_client } from "@cocalc/frontend/webapp-client";

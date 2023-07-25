@@ -4,7 +4,7 @@ import Refresh from "@cocalc/frontend/components/refresh";
 import { getStatements } from "./api";
 import { useEffect, useState } from "react";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { PurchasesTable } from "./purchases";
 

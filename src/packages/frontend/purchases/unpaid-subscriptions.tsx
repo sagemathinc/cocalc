@@ -4,7 +4,7 @@ import {
   LiveSubscription,
   renewSubscription,
 } from "./api";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 import { Alert, Button, Popconfirm, Spin, Tag } from "antd";
 import { plural } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components/icon";

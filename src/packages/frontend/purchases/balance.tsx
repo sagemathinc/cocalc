@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { Card, Divider, Tooltip, Space, Spin } from "antd";
 import { zIndexTip } from "./payment";
 import MoneyStatistic from "./money-statistic";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 import Payment from "./payment";
 
 interface Props {

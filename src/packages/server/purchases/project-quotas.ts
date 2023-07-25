@@ -16,7 +16,7 @@ import { getProject } from "@cocalc/server/projects/control";
 import LRU from "lru-cache";
 import { getPurchaseQuota } from "./purchase-quotas";
 import { getTotalChargesThisMonth } from "./get-charges";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 import getMinBalance from "./get-min-balance";
 
 const logger = getLogger("purchases:project-quota");

@@ -1,7 +1,7 @@
 import { Button, Divider, Modal, Spin, Tag } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
-import { currency } from "./util";
+import { currency } from "@cocalc/util/misc";
 import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/modal";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { delay } from "awaiting";

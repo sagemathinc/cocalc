@@ -4,10 +4,9 @@ import { getPurchaseQuotas } from "./purchase-quotas";
 import getBalance from "./get-balance";
 import { getTotalChargesThisMonth } from "./get-charges";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import { currency } from "./util";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { getMaxCost, Model } from "@cocalc/util/db-schema/openai";
-import { round2up } from "@cocalc/util/misc";
+import { currency, round2up } from "@cocalc/util/misc";
 
 // Throws an exception if purchase is not allowed.  Code should
 // call this before giving the thing and doing createPurchase.
