@@ -1,7 +1,7 @@
 /* 
 Stripe payment methods 
 
-TODO: we probably won't be using this since we want to support 
+DEPRECATED: we won't be using this since we want to support 
 sales tax and async payment even for subscriptions, etc., very 
 well.
 */

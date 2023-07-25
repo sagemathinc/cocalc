@@ -1,6 +1,6 @@
 import { uuid } from "@cocalc/util/misc";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
-import { createAccount } from "./test-data";
+import { createTestAccount } from "./test-data";
 import studentPay from "./student-pay";
 import createProject from "@cocalc/server/projects/create";
 import createCredit from "./create-credit";
@@ -54,7 +54,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
   });
 
   it("creates the account, then fails due to insufficient money", async () => {
-    await createAccount(account_id);
+    await createTestAccount(account_id);
     expect.assertions(1);
     try {
       await studentPay({ account_id, project_id });

@@ -1,5 +1,5 @@
 /*
-Resume a subscription, which does all of the following in a single ATOMIC transaction.
+Resume a canceled subscription, which does all of the following in a single ATOMIC transaction.
 
 - Changes the status of the subscription to active, so it'll get renewed each month.
 - Sets the current_period_start/end dates for the subscription to include now.
@@ -21,9 +21,13 @@ export default async function resumeSubscription({
   account_id,
   subscription_id,
 }: Options): Promise<number | null | undefined> {
-  const { current_period_end, interval, metadata } = await getSubscription(
-    subscription_id
-  );
+  const { current_period_end, interval, metadata, status } =
+    await getSubscription(subscription_id);
+  if (status != "canceled") {
+    throw Error(
+      `You can only resume a canceled subscription, but this subscription is "${status}"`
+    );
+  }
   const { license_id } = metadata;
   const { start, end } = intervalContainingNow(current_period_end, interval);
   const client = await getTransactionClient();

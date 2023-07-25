@@ -15,6 +15,7 @@ import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import dayjs from "dayjs";
 import editLicense from "./edit-license";
+import type { Status } from "@cocalc/util/db-schema/subscriptions";
 
 const logger = getLogger("purchases:renew-subscription");
 
@@ -119,10 +120,11 @@ export async function getSubscription(subscription_id: number): Promise<{
   cost: number;
   interval: "month" | "year";
   current_period_end: Date;
+  status: Status; // used externally (not in this file)
 }> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT account_id, metadata, cost, interval, current_period_end FROM subscriptions WHERE id=$1",
+    "SELECT account_id, metadata, cost, interval, current_period_end, status FROM subscriptions WHERE id=$1",
     [subscription_id]
   );
   if (rows.length == 0) {

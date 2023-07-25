@@ -3,17 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// test some functions in renew-subscriptions
+// test renew-subscriptions
 
 import { test } from "./renew-subscription";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
-import createAccount from "@cocalc/server/accounts/create-account";
-import createLicense from "@cocalc/server/licenses/purchase/create-license";
-import createSubscription from "./create-subscription";
-import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
 import renewSubscription, { getSubscription } from "./renew-subscription";
-import { license0 } from "./test-data";
+import { createTestAccount, createTestSubscription } from "./test-data";
 import dayjs from "dayjs";
 import createCredit from "./create-credit";
 import getBalance, { getPendingBalance } from "./get-balance";
@@ -29,31 +25,10 @@ afterAll(async () => {
 describe("create a subscription, then renew it", () => {
   const account_id = uuid();
   let subscription_id = -1;
-  let license_id = "";
-  const cost = 10;
+  let cost = -1;
   it("creates an account, license and subscription", async () => {
-    await createAccount({
-      email: "",
-      password: "xyz",
-      firstName: "Test",
-      lastName: "User",
-      account_id,
-    });
-    const info = getPurchaseInfo(license0);
-    license_id = await createLicense(account_id, info);
-    subscription_id = await createSubscription(
-      {
-        account_id,
-        cost,
-        interval: "month",
-        current_period_start: dayjs().toDate(),
-        current_period_end: dayjs().add(1, "month").toDate(),
-        status: "active",
-        metadata: { type: "license", license_id },
-        latest_purchase_id: 0,
-      },
-      null
-    );
+    await createTestAccount(account_id);
+    ({ subscription_id, cost } = await createTestSubscription(account_id));
   });
 
   it("runs renewSubscription which fails due to spending limit", async () => {

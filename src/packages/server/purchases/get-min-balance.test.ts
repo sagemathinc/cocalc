@@ -1,6 +1,6 @@
 import { uuid } from "@cocalc/util/misc";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
-import { createAccount } from "./test-data";
+import { createTestAccount } from "./test-data";
 import getMinBalance from "./get-min-balance";
 
 beforeAll(async () => {
@@ -18,7 +18,7 @@ describe("test that getMinBalance works", () => {
   });
 
   it("returns 0 on an account that *does* exist", async () => {
-    await createAccount(account_id);
+    await createTestAccount(account_id);
     expect(await getMinBalance(account_id)).toBe(0);
   });
 
