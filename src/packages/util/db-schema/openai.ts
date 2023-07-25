@@ -74,10 +74,15 @@ export function getMaxTokens(model?: Model): number {
   return OPENAI_COST[model ?? ""]?.max_tokens ?? 4096;
 }
 
+export interface OpenaiCost {
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
 export function getCost(
   model: Model,
   markup_percentage: number // a number like "30" would mean that we increase the wholesale price by multiplying by 1.3
-): { prompt_tokens: number; completion_tokens: number } {
+): OpenaiCost {
   const x = OPENAI_COST[model];
   if (x == null) {
     throw Error(`unknown model "${model}"`);
