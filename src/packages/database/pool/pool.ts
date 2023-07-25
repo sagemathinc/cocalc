@@ -13,7 +13,7 @@ import {
 } from "@cocalc/backend/data";
 import { getLogger } from "@cocalc/backend/logger";
 import { STATEMENT_TIMEOUT_MS } from "../consts";
-import getCachedPool, { Length } from "./cached";
+import getCachedPool, { CacheTime } from "./cached";
 import dbPassword from "./password";
 
 const L = getLogger("db:pool");
@@ -22,9 +22,9 @@ export * from "./util";
 
 let pool: Pool | undefined = undefined;
 
-export default function getPool(cacheLength?: Length): Pool {
-  if (cacheLength != null) {
-    return getCachedPool(cacheLength);
+export default function getPool(cacheTime?: CacheTime): Pool {
+  if (cacheTime != null) {
+    return getCachedPool(cacheTime);
   }
   if (pool == null) {
     L.debug(
