@@ -21,7 +21,7 @@ import { Paragraph, Title, Text } from "components/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChangeEmailAddress } from "components/account/config/account/email";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
-import { currency } from "@cocalc/frontend/purchases/util";
+import { currency } from "@cocalc/util/misc";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import PaymentConfig from "@cocalc/frontend/purchases/payment-config";
 
