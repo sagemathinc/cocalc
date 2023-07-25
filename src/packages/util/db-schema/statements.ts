@@ -40,7 +40,7 @@ Table({
     },
     balance: {
       title: "Balance (USD $)",
-      desc: "The balance in US dollars of the user's account at this point in time.",
+      desc: "The balance in US dollars of the user's account at this point in time.  THIS ALWAYS INCLUDES PENDING TRANSACTIONS.",
       type: "number",
       pg_type: "real",
     },

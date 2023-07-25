@@ -299,6 +299,9 @@ async function doMaintenance({
       cutoff = false;
     }
     if (cutoff) {
+      logger.debug(
+        "doMaintenance --- cutoff true, so stopping project and pay-as-you-go project upgrade"
+      );
       // cut this off -- (1) stop project, and (2) make sure purchase is closed
       const project = getProject(project_id);
       await project.stop();

@@ -217,6 +217,8 @@ function getQuery(
   }
 }
 
+// Gets the charges or credits for the given interval, which aren't on any statement
+// already.  These always include pending charges, which are NOT treated differently.
 async function getData(
   time: Date,
   pool,
