@@ -3,10 +3,11 @@ import { maintainActivePurchases as maintainProjectUpgrades } from "./project-qu
 import maintainSubscriptions from "./maintain-subscriptions";
 import maintainStatements from "./statements/maintenance";
 import getLogger from "@cocalc/backend/logger";
+import maintainAutomaticPayments from "./maintain-automatic-payments";
 
 const logger = getLogger("purchases:maintenance");
 
-// For now -- once every 5 minutes -- though NO GUARANTEES, since if it takes longer 
+// For now -- once every 5 minutes -- though NO GUARANTEES, since if it takes longer
 // than 5 minutes to run a round of maintenance then the next one would be skipped.
 const LOOP_INTERVAL_MS = 1000 * 60 * 5;
 
@@ -14,6 +15,7 @@ const FUNCTIONS = [
   { f: maintainProjectUpgrades, desc: "maintain project upgrade quotas" },
   { f: maintainSubscriptions, desc: "maintain subscriptions" },
   { f: maintainStatements, desc: "maintain statements" },
+  { f: maintainAutomaticPayments, desc: "maintain automatic payments" },
 ];
 
 export default async function init() {
