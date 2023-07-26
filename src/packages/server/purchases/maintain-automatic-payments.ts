@@ -89,14 +89,21 @@ export default async function maintainAutomaticPayments() {
   const { rows } = await pool.query(QUERY);
   logger.debug("Got ", rows.length, " statements to automatically pay");
   for (const { time, account_id, balance, statement_id } of rows) {
-    logger.debug("Paying this statement", statement_id);
+    logger.debug(
+      "Paying statement ",
+      { statement_id },
+      " with balance ",
+      balance,
+      " from ",
+      time
+    );
     try {
       // Determine sum of credits that user explicitly paid *after* the statement date.
       // We deduce this from their automatic payment.  Usually the automatic payment happens
       // very quickly after the statement is made, so it's highly unlikely the user paid
       // anything manually, but just in case we check.
       const x = await pool.query(
-        "SELECT -SUM(cost) AS credit FROM purchases WHERE account_id=$1 AND service='credit' AND time >= $2",
+        "SELECT -SUM(cost) AS credit FROM purchases WHERE account_id=$1 AND service='credit' AND time >= $2 AND cost < 0",
         [account_id, time]
       );
       // Records that we are attempted to set collecting of payment into motion.
@@ -106,20 +113,31 @@ export default async function maintainAutomaticPayments() {
       );
       const { credit } = x.rows[0];
       logger.debug("User has ", credit, " in credit from after the statement");
-      // [ ] TODO: balance is negative so sign is all screwed up here!
-      throw Error("todo");
-      if (balance > credit) {
+      const amount = -(balance + credit);
+      if (balance + credit < 0) {
         logger.debug(
-          "Since balance ",
-          balance,
-          " is more than credit, will try to collect difference"
+          "Since balance + credit ",
+          balance + credit,
+          " is negative, will try to collect",
+          amount
         );
+
         // Now make the attempt.  This might work quickly, it might take a day, it might
         // never succeed, it might throw an error.  That's all ok.
-        await collectPayment({ account_id, amount: balance - credit });
+        if (mockCollectPayment != null) {
+          // hook to mock payment collection, which is helpful for unit testing.
+          await mockCollectPayment({ account_id, amount });
+        } else {
+          await collectPayment({ account_id, amount });
+        }
       }
     } catch (err) {
       logger.debug("WARNING - error trying to collect payment", err);
     }
   }
+}
+
+let mockCollectPayment: null | typeof collectPayment = null;
+export function setMockCollectPayment(f: typeof collectPayment) {
+  mockCollectPayment = f;
 }
