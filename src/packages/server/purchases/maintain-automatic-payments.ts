@@ -1,6 +1,6 @@
 /*
 For each account that has automatic payments setup (so stripe_usage_subscription is
-set in the accounts table),and their most recent recent statement with interval "month" 
+set in the accounts table), and their most recent recent statement with interval "month" 
 has both fields automatic_payment and paid_purchase_id null and a negative balance,
 we charge for the amount of the negative balance.
 
@@ -125,7 +125,6 @@ export default async function maintainAutomaticPayments() {
         // Now make the attempt.  This might work quickly, it might take a day, it might
         // never succeed, it might throw an error.  That's all ok.
         if (mockCollectPayment != null) {
-          // hook to mock payment collection, which is helpful for unit testing.
           await mockCollectPayment({ account_id, amount });
         } else {
           await collectPayment({ account_id, amount });
@@ -137,6 +136,8 @@ export default async function maintainAutomaticPayments() {
   }
 }
 
+// This is a hook to mock payment collection, which is very helpful for unit testing,
+// so we know exactly what happened and don't have to involve stripe...
 let mockCollectPayment: null | typeof collectPayment = null;
 export function setMockCollectPayment(f: typeof collectPayment) {
   mockCollectPayment = f;
