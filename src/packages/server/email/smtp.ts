@@ -5,10 +5,11 @@
 
 import type { Transporter } from "nodemailer";
 import { createTransport } from "nodemailer";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 
 import { DNS } from "@cocalc/util/theme";
-import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { getServerSettings } from "../settings/server-settings";
+import siteURL from "../settings/site-url";
 import getHelpEmail from "./help";
 import type { Message } from "./message";
 import { init as initTemplates, send as sendTemplates } from "./templates";
@@ -53,8 +54,10 @@ export async function sendTemplateEmail(message: {
     fromEmail: settings.from,
     fromName: settings.name,
     dns: settings.dns,
+    siteURL: await siteURL(),
     siteName: serverSettings.site_name,
     logoSquare: serverSettings.logo_square,
+    helpEmail: serverSettings.help_email,
   });
 
   return await sendTemplates(message);

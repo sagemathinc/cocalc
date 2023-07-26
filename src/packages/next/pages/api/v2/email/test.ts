@@ -23,6 +23,9 @@ export default async function handle(req: Request, res: Response) {
   }
 
   const { email_address, name, test = false, template } = getParams(req);
+  const token = 1234567890; // fake password reset token
+
+  L.debug({ email_address, name, test, template })
 
   try {
     const ret = await sendTemplateEmail({
@@ -31,8 +34,9 @@ export default async function handle(req: Request, res: Response) {
       name,
       template,
       locals: {
-        var1: `timestamp: ${Date.now()}`,
-        var2: `random: ${Math.random()}`,
+        timestamp: `${Math.round(Date.now() / 1000)}`,
+        timestampStr: new Date().toString(),
+        resetPath: `/auth/password-reset/${token}`,
       },
       subject: "Test Email",
     });

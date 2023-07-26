@@ -24,6 +24,7 @@ import { MAX_WIDTH } from "lib/config";
 import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import withCustomize from "lib/with-customize";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   customize: CustomizeType;
@@ -37,7 +38,11 @@ export default function TestEmail(props: Props) {
   const [sending, setSending] = useState<boolean>(false);
   const [result, setResult] = useState<EmailTemplateSendResult | null>(null);
 
-  async function sendTestEmail(profile) {
+  async function sendTestEmail() {
+    if (profile == null) {
+      setResult({ status: "error", value: { error: "profile is null" } });
+      return;
+    }
     setSending(true);
     try {
       const ret = await apiPost("email/test", {
@@ -75,12 +80,22 @@ export default function TestEmail(props: Props) {
               <Descriptions.Item label="HTML">
                 <iframe
                   width={800}
-                  height={600}
+                  height={700}
                   srcDoc={value.html ?? "NO HTML"}
+                  style={{
+                    border: `1px solid ${COLORS.GRAY_M}`,
+                    borderRadius: 5,
+                  }}
                 />
               </Descriptions.Item>
               <Descriptions.Item label="raw HTML">
-                <pre style={{ whiteSpace: "pre-wrap" }}>
+                <pre
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    fontSize: "70%",
+                    fontFamily: "monospace",
+                  }}
+                >
                   {value.html ?? "NO HTML"}
                 </pre>
               </Descriptions.Item>
