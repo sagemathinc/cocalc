@@ -280,3 +280,17 @@ export async function collectPayment({
   });
   await stripe.subscriptions.update(sub.id, { billing_cycle_anchor: "now" });
 }
+
+export async function hasUsageSubscription(
+  account_id: string
+): Promise<boolean> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT stripe_usage_subscription FROM accounts WHERE account_id=$1",
+    [account_id]
+  );
+  if (rows.length == 0) {
+    throw Error(`no such account ${account_id}`);
+  }
+  return !!rows[0].stripe_usage_subscription;
+}

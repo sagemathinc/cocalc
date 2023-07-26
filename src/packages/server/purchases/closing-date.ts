@@ -11,14 +11,18 @@ export async function getLastClosingDate(account_id: string): Promise<Date> {
   // Compute the most recent Date that is in the past, is
   // at midnight UTC, and lies on the given day of the month.
   const today = new Date();
-  const month = today.getMonth();
-  const year = today.getFullYear();
+  return prevDateWithDay(today, day);
+}
+
+export function prevDateWithDay(date: Date, day: number): Date {
+  const month = date.getMonth();
+  const year = date.getFullYear();
   const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
   const lastClosingDayOfMonth =
     day > lastDayOfMonth
       ? new Date(year, month - 1, lastDayOfMonth)
       : new Date(year, month, day);
-  while (lastClosingDayOfMonth.valueOf() > today.valueOf()) {
+  while (lastClosingDayOfMonth.valueOf() > date.valueOf()) {
     lastClosingDayOfMonth.setMonth(lastClosingDayOfMonth.getMonth() - 1);
   }
   return new Date(
@@ -36,10 +40,14 @@ export async function getNextClosingDate(account_id: string): Promise<Date> {
   // Compute the next Date that is in the future, is at midnight UTC,
   // and lies on the given day of the month.
   const today = new Date();
-  const month = today.getMonth();
-  const year = today.getFullYear();
+  return nextDateWithDay(today, day);
+}
+
+export function nextDateWithDay(date: Date, day: number): Date {
+  const month = date.getMonth();
+  const year = date.getFullYear();
   let nextDate = new Date(Date.UTC(year, month, day));
-  if (nextDate <= today) {
+  if (nextDate <= date) {
     nextDate = new Date(Date.UTC(year, month + 1, day));
   }
   return nextDate;
@@ -83,11 +91,13 @@ export async function getClosingDay(account_id: string): Promise<number> {
   return closingDay;
 }
 
+// Do NOT make this directly accessible via the api, obviously.
 export async function setClosingDay(
   account_id: string,
-  day: number
+  day: number,
+  client?
 ): Promise<void> {
-  const pool = getPool("medium");
+  const pool = client ?? getPool();
   if (day < 1 || day > 28) {
     throw Error("day must be between 1 and 28");
   }
