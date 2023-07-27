@@ -48,12 +48,7 @@ async function shiftSubscriptionToEndOnDay(
   account_id: string,
   sub: Pick<
     Subscription,
-    | "id"
-    | "interval"
-    | "current_period_start"
-    | "current_period_end"
-    | "status"
-    | "metadata"
+    "id" | "interval" | "current_period_end" | "status" | "metadata"
   >,
   day: number,
   client: PoolClient
@@ -88,7 +83,7 @@ async function shiftSubscriptionToEndOnDay(
   ) {
     await client.query(
       "UPDATE subscriptions SET current_period_start=$1, current_period_end=$2 WHERE id=$3",
-      [sub.id, current_period_start, current_period_end]
+      [current_period_start, current_period_end, sub.id]
     );
 
     if (sub.status != "canceled") {
@@ -117,6 +112,9 @@ function shiftToContainDate({
   date: Date;
   day: number; // 1-28 -- a day of the month
 }): Date {
+  if (day < 1 || day > 28 || !Number.isInteger(day)) {
+    throw Error("day must be an integer between 1 and 28, inclusive");
+  }
   let end = dayjs(period_end);
 
   const end_day = end.date();
@@ -138,10 +136,10 @@ function shiftToContainDate({
     // shift by the right number of months so that target is in
     // the interval [end-month, end]:
     return end
-      .subtract(Math.floor(end.diff(target, "month")), "month")
+      .subtract(Math.floor(end.diff(target, "month", true)), "month")
       .toDate();
   } else if (interval == "year") {
-    const start = end.subtract(1, "year");
+    let start = end.subtract(1, "year");
     if (
       (target.isSame(start) || target.isAfter(start)) &&
       (target.isSame(end) || target.isBefore(end))
@@ -150,16 +148,18 @@ function shiftToContainDate({
     }
     if (Math.abs(start.diff(target)) < Math.abs(end.diff(target))) {
       // start is closer
-      return end
-        .subtract(Math.floor(start.diff(target, "month")), "month")
+      return start
+        .subtract(Math.floor(start.diff(target, "month", true)), "month")
         .toDate();
     } else {
       // end is closer
       return end
-        .subtract(Math.floor(end.diff(target, "month")), "month")
+        .subtract(Math.floor(end.diff(target, "month", true)), "month")
         .toDate();
     }
   } else {
     throw Error(`invalid interval ${interval}`);
   }
 }
+
+export const test = { shiftToContainDate, shiftSubscriptionToEndOnDay };

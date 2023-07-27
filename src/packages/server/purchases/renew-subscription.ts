@@ -115,6 +115,7 @@ export const test = {
 };
 
 export async function getSubscription(subscription_id: number): Promise<{
+  id: number;
   account_id: string;
   metadata: any;
   cost: number;
@@ -124,7 +125,7 @@ export async function getSubscription(subscription_id: number): Promise<{
 }> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT account_id, metadata, cost, interval, current_period_end, status FROM subscriptions WHERE id=$1",
+    "SELECT id, account_id, metadata, cost, interval, current_period_end, status FROM subscriptions WHERE id=$1",
     [subscription_id]
   );
   if (rows.length == 0) {
