@@ -175,6 +175,7 @@ describe("create a subscription license and edit it and confirm the subscription
     cost: {} as any,
   };
   item.cost = computeCost(item.description as any);
+  
   it("make a subscription", async () => {
     await createAccount({
       email: "",

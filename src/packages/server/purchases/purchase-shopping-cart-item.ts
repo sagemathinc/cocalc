@@ -71,6 +71,9 @@ import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import getLogger from "@cocalc/backend/logger";
 import createSubscription from "./create-subscription";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
+import { getClosingDay } from "./closing-date";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import dayjs from "dayjs";
 
 const logger = getLogger("purchases:purchase-shopping-cart-item");
 
@@ -90,10 +93,8 @@ export default async function purchaseShoppingCartItem(
     throw Error(`invalid account_id - ${item.account_id}`);
   }
 
-  const { license_id, info } = await createLicenseFromShoppingCartItem(
-    item,
-    client
-  );
+  const { license_id, info, licenseCost } =
+    await createLicenseFromShoppingCartItem(item, client);
   logger.debug(
     "purchaseShoppingCartItem -- created license from shopping cart item",
     license_id,
@@ -103,7 +104,7 @@ export default async function purchaseShoppingCartItem(
 
   const purchase_id = await createPurchase({
     account_id: item.account_id,
-    cost: item.cost.discounted_cost,
+    cost: licenseCost.discounted_cost,
     service: "license",
     description: { type: "license", item, info, license_id },
     tag: "license-purchase",
@@ -126,7 +127,7 @@ export default async function purchaseShoppingCartItem(
         account_id: item.account_id,
         cost: item.cost.discounted_cost,
         interval,
-        current_period_start: info.start,
+        current_period_start: dayjs(info.end).subtract(1, interval).toDate(), // since info.end might have changed.
         current_period_end: info.end,
         latest_purchase_id: purchase_id,
         status: "active",
@@ -147,8 +148,30 @@ export default async function purchaseShoppingCartItem(
 async function createLicenseFromShoppingCartItem(
   item,
   client: PoolClient
-): Promise<{ license_id: string; info }> {
+): Promise<{ license_id: string; info; licenseCost }> {
   const info = getPurchaseInfo(item.description);
+  let licenseCost = item.cost;
+
+  if (info.type != "vouchers" && item.description.period != "range") {
+    let end = info.end;
+    // adjust end day to match user's closing day, since it's very nice for all the subscriptions
+    // to renew on the same day as the statement, so user's get one single bill rather than a mess.
+    const closingDay = await getClosingDay(item.account_id);
+    // the end > start+1 condition is to avoid any potential of an infinite loop, e.g., if closingDay
+    // were somehow corrupted.
+    while (end.getDate() != closingDay && end > info.start) {
+      end = dayjs(end).subtract(1, "day").toDate();
+    }
+    if (!dayjs(end).isSame(dayjs(info.end))) {
+      // Regarding cost -- because of adjusting end above, we prorate first month/year cost
+      const newCost = compute_cost({ ...info, end, subscription: "no" });
+      if (newCost.discounted_cost < licenseCost.discounted_cost) {
+        licenseCost = newCost;
+      }
+      info.end = end;
+    }
+  }
+
   logger.debug("running sanity checks on license...");
   const pool = client ?? getPool();
   await sanity_checks(pool, info);
@@ -156,7 +179,7 @@ async function createLicenseFromShoppingCartItem(
   if (item.project_id) {
     addLicenseToProjectAndRestart(item.project_id, license_id, client);
   }
-  return { info, license_id };
+  return { info, license_id, licenseCost };
 }
 
 async function markItemPurchased(item, license_id: string, client: PoolClient) {
