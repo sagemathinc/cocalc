@@ -19,7 +19,7 @@ export default async function getStatements({
   if (limit > MAX_API_LIMIT || !limit) {
     throw Error(`limit must be specified and at most ${MAX_API_LIMIT}`);
   }
-  const pool = getPool("long");
+  const pool = getPool();
   let query =
     "SELECT id, time, balance, total_charges, num_charges, total_credits, num_credits FROM statements WHERE account_id=$1 AND interval=$2 ";
   const params: (number | string)[] = [account_id, interval];

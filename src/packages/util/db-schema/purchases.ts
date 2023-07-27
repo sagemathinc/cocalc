@@ -118,8 +118,6 @@ export const MAX_API_LIMIT = 500;
 export interface Purchase {
   id: number;
   time: Date;
-  start?: Date;
-  end?: Date;
   account_id: string;
   cost?: number;
   cost_per_hour?: number;

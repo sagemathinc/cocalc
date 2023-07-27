@@ -15,6 +15,7 @@ export interface Statement {
   num_charges: number;
   total_credits: number;
   num_credits: number;
+  last_sent?: Date;
   // If this statement has been paid, this is the purchase_id of the credit that paid it.
   // A payment is required exactly if the balance is negative.
   paid_purchase_id?: number;

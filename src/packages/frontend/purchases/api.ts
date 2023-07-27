@@ -123,6 +123,10 @@ export async function getStatements(opts: {
   return await api("purchases/get-statements", opts);
 }
 
+export async function emailStatement(statement_id: number) {
+  return await api("purchases/email-statement", { statement_id });
+}
+
 export async function editLicense(opts: {
   license_id: string;
   changes: EditLicenseChanges;

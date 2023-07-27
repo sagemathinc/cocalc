@@ -31,6 +31,7 @@ import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import Refresh from "@cocalc/frontend/components/refresh";
 import ShowError from "@cocalc/frontend/components/error";
 import Export from "./export";
+import EmailStatement from "./email-statement";
 
 const DEFAULT_LIMIT = 150;
 
@@ -241,6 +242,12 @@ export function PurchasesTable({
           }
           data={purchases}
         />
+        {(day_statement_id != null || month_statement_id != null) && (
+          <EmailStatement
+            style={{ marginLeft: "8px" }}
+            statement_id={(day_statement_id ?? month_statement_id) as number}
+          />
+        )}
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
         {!group && <DetailedPurchaseTable purchases={purchases} />}
