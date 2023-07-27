@@ -7,7 +7,7 @@ import CostBarChart from "./cost-bar-chart";
 import { Icon } from "@cocalc/frontend/components/icon";
 import dayjs from "dayjs";
 import { MAX_API_LIMIT } from "@cocalc/util/db-schema/purchases";
-import AutomaticPayments from "./automatic-payments";
+import Config from "./config";
 
 type Key = string[] | string | number[] | number;
 
@@ -17,7 +17,7 @@ export default function PurchasesPage() {
   const [activeKey, setActiveKey] = useState<Key>(cache.activeKey);
   return (
     <div>
-      <AutomaticPayments />
+      <Config />
       <Divider>Account Balance</Divider>
       <AccountStatus />
       <Divider style={{ marginTop: "30px" }}>

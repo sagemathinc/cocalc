@@ -43,6 +43,10 @@ export async function getClosingDates(): Promise<{ last: Date; next: Date }> {
   return await api("purchases/get-closing-dates");
 }
 
+export async function resetClosingDate() {
+  return await api("purchases/reset-closing-date");
+}
+
 export async function setQuota(
   service: Service,
   value: number

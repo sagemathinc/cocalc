@@ -86,4 +86,5 @@ export interface AccountState {
   tours?: string[];
   stripe_usage_subscription?: string;
   stripe_checkout_session?: TypedMap<{ id: string; url: string }>;
+  purchase_closing_day?: number;
 }

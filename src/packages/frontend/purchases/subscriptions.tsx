@@ -421,14 +421,15 @@ export default function Subscriptions() {
       title={
         <>
           <Icon name="calendar" /> Subscriptions
+          <Button
+            onClick={() => {
+              getSubscriptions();
+            }}
+            style={{ marginLeft: "30px" }}
+          >
+            <Icon name="refresh" /> Refresh
+          </Button>
           <div style={{ marginLeft: "15px", float: "right", display: "flex" }}>
-            <Button
-              onClick={() => {
-                getSubscriptions();
-              }}
-            >
-              <Icon name="refresh" /> Refresh
-            </Button>
             <Export
               data={subscriptions}
               name="subscriptions"

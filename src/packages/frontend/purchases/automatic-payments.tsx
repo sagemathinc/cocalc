@@ -125,7 +125,7 @@ export default function AutomaticPayments({ style }: Props) {
           }
         >
           {" "}
-          <Button disabled={!!stripe_checkout_session?.url}>
+          <Button disabled={loading || !!stripe_checkout_session?.url}>
             <Icon name="check" /> Automatic Payments are Enabled...
           </Button>
         </Popconfirm>
@@ -160,7 +160,7 @@ export default function AutomaticPayments({ style }: Props) {
             )
           }
         >
-          <Button>
+          <Button disabled={loading}>
             <Icon name="credit-card" /> Enable Automatic Payments...
           </Button>
         </Popconfirm>

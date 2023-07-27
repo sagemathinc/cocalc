@@ -93,7 +93,7 @@ export default function Statements({
       {!noRefresh && (
         <Refresh
           refresh={refresh}
-          style={{ float: "right", marginBottom: "8px", marginLeft: "15px" }}
+          style={{ marginBottom: "8px"}}
         />
       )}
       <ShowError error={error} setError={setError} />
@@ -128,7 +128,7 @@ export default function Statements({
         <Alert
           style={{ maxWidth: "500px", margin: "auto", padding: "30px" }}
           type="info"
-          message="You do not have any statements yet."
+          message={`You do not have any ${interval}ly statements yet.`}
           showIcon
         />
       )}

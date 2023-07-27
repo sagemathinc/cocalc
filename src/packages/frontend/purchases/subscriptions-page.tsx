@@ -1,10 +1,10 @@
 import Subscriptions from "./subscriptions";
-import AutomaticPayments from "./automatic-payments";
+import Config from "./config";
 
 export default function SubscriptionsPage() {
   return (
     <div>
-      <AutomaticPayments style={{ marginBottom: "15px" }} />
+      <Config style={{ marginBottom: "15px" }} />
       <Subscriptions />
     </div>
   );

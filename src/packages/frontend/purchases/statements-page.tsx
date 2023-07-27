@@ -3,7 +3,7 @@ import { useState } from "react";
 import Statements from "./statements";
 import Statement from "./statement";
 import { Icon } from "@cocalc/frontend/components/icon";
-import AutomaticPayments from "./automatic-payments";
+import Config from "./config";
 
 type Key = string[] | string | number[] | number;
 
@@ -13,7 +13,7 @@ export default function StatementsPage() {
   const [activeKey, setActiveKey] = useState<Key>(cache.activeKey);
   return (
     <div>
-      <AutomaticPayments />
+      <Config />
       <h3>
         <Icon name="calendar" style={{ marginRight: "8px" }} /> Monthly and
         Daily Statements

@@ -67,15 +67,15 @@ export default function AccountStatus() {
       icon="dashboard"
       title={
         <span style={{ marginLeft: "5px" }}>
+          Balance
           <Button
             onClick={handleRefresh}
             disabled={loading}
-            style={{ float: "right" }}
+            style={{ marginLeft: "30px" }}
           >
             <Icon name="refresh" />
             Refresh
           </Button>
-          Balance
         </span>
       }
     >
