@@ -6,7 +6,7 @@
 import getPool from "@cocalc/database/pool";
 import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
-import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
+import { isValidUUID } from "@cocalc/util/misc";
 import { v4 } from "uuid";
 import { associatedLicense } from "@cocalc/server/licenses/public-path";
 import getFromPool from "@cocalc/server/projects/pool/get-project";

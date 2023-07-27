@@ -240,10 +240,9 @@ export abstract class BaseProject extends EventEmitter {
     }
   }
 
-  // despite not being used explicitly in singule-user and multi-user
-  // to control what actually happens with the project,
-  // this is still very useful for development and
-  // the run_quota is shown in the UI (in project settings).
+  // The run_quota is now explicitly used in singule-user and multi-user
+  // to control at least idle timeout of projects; also it is very useful
+  // for development since it is shown in the UI (in project settings).
   async setRunQuota(): Promise<void> {
     let run_quota;
 
@@ -253,7 +252,7 @@ export abstract class BaseProject extends EventEmitter {
       logger.debug("issue handling run as you go quota", err);
       run_quota = null;
     }
-    
+
     if (run_quota == null) {
       const { settings, users, site_license } = await query({
         db: db(),

@@ -1,6 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import { jsonbSet } from "@cocalc/database/postgres/jsonb-utils";
-import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
+import { isValidUUID } from "@cocalc/util/misc";
 
 interface Options {
   account_id: string;

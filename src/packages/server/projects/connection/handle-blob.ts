@@ -1,4 +1,4 @@
-import { is_valid_uuid_string as isValidUUID } from "@cocalc/util/misc";
+import { isValidUUID } from "@cocalc/util/misc";
 import { uuidsha1 } from "@cocalc/backend/sha1";
 import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
