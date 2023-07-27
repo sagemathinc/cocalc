@@ -76,6 +76,10 @@ Table({
       type: "timestamp",
       desc: "If an automatic payment was issued for this statement (and any subscriptions that will soon renew), then this the timestamp of that payment.  This is only used for monthly statements, when a user has elected to have a stripe metered usage subscription setup, so stripe_usage_subscription is set in the accounts table.  If this is issued and the user successfully pays it, then when the payment is processed the paid_purchase_id field above will get set.",
     },
+    last_sent: {
+      type: "timestamp",
+      desc: "Timestamp we last tried to send this statmenet (via email) to the user.  NOTE: we always try to send monthly statements.  We try to send daily statements depending on account prefs.",
+    },
     notes: NOTES, // for admins to make notes about this statement
   },
   rules: {
@@ -96,6 +100,7 @@ Table({
           total_credits: null,
           num_credits: null,
           automatic_payment: null,
+          last_sent: null,
         },
       },
     },
@@ -123,6 +128,7 @@ Table({
           num_credits: null,
           automatic_payment: null,
           notes: null,
+          last_sent: null,
         },
       },
       set: {

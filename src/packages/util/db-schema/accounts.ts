@@ -204,7 +204,7 @@ Table({
       desc: "Day of the month when pay-as-you-go purchases are cutoff and charged for this user. It happens at midnight UTC on this day.  This should be an integer between 1 and 28.",
       render: {
         type: "number",
-        editable: true,
+        editable: false, // Do NOT change this without going through the reset-closing-date api call...
         min: 1,
         max: 28,
       },
@@ -229,6 +229,14 @@ Table({
       type: "string",
       pg_type: "varchar(256)",
       desc: "Id of this user's stripe metered usage subscription, if they have one.",
+    },
+    email_daily_statements: {
+      type: "boolean",
+      desc: "If true (or not set), try to email daily statements to user showing all of their purchases.  NOTE: we always try to email monthly statements to users.",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
     },
   },
   rules: {
@@ -360,6 +368,7 @@ Table({
           min_balance: null,
           purchase_closing_day: null,
           stripe_usage_subscription: null,
+          email_daily_statements: null,
         },
       },
       set: {
@@ -380,6 +389,7 @@ Table({
           unlisted: true,
           tags: true,
           tours: true,
+          email_daily_statements: true,
           // obviously min_balance can't be set!
         },
         async check_hook(db, obj, account_id, _project_id, cb) {

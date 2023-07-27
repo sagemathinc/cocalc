@@ -7,6 +7,7 @@ import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
 import { currency } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { PurchasesTable } from "./purchases";
+import EmailDailyStatements from "./email-daily-statements";
 
 interface Props {
   interval: Interval;
@@ -91,10 +92,10 @@ export default function Statements({
   return (
     <div style={{ minHeight: "50px" }}>
       {!noRefresh && (
-        <Refresh
-          refresh={refresh}
-          style={{ marginBottom: "8px"}}
-        />
+        <Refresh refresh={refresh} style={{ marginBottom: "8px" }} />
+      )}
+      {interval == "day" && (
+        <EmailDailyStatements style={{ marginLeft: "30px" }} />
       )}
       <ShowError error={error} setError={setError} />
       {statements != null && statements?.length > 0 && (
