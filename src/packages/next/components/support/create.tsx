@@ -588,7 +588,7 @@ function Instructions() {
       <p>
         If the above links don't help you solve your problem, please create a
         support ticket below. Support is currently available in{" "}
-        <b>English and German</b> only.
+        <b>English, German, and Russian</b> only.
       </p>
     </div>
   );
