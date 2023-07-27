@@ -10,7 +10,7 @@ import { Table } from "./types";
 // "sent" field is set.  The "expire" field is used to delete old entries.
 
 Table({
-  name: "email_notifications",
+  name: "email_queue",
   fields: {
     id: ID,
     created: {
@@ -21,13 +21,17 @@ Table({
       type: "timestamp",
       desc: "When this was sent",
     },
-    conf: {
+    config: {
       type: "map",
       desc: "the configuration for the email, i.e. a set of template variables",
     },
-    channel: {
+    template: {
       type: "string",
-      desc: "each type of email has its own unique channel name",
+      desc: "each type of email has its own unique name",
+    },
+    priority: {
+      type: "integer",
+      desc: "higher priority emails are sent first",
     },
     expire: {
       type: "timestamp",
@@ -36,7 +40,7 @@ Table({
   },
   rules: {
     primary_key: "id",
-    pg_indexes: ["date"],
+    pg_indexes: ["date", "priority", "sent IS NOT NULL"],
     // no user queries, all handled by the server
   },
 });

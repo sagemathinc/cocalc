@@ -13,8 +13,10 @@ import { Transporter, createTransport } from "nodemailer";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
 import { getLogger } from "@cocalc/backend/logger";
+import getPool from "@cocalc/database/pool";
 import { join } from "node:path";
 import { Message } from "./message";
+import { getNewsItems } from "./newsletter";
 import {
   EMAIL_CSS,
   EMAIL_ELEMENTS,
@@ -46,15 +48,22 @@ export function init(
 
 interface Send {
   to: string;
-  subject: string;
+  subject?: string; // overrides the template's subject
+  name?: string;
   template: EmailTemplateName;
   test?: boolean;
-  locals: Record<string, string>;
+  locals: Record<string, string | number>;
+  priority?: number; // higher, the better. 0 neutral. -1 is queued.
 }
 
+/**
+ * Takes the "message" paramters for building a single email, and adds some data for specific templates.
+ * Then it sends it to the SMTP server.
+ */
 export async function send({
   to,
   subject,
+  name,
   test = false,
   template,
   locals,
@@ -62,18 +71,62 @@ export async function send({
   if (templateSender == null) {
     throw new Error("email templates not initialized");
   }
+
+  if (template === "news") {
+    const news = await getNewsItems();
+    if (news == null) {
+      L.info(`no news to send to ${to}`);
+      return;
+    }
+    locals.news = news;
+  }
+
+  if (template === "password_reset") {
+    const { token } = locals;
+    if (!token) throw Error("no password reset token");
+    locals.resetPath = `/auth/password-reset/${token}`;
+  }
+
   return await templateSender.send({
     test,
     template,
-    message: { to, subject },
+    message: { to, subject, name },
     locals,
   });
 }
 
+/**
+ * Enqueue the configuration for an email in the database, to be sent later.
+ */
+export async function queue({
+  to,
+  subject,
+  name,
+  priority = 0,
+  template,
+  locals,
+}: Send): Promise<EmailTemplateSendResult> {
+  const config: Omit<EmailTemplateSendConfig, "template"> = {
+    message: { to, subject, name },
+    locals,
+  };
+  L.debug("queueing email", { to, subject, template, locals });
+  const pool = getPool();
+  const { rows } = await pool.query(
+    `INSERT INTO email_queue(created, config, template, priority, expire)
+     VALUES(NOW(), $1, $2, NOW() + INTERVAL '1 week')
+     RETURNING id`,
+    [config, template, priority]
+  );
+
+  return { status: "queued", value: { id: rows?.[0]?.id } };
+}
+
 interface EmailTemplateSendConfig {
   template: EmailTemplateName;
-  message: { to: string; subject: string; name?: string };
-  locals: Partial<EmailTemplateSenderSettings> & Record<string, string>;
+  message: { to: string; subject?: string; name?: string };
+  locals: Partial<EmailTemplateSenderSettings> &
+    Record<string, string | number>;
   test?: boolean;
 }
 
@@ -88,7 +141,7 @@ interface EmailTemplateSenderSettings {
 }
 
 export interface EmailTemplateSendResult {
-  status: "sent" | "test" | "error";
+  status: "sent" | "test" | "error" | "queued";
   value: any;
 }
 
@@ -120,7 +173,8 @@ class EmailTemplateSender {
     };
 
     const templateData = EMAIL_TEMPLATES[template];
-    const subjectLine = Mustache.render(message.subject, vars);
+    const subjectTmpl = message.subject ?? templateData.subject;
+    const subjectLine = Mustache.render(subjectTmpl, vars);
     const subject = `[${vars.siteName}] ${subjectLine}`;
 
     const bodyRendered = this.md.render(
@@ -140,9 +194,11 @@ class EmailTemplateSender {
       collapseWhitespace: true,
     });
 
+    const { to, name } = message;
+
     const msg: Message & { list: any } = {
       from: `"${vars.fromName}" <${vars.fromEmail}>`,
-      to: `${message.to ?? ""} <${message.to}>`,
+      to: name != null ? `"${name}" <${to}>` : to,
       subject,
       html,
       text: this.html2text(html),

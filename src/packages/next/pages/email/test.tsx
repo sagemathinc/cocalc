@@ -3,7 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Button, Descriptions, Dropdown, Layout } from "antd";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Descriptions,
+  Dropdown,
+  Layout,
+  Space,
+} from "antd";
 import { GetServerSidePropsContext } from "next";
 import { useState } from "react";
 
@@ -36,6 +44,7 @@ export default function TestEmail(props: Props) {
   const profile = useProfile();
   const [template, setTemplate] = useState<EmailTemplateName>("welcome");
   const [sending, setSending] = useState<boolean>(false);
+  const [queue, setQueue] = useState<boolean>(false);
   const [result, setResult] = useState<EmailTemplateSendResult | null>(null);
 
   async function sendTestEmail() {
@@ -49,6 +58,7 @@ export default function TestEmail(props: Props) {
         test: true,
         email_address: profile.email_address,
         name: `${profile.first_name} ${profile.last_name}`,
+        queue,
         template,
       });
       setResult(ret);
@@ -120,30 +130,46 @@ export default function TestEmail(props: Props) {
 
   function renderTest() {
     if (profile == null) throw new Error("profile is null");
+    const name = `${profile.first_name} ${profile.last_name}`;
     return (
       <>
-        <Paragraph>test. email: {profile.email_address}</Paragraph>
-        <Paragraph>
-          <Dropdown.Button
-            icon={<Icon name="caret-down" />}
-            menu={{
-              items: TEMPLATE_NAMES.map((t) => ({
-                label: t,
-                key: t,
-                onClick: () => {
-                  setTemplate(t);
-                },
-              })),
-            }}
-          >
-            {template}
-          </Dropdown.Button>
-        </Paragraph>
-        <Paragraph>
-          <Button disabled={sending} onClick={sendTestEmail}>
-            Send Test Email
-          </Button>
-        </Paragraph>
+        <Space direction="horizontal" size="large">
+          <Paragraph>
+            Email:{" "}
+            <code>
+              {name} &lt;{profile.email_address}&gt;
+            </code>
+          </Paragraph>
+          <Paragraph>
+            <Dropdown.Button
+              icon={<Icon name="caret-down" />}
+              menu={{
+                items: TEMPLATE_NAMES.map((t) => ({
+                  label: t,
+                  key: t,
+                  onClick: () => {
+                    setTemplate(t);
+                  },
+                })),
+              }}
+            >
+              {template}
+            </Dropdown.Button>
+          </Paragraph>
+          <Paragraph>
+            <Checkbox
+              checked={queue}
+              onChange={(e) => setQueue(e.target.checked)}
+            >
+              Queue
+            </Checkbox>
+          </Paragraph>
+          <Paragraph>
+            <Button disabled={sending} onClick={sendTestEmail}>
+              Send Test Email
+            </Button>
+          </Paragraph>
+        </Space>
         {renderResult()}
       </>
     );

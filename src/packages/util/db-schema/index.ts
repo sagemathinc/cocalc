@@ -29,7 +29,7 @@ import "./compute-servers";
 import "./copy-paths";
 import "./crm";
 import "./email-counter";
-import "./email-notifications";
+import "./email-queue";
 import "./file-access-log";
 import "./file-use-times";
 import "./file-use";

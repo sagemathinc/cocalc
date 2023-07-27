@@ -72,8 +72,21 @@ If you did not request a password reset, please ignore this email.
 ---
 
 In case of problems, [please contact support](mailto:{{helpEmail}}).
-
 `;
+
+const newsletter = `
+## Hello {{name}}!
+
+Here are the latest news about {{siteName}}:
+
+{{news}}
+
+---
+
+Want to know more? Visit [Feature Overview Page](https://cocalc.com/features) for more details!
+
+Do you have further questions? Please contact [{{helpEmail}}](mailto:{{helpEmail}}).
+`
 
 interface EmailTemplate {
   subject: string;
@@ -81,7 +94,7 @@ interface EmailTemplate {
   unsubscribe?: boolean; // default true
 }
 
-export type EmailTemplateName = "welcome" | "password_reset";
+export type EmailTemplateName = "welcome" | "password_reset" | "news";
 
 type EmailTemplates = Record<EmailTemplateName, EmailTemplate>;
 
@@ -96,6 +109,11 @@ export const EMAIL_TEMPLATES: EmailTemplates = {
     template: password_reset,
     unsubscribe: false,
   },
+  news: {
+    subject: "Newsletter",
+    template: newsletter,
+    unsubscribe: true,
+  },
 } as const;
 
 export const TEMPLATE_NAMES = Object.keys(
@@ -108,7 +126,7 @@ const header = `<div style="text-align: center; padding: 1em 0; margin: 1em 0 3e
 </div>`;
 
 const footerUnsubscribe = `<div class="footer">
-To unsubscribe from these emails, please visit the <a href="https://{{dns}}/email">email configuration center</a>.
+To unsubscribe from these emails, please visit the <a href="{{siteURL}}/email">email configuration center</a>.
 </div>`;
 
 const footerTransactional = `<div class="footer">

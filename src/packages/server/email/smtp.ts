@@ -12,7 +12,12 @@ import { getServerSettings } from "../settings/server-settings";
 import siteURL from "../settings/site-url";
 import getHelpEmail from "./help";
 import type { Message } from "./message";
-import { init as initTemplates, send as sendTemplates } from "./templates";
+import {
+  EmailTemplateSendResult,
+  init as initTemplates,
+  queue as queueTemplate,
+  send as sendTemplate,
+} from "./templates";
 import { EmailTemplateName } from "./templates-data";
 
 type BackendType = "email" | "password_reset";
@@ -39,14 +44,19 @@ export default async function sendEmail(
   await server.sendMail(message);
 }
 
-export async function sendTemplateEmail(message: {
-  to: string;
-  name: string;
+interface TemplateEmailOpts {
+  to: string; // recipient email
+  subject?: string;
+  name?: string; // recipient name
   template: EmailTemplateName;
-  locals: Record<string, string>;
-  subject: string;
+  locals: Record<string, string | number>;
   test?: boolean;
-}): Promise<void> {
+  priority?: number; // higher, the better. 0 neutral. -1 is queued.
+}
+
+export async function sendTemplateEmail(
+  message: TemplateEmailOpts
+): Promise<EmailTemplateSendResult> {
   const settings = await getSMTPSettings("email");
   const serverSettings = await getServerSettings();
 
@@ -60,7 +70,12 @@ export async function sendTemplateEmail(message: {
     helpEmail: serverSettings.help_email,
   });
 
-  return await sendTemplates(message);
+  const { priority = 0 } = message;
+  if (priority < 0) {
+    return await queueTemplate(message);
+  } else {
+    return await sendTemplate(message);
+  }
 }
 
 function getConf(settings) {
