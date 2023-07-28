@@ -119,7 +119,7 @@ describe("creates an account, then creates purchases and statements", () => {
       account_id,
       day_statement_id: statements[0].id,
     });
-    expect(purchases.length) == 1;
+    expect(purchases.length).toBe(1);
     expect(purchases[0].cost).toBeCloseTo(statements[0].total_charges, 3);
     expect(purchases[0].cost).toBeCloseTo(1.25 / 2, 2);
 
