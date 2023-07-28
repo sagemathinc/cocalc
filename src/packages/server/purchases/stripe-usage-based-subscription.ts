@@ -184,18 +184,31 @@ export async function cancelUsageSubscription(account_id: string) {
 export async function getUsageSubscription(account_id: string) {
   const db = getPool();
   const { rows } = await db.query(
-    "SELECT stripe_usage_subscription FROM accounts WHERE account_id=$1",
+    "SELECT stripe_usage_subscription, stripe_customer_id FROM accounts WHERE account_id=$1",
     [account_id]
   );
   if (rows.length == 0) {
     throw Error(`no such account ${account_id}`);
   }
-  const subscription_id = rows[0].stripe_usage_subscription;
-  if (!subscription_id) {
+  const { stripe_customer_id, stripe_usage_subscription } = rows[0];
+  if (!stripe_usage_subscription) {
     return null;
   }
+
+  const stripe = await getConn();
+
+  if (stripe_usage_subscription.startsWith("card")) {
+    // Deprecated LEGACY fallback until all users upgrade their card
+    // on file to a stripe usage subscription...
+    const card = await stripe.customers.retrieveSource(
+      stripe_customer_id,
+      stripe_usage_subscription
+    );
+    return card;
+  }
+
+  const subscription_id = rows[0].stripe_usage_subscription;
   try {
-    const stripe = await getConn();
     const sub = await stripe.subscriptions.retrieve(subscription_id);
     if (sub.status != "active") {
       await setUsageSubscription({ account_id, subscription_id: "" });
@@ -270,6 +283,14 @@ export async function collectPayment({
   if (amount < MINIMUM_PAYMENT) {
     throw Error(`Amount must be at least ${currency(MINIMUM_PAYMENT)}.`);
   }
+  if (sub.object == "card") {
+    // legacy fallback for credit cards
+    await collectPaymentUsingCreditCard({ account_id, amount, card: sub });
+    return;
+  }
+  if (sub.object != "subscription") {
+    throw Error("bug"); // for typescript
+  }
   const subscription_item = sub.items.data[0]?.id;
   if (!subscription_item) {
     throw Error("Usage subscription is invalid -- please create a new one.");
@@ -293,4 +314,25 @@ export async function hasUsageSubscription(
     throw Error(`no such account ${account_id}`);
   }
   return !!rows[0].stripe_usage_subscription;
+}
+
+/*
+Legacy function to collect money from user via a credit card.
+This can get deleted when there are no more credit cards on file...
+*/
+async function collectPaymentUsingCreditCard({ account_id, amount, card }) {
+  const customer = await getStripeCustomerId({ account_id, create: false });
+  if (!customer) {
+    throw Error("no stripe customer id");
+  }
+  const stripe = await getConn();
+  await stripe.paymentIntents.create({
+    customer,
+    amount: Math.ceil(amount * 100),
+    currency: "usd",
+    confirm: true,
+    description: "Credit CoCalc Account",
+    metadata: { account_id, service: "credit" },
+    payment_method: card.id,
+  });
 }

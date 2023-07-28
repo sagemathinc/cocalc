@@ -613,21 +613,27 @@ export function DisplayProjectQuota({ quota }: { quota: ProjectQuota }) {
 
 function InvoiceLink({ invoice_id }) {
   const [loading, setLoading] = useState<boolean>(false);
+  const [unknown, setUnknown] = useState<boolean>(false);
   return (
     <Button
+      disabled={unknown}
       type="link"
       onClick={async () => {
         try {
           setLoading(true);
-          const invoiceUrl = (await api.getInvoice(invoice_id))
-            .hosted_invoice_url;
-          open_new_tab(invoiceUrl, false);
+          const invoiceUrl = await api.getInvoiceUrl(invoice_id);
+          if (invoiceUrl) {
+            open_new_tab(invoiceUrl, false);
+          } else {
+            setUnknown(true);
+          }
         } finally {
           setLoading(false);
         }
       }}
     >
-      <Icon name="external-link" /> Invoice
+      <Icon name="external-link" /> Receipt{" "}
+      {unknown ? " (ERROR: receipt not found)" : ""}
       {loading && <Spin style={{ marginLeft: "30px" }} />}
     </Button>
   );

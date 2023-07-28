@@ -1,11 +1,9 @@
 /*
-**DEPRECATED** we are using stripe checkout (e.g., to fully support sales tax, etc.), which doesn't
-need invoices like this.
-
-
 Create a stripe invoice for a specific amount of money so that when paid
 this invoice counts toward your purchases balance.  It has
 metadata = {account_id, service:'credit'}
+
+Also, create credit in cocalc when we get an invoice from stripe via a webhook.
 
 Use case:
 
@@ -145,7 +143,23 @@ corresponding to this invoice in some cases.
   this is from a usage subscription, which exists to regularly add credit
   to the account so that the user can pay subscriptions, etc.
 */
+async function paymentAlreadyProcessed(id: string): Promise<boolean> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT COUNT(*) AS count FROM purchases WHERE invoice_id=$1",
+    [id]
+  );
+  return rows[0].count > 0;
+}
+
 export async function createCreditFromPaidStripeInvoice(invoice) {
+  if (await paymentAlreadyProcessed(invoice?.id)) {
+    logger.debug(
+      "createCreditFromPaidStripeInvoice -- skipping since invoice already processed.",
+      invoice?.id
+    );
+    return;
+  }
   if (!invoice?.paid) {
     logger.debug(
       "createCreditFromPaidStripeInvoice -- skipping since invoice not yet paid.",
@@ -193,6 +207,73 @@ export async function createCreditFromPaidStripeInvoice(invoice) {
   await createCredit({
     account_id,
     invoice_id: invoice.id,
+    amount,
+  });
+}
+
+export async function createCreditFromPaidStripePaymentIntent(intent) {
+  /* 
+intent = {
+  id: "pi_3NYzMyGbwvoRbeYx1a6eRYqf",
+  object: "payment_intent",
+  amount: 150,
+  amount_details: [Object],
+  amount_received: 150,
+  customer: "cus_O7MigbqoiPZQUT",
+  description: "Credit CoCalc Account",
+  metadata: {...},
+  status: "succeeded",
+  // ...
+};
+*/
+  if (await paymentAlreadyProcessed(intent?.id)) {
+    logger.debug(
+      "createCreditFromPaidStripePaymentIntent -- skipping since intent already processed.",
+      intent?.id
+    );
+    return;
+  }
+
+  if (intent?.status != "succeeded") {
+    logger.debug(
+      "createCreditFromPaidStripePaymentIntent -- skipping since status not 'succeeded'",
+      intent?.id
+    );
+    return;
+  }
+
+  let metadata = intent.metadata;
+  if (
+    metadata == null ||
+    metadata.service != "credit" ||
+    !metadata.account_id
+  ) {
+    // Some other sort of intent, e.g, for a subscription or something else.
+    // We don't handle them here.
+    return;
+  }
+
+  const { account_id } = metadata;
+  if (!(await isValidAccount(account_id))) {
+    logger.debug(
+      "createCreditFromPaidStripePaymentIntent -- invalid account_id!",
+      account_id
+    );
+    // definitely should never happen
+    throw Error(`invalid account_id in metadata '${account_id}'`);
+  }
+
+  // See comment about "total_excluding_tax" below.
+  const amount = intent.amount_received / 100;
+  if (!amount) {
+    logger.debug(
+      "createCreditFromPaidStripePaymentIntent -- 0 amount so skipping"
+    );
+    return;
+  }
+  await createCredit({
+    account_id,
+    invoice_id: intent.id,
     amount,
   });
 }

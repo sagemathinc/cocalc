@@ -168,7 +168,7 @@ Table({
     },
     invoice_id: {
       title: "Invoice Id",
-      desc: "The id of the stripe invoice that was sent that included this item.",
+      desc: "The id of the stripe invoice that was sent that included this item.  Legacy: if paid via a payment intent, this will be the id of a payment intent instead, and it will start with pi_.",
       type: "string",
     },
     project_id: {

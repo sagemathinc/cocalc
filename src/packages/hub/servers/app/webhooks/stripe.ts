@@ -17,7 +17,10 @@ import { Router } from "express";
 import { getLogger } from "@cocalc/hub/logger";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getConn from "@cocalc/server/stripe/connection";
-import { createCreditFromPaidStripeInvoice } from "@cocalc/server/purchases/create-invoice";
+import {
+  createCreditFromPaidStripeInvoice,
+  createCreditFromPaidStripePaymentIntent,
+} from "@cocalc/server/purchases/create-invoice";
 import * as express from "express";
 import { isValidUUID } from "@cocalc/util/misc";
 import { setUsageSubscription } from "@cocalc/server/purchases/stripe-usage-based-subscription";
@@ -66,6 +69,13 @@ async function handleRequest(req) {
       logger.debug("invoice = ", invoice);
       await createCreditFromPaidStripeInvoice(invoice);
       break;
+
+    case "payment_intent.succeeded":
+      const intent = event.data.object;
+      logger.debug("intent = ", intent);
+      await createCreditFromPaidStripePaymentIntent(intent);
+      break;
+
     case "customer.subscription.created":
       logger.debug("event = ", event);
       const { id, object } = (event.data?.object ?? {}) as any;
@@ -80,5 +90,6 @@ async function handleRequest(req) {
     default:
       // we don't handle any other event types yet.
       logger.debug(`Unhandled event type ${event.type}`);
+   //   logger.debug(event);
   }
 }

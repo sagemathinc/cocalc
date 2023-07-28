@@ -138,6 +138,13 @@ export async function getInvoice(invoice_id: string) {
   return await api("billing/get-invoice", { invoice_id });
 }
 
+export async function getInvoiceUrl(
+  invoice_id: string
+): Promise<string | null> {
+  const { url } = await api("billing/get-invoice-url", { invoice_id });
+  return url ?? null;
+}
+
 export async function getCostPerDay(opts: { limit?: number; offset?: number }) {
   return await api("purchases/get-cost-per-day", opts);
 }
