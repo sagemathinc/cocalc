@@ -47,7 +47,7 @@ async function closePayAsYouGoPurchases0(project_id: string) {
   logger.debug("closePayAsYouGoPurchases0", project_id);
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id, description FROM purchases WHERE service='project-upgrade' AND cost IS NULL AND project_id=$1",
+    "SELECT id, description, cost_per_hour FROM purchases WHERE service='project-upgrade' AND cost IS NULL AND project_id=$1",
     [project_id]
   );
   if (rows.length == 0) {
@@ -55,7 +55,7 @@ async function closePayAsYouGoPurchases0(project_id: string) {
     // no outstanding purchases for this project.
     return;
   }
-  const { id, description } = rows[0];
+  const { id, description, cost_per_hour } = rows[0];
   // there is an outstanding purchase.
   const { rows: rows1 } = await pool.query(
     "SELECT state->'state', run_quota->'pay_as_you_go'->>'purchase_id' as run_quota_purchase_id FROM projects WHERE project_id=$1",
@@ -77,20 +77,21 @@ async function closePayAsYouGoPurchases0(project_id: string) {
       return;
     }
   }
-  await closePurchase({ id, description });
+  await closePurchase({ id, description, cost_per_hour });
 }
 
 async function closePurchase(opts: {
-  id: string;
+  id: number;
+  cost_per_hour: number;
   description?: ProjectUpgradeDescription;
   now?: number;
   client?: PoolClient; // if given, this is used for the setting final cost and period_end below
 }) {
   logger.debug("closePurchase", opts);
   const { id, now = Date.now(), client } = opts;
+  let { cost_per_hour, description } = opts;
 
   const pool = getPool();
-  let { description } = opts;
   if (description == null) {
     const { rows } = await pool.query(
       "SELECT description FROM purchases WHERE id=$1",
@@ -112,10 +113,9 @@ async function closePurchase(opts: {
   }
 
   // Figure out the final cost.
-  let cost = description.quota.cost;
-  if (cost == null) {
-    // this should never happen, but we can just recompute the cost.
-    cost = await getPricePerHour(description.quota);
+  if (cost_per_hour == null) {
+    // this should never happen, but we can try to recompute the cost.
+    cost_per_hour = await getPricePerHour(description.quota);
   }
   let start = description.start;
   if (start == null) {
@@ -125,20 +125,20 @@ async function closePurchase(opts: {
   }
   // record when project stopped
   description.stop = now;
-  const final_cost = Math.max(
+  const cost = Math.max(
     0.01, // always at least one penny to avoid some abuse (?).
-    ((now - start) / (1000 * 60 * 60)) * cost
+    ((now - start) / (1000 * 60 * 60)) * cost_per_hour
   );
   // set the final cost, thus closing out this purchase.
   await (client ?? pool).query(
     "UPDATE purchases SET cost=$1, description=$2, period_end=$3 WHERE id=$4",
-    [final_cost, description, new Date(now), id]
+    [cost, description, new Date(now), id]
   );
 }
 
 // Also used externally when making statements.
 export async function closeAndContinuePurchase(
-  id: string,
+  id: number,
   client?: PoolClient
 ) {
   logger.debug("closeAndContinuePurchase", id);
@@ -170,6 +170,7 @@ export async function closeAndContinuePurchase(
   logger.debug("closeAndContinuePurchase -- closing old purchase", newPurchase);
   await closePurchase({
     id,
+    cost_per_hour: purchase.cost_per_hour,
     description: purchase.description,
     now: now.valueOf(),
     client,
@@ -185,8 +186,8 @@ async function setRunQuotaPurchaseId(project_id: string, purchase_id: number) {
     "SELECT run_quota FROM projects WHERE project_id=$1",
     [project_id]
   );
-  const { run_quota } = rows[0];
-  if (run_quota.pay_as_you_go == null) {
+  const { run_quota } = rows[0] ?? {};
+  if (run_quota?.pay_as_you_go == null) {
     // nothing to do
     return;
   }
@@ -274,7 +275,7 @@ async function doMaintenance({
     // the purchase, or it was running pay-as-you-go for one user, then another user took over,
     // and the original purchase wasn't ended.
     try {
-      await closePurchase({ id: purchase_id });
+      await closePurchase({ id: purchase_id, cost_per_hour });
     } catch (err) {
       // I don't think this should ever happen but if it did that's bad.
       logger.error("Error closing a pay as you go purchase", err);
@@ -319,7 +320,7 @@ async function doMaintenance({
       const project = getProject(project_id);
       await project.stop();
       // project stop would probably trigger close, but just in case, we explicitly trigger it:
-      await closePurchase({ id: purchase_id });
+      await closePurchase({ id: purchase_id, cost_per_hour });
     }
   }
 }
