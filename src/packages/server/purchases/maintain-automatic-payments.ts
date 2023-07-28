@@ -99,7 +99,7 @@ export default async function maintainAutomaticPayments() {
     );
     try {
       // Determine sum of credits that user explicitly paid *after* the statement date.
-      // We deduce this from their automatic payment.  Usually the automatic payment happens
+      // We deduct this from their automatic payment.  Usually the automatic payment happens
       // very quickly after the statement is made, so it's highly unlikely the user paid
       // anything manually, but just in case we check.
       const x = await pool.query(

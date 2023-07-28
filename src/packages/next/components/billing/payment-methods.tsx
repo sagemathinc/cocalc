@@ -48,6 +48,7 @@ function PaymentSourceActions({ onChange, default_source, brand, last4, id }) {
           okText="OK"
         >
           <Button
+            disabled
             type={"primary"}
             style={{ marginRight: "5px", marginBottom: "5px" }}
           >
@@ -83,6 +84,7 @@ function PaymentSourceActions({ onChange, default_source, brand, last4, id }) {
           cancelText="No"
         >
           <Button
+            disabled
             type={"dashed"}
             style={{ marginRight: "5px", marginBottom: "5px" }}
           >
