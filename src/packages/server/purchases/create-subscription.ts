@@ -31,8 +31,13 @@ export default async function createSubscription(
   if (opts.current_period_start >= opts.current_period_end) {
     throw Error("start must be before end");
   }
-  if (!is_integer(opts.latest_purchase_id) || opts.latest_purchase_id < 0) {
-    throw Error("latest_purchase_id must be a nonnegative integer");
+  if (
+    opts.latest_purchase_id != null &&
+    (!is_integer(opts.latest_purchase_id) || opts.latest_purchase_id < 0)
+  ) {
+    throw Error(
+      "if specified, latest_purchase_id must be a nonnegative integer"
+    );
   }
   if (typeof opts.metadata != "object" || !opts.metadata.type) {
     throw Error("metadata must be a nontrivial object with type field");

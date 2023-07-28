@@ -7,7 +7,7 @@ import Statements from "./statements";
 export default function Statement() {
   return (
     <div>
-      <Statements limit={1} interval="month" noRefresh defaultExpandAllRows />
+      <Statements limit={1} interval="month" noRefresh />
     </div>
   );
 }

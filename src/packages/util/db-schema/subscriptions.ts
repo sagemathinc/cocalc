@@ -19,7 +19,7 @@ export interface Subscription {
   interval: Interval;
   current_period_start: Date;
   current_period_end: Date;
-  latest_purchase_id: number;
+  latest_purchase_id?: number;
   status: Status;
   canceled_at?: Date;
   resumed_at?: Date;
