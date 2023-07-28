@@ -119,7 +119,7 @@ export async function createStatements({
       };
       const total = userCharges.total_charges + userCredits.total_credits;
       const balance =
-        (await getLastStatementBalance(account_id, time, client, interval)) -
+        (await getPreviousStatementBalance(account_id, client, interval)) -
         total;
       statements.push({
         account_id,
@@ -228,15 +228,19 @@ function toAccountMap(rows) {
   return map;
 }
 
-async function getLastStatementBalance(
+// NOTE: we order statements by their numerical id to define "last", as also
+// present them to users by their numerical id, rather than timestamp. This
+// makes it so things work fine, even if for some reason there were multiple
+// statements with the exact same timestamp, which could happen if servers
+// were aggressively restarted, etc.
+async function getPreviousStatementBalance(
   account_id: string,
-  time: Date,
   pool,
   interval: Interval
 ): Promise<number> {
   const { rows } = await pool.query(
-    "SELECT balance FROM statements WHERE interval=$1 AND account_id=$2 AND time<$3 ORDER BY time DESC limit 1",
-    [interval, account_id, time]
+    "SELECT balance FROM statements WHERE interval=$1 AND account_id=$2 ORDER BY id DESC limit 1",
+    [interval, account_id]
   );
   return rows[0]?.balance ?? 0;
 }
