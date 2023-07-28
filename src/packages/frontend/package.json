@@ -61,7 +61,7 @@
     "@use-gesture/react": "^10.2.24",
     "@zippytech/react-notify-resize": "^4.0.4",
     "anser": "^2.1.1",
-    "antd": "^5.4.6",
+    "antd": "^5.7.3",
     "antd-img-crop": "^4.12.2",
     "async": "^2.6.3",
     "async-await-utils": "^3.0.1",
