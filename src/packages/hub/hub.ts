@@ -44,6 +44,7 @@ import initExpressApp from "./servers/express-app";
 import initHttpRedirect from "./servers/http-redirect";
 import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";
+import { processQueue as initProcessingEmailQueue } from "@cocalc/server/email/templates";
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 
@@ -162,7 +163,7 @@ async function startServer(): Promise<void> {
 
   // Mentions
   if (program.mentions) {
-    winston.info("enabling handling of mentions...");
+    winston.info("enabling handling of mentions and email queue processing...");
     initHandleMentions();
   }
 
@@ -284,12 +285,13 @@ async function startServer(): Promise<void> {
   }
 
   if (program.all || program.mentions) {
-    // kucalc: for now we just have the hub-mentions servers
-    // do the new project pool maintenance, since there is only
-    // one hub-stats.
-    // On non-cocalc it'll get done by *the* hub because of program.all.
+    // kucalc: for now and since there is only one hub-mentions,
+    // we just have the hub-mentions servers do the
+    // new project pool maintenance, salesloft and email queue
+    // On non-kucalc it'll get done by *the* hub because of program.all.
     initNewProjectPoolMaintenanceLoop();
     initSalesloftMaintenance();
+    initProcessingEmailQueue();
   }
 
   addErrorListeners(uncaught_exception_total);

@@ -33,6 +33,10 @@ Table({
       type: "integer",
       desc: "higher priority emails are sent first",
     },
+    status: {
+      type: "map",
+      desc: "status of sending this email, e.g. error, got a bounce, received a call back about being opened, etc.",
+    },
     expire: {
       type: "timestamp",
       desc: "when to expire this",

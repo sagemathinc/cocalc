@@ -1,9 +1,10 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
 import { COLORS } from "@cocalc/util/theme";
+import { EmailTemplate, EmailTemplateName } from "./types";
 
 const welcome = `
 # Welcome to {{siteName}}!
@@ -86,15 +87,7 @@ Here are the latest news about {{siteName}}:
 Want to know more? Visit [Feature Overview Page](https://cocalc.com/features) for more details!
 
 Do you have further questions? Please contact [{{helpEmail}}](mailto:{{helpEmail}}).
-`
-
-interface EmailTemplate {
-  subject: string;
-  template: string; // markdown with mustache variables
-  unsubscribe?: boolean; // default true
-}
-
-export type EmailTemplateName = "welcome" | "password_reset" | "news";
+`;
 
 type EmailTemplates = Record<EmailTemplateName, EmailTemplate>;
 
@@ -150,9 +143,9 @@ menu, nav, output, ruby, section, summary, time, mark, audio, video {
 	margin: 0;
 	padding: 0;
 	border: 0;
-	font-size: 100%;
-    font-family: sans-serif;
-    color: #333;
+	font-size: 14pt;
+  font-family: sans-serif;
+  color: ${COLORS.GRAY_DD};
 	vertical-align: baseline;
 }
 a { color: ${COLORS.COCALC_BLUE}; text-decoration: none; }

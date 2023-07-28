@@ -9,11 +9,12 @@ Enforce limits on the number of that a user can cause to be sent.
 For now starting with a simple limit: at most XXX messages per day.
 */
 
-const DAILY_LIMIT = 1000;
-
-import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
+import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import getPool from "@cocalc/database/pool";
+import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import { getServerSettings } from "@cocalc/server/settings";
+
+const DAILY_LIMIT = envToInt("COCALC_EMAIL_DAILY_LIMIT_ACCOUNT", 1000);
 
 // Call this function whenever an email will be sent on behalf of the given account.
 // It will increment a counter for each day, and if it goes too high it throws

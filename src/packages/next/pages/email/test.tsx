@@ -16,11 +16,7 @@ import { GetServerSidePropsContext } from "next";
 import { useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { EmailTemplateSendResult } from "@cocalc/server/email/templates";
-import {
-  EmailTemplateName,
-  TEMPLATE_NAMES,
-} from "@cocalc/server/email/templates-data";
+import { TEMPLATE_NAMES } from "@cocalc/server/email/templates-data";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -33,6 +29,10 @@ import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import withCustomize from "lib/with-customize";
 import { COLORS } from "@cocalc/util/theme";
+import {
+  EmailTemplateName,
+  EmailTemplateSendResult,
+} from "@cocalc/server/email/types";
 
 interface Props {
   customize: CustomizeType;

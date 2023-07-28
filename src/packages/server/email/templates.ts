@@ -3,26 +3,32 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { path as ASSETS_DIR } from "@cocalc/assets";
+import { delay } from "awaiting";
 import { minify as htmlMinify } from "html-minifier-terser";
 import { compile as html2textCompile } from "html-to-text";
+import stableJson from "json-stable-stringify";
 import juice from "juice";
 import MarkdownIt from "markdown-it";
 import Mustache from "mustache";
 import { Transporter, createTransport } from "nodemailer";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
+import { path as ASSETS_DIR } from "@cocalc/assets";
 import { getLogger } from "@cocalc/backend/logger";
+import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import getPool from "@cocalc/database/pool";
 import { join } from "node:path";
 import { Message } from "./message";
 import { getNewsItems } from "./newsletter";
+import { getEmailTemplatesConfiguration } from "./smtp-config";
+import { EMAIL_CSS, EMAIL_ELEMENTS, EMAIL_TEMPLATES } from "./templates-data";
 import {
-  EMAIL_CSS,
-  EMAIL_ELEMENTS,
-  EMAIL_TEMPLATES,
+  EmailSendConfig,
   EmailTemplateName,
-} from "./templates-data";
+  EmailTemplateSendConfig,
+  EmailTemplateSendResult,
+  EmailTemplateSenderSettings,
+} from "./types";
 
 const L = getLogger("email:send-templates");
 
@@ -32,51 +38,56 @@ const TEMPLATES_ROOT =
 
 L.debug({ TEMPLATES_ROOT });
 
+let templateSenderConfig: string | null = "";
 let templateSender: EmailTemplateSender | null = null;
 
-export function init(
+function init(
   conf: SMTPTransport.Options,
   settings: EmailTemplateSenderSettings,
   reset = false
-) {
+): string | null {
   if (!reset && templateSender != null) {
     L.debug("email templates already initialized");
-    return;
+    return null;
   }
   templateSender = new EmailTemplateSender(conf, settings);
+
+  // compute a stable hash of conf and settings and return it
+  return stableJson({ conf, settings });
 }
 
-interface Send {
-  to: string;
-  subject?: string; // overrides the template's subject
-  name?: string;
-  template: EmailTemplateName;
-  test?: boolean;
-  locals: Record<string, string | number>;
-  priority?: number; // higher, the better. 0 neutral. -1 is queued.
+export async function initSendingTemplates() {
+  const { conf, settings } = await getEmailTemplatesConfiguration();
+  return init(conf, settings);
+}
+
+async function checkEmailConfigChanged() {
+  const { conf, settings } = await getEmailTemplatesConfiguration();
+  const newConfig = stableJson({ conf, settings });
+  if (newConfig !== templateSenderConfig) {
+    L.debug("email template configuration changed, re-initializing");
+    templateSenderConfig = await init(conf, settings, true);
+  }
 }
 
 /**
- * Takes the "message" paramters for building a single email, and adds some data for specific templates.
+ * Takes the "message" paramters for building a single email.
+ * - adds some data for specific templates
  * Then it sends it to the SMTP server.
  */
-export async function send({
-  to,
-  subject,
-  name,
-  test = false,
-  template,
-  locals,
-}: Send): Promise<any> {
+export async function send(
+  _: EmailSendConfig
+): Promise<EmailTemplateSendResult | null> {
+  const { to, subject, name, test = false, template, locals } = _;
   if (templateSender == null) {
-    throw new Error("email templates not initialized");
+    throw new Error("email templates sender not initialized");
   }
 
   if (template === "news") {
     const news = await getNewsItems();
     if (news == null) {
       L.info(`no news to send to ${to}`);
-      return;
+      return null;
     }
     locals.news = news;
   }
@@ -98,14 +109,10 @@ export async function send({
 /**
  * Enqueue the configuration for an email in the database, to be sent later.
  */
-export async function queue({
-  to,
-  subject,
-  name,
-  priority = 0,
-  template,
-  locals,
-}: Send): Promise<EmailTemplateSendResult> {
+export async function enqueue(
+  _: EmailSendConfig
+): Promise<EmailTemplateSendResult> {
+  const { to, subject, name, priority = 0, template, locals } = _;
   const config: Omit<EmailTemplateSendConfig, "template"> = {
     message: { to, subject, name },
     locals,
@@ -122,27 +129,63 @@ export async function queue({
   return { status: "queued", value: { id: rows?.[0]?.id } };
 }
 
-interface EmailTemplateSendConfig {
-  template: EmailTemplateName;
-  message: { to: string; subject?: string; name?: string };
-  locals: Partial<EmailTemplateSenderSettings> &
-    Record<string, string | number>;
-  test?: boolean;
-}
+const EMAIL_QUEUE_DELAY_S = envToInt("COCALC_EMAIL_QUEUE_DELAY_S", 10);
+const EMAIL_BATCH_SIZE = envToInt("COCALC_EMAIL_BATCH_SIZE", 100);
+const EMAIL_MAX_PER_S = envToInt("COCALC_EMAIL_MAX_PER_S", 10);
+// after each email, wait as long as there are at max EMAIL_MAX_PER_S emails per second
+const DELAY_MS = Math.max(1, 1000 / EMAIL_MAX_PER_S);
 
-interface EmailTemplateSenderSettings {
-  fromEmail: string;
-  fromName: string;
-  dns: string;
-  siteURL: string; // http[s]://<domain>[/basePath]"
-  siteName: string;
-  logoSquare: string;
-  helpEmail: string;
-}
+/**
+ * Process what's in the queue to send.
+ * Loop every EMAIL_QUEUE_DELAY_S seconds and query for the next EMAIL_BATCH_SIZE emails to send.
+ */
+export async function processQueue(): Promise<void> {
+  if (templateSenderConfig !== "") {
+    throw new Error("already processing email queue");
+  }
 
-export interface EmailTemplateSendResult {
-  status: "sent" | "test" | "error" | "queued";
-  value: any;
+  templateSenderConfig = await initSendingTemplates();
+  if (templateSenderConfig == null) {
+    throw new Error("email templates not initialized");
+  }
+
+  L.debug("starting to process email queue");
+
+  const pool = getPool();
+  while (true) {
+    L.debug("processing email queue");
+    try {
+      const { rows } = await pool.query(
+        `SELECT id, config, template FROM email_queue
+        WHERE sent IS NULL
+        ORDER BY priority DESC, created ASC
+        LIMIT $1`,
+        [EMAIL_BATCH_SIZE]
+      );
+
+      if (rows.length > 0) {
+        for (const { id, config, template } of rows) {
+          const status = await send({ ...config, template });
+          if (status == null) continue;
+          if (status.status !== "sent") {
+            L.warn("error sending email:", status);
+          }
+          await pool.query(
+            `UPDATE email_queue SET sent=NOW(), status=$1 WHERE id=$2`,
+            [status, id]
+          );
+        }
+
+        await delay(DELAY_MS);
+      }
+    } catch (err) {
+      L.error("error processing email queue:", err);
+    }
+    await delay(1000 * EMAIL_QUEUE_DELAY_S);
+
+    // we check if there are changes to the configuration, and if we have to re-initalize
+    await checkEmailConfigChanged();
+  }
 }
 
 class EmailTemplateSender {
@@ -159,12 +202,32 @@ class EmailTemplateSender {
     this.settings = { ...settings };
   }
 
-  public async send({
-    template,
-    message,
-    locals,
-    test = false,
-  }: EmailTemplateSendConfig): Promise<EmailTemplateSendResult> {
+  public async send(
+    _: EmailTemplateSendConfig
+  ): Promise<EmailTemplateSendResult> {
+    const { template, message, locals, test = false } = _;
+
+    const msg = await this.buildMessage(template, message, locals);
+
+    if (test) {
+      return { status: "test", value: msg };
+    } else {
+      try {
+        const status = await this.mailer.sendMail(msg);
+        L.debug("success sending email:", status);
+        return { status: "sent", value: status };
+      } catch (err) {
+        L.warn("error sending email:", err);
+        return { status: "error", value: err };
+      }
+    }
+  }
+
+  private async buildMessage(
+    template: EmailTemplateName,
+    message: { to: string; subject?: string; name?: string },
+    locals: Record<string, string | number>
+  ): Promise<Message & { list?: any }> {
     const vars = {
       ...this.settings,
       date: new Date().toISOString(),
@@ -196,32 +259,24 @@ class EmailTemplateSender {
 
     const { to, name } = message;
 
-    const msg: Message & { list: any } = {
+    const msg: Message & { list?: any } = {
       from: `"${vars.fromName}" <${vars.fromEmail}>`,
       to: name != null ? `"${name}" <${to}>` : to,
       subject,
       html,
       text: this.html2text(html),
-      list: {
+    };
+
+    if (!templateData.unsubscribe) {
+      msg.list = {
         unsubscribe: {
           url: `https://${vars.dns}/email/unsubscribe?channel=${template}&email=${message.to}`,
           comment: `Unsubscribe from "${template}" emails`,
         },
-      },
-    };
-
-    if (test) {
-      return { status: "test", value: msg };
-    } else {
-      try {
-        const status = await this.mailer.sendMail(msg);
-        L.debug("success sending email:", status);
-        return { status: "sent", value: status };
-      } catch (err) {
-        L.warn("error sending email:", err);
-        return { status: "error", value: err };
-      }
+      };
     }
+
+    return msg;
   }
 }
 
