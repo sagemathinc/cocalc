@@ -6,8 +6,6 @@ users who make purchases every day, since the first step is too load some data
 into memory about every user active with a purchase in a given day.  By the time
 we get anywhere close to that level of usage, I can higher somebody else to
 rewrite this to scale better.
-
-
 */
 
 import { getTransactionClient } from "@cocalc/database/pool";
@@ -167,7 +165,7 @@ export async function createStatements({
       // Finally, set the statement id's for all the purchases.
       for (const { account_id, id } of rows) {
         await client.query(
-          `UPDATE purchases SET ${interval}_statement_id=$1 WHERE account_id=$2 AND ${interval}_statement_id IS NULL AND time<=$3`,
+          `UPDATE purchases SET ${interval}_statement_id=$1 WHERE account_id=$2 AND ${interval}_statement_id IS NULL AND cost IS NOT NULL AND time<=$3`,
           [id, account_id, time]
         );
       }

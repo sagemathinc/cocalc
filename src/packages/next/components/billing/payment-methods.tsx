@@ -222,9 +222,9 @@ export default function PaymentMethods() {
         <div>
           <Divider>Legacy Cards</Divider>
           <>
-            These are the credit cards that you have currently setup. Your
-            default card may continue to be used for a few more months if you
-            don't configure automatic payments as explained above.
+            These are the credit cards that you have currently setup.{" "}
+            <b>Don't worry -- your default card will continue to be used</b> for
+            now if you don't configure automatic payments as explained above.
           </>
           <Table
             columns={cols}

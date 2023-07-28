@@ -1,11 +1,14 @@
 /*
 Functions for working with project quotas.
+
+TODO: Much of this code is general to ongoing pay-as-you-go purchases, but right
+now only projects are such.  This code should get refactored into another file.
 */
 
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import { getPricePerHour as getPricePerHour0 } from "@cocalc/util/purchases/project-quotas";
-import getPool from "@cocalc/database/pool";
+import getPool, { PoolClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { reuseInFlight } from "async-await-utils/hof";
 import { cloneDeep } from "lodash";
@@ -74,19 +77,20 @@ async function closePayAsYouGoPurchases0(project_id: string) {
       return;
     }
   }
-  await closePurchase(id, description);
+  await closePurchase({ id, description });
 }
 
-async function closePurchase(
-  id: string,
-  description?: ProjectUpgradeDescription,
-  now?: number
-) {
-  logger.debug("closePurchase", id);
-  if (now == null) {
-    now = Date.now();
-  }
+async function closePurchase(opts: {
+  id: string;
+  description?: ProjectUpgradeDescription;
+  now?: number;
+  client?: PoolClient; // if given, this is used for the setting final cost and period_end below
+}) {
+  logger.debug("closePurchase", opts);
+  const { id, now = Date.now(), client } = opts;
+
   const pool = getPool();
+  let { description } = opts;
   if (description == null) {
     const { rows } = await pool.query(
       "SELECT description FROM purchases WHERE id=$1",
@@ -126,13 +130,17 @@ async function closePurchase(
     ((now - start) / (1000 * 60 * 60)) * cost
   );
   // set the final cost, thus closing out this purchase.
-  await pool.query(
+  await (client ?? pool).query(
     "UPDATE purchases SET cost=$1, description=$2, period_end=$3 WHERE id=$4",
     [final_cost, description, new Date(now), id]
   );
 }
 
-async function closeAndContinuePurchase(id: string) {
+// Also used externally when making statements.
+export async function closeAndContinuePurchase(
+  id: string,
+  client?: PoolClient
+) {
   logger.debug("closeAndContinuePurchase", id);
   const pool = getPool();
   const { rows } = await pool.query("SELECT * FROM purchases WHERE id=$1", [
@@ -160,7 +168,12 @@ async function closeAndContinuePurchase(id: string) {
   );
   await setRunQuotaPurchaseId(newPurchase.project_id, new_purchase_id);
   logger.debug("closeAndContinuePurchase -- closing old purchase", newPurchase);
-  await closePurchase(id, purchase.description, now.valueOf());
+  await closePurchase({
+    id,
+    description: purchase.description,
+    now: now.valueOf(),
+    client,
+  });
 }
 
 async function setRunQuotaPurchaseId(project_id: string, purchase_id: number) {
@@ -261,7 +274,7 @@ async function doMaintenance({
     // the purchase, or it was running pay-as-you-go for one user, then another user took over,
     // and the original purchase wasn't ended.
     try {
-      await closePurchase(purchase_id);
+      await closePurchase({ id: purchase_id });
     } catch (err) {
       // I don't think this should ever happen but if it did that's bad.
       logger.error("Error closing a pay as you go purchase", err);
@@ -306,7 +319,7 @@ async function doMaintenance({
       const project = getProject(project_id);
       await project.stop();
       // project stop would probably trigger close, but just in case, we explicitly trigger it:
-      await closePurchase(purchase_id);
+      await closePurchase({ id: purchase_id });
     }
   }
 }
