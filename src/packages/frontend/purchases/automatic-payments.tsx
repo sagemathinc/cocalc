@@ -27,6 +27,7 @@ export default function AutomaticPayments({ style }: Props) {
     "account",
     "stripe_checkout_session"
   )?.toJS();
+  const legacyCard = !!stripe_usage_subscription?.startsWith("card");
 
   const doDisable = async () => {
     try {
@@ -111,27 +112,68 @@ export default function AutomaticPayments({ style }: Props) {
       <ShowError error={error} setError={setError} />
       {!!stripe_usage_subscription && (
         <Popconfirm
-          onConfirm={doDisable}
-          title="Disable Automatic Payments"
-          okText={"Disable Automatic Payments"}
+          placement="right"
+          onConfirm={legacyCard ? doSetup : doDisable}
+          title={
+            legacyCard
+              ? "Update Your Automatic Payment Method"
+              : "Disable Automatic Payments"
+          }
+          okText={legacyCard ? "Update..." : "Disable Automatic Payments"}
           cancelText={"Close"}
           description={
-            <div style={{ maxWidth: "500px" }}>
-              You have automatic payments enabled. Would you like to disable
-              them? {warning}
-              You can reenable automatic payments at any time, and you can
-              resume a canceled subscription easily later.
-            </div>
+            stripe_checkout_session?.url != null ? (
+              <div>
+                There is a current stripe checkout session in progress.
+                <br />
+                <Button onClick={cancelSession}>Cancel Session</Button>
+                <div style={{ marginTop: "15px" }}>
+                  If the popup window is blocked,{" "}
+                  <a href={stripe_checkout_session?.url}>
+                    click here to complete your payment...
+                  </a>
+                </div>
+              </div>
+            ) : legacyCard ? (
+              <div style={{ maxWidth: "400px" }}>
+                You have a credit card on file. Please click "Update..." below
+                to enter a new payment method and switch to the new automatic
+                payments systems. After that you can easily cancel or enable
+                automatic payments at any time.
+              </div>
+            ) : (
+              <div style={{ maxWidth: "400px" }}>
+                You have automatic payments enabled. Would you like to disable
+                them? {warning}
+                You can reenable automatic payments at any time, and you can
+                resume a canceled subscription easily later.
+              </div>
+            )
           }
         >
-          {" "}
-          <Button disabled={loading || !!stripe_checkout_session?.url}>
-            <Icon name="check" /> Automatic Payments are Enabled...
+          <Button
+            disabled={loading || !!stripe_checkout_session?.url}
+            style={
+              legacyCard ? { background: "red", color: "white" } : undefined
+            }
+          >
+            {legacyCard ? (
+              <>
+                <Icon name="credit-card" /> Automatic Payments: Update
+                Required...
+              </>
+            ) : (
+              <>
+                <Icon name="check" /> Automatic Payments are Enabled...
+              </>
+            )}
+            {loading && <Spin />}
           </Button>
         </Popconfirm>
       )}
       {!stripe_usage_subscription && (
         <Popconfirm
+          placement="right"
           onConfirm={doSetup}
           title="Enable Automatic Payments"
           okText={"Enable Automatic Payments..."}
@@ -161,11 +203,11 @@ export default function AutomaticPayments({ style }: Props) {
           }
         >
           <Button disabled={loading}>
-            <Icon name="credit-card" /> Enable Automatic Payments...
+            <Icon name="credit-card" /> Enable Automatic Payments...{" "}
+            {loading && <Spin />}
           </Button>
         </Popconfirm>
       )}
-      {loading && <Spin />}
     </div>
   );
 }
