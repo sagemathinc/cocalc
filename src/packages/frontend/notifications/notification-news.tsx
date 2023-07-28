@@ -142,6 +142,7 @@ export function NewsPanel(props: NewsPanelProps) {
         actions={[
           <Button
             key="read"
+            type="primary"
             ghost={true}
             onClick={(e) => newsItemOnClick(e, n)}
           >

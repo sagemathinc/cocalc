@@ -144,6 +144,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         <Button
           size="small"
           ghost={true}
+          type="link"
           style={BTN_STYLE}
           icon={<Icon name="bullhorn" />}
           onClick={(e) => {
