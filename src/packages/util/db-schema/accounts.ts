@@ -131,7 +131,7 @@ Table({
     },
     stripe_customer: {
       type: "map",
-      desc: "Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve).",
+      desc: "Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve)   ALMOST DEPRECATED -- THIS IS ONLY USED FOR OLD LEGACY UPGRADES.",
     },
     coupon_history: {
       type: "map",
