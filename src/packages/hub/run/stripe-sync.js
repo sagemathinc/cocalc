@@ -1,6 +1,8 @@
 #!/usr/bin/node
 
 /*
+ALMOST DEPRECATED - THIS EXISTS ONLY TO SUPPORT THE LEGACY UPGRADE SUBSCRIPTIONS.
+
 1. Periodically pull all data from Stripe for now. The only point of this is
 to ensure there isn't drift between stripe and our database. Any time a user
 actually looks at their subscription info, or an admin updates the stripe info
@@ -53,8 +55,8 @@ async function main() {
   } catch (err) {
     console.log(`ERROR upgrade_check -- ${err}`);
   }
-  console.log("success -- waiting 5 hours before doing them again...");
-  setTimeout(main, ms("5 hours"));
+  console.log("success -- waiting 11 hours before doing this again...");
+  setTimeout(main, ms("11 hours"));
 }
 
 main();

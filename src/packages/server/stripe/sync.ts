@@ -4,9 +4,15 @@
  */
 
 /*
-Sync remote stripe view of all users with our local via (in our database).
+Sync remote stripe view of with our local view (in our database).
 
-Should get done eventually mostly via webhooks, etc., -- but for now this is OK.
+ALMOST DEPRECATED - THIS EXISTS ONLY TO SUPPORT THE LEGACY UPGRADE SUBSCRIPTIONS.
+
+We only sync customers that currently have stripe_customer non-null and
+were active in the last month.
+
+And if ever a customer doesn't have any legacy upgrade subscriptions,
+then we set stripe_customer to null so that we never consider them again.
 */
 
 import { delay } from "awaiting";
@@ -28,12 +34,12 @@ export async function stripe_sync({
   }
   const dbg = (m?) => logger.debug(`stripe_sync: ${m}`);
   dbg(
-    "get all customers from the database with stripe that have been active in the last month"
+    "get all customers from the database with stripe_customer set that were active during the last month"
   );
   const users = (
     await database.async_query({
       query:
-        "SELECT account_id, stripe_customer_id FROM accounts WHERE stripe_customer_id IS NOT NULL AND banned IS NOT TRUE  AND deleted IS NOT TRUE AND last_active >= NOW() - INTERVAL '1 MONTH'",
+        "SELECT account_id, stripe_customer_id FROM accounts WHERE stripe_customer_id IS NOT NULL AND stripe_customer IS NOT NULL AND banned IS NOT TRUE AND deleted IS NOT TRUE AND last_active >= NOW() - INTERVAL '1 MONTH'",
     })
   ).rows;
 

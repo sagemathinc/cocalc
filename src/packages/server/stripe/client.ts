@@ -295,7 +295,7 @@ export class StripeClient {
     await this.update_database();
   }
 
-  // update_database queries stripe for customer record, stores
+  // update_database: queries stripe for customer record, stores
   // it in the database, and  returns the new customer record
   // if it exists
   public async update_database(): Promise<any> {
