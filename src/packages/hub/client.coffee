@@ -1865,9 +1865,6 @@ class exports.Client extends EventEmitter
         mesg.event = 'stripe_remove_all_upgrades'     # for backward compat
         @handle_stripe_mesg(mesg)
 
-    mesg_stripe_sync_site_license_subscriptions: (mesg) =>
-        @handle_stripe_mesg(mesg)
-
     mesg_purchase_license: (mesg) =>
         try
             await @_stripe_client ?= new StripeClient(@)

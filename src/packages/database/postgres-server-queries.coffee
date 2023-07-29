@@ -53,7 +53,6 @@ collab = require('./postgres/collab')
 {site_license_public_info} = require('./postgres/site-license/public')
 {site_license_manager_set} = require('./postgres/site-license/manager')
 {matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
-{sync_site_license_subscriptions} = require('./postgres/site-license/sync-subscriptions')
 {project_datastore_set, project_datastore_get, project_datastore_del} = require('./postgres/project-queries')
 {checkEmailExclusiveSSO} = require("./postgres/check-email-exclusive-sso")
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
@@ -2184,14 +2183,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         cb         : cb
                 async.mapLimit(locals.account_ids, opts.limit, f, cb)
         ], opts.cb)
-
-    # Ensure all (or just for given account_id) site license subscriptions
-    # are non-expired iff subscription in stripe is "active" or "trialing"
-    # account_id is optional; if not given iterates over all users
-    # with stripe_customer field set.
-    # async/await:
-    sync_site_license_subscriptions: (account_id, test_mode) =>
-        return await sync_site_license_subscriptions(@, account_id, test_mode)
 
     # Return the sum total of all user upgrades to a particular project
     get_project_upgrades: (opts) =>

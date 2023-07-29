@@ -31,14 +31,6 @@ async function do_stripe_sync() {
   console.log("did stripe_sync");
 }
 
-// make sure site licenses subscriptions are not expired iff they are active in stripe
-// 2021-03: this now also checks if each license's subscription is still funding it (not canceled)
-async function do_sync_site_licenses() {
-  console.log("doing sync site licenses...");
-  await db.sync_site_license_subscriptions();
-  console.log("did sync site licenses");
-}
-
 // make sure all user upgrades to projects are valid and consistent
 // (e.g. if upgrades expire remove them)
 async function upgrade_check() {
@@ -55,11 +47,6 @@ async function main() {
     await do_stripe_sync();
   } catch (err) {
     console.log(`ERROR do_stripe_sync -- ${err}`);
-  }
-  try {
-    await do_sync_site_licenses();
-  } catch (err) {
-    console.log(`ERROR do_sync_site_licenses -- ${err}`);
   }
   try {
     await upgrade_check();

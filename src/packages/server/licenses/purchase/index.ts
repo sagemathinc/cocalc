@@ -16,7 +16,6 @@ What this does:
 - if the request is to make a purchase, makes that purchase and creates the license
 */
 
-import { db } from "@cocalc/database";
 import getPool from "@cocalc/database/pool";
 import { syncCustomer } from "@cocalc/database/postgres/stripe";
 import { sanity_checks } from "@cocalc/util/licenses/purchase/sanity-checks";
@@ -119,10 +118,6 @@ export default async function purchaseLicense(
       await delay(delay_s * 1000);
       delay_s *= 1.1;
     }
-    // Sets the license expire date if the subscription is NOT
-    // active at this point (e.g., due to credit card failure).
-    const database = db();
-    await database.sync_site_license_subscriptions(account_id);
   }
 
   return license_id;
