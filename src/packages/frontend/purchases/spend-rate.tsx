@@ -11,7 +11,7 @@ export default function SpendRate({ style, spendRate }: Props) {
     return null;
   }
   return (
-    <Card style={style} title=<>Spending Rate</>>
+    <Card style={{ maxWidth: "300px", ...style }} title=<>Spending Rate</>>
       <Statistic
         title={"Metered Spend (USD)"}
         value={spendRate}
@@ -19,6 +19,9 @@ export default function SpendRate({ style, spendRate }: Props) {
         prefix={"$"}
         suffix={"/hour"}
       />
+      <div style={{ color: "#666" }}>
+        Only includes pay-as-you-go purchases (licenses are excluded)
+      </div>
     </Card>
   );
 }

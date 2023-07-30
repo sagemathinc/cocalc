@@ -3,6 +3,7 @@ import type { Description } from "@cocalc/util/db-schema/purchases";
 import getLogger from "@cocalc/backend/logger";
 import { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { getClosingDay } from "./closing-date";
+import dayjs from "dayjs";
 
 const logger = getLogger("purchase:create-purchase");
 
@@ -26,11 +27,11 @@ interface Options {
 }
 
 export default async function createPurchase(opts: Options): Promise<number> {
+  let { cost_per_hour } = opts;
   const {
     account_id,
     project_id,
     cost,
-    cost_per_hour,
     period_start,
     period_end,
     service,
@@ -46,6 +47,17 @@ export default async function createPurchase(opts: Options): Promise<number> {
       "if cost is not set, then cost_per_hour and period_start must both be set"
     );
   }
+  if (cost != null && period_start != null && period_end != null) {
+    const hours = dayjs(period_end).diff(dayjs(period_start), "hour", true);
+    if (hours > 0) {
+      cost_per_hour = cost / hours;
+    }
+  } else {
+    // TODO: I don't know if there is something meaningful to do if there is no period, e.g., with GPT-4.
+    // We could define an ai call as lasting for 3 minutes (say). Alternatively, we could actually look
+    // at the time spent generating the output.  But is that really meaningful?
+  }
+
   const { rows } = await (client ?? getPool()).query(
     "INSERT INTO purchases (time, account_id, project_id, cost, cost_per_hour, period_start, period_end, service, description,invoice_id, notes, tag, pending) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id",
     [
