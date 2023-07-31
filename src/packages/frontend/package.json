@@ -117,7 +117,6 @@
     "linkify-it": "3.0.3",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
-    "lz4": "^0.6.3",
     "markdown-it": "^13.0.1",
     "markdown-it-emoji": "^2.0.2",
     "markdown-it-front-matter": "^0.2.3",
