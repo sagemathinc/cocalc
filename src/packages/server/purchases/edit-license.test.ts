@@ -189,7 +189,7 @@ describe("create a subscription license and edit it and confirm the subscription
     client.release();
   });
 
-  it("gets our subscription and license and edits the license in a way that changes the subscription cost", async () => {
+  it("gets our subscription and license, then edits the license in a way that changes the subscription cost", async () => {
     await createPurchase({
       account_id: item.account_id,
       service: "credit",
@@ -201,14 +201,27 @@ describe("create a subscription license and edit it and confirm the subscription
     expect(subs.length).toBe(1);
     expect(subs[0].status).toBe("active");
     const license_id = subs[0].metadata.license_id;
-    const { cost } = await editLicense({
+    await editLicense({
       account_id: item.account_id,
       license_id,
       changes: { custom_ram: 8, custom_cpu: 3 },
     });
     const subs2 = await getSubscriptions({ account_id: item.account_id });
-    // the montly cost doesn't change *exactly* as the cost to edit, due
+    const cost2 = computeCost({
+      cpu: 3,
+      ram: 8,
+      disk: 3,
+      type: "quota",
+      user: "academic",
+      boost: false,
+      member: true,
+      period: "monthly",
+      uptime: "short",
+      run_limit: 1,
+    });
+
+    // the monthly cost doesn't change *exactly* as the cost to edit, due
     // to the date range, particular month, etc.
-    expect(Math.abs(subs2[0].cost - (subs[0].cost + cost))).toBeLessThan(3);
+    expect(subs2[0].cost).toBeCloseTo(cost2.discounted_cost, 2);
   });
 });
