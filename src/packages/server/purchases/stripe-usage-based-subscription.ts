@@ -5,17 +5,17 @@ Managing a Stripe usage-based subscription created via Stripe Checkout.
 - retrieving the subscription ID for a user
 - retrieving a list of usage-based subscriptions for a user
 - setting the subscription ID
-- adding usage to a subscription. 
+- adding usage to a subscription.
 
 
 This is basically a *hack* to provide a way to automatically collect
-money from a user periodically.  The problem is that Stripe Checkout's 
+money from a user periodically.  The problem is that Stripe Checkout's
 mode:'setup' requires figuring out exactly what payment methods to
-support, which makes absolutely no sense at all.  See 
+support, which makes absolutely no sense at all.  See
              create-stripe-payment-method-session.ts
 for more details.
 
-The way this hack works is that we -- once and for all -- make a 
+The way this hack works is that we -- once and for all -- make a
 product called "cocalc-automatic-billing" in stripe, if it doesn't
 already exist.  This product costs exactly one penny and is metered,
 so we can add any amount we want of it.
@@ -23,15 +23,15 @@ so we can add any amount we want of it.
 For each user there is a day d, once per month, when the following happens:
 
 - A: we create their monthly statement, which shows their balance on this day
-- B: we compute the cost to renew all of their active monthly (or yearly) 
+- B: we compute the cost to renew all of their active monthly (or yearly)
   subscriptions. These subscriptions should all be defined so that their
   renewal is on day d + 3.
 - we add to the usage-based subscription the sum of the above amounts: A+B
 - we update the subscription's billing_cycle_anchor to now as explained here
    https://stripe.com/docs/api/subscriptions/update
-  which causes an immediate invoice of the subscription and crediting the 
+  which causes an immediate invoice of the subscription and crediting the
   user's account.
-- if their account is credited with a credit coming from their usage-based 
+- if their account is credited with a credit coming from their usage-based
   subscription, we credit their account, then immediately renew their subscriptions.
 
 Note that we assume 1 <= d+3 <= 28, so that d <= 25.  This provides plenty of
@@ -57,6 +57,8 @@ import { currency } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { createCreditFromPaidStripePaymentIntent } from "./create-invoice";
 import syncPaidInvoices from "./sync-paid-invoices";
+import { isValidUUID } from "@cocalc/util/misc";
+import dayjs from "dayjs";
 
 const logger = getLogger("purchases:stripe-usage-based-subscription");
 
@@ -372,4 +374,56 @@ async function collectPaymentUsingCreditCard({ account_id, amount, card }) {
       } catch (_) {}
     })();
   }
+}
+
+/*
+Sync stripe usage subscription only relevant in case webhooks aren't
+working/configure/available.
+*/
+
+async function getUsageBasedSubscriptions(
+  account_id: string,
+  limit?: number,
+  created?: Date // greater than or equal to this date
+): Promise<any[]> {
+  logger.debug("getUsageBasedSubscriptions: account_id = ", account_id);
+  const customer = await getStripeCustomerId({ account_id, create: false });
+  if (!customer) {
+    // not a customer, so they can't have any subscriptions.
+    return [];
+  }
+  logger.debug("customer = ", account_id);
+  const stripe = await getConn();
+  const subs = await stripe.subscriptions.list({
+    customer,
+    limit,
+    created:
+      created != null
+        ? { gte: Math.round(created.valueOf() / 1000) }
+        : undefined,
+  });
+  return subs.data;
+}
+
+export async function syncUsageBasedSubscription(
+  account_id: string
+): Promise<boolean> {
+  const subs = await getUsageBasedSubscriptions(
+    account_id,
+    10,
+    dayjs().subtract(1, "day").toDate()
+  );
+  logger.debug(
+    "syncUsageBasedSubscriptions: considering ",
+    subs.length,
+    "recently created subs"
+  );
+  for (const sub of subs) {
+    const { account_id: x, service } = sub.metadata ?? {};
+    if (isValidUUID(x) && service == "credit") {
+      await setUsageSubscription({ account_id, subscription_id: sub.id });
+      return true;
+    }
+  }
+  return false;
 }

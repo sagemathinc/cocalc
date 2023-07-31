@@ -7,6 +7,7 @@ import {
   cancelAutomaticBilling,
   getCurrentCheckoutSession,
   setupAutomaticBilling,
+  syncSubscription,
 } from "./api";
 import ShowError from "@cocalc/frontend/components/error";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
@@ -81,6 +82,22 @@ export default function AutomaticPayments({ style }: Props) {
     try {
       popup.close();
     } catch (_) {}
+
+    // Have the backend call stripe and sync recent paid invoices.
+    // **This should only be relevant in case webhooks aren't configured or working.**
+    (async () => {
+      for (const d of [5, 30, 60]) {
+        try {
+          if (await syncSubscription()) {
+            return;
+          }
+          await delay(d * 1000);
+        } catch (err) {
+          console.warn(err);
+          return;
+        }
+      }
+    })();
   };
 
   const cancelSession = async () => {

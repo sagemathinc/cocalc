@@ -243,6 +243,11 @@ export async function syncPaidInvoices(): Promise<number> {
   return count;
 }
 
+export async function syncSubscription(): Promise<boolean> {
+  const { found } = await api("purchases/sync-subscription");
+  return found;
+}
+
 export async function getCurrentCheckoutSession(): Promise<null | {
   id: string;
   url: string;

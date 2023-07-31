@@ -1,7 +1,7 @@
 /*
 Stripe Webhook to handle some events:
 
-- invoice.paid -- 
+- invoice.paid --
 - customer.subscription.created -- used for the webhook side of @cocalc/server/purchases/stripe-usage-based-subscription.ts
 
 We *do* check the stripe signature to only handle requests that actually come from stripe.
@@ -88,6 +88,7 @@ async function handleRequest(req) {
         }
       }
       break;
+
     default:
       // we don't handle any other event types yet.
       logger.debug(`Unhandled event type ${event.type}`);

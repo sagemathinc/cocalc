@@ -81,7 +81,7 @@ export default function Payment({ balance, update, cost }: Props) {
     // Have the backend call stripe and sync recent paid invoices.
     // **This should only be relevant in case webhooks aren't configured or working.**
     (async () => {
-      for (const d of [0, 5, 30, 60]) {
+      for (const d of [5, 30, 60]) {
         try {
           if ((await api.getBalance()) > balance) {
             // very unlikely to need to do any sync, so don't bother
