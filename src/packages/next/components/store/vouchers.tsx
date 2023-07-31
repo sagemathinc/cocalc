@@ -53,6 +53,7 @@ import {
   cancelCurrentCheckoutSession,
   getVoucherCartCheckoutParams,
   vouchersCheckout,
+  syncPaidInvoices,
 } from "@cocalc/frontend/purchases/api";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ExplainPaymentSituation } from "./checkout";
@@ -156,7 +157,17 @@ export default function CreateVouchers() {
       // nothing to handle
       return;
     }
-    completePurchase();
+
+    (async () => {
+      // in case webhooks aren't configured, get the payment via sync:
+      try {
+        await syncPaidInvoices();
+      } catch (err) {
+        console.warn("syncPaidInvoices buying vouchers -- issue", err);
+      }
+      // now do the purchase flow again with money available.
+      completePurchase();
+    })();
   }, []);
 
   async function completePurchase() {

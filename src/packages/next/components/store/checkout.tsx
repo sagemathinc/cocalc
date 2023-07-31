@@ -73,7 +73,17 @@ export default function Checkout() {
       // nothing to handle
       return;
     }
-    completePurchase();
+    (async () => {
+      // in case webhooks aren't configured, get the payment via sync:
+      try {
+        await purchasesApi.syncPaidInvoices();
+      } catch (err) {
+        console.warn("syncPaidInvoices buying licenses -- issue", err);
+      }
+
+      // now do the purchase flow again with money available.
+      completePurchase();
+    })();
   }, []);
 
   if (error) {
