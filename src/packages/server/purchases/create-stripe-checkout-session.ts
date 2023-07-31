@@ -9,7 +9,6 @@ import getPool from "@cocalc/database/pool";
 import stripeName from "@cocalc/util/stripe/name";
 import { setStripeCustomerId } from "@cocalc/database/postgres/stripe";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
-import createCredit from "./create-credit";
 import getLogger from "@cocalc/backend/logger";
 import type { Stripe } from "stripe";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
@@ -156,50 +155,6 @@ async function createStripeCustomer(account_id: string): Promise<string> {
   });
   await setStripeCustomerId(account_id, id);
   return id;
-}
-
-/*
-Invoice is any stripe invoice that somehow got paid.
-We check if there is a corresponding credit in the
-purchases table, and if not we create the credit
-corresponding to this invoice in some cases.
-
-- if invoice.metadata = {account_id, service:'credit'} which indicates this
-  invoice was for adding credit to the user's purchases balance.
-- TODO...
-*/
-export async function createCreditFromPaidStripeInvoice(invoice) {
-  if (
-    invoice?.metadata == null ||
-    !invoice.paid ||
-    invoice.metadata.service != "credit" ||
-    !invoice.metadata.account_id
-  ) {
-    logger.debug(
-      "createCreditFromPaidStripeInvoice -- skipping since not a service credit",
-      invoice.id
-    );
-    // Some other sort of invoice, e.g, for a subscription or something else.
-    // We don't handle them here yet.
-    return;
-  }
-  const { account_id } = invoice.metadata;
-  if (!(await isValidAccount(account_id))) {
-    logger.debug(
-      "createCreditFromPaidStripeInvoice -- invalid account_id!",
-      account_id
-    );
-    // definitely should never happen
-    throw Error(`invalid account_id in metadata '${account_id}'`);
-  }
-
-  // See long comment about "total_excluding_tax" below.
-  const amount = invoice.total_excluding_tax / 100;
-  await createCredit({
-    account_id,
-    invoice_id: invoice.id,
-    amount,
-  });
 }
 
 async function getSession(

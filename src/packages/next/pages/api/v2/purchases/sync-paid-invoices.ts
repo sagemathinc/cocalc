@@ -19,6 +19,6 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  await syncPaidInvoices(account_id);
-  return { status: "ok" };
+  const count = await syncPaidInvoices(account_id);
+  return { status: "ok", count };
 }

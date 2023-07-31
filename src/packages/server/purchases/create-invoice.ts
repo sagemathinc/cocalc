@@ -152,20 +152,22 @@ async function paymentAlreadyProcessed(id: string): Promise<boolean> {
   return rows[0].count > 0;
 }
 
-export async function createCreditFromPaidStripeInvoice(invoice) {
+export async function createCreditFromPaidStripeInvoice(
+  invoice
+): Promise<boolean> {
   if (await paymentAlreadyProcessed(invoice?.id)) {
     logger.debug(
       "createCreditFromPaidStripeInvoice -- skipping since invoice already processed.",
       invoice?.id
     );
-    return;
+    return false;
   }
   if (!invoice?.paid) {
     logger.debug(
       "createCreditFromPaidStripeInvoice -- skipping since invoice not yet paid.",
       invoice?.id
     );
-    return;
+    return false;
   }
   let metadata = invoice?.metadata;
   if (
@@ -185,7 +187,7 @@ export async function createCreditFromPaidStripeInvoice(invoice) {
       );
       // Some other sort of invoice, e.g, for a subscription or something else.
       // We don't handle them here.
-      return;
+      return false;
     }
   }
   const { account_id } = metadata;
@@ -202,13 +204,14 @@ export async function createCreditFromPaidStripeInvoice(invoice) {
   const amount = invoice.total_excluding_tax / 100;
   if (!amount) {
     logger.debug("createCreditFromPaidStripeInvoice -- 0 amount so skipping");
-    return;
+    return false;
   }
   await createCredit({
     account_id,
     invoice_id: invoice.id,
     amount,
   });
+  return true;
 }
 
 export async function createCreditFromPaidStripePaymentIntent(intent) {

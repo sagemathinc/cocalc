@@ -1,7 +1,11 @@
 /*
 Functions for interfacing with the purchases functionality.
+
+TODO/DEPRECATE: this module is mostly pointess since I moved essentially
+all of this code to @cocalc/frontend/purchases/api, which is much better
+since it can also be used directly by our nextjs app, and also is
+scoped better.
 */
-// import type { WebappClient } from "./client";
 
 import type { Service } from "@cocalc/util/db-schema/purchases";
 import { redux } from "@cocalc/frontend/app-framework";
