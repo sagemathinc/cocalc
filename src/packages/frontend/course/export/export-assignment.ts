@@ -80,7 +80,7 @@ async function export_one_directory(
     }
   }
   let x: any;
-  const timeout = 30; // 30 seconds
+  const timeout = 60; // 60 seconds
   for (x of listing) {
     if (x.isdir) continue; // we ignore subdirectories...
     const { name } = x;
