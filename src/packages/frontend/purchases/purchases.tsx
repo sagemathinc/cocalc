@@ -250,7 +250,9 @@ export function PurchasesTable({
         )}
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
-        {!group && <DetailedPurchaseTable purchases={purchases} />}
+        {!group && purchases != null && (
+          <DetailedPurchaseTable purchases={purchases} />
+        )}
         {group && <GroupedPurchaseTable purchases={groupedPurchases} />}
       </div>
       {showTotal && total != null && (
@@ -321,7 +323,11 @@ function GroupedPurchaseTable({ purchases }) {
   );
 }
 
-function DetailedPurchaseTable({ purchases }) {
+function DetailedPurchaseTable({
+  purchases,
+}: {
+  purchases: Partial<Purchase>[];
+}) {
   if (purchases == null) {
     return <Spin size="large" delay={500} />;
   }
@@ -360,8 +366,9 @@ function DetailedPurchaseTable({ purchases }) {
                 if (record.service == "project-upgrade") {
                   let minutes;
                   if (
-                    record.description?.stop != null &&
-                    record.description?.start != null
+                    record.description?.type == "project-upgrade" &&
+                    record.description.stop != null &&
+                    record.description.start != null
                   ) {
                     minutes = Math.ceil(
                       (record.description.stop - record.description.start) /
@@ -374,7 +381,8 @@ function DetailedPurchaseTable({ purchases }) {
                   return (
                     <span>
                       <TimeAgo date={text} />
-                      {record.description?.stop != null ? (
+                      {record.description?.type == "project-upgrade" &&
+                      record.description.stop != null ? (
                         <>
                           {" "}
                           to <TimeAgo date={record.description?.stop} />
