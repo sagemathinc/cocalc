@@ -58,10 +58,10 @@ interface Options {
 export default async function editLicense(
   opts: Options
 ): Promise<{ purchase_id?: number; cost: number }> {
+  let { changes } = opts;
   const {
     account_id,
     license_id,
-    changes,
     cost: cost0,
     isSubscriptionRenewal = false,
     force,
@@ -88,6 +88,11 @@ export default async function editLicense(
         "editing the start or end dates of a subscription license is not allowed"
       );
     }
+  }
+  if (changes.start == null && changes.end < info.start) {
+    // if changing end to be before start, just reset start to
+    // also equal end -- the result will of course cost 0.
+    changes = { ...changes, start: changes.end };
   }
 
   // account_id isn't defined in the schema for PurchaseInfo,

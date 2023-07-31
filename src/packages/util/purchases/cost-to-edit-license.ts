@@ -47,9 +47,9 @@ export default function costToEditLicense(
       );
     }
     if (changes.end != null) {
-      if (changes.start >= changes.end) {
+      if (changes.start > changes.end) {
         throw Error(
-          "if you are changing both the start and end date, then start must be less than end"
+          "if you are changing both the start and end date, then start must be <= than end"
         );
       }
     }
