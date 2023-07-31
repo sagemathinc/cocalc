@@ -59,7 +59,7 @@ export function NewsPanel(props: NewsPanelProps) {
     const now = webapp_client.server_time();
     // weird: using news.valueSeq().toJS() makes object reappear, which were overwritten when an update came in!?
     return Object.values(news.toJS() as any)
-      .filter((n:any) => {
+      .filter((n: any) => {
         if (n.hide ?? false) return false;
         if (n.date > now) return false;
         if (!isNewsFilter(filter)) return false;
@@ -69,7 +69,7 @@ export function NewsPanel(props: NewsPanelProps) {
           return n.channel === filter;
         }
       })
-      .sort((a:any, b:any) => -cmp_Date(a.date, b.date)) as any;
+      .sort((a: any, b: any) => -cmp_Date(a.date, b.date)) as any;
   }, [news, filter]);
 
   // If a user clicks on a news item, we assume they saw all news up until that point.
@@ -142,7 +142,8 @@ export function NewsPanel(props: NewsPanelProps) {
         actions={[
           <Button
             key="read"
-            type="ghost"
+            type="primary"
+            ghost={true}
             onClick={(e) => newsItemOnClick(e, n)}
           >
             <Icon name="external-link" />
