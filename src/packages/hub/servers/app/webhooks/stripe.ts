@@ -71,6 +71,7 @@ async function handleRequest(req) {
       break;
 
     case "payment_intent.succeeded":
+      // This is I think ONLY used for deprecated credit cards.
       const intent = event.data.object;
       logger.debug("intent = ", intent);
       await createCreditFromPaidStripePaymentIntent(intent);

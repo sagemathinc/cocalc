@@ -93,7 +93,7 @@ export default function Payment({ balance, update, cost }: Props) {
             update?.();
             return;
           }
-          await delay(d);
+          await delay(d * 1000);
         } catch (err) {
           console.warn(err);
           return;

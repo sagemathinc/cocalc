@@ -54,6 +54,8 @@ import {
 } from "./create-stripe-checkout-session";
 import type { Stripe } from "stripe";
 import { currency } from "@cocalc/util/misc";
+import { delay } from "awaiting";
+import { createCreditFromPaidStripePaymentIntent } from "./create-invoice";
 
 const logger = getLogger("purchases:stripe-usage-based-subscription");
 
@@ -326,7 +328,7 @@ async function collectPaymentUsingCreditCard({ account_id, amount, card }) {
     throw Error("no stripe customer id");
   }
   const stripe = await getConn();
-  await stripe.paymentIntents.create({
+  const intent = await stripe.paymentIntents.create({
     customer,
     amount: Math.ceil(amount * 100),
     currency: "usd",
@@ -335,4 +337,24 @@ async function collectPaymentUsingCreditCard({ account_id, amount, card }) {
     metadata: { account_id, service: "credit" },
     payment_method: card.id,
   });
+  if (intent.status == "succeeded") {
+    await createCreditFromPaidStripePaymentIntent(intent);
+  } else {
+    // if they pay soon, then create credit in our system.
+    // This is ONLY relevant when webhooks aren't configured,
+    // so basically for limited dev use.
+    const { id } = intent;
+    (async () => {
+      try {
+        for (const d of [10, 60, 180]) {
+          await delay(1000 * d);
+          const intent = await stripe.paymentIntents.retrieve(id);
+          if (intent.status == "succeeded") {
+            await createCreditFromPaidStripePaymentIntent(intent);
+            return;
+          }
+        }
+      } catch (_) {}
+    })();
+  }
 }
