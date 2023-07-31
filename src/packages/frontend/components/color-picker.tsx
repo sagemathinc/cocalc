@@ -148,9 +148,10 @@ interface ButtonProps {
   onChange: (htmlColor: string) => void;
   title?: ReactNode;
   style?: CSSProperties;
-  type?: "default" | "link" | "text" | "ghost" | "primary" | "dashed";
+  type?: "default" | "link" | "text" |"primary" | "dashed";
   onClick?: () => boolean | undefined;
 }
+
 export function ColorButton(props: ButtonProps) {
   const { onChange, title, style, type, onClick } = props;
   const [show, setShow] = useState<boolean>(false);
