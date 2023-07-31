@@ -269,7 +269,7 @@ export class API {
   async jupyter_nbconvert(opts: NbconvertParams): Promise<any> {
     return await this.call(
       { cmd: "jupyter_nbconvert", opts },
-      (opts.timeout ?? 30) * 1000 + 5000
+      (opts.timeout ?? 60) * 1000 + 5000
     );
   }
 

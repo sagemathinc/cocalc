@@ -842,7 +842,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
   async nbconvert(args: string[], timeout?: number): Promise<void> {
     if (timeout === undefined) {
-      timeout = 30; // seconds
+      timeout = 60; // seconds
     }
     if (!is_array(args)) {
       throw new Error("args must be an array");
