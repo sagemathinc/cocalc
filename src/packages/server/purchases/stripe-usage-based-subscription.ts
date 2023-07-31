@@ -56,6 +56,7 @@ import type { Stripe } from "stripe";
 import { currency } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { createCreditFromPaidStripePaymentIntent } from "./create-invoice";
+import syncPaidInvoices from "./sync-paid-invoices";
 
 const logger = getLogger("purchases:stripe-usage-based-subscription");
 
@@ -302,6 +303,20 @@ export async function collectPayment({
     quantity: Math.ceil(amount * 100),
   });
   await stripe.subscriptions.update(sub.id, { billing_cycle_anchor: "now" });
+
+  // if they pay soon, then create credit in our system.
+  // Like below, this is ONLY relevant when webhooks aren't configured,
+  // so basically for limited dev use.
+  (async () => {
+    try {
+      for (const d of [10, 60, 180]) {
+        if (await syncPaidInvoices(account_id)) {
+          return;
+        }
+        await delay(1000 * d);
+      }
+    } catch (_) {}
+  })();
 }
 
 export async function hasUsageSubscription(
