@@ -14,7 +14,6 @@ import {
   React,
   TypedMap,
   redux,
-  useCallback,
   useEffect,
   useIsMountedRef,
   useLayoutEffect,
@@ -35,6 +34,7 @@ import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-h
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import {
   DirectoryListing,
@@ -59,7 +59,6 @@ import {
   unreachable,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { useProjectContext } from "../../context";
 import { FIX_BORDER } from "../common";
 import { FileListItem, fileItemStyle } from "./components";
 import {
@@ -69,6 +68,13 @@ import {
   FLYOUT_PADDING,
 } from "./consts";
 import { FilesBottom } from "./files-bottom";
+
+const EMPTY_LISTING: [DirectoryListing, FileMap, null, boolean] = [
+  [],
+  {},
+  null,
+  true,
+];
 
 type ActiveFileSort = TypedMap<{
   column_name: string;
@@ -93,6 +99,7 @@ function searchToFilename(search: string): string {
   if (search === "") return "";
   // if last character is "/" return the search string
   if (search.endsWith("/")) return search;
+  if (search.endsWith(".")) return `${search}${DEFAULT_EXT}`;
   const { ext } = separate_file_extension(search);
   if (ext.length > 0) return search;
   if (ext === "") return `${search}.${DEFAULT_EXT}`;
@@ -134,7 +141,6 @@ export function FilesFlyout({
   const show_masked = useTypedRedux({ project_id }, "show_masked");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
-  const [search, setSearch] = useState<string>("");
   // mainly controls what a single click does, plus additional UI elements
   const [mode, setMode] = useState<"open" | "select">("open");
   const [prevSelected, setPrevSelected] = useState<number | null>(null);
@@ -173,13 +179,14 @@ export function FilesFlyout({
     };
   }, [project_id, current_path]);
 
-  // selecting files switches over to "select" mode
+  // selecting files switches over to "select" mode or back to "open"
   useEffect(() => {
     if (mode === "open" && checked_files.size > 0) {
       setMode("select");
     }
-    // this doesn't switch back to open mode, if no files are selected,
-    // because it's nicer to keep the checkboxes if everything is deselected
+    if (mode === "select" && checked_files.size === 0) {
+      setMode("open");
+    }
   }, [checked_files]);
 
   // active file: current editor is the file in the listing
@@ -190,18 +197,12 @@ export function FilesFlyout({
     DirectoryListingEntry | null,
     boolean
   ] => {
-    const empty: [DirectoryListing, FileMap, null, boolean] = [
-      [],
-      {},
-      null,
-      true,
-    ];
-    if (directoryListings == null) return empty;
+    if (directoryListings == null) return EMPTY_LISTING;
     const filesStore = directoryListings.get(current_path);
-    if (filesStore == null) return empty;
+    if (filesStore == null) return EMPTY_LISTING;
 
     // TODO this is an error, process it
-    if (typeof filesStore === "string") return empty;
+    if (typeof filesStore === "string") return EMPTY_LISTING;
 
     const files: DirectoryListing = filesStore.toJS();
     let activeFile: DirectoryListingEntry | null = null;
@@ -346,36 +347,19 @@ export function FilesFlyout({
     ];
   }, [flyoutWidth]);
 
-  const setSearchState = debounce(
-    (val: string) => {
-      actions?.set_file_search(val);
-    },
-    50,
-    { leading: false, trailing: true }
-  );
+  const setSearchState = (val: string) => {
+    actions?.set_file_search(val);
+  };
 
   const handleSearchChange = (val: string) => {
     setScrollIdx(null);
-    setSearch(val);
     setSearchState(val);
   };
 
-  // this was necessary to avoid some flicker, when the search change triggers the effect below
-  const updateSearch = useCallback(
-    debounce(
-      () => {
-        if (search === file_search) return;
-        setScrollIdx(null);
-        setSearch(file_search);
-      },
-      50,
-      { leading: false, trailing: true }
-    ),
-    []
-  );
-
   // incoming search state change
-  useEffect(updateSearch, [file_search]);
+  useEffect(() => {
+    setScrollIdx(null);
+  }, [file_search]);
 
   // *** END HOOKS ***
 
@@ -415,7 +399,7 @@ export function FilesFlyout({
       if (file.isdir) {
         // true: change history, false: do not show "files" page
         actions?.open_directory(fullPath, true, false);
-        setSearch("");
+        setSearchState("");
       } else {
         const foreground = should_open_in_foreground(e);
         track("open-file", {
@@ -445,8 +429,6 @@ export function FilesFlyout({
       // deselects the file
       actions?.set_file_list_unchecked(List([fn]));
       if (checked_files.size <= 1) {
-        // because the above will remove the last checked item, we revert back to "open" mode
-        setMode("open");
         setPrevSelected(null);
       } else {
         setPrevSelected(index);
@@ -455,7 +437,6 @@ export function FilesFlyout({
       // selects the file
       actions?.set_file_list_checked([fn]);
       setPrevSelected(index);
-      setMode("select");
     }
   }
 
@@ -488,24 +469,30 @@ export function FilesFlyout({
     }
 
     // shift-click selects whole range from last selected (if not null) to current index
-    if (e.shiftKey && prevSelected != null) {
-      const start = Math.min(prevSelected, index);
-      const end = Math.max(prevSelected, index);
-      const add = !checked_files.includes(
-        path_to_file(current_path, directoryFiles[index].name)
-      );
-      let fileNames: string[] = [];
-      for (let i = start; i <= end; i++) {
-        const fn = directoryFiles[i].name;
-        if (fn === "..") continue; // don't select parent dir, just calls for trouble
-        fileNames.push(path_to_file(current_path, fn));
-      }
-      if (add) {
-        actions?.set_file_list_checked(fileNames);
+    if (e.shiftKey) {
+      if (prevSelected != null) {
+        const start = Math.min(prevSelected, index);
+        const end = Math.max(prevSelected, index);
+        const add = !checked_files.includes(
+          path_to_file(current_path, directoryFiles[index].name)
+        );
+        let fileNames: string[] = [];
+        for (let i = start; i <= end; i++) {
+          const fn = directoryFiles[i].name;
+          if (fn === "..") continue; // don't select parent dir, just calls for trouble
+          fileNames.push(path_to_file(current_path, fn));
+        }
+        if (add) {
+          actions?.set_file_list_checked(fileNames);
+        } else {
+          actions?.set_file_list_unchecked(List(fileNames));
+        }
+        return;
       } else {
-        actions?.set_file_list_unchecked(List(fileNames));
+        toggleSelected(index, file.name);
+        setPrevSelected(index);
+        return;
       }
-      return;
     }
 
     switch (mode) {
@@ -541,7 +528,7 @@ export function FilesFlyout({
   }
 
   async function createFileOrFolder() {
-    const fn = searchToFilename(search);
+    const fn = searchToFilename(file_search);
     await actions?.create_file({
       name: fn,
       current_path,
@@ -569,8 +556,8 @@ export function FilesFlyout({
       if (scrollIdx != null) {
         open(e, scrollIdx);
         setScrollIdx(null);
-      } else if (search != "") {
-        setSearch("");
+      } else if (file_search != "") {
+        setSearchState("");
         if (!isEmpty) {
           open(e, 0);
         } else {
@@ -743,109 +730,136 @@ export function FilesFlyout({
 
   function renderHeader() {
     return (
-      <Space
-        direction="vertical"
-        style={{
-          flex: "0 0 auto",
-          paddingBottom: FLYOUT_PADDING,
-          paddingRight: FLYOUT_PADDING,
-          borderBottom: FIX_BORDER,
-        }}
-      >
-        {wrapDropzone(
+      <>
+        <Space
+          direction="vertical"
+          style={{
+            flex: "0 0 auto",
+            paddingBottom: FLYOUT_PADDING,
+            paddingRight: FLYOUT_PADDING,
+          }}
+        >
+          {wrapDropzone(
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+              }}
+            >
+              <Radio.Group size="small">
+                {renderSortButton("name", "Name")}
+                {renderSortButton("size", "Size")}
+                {renderSortButton("time", "Time")}
+                {renderSortButton("type", "Type")}
+              </Radio.Group>
+              <Space.Compact direction="horizontal" size={"small"}>
+                <Button
+                  className={uploadClassName}
+                  size="small"
+                  disabled={!projectIsRunning || disableUploads}
+                >
+                  <Icon name={"upload"} />
+                </Button>
+                <Tooltip title="Create a new file" placement="bottom">
+                  <Button
+                    size="small"
+                    type="primary"
+                    onClick={() => actions?.toggleFlyout("new")}
+                  >
+                    <Icon name={"plus-circle"} />
+                  </Button>
+                </Tooltip>
+              </Space.Compact>
+            </div>
+          )}
           <div
             style={{
               display: "flex",
               flexDirection: "row",
               justifyContent: "space-between",
+              width: "100%",
+              gap: FLYOUT_PADDING,
             }}
           >
-            <Radio.Group size="small">
-              {renderSortButton("name", "Name")}
-              {renderSortButton("size", "Size")}
-              {renderSortButton("time", "Time")}
-              {renderSortButton("type", "Type")}
-            </Radio.Group>
-            <Space.Compact direction="horizontal" size={"small"}>
-              <Button
-                className={uploadClassName}
-                size="small"
-                disabled={!projectIsRunning || disableUploads}
+            <Input
+              ref={refInput}
+              placeholder="Filter..."
+              size="small"
+              value={file_search}
+              onKeyDown={filterKeyHandler}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onFocus={() => setScrollIdxHide(false)}
+              onBlur={() => setScrollIdxHide(true)}
+              style={{ flex: "1" }}
+              allowClear
+              prefix={<Icon name="search" />}
+            />
+            <Space.Compact direction="horizontal" size="small">
+              <BootstrapButton
+                title={hidden ? "Hide hidden files" : "Show hidden files"}
+                bsSize="xsmall"
+                style={{ flex: "0" }}
+                onClick={() => actions?.setState({ show_hidden: !hidden })}
               >
-                <Icon name={"upload"} />
-              </Button>
-              <Tooltip title="Create a new file" placement="bottom">
-                <Button
-                  size="small"
-                  type="primary"
-                  onClick={() => actions?.toggleFlyout("new")}
-                >
-                  <Icon name={"plus-circle"} />
-                </Button>
-              </Tooltip>
+                <Icon name={hidden ? "eye" : "eye-slash"} />
+              </BootstrapButton>
+              <BootstrapButton
+                title={show_masked ? "Hide masked files" : "Show masked files"}
+                bsSize="xsmall"
+                style={{ flex: "0" }}
+                active={!show_masked}
+                onClick={() => actions?.setState({ show_masked: !show_masked })}
+              >
+                <Icon name={"mask"} />
+              </BootstrapButton>
             </Space.Compact>
+            {kucalc === KUCALC_COCALC_COM ? (
+              <Space.Compact direction="horizontal" size="small">
+                <Button
+                  onClick={() => {
+                    actions?.open_directory(".snapshots");
+                    track("snapshots", {
+                      action: "open",
+                      where: "flyout-files",
+                    });
+                  }}
+                  title={
+                    "Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."
+                  }
+                  icon={<Icon name={"life-ring"} />}
+                />
+              </Space.Compact>
+            ) : undefined}
           </div>
-        )}
-        <div
+        </Space>
+        <Space
+          direction="vertical"
           style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            width: "100%",
-            gap: FLYOUT_PADDING,
+            flex: "0 0 auto",
+            borderBottom: FIX_BORDER,
           }}
         >
-          <Input
-            ref={refInput}
-            placeholder="Filter..."
-            size="small"
-            value={search}
-            onKeyDown={filterKeyHandler}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onFocus={() => setScrollIdxHide(false)}
-            onBlur={() => setScrollIdxHide(true)}
-            style={{ flex: "1" }}
-            allowClear
-            prefix={<Icon name="search" />}
-          />
-          <Space.Compact direction="horizontal" size="small">
-            <BootstrapButton
-              title={hidden ? "Hide hidden files" : "Show hidden files"}
-              bsSize="xsmall"
-              style={{ flex: "0" }}
-              onClick={() => actions?.setState({ show_hidden: !hidden })}
-            >
-              <Icon name={hidden ? "eye" : "eye-slash"} />
-            </BootstrapButton>
-            <BootstrapButton
-              title={show_masked ? "Hide masked files" : "Show masked files"}
-              bsSize="xsmall"
-              style={{ flex: "0" }}
-              active={!show_masked}
-              onClick={() => actions?.setState({ show_masked: !show_masked })}
-            >
-              <Icon name={"mask"} />
-            </BootstrapButton>
-          </Space.Compact>
-          {kucalc === KUCALC_COCALC_COM ? (
-            <Space.Compact direction="horizontal" size="small">
-              <Button
-                onClick={() => {
-                  actions?.open_directory(".snapshots");
-                  track("snapshots", { action: "open", where: "flyout-files" });
-                }}
-                title={
-                  "Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."
-                }
-                icon={<Icon name={"life-ring"} />}
-              />
-            </Space.Compact>
-          ) : undefined}
-        </div>
-        {staleListingWarning()}
-        {createFileIfNotExists()}
-        {renderFileCreationError()}
-      </Space>
+          {staleListingWarning()}
+          {activeFilterWarning()}
+          {createFileIfNotExists()}
+          {renderFileCreationError()}
+        </Space>
+      </>
+    );
+  }
+
+  function renderClearSearchSmall() {
+    return (
+      <Tooltip title="Clear search" placement="bottom">
+        <Button
+          size="small"
+          type="text"
+          style={{ float: "right", color: COLORS.GRAY_M }}
+          onClick={() => setSearchState("")}
+          icon={<Icon name="close-circle-filled" />}
+        />
+      </Tooltip>
     );
   }
 
@@ -866,10 +880,30 @@ export function FilesFlyout({
     );
   }
 
-  function createFileIfNotExists() {
-    if (search === "" || !isEmpty) return;
+  function activeFilterWarning() {
+    if (file_search === "") return;
+    if (!isEmpty) {
+      return (
+        <Alert
+          type="info"
+          banner
+          showIcon={false}
+          style={{ padding: FLYOUT_PADDING, margin: 0 }}
+          description={
+            <>
+              {renderClearSearchSmall()}
+              Only showing files matching "<Text code>{file_search}</Text>".
+            </>
+          }
+        />
+      );
+    }
+  }
 
-    const what = search.trim().endsWith("/") ? "directory" : "file";
+  function createFileIfNotExists() {
+    if (file_search === "" || !isEmpty) return;
+
+    const what = file_search.trim().endsWith("/") ? "directory" : "file";
     return (
       <Alert
         type="info"
@@ -878,8 +912,14 @@ export function FilesFlyout({
         style={{ padding: FLYOUT_PADDING, margin: 0 }}
         description={
           <>
-            Hit <Text code>Return</Text> to create the {what}{" "}
-            <Text code>{searchToFilename(search)}</Text>
+            <div>
+              {renderClearSearchSmall()}
+              No files match the current filter.
+            </div>
+            <div>
+              Hit <Text code>Return</Text> to create the {what}{" "}
+              <Text code>{searchToFilename(file_search)}</Text>
+            </div>
           </>
         }
       />
@@ -956,7 +996,6 @@ export function FilesFlyout({
           actions?.set_all_files_unchecked();
         }}
         selectAllFiles={() => {
-          setMode("select");
           actions?.set_file_list_checked(
             directoryFiles
               .filter((f) => f.name !== "..")

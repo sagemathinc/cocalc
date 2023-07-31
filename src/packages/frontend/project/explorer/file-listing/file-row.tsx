@@ -25,6 +25,8 @@ export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
   "txt",
   "html",
   "pdf",
+  "png",
+  "jpeg",
 ] as const;
 
 interface Props {
