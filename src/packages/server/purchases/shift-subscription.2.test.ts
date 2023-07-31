@@ -51,6 +51,6 @@ describe("test shiftSubscriptionToEndOnDay -- involves actual subscriptions", ()
     expect(sub2.current_period_end.getDate()).toBe(6);
     // (2) license changed so end date is 6
     const license = await getLicense(license_id);
-    expect(new Date(license.expires).getDate()).toBe(6);
+    expect(new Date(license.expires ?? 0).getDate()).toBe(6);
   });
 });

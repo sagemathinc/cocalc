@@ -218,10 +218,10 @@ describe("create a subscription license and edit it and confirm the subscription
       period: "monthly",
       uptime: "short",
       run_limit: 1,
-    });
+    } as any);
 
     // the monthly cost doesn't change *exactly* as the cost to edit, due
     // to the date range, particular month, etc.
-    expect(subs2[0].cost).toBeCloseTo(cost2.discounted_cost, 2);
+    expect(subs2[0].cost).toBeCloseTo(cost2?.discounted_cost ?? 0, 2);
   });
 });

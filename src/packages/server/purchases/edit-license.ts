@@ -89,7 +89,7 @@ export default async function editLicense(
       );
     }
   }
-  if (changes.start == null && changes.end < info.start) {
+  if (changes.start == null && changes.end != null && changes.end < info.start) {
     // if changing end to be before start, just reset start to
     // also equal end -- the result will of course cost 0.
     changes = { ...changes, start: changes.end };
