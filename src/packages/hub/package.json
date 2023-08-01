@@ -19,7 +19,6 @@
     "@cocalc/util": "workspace:*",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.4",
-    "@sendgrid/client": "^7.4.6",
     "@types/express": "^4.17.13",
     "@types/nodemailer": "^6.4.8",
     "@types/primus": "^7.3.6",

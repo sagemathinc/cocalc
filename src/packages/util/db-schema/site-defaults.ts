@@ -100,10 +100,8 @@ export const is_email_enabled = (conf): boolean =>
   to_bool(conf.email_enabled) && conf.email_backend !== "none";
 export const only_for_smtp = (conf): boolean =>
   is_email_enabled(conf) && conf.email_backend === "smtp";
-export const only_for_sendgrid = (conf): boolean =>
-  is_email_enabled(conf) && conf.email_backend === "sendgrid";
-export const only_for_password_reset_smtp = (conf): boolean =>
-  to_bool(conf.email_enabled) && conf.password_reset_override === "smtp";
+export const only_for_smtp2 = (conf): boolean =>
+  is_email_enabled(conf) && to_bool(conf.email_smtp2_enabled);
 export const only_onprem = (conf): boolean =>
   conf.kucalc === KUCALC_ON_PREMISES;
 export const only_ssh_gateway = (conf): boolean => to_bool(conf.ssh_gateway);
@@ -220,6 +218,14 @@ These are limits for the total upgrade of a project pod.
 
 const help_email_name = "Help email";
 const organization_email_desc = `How to contact your organization (fallback: '${help_email_name}').`;
+
+export const EMAIL_BACKENDS = ["none", "smtp"] as const;
+export type EmailBackend = (typeof EMAIL_BACKENDS)[number];
+
+export function isValidEmailBackend(val?: any): val is EmailBackend {
+  if (typeof val !== "string") return false;
+  return EMAIL_BACKENDS.includes(val as EmailBackend);
+}
 
 // You can use markdown in the descriptions below!
 

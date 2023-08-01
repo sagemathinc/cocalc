@@ -1,11 +1,12 @@
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
 import { Layout } from "antd";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
+
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 export default function TermsOfService({ customize }) {
   return (
@@ -225,26 +226,6 @@ export default function TermsOfService({ customize }) {
                   </li>
                 </ul>
                 <li>
-                  <A href="https://sendgrid.com/">Sendgrid (twilio)</A>
-                </li>
-                <ul>
-                  <li>
-                    usage: email backend (transactional, e.g. welcome, password
-                    resets, ...)
-                  </li>
-                  <li>shared: email address</li>
-                  <li>
-                    <A href="https://www.twilio.com/legal/privacy">
-                      Privacy Policy
-                    </A>
-                  </li>
-                  <li>
-                    <A href="https://sendgrid.com/resource/general-data-protection-regulation-2/">
-                      GDPR Information
-                    </A>{" "}
-                  </li>
-                </ul>
-                <li>
                   <A href="https://aws.amazon.com/">Amazon AWS</A>
                 </li>
                 <ul>
@@ -313,6 +294,10 @@ export default function TermsOfService({ customize }) {
                 <li>March 16, 2023: added openai.</li>
                 <li>
                   September 15, 2021: removed appear.in, which we no longer use.
+                </li>
+                <li>
+                  August 13, 2023: removing Sendgrid, all outgoing email go
+                  through AWS SES.
                 </li>
               </ul>
             </div>

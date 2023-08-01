@@ -3,20 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-export type BackendType = "email" | "password_reset";
-
+export type BackendType = "smtp" | "smtp2";
 
 export interface SMTPSettings {
-    dns: string;
-    server: string;
-    login: string;
-    password: string;
-    secure: boolean;
-    from: string;
-    port?: number;
-    pooling?: boolean;
-    name: string;
-  }
+  dns: string;
+  server: string;
+  login: string;
+  password: string;
+  secure: boolean;
+  from: string;
+  port?: number;
+  pooling?: boolean;
+  name: string;
+}
 
 export interface EmailSendConfig {
   to: string;
@@ -52,10 +51,15 @@ export interface EmailTemplate {
   unsubscribe?: boolean; // default true
 }
 
-export type EmailTemplateName = "welcome" | "password_reset" | "news";
+export type EmailTemplateName =
+  | "custom"
+  | "notification"
+  | "welcome"
+  | "password_reset"
+  | "verify_email"
+  | "news";
 
 export interface EmailTemplateSendResult {
   status: "sent" | "test" | "error" | "queued";
   value: any;
 }
-

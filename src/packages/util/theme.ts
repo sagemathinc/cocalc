@@ -61,12 +61,6 @@ export const sign_up_id = "44ZfCImosncQhP3jwQM";
 export const JUPYTER_CLASSIC_MODERN =
   "https://doc.cocalc.com/jupyter-classical-vs-cocalc.html";
 
-// this is used in packages/hub/email.coffee and hub.coffee to specify the template and ASM groups for sendgrid
-export const SENDGRID_TEMPLATE_ID = "0375d02c-945f-4415-a611-7dc3411e2a78";
-// asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
-export const SENDGRID_ASM_INVITES = 699;
-export const SENDGRID_ASM_NEWSLETTER = 698;
-
 // This is the applications color scheme
 const MAIN_COLORS = {
   BLUE_DDD: "#0E2B59",

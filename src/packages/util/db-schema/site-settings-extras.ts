@@ -13,8 +13,7 @@ import {
   Config,
   is_email_enabled,
   only_for_smtp,
-  only_for_sendgrid,
-  only_for_password_reset_smtp,
+  only_for_smtp2,
   to_bool,
   only_booleans,
   to_int,
@@ -22,6 +21,7 @@ import {
   only_pos_int,
   only_commercial,
   only_cocalc_com,
+  EMAIL_BACKENDS,
 } from "./site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
@@ -73,15 +73,20 @@ export type SiteSettingsExtrasKeys =
   | "re_captcha_v3_secret_key"
   | "email_section"
   | "email_backend"
-  | "sendgrid_key"
+  | "email_shared_secret"
   | "email_smtp_server"
   | "email_smtp_from"
   | "email_smtp_login"
   | "email_smtp_password"
   | "email_smtp_port"
   | "email_smtp_secure"
-  | "email_smtp_pooling"
-  | "email_shared_secret"
+  | "email_smtp2_enabled"
+  | "email_smtp2_server"
+  | "email_smtp2_from"
+  | "email_smtp2_login"
+  | "email_smtp2_password"
+  | "email_smtp2_port"
+  | "email_smtp2_secure"
   | "openai_section"
   | "openai_api_key"
   | "qdrant_api_key"
@@ -90,13 +95,6 @@ export type SiteSettingsExtrasKeys =
   | "jupyter_section"
   | "jupyter_account_id"
   | "jupyter_project_pool_size"
-  | "password_reset_override"
-  | "password_reset_smtp_server"
-  | "password_reset_smtp_from"
-  | "password_reset_smtp_login"
-  | "password_reset_smtp_password"
-  | "password_reset_smtp_port"
-  | "password_reset_smtp_secure"
   | "zendesk_heading"
   | "zendesk_token"
   | "zendesk_username"
@@ -290,17 +288,18 @@ export const EXTRAS: SettingsExtras = {
   email_backend: {
     name: "Email backend type",
     desc: "The type of backend for sending emails ('none' means there is none).",
-    default: "",
-    valid: ["none", "sendgrid", "smtp"],
+    default: "smtp",
+    valid: EMAIL_BACKENDS,
     show: () => true,
   },
-  sendgrid_key: {
-    name: "Sendgrid API key (for email)",
-    desc: "You need a Sendgrid account and then enter a valid API key here",
-    password: true,
+  email_shared_secret: {
+    name: "shared secret for accessing email settings",
+    desc: "This is a random string, set once, and should only be modified if it leaks.",
     default: "",
-    show: only_for_sendgrid,
+    show: is_email_enabled,
   },
+
+  // SMTP default server (for immediate emails or all of them, if SMTP2 is not configured)
   email_smtp_server: {
     name: "SMTP server (for email)",
     desc: "the hostname to talk to",
@@ -343,70 +342,60 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_bool,
     show: only_for_smtp,
   },
-  email_smtp_pooling: {
-    name: "Pool connections to SMTP server (for email)",
-    desc: "If true, then we pool connections to the SMTP server.",
+
+  // optional SMTP default server (for low-priority scheduled emails)
+  email_smtp2_enabled: {
+    name: "SMTP2 enabled",
+    desc: "Optional. If enabled, this is used as a second SMTP for low-priority emails",
     default: "false",
     valid: only_booleans,
     to_val: to_bool,
     show: only_for_smtp,
   },
-  email_shared_secret: {
-    name: "shared secret for accessing email settings",
-    desc: "This is a random string, set once, and should only be modified if it leaks.",
+  email_smtp2_server: {
+    name: "SMTP2 server (for email)",
+    desc: "the hostname to talk to",
     default: "",
-    show: is_email_enabled,
+    show: only_for_smtp2,
   },
-  // bad name, historic baggage, used in packages/hub/email.ts
-  password_reset_override: {
-    name: "Override email backend",
-    desc: "For 'smtp', password reset and email verification emails are sent via the 'Secondary SMTP' configuration",
-    default: "default",
-    valid: ["default", "smtp"],
-    show: is_email_enabled,
-  },
-  password_reset_smtp_server: {
-    name: "Secondary SMTP server (for email)",
-    desc: "hostname sending password reset emails",
-    default: "",
-    show: only_for_password_reset_smtp,
-  },
-  password_reset_smtp_from: {
-    name: "Secondary SMTP FROM (for email)",
-    desc: "This sets the FROM and REPLYTO email address",
+  email_smtp2_from: {
+    name: "SMTP2 server FROM (for email)",
+    desc: "the FROM and REPLYTO email address",
     default: "",
     valid: is_valid_email_address,
-    show: only_for_password_reset_smtp,
+    show: only_for_smtp2,
   },
-  password_reset_smtp_login: {
-    name: "Secondary SMTP username (for email)",
-    desc: "username, PLAIN auth",
+  email_smtp2_login: {
+    name: "SMTP username (for email)",
+    desc: "the username, for PLAIN login",
     default: "",
-    show: only_for_password_reset_smtp,
+    show: only_for_smtp2,
   },
-  password_reset_smtp_password: {
-    name: "Secondary SMTP password (for email)",
-    desc: "password, PLAIN auth",
+  email_smtp2_password: {
+    name: "SMTP password (for email)",
+    desc: "the password, for PLAIN login",
     default: "",
-    show: only_for_password_reset_smtp,
+    show: only_for_smtp2,
     password: true,
   },
-  password_reset_smtp_port: {
-    name: "Secondary SMTP port (for email)",
+  email_smtp2_port: {
+    name: "SMTP port (for email)",
     desc: "Usually: For secure==true use port 465, otherwise port 587 or 25",
     default: "465",
     to_val: to_int,
     valid: only_nonneg_int,
-    show: only_for_password_reset_smtp,
+    show: only_for_smtp2,
   },
-  password_reset_smtp_secure: {
-    name: "Secondary SMTP secure (for email)",
+  email_smtp2_secure: {
+    name: "SMTP secure (for email)",
     desc: "Usually 'true'",
     default: "true",
     valid: only_booleans,
     to_val: to_bool,
-    show: only_for_password_reset_smtp,
+    show: only_for_smtp2,
   },
+
+  // misc settings
   prometheus_metrics: {
     name: "Prometheus Metrics",
     desc: "Make [Prometheus metrics](https://prometheus.io/) available at `/metrics`. (Wait one minute after changing this setting for it to take effect.)",

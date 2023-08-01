@@ -29,6 +29,7 @@ import {
   EmailTemplateSendResult,
   EmailTemplateSenderSettings,
 } from "./types";
+import { VERIFY_EMAIL_BLOCK_MD } from "./utils";
 
 const L = getLogger("email:send-templates");
 
@@ -81,6 +82,14 @@ export async function send(
   const { to, subject, name, test = false, template, locals } = _;
   if (templateSender == null) {
     throw new Error("email templates sender not initialized");
+  }
+
+  if (template === "welcome") {
+    if (locals.token_url) {
+      locals.verify = Mustache.render(VERIFY_EMAIL_BLOCK_MD, locals);
+    } else {
+      locals.verify = "";
+    }
   }
 
   if (template === "news") {
@@ -265,6 +274,7 @@ class EmailTemplateSender {
       subject,
       html,
       text: this.html2text(html),
+      channel: template,
     };
 
     if (!templateData.unsubscribe) {

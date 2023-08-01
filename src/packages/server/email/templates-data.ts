@@ -5,6 +5,7 @@
 
 import { COLORS } from "@cocalc/util/theme";
 import { EmailTemplate, EmailTemplateName } from "./types";
+import { VERIFY_EMAIL_BLOCK_MD } from "./utils";
 
 const welcome = `
 # Welcome to {{siteName}}!
@@ -15,6 +16,8 @@ We aim to make it really easy for you to work with open-source scientific softwa
 and we're always here to help if you have [any questions](mailto:{{helpEmail}}).
 
 You received this email because an account with the email address \`{{email_address}}\` was created.
+
+{{verify_email}}
 
 ---
 
@@ -75,6 +78,14 @@ If you did not request a password reset, please ignore this email.
 In case of problems, [please contact support](mailto:{{helpEmail}}).
 `;
 
+
+
+const verify_email = `
+## Hello {{name}}!
+
+${VERIFY_EMAIL_BLOCK_MD}
+`;
+
 const newsletter = `
 ## Hello {{name}}!
 
@@ -89,17 +100,38 @@ Want to know more? Visit [Feature Overview Page](https://cocalc.com/features) fo
 Do you have further questions? Please contact [{{helpEmail}}](mailto:{{helpEmail}}).
 `;
 
+const custom = `
+
+{{text}}
+
+`
+
 type EmailTemplates = Record<EmailTemplateName, EmailTemplate>;
 
 export const EMAIL_TEMPLATES: EmailTemplates = {
+  custom: {
+    subject: "Message from {{siteName}}",
+    template: custom,
+    unsubscribe: false,
+  },
+  notification: {
+    subject: "Notification",
+    template: custom, // just the plain text, for now
+    unsubscribe: false,
+  },
   welcome: {
-    subject: "Welcome to CoCalc",
+    subject: "Welcome to {{siteName}}",
     template: welcome,
     unsubscribe: false,
   },
   password_reset: {
     subject: "Password Reset",
     template: password_reset,
+    unsubscribe: false,
+  },
+  verify_email: {
+    subject: "Verify Email Address",
+    template: verify_email,
     unsubscribe: false,
   },
   news: {

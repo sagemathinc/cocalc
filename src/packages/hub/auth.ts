@@ -76,7 +76,6 @@ import {
 import {
   email_verification_problem,
   email_verified_successfully,
-  welcome_email,
 } from "./email";
 //import Saml2js from "saml2js";
 import { WinstonLogger } from "@cocalc/backend/logger";
@@ -95,6 +94,7 @@ import {
   GoogleStrategyConf,
   TwitterStrategyConf,
 } from "@cocalc/server/auth/sso/public-strategies";
+import { sendVerifyEmail } from "@cocalc/server/email/verify-email";
 const sign_in = require("./sign-in");
 
 const logger = getLogger("hub:auth");
@@ -258,7 +258,7 @@ export class PassportManager {
       const info: PassportStrategyFrontend = {
         name,
         ...(_.pick(this.passports[name].info, keys) as {
-          [key in typeof keys[number]]: any;
+          [key in (typeof keys)[number]]: any;
         }),
       };
       data.push(info);
@@ -885,13 +885,7 @@ export async function verify_email_send_token(opts: VerifyEmailOpts) {
     }>(opts.database.verify_email_create_token, {
       account_id: opts.account_id,
     });
-    const settings = await cb2(opts.database.get_server_settings_cached);
-    await cb2(welcome_email, {
-      to: email_address,
-      token,
-      only_verify: opts.only_verify,
-      settings,
-    });
+    sendVerifyEmail(email_address, token);
     opts.cb();
   } catch (err) {
     opts.cb(err);

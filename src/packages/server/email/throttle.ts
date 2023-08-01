@@ -13,6 +13,7 @@ import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import getPool from "@cocalc/database/pool";
 import { pii_retention_to_future } from "@cocalc/database/postgres/pii";
 import { getServerSettings } from "@cocalc/server/settings";
+import { EmailTemplateName } from "./types";
 
 const DAILY_LIMIT = envToInt("COCALC_EMAIL_DAILY_LIMIT_ACCOUNT", 1000);
 
@@ -20,14 +21,15 @@ const DAILY_LIMIT = envToInt("COCALC_EMAIL_DAILY_LIMIT_ACCOUNT", 1000);
 // It will increment a counter for each day, and if it goes too high it throws
 // an exceptions, which prevents further emais from being sent for that user.
 export default async function sendEmailThrottle(
-  id?: string // account_id or project_id or organization_id...
+  id: string | undefined, // account_id or project_id or organization_id...
+  channel: EmailTemplateName
 ): Promise<void> {
   if (!id) return; // not associated to a particular user
   const day = startOfToday();
   // get current count
   const pool = getPool("short"); // a few seconds old is ok...
   const { rows } = await pool.query(
-    "SELECT count FROM email_counter WHERE time=$1 AND id=$2",
+    "SELECT SUM(count) as count FROM email_counter WHERE time=$1 AND id=$2",
     [day, id]
   );
   if (rows.length > 0 && rows[0].count > DAILY_LIMIT) {
@@ -39,8 +41,8 @@ export default async function sendEmailThrottle(
   if (rows.length > 0) {
     // This will always work with no race conditions, since the given entry exists.
     await pool.query(
-      "UPDATE email_counter SET count = count + 1 WHERE id=$1 AND time=$2",
-      [id, day]
+      "UPDATE email_counter SET count = count + 1 WHERE id=$1 AND time=$2 AND channel=$3",
+      [id, day, channel]
     );
   } else {
     const settings = await getServerSettings();
@@ -48,8 +50,8 @@ export default async function sendEmailThrottle(
     // It's possible another server created email_counter in the meantime,
     // hence the "ON CONFLICT".
     await pool.query(
-      "INSERT INTO email_counter (id,time,count,expire) VALUES($1,$2,1,$3) ON CONFLICT (id, time) DO UPDATE SET count = excluded.count + 1",
-      [id, day, expire]
+      "INSERT INTO email_counter (id,time,count,expire,channel) VALUES($1,$2,1,$3,$4) ON CONFLICT (id, time, channel) DO UPDATE SET count = excluded.count + 1",
+      [id, day, expire, channel]
     );
   }
 }

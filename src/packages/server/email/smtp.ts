@@ -2,7 +2,7 @@
  *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-
+import stableJson from "json-stable-stringify";
 import type { Transporter } from "nodemailer";
 import { createTransport } from "nodemailer";
 
@@ -14,22 +14,18 @@ import {
   send as sendTemplate,
 } from "./templates";
 import {
-  BackendType,
   EmailTemplateName,
   EmailTemplateSendResult,
   SMTPSettings,
 } from "./types";
 
-export default async function sendEmail(
-  message: Message,
-  type: BackendType = "email"
-): Promise<void> {
+export default async function sendEmail(message: Message): Promise<void> {
   let settings: SMTPSettings;
   try {
-    settings = await getSMTPSettings(type);
+    settings = await getSMTPSettings();
   } catch (err) {
     throw Error(
-      `SMTP ${type} is not properly configured for this server. Contact the site administrator. -- ${err}`
+      `SMTP is not properly configured for this server. Contact the site administrator. -- ${err}`
     );
   }
 
@@ -68,7 +64,7 @@ export async function sendTemplateEmail(
 let server: undefined | Transporter = undefined;
 let cacheSettings = ""; // what settings were used to compute cached server.
 async function getServer(settings): Promise<{ sendMail: (Message) => any }> {
-  const s = JSON.stringify(settings);
+  const s = stableJson(settings);
   if (server !== undefined && s == cacheSettings) return server;
   // https://nodemailer.com/smtp/pooled/ -- missing in @types/nodemailer
   const conf = getConf(settings);

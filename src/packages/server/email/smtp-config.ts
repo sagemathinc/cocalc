@@ -9,17 +9,13 @@ import { DNS } from "@cocalc/util/theme";
 import { getServerSettings } from "../settings/server-settings";
 import siteURL from "../settings/site-url";
 import getHelpEmail from "./help";
-import {
-  BackendType,
-  EmailTemplateSenderSettings,
-  SMTPSettings,
-} from "./types";
+import { EmailTemplateSenderSettings, SMTPSettings } from "./types";
 
-export async function getEmailTemplatesConfiguration(): Promise<{
+export async function getEmailTemplatesConfiguration(primary = true): Promise<{
   conf: SMTPTransport.Options & { pool: boolean };
   settings: EmailTemplateSenderSettings;
 }> {
-  const settings = await getSMTPSettings("email");
+  const settings = await getSMTPSettings(primary);
   const serverSettings = await getServerSettings();
 
   return {
@@ -50,37 +46,29 @@ export function getConf(settings) {
   return conf;
 }
 
-export async function getSMTPSettings(
-  type: BackendType
-): Promise<SMTPSettings> {
-  if (type != "email" && type != "password_reset") {
-    throw Error("type must be 'email' or 'password_reset'");
-  }
-  const settings: SMTPSettings = await getEmailServerSettings(type);
+export async function getSMTPSettings(primary = true): Promise<SMTPSettings> {
+  const settings: SMTPSettings = await getEmailServerSettings(primary);
+
+  const name = primary ? "SMTP" : "SMTP2";
 
   if (!settings.server) {
-    throw Error(`SMTP ${type} server must be configured`);
+    throw Error(`${name} server must be configured`);
   }
   if (!settings.login) {
-    throw Error(`SMTP ${type} username must be configured`);
+    throw Error(`${name} username must be configured`);
   }
   if (!settings.password) {
-    throw Error(`SMTP ${type} password must be configured`);
+    throw Error(`${name} password must be configured`);
   }
 
   return settings;
 }
 
 /**
- * Depending on if this is for regular emails or password resets,
+ * Depending on if this is for regular or low priority "smtp2" emails,
  * we return the SMTP settings depending on the server settings.
- * Usually, password reset and regular email settings are the same for SMTP.
- * Only exception is when that override entry is set to smtp, then use the
- * secondary SMTP configuartion.
  */
-async function getEmailServerSettings(
-  type: BackendType
-): Promise<SMTPSettings> {
+async function getEmailServerSettings(primary = true): Promise<SMTPSettings> {
   const settings = await getServerSettings();
 
   const name = settings.site_name || "CoCalc";
@@ -94,33 +82,28 @@ async function getEmailServerSettings(
     secure: settings.email_smtp_secure,
     from,
     port: settings.email_smtp_port,
-    pooling: settings.email_smtp_pooling,
     name,
     dns,
   };
 
-  if (type == "email") {
+  if (primary) {
     return defaultSMTP;
   }
 
-  switch (settings.password_reset_override) {
-    case "default":
-      return defaultSMTP;
-
-    case "smtp":
-      return {
-        server: settings.password_reset_smtp_server,
-        login: settings.password_reset_smtp_login,
-        password: settings.password_reset_smtp_password,
-        secure: settings.password_reset_smtp_secure,
-        from: settings.password_reset_smtp_from,
-        port: settings.password_reset_smtp_port,
-        pooling: settings.email_smtp_pooling,
-        name,
-        dns,
-      };
+  // if the optional secondary SMTP is configured, use it
+  if (settings.email_smtp2_enabled) {
+    const secondarySMTP = {
+      server: settings.email_smtp2_server,
+      login: settings.email_smtp2_login,
+      password: settings.email_smtp2_password,
+      secure: settings.email_smtp2_secure,
+      from,
+      port: settings.email_smtp2_port,
+      name,
+      dns,
+    };
+    return secondarySMTP;
+  } else {
+    return defaultSMTP;
   }
-  throw new Error(
-    `unexpected password_reset_override: ${settings.password_reset_override}`
-  );
 }

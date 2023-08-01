@@ -170,7 +170,7 @@ export default async function signUp(req, res) {
       try {
         await sendWelcomeEmail(email, account_id);
       } catch (err) {
-        // Expected to fail, e.g., when sendgrid or smtp not configured yet.
+        // Expected to fail, e.g., when smtp not configured yet.
         // TODO: should log using debug instead of console?
         console.log(`WARNING: failed to send welcome email to ${email}`, err);
       }
