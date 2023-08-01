@@ -84,7 +84,8 @@ export async function createStripeUsageBasedSubscription(
   if ((await getCurrentSession(account_id)) != null) {
     throw Error("there is already an active stripe checkout session");
   }
-  if ((await getUsageSubscription(account_id)) != null) {
+  const curSubscription = await getUsageSubscription(account_id);
+  if (curSubscription != null && !curSubscription.id.startsWith("card")) {
     throw Error("user already has an active usage-based subscription");
   }
   if (!(await isValidAccount(account_id))) {

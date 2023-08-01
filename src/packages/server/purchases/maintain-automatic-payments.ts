@@ -1,6 +1,6 @@
 /*
 For each account that has automatic payments setup (so stripe_usage_subscription is
-set in the accounts table), and their most recent recent statement with interval "month" 
+set in the accounts table), and their most recent recent statement with interval "month"
 has both fields automatic_payment and paid_purchase_id null and a negative balance,
 we charge for the amount of the negative balance.
 
@@ -16,23 +16,23 @@ The relevant database schemas:
 
 smc=# \d statements
                                             Table "public.statements"
-      Column       |            Type             | Collation | Nullable |                Default                 
+      Column       |            Type             | Collation | Nullable |                Default
 -------------------+-----------------------------+-----------+----------+----------------------------------------
  id                | integer                     |           | not null | nextval('statements_id_seq'::regclass)
- interval          | text                        |           |          | 
- account_id        | uuid                        |           |          | 
- time              | timestamp without time zone |           |          | 
- balance           | real                        |           |          | 
- paid_purchase_id  | integer                     |           |          | 
- automatic_payment | timestamp without time zone |           |          | 
+ interval          | text                        |           |          |
+ account_id        | uuid                        |           |          |
+ time              | timestamp without time zone |           |          |
+ balance           | real                        |           |          |
+ paid_purchase_id  | integer                     |           |          |
+ automatic_payment | timestamp without time zone |           |          |
  ...
- 
+
 smc=# \d accounts
                                   Table "public.accounts"
-           Column            |            Type             | Collation | Nullable | Default 
+           Column            |            Type             | Collation | Nullable | Default
 -----------------------------+-----------------------------+-----------+----------+---------
- account_id                  | uuid                        |           | not null | 
- stripe_usage_subscription   | character varying(256)      |           |          | 
+ account_id                  | uuid                        |           | not null |
+ stripe_usage_subscription   | character varying(256)      |           |          |
 ...
 */
 
@@ -53,34 +53,34 @@ const logger = getLogger("purchase:maintain-automatic-payments");
 // have both automatic_payment and paid_purchase_id both NULL.
 const QUERY = `
 WITH latest_statements AS (
-  SELECT  
+  SELECT
     a.account_id,
-    s.id as statement_id, 
-    s.balance, 
-    s.time, 
+    s.id as statement_id,
+    s.balance,
+    s.time,
     s.automatic_payment,
     s.paid_purchase_id,
     ROW_NUMBER() OVER(PARTITION BY a.account_id ORDER BY s.time DESC) AS rn
-  FROM 
+  FROM
     accounts a
-  JOIN 
+  JOIN
     statements s
     ON a.account_id = s.account_id
-  WHERE 
-    a.stripe_usage_subscription IS NOT NULL 
+  WHERE
+    a.stripe_usage_subscription IS NOT NULL
     AND s.interval = 'month'
 )
-SELECT 
-  account_id, 
-  balance, 
-  statement_id, 
+SELECT
+  account_id,
+  balance,
+  statement_id,
   time
-FROM 
-  latest_statements 
-WHERE 
+FROM
+  latest_statements
+WHERE
   rn = 1
-  AND automatic_payment IS NULL 
-  AND paid_purchase_id IS NULL 
+  AND automatic_payment IS NULL
+  AND paid_purchase_id IS NULL
   AND balance < 0;
 `;
 
@@ -98,36 +98,40 @@ export default async function maintainAutomaticPayments() {
       time
     );
     try {
-      // Determine sum of credits that user explicitly paid *after* the statement date.
-      // We deduct this from their automatic payment.  Usually the automatic payment happens
-      // very quickly after the statement is made, so it's highly unlikely the user paid
-      // anything manually, but just in case we check.
-      const x = await pool.query(
-        "SELECT -SUM(cost) AS credit FROM purchases WHERE account_id=$1 AND service='credit' AND time >= $2 AND cost < 0",
-        [account_id, time]
-      );
-      // Records that we are attempted to set collecting of payment into motion.
+      // disabling this since it seems potentially very confusing:
+      //       // Determine sum of credits that user explicitly paid *after* the statement date.
+      //       // We deduct this from their automatic payment.  Usually the automatic payment happens
+      //       // very quickly after the statement is made, so it's highly unlikely the user paid
+      //       // anything manually, but just in case we check.
+      //       const x = await pool.query(
+      //         "SELECT -SUM(cost) AS credit FROM purchases WHERE account_id=$1 AND service='credit' AND time >= $2 AND cost < 0",
+      //         [account_id, time]
+      //       );
+      //       // Records that we are attempted to set collecting of payment into motion.
+      //       const { credit } = x.rows[0];
+      //       logger.debug("User has ", credit, " in credit from after the statement");
+      //       const amount = -(balance + credit);
+
+      // Set that automatic_payment has been *processed* for this statement.
+      // This only means there was an actual payment attempt if the balance was negative.
       await pool.query(
         "UPDATE statements SET automatic_payment=NOW() WHERE id=$1",
         [statement_id]
       );
-      const { credit } = x.rows[0];
-      logger.debug("User has ", credit, " in credit from after the statement");
-      const amount = -(balance + credit);
-      if (balance + credit < 0) {
+      if (balance < 0) {
         logger.debug(
-          "Since balance + credit ",
-          balance + credit,
+          "Since balance ",
+          balance,
           " is negative, will try to collect",
-          amount
+          balance
         );
 
         // Now make the attempt.  This might work quickly, it might take a day, it might
         // never succeed, it might throw an error.  That's all ok.
         if (mockCollectPayment != null) {
-          await mockCollectPayment({ account_id, amount });
+          await mockCollectPayment({ account_id, amount: -balance });
         } else {
-          await collectPayment({ account_id, amount });
+          await collectPayment({ account_id, amount: -balance });
         }
       }
     } catch (err) {

@@ -22,16 +22,18 @@ interface Options {
   description: string;
   success_url: string;
   cancel_url?: string;
+  force?: boolean; // if true and there's an existing session, discard it instead of throwing an error.
 }
 
 export default async function createStripeCheckoutSession(
   opts: Options
 ): Promise<Stripe.Checkout.Session> {
-  const { account_id, amount, description, success_url, cancel_url } = opts;
+  const { account_id, amount, description, success_url, cancel_url, force } =
+    opts;
   logger.debug("createStripeCheckoutSession", opts);
 
   // check if there is already a stripe checkout session; if so throw error.
-  if ((await getCurrentSession(account_id)) != null) {
+  if (!force && (await getCurrentSession(account_id)) != null) {
     throw Error("there is already an active stripe checkout session");
   }
 

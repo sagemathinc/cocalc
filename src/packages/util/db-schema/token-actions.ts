@@ -43,9 +43,10 @@ interface CancelSubscription {
   subscription_id: number;
 }
 
-interface AddCredit {
-  type: "add-credit";
+export interface MakePayment {
+  type: "make-payment";
   account_id: string;
+  amount: number;
 }
 
 interface DisableDailyStatements {
@@ -55,7 +56,7 @@ interface DisableDailyStatements {
 
 export type Description =
   | CancelSubscription
-  | AddCredit
+  | MakePayment
   | DisableDailyStatements;
 
 export interface TokenAction {

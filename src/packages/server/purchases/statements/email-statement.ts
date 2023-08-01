@@ -22,8 +22,11 @@ import { getServerSettings } from "@cocalc/server/settings";
 import siteURL from "@cocalc/server/settings/site-url";
 import {
   disableDailyStatements,
-  getTokenUrl,
+  makePayment,
 } from "@cocalc/server/token-actions/create";
+import { getTotalBalance } from "../get-balance";
+import { getUsageSubscription } from "../stripe-usage-based-subscription";
+import { currency } from "@cocalc/util/misc";
 
 const logger = getLogger("purchases:email-statement");
 
@@ -52,6 +55,34 @@ export default async function emailStatement(opts: {
       throw Error(`statement already sent recently (wait at least an hour)`);
     }
   }
+  let pay;
+  if (statement.balance >= 0) {
+    pay = "Statement balance is not negative, so no payment is required.";
+  } else {
+    const usageSub = await getUsageSubscription(account_id);
+    const toPay = currency(-statement.balance);
+    if (usageSub == null) {
+      const totalBalance = await getTotalBalance(account_id);
+      if (totalBalance >= 0) {
+        pay = "Your balance is no longer negative, so no payment is required.";
+      } else {
+        const payUrl = await makePayment({
+          account_id,
+          amount: -statement.balance,
+        });
+        pay = `<b><a href="${payUrl}">Click here to pay ${toPay}</a>, since you do NOT have automatic payments setup and your statement balance is negative.  You can also sign in and add money on <a href="${await siteURL()}/settings/purchases">the purchases page</a>.</b>`;
+      }
+    } else {
+      pay = `You have automatic payments setup and your balance is currently ${toPay}. `;
+      if (statement.automatic_payment) {
+        pay += ` ${siteName} initiated a payment of ${toPay}.`;
+      } else {
+        pay += ` ${siteName} will soon initiate a payment of ${currency(
+          -statement.balance
+        )}.`;
+      }
+    }
+  }
 
   const previousStatement = await getPreviousStatement(statement);
 
@@ -66,7 +97,7 @@ export default async function emailStatement(opts: {
   const link = `${await siteURL()}/settings/statements`;
   let stop;
   if (statement.interval == "day") {
-    const url = await getTokenUrl(await disableDailyStatements(account_id));
+    const url = await disableDailyStatements(account_id);
     stop = `<a href="${url}">Disable Daily Statements (you will still receive monthly statements)...</a><br/><br/>`;
   } else {
     stop = "";
@@ -85,6 +116,9 @@ version of all statements in your local timezone at
 <a href="${link}">${link}</a>
 and download your transactions as a CSV or JSON file.
 
+<br/>
+<br/>
+${pay}
 
 <br/>
 <br/>
@@ -113,6 +147,8 @@ Your ${
 version of all statements in your local timezone at
 ${link}
 and download your transactions as a CSV or JSON file.
+
+${pay}
 
 If you have any questions, reply to this email to create
 a support request.
@@ -147,7 +183,7 @@ async function setLastSent(statement_id: number): Promise<void> {
 async function getStatement(statement_id: number): Promise<Statement> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id, interval, account_id, time, balance, total_charges, num_charges, total_credits, num_credits, last_sent FROM statements WHERE id=$1",
+    "SELECT id, interval, account_id, time, balance, total_charges, num_charges, total_credits, num_credits, last_sent, automatic_payment FROM statements WHERE id=$1",
     [statement_id]
   );
   if (rows.length != 1) {
