@@ -49,7 +49,7 @@ describe("creates an account, then creates statements and corresponding emails a
       dryRun: true,
     });
     expect(to).toMatch("@test.com");
-    expect(subject).toMatch("Statement Ending");
+    expect(subject).toMatch("Daily Statement");
   });
 
   it("trying to send same statement immediately again is an error, but works with force", async () => {

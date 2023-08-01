@@ -50,7 +50,6 @@ export default async function emailStatement(opts: {
   }
 
   const previousStatement = await getPreviousStatement(statement);
-  console.log({ statement, previousStatement });
 
   // We do this before sending because it's partly to avoid abuse.
   await setLastSent(statement_id);
