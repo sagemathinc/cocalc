@@ -8,6 +8,7 @@ import { currency } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { PurchasesTable } from "./purchases";
 import EmailDailyStatements from "./email-daily-statements";
+import { Tooltip } from "antd";
 
 interface Props {
   interval: Interval;
@@ -43,41 +44,66 @@ export default function Statements({
 
   const columns = [
     {
-      title: "Cutoff Date",
+      width: "200px",
+      title: (
+        <Tooltip title="Statement includes all completed transactions until this time that are not on any previous statement.">
+          <span>Cutoff Date</span>
+        </Tooltip>
+      ),
       dataIndex: "time",
       key: "time",
       render: (time) => <TimeAgo date={time} />,
     },
     {
-      title: "Total Charges",
+      title: (
+        <Tooltip title="These are subtracted from your balance">
+          <span>Total Charges</span>
+        </Tooltip>
+      ),
       dataIndex: "total_charges",
       key: "total_charges",
       align: "right" as "right",
-      render: (total) => (total ? currency(total, 2) : "-"),
+      render: (total) => (total ? currency(-total, 2) : "-"),
     },
     {
-      width: "100px",
-      title: "Number of Charges",
+      width: "150px",
+      title: (
+        <Tooltip title="Number of times you made a purchase reducing your balance">
+          <span>Number of Charges</span>
+        </Tooltip>
+      ),
       align: "center" as "center",
       dataIndex: "num_charges",
       key: "num_charges",
     },
     {
-      title: "Total Credits",
+      title: (
+        <Tooltip title="These are added to your balance">
+          <span>Total Credits</span>
+        </Tooltip>
+      ),
       dataIndex: "total_credits",
       key: "total_credits",
       align: "right" as "right",
-      render: (total) => (total ? currency(total, 2) : "-"),
+      render: (total) => (total ? currency(-total, 2) : "-"),
     },
     {
-      width: "100px",
-      title: "Number of Credits",
+      width: "150px",
+      title: (
+        <Tooltip title="Number of times you added to your balance">
+          <span>Number of Credits</span>
+        </Tooltip>
+      ),
       align: "center" as "center",
       dataIndex: "num_credits",
       key: "num_credits",
     },
     {
-      title: "Balance at Cutoff",
+      title: (
+        <Tooltip title="All your credits minus all your charges; the larger your balance the more you have.">
+          <span>Balance At Cutoff</span>
+        </Tooltip>
+      ),
       dataIndex: "balance",
       key: "balance",
       align: "right" as "right",

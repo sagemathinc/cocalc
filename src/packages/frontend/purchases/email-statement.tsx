@@ -32,12 +32,12 @@ export default function EmailStatement({ statement_id, style }: Props) {
     <div style={style}>
       <ShowError error={error} setError={setError} />
       <Popconfirm
+        placement="left"
         onConfirm={send}
         title={"Email Statement?"}
         description={
           <div style={{ maxWidth: "400px" }}>
-            Email this complete statement with all transactions to you at{" "}
-            <code>{email_address}</code>?
+            Email to <code>{email_address}</code>?
           </div>
         }
       >

@@ -1,3 +1,17 @@
+/*
+Purchases
+
+NOTES:
+
+
+- cost is by definition how much the thing costs the customer, e.g., -10 means a credit of $10.
+- amount is by definition the negative of cost.
+
+We typically *show* user the amount, but we do absolutely all internal accounting
+and storage with cost.  Why? Because I wrote all the code and tests that way, and it was
+too late to change t use amount internally.  That's the only reason.
+*/
+
 import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
@@ -114,6 +128,13 @@ export type Description =
 
 // max number of purchases a user can get in one query.
 export const MAX_API_LIMIT = 500;
+
+export function getAmountStyle(amount: number) {
+  return {
+    fontWeight: "bold",
+    color: amount >= 0 ? "#126bc5" : "#414042",
+  } as const;
+}
 
 export interface Purchase {
   id: number;

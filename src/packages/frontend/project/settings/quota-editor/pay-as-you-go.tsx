@@ -254,7 +254,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           {runningWithUpgrade && (
             <>
               {" "}
-              (Total:{" "}
+              (Amount:{" "}
               <DynamicallyUpdatingCost
                 costPerHour={
                   project?.getIn([

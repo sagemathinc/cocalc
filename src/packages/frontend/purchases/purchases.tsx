@@ -14,6 +14,7 @@ import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import * as api from "./api";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import type { Purchase, Description } from "@cocalc/util/db-schema/purchases";
+import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -665,7 +666,12 @@ function Amount({ record }) {
     );
   }
   if (cost != null) {
-    return <>{currency(cost, Math.abs(cost) < 0.1 ? 3 : 2)}</>;
+    const amount = -cost;
+    return (
+      <span style={getAmountStyle(amount)}>
+        {currency(amount, Math.abs(amount) < 0.1 ? 3 : 2)}
+      </span>
+    );
   }
   return <>-</>;
 }

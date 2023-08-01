@@ -12,6 +12,14 @@ import dayjs from "dayjs";
 import type { Message } from "@cocalc/server/email/message";
 import sendEmail from "@cocalc/server/email/send-email";
 import getLogger from "@cocalc/backend/logger";
+import {
+  statementToHtml,
+  purchasesToHtml,
+  statementToText,
+  purchasesToText,
+} from "./to-email";
+import { getServerSettings } from "@cocalc/server/settings";
+import siteURL from "@cocalc/server/settings/site-url";
 
 const logger = getLogger("purchases:email-statement");
 
@@ -22,6 +30,7 @@ export default async function emailStatement(opts: {
   dryRun?: boolean; // if set, returns html content of email only, but doesn't send email (useful for unit testing)
 }): Promise<Message> {
   logger.debug("emailStatement ", opts);
+  const { help_email, site_name: siteName } = await getServerSettings();
   const { account_id, statement_id, force, dryRun } = opts;
   const { name, email_address: to } = await getUser(account_id);
   if (!to) {
@@ -40,42 +49,66 @@ export default async function emailStatement(opts: {
     }
   }
 
+  const previousStatement = await getPreviousStatement(statement);
+  console.log({ statement, previousStatement });
+
   // We do this before sending because it's partly to avoid abuse.
   await setLastSent(statement_id);
 
   const purchases = await getPurchasesOnStatement(statement_id);
-  const subject = `Statement Ending ${new Date(statement.time).toISOString()}`;
+  const subject = `${siteName} ${
+    statement.interval == "day" ? "Daily" : "Monthly"
+  } Statement - ${new Date(statement.time).toDateString()}`;
+
+  const link = `${await siteURL()}/settings/statements`;
+
   const html = `
-Dear ${name},
+Hello ${name},
 
-<h3>Statement</h3>
-<pre>
-${JSON.stringify(statement, undefined, 2)}
-</pre>
+<br/>
+<br/>
 
-<h3>Transactions</h3>
-<pre>
-${JSON.stringify(purchases, undefined, 2)}
-</pre>
+Your statement is below.  You can browse an interactive
+version of all statements in your local timezone at
+<a href="${link}">${link}</a>
+and download your transactions as a CSV or JSON file.
+
+
+<br/>
+<br/>
+
+If you have any questions, reply to this email to create
+a support request.
+
+<br/>
+<br/>
+
+${statementToHtml(statement, previousStatement, { siteName })}
+
+${purchasesToHtml(purchases)}
+
 `;
 
   const text = `
-Dear ${name},
+Hello ${name},
+
+Your statement is below.  You can browse an interactive
+version of all statements in your local timezone at
+${link}
+and download your transactions as a CSV or JSON file.
+
+If you have any questions, reply to this email to create
+a support request.
+
+${statementToText(statement, previousStatement, { siteName })}
 
 ---
 
-Statement:
+${purchasesToText(purchases)}
 
-${JSON.stringify(statement, undefined, 2)}
-
----
-
-Transactions:
-
-${JSON.stringify(purchases, undefined, 2)}
 `;
 
-  const mesg = { to, subject, html, text };
+  const mesg = { from: help_email, to, subject, html, text };
 
   if (!dryRun) {
     // actually send email
@@ -100,6 +133,20 @@ async function getStatement(statement_id: number): Promise<Statement> {
   );
   if (rows.length != 1) {
     throw Error(`no statement with id ${statement_id}`);
+  }
+  return rows[0];
+}
+
+async function getPreviousStatement(
+  statement: Statement
+): Promise<Statement | null> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT id, interval, account_id, time, balance, total_charges, num_charges, total_credits, num_credits, last_sent FROM statements WHERE id<$1 AND account_id=$2 AND interval=$3 ORDER BY id DESC",
+    [statement.id, statement.account_id, statement.interval]
+  );
+  if (rows.length != 1) {
+    null;
   }
   return rows[0];
 }

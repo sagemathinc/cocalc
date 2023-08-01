@@ -8,6 +8,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency } from "@cocalc/util/misc";
 import { useInterval } from "react-interval-hook";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
+import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
 
 const MS_IN_HOUR = 1000 * 60 * 60;
 
@@ -16,7 +17,10 @@ interface Props {
   start?: number; // start time in ms since epoch
 }
 
-export default function DynamicallyUpdatingCost({ costPerHour, start }: Props) {
+export default function DynamicallyUpdatingCost({
+  costPerHour,
+  start,
+}: Props) {
   const [currentTime, setCurrentTime] = useState(
     webapp_client.server_time().valueOf()
   );
@@ -30,15 +34,16 @@ export default function DynamicallyUpdatingCost({ costPerHour, start }: Props) {
   }
 
   const cost = (costPerHour * (currentTime - start)) / MS_IN_HOUR;
+  const amount = -cost;
   return (
     <Tooltip
       title={
         <>
-          {currency(costPerHour)}/hour since <TimeAgo date={start} />
+          Costs {currency(costPerHour)}/hour since <TimeAgo date={start} />
         </>
       }
     >
-      {currency(cost)}
+      <span style={getAmountStyle(amount)}>{currency(amount)}</span>
     </Tooltip>
   );
 }
