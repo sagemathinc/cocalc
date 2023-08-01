@@ -20,6 +20,10 @@ import {
 } from "./to-email";
 import { getServerSettings } from "@cocalc/server/settings";
 import siteURL from "@cocalc/server/settings/site-url";
+import {
+  disableDailyStatements,
+  getTokenUrl,
+} from "@cocalc/server/token-actions/create";
 
 const logger = getLogger("purchases:email-statement");
 
@@ -60,6 +64,13 @@ export default async function emailStatement(opts: {
   } Statement - ${new Date(statement.time).toDateString()}`;
 
   const link = `${await siteURL()}/settings/statements`;
+  let stop;
+  if (statement.interval == "day") {
+    const url = await getTokenUrl(await disableDailyStatements(account_id));
+    stop = `<a href="${url}">Disable Daily Statements (you will still receive monthly statements)...</a><br/><br/>`;
+  } else {
+    stop = "";
+  }
 
   const html = `
 Hello ${name},
@@ -67,7 +78,9 @@ Hello ${name},
 <br/>
 <br/>
 
-Your statement is below.  You can browse an interactive
+Your ${
+    statement.interval == "day" ? "Daily" : "Monthly"
+  } statement is below.  You can browse an interactive
 version of all statements in your local timezone at
 <a href="${link}">${link}</a>
 and download your transactions as a CSV or JSON file.
@@ -82,6 +95,9 @@ a support request.
 <br/>
 <br/>
 
+${stop}
+
+
 ${statementToHtml(statement, previousStatement, { siteName })}
 
 ${purchasesToHtml(purchases)}
@@ -91,13 +107,17 @@ ${purchasesToHtml(purchases)}
   const text = `
 Hello ${name},
 
-Your statement is below.  You can browse an interactive
+Your ${
+    statement.interval == "day" ? "Daily" : "Monthly"
+  } statement is below.  You can browse an interactive
 version of all statements in your local timezone at
 ${link}
 and download your transactions as a CSV or JSON file.
 
 If you have any questions, reply to this email to create
 a support request.
+
+${stop}
 
 ${statementToText(statement, previousStatement, { siteName })}
 

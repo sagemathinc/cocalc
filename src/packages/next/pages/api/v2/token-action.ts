@@ -16,10 +16,5 @@ export default async function handle(req, res) {
 
 async function get(req) {
   const { token } = getParams(req);
-  const x = await handleTokenAction(token);
-  if (!x) {
-    return { status: "ok" };
-  } else {
-    return x;
-  }
+  return await handleTokenAction(token);
 }
