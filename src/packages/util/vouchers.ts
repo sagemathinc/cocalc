@@ -26,7 +26,7 @@ interface Options {
   postfix?: string;
 }
 
-export default function vouchers({
+export default function generateVouchers({
   count,
   length = 8,
   charset: charset0 = "alphanumeric",
