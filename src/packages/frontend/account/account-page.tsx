@@ -207,15 +207,17 @@ export const AccountPage: React.FC = () => {
       ),
       children: active_page === "public-files" && <PublicPaths />,
     });
-    items.push({
-      key: "upgrades",
-      label: (
-        <span>
-          <Icon name="arrow-circle-up" /> Upgrades
-        </span>
-      ),
-      children: active_page === "upgrades" && <UpgradesPage />,
-    });
+    if (is_commercial && kucalc === KUCALC_COCALC_COM) {
+      items.push({
+        key: "upgrades",
+        label: (
+          <span>
+            <Icon name="arrow-circle-up" /> Upgrades
+          </span>
+        ),
+        children: active_page === "upgrades" && <UpgradesPage />,
+      });
+    }
 
     return items;
   }

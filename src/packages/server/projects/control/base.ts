@@ -249,7 +249,7 @@ export abstract class BaseProject extends EventEmitter {
     try {
       run_quota = await handlePayAsYouGoQuotas(this.project_id);
     } catch (err) {
-      logger.debug("issue handling run as you go quota", err);
+      logger.debug("issue handling pay as you go quota", err);
       run_quota = null;
     }
 
