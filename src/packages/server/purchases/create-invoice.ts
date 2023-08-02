@@ -139,7 +139,7 @@ corresponding to this invoice in some cases.
 
 - if invoice.metadata == {account_id, service:'credit'} which indicates this
   invoice was for adding credit to the user's purchases balance.
-- if invoice?.lines?.data?.[0]?.metadata == {account_id, service:'credit'} then 
+- if invoice?.lines?.data?.[0]?.metadata == {account_id, service:'credit'} then
   this is from a usage subscription, which exists to regularly add credit
   to the account so that the user can pay subscriptions, etc.
 */
@@ -215,19 +215,33 @@ export async function createCreditFromPaidStripeInvoice(
 }
 
 export async function createCreditFromPaidStripePaymentIntent(intent) {
-  /* 
+  /*
 intent = {
   id: "pi_3NYzMyGbwvoRbeYx1a6eRYqf",
   object: "payment_intent",
   amount: 150,
   amount_details: [Object],
   amount_received: 150,
+  currency: "usd",
+  currency_conversion: null,
   customer: "cus_O7MigbqoiPZQUT",
   description: "Credit CoCalc Account",
   metadata: {...},
   status: "succeeded",
   // ...
 };
+
+OR in case of non-usd payments, currency is not "usd" and "currency_conversion" is set
+
+{...
+    "currency": "eur",
+    "currency_conversion": {
+      "amount_subtotal": 250,
+      "amount_total": 250,
+      "fx_rate": "0.92948",
+      "source_currency": "usd"
+    },
+  }
 */
   if (await paymentAlreadyProcessed(intent?.id)) {
     logger.debug(
@@ -266,8 +280,13 @@ intent = {
     throw Error(`invalid account_id in metadata '${account_id}'`);
   }
 
-  // See comment about "total_excluding_tax" below.
-  const amount = intent.amount_received / 100;
+  let amount;
+  if (intent.currency == "usd" || intent.currency_conversion == null) {
+    // See comment about "total_excluding_tax" below.
+    amount = intent.amount_received / 100;
+  } else {
+    amount = intent.currency_conversion.amount_total / 100;
+  }
   if (!amount) {
     logger.debug(
       "createCreditFromPaidStripePaymentIntent -- 0 amount so skipping"
