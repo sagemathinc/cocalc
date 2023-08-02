@@ -139,7 +139,7 @@ corresponding to this invoice in some cases.
 
 - if invoice.metadata == {account_id, service:'credit'} which indicates this
   invoice was for adding credit to the user's purchases balance.
-- if invoice?.lines?.data?.[0]?.metadata == {account_id, service:'credit'} then 
+- if invoice?.lines?.data?.[0]?.metadata == {account_id, service:'credit'} then
   this is from a usage subscription, which exists to regularly add credit
   to the account so that the user can pay subscriptions, etc.
 */
@@ -200,8 +200,36 @@ export async function createCreditFromPaidStripeInvoice(
     throw Error(`invalid account_id in metadata '${account_id}'`);
   }
 
-  // See comment about "total_excluding_tax" below.
-  const amount = invoice.total_excluding_tax / 100;
+  let amount;
+  if (invoice.currency == "usd") {
+    // See comment about "total_excluding_tax" below.
+    amount = invoice.total_excluding_tax / 100;
+  } else {
+    /*
+    The currency is not usd so we can't just read off total_excluding_tax, since it will be horribly wrong.
+    Instead we figure out how much the invoice was *supposed* to collect from the user in USD, and record
+    that amount, which should be very close to what we should get.
+
+    > invoice.data.object.lines.data[0].price.unit_amount
+    250
+    > invoice.data.object.lines.data[0].quantity
+    1
+    > invoice.data.object.lines.data[0].price.currency
+    'usd'
+
+    NOTE: there's a stripe checkout completion event that also has currency conversion information,
+    but that is only created when doing manual checkout, but not for automatic charges, and we need
+    to handle both.
+    */
+    amount = 0;
+    for (const line of invoice.data.object.lines.data) {
+      if (line.price.currency != "usd") {
+        throw Error("cannot process this invoice since unknown currency");
+      }
+      // This is the amount we are trying to charge the user before any taxes or currency conversion:
+      amount += (line.quantity * line.price.unit_amount) / 100;
+    }
+  }
   if (!amount) {
     logger.debug("createCreditFromPaidStripeInvoice -- 0 amount so skipping");
     return false;
@@ -214,8 +242,9 @@ export async function createCreditFromPaidStripeInvoice(
   return true;
 }
 
+// This is ONLY used for legacy credit cards
 export async function createCreditFromPaidStripePaymentIntent(intent) {
-  /* 
+  /*
 intent = {
   id: "pi_3NYzMyGbwvoRbeYx1a6eRYqf",
   object: "payment_intent",
