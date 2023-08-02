@@ -2,7 +2,7 @@ import getConn from "@cocalc/server/stripe/connection";
 import { getStripeCustomerId } from "../create-stripe-checkout-session";
 import createSubscription from "../create-subscription";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
-import { getNextClosingDate } from "../closing-date";
+import { getNextClosingDateAfter } from "../closing-date";
 import dayjs from "dayjs";
 import getLogger from "@cocalc/backend/logger";
 import cancelSubscription from "../cancel-subscription";
@@ -100,10 +100,12 @@ export async function migrateSubscription(sub) {
   }
 
   // we give them up to almost a free month in the conversion
-  const nextClosingDate = await getNextClosingDate(account_id);
-  const current_period_end = dayjs(nextClosingDate).add(1, "month").toDate();
+  const current_period_end = await getNextClosingDateAfter(
+    account_id,
+    new Date(sub.current_period_end)
+  );
   const current_period_start = dayjs(current_period_end)
-    .subtract(1, "month")
+    .subtract(1, sub.plan.interval)
     .toDate();
 
   const client = await getTransactionClient();

@@ -43,6 +43,16 @@ export async function getNextClosingDate(account_id: string): Promise<Date> {
   return nextDateWithDay(today, day);
 }
 
+export async function getNextClosingDateAfter(
+  account_id: string,
+  date: Date
+): Promise<Date> {
+  const day = await getClosingDay(account_id);
+  // Compute the next Date that is after date, is at midnight UTC,
+  // and lies on the given day of the month.
+  return nextDateWithDay(date, day);
+}
+
 export function nextDateWithDay(date: Date, day: number): Date {
   const month = date.getMonth();
   const year = date.getFullYear();
