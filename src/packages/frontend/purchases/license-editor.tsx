@@ -113,9 +113,10 @@ export default function LicenseEditor({
   let data = [
     {
       key: "start",
-      field: "Start Date",
+      field: "Start",
       value: (
         <DatePicker
+          showTime
           allowClear={false}
           disabled={isSubscription || disabledFields?.has("start")}
           value={info.start ? dayjs(info.start) : undefined}
@@ -126,10 +127,11 @@ export default function LicenseEditor({
     },
     {
       key: "end",
-      field: "End Date",
+      field: "End",
       value: (
         <div>
           <DatePicker
+            showTime
             allowClear={false}
             disabled={isSubscription || disabledFields?.has("end")}
             value={info.end ? dayjs(info.end) : undefined}
