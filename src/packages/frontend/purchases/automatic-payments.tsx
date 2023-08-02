@@ -169,7 +169,7 @@ export default function AutomaticPayments({ style }: Props) {
           }
         >
           <Button
-            disabled={loading || !!stripe_checkout_session?.url}
+            disabled={loading}
             style={
               legacyCard ? { background: "red", color: "white" } : undefined
             }

@@ -206,10 +206,6 @@ export default function PaymentMethods() {
     return <Loading center />;
   }
 
-  if (cards.length == 0) {
-    return <div>x</div>;
-  }
-
   return (
     <div>
       <Title level={2}>Credit Cards ({cards.length})</Title>
@@ -235,13 +231,6 @@ export default function PaymentMethods() {
             style={{ marginTop: "15px", overflowX: "auto" }}
             pagination={{ hideOnSinglePage: true, pageSize: 100 }}
           />
-          {result.sources?.has_more && (
-            <Alert
-              type="warning"
-              showIcon
-              message="WARNING: Some of your cards may not be displayed above, since there are so many."
-            />
-          )}
         </div>
       )}
     </div>
