@@ -70,7 +70,6 @@ export default async function createStripeCheckoutSession(
       },
     ],
     client_reference_id: account_id, // not sure we'll use this, but it's a good double check
-    currency: "usd",
     customer,
     customer_email:
       customer == null ? await getEmailAddress(account_id) : undefined,
