@@ -82,7 +82,7 @@ describe("creates an account, then creates purchases and statements", () => {
       upgrade_purchase_id,
     ]);
 
-    await delay(50); // so above purchase is on statement.
+    await delay(150); // so above purchase is on statement.
     await createStatements({ time: new Date(Date.now() - 1), interval: "day" });
     const statements = await getStatements({
       account_id,
@@ -107,7 +107,7 @@ describe("creates an account, then creates purchases and statements", () => {
 
   it("close/continue the project-upgrade and make a statement", async () => {
     await closeAndContinuePurchase(upgrade_purchase_id);
-    await delay(50); // so above purchase is on statement.
+    await delay(150); // so above purchase is on statement.
     await createStatements({ time: new Date(Date.now() - 1), interval: "day" });
     const statements = await getStatements({
       account_id,
