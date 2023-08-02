@@ -5,6 +5,7 @@ import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import { getNextClosingDate } from "../closing-date";
 import dayjs from "dayjs";
 import getLogger from "@cocalc/backend/logger";
+import cancelSubscription from "../cancel-subscription";
 
 const logger = getLogger("purchases:legacy:subscriptions");
 
@@ -76,7 +77,7 @@ export async function getActiveLicenseSubscriptions(account_id: string) {
 Given a stripe subscription sub, as a single atomic DB transaction we:
 
 - Create the corresponding new subscription in our database
-- Set the expire date of the license to match the user's 
+- Set the expire date of the license to match the user's
   statement day (no charge, so we directly edit the database
   entry for the license).
 - Set the subscription id of the license to the new subscription.
@@ -137,6 +138,18 @@ export async function migrateSubscription(sub) {
       `Created by migrating legacy stripe license subscription ${sub.id}.`,
       subscription_id,
     ]);
+
+    if (sub.cancel_at_period_end) {
+      logger.debug(
+        "subscription was set to cancel_at_period_end so we cancel ours"
+      );
+      await cancelSubscription({
+        account_id,
+        subscription_id,
+        client,
+      });
+    }
+
     logger.debug("finished migrating -- COMMIT", sub.metadata);
 
     await client.query("COMMIT");
