@@ -138,7 +138,9 @@ describe("testing automatic payments in several situations", () => {
     );
   });
 
-  it("creates a statement from a day ago that owes $25, then credits the account for $10, and confirms that collecting triggers a collection of $15, thus taking into account the credit", async () => {
+  // we changed things for now to NOT take into account credit,
+  // to make how much is charged easier to understand and automate.
+  it("creates a statement from a day ago that owes $25, then credits the account for $10, and confirms that collecting triggers a collection of $25, thus NOT taking into account the credit", async () => {
     // clean up all the statements for these two accounts
     await pool.query(
       "DELETE from statements WHERE account_id=$1 OR account_id=$2",
@@ -155,7 +157,7 @@ describe("testing automatic payments in several situations", () => {
     collect.length = 0;
     await maintainAutomaticPayments();
     expect(new Set(collect)).toEqual(
-      new Set([{ account_id: account_id1, amount: 15 }])
+      new Set([{ account_id: account_id1, amount: 25 }])
     );
   });
 
