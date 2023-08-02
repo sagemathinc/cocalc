@@ -222,7 +222,7 @@ export async function createCreditFromPaidStripeInvoice(
     to handle both.
     */
     amount = 0;
-    for (const line of invoice.data.object.lines.data) {
+    for (const line of invoice.lines.data) {
       if (line.price.currency != "usd") {
         throw Error("cannot process this invoice since unknown currency");
       }
