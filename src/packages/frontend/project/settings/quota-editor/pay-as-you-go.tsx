@@ -256,6 +256,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
               {" "}
               (Amount:{" "}
               <DynamicallyUpdatingCost
+                alwaysNonnegative
                 costPerHour={
                   project?.getIn([
                     "run_quota",
@@ -482,7 +483,11 @@ export function PayAsYouGoCost({ project_id }) {
   return (
     <div style={{ textAlign: "center" }}>
       <Tag color="green" style={{ marginInlineEnd: 0 }}>
-        <DynamicallyUpdatingCost costPerHour={quota.cost} start={quota.start} />
+        <DynamicallyUpdatingCost
+          alwaysNonnegative
+          costPerHour={quota.cost}
+          start={quota.start}
+        />
       </Tag>
     </div>
   );
