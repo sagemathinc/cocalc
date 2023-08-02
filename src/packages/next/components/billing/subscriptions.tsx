@@ -150,7 +150,7 @@ function Cancel(props: CancelProps) {
   const [error, setError] = useState<string>("");
   const [canceling, setCanceling] = useState<boolean>(false);
   const isMounted = useIsMounted();
-  const isCanceled = cancel_at_period_end != null || cancel_at != null;
+  const isCanceled = !!cancel_at_period_end || !!cancel_at;
   return (
     <div>
       <Popconfirm
@@ -186,7 +186,7 @@ function Cancel(props: CancelProps) {
           {canceling ? (
             <Loading delay={0}>Canceling...</Loading>
           ) : (
-            `Cancel${isCanceled ? "led" : ""}`
+            `Cancel${isCanceled ? "ed" : ""}`
           )}
         </Button>
         {error && (
@@ -297,7 +297,7 @@ export default function Subscriptions() {
 
   return (
     <div>
-      <div style={{ textAlign: "center", marginBottom:'30px'}}>
+      <div style={{ textAlign: "center", marginBottom: "30px" }}>
         <NewFileButton
           href={join(basePath, "settings", "subscriptions")}
           icon="calendar"
