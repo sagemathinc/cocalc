@@ -117,7 +117,7 @@ export default async function syncCustomer({
 }
 
 function hasNonCanceledLegacySubscription(subscriptions): boolean {
-  for (const sub of subscriptions.data) {
+  for (const sub of subscriptions?.data ?? []) {
     if (sub.status == "active") {
       // this is a crappy test, I guess, but the one new subscription we have using
       // stripe checkout sets metadata.service to 'credit', but we didn't touch
