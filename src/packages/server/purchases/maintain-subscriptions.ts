@@ -3,6 +3,7 @@ import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import renewSubscription from "@cocalc/server/purchases/renew-subscription";
 import cancelSubscription from "./cancel-subscription";
+import sendSubscriptionRenewalEmails from "./subscription-renewal-emails";
 
 const logger = getLogger("purchases:maintain-subscriptions");
 
@@ -23,18 +24,23 @@ export default async function maintainSubscriptions() {
   } catch (err) {
     logger.debug("nonfatal ERROR in cancelAllPendingSubscriptions- ", err);
   }
+  try {
+    await sendSubscriptionRenewalEmails();
+  } catch (err) {
+    logger.debug("nonfatal ERROR in sendSubscriptionRenewalEmails- ", err);
+  }
 }
 
 /*
-For each subscription that has status not 'canceled' and current_period_end 
+For each subscription that has status not 'canceled' and current_period_end
 is in the past or within 1 day, renew that subscription.  Basically, we renew
-subscriptions 1 day before they would automatically cancel for non-payment. 
+subscriptions 1 day before they would automatically cancel for non-payment.
 We renew them here EVEN if that pushes the user's balance below the limit.
 
-There's another maintenance task -- cancelAllPendingSubscriptions below -- 
+There's another maintenance task -- cancelAllPendingSubscriptions below --
 to actually cancel and refund the subscription if the user doesn't pay.
 
-Users can of course easily get almost any money spent via this automatic 
+Users can of course easily get almost any money spent via this automatic
 process back by just canceling the subscription again.
 */
 async function renewSubscriptions() {
@@ -42,7 +48,7 @@ async function renewSubscriptions() {
   const pool = getPool();
 
   const { rows } = await pool.query(
-    `SELECT id, cost, account_id FROM subscriptions WHERE status != 'canceled' AND 
+    `SELECT id, cost, account_id FROM subscriptions WHERE status != 'canceled' AND
     current_period_end <= NOW() + INTERVAL '1' DAY`
   );
   logger.debug(
@@ -86,7 +92,7 @@ Update the status field of all subscriptions.
   is in the past.
 - Set to 'canceled' every subscription with status 'unpaid' for which current_period_end
   is at least subscription_maintenance.grace days in the past.  Note that subscriptions
-  normally get canceled via cancelOnePendingSubscription after a pending payment attempt 
+  normally get canceled via cancelOnePendingSubscription after a pending payment attempt
   fails.
 */
 async function updateStatus() {
@@ -223,34 +229,34 @@ This was a plan at some point too:
 For each active subscription, possibly do the following:
 
     send emails, collect payments, and extend license end dates.
-  
+
 More precisely, the following should happen for all of the user's subscriptions.
 
-- For each subscription whose "current_period_end" is at most X days from now, 
-  and for which we have not sent an email, send an email that the subscription will be 
+- For each subscription whose "current_period_end" is at most X days from now,
+  and for which we have not sent an email, send an email that the subscription will be
   renewed. The email contains:
      - statement about renewal of the subscription, including period and what sub is for.
      - link to renew the subscription -- when clicked that link will add enough credits
        if necessary then purchase the next period of the subscription
-     - link to cancel the subscription -- when clicked link will set status of 
+     - link to cancel the subscription -- when clicked link will set status of
        subscription to canceled
      - support link
 
-- Automatic attempt to renew: assuming the above email didn't trigger any user action (i.e., 
-  the canceled or renewed), for each subscription whose current_period_end is at most Y days 
-  from now, run the "edit license" function to extend the end date of the license and charge 
+- Automatic attempt to renew: assuming the above email didn't trigger any user action (i.e.,
+  the canceled or renewed), for each subscription whose current_period_end is at most Y days
+  from now, run the "edit license" function to extend the end date of the license and charge
   the user.  The edit license will run, but with two changes:
-     - the cost is past in.  The charge to the user is thus a prorated amount based on the 
-       parameters of their subscription, not the current cost of editing the license (i.e., 
+     - the cost is past in.  The charge to the user is thus a prorated amount based on the
+       parameters of their subscription, not the current cost of editing the license (i.e.,
        they get a locked in rate).
-     - if user has a credit card on file and insufficient funds in their account, an attempt 
+     - if user has a credit card on file and insufficient funds in their account, an attempt
        is made to charge their card.
-     - if they don't have funds in their account to pay the charge, then their license 
-       end date is updated with Z days of "grace period".   Send a second email reminder 
+     - if they don't have funds in their account to pay the charge, then their license
+       end date is updated with Z days of "grace period".   Send a second email reminder
        with a link to pay, and include that the grace period is an additional Z days.
 
 - For each subscription that hasn't been paid past the grace period, cancel that license
-  and send an email saying that the subscription is now paused due to non-payment.   Provide 
+  and send an email saying that the subscription is now paused due to non-payment.   Provide
   clear instructions on how they can reactivate their subscription, such as adding funds
   to their account.
 
@@ -274,6 +280,6 @@ upcoming subscription renewal.
 
 - Fully revive the page listing "payment methods" on file for a user,
 and allowing to select the default one or delete one. If you have a
-subscription, you can be encouraged to have a payment method on file. 
+subscription, you can be encouraged to have a payment method on file.
 
 */

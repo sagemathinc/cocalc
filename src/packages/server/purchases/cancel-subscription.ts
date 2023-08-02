@@ -19,8 +19,8 @@ export default async function cancelSubscription({
 }: Options) {
   const pool = client ?? getPool();
   await pool.query(
-    "UPDATE subscriptions SET status='canceled', canceled_at=NOW() WHERE id=$1 AND account_id=$2",
-    [subscription_id, account_id]
+    "UPDATE subscriptions SET status='canceled', canceled_at=NOW() WHERE id=$1",
+    [subscription_id]
   );
   if (now) {
     const subscription = await getSubscription(subscription_id);

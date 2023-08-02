@@ -24,6 +24,7 @@ export interface Subscription {
   canceled_at?: Date;
   resumed_at?: Date;
   metadata: Metadata;
+  renewal_email?: Date;
   notes?: string;
 }
 
@@ -82,7 +83,10 @@ Table({
       type: "map",
       pg_type: "jsonb",
     },
-
+    renewal_email: {
+      type: "timestamp",
+      desc: "Timestamp when we last sent a reminder that this subscription will renew soon.",
+    },
     notes: NOTES, // for admins to make notes about this subscription
   },
   rules: {
@@ -105,6 +109,7 @@ Table({
           current_period_start: null,
           current_period_end: null,
           latest_purchase_id: null,
+          renewal_email: null,
         },
       },
     },
@@ -133,6 +138,7 @@ Table({
           canceled_at: null,
           resumed_at: null,
           metadata: null,
+          renewal_email: null,
           notes: null,
         },
       },

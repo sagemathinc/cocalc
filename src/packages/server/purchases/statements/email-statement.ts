@@ -11,7 +11,6 @@ import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import dayjs from "dayjs";
 import type { Message } from "@cocalc/server/email/message";
 import sendEmail from "@cocalc/server/email/send-email";
-import getLogger from "@cocalc/backend/logger";
 import {
   statementToHtml,
   purchasesToHtml,
@@ -26,7 +25,11 @@ import {
 } from "@cocalc/server/token-actions/create";
 import { getTotalBalance } from "../get-balance";
 import { getUsageSubscription } from "../stripe-usage-based-subscription";
-import { currency } from "@cocalc/util/misc";
+import {
+  currency,
+  is_valid_email_address as isValidEmailAddress,
+} from "@cocalc/util/misc";
+import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("purchases:email-statement");
 
@@ -40,8 +43,8 @@ export default async function emailStatement(opts: {
   const { help_email, site_name: siteName } = await getServerSettings();
   const { account_id, statement_id, force, dryRun } = opts;
   const { name, email_address: to } = await getUser(account_id);
-  if (!to) {
-    throw Error(`no email address on file for ${name}`);
+  if (isValidEmailAddress(to)) {
+    throw Error(`no valid email address on file for ${name}`);
   }
   const statement = await getStatement(statement_id);
   if (statement.account_id != account_id) {
@@ -217,7 +220,7 @@ async function getPurchasesOnStatement(
   return rows;
 }
 
-async function getUser(
+export async function getUser(
   account_id: string
 ): Promise<{ name: string; email_address: string }> {
   const pool = getPool();

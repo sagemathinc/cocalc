@@ -5,6 +5,7 @@ import type {
 import getPool from "@cocalc/database/pool";
 import getName from "@cocalc/server/accounts/get-name";
 import makePayment from "./make-payment";
+import cancelSubscription from "@cocalc/server/purchases/cancel-subscription";
 
 /*
 If a user visits the URL for an action link, then this gets called.
@@ -44,7 +45,10 @@ async function handleDescription(description: Description): Promise<any> {
       return await disableDailyStatements(description.account_id);
     case "make-payment":
       return await makePayment(description);
+    case "cancel-subscription":
+      return await handleCancelSubscription(description);
     default:
+      // @ts-ignore
       throw Error(`action of type ${description.type} not implemented`);
   }
 }
@@ -59,5 +63,14 @@ async function disableDailyStatements(account_id: string) {
     text: `Disabled sending daily statements for ${await getName(
       account_id
     )}. You can enable emailing of daily statements in the Daily Statements panel of the settings/statements page.`,
+  };
+}
+
+async function handleCancelSubscription({ account_id, subscription_id }) {
+  await cancelSubscription({ account_id, subscription_id });
+  return {
+    text: `Successfully canceled subscription with id ${subscription_id} for ${await getName(
+      account_id
+    )}. You can resume the subscription at any time in the settings/subscriptions page.`,
   };
 }

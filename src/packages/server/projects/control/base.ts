@@ -225,7 +225,7 @@ export abstract class BaseProject extends EventEmitter {
     } else {
       dbg("running and a quota changed; restart");
       // CRITICAL: do NOT await on this restart!  The set_all_quotas call must
-      // complete quickly (in an HTTP requrest), whereas restart can easily take 20s,
+      // complete quickly (in an HTTP request), whereas restart can easily take 20s,
       // and there is no reason to wait on this.  Wrapping this as below calls the
       // function, properly awaits and logs what happens, and avoids uncaught exceptions,
       // but doesn't block the caller of this function.
