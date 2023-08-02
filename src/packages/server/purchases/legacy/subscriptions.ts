@@ -102,7 +102,7 @@ export async function migrateSubscription(sub) {
   // we give them up to almost a free month in the conversion
   const current_period_end = await getNextClosingDateAfter(
     account_id,
-    new Date(sub.current_period_end)
+    new Date(sub.current_period_end * 1000)
   );
   const current_period_start = dayjs(current_period_end)
     .subtract(1, sub.plan.interval)
