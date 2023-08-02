@@ -49,6 +49,7 @@ export class AccountTable extends Table {
           email_daily_statements: null,
           stripe_checkout_session: null,
           stripe_usage_subscription: null,
+          stripe_customer: null, // used for legacy upgrades ONLY.
         },
       ],
     };
