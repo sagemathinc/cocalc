@@ -43,7 +43,7 @@ export default async function emailStatement(opts: {
   const { help_email, site_name: siteName } = await getServerSettings();
   const { account_id, statement_id, force, dryRun } = opts;
   const { name, email_address: to } = await getUser(account_id);
-  if (isValidEmailAddress(to)) {
+  if (!isValidEmailAddress(to)) {
     throw Error(`no valid email address on file for ${name}`);
   }
   const statement = await getStatement(statement_id);
