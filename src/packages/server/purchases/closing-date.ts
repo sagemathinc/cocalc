@@ -73,14 +73,16 @@ export async function getClosingDay(account_id: string): Promise<number> {
     );
     closingDay = rows[0]?.["purchase_closing_day"];
     if (closingDay == null) {
-      // If no closing day exists, set it to a few days ago.
-      // We compute the current day of the month, then subtract 3,
-      // and normalize to be between 1 and 28.
-
+      // If no closing day exists, set it to a random day that is at least 7 days away
+      // from now.  We randomize instead of just chosing today or something recent,
+      // partly for converting all existing subscriptin during migration from legacy...
       const today = new Date();
       const currentDayOfMonth = today.getDate();
-      closingDay = (Math.max(currentDayOfMonth - 3, 1) % 28) + 1;
-
+      closingDay = Math.floor(Math.random() * 28) + 1;
+      while (Math.abs(closingDay - currentDayOfMonth) <= 7) {
+        // Generate a random number between 1 and 28
+        closingDay = Math.floor(Math.random() * 28) + 1;
+      }
       await setClosingDay(account_id, closingDay);
     }
   } catch (e) {
