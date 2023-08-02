@@ -1737,10 +1737,12 @@ export function stripeAmount(
 ): string {
   // input is in pennies
   if (currency !== "usd") {
-    throw Error(`not-implemented currency ${currency}`);
+    // TODO: need to make this look nice with symbols for other currencies...
+    return `${(currency == "eur" ? "€" : "")}${to_money(
+      (units * unitPrice) / 100
+    )} ${currency.toUpperCase()}`;
   }
-  let s = `$${to_money((units * unitPrice) / 100)} USD`;
-  return s;
+  return `$${to_money((units * unitPrice) / 100)} USD`;
 }
 
 export function planInterval(
