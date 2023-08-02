@@ -14,13 +14,11 @@ import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { round2 } from "@cocalc/util/misc";
 import {
   endOfDay,
-  getDays,
   startOfDay,
   roundToMidnight,
 } from "@cocalc/util/stripe/timecalcs";
 import expect from "expect";
 import { unitAmount } from "./licenses/purchase/charge";
-import { getProductId } from "./licenses/purchase/product-id";
 import { COSTS } from "@cocalc/util/licenses/purchase/consts";
 import dayjs from "dayjs";
 
@@ -47,11 +45,6 @@ describe("product id and compute cost", () => {
     custom_dedicated_ram: 0,
     custom_dedicated_cpu: 0,
   } as const;
-
-  it.each([1, 2, 10, 15])("id with quantity %p", (quantity) => {
-    const id = getProductId({ ...info1, quantity });
-    expect(id).toEqual(`license_a0b0c1d1m1p10r1_v2`);
-  });
 
   it.each([1, 2, 10, 15])("compute price quantity %p", (quantity) => {
     const base = compute_cost({ ...info1, quantity: 1 }).cost;
@@ -102,33 +95,6 @@ describe("product id and compute cost", () => {
     };
     info2.cost = compute_cost(info2);
     expect(unitAmount(info2)).toEqual(111);
-  });
-});
-
-describe("days interval", () => {
-  it("entire day counts (slightly more)", () => {
-    const info = {
-      start: startOfDay(new Date("2022-04-01 12:23:00")),
-      end: endOfDay(new Date("2022-04-06 12:23:03")),
-    };
-    expect(getDays(info)).toEqual(6);
-  });
-
-  it("entire day counts (slightly less)", () => {
-    const info = {
-      start: startOfDay(new Date("2022-04-01 12:23:00")),
-      end: endOfDay(new Date("2022-04-06 12:22:58")),
-    };
-    expect(getDays(info)).toEqual(6);
-  });
-
-  it("works with a user's timezone in utc", () => {
-    const info = {
-      start: new Date("2022-04-30T22:00:00Z"),
-      end: new Date("2022-05-28T21:59:59.999Z"),
-    };
-    // this is 1 to 28th in may, full days.
-    expect(getDays(info)).toEqual(28);
   });
 });
 
