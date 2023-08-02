@@ -6,15 +6,6 @@ import EditQuota from "./edit-quota";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Button } from "antd";
 
-const UNITS = {
-  disk_quota: "MB",
-  memory: "MB",
-  memory_request: "MB",
-  cores: "cores",
-  cpu_shares: "cores",
-  mintime: "seconds",
-};
-
 interface Props {
   name: keyof QuotaParams;
   quotaState: Partial<QuotaParams> | null;
@@ -49,7 +40,7 @@ export default function QuotaRow({
   }
 
   const max = maxQuotas?.[name];
-  const units = UNITS[name];
+  const units = params_data.display_unit;
 
   return (
     <LabeledRow

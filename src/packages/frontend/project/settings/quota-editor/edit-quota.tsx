@@ -29,11 +29,7 @@ export default function EditQuota({
   ) {
     if (max != null && max == 0) {
       return (
-        <Checkbox
-          key={name}
-          disabled
-          style={{ marginLeft: 0 }}
-        >
+        <Checkbox key={name} disabled style={{ marginLeft: 0 }}>
           Not supported
         </Checkbox>
       );
@@ -67,7 +63,7 @@ export default function EditQuota({
         }
         style={{ width: "175px" }}
         key={name}
-        min={name == "mintime" ? 0.25 : 1}
+        min={MIN[name] ?? 1}
         max={max}
         value={displayValue(quotaState[name], units)}
         step={1}
@@ -83,13 +79,16 @@ export default function EditQuota({
   }
 }
 
+const MIN = {
+  mintime: 0.25,
+  cpu_shares: 0,
+  memory_request: 0,
+};
+
 function displayValue(value, units) {
   if (value == null) return 1;
   if (units == "MB") {
     return value / 1000;
-  }
-  if (units == "seconds") {
-    return value / 3600;
   }
   return value;
 }
