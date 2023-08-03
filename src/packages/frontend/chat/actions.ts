@@ -22,8 +22,9 @@ import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
 import { getSelectedHashtagsSearch } from "./utils";
-import { isValidUUID } from "@cocalc/util/misc";
-import type { ChatStream } from "@cocalc/frontend/client/openai";
+import { isValidUUID, uuid } from "@cocalc/util/misc";
+
+const MAX_CHATSTREAM = 10;
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
@@ -32,7 +33,7 @@ export class ChatActions extends Actions<ChatState> {
   // at a time in a given chatroom.  I saw a bug where hundreds started
   // at once and it really did send them all to openai at once, and
   // this prevents that at least.
-  private chatStream: ChatStream | null = null;
+  private chatStreams: Set<string> = new Set([]);
 
   public set_syncdb(syncdb: SyncDB, store: ChatStore): void {
     this.syncdb = syncdb;
@@ -550,15 +551,18 @@ export class ChatActions extends Actions<ChatState> {
       noNotification: true,
     });
 
-    if (this.chatStream != null) {
-      console.trace("processChatGPT called during chat stream");
+    if (this.chatStreams.size > MAX_CHATSTREAM) {
+      console.trace(
+        `processChatGPT called when ${MAX_CHATSTREAM} streams active`
+      );
       if (this.syncdb != null) {
+        // This should never happen in normal use, but could prevent an expensive blowup due to a bug.
         this.syncdb.set({
           date,
           history: [
             {
               author_id: sender_id,
-              content: `\n\n<span style='color:#b71c1c'>There is already a ChatGPT response being written. Please try again once it finishes.</span>\n\n`,
+              content: `\n\n<span style='color:#b71c1c'>There are already ${MAX_CHATSTREAM} ChatGPT response being written. Please try again once one finishes.</span>\n\n`,
               date,
             },
           ],
@@ -587,7 +591,12 @@ export class ChatActions extends Actions<ChatState> {
     });
 
     // submit question to chatgpt
-    this.chatStream = webapp_client.openai_client.chatgptStream({
+    const id = uuid();
+    this.chatStreams.add(id);
+    setTimeout(() => {
+      this.chatStreams.delete(id);
+    }, 3 * 60 * 1000);
+    const chatStream = webapp_client.openai_client.chatgptStream({
       input,
       history: reply_to ? this.getChatGPTHistory(reply_to) : undefined,
       project_id,
@@ -598,13 +607,12 @@ export class ChatActions extends Actions<ChatState> {
     this.scrollToBottom();
     let content: string = "";
     let halted = false;
-    this.chatStream.on("token", (token) => {
-      console.log("token = ", { token });
+    chatStream.on("token", (token) => {
       if (halted || this.syncdb == null) return;
       const cur = this.syncdb.get_one({ event: "chat", sender_id, date });
       if (cur?.get("generating") === false) {
         halted = true;
-        this.chatStream = null;
+        this.chatStreams.delete(id);
         return;
       }
       if (token != null) {
@@ -617,7 +625,7 @@ export class ChatActions extends Actions<ChatState> {
           generating: true,
         });
       } else {
-        this.chatStream = null;
+        this.chatStreams.delete(id);
         this.syncdb.set({
           event: "chat",
           sender_id,
@@ -628,8 +636,8 @@ export class ChatActions extends Actions<ChatState> {
         this.syncdb.commit();
       }
     });
-    this.chatStream.on("error", (err) => {
-      this.chatStream = null;
+    chatStream.on("error", (err) => {
+      this.chatStreams.delete(id);
       if (this.syncdb == null || halted) return;
       content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\nOpenAI [status](https://status.openai.com) and [downdetector](https://downdetector.com/status/openai).`;
       this.syncdb.set({
