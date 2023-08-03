@@ -361,7 +361,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     if (info.quota != null) {
       return render_quota(info.quota);
     }
-    const upgades_quota = info.upgrades?.get("quota");
+    const upgades_quota = info.upgrades?.quota;
     if (upgades_quota != null) {
       return render_quota(upgades_quota);
     }
