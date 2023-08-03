@@ -72,6 +72,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     refresh,
   } = props;
   const [info, set_info] = useState<Info | undefined>(undefined);
+  console.log(info);
   const [err, set_err] = useState<string | undefined>(undefined);
   const [loading, set_loading] = useState<boolean>(true);
   const isMountedRef = useIsMountedRef();
@@ -361,11 +362,9 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     if (info.quota != null) {
       return render_quota(info.quota);
     }
-    const upgades_quota = info.upgrades?.quota;
-    if (upgades_quota != null) {
-      return render_quota(upgades_quota);
+    if (!info.upgrades) {
+      return <div>Provides no upgrades.</div>;
     }
-    if (!info.upgrades) return <div>Provides no upgrades.</div>;
     return (
       <div>
         Provides the following upgrades {render_overall_limit()}:
