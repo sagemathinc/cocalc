@@ -55,8 +55,9 @@ class Project extends BaseProject {
     }
     try {
       this.stateChanging = { state: "starting" };
-      await this.siteLicenseHook();
       await this.actionRequest("start");
+      // NOTE: manage has do the equivalent of this.computeQuota()
+      //       this can't happen here, because we don't know if the project can run
       await this.waitUntilProject(
         (project) =>
           project.state?.state == "running" || project.action_request?.finished,
