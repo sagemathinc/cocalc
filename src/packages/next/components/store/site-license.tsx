@@ -90,6 +90,12 @@ export default function SiteLicense(props: Props) {
             <A href="/store/cart">shopping cart</A>.
           </Paragraph>
           <Paragraph>
+            If you aren't sure exactly what to buy, don't worry,{" "}
+            <b>you can always edit your licenses later</b>, including changing
+            dates, the run limit, idle timeout, and other configuration. You
+            will be charged or credited for the difference in the cost.
+          </Paragraph>
+          <Paragraph>
             You might also be interested in a{" "}
             <A href="/store/boost">license boost</A>,{" "}
             <A href="/store/dedicated">dedicated VM</A>, or{" "}

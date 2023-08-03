@@ -16,11 +16,7 @@ import {
 } from "@cocalc/util/licenses/purchase/types";
 import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
 import { plural } from "@cocalc/util/misc";
-import {
-  appendAfterNowToDate,
-  getDays,
-  roundToMidnight,
-} from "@cocalc/util/stripe/timecalcs";
+import { appendAfterNowToDate, getDays } from "@cocalc/util/stripe/timecalcs";
 import {
   dedicatedDiskDisplay,
   dedicatedVmDisplay,
@@ -204,7 +200,8 @@ interface PeriodProps {
 }
 
 /**
- * ATTN: this is not a general purpose period description generator. It's very specific to the purchases in the store!
+ * ATTN: this is not a general purpose period description generator. It's very specific
+ * to the purchases in the store!
  */
 export function describePeriod({
   quota,
@@ -218,11 +215,8 @@ export function describePeriod({
   if (subscription == "no") {
     if (startRaw == null || endRaw == null)
       throw new Error(`start date not set!`);
-    // we do not use startOfDay and endOfDay, because this was already
-    // done in "usage-and-duration::fixRangeSelector"
-    // rather, we calculate back to the user's offset
-    const start = roundToMidnight(fromServerTime(startRaw), "start");
-    const end = roundToMidnight(fromServerTime(endRaw), "end");
+    const start = fromServerTime(startRaw);
+    const end = fromServerTime(endRaw);
 
     if (start == null || end == null) {
       throw new Error(`this should never happen`);
@@ -240,7 +234,7 @@ export function describePeriod({
     }
 
     // but the displayed end mimics what will happen later on the backend
-    // i.e. if the day alreaday started, we append the already elapsed period to the end
+    // i.e. if the day already started, we append the already elapsed period to the end
     const endDisplay = appendAfterNowToDate({
       now: serverTimeDate,
       start,
@@ -266,8 +260,8 @@ export function describePeriod({
     } else {
       return (
         <>
-          <Timestamp dateOnly datetime={start} absolute /> to{" "}
-          <Timestamp dateOnly datetime={endDisplay} absolute />, {days}{" "}
+          <Timestamp datetime={start} absolute /> to{" "}
+          <Timestamp datetime={endDisplay} absolute />, {days}{" "}
           {plural(days, "day")}
         </>
       );

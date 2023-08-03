@@ -15,7 +15,7 @@ export const COCALC_MODES = [
   "kubernetes",
 ] as const;
 
-export type CocalcMode = (typeof COCALC_MODES)[number];
+export type CocalcMode = typeof COCALC_MODES[number];
 
 export type ProjectControlFunction = (project_id: string) => BaseProject;
 
@@ -87,7 +87,9 @@ export const getProject: ProjectControlFunction = (project_id: string) => {
       return init(process.env["COCALC_MODE"] as CocalcMode)(project_id);
     }
     throw Error(
-      "must call init first or set the environment variable COCALC_MODE"
+      `must call init first or set the environment variable COCALC_MODE to one of ${COCALC_MODES.join(
+        ", "
+      )}`
     );
   }
   return cached(project_id);

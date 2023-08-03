@@ -84,7 +84,7 @@ export async function site_license_usage_stats(
   return usage;
 }
 
-function query_projects_using_site_license(
+export function query_projects_using_site_license(
   license_id: string,
   cutoff?: Date
 ): { query: string; params: any[] } {

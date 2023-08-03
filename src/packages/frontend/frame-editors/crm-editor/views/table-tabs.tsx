@@ -143,11 +143,9 @@ function AddTable({ setAdding, tables, setTables }) {
   // the modal appear, since trying to do any of this declaratively makes it
   // happen *before* things have appeared, hence it is all broken.
   const selectRef = useRef<any>(null);
-  const [open, setOpen] = useState<boolean | undefined>(undefined);
   useEffect(() => {
     setTimeout(() => {
       selectRef.current?.focus();
-      setOpen(true);
     }, 400);
   }, []);
 
@@ -161,8 +159,12 @@ function AddTable({ setAdding, tables, setTables }) {
           Add {tables.length > 0 ? "Additional Tables" : "One or More Tables"}
         </>
       }
-      footer={null}
       onCancel={() => {
+        setTables(tables.concat(value));
+        setValue([]);
+        setAdding(false);
+      }}
+      onOk={() => {
         setTables(tables.concat(value));
         setValue([]);
         setAdding(false);
@@ -181,7 +183,6 @@ function AddTable({ setAdding, tables, setTables }) {
       {options.length > 0 && (
         <Select
           ref={selectRef}
-          open={open}
           mode="multiple"
           allowClear
           value={value}

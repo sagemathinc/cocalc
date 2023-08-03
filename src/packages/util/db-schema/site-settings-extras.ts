@@ -19,9 +19,15 @@ import {
   only_booleans,
   to_int,
   only_nonneg_int,
+  toFloat,
+  onlyNonnegFloat,
+  onlyPosFloat,
   only_pos_int,
   only_commercial,
   only_cocalc_com,
+  from_json,
+  parsableJson,
+  displayJson,
 } from "./site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 
@@ -68,6 +74,7 @@ export type SiteSettingsExtrasKeys =
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
+  | "stripe_webhook_secret"
   | "re_captcha_v3_heading"
   | "re_captcha_v3_publishable_key"
   | "re_captcha_v3_secret_key"
@@ -105,7 +112,14 @@ export type SiteSettingsExtrasKeys =
   | "github_token"
   | "prometheus_metrics"
   | "pay_as_you_go_section"
-  | "default_pay_as_you_go_quota";
+  | "pay_as_you_go_spending_limit"
+  | "pay_as_you_go_spending_limit_with_verified_email"
+  | "pay_as_you_go_spending_limit_with_credit"
+  | "pay_as_you_go_min_payment"
+  | "pay_as_you_go_openai_markup_percentage"
+  | "pay_as_you_go_max_project_upgrades"
+  | "pay_as_you_go_price_project_upgrades"
+  | "subscription_maintenance";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -203,6 +217,13 @@ export const EXTRAS: SettingsExtras = {
   stripe_secret_key: {
     name: "Stripe Secret",
     desc: "Stripe calls this key 'secret'",
+    default: "",
+    show: only_commercial,
+    password: true,
+  },
+  stripe_webhook_secret: {
+    name: "Stripe Webhook Secret",
+    desc: "The stripe webhook secret, which is used to verify the signature for stripe webhooks events, and should look like 'whsec_fibl8xlfp...'.  For this to work, you must enable stripe webhooks at https://dashboard.stripe.com/webhooks with a URL like `https://my-cocalc-server/webhooks/stripe`.   The actual webhook events we use are: invoice.paid, payment_intent.succeeded, customer.subscription.created; you can enable all webhooks and things still work, but it is less efficient.  See https://github.com/sagemathinc/cocalc/blob/master/src/packages/hub/servers/app/webhooks/stripe.ts",
     default: "",
     show: only_commercial,
     password: true,
@@ -405,12 +426,72 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     type: "header",
   },
-  default_pay_as_you_go_quota: {
-    name: "Default Pay-As-You-Go Quota",
-    desc: "The default pay-as-you-go purchase quota, in dollars.",
+  pay_as_you_go_spending_limit: {
+    name: "Initial Pay As You Go Spending Limit",
+    desc: "The initial default pay as you go spending limit that all accounts get, in dollars.",
     default: "0",
     show: only_commercial,
-    to_val: to_int,
-    valid: only_nonneg_int,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  pay_as_you_go_spending_limit_with_verified_email: {
+    name: "Pay As You Go Spending Limit with Verified Email",
+    desc: "The pay as you go spending limit for accounts with a verified email address.",
+    default: "5",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  pay_as_you_go_spending_limit_with_credit: {
+    name: "Pay As You Go Spending Limit with Credit",
+    desc: "The pay as you go spending limit for accounts that have ever successfully had a positive credit.",
+    default: "15",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  pay_as_you_go_min_payment: {
+    name: "Pay As You Go - Minimum Payment",
+    desc: "The minimum transaction size that a user can pay towards their pay-as-you-go balance, in dollars.",
+    default: "2.50",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyPosFloat,
+  },
+  pay_as_you_go_openai_markup_percentage: {
+    name: "Pay As You Go - OpenAI Markup Percentage",
+    desc: "The markup percentage that we add to the OpenAI API call rate.  This accounts for maintenance, dev, servers, and bandwidth. For example, '30' would mean we add 30% to the price that OpenAI charges us.",
+    default: "30",
+    show: only_commercial,
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
+  },
+  pay_as_you_go_max_project_upgrades: {
+    name: "Pay As You Go - Max Project Upgrade Quotas",
+    desc: 'Example -- `{"network": 1, "member_host": 1, "always_running": 1, "cores": 3, "memory": 16000, "disk_quota": 15000}`. This is a json object, and the units are exactly as in the quota editor (so true/false, cores and megabytes).',
+    default:
+      '{"network": 1, "member_host": 1, "always_running": 1, "cores": 3, "memory": 16000, "disk_quota": 15000}',
+    show: only_commercial,
+    to_val: from_json,
+    to_display: displayJson,
+    valid: parsableJson,
+  },
+  pay_as_you_go_price_project_upgrades: {
+    name: "Pay As You Go - Price for Project Upgrades",
+    desc: 'Example -- `{"cores":32, "memory":4, "disk_quota":0.25, "member_host":4}`. This is a json object, where\n\n- cores = price per month for 1 vCPU\n- memory = price per month for 1GB of RAM\n- disk_quota = price per month for 1GB of disk\n- member_host = non-disk part of non-member hosting cost is divided by this',
+    default: '{"cores":32, "memory":4, "disk_quota":0.25, "member_host":4}',
+    show: only_commercial,
+    to_val: from_json,
+    to_display: displayJson,
+    valid: parsableJson,
+  },
+  subscription_maintenance: {
+    name: "Pay As You Go - Subscription Maintenance Parameters",
+    desc: 'Example -- {"request":6, "renew":1, "grace":3}" -- which means:\n\n- **request:** request payment 6 days before the subscription ends with instructions to renew or cancel\n- **renew:** automatically attempt renewal 1 day before subscription ends by debiting account if there is credit in the account\n- **grace:** provide a grace period of 3 days before actually cancelling the subscription and ending the license (user will get charged for those 3 days)',
+    default: '{"request":6, "renew":1, "grace":3}',
+    show: only_commercial,
+    to_val: from_json,
+    to_display: displayJson,
+    valid: parsableJson,
   },
 } as const;

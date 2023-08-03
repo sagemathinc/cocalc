@@ -30,12 +30,12 @@ export interface CostInputPeriod extends Cost {
 
 export interface StartEndDates {
   start: Date;
-  end?: Date;
+  end: Date;
 }
 
 export interface StartEndDatesWithStrings {
   start: Date | string;
-  end?: Date | string;
+  end: Date | string;
 }
 
 /*
@@ -43,9 +43,9 @@ export interface StartEndDatesWithStrings {
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Uptime } from "@cocalc/util/consts/site-license";
-import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
-import { CustomDescription, Period } from "../../upgrades/shopping";
+import type { Uptime } from "@cocalc/util/consts/site-license";
+import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import type { CustomDescription, Period } from "../../upgrades/shopping";
 
 export type PurchaseInfoQuota = {
   type: "quota";
@@ -89,14 +89,15 @@ export type PurchaseInfo =
     } & StartEndDates &
       CustomDescription)
   | ({
+      // note that start is set automatically when actually purchasing
       type: "disk";
-      start: Date; // set automatically when actually purchasing
       quantity: 1;
       subscription: Omit<Subscription, "no">;
       dedicated_disk: DedicatedDisk;
       cost?: Cost;
       payment_method?: string;
-    } & CustomDescription);
+    } & StartEndDates &
+      CustomDescription);
 
 // stripe's metadata can only handle string or number values.
 export type ProductMetadataQuota =

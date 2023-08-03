@@ -4,7 +4,7 @@
  */
 
 // Ensure the billing Actions and Store are created:
-require("./actions");
+import "./actions";
 
 import {
   Component,
@@ -24,9 +24,7 @@ import {
   HelpEmailLink,
   PolicyPricingPageUrl,
 } from "@cocalc/frontend/customize";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { Map } from "immutable";
-import { join } from "path";
 import { PaymentMethods } from "./payment-methods";
 import { Customer, InvoicesMap } from "./types";
 
@@ -94,44 +92,45 @@ export const BillingPage = rclass<ReactProps>(
 
     private render_enterprise_support(): Rendered {
       return (
-        <p>
+        <li>
           <b>Enterprise Support:</b> Contact us at <HelpEmailLink /> for{" "}
           <i>enterprise support</i>, including customized course packages,
           modified terms of service, additional legal agreements, purchase
           orders, insurance and priority technical support.
-        </p>
+        </li>
       );
     }
 
     private render_on_prem(): Rendered {
       return (
-        <p>
+        <li>
           <b>Commercial on Premises:</b> Contact us at <HelpEmailLink /> for{" "}
           questions about our{" "}
           <A href={PolicyPricingPageUrl + "/onprem"}>
             commercial on premises offering.
           </A>
-        </p>
+        </li>
       );
     }
 
     private render_help_suggestion(): Rendered {
       return (
         <>
-          <p>
+          <li>
             <b>Questions: </b>
             If you have any questions at all, read the{" "}
             <A href={"https://doc.cocalc.com/billing.html"}>
               Billing{"/"}Upgrades FAQ
             </A>{" "}
-            or email <HelpEmailLink /> immediately.
-          </p>
-          <p>
+            or email <HelpEmailLink />.
+          </li>
+
+          <li>
             <b>Teaching:</b>{" "}
             <HelpEmailLink text={<span>Contact&nbsp;us</span>} /> if you are
             considering purchasing a course subscription and need a short
             evaluation trial.
-          </p>
+          </li>
           {this.render_enterprise_support()}
           {this.render_on_prem()}
         </>
@@ -183,28 +182,15 @@ export const BillingPage = rclass<ReactProps>(
       }
     }
 
-    private render_alert(): Rendered {
-      if (this.props.for_course) return;
+    renderLinks() {
       return (
-        <div style={{ fontSize: "14pt" }}>
-          <h3>Purchases</h3>
+        <div>
+          <h3>Links</h3>
           <ul>
-            <li>
-              <A href={join(appBasePath, "store")}>Visit the Store</A>: purchase
-              license upgrades, boosts, dedicated resources, etc.
-            </li>
-            <li>
-              <A href={join(appBasePath, "pricing")}>Pricing Overview</A>: get
-              an overview about all offered products.
-            </li>
-            <li>
-              <A href={join(appBasePath, "billing")}>Billing Information</A>:
-              information about your purchases,{" "}
-              <A href={join(appBasePath, "billing", "subscriptions")}>
-                cancelling subscriptions
-              </A>
-              , credit cards, invoices, etc.
-            </li>
+            {!this.props.for_course ? this.render_help_suggestion() : undefined}
+            {!this.props.no_stripe ? this.render_action() : undefined}
+            {this.render_error()}
+            {!this.props.no_stripe ? this.render_page() : undefined}
           </ul>
         </div>
       );
@@ -213,13 +199,7 @@ export const BillingPage = rclass<ReactProps>(
     public render(): Rendered {
       return (
         <>
-          {this.render_alert()}
-          <div>
-            {!this.props.for_course ? this.render_help_suggestion() : undefined}
-            {!this.props.no_stripe ? this.render_action() : undefined}
-            {this.render_error()}
-            {!this.props.no_stripe ? this.render_page() : undefined}
-          </div>
+          {this.renderLinks()}
           {!this.props.is_simplified ? <Footer /> : undefined}
         </>
       );

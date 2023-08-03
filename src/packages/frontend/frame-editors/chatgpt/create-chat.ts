@@ -1,12 +1,14 @@
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { capitalize } from "@cocalc/util/misc";
+import { modelToMention, Model } from "./model-switch";
 
 interface Options {
   codegen?: boolean;
   command: string;
   allowEmpty?: boolean;
   tag?: string;
+  model: Model;
 }
 
 export default async function createChat({
@@ -20,7 +22,7 @@ export default async function createChat({
   options: Options;
   input?: string;
 }): Promise<void> {
-  let { codegen, command, allowEmpty, tag } = options;
+  let { codegen, command, allowEmpty, model, tag } = options;
   const frameType = actions._get_frame_type(frameId);
   if (frameType == "terminal") {
     input = "";
@@ -38,10 +40,10 @@ export default async function createChat({
     throw Error("bug");
   }
   // Truncate input (also this MUST lazy import):
-  const { truncateMessage, MAX_CHATGPT_TOKENS } = await import(
+  const { truncateMessage, getMaxTokens } = await import(
     "@cocalc/frontend/misc/openai"
   );
-  const maxTokens = MAX_CHATGPT_TOKENS - 1000; // 1000 tokens reserved for output and the prompt below.
+  const maxTokens = getMaxTokens(model) - 1000; // 1000 tokens reserved for output and the prompt below.
   input = truncateMessage(input, maxTokens);
 
   const chatActions = await getChatActions(
@@ -50,9 +52,7 @@ export default async function createChat({
     actions.path
   );
   const delim = backtickSequence(input);
-  const head = `<span class="user-mention" account-id=chatgpt>@ChatGPT</span> ${capitalize(
-    command
-  )}:\n`;
+  const head = `${modelToMention(model)} ${capitalize(command)}:\n`;
   let message = "";
   if (frameType != "terminal") {
     message += `I am writing in the file ${

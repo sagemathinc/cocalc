@@ -27,15 +27,16 @@ export default function Overview() {
           title="Payment Methods"
           href="/billing/cards"
         >
-          Add, remove, or change your <Text strong>credit cards</Text>.
+          Add, remove, or change your <Text strong>credit cards</Text>
         </Product>
 
         <Product
           icon="calendar"
           title="Subscriptions"
-          href="/billing/subscriptions"
+          href="/settings/subscriptions"
+          external
         >
-          View or <Text strong>cancel</Text> your subscriptions
+          View, Edit or <Text strong>cancel</Text> your subscriptions
         </Product>
 
         <Product

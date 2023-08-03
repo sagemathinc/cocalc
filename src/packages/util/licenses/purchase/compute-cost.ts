@@ -17,8 +17,10 @@ export function compute_cost(info: PurchaseInfo): Cost {
     return compute_cost_dedicated(info);
   }
 
-  if (info.type !== "quota")
+  if (info.type !== "quota") {
     throw new Error(`can only compute cost for type=quota`);
+  }
+  
   let {
     quantity,
     user,

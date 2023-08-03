@@ -6,7 +6,6 @@
 import { Button, Card, Typography } from "antd";
 import { List } from "immutable";
 import { join } from "path";
-
 import {
   CSS,
   React,
@@ -19,7 +18,6 @@ import {
   Icon,
   Loading,
   Paragraph,
-  SettingBox,
   Title,
   UpgradeAdjustor,
 } from "@cocalc/frontend/components";
@@ -37,7 +35,8 @@ import {
 } from "@cocalc/util/types/dedicated";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
-import { QuotaConsole } from "./quota-console";
+import AdminQuotas from "./quota-editor/admin-quotas";
+import PayAsYouGoQuotaEditor from "./quota-editor/pay-as-you-go";
 import { RunQuota } from "./run-quota";
 import { SiteLicense } from "./site-license";
 import { Project } from "./types";
@@ -54,8 +53,6 @@ interface Props {
   upgrades_you_applied_to_all_projects?: object;
   upgrades_you_applied_to_this_project?: object;
   total_project_quotas?: object;
-  all_upgrades_to_this_project?: object;
-  site_license_upgrades?: object;
   all_projects_have_been_loaded?: boolean;
   site_license_ids: string[];
   dedicated_resources?: DedicatedResources;
@@ -63,21 +60,17 @@ interface Props {
 }
 
 export const UpgradeUsage: React.FC<Props> = React.memo(
-  (props: Readonly<Props>) => {
-    const {
-      project_id,
-      project,
-      upgrades_you_can_use,
-      upgrades_you_applied_to_all_projects,
-      upgrades_you_applied_to_this_project,
-      total_project_quotas,
-      all_upgrades_to_this_project,
-      site_license_upgrades,
-      all_projects_have_been_loaded,
-      //site_license_ids,
-      dedicated_resources,
-      mode,
-    } = props;
+  ({
+    project_id,
+    project,
+    upgrades_you_can_use,
+    upgrades_you_applied_to_all_projects,
+    upgrades_you_applied_to_this_project,
+    total_project_quotas,
+    all_projects_have_been_loaded,
+    dedicated_resources,
+    mode,
+  }: Readonly<Props>) => {
     const isFlyout = mode === "flyout";
     const actions: ProjectsActions = useActions("projects");
     const project_actions = useActions({ project_id });
@@ -166,11 +159,11 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       if (dedicated_resources?.vm !== false) return;
       const noUpgrades = is_zero_map(upgrades_you_can_use);
       return (
-        <div style={UPGRADE_BUTTON_STYLE}>
+        <div style={{ ...UPGRADE_BUTTON_STYLE, marginTop: "15px" }}>
           {noUpgrades ? (
             <Typography.Text type="secondary">
               <Typography.Text strong>Note:</Typography.Text> You can increase
-              these quotas by adding a license below.
+              the above limits via Licenses or Pay As You Go below:
             </Typography.Text>
           ) : (
             <>{render_contributions()}</>
@@ -204,29 +197,25 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       );
     }
 
-    function render_quota_console(): Rendered {
-      // Since 2022-03, we only render this for admins – the whole info is in the "run quota" box,
+    function renderQuotaEditor(): Rendered {
+      // The whole info is in the "run quota" box,
       // below are upgrade contributions (deprecated), and then the license quota upgrades.
-      // Not showsn if this runs on a dedicated VM – where the back-end manages the fixed quotas.
+      // Also not shown if project runs on a dedicated VM – where the back-end manages the fixed quotas.
       if (dedicated_resources?.vm !== false) {
         return render_dedicated_vm();
       }
-      if (!account_groups.includes("admin")) return;
       return (
-        <QuotaConsole
-          project_id={project_id}
-          project_settings={project.get("settings")}
-          project_status={project.get("status")}
-          project_state={project.getIn(["state", "state"])}
-          quota_params={PROJECT_UPGRADES.params}
-          account_groups={account_groups}
-          total_project_quotas={total_project_quotas}
-          all_upgrades_to_this_project={all_upgrades_to_this_project}
-          kucalc={kucalc}
-          is_commercial={is_commercial}
-          site_license_upgrades={site_license_upgrades}
-          expand_admin_only={true}
-        />
+        <>
+          {account_groups.includes("admin") && (
+            <AdminQuotas project_id={project_id} />
+          )}
+          {is_commercial && (
+            <PayAsYouGoQuotaEditor
+              project_id={project_id}
+              style={{ marginTop: "15px" }}
+            />
+          )}
+        </>
       );
     }
 
@@ -368,46 +357,27 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     }
 
     // This is is just a precaution, since "project" isn't properly typed
-    if (project == null) return <Loading theme="medium" transparent />;
-
-    switch (mode) {
-      case "project":
-        return (
-          <SettingBox
-            title="Project usage and quotas"
-            icon="dashboard"
-            bodyStyle={{ padding: 0 }}
-          >
-            {render_run_quota()}
-            <div style={{ padding: "16px" }}>
-              {render_upgrades_button()}
-              {render_quota_console()}
-              {render_dedicated_disks()}
-              {render_site_license()}
-              {render_support()}
-            </div>
-          </SettingBox>
-        );
-      case "flyout":
-        return (
-          <>
-            <Title level={4}>Usage and Quotas</Title>
-            <Paragraph
-              type="secondary"
-              ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
-            >
-              This table lists project quotas, their current usage, and their
-              value/limit. Click on a row to show more details about it. If the
-              project is not running, you see the last known quota values.
-            </Paragraph>
-            {render_run_quota()}
-            {render_upgrades_button()}
-            {render_quota_console()}
-            {render_dedicated_disks()}
-            {render_site_license()}
-            {render_support()}
-          </>
-        );
+    if (project == null) {
+      return <Loading theme="medium" transparent />;
     }
+    return (
+      <div style={{ maxWidth: "1000px" }}>
+        <Title level={4}>Usage and Quotas</Title>
+        <Paragraph
+          type="secondary"
+          ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
+        >
+          This table lists project quotas, their current usage, and their
+          value/limit. Click on a row to show more details about it. If the
+          project is not running, you see the last known quota values.
+        </Paragraph>
+        {render_run_quota()}
+        {render_upgrades_button()}
+        {renderQuotaEditor()}
+        {render_dedicated_disks()}
+        {render_site_license()}
+        {render_support()}
+      </div>
+    );
   }
 );

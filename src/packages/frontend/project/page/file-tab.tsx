@@ -11,7 +11,6 @@ A single tab in a project.
 
 import { Popover, Tag } from "antd";
 import { CSSProperties, ReactNode } from "react";
-
 import {
   CSS,
   useActions,
@@ -48,6 +47,7 @@ import {
   ServersFlyout,
   SettingsFlyout,
 } from "./flyouts";
+import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/pay-as-you-go";
 import { VBAR_KEY, getValidVBAROption } from "./vbar";
 
 const { file_options } = require("@cocalc/frontend/editor");
@@ -348,7 +348,12 @@ export function FileTab(props: Readonly<Props>) {
       <div>
         <Icon style={{ ...icon_style }} name={icon} />
       </div>
-      <DisplayedLabel path={path} label={label} inline={!isFixedTab} />
+      <DisplayedLabel
+        path={path}
+        label={label}
+        inline={!isFixedTab}
+        project_id={project_id}
+      />
       {tags}
     </>
   );
@@ -449,13 +454,16 @@ const FULLPATH_LABEL_STYLE: CSS = {
   padding: "0 1px", // need less since have ..
 } as const;
 
-function DisplayedLabel({ path, label, inline = true }) {
+function DisplayedLabel({ path, label, inline = true, project_id }) {
   if (path == null) {
     // a fixed tab (not an actual file)
     const E = inline ? "span" : "div";
     return (
       <HiddenXSSM>
         <E style={{ fontSize: "9pt", textAlign: "center" }}>{label}</E>
+        {label == FIXED_PROJECT_TABS.upgrades.label && (
+          <PayAsYouGoCost project_id={project_id} />
+        )}
       </HiddenXSSM>
     );
   }

@@ -5,9 +5,9 @@ import { getVoucher } from "./vouchers";
 import { getLogger } from "@cocalc/backend/logger";
 import { createLicenseWithoutPurchase } from "@cocalc/server/shopping/cart/checkout";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import { db } from "@cocalc/database";
 import { isValidUUID } from "@cocalc/util/misc";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
+import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 
 const log = getLogger("server:vouchers:redeem");
 
@@ -126,7 +126,7 @@ async function applyLicensesToProject({
   ) {
     // apply licenses to project
     for (const license_id of license_ids) {
-      await db().add_license_to_project(project_id, license_id);
+      await addLicenseToProject({ project_id, license_id });
     }
     restartProjectIfRunning(project_id); // don't wait, obviously.
   }

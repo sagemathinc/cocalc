@@ -2,8 +2,113 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 
-export const MODELS = ["gpt-3.5-turbo", "gpt-4"] as const;
+export const GPT_MODELS = [
+  "gpt-3.5-turbo",
+  "gpt-3.5-turbo-16k",
+  "gpt-4",
+  "gpt-4-32k",
+] as const;
+
+export type GPTModel = typeof GPT_MODELS[number];
+
+export const MODELS = [
+  "gpt-3.5-turbo",
+  "gpt-3.5-turbo-16k",
+  "gpt-4",
+  "gpt-4-32k",
+  "text-embedding-ada-002",
+] as const;
+
 export type Model = typeof MODELS[number];
+
+// Map from psuedo account_id to what should be displayed to user.
+// This is used in various places in the frontend.
+export const OPENAI_USERNAMES = {
+  chatgpt: "GPT-3.5",
+  chatgpt3: "GPT-3.5",
+  chatgpt4: "GPT-4",
+  "gpt-4": "GPT-4",
+  "gpt-4-32k": "GPT-4-32k",
+  "gpt-3.5-turbo": "GPT-3.5",
+  "gpt-3.5-turbo-16k": "GPT-3.5-16k",
+};
+
+// This is the official published cost that openai charges.
+// It changes over time, so this will sometimes need to be updated.
+// Our cost is a configurable multiple of this.
+// https://openai.com/pricing#language-models
+// There appears to be no api that provides the prices, unfortunately.
+export const OPENAI_COST = {
+  "gpt-4": {
+    prompt_tokens: 0.03 / 1000,
+    completion_tokens: 0.06 / 1000,
+    max_tokens: 8192,
+  },
+  "gpt-4-32k": {
+    prompt_tokens: 0.06 / 1000,
+    completion_tokens: 0.12 / 1000,
+    max_tokens: 32768,
+  },
+  "gpt-3.5-turbo": {
+    prompt_tokens: 0.0015 / 1000,
+    completion_tokens: 0.002 / 1000,
+    max_tokens: 4096,
+  },
+  "gpt-3.5-turbo-16k": {
+    prompt_tokens: 0.003 / 1000,
+    completion_tokens: 0.004 / 1000,
+    max_tokens: 16384,
+  },
+  "text-embedding-ada-002": {
+    prompt_tokens: 0.0001 / 1000,
+    completion_tokens: 0.0001 / 1000, // NOTE: this isn't a thing with embeddings
+    max_tokens: 8191,
+  },
+};
+
+export function isValidModel(model?: Model) {
+  return OPENAI_COST[model ?? ""] != null;
+}
+
+export function getMaxTokens(model?: Model): number {
+  return OPENAI_COST[model ?? ""]?.max_tokens ?? 4096;
+}
+
+export interface OpenaiCost {
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+export function getCost(
+  model: Model,
+  markup_percentage: number // a number like "30" would mean that we increase the wholesale price by multiplying by 1.3
+): OpenaiCost {
+  const x = OPENAI_COST[model];
+  if (x == null) {
+    throw Error(`unknown model "${model}"`);
+  }
+  const { prompt_tokens, completion_tokens } = x;
+  if (markup_percentage < 0) {
+    throw Error("markup percentage can't be negative");
+  }
+  const f = 1 + markup_percentage / 100;
+  return {
+    prompt_tokens: prompt_tokens * f,
+    completion_tokens: completion_tokens * f,
+  };
+}
+
+// The maximum cost for one single call using the given model.
+// We can't know the cost until after it happens, so this bound is useful for
+// ensuring user can afford to make a call.
+export function getMaxCost(model: Model, markup_percentage: number): number {
+  const { prompt_tokens, completion_tokens } = getCost(
+    model,
+    markup_percentage
+  );
+  const { max_tokens } = OPENAI_COST[model];
+  return Math.max(prompt_tokens, completion_tokens) * max_tokens;
+}
 
 export interface ChatGPTLogEntry {
   id: number;

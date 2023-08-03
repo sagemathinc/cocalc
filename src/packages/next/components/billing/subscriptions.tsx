@@ -4,8 +4,10 @@
  */
 
 import { Alert, Button, Popconfirm, Table } from "antd";
-import { useState } from "react";
-
+import { useMemo, useState } from "react";
+import basePath from "lib/base-path";
+import { join } from "path";
+import { NewFileButton } from "@cocalc/frontend/project/new/new-file-button";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize, cmp, planInterval, stripeAmount } from "@cocalc/util/misc";
 import License from "components/licenses/license";
@@ -148,7 +150,7 @@ function Cancel(props: CancelProps) {
   const [error, setError] = useState<string>("");
   const [canceling, setCanceling] = useState<boolean>(false);
   const isMounted = useIsMounted();
-  const isCanceled = cancel_at_period_end || cancel_at != null;
+  const isCanceled = !!cancel_at_period_end || !!cancel_at;
   return (
     <div>
       <Popconfirm
@@ -184,7 +186,7 @@ function Cancel(props: CancelProps) {
           {canceling ? (
             <Loading delay={0}>Canceling...</Loading>
           ) : (
-            `Cancel${isCanceled ? "led" : ""}`
+            `Cancel${isCanceled ? "ed" : ""}`
           )}
         </Button>
         {error && (
@@ -254,6 +256,27 @@ function columns(invoices, onChange) {
 export default function Subscriptions() {
   const subscriptions = useAPI("billing/get-subscriptions", { limit: 100 });
   const invoices = useAPI("billing/get-invoices-and-receipts");
+
+  const { numLicense, numUpgrade, subs } = useMemo(() => {
+    let numLicense = 0,
+      numUpgrade = 0,
+      subs: any[] = [];
+    if (subscriptions.result != null) {
+      for (const sub of subscriptions.result.data) {
+        if (sub.metadata?.service != null || sub.automatic_tax?.enabled) {
+          // new automatic payment subscriptions
+        } else if (sub.metadata?.license_id != null) {
+          numLicense += 1;
+          subs.push(sub);
+        } else {
+          numUpgrade += 1;
+          subs.push(sub);
+        }
+      }
+    }
+    return { numLicense, numUpgrade, subs };
+  }, [subscriptions.result]);
+
   if (subscriptions.error) {
     return <Alert type="error" message={subscriptions.error} />;
   }
@@ -274,31 +297,46 @@ export default function Subscriptions() {
 
   return (
     <div>
-      <Title level={2}>
-        Your Subscriptions ({subscriptions.result?.data?.length ?? 0})
-      </Title>
+      <div style={{ textAlign: "center", marginBottom: "30px" }}>
+        <NewFileButton
+          href={join(basePath, "settings", "subscriptions")}
+          icon="calendar"
+          name="Visit the new subscriptions page..."
+        />
+      </div>
+
+      <Title level={2}>Legacy Subscriptions ({subs.length})</Title>
       <Paragraph style={{ marginBottom: "30px" }}>
-        Your subscriptions are listed below. You can view invoices, get
-        information about the license or plan corresponding to a subscription,
-        and cancel a subscription at period end. You can also{" "}
-        <A href="/store/site-license">create a new site license subscription</A>
-        . If you have any questions <HelpEmail lower />.
+        {numLicense > 0 && (
+          <p>
+            Your license subscriptions should be listed as canceled below, and
+            have{" "}
+            <A href={join(basePath, "settings", "subscriptions")} external>
+              migrated to the new subscriptions page
+            </A>
+            .
+          </p>
+        )}
+        {numUpgrade > 0 && (
+          <p>
+            Upgrade packages have been deprecated for years, but you have one so
+            you're grandfathered in still. Please consider cancelling your
+            subscription and purchasing licenses, pay-as-you-go project
+            upgrades, etc.{" "}
+          </p>
+        )}
+        <p>
+          You can <A href="/store/site-license">visit the store</A>.
+        </p>{" "}
+        If you have any questions <HelpEmail lower />.
       </Paragraph>
       <Table
         columns={columns(invoices.result, onChange) as any}
-        dataSource={subscriptions.result?.data ?? []}
+        dataSource={subs}
         rowKey={"id"}
         pagination={{ hideOnSinglePage: true, pageSize: 100 }}
         style={{ overflowX: "auto" }}
       />
-      {subscriptions.result?.has_more && (
-        <Alert
-          style={{ margin: "15px" }}
-          type="warning"
-          showIcon
-          message="WARNING: Some of your subscriptions are not displayed above, since there are so many."
-        />
-      )}
     </div>
   );
 }

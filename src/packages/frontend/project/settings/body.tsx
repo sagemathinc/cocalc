@@ -5,7 +5,6 @@
 
 import React from "react";
 import { Col, Row } from "react-bootstrap";
-
 import {
   redux,
   useActions,
@@ -59,11 +58,8 @@ const is_same = (prev: ReactProps, next: ReactProps) => {
 
 export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
   const { project_id, account_id, project, email_address } = props;
-
   const project_actions = useActions({ project_id });
-
   const get_total_upgrades = redux.getStore("account").get_total_upgrades;
-
   const kucalc = useTypedRedux("customize", "kucalc");
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const datastore = useTypedRedux("customize", "datastore");

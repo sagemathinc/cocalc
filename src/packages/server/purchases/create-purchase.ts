@@ -1,79 +1,88 @@
-import getPool from "@cocalc/database/pool";
+import getPool, { PoolClient } from "@cocalc/database/pool";
 import type { Description } from "@cocalc/util/db-schema/purchases";
-import isValidAccount from "@cocalc/server/accounts/is-valid-account";
-import getQuota from "./get-quota";
-import getBalance from "./get-balance";
 import getLogger from "@cocalc/backend/logger";
-import { delay } from "awaiting";
+import { Service } from "@cocalc/util/db-schema/purchase-quotas";
+import { getClosingDay } from "./closing-date";
+import dayjs from "dayjs";
 
 const logger = getLogger("purchase:create-purchase");
 
 /*
 Creates the requested purchase if possible, given the user's quota.  If not, throws an exception.
 */
-export default async function createPurchase({
-  account_id,
-  project_id,
-  cost,
-  description,
-  notes,
-  tag,
-}: {
+interface Options {
   account_id: string;
-  project_id?: string;
-  cost: number;
+  service: Service;
   description: Description;
+  client: PoolClient | null; // all purchases have to explicitly set client (possibly to null), to strongly encourage doing them as part of an atomic transaction.
+  project_id?: string;
+  cost?: number; // if cost not known yet, don't give.  E.g., for project-upgrade, the cost isn't known until project stops (or we close out a purchase interval).
+  cost_per_hour?: number;
+  period_start?: Date; // options; used mainly for analytics, e.g., for a license with given start and end dates.
+  period_end?: Date;
+  invoice_id?: string;
   notes?: string;
   tag?: string;
-}): Promise<number> {
-  const pool = getPool();
-  let eps = 3000;
-  let error = Error("unable to create purchase");
-  for (let i = 0; i < 10; i++) {
-    try {
-      const { rows } = await pool.query(
-        "INSERT INTO purchases (time, account_id, project_id, cost, description, notes, tag) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6) RETURNING id",
-        [account_id, project_id, cost, description, notes, tag]
-      );
-      return rows[0].id;
-    } catch (err) {
-      error = err;
-      // could be ill-timed database outage...?
-      logger.debug("Failed to insert purchase into purchases table.", {
-        account_id,
-        cost,
-        description,
-        err,
-      });
-      await delay(eps);
-      eps *= 1.2;
-    }
-  }
-  throw error;
+  pending?: boolean;
 }
 
-// Throws an exception if purchase is not allowed.  Code should
-// call this before giving the thing and doing createPurchase.
-// This is NOT part of createPurchase, since we could easily call
-// createPurchase after providing the service.
-export async function assertPurchaseAllowed({
-  account_id,
-  cost,
-}: {
-  account_id: string;
-  cost: number;
-}) {
-  if (!(await isValidAccount(account_id))) {
-    throw Error(`${account_id} is not a valid account`);
-  }
-  if (!Number.isFinite(cost) || cost <= 0) {
-    throw Error(`cost must be positive`);
-  }
-  const quota = await getQuota({ account_id });
-  const balance = await getBalance({ account_id });
-  if (balance + cost > quota) {
+export default async function createPurchase(opts: Options): Promise<number> {
+  let { cost_per_hour } = opts;
+  const {
+    account_id,
+    project_id,
+    cost,
+    period_start,
+    period_end,
+    service,
+    description,
+    invoice_id,
+    notes,
+    tag,
+    client,
+    pending,
+  } = opts;
+  if (cost == null && (cost_per_hour == null || period_start == null)) {
     throw Error(
-      `Insufficient quota.  balance + potential_cost > quota.   $${balance} + $${cost} > $${quota}.  Verify your email address, add credit, or contact support to increase your quota.`
+      "if cost is not set, then cost_per_hour and period_start must both be set"
     );
   }
+  if (cost != null && period_start != null && period_end != null) {
+    const hours = dayjs(period_end).diff(dayjs(period_start), "hour", true);
+    if (hours > 0) {
+      cost_per_hour = cost / hours;
+    }
+  } else {
+    // TODO: I don't know if there is something meaningful to do if there is no period, e.g., with GPT-4.
+    // We could define an ai call as lasting for 3 minutes (say). Alternatively, we could actually look
+    // at the time spent generating the output.  But is that really meaningful?
+  }
+
+  const { rows } = await (client ?? getPool()).query(
+    "INSERT INTO purchases (time, account_id, project_id, cost, cost_per_hour, period_start, period_end, service, description,invoice_id, notes, tag, pending) VALUES(CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id",
+    [
+      account_id,
+      project_id,
+      cost,
+      cost_per_hour,
+      period_start,
+      period_end,
+      service,
+      description,
+      invoice_id,
+      notes,
+      tag,
+      pending,
+    ]
+  );
+  const { id } = rows[0];
+  logger.debug("Created new purchase", "id=", id, "opts = ", opts);
+  ensureClosingDateDefined(account_id);
+  return id;
+}
+
+async function ensureClosingDateDefined(account_id: string) {
+  try {
+    await getClosingDay(account_id);
+  } catch (_) {}
 }

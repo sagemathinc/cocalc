@@ -26,6 +26,13 @@ export interface BillingStoreState {
   all_managed_license_ids?: List<string>; // same as managed_license_ids, but also includes all expired licenses.
   managed_licenses?: TypedMap<{ [id: string]: SiteLicense }>; // actual data of the licenses.
   subscription_list_state?: "view" | "buy_upgrades" | "buy_license";
+  pay_as_you_go?: TypedMap<{
+    showModal?: boolean;
+    service?: string;
+    cost?: number;
+    reason?: string;
+    allowed?: boolean;
+  }>;
 }
 
 export class BillingStore extends Store<BillingStoreState> {}

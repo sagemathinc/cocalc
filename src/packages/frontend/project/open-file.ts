@@ -42,8 +42,8 @@ export async function open_file(
     change_history?: boolean;
   }
 ): Promise<void> {
-  // console.log("open_file", opts);
-
+  // console.log(opts);
+  
   if (opts.path.endsWith("/")) {
     actions.open_directory(opts.path);
     return;
@@ -86,6 +86,9 @@ export async function open_file(
   if (store == undefined) {
     return;
   }
+
+  // ensure the project is opened -- otherwise the modal to start the project won't appear.
+  redux.getActions("projects").open_project({ project_id: actions.project_id });
 
   let open_files = store.get("open_files");
   const alreadyOpened = open_files.has(opts.path);

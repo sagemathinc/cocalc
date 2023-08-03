@@ -20,6 +20,39 @@ for students).
 import { is_valid_uuid_string } from "../misc";
 import { SCHEMA } from "./index";
 import { Table } from "./types";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+
+export interface License {
+  id: string;
+  title?: string;
+  description?: string;
+  info?: {
+    purchased: PurchaseInfo & {
+      account_id: string; // who bought this license
+    };
+  };
+  expires?: Date;
+  activates: Date;
+  created?: Date; // some old licenses don't have this
+  last_used?: Date;
+  managers: string[];
+  upgrades?: object;
+  quota?: {
+    cpu: number;
+    ram: number;
+    disk: number;
+    user: "business" | "academic";
+    boost: boolean;
+    member: boolean;
+    idle_timeout: "short" | "medium" | "day";
+    dedicated_cpu: number;
+    dedicated_ram: number;
+    always_running: boolean;
+  };
+  run_limit: number;
+  voucher_code?: string;
+  subscription_id?: number;
+}
 
 Table({
   name: "site_licenses",
@@ -40,11 +73,11 @@ Table({
     },
     info: {
       type: "map",
-      desc: "Structured object for admins to store structured information about this license.  This serves a similar purpose to description, but must be a valid JSON object map.",
+      desc: "Structured object for admins to store structured information about this license.  This serves a similar purpose to description, but must be a valid JSON object map.  In practice, this is an object {purchased: PurchaseInfo} that records the info that defines the specs and price of the license",
     },
     expires: {
       type: "timestamp",
-      desc: "Date when the license expires.  At this point in time the license no longer upgrades projects, and any running upgraded projects have their upgrades removed, which may result in thosoe projects being stoped.",
+      desc: "Date when the license expires.  At this point in time the license no longer upgrades projects, and any running upgraded projects have their upgrades removed, which may result in thosoe projects being stoped.  NOTE: licenses may exist in db with expires not set, but we intend to always require it to be set at some point.",
       render: { type: "timestamp", editable: true },
     },
     activates: {
@@ -76,7 +109,7 @@ Table({
     },
     upgrades: {
       type: "map",
-      desc: "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  This matches with our older purchases and our internal system.  Instead of this one can give quota.",
+      desc: "Map of the upgrades that are applied to a project when it has this site license; this is the same as the settings field of a project, so e.g., {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  This matches with our older purchases and our internal system.  Instead of this one can give quota.  (DEPRECATED but supported?)",
     },
     quota: {
       type: "map",
@@ -95,6 +128,11 @@ Table({
     voucher_code: {
       type: "string",
       desc: "If this license was created using a voucher, then this is the code of that voucher.",
+    },
+    subscription_id: {
+      type: "integer",
+      descr:
+        "If this license automatically renews due to a subscription, then this is the id of that subscription.",
     },
   },
   rules: {
@@ -128,6 +166,7 @@ Table({
           run_limit: null,
           apply_limit: null,
           voucher_code: null,
+          subscription_id: null,
         },
       },
       set: {
@@ -175,6 +214,7 @@ Table({
     quota: true,
     run_limit: true,
     apply_limit: true,
+    subscription_id: true,
   },
   rules: {
     virtual: true, // don't make an actual table
@@ -200,6 +240,7 @@ Table({
           quota: null,
           run_limit: null,
           apply_limit: null,
+          subscription_id: null,
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         // We also completely ignore the user-requested fields and just return everything, since
@@ -449,6 +490,7 @@ Table({
     quota: SCHEMA.site_licenses.fields.quota,
     run_limit: SCHEMA.site_licenses.fields.run_limit,
     managers: SCHEMA.site_licenses.fields.managers,
+    subscription_id: SCHEMA.site_licenses.fields.subscription_id,
     running: {
       type: "integer",
       desc: "Number of running projects currently using this license.   Regarding security, we assume that if the user knows the license id, then they are allowed to know how many projects are using it.",
@@ -478,10 +520,11 @@ Table({
           managers: null,
           running: null,
           is_manager: null,
+          subscription_id: null,
         },
         // Actual query is implemented using this code below rather than an
         // actual query directly.  TODO: Also, we're lazy and return all fields we
-        // know, even if user doesn't request them all.
+        // know from the site_license_public_info call, even if user doesn't request them all.
         // If the user making the query is a manager of this license they get a list of
         // the managers (otherwise managers isn't set for them.)
         async instead_of_query(database, opts, cb): Promise<void> {
@@ -550,6 +593,7 @@ Table({
     run_limit: true,
     apply_limit: true,
     voucher_code: true,
+    subscription_id: true,
   },
   rules: {
     virtual: "site_licenses", // don't make an actual table
@@ -574,6 +618,7 @@ Table({
           run_limit: null,
           apply_limit: null,
           voucher_code: null,
+          subscription_id: null,
         },
         // Actual query is implemented using this code below rather than an actual query directly.
         // We also completely ignore the user-requested fields and just return everything, since

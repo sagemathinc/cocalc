@@ -64,7 +64,7 @@ export default function CopyToClipBoard({
   // right way to do this.
   // hsy: Input.Group is deprecated, using Space.Compact instead
   const input = (
-    <Space.Compact style={{ display: "flex" }}>
+    <Space.Compact>
       <Input
         style={{
           width: inputWidth ?? `${value.length + 8}ex`,

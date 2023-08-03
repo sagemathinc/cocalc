@@ -7,13 +7,10 @@
 // no sustained use discounts
 // "quota" ends up in the license's quota field
 
-import {
-  ONE_DAY_MS,
-  AVG_MONTH_DAYS,
-  AVG_YEAR_DAYS,
-} from "@cocalc/util/consts/billing";
+import { AVG_MONTH_DAYS, AVG_YEAR_DAYS } from "@cocalc/util/consts/billing";
 import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
-import { DedicatedDisk, DedicatedVM } from "../../types/dedicated";
+import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
+import dayjs from "dayjs";
 
 interface Props {
   dedicated_vm?: DedicatedVM;
@@ -23,9 +20,10 @@ interface Props {
   subscription: "monthly" | "yearly";
 }
 
-function getDuration({ start, end, subscription }) {
+function getDuration({ start, end, subscription }): number {
   if (start != null && end != null) {
-    return (end.getTime() - start.getTime()) / ONE_DAY_MS;
+    // length of time in days -- not an integer in general!
+    return dayjs(end).diff(dayjs(start), "day", true);
   } else if (subscription === "yearly") {
     return AVG_YEAR_DAYS;
   } else {
@@ -39,8 +37,6 @@ export function dedicatedPrice(info: Props): {
 } {
   const { dedicated_vm, dedicated_disk, subscription } = info;
 
-  // at this point, we assume the start/end dates are already
-  // set to the start/end time of a day in the user's timezone.
   const start = info.start ? new Date(info.start) : undefined;
   const end = info.end ? new Date(info.end) : undefined;
 
@@ -52,7 +48,7 @@ export function dedicatedPrice(info: Props): {
       throw new Error(`Dedicated VM "${dedicated_vm}" is not defined.`);
     }
     return {
-      price: info.price_day * duration,
+      price: Math.max(0.01, info.price_day * duration),
       monthly: info.price_day * AVG_MONTH_DAYS,
     };
   } else if (!!dedicated_disk) {
@@ -63,7 +59,7 @@ export function dedicatedPrice(info: Props): {
       throw new Error(`Dedicated Disk "${dedicated_disk}" is not defined.`);
     }
     return {
-      price: info.price_day * duration,
+      price: Math.max(0.01, info.price_day * duration),
       monthly: info.price_day * AVG_MONTH_DAYS,
     };
   } else {

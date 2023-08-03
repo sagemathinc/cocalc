@@ -32,10 +32,13 @@ import getLogger from "@cocalc/backend/logger";
 import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
 import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
 import getPool from "@cocalc/database/pool";
+import { closePayAsYouGoPurchases } from "@cocalc/server/purchases/project-quotas";
+import { handlePayAsYouGoQuotas } from "./pay-as-you-go";
+import { query } from "@cocalc/database/postgres/query";
 
 export type { ProjectState, ProjectStatus };
 
-const winston = getLogger("project-control");
+const logger = getLogger("project-control");
 
 export type Action = "open" | "start" | "stop" | "restart";
 
@@ -86,11 +89,23 @@ export abstract class BaseProject extends EventEmitter {
     await site_license_hook(db(), this.project_id);
   }
 
+  private async closePayAsYouGoPurchases() {
+    try {
+      await closePayAsYouGoPurchases(this.project_id);
+    } catch (err) {
+      logger.error("problem closing pay as you go purchases", err);
+      // will happen soon via periodic sync...
+    }
+  }
+
   protected async saveStateToDatabase(state: ProjectState): Promise<void> {
     await callback2(db().set_project_state, {
       ...state,
       project_id: this.project_id,
     });
+    if (state.state != "starting" && state.state != "running") {
+      this.closePayAsYouGoPurchases();
+    }
   }
 
   protected async saveStatusToDatabase(status: ProjectStatus): Promise<void> {
@@ -102,7 +117,7 @@ export abstract class BaseProject extends EventEmitter {
 
   dbg(f: string): (string?) => void {
     return (msg?: string) => {
-      winston.debug(`(project_id=${this.project_id}).${f}: ${msg}`);
+      logger.debug(`(project_id=${this.project_id}).${f}: ${msg}`);
     };
   }
 
@@ -133,14 +148,14 @@ export abstract class BaseProject extends EventEmitter {
     let d = 250;
     while (new Date().valueOf() - t0 <= maxTime) {
       if (await until()) {
-        winston.debug(`wait ${this.project_id} -- satisfied`);
+        logger.debug(`wait ${this.project_id} -- satisfied`);
         return;
       }
       await delay(d);
       d *= 1.2;
     }
     const err = `wait ${this.project_id} -- FAILED`;
-    winston.debug(err);
+    logger.debug(err);
     throw Error(err);
   }
 
@@ -210,7 +225,7 @@ export abstract class BaseProject extends EventEmitter {
     } else {
       dbg("running and a quota changed; restart");
       // CRITICAL: do NOT await on this restart!  The set_all_quotas call must
-      // complete quickly (in an HTTP requrest), whereas restart can easily take 20s,
+      // complete quickly (in an HTTP request), whereas restart can easily take 20s,
       // and there is no reason to wait on this.  Wrapping this as below calls the
       // function, properly awaits and logs what happens, and avoids uncaught exceptions,
       // but doesn't block the caller of this function.
@@ -223,6 +238,42 @@ export abstract class BaseProject extends EventEmitter {
         }
       })();
     }
+  }
+
+  // The run_quota is now explicitly used in singule-user and multi-user
+  // to control at least idle timeout of projects; also it is very useful
+  // for development since it is shown in the UI (in project settings).
+  async setRunQuota(): Promise<void> {
+    let run_quota;
+
+    try {
+      run_quota = await handlePayAsYouGoQuotas(this.project_id);
+    } catch (err) {
+      logger.debug("issue handling pay as you go quota", err);
+      run_quota = null;
+    }
+
+    if (run_quota == null) {
+      const { settings, users, site_license } = await query({
+        db: db(),
+        select: ["site_license", "settings", "users"],
+        table: "projects",
+        where: { project_id: this.project_id },
+        one: true,
+      });
+
+      const site_settings = await getQuotaSiteSettings(); // quick, usually cached
+      run_quota = quota(settings, users, site_license, site_settings);
+    }
+
+    await query({
+      db: db(),
+      query: "UPDATE projects",
+      where: { project_id: this.project_id },
+      set: { run_quota },
+    });
+
+    logger.debug("updated run_quota=", run_quota);
   }
 }
 

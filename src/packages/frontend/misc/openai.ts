@@ -1,8 +1,10 @@
 // NOTE! This gpt-3-tokenizer is LARGE, e.g., 1.6MB, so be
 // sure to async load it by clients of this code.
 import GPT3Tokenizer from "gpt3-tokenizer";
+import type { Model } from "@cocalc/util/db-schema/openai";
+import { getMaxTokens } from "@cocalc/util/db-schema/openai";
 
-export const MAX_CHATGPT_TOKENS = 4096;
+export { getMaxTokens };
 
 // "For an average English text, it's reasonable to assume that each word is
 //  about 5 characters long on average, and there is a space character between
@@ -13,11 +15,7 @@ export const MAX_CHATGPT_TOKENS = 4096;
 // if 6 is about right, 8 should be a good upper bound.
 const APPROX_CHARACTERS_PER_TOKEN = 8;
 
-
-const MAX_CHATGPT_LENGTH = MAX_CHATGPT_TOKENS * APPROX_CHARACTERS_PER_TOKEN;
-
 const tokenizer = new GPT3Tokenizer({ type: "gpt3" });
-
 
 // WARNING: --  tokenizer.encode is blocking and can be slow, e.g., if you give it
 // content of length 250,000 it'll take 6 seconds and make the browser freeze.
@@ -63,14 +61,19 @@ export function truncateMessage(content: string, maxTokens: number): string {
 
 // This is not very clever or efficiently coded, obviously.  Could refine and make better...
 
-export function truncateHistory(history: History, maxTokens: number): History {
+export function truncateHistory(
+  history: History,
+  maxTokens: number,
+  model: Model
+): History {
   if (maxTokens <= 0) {
     return [];
   }
+  const maxLength = getMaxTokens(model) * APPROX_CHARACTERS_PER_TOKEN;
   for (let i = 0; i < history.length; i++) {
     // Performance: ensure all entries in history are reasonably short, so they don't
     // cause "tokenizer.encode(content)" below to take a long time.
-    history[i].content = history[i].content.slice(0, MAX_CHATGPT_LENGTH);
+    history[i].content = history[i].content.slice(0, maxLength);
   }
 
   const tokens = history.map(({ content }) => tokenizer.encode(content).text);

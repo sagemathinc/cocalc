@@ -266,8 +266,6 @@ export interface PostgreSQL extends EventEmitter {
   verify_email_check_token(opts: { email_address: string; token: string });
   reset_server_settings_cache(): void;
 
-  sync_site_license_subscriptions(account_id?: string): Promise<number>;
-
   update_coupon_history(opts: {
     account_id: string;
     coupon_history;

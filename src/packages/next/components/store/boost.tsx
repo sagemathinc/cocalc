@@ -86,6 +86,13 @@ export default function Boost(props: Props) {
             to get an additional <A href="./site-license">Site License</A> with
             a "Run Limit" matching the number of additional of students.
           </Paragraph>
+          <Paragraph>
+            If you aren't sure exactly what to buy, don't worry,{" "}
+            <b>you can always edit your boost licenses later</b>, including
+            changing dates, the run limit, idle timeout, and other
+            configuration. You will be charged or credited for the difference in
+            the cost.
+          </Paragraph>
         </Space>
       )}
       <CreateBooster

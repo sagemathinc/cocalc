@@ -137,10 +137,6 @@ export function load_target(
       }
       redux.getActions("page").set_active_tab("account", false);
 
-      if (segments[1] === "account") {
-        redux.getActions("account").set_active_tab("account");
-      }
-
       if (segments[1] === "billing") {
         const actions = redux.getActions("billing");
         actions?.update_customer();
@@ -151,23 +147,11 @@ export function load_target(
             redux.getActions("billing")?.update_customer();
           }, 5000);
         }
+        return;
       }
 
-      if (segments[1] === "upgrades") {
-        redux.getActions("account").set_active_tab("upgrades");
-      }
+      redux.getActions("account").set_active_tab(segments[1]);
 
-      if (segments[1] === "licenses") {
-        redux.getActions("account").set_active_tab("licenses");
-      }
-
-      if (segments[1] === "support") {
-        redux.getActions("account").set_active_tab("support");
-      }
-
-      if (segments[1] === "ssh-keys") {
-        redux.getActions("account").set_active_tab("ssh-keys");
-      }
       break;
 
     case "notifications":

@@ -10,6 +10,7 @@ import { Store, redux } from "../app-framework";
 import { UsersState } from "./types";
 import { actions } from "./actions";
 import { cmp } from "@cocalc/util/misc";
+import { OPENAI_USERNAMES } from "@cocalc/util/db-schema/openai";
 
 export const DEFAULT_COLOR = "rgb(170,170,170)";
 
@@ -82,8 +83,11 @@ export class UsersStore extends Store<UsersState> {
   }
 
   public get_name(account_id: string): string | undefined {
-    if (account_id == "chatgpt") {
-      return "ChatGPT";
+    if (account_id.startsWith("chatgpt")) {
+      return OPENAI_USERNAMES[account_id] ?? account_id;
+    }
+    if (account_id.startsWith("openai-")) {
+      return OPENAI_USERNAMES[account_id.slice("openai-".length)];
     }
     const user_map = this.get("user_map");
     if (user_map == null) {

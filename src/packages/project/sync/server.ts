@@ -101,7 +101,7 @@ interface Logger {
   debug: Function;
 }
 
-import stringify from "fast-json-stable-stringify";
+import stringify from "json-stable-stringify";
 import { sha1 } from "@cocalc/backend/sha1";
 
 const COCALC_EPHEMERAL_STATE: boolean =

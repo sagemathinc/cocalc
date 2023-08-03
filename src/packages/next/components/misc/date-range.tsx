@@ -7,7 +7,6 @@ import { DatePicker } from "antd";
 import dayjs from "dayjs";
 import { CSSProperties, useState } from "react";
 import { DateRangeType, Date0 } from "@cocalc/util/types/store";
-import { roundToMidnight } from "@cocalc/util/stripe/timecalcs";
 
 interface Props {
   onChange?: (x: DateRangeType) => void;
@@ -28,17 +27,21 @@ export default function DateRange(props: Props) {
     initialValues = [undefined, undefined],
   } = props;
 
-  // we round values to exactly midnight, because otherwise e.g. 2022-06-12T23:58:95 will be shown as 2022-06-12
-  // that's confusing and causes problems down the road
-  initialValues[0] = roundToMidnight(initialValues[0], "start");
-  initialValues[1] = roundToMidnight(initialValues[1], "end");
-
   const [dateRange, setDateRange] = useState<DateRangeType>(initialValues);
 
   const presets = [
+    { label: "Day", value: [dayjs(), dayjs().add(1, "day")] },
     { label: "Week", value: [dayjs(), dayjs().add(1, "week")] },
     { label: "Month", value: [dayjs(), dayjs().add(1, "month")] },
     { label: "Year", value: [dayjs(), dayjs().add(1, "year")] },
+    {
+      label: "+ Hour",
+      value: [dayjs(dateRange[0]), dayjs(dateRange[0]).add(1, "hour")],
+    },
+    {
+      label: "+ Day",
+      value: [dayjs(dateRange[0]), dayjs(dateRange[0]).add(1, "day")],
+    },
     {
       label: "+ Week",
       value: [dayjs(dateRange[0]), dayjs(dateRange[0]).add(1, "week")],
@@ -60,6 +63,7 @@ export default function DateRange(props: Props) {
   return (
     <div style={style}>
       <DatePicker.RangePicker
+        showTime
         disabled={disabled}
         allowEmpty={[true, true]}
         renderExtraFooter={() => (
@@ -97,12 +101,13 @@ export default function DateRange(props: Props) {
           noPast || maxDaysInFuture
             ? (date) => {
                 if (!date) return false;
-                if (noPast && date <= dayjs().subtract(1, "days")) return true;
+                if (noPast && date <= dayjs().subtract(1, "day")) return true;
                 if (
                   maxDaysInFuture &&
                   date >= dayjs().add(maxDaysInFuture, "days")
-                )
+                ) {
                   return true;
+                }
                 return false;
               }
             : undefined

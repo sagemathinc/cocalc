@@ -72,9 +72,12 @@ Table({
           avatar_image_tiny: null,
           // do NOT add avatar_image_full here or it will get included in changefeeds, which we don't want.
           // instead it gets its own virtual table.
+          pay_as_you_go_quotas: null,
         },
       },
       set: {
+        // NOTE: for security reasons users CANNOT set the course field via a user query;
+        // instead use the api/v2/projects/course/set-course-field api endpoint.
         fields: {
           project_id: "project_write",
           title: true,
@@ -87,7 +90,6 @@ Table({
           },
           action_request: true, // used to request that an action be performed, e.g., "save"; handled by before_change
           compute_image: true,
-          course: true,
           site_license: true,
           env: true,
           sandbox: true,
@@ -194,7 +196,7 @@ Table({
     },
     site_license: {
       type: "map",
-      desc: "This is a map that defines upgrades (just when running the project) that come from a site license, and also the licenses that are applied to this project.  The format is {license_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The license_id is the uuid of the license that contributed these upgrades.  To tell cocalc to use a license for a project, a user sets site_license to {license_id:{}}, and when it is requested to start the project, the backend decides what allocation license_id provides and changes the field accordingly.",
+      desc: "This is a map that defines upgrades (just when running the project) that come from a site license, and also the licenses that are applied to this project.  The format is {license_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The license_id is the uuid of the license that contributed these upgrades.  To tell cocalc to use a license for a project, a user sets site_license to {license_id:{}}, and when it is requested to start the project, the backend decides what allocation license_id provides and changes the field accordingly, i.e., changes {license_id:{},...} to {license_id:{memory:?,...},...}",
     },
     status: {
       type: "map",
@@ -243,7 +245,7 @@ Table({
     },
     course: {
       type: "map",
-      desc: "{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.",
+      desc: "{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, payInfo:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must pay. If payInfo is set, it specifies the parameters of the license the students should purchase.",
       date: ["pay"],
     },
     storage_server: {
@@ -312,6 +314,11 @@ Table({
       type: "string",
       desc: "A visual image associated with the project.  Could be 150kb.  NOT include as part of changefeed of projects, since potentially big (e.g., 200kb x 1000 projects = 200MB!).",
       render: { type: "image" },
+    },
+    pay_as_you_go_quotas: {
+      type: "map",
+      desc: "Pay as you go quotas that users set so that when they run this project, it gets upgraded to at least what is specified here, and user gets billed later for what is used.  Any changes to this table could result in money being spent, so should only be done via the api.  This is a map from the account_id of the user that set the quota to the value of the quota spec (which is purchase-quotas.ProjectQuota).",
+      render: { type: "json", editable: false },
     },
     notes: NOTES,
   },
@@ -598,3 +605,41 @@ Table({
     },
   },
 });
+
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+export type Datastore = boolean | string[] | undefined;
+// in the future, we might want to extend this to include custom environmment variables
+export interface EnvVarsRecord {
+  inherit?: boolean;
+}
+export type EnvVars = EnvVarsRecord | undefined;
+export interface StudentProjectFunctionality {
+  disableActions?: boolean;
+  disableJupyterToggleReadonly?: boolean;
+  disableJupyterClassicServer?: boolean;
+  disableJupyterClassicMode?: boolean;
+  disableJupyterLabServer?: boolean;
+  disableVSCodeServer?: boolean;
+  disablePlutoServer?: boolean;
+  disableTerminals?: boolean;
+  disableUploads?: boolean;
+  disableNetwork?: boolean;
+  disableSSH?: boolean;
+  disableCollaborators?: boolean;
+  disableChatGPT?: boolean;
+  disableSharing?: boolean;
+}
+
+export interface CourseInfo {
+  type: "student" | "shared" | "nbgrader";
+  account_id?: string; // account_id of the student that this project is for.
+  project_id: string; // the course project, i.e., project with the .course file
+  path: string; // path to the .course file in project_id
+  pay?: string; // iso timestamp or ""
+  paid?: string; // iso timestamp with *when* they paid.
+  payInfo?: PurchaseInfo;
+  email_address?: string;
+  datastore: Datastore;
+  student_project_functionality?: StudentProjectFunctionality;
+  envvars?: EnvVars;
+}

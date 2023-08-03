@@ -3,7 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/* Purchasing a license */
+/* 
+
+Purchasing a license in the frontend app. 
+
+DEPRECATED -- this is no longer used anywhere in the frontend code base.
+Instead, use the nextjs app... unless we want to bring back frontend 
+purchases of licenses (maybe we do!) and then maybe this will be useful.
+
+*/
 
 import { DownOutlined } from "@ant-design/icons";
 import {
@@ -610,7 +618,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       upgrade,
       subscription,
       start,
-      end: subscription == "no" ? end : undefined,
+      end,
       quote,
       quote_info,
       payment_method,

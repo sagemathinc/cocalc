@@ -15,6 +15,7 @@ export interface SiteLicensePublicInfo {
   id: string;
   title: string;
   description: string;
+  created: Date;
   activates?: Date;
   expires?: Date;
   run_limit?: number;
@@ -24,6 +25,7 @@ export interface SiteLicensePublicInfo {
   running?: number;
   applied?: number;
   quota?: SiteLicenseQuota;
+  subscription_id?: number;
 }
 
 export type SiteLicenses = {
