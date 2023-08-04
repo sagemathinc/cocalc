@@ -45,6 +45,7 @@ render({ type: "timestamp", editable: true }, ({ field, obj }) => {
       <Space direction="vertical" style={{ width: "100%" }}>
         <DatePicker
           showTime
+          changeOnBlur
           allowClear
           defaultValue={value}
           disabled={saving}

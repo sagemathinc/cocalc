@@ -117,9 +117,10 @@ export default function LicenseEditor({
       value: (
         <DatePicker
           showTime
+          changeOnBlur
           allowClear={false}
           disabled={isSubscription || disabledFields?.has("start")}
-          value={info.start ? dayjs(info.start) : undefined}
+          defaultValue={info.start ? dayjs(info.start) : undefined}
           onChange={handleFieldChange("start")}
           disabledDate={(current) => current < dayjs().startOf("day")}
         />
@@ -132,9 +133,10 @@ export default function LicenseEditor({
         <div>
           <DatePicker
             showTime
+            changeOnBlur
             allowClear={false}
             disabled={isSubscription || disabledFields?.has("end")}
-            value={info.end ? dayjs(info.end) : undefined}
+            defaultValue={info.end ? dayjs(info.end) : undefined}
             onChange={handleFieldChange("end")}
             disabledDate={(current) => {
               if (current <= dayjs().startOf("day")) {
