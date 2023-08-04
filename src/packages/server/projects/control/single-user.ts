@@ -18,6 +18,14 @@ This is useful for:
 
 import { kill } from "process";
 
+import getLogger from "@cocalc/backend/logger";
+import {
+  BaseProject,
+  CopyOptions,
+  ProjectState,
+  ProjectStatus,
+  getProject,
+} from "./base";
 import {
   copyPath,
   ensureConfFilesExists,
@@ -31,14 +39,6 @@ import {
   mkdir,
   setupDataPath,
 } from "./util";
-import {
-  BaseProject,
-  CopyOptions,
-  ProjectStatus,
-  ProjectState,
-  getProject,
-} from "./base";
-import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("project-control:single-user");
 
@@ -89,11 +89,8 @@ class Project extends BaseProject {
     try {
       this.stateChanging = { state: "starting" };
       await this.saveStateToDatabase(this.stateChanging);
-      await this.siteLicenseHook();
-      await this.setRunQuota();
-
+      await this.computeQuota();
       await mkdir(HOME, { recursive: true });
-
       await ensureConfFilesExists(HOME);
 
       // this.get('env') = extra env vars for project (from synctable):
@@ -155,8 +152,6 @@ class Project extends BaseProject {
     await copyPath(opts, this.project_id);
     return "";
   }
-
-
 }
 
 export default function get(project_id: string): Project {

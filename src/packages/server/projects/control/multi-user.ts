@@ -93,13 +93,10 @@ class Project extends BaseProject {
     try {
       this.stateChanging = { state: "starting" };
       await this.saveStateToDatabase(this.stateChanging);
-      await this.siteLicenseHook();
-      await this.setRunQuota();
-
+      await this.computeQuota();
       await mkdir(HOME, { recursive: true });
       await createUser(this.project_id);
       await chown(HOME, this.uid);
-
       await ensureConfFilesExists(HOME, this.uid);
 
       // this.get('env') = extra env vars for project (from synctable):

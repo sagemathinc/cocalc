@@ -1,9 +1,14 @@
-import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
-import createPurchase from "@cocalc/server/purchases/create-purchase";
+/*
+ *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ */
+
+import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
+import createPurchase from "@cocalc/server/purchases/create-purchase";
+import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import { quota, Quota } from "@cocalc/util/upgrades/quota";
-import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("projects:control:pay-as-you-go");
 

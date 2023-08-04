@@ -26,7 +26,7 @@ import { db } from "@cocalc/database";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
 import { ProjectState, ProjectStatus } from "@cocalc/util/db-schema/projects";
-import { quota } from "@cocalc/util/upgrades/quota";
+import { Quota, quota } from "@cocalc/util/upgrades/quota";
 import { delay } from "awaiting";
 import getLogger from "@cocalc/backend/logger";
 import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
@@ -85,8 +85,8 @@ export abstract class BaseProject extends EventEmitter {
     await this.start();
   }
 
-  protected async siteLicenseHook(): Promise<void> {
-    await site_license_hook(db(), this.project_id);
+  protected async siteLicenseHook(havePAYGO: boolean): Promise<void> {
+    await site_license_hook(db(), this.project_id, havePAYGO);
   }
 
   private async closePayAsYouGoPurchases() {
@@ -240,19 +240,26 @@ export abstract class BaseProject extends EventEmitter {
     }
   }
 
+  protected async computeQuota() {
+    const paygoQuota = await this.getPayAsYouGoQuota();
+    await this.siteLicenseHook(paygoQuota != null);
+    await this.setRunQuota(paygoQuota);
+  }
+
+  protected async getPayAsYouGoQuota() {
+    try {
+      return await handlePayAsYouGoQuotas(this.project_id);
+    } catch (err) {
+      logger.debug("issue handling pay as you go quota", err);
+      return null;
+    }
+  }
+
   // The run_quota is now explicitly used in singule-user and multi-user
   // to control at least idle timeout of projects; also it is very useful
   // for development since it is shown in the UI (in project settings).
-  async setRunQuota(): Promise<void> {
-    let run_quota;
-
-    try {
-      run_quota = await handlePayAsYouGoQuotas(this.project_id);
-    } catch (err) {
-      logger.debug("issue handling pay as you go quota", err);
-      run_quota = null;
-    }
-
+  async setRunQuota(run_quota: Quota | null): Promise<void> {
+    // if null, there is no paygo quota, so we have to compute it based on the licenses
     if (run_quota == null) {
       const { settings, users, site_license } = await query({
         db: db(),

@@ -70,10 +70,11 @@ const LAST_USED: { [license_id: string]: number } = {};
  */
 export async function site_license_hook(
   db: PostgreSQL,
-  project_id: string
+  project_id: string,
+  paygoActive: boolean
 ): Promise<void> {
   try {
-    const slh = new SiteLicenseHook(db, project_id);
+    const slh = new SiteLicenseHook(db, project_id, paygoActive);
     await slh.process();
   } catch (err) {
     const L = getLogger(LOGGER_NAME);
@@ -86,17 +87,20 @@ export async function site_license_hook(
  * Use the convenience function site_license_hook() to call this.
  */
 class SiteLicenseHook {
-  private db: PostgreSQL;
-  private project_id: string;
-  private dbg: ReturnType<typeof getLogger>;
+  private readonly db: PostgreSQL;
+  private readonly project_id: string;
+  private readonly paygoActive: boolean;
+  private readonly dbg: ReturnType<typeof getLogger>;
+
   private projectSiteLicenses: SiteLicenses = {};
   private nextSiteLicense: SiteLicenses = {};
   private site_settings: SiteSettingsQuotas | undefined;
   private project: { site_license: any; settings: any; users: any };
 
-  constructor(db: PostgreSQL, project_id: string) {
+  constructor(db: PostgreSQL, project_id: string, paygoActive: boolean) {
     this.db = db;
     this.project_id = project_id;
+    this.paygoActive = paygoActive;
     this.dbg = getLogger(`${LOGGER_NAME}:${project_id}`);
   }
 
@@ -385,8 +389,13 @@ class SiteLicenseHook {
         );
         return "exhausted";
       } else {
-        this.dbg.info(`license ${license_id} is valid`);
-        return "valid";
+        if (this.paygoActive) {
+          this.dbg.info(`due to PAYGO, license ${license_id} is ineffective`);
+          return "ineffective";
+        } else {
+          this.dbg.info(`license ${license_id} is valid`);
+          return "valid";
+        }
       }
     }
   }
