@@ -130,10 +130,11 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     } else if (preset == "min") {
       x = {
         member_host: 0,
-        network: 0,
+        network: 1,
         cores: 1,
         memory: 1000,
-        disk_quota: 1000,
+        disk_quota: 3000,
+        mintime: 0.5,
       };
     } else if (preset == "medium") {
       x = {
@@ -142,7 +143,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
         cores: 2,
         memory: 8000,
         disk_quota: 4000,
-        mintime: 7200,
+        mintime: 2,
       };
     } else if (preset == "large") {
       x = {

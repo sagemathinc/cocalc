@@ -22,6 +22,7 @@ import {
   FrameContext,
   defaultFrameContext,
 } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { AnonymousName } from "../anonymous-name";
@@ -51,8 +52,6 @@ import HomePageButton from "./home-page/button";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { TopTabBar } from "./top-bar";
 import { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./vertical-fixed-tabs";
-import Tabs, { FIXED_TABS_BG_COLOR, VerticalFixedTabs } from "./tabs";
-import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
