@@ -19,7 +19,7 @@ export interface SiteLicensePublicInfo {
   activates?: Date;
   expires?: Date;
   run_limit?: number;
-  upgrades?: TypedMap<SiteLicenseUpgrades>;
+  upgrades?: SiteLicenseUpgrades;
   is_manager?: boolean;
   managers?: string[];
   running?: number;
