@@ -134,13 +134,11 @@ interface Props {
 export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
   ({ functionality, onChange }) => {
     const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
-    const [changed, setChanged] = useState<boolean>(false);
     const [state, setState] =
       useState<StudentProjectFunctionality>(functionality);
     const [saving, setSaving] = useState<boolean>(false);
     function onChangeState(obj: StudentProjectFunctionality) {
       const newState = { ...state };
-      setChanged(true);
       for (const key in obj) {
         newState[key] = obj[key];
       }
