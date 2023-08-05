@@ -94,7 +94,7 @@ export function ProjectLicenses({ project_id }): JSX.Element {
       {renderAdmin()}
       {renderBody()}
       <Divider />
-      <Purchases project_id={project_id} group={true} />
+      <Purchases project_id={project_id} group={false} />
     </div>
   );
 }

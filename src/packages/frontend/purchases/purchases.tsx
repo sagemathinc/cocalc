@@ -85,7 +85,7 @@ function Purchases0({
       }
     >
       <div style={{ float: "right" }}>
-        <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project.">
+        <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
           <Checkbox
             checked={group}
             onChange={(e) => setGroup(e.target.checked)}
@@ -292,8 +292,7 @@ function GroupedPurchaseTable({ purchases }) {
               dataIndex: "sum",
               key: "sum",
               align: "right" as "right",
-              render: (amount) =>
-                currency(amount, Math.abs(amount) < 0.1 ? 3 : 2),
+              render: (amount) => <Amount record={{ cost: amount }} />,
               sorter: (a: any, b: any) => (a.sum ?? 0) - (b.sum ?? 0),
               sortDirections: ["ascend", "descend"],
             },
