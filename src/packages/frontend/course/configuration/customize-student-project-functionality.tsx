@@ -148,11 +148,6 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
     }
     const isMountedRef = useIsMountedRef();
 
-    useEffect(() => {
-      // upstream change (e.g., another user editing these)
-      setState(functionality);
-    }, [functionality]);
-
     function renderOption(option) {
       let { title } = option;
       if (option.notImplemented) {
@@ -162,14 +157,14 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
         <Tip key={title} title={`Disable ${title}`} tip={option.description}>
           <Checkbox
             disabled={saving}
-            checked={state[option.name]}
+            defaultChecked={state[option.name]}
             onChange={(e) =>
               onChangeState({
                 [option.name]: (e.target as any).checked,
               })
             }
           >
-            <span style={{ fontWeight: 500 }}>Disable {title}</span>
+            Disable {title}
           </Checkbox>
           <br />
         </Tip>
@@ -209,24 +204,21 @@ export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
           }}
         >
           {options}
-          {(changed || !isEqual(functionality, state)) && (
-            <div>
-              <br />
-              <Button
-                type="primary"
-                disabled={saving || isEqual(functionality, state)}
-                onClick={async () => {
-                  setSaving(true);
-                  await onChange(state);
-                  if (isMountedRef.current) {
-                    setSaving(false);
-                  }
-                }}
-              >
-                Save changes
-              </Button>
-            </div>
-          )}
+          <div style={{ marginTop: "8px" }}>
+            <Button
+              type="primary"
+              disabled={saving || isEqual(functionality, state)}
+              onClick={async () => {
+                setSaving(true);
+                await onChange(state);
+                if (isMountedRef.current) {
+                  setSaving(false);
+                }
+              }}
+            >
+              Save changes
+            </Button>
+          </div>
         </div>
       </Card>
     );
