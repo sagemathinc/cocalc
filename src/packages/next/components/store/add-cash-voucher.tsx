@@ -8,17 +8,19 @@ import apiPost from "lib/api/post";
 
 export default function AddCashVoucher() {
   const [amount, setAmount] = useState<number>(5);
+
+  const disabled = !amount;
   const addVoucher = async () => {
-    if (!amount) return;
+    if (disabled) return;
     await apiPost("/shopping/cart/add", {
       product: "cash-voucher",
-      description: { type: "cash-voucher", amount, note: "TODO" },
+      description: { type: "cash-voucher", amount },
     });
   };
 
   return (
     <Card title="Create Cash Voucher" style={{ margin: "15px 0" }}>
-      <Space>
+      <Space direction="vertical" style={{ width: "100%" }}>
         <InputNumber
           min={0}
           max={9999}
@@ -27,9 +29,9 @@ export default function AddCashVoucher() {
           precision={2} // for two decimal places
           step={5}
           addonAfter="$"
-          addonBefore="Cash Voucher For"
+          addonBefore="Amount (USD)"
         />
-        <Button onClick={addVoucher} disabled={!amount}>
+        <Button onClick={addVoucher} disabled={disabled}>
           <Icon name="shopping-cart" /> Add to Cart
         </Button>
       </Space>

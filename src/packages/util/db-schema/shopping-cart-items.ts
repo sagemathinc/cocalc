@@ -19,7 +19,6 @@ export type ProductType = "site-license" | "cash-voucher";
 interface CashVoucher {
   type: "cash-voucher";
   amount: number;
-  note: string;
 }
 
 export type ProductDescription = PurchaseInfo | CashVoucher;

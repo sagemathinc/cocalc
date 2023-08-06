@@ -80,12 +80,14 @@ export async function getCheckoutCart(
 ) {
   // Get the list of items in the cart that haven't been purchased
   // or saved for later, and are currently checked.
-  let cart: any[] = (
-    await getCart({ account_id, purchased: false, removed: false })
-  ).filter((item) => item.checked && item.product == "site-license");
-  if (filter != null) {
-    cart = cart.filter(filter);
-  }
+  let cart: any[] = await getCart({
+    account_id,
+    purchased: false,
+    removed: false,
+  });
+  cart = cart.filter(
+    filter ?? ((item) => item.checked && item.product == "site-license")
+  );
 
   // compute the total cost and also set the costs for each item
   let total = 0;

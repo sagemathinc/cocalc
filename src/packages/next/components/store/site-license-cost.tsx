@@ -9,7 +9,8 @@ import {
   describeQuotaOnLine,
   describe_quota,
 } from "@cocalc/util/licenses/describe-quota";
-import {
+import type {
+  CostInput,
   CostInputPeriod,
   PurchaseInfo,
   Subscription,
@@ -25,6 +26,7 @@ import Timestamp, { processTimestamp } from "components/misc/timestamp";
 import { ReactNode } from "react";
 import { useTimeFixer } from "./util";
 import { Tooltip, Typography } from "antd";
+import { currency } from "@cocalc/util/misc";
 const { Text } = Typography;
 
 interface Props {
@@ -47,6 +49,7 @@ export function DisplayCost({
   if (cost == null || isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
     return <>&ndash;</>;
   }
+
   const discount_pct = percent_discount(cost);
   if (simple) {
     const discount = discount_pct > 0 && (
@@ -100,7 +103,7 @@ export function DisplayCost({
 }
 
 interface DescribeItemProps {
-  info: Partial<PurchaseInfo>;
+  info: CostInput;
   variant?: "short" | "long";
   voucherPeriod?: boolean;
 }
@@ -113,6 +116,9 @@ export function describeItem({
   variant = "long",
   voucherPeriod,
 }: DescribeItemProps): ReactNode {
+  if (info.type == "cash-voucher") {
+    return <>Cash Voucher for {currency(info.amount)}</>;
+  }
   if (info.type === "disk") {
     return (
       <>

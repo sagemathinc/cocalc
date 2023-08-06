@@ -8,7 +8,7 @@ import {
   compute_cost,
   compute_cost_dedicated,
 } from "@cocalc/util/licenses/purchase/compute-cost";
-import {
+import type {
   CostInputPeriod,
   PurchaseInfo,
 } from "@cocalc/util/licenses/purchase/types";
@@ -75,11 +75,35 @@ function computeDedicatedVMCost(
   };
 }
 
+function computeCashVoucherPrice(props: ComputeCostProps) {
+  if (props.type != "cash-voucher") {
+    throw Error("BUG");
+  }
+  const cost = props.amount;
+  return {
+    // a lot of this is mainly for typescript.
+    cost,
+    cost_per_unit: cost,
+    discounted_cost: cost,
+    input: {
+      ...props,
+      subscription: "no",
+    },
+    period: "range",
+    cost_per_project_per_month: 0,
+    cost_sub_month: 0,
+    cost_sub_year: 0,
+  } as const;
+}
+
 export function computeCost(
   props: ComputeCostProps
 ): CostInputPeriod | undefined {
   const type = props.type ?? "quota";
   switch (type) {
+    case "cash-voucher":
+      return computeCashVoucherPrice(props);
+
     case "disk":
       return computeDedicatedDiskCost(props);
 
@@ -88,7 +112,11 @@ export function computeCost(
 
     case "quota":
     default:
-      if (props.type === "disk" || props.type === "vm") {
+      if (
+        props.type == "disk" ||
+        props.type == "vm" ||
+        props.type == "cash-voucher"
+      ) {
         throw Error("must be a quota upgrade license");
       }
       const {

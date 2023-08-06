@@ -152,7 +152,7 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
     await conn.products.create({
       id: product_id,
       name,
-      metadata,
+      metadata: metadata as any,
       statement_descriptor,
     });
     await stripeCreatePrice(info);

@@ -258,7 +258,15 @@ export default function CreateVouchers() {
   const cart0 = useAPI("/shopping/cart/get");
 
   const cart = useMemo(() => {
-    return cart0.result?.filter((item) => item.description?.period == "range");
+    return cart0.result?.filter((item) => {
+      if (item.product == "site-license") {
+        return item.description?.period == "range";
+      }
+      if (item.product == "cash-voucher") {
+        return true;
+      }
+      return false;
+    });
   }, [cart0.result]);
 
   const items = useMemo(() => {
@@ -581,8 +589,7 @@ export default function CreateVouchers() {
           {(numVouchers ?? 0) == 1
             ? "Your Voucher"
             : `Each of Your ${numVouchers ?? 0} Voucher Codes`}{" "}
-          Provides the Following {items.length}{" "}
-          {plural(items.length, "License")}
+          Provides the Following {items.length} {plural(items.length, "Item")}
         </h4>
         <Paragraph style={{ color: "#666" }}>
           These are the licenses with a fixed range of time from your shopping

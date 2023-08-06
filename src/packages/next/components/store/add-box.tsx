@@ -4,7 +4,7 @@
  */
 
 /*
-Create a new site license.
+Add a cash voucher to your shopping cart.
 */
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
@@ -33,6 +33,9 @@ export function AddBox(props: Props) {
     dedicatedItem = false,
     noAccount,
   } = props;
+  if (cost?.input.type == "cash-voucher") {
+    return null;
+  }
   let disabled = props.disabled ?? false;
   // if any of the fields in cost that start with the string "cost" are NaN, disable submission:
   if (
@@ -43,8 +46,7 @@ export function AddBox(props: Props) {
   }
 
   function costPerProject() {
-    if (!cost) return null;
-    if (!["quota", "regular", "boost"].includes(cost.input.type as string)) {
+    if (cost?.input.type != "quota") {
       return;
     }
     if (dedicatedItem || cost.input.quantity == null) return;
