@@ -297,6 +297,16 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
             anchor: focus,
           });
         },
+        get_cursor: () => {
+          const point = editor.selection?.anchor;
+          if (point == null) {
+            return { x: 0, y: 0 };
+          }
+          const pos = slatePointToMarkdownPosition(editor, point);
+          if (pos == null) return { x: 0, y: 0 };
+          const { line, ch } = pos;
+          return { y: line, x: ch };
+        },
       });
 
       return unregisterEditor;

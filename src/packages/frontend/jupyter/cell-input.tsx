@@ -322,10 +322,14 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             }
           }}
           registerEditor={(editor) => {
-            frameActions.current?.register_input_editor(
-              props.cell.get("id"),
-              editor
-            );
+            frameActions.current?.register_input_editor(props.cell.get("id"), {
+              set_cursor: editor.set_cursor,
+              get_cursor: () => {
+                const cur = editor.get_cursor();
+                if (cur == null) return cur;
+                return { line: cur.y, ch: cur.x };
+              },
+            });
           }}
           unregisterEditor={() => {
             frameActions.current?.unregister_input_editor(props.cell.get("id"));
