@@ -57,6 +57,7 @@ import {
 } from "@cocalc/frontend/purchases/api";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ExplainPaymentSituation } from "./checkout";
+import AddCashVoucher from "./add-cash-voucher";
 
 interface Config {
   whenPay: WhenPay;
@@ -368,15 +369,20 @@ export default function CreateVouchers() {
             </>
           )}
         </h3>
-        You must have at least one non-subscription item in{" "}
-        <A href="/store/cart">your cart</A> to create vouchers. Shop for{" "}
-        <A href="/store/site-license">upgrades</A>, a{" "}
-        <A href="/store/boost">license boost</A>, or a{" "}
-        <A href="/dedicated">dedicated VM or disk</A>, and select a specific
-        range of dates. When you <A href="/redeem">redeem a voucher</A>, the
-        corresponding licenses start at the redemption date, and last for the
-        same number of days as your shopping cart item. You can also browse all{" "}
-        <A href="/vouchers/redeemed">vouchers you have redeeemed</A>.
+        <AddCashVoucher />
+        <p style={{ color: "#666" }}>
+          You must have at least one non-subscription item in{" "}
+          <A href="/store/cart">your cart</A> to create vouchers from the items
+          in your shopping cart. Shop for{" "}
+          <A href="/store/site-license">upgrades</A>, a{" "}
+          <A href="/store/boost">license boost</A>, or a{" "}
+          <A href="/dedicated">dedicated VM or disk</A>, and select a specific
+          range of dates. When you{" "}
+          <A href="/redeem">redeem a voucher for shopping cart items</A>, the
+          corresponding licenses start at the redemption date, and last for the
+          same number of days as your shopping cart item. You can also browse
+          all <A href="/vouchers/redeemed">vouchers you have redeeemed</A>.
+        </p>
       </div>
     );
   }

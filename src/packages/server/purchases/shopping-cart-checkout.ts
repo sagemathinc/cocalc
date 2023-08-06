@@ -82,7 +82,7 @@ export async function getCheckoutCart(
   // or saved for later, and are currently checked.
   let cart: any[] = (
     await getCart({ account_id, purchased: false, removed: false })
-  ).filter((item) => item.checked);
+  ).filter((item) => item.checked && item.product == "site-license");
   if (filter != null) {
     cart = cart.filter(filter);
   }

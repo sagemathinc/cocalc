@@ -66,19 +66,19 @@ export type PurchaseInfoQuota = {
   custom_uptime: Uptime;
   custom_always_running?: boolean; // no longer really used, defined by custom_uptime above!
   boost?: boolean;
+  run_limit?: number;
 } & StartEndDates &
   CustomDescription;
 
 export type PurchaseInfo =
   | PurchaseInfoQuota
-  | {
+  | ({
       type: "vouchers";
       id: number;
       quantity: number;
       cost: number;
       tax: number;
-      title: string;
-    }
+    } & CustomDescription)
   | ({
       type: "vm";
       quantity: 1;

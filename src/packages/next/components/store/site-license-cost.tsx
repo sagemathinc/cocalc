@@ -44,7 +44,7 @@ export function DisplayCost({
   discountTooltip = false,
   noDiscount = false,
 }: Props) {
-  if (isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
+  if (cost == null || isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
     return <>&ndash;</>;
   }
   const discount_pct = percent_discount(cost);

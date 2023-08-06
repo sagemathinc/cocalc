@@ -11,16 +11,18 @@ query for everything for account with canceled if everything they decided not to
 */
 
 import { Table } from "./types";
-import { SiteLicenseQuota as Quota } from "../types/site-licenses";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { SCHEMA as schema } from "./index";
 
-export type ProductType = "site-license";
-export type ProductDescription = Quota; // just for now.
+export type ProductType = "site-license" | "cash-voucher";
 
-interface PurchaseInfo {
-  time: string; // iso timestamp
-  // TODO: maybe a stripe invoice id or a new database record?
+interface CashVoucher {
+  type: "cash-voucher";
+  amount: number;
+  note: string;
 }
+
+export type ProductDescription = PurchaseInfo | CashVoucher;
 
 export interface Item {
   id: number;
@@ -68,7 +70,7 @@ Table({
     },
     product: {
       type: "string",
-      desc: "General class of product, e.g., 'site-license'.",
+      desc: "General class of product, e.g., 'site-license', 'cash-voucher'.",
     },
     description: {
       type: "map",

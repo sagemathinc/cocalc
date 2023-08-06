@@ -229,7 +229,7 @@ async function stripePurchaseProduct(
       customer,
       price,
       quantity,
-      metadata: info,
+      metadata: info as any,
     });
     tax_percent = info.tax / Math.max(0.001, info.cost);
   } else {

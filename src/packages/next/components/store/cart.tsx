@@ -29,6 +29,11 @@ import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import OtherItems from "./other-items";
 import { EditRunLimit } from "./run-limit";
 import { describeItem, describePeriod, DisplayCost } from "./site-license-cost";
+import type {
+  ProductDescription,
+  ProductType,
+} from "@cocalc/util/db-schema/shopping-cart-items";
+import { currency } from "@cocalc/util/misc";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
@@ -50,21 +55,23 @@ export default function ShoppingCart() {
     const x: any[] = [];
     let subTotal = 0;
     for (const item of cart.result) {
-      try {
-        item.cost = computeCost(item.description);
-      } catch (err) {
-        // sadly computeCost is buggy, or rather - it crashes because of other bugs.
-        // It's much better to
-        // have something not in the cart and an error than to make the cart and
-        // store just be 100% broken
-        // forever for a user!
-        // That said, I've fixed every bug I could find and tested things, so hopefully
-        // this doesn't come up.
-        console.warn("Invalid item in cart -- not showing", item);
-        continue;
-      }
-      if (item.checked) {
-        subTotal += item.cost.discounted_cost;
+      if (item.product == "site-license") {
+        try {
+          item.cost = computeCost(item.description);
+        } catch (err) {
+          // sadly computeCost is buggy, or rather - it crashes because of other bugs.
+          // It's much better to
+          // have something not in the cart and an error than to make the cart and
+          // store just be 100% broken
+          // forever for a user!
+          // That said, I've fixed every bug I could find and tested things, so hopefully
+          // this doesn't come up.
+          console.warn("Invalid item in cart -- not showing", item);
+          continue;
+        }
+        if (item.checked) {
+          subTotal += item.cost.discounted_cost;
+        }
       }
       x.push(item);
     }
@@ -95,7 +102,15 @@ export default function ShoppingCart() {
   const columns = [
     {
       responsive: ["xs" as "xs"],
-      render: ({ id, checked, cost, description, type, project_id }) => {
+      render: ({
+        id,
+        product,
+        checked,
+        cost,
+        description,
+        type,
+        project_id,
+      }) => {
         return (
           <div>
             <CheckboxColumn
@@ -103,6 +118,7 @@ export default function ShoppingCart() {
             />
             <DescriptionColumn
               {...{
+                product,
                 id,
                 cost,
                 description,
@@ -137,19 +153,15 @@ export default function ShoppingCart() {
       responsive: ["sm" as "sm"],
       title: "Product",
       align: "center" as "center",
-      render: () => (
-        <div style={{ color: "darkblue" }}>
-          <Icon name="key" style={{ fontSize: "24px" }} />
-          <div style={{ fontSize: "10pt" }}>Site License</div>
-        </div>
-      ),
+      render: (_, { product }) => <ProductColumn product={product} />,
     },
     {
       responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { id, cost, description, type, project_id }) => (
+      render: (_, { product, id, cost, description, type, project_id }) => (
         <DescriptionColumn
           {...{
+            product,
             id,
             cost,
             description,
@@ -375,9 +387,10 @@ function CheckboxColumn({
 }
 
 interface DCProps {
+  product: ProductType;
   id: string;
   cost: CostInputPeriod;
-  description;
+  description: ProductDescription;
   updating: boolean;
   setUpdating: (u: boolean) => void;
   isMounted: { current: boolean };
@@ -387,6 +400,27 @@ interface DCProps {
 }
 
 function DescriptionColumn(props: DCProps) {
+  const { description } = props;
+  if (
+    description.type == "disk" ||
+    description.type == "vm" ||
+    description.type == "quota"
+  ) {
+    return <DescriptionColumnSiteLicense {...props} />;
+  } else if (description.type == "cash-voucher") {
+    return (
+      <div>
+        Cash Voucher for {currency(description.amount)}.
+        <br />
+        {description.note}
+      </div>
+    );
+  } else {
+    return <pre>{JSON.stringify(description, undefined, 2)}</pre>;
+  }
+}
+
+function DescriptionColumnSiteLicense(props: DCProps) {
   const {
     id,
     cost,
@@ -398,11 +432,21 @@ function DescriptionColumn(props: DCProps) {
     compact,
     project_id,
   } = props;
+  if (
+    !(
+      description.type == "disk" ||
+      description.type == "vm" ||
+      description.type == "quota"
+    )
+  ) {
+    throw Error("BUG -- incorrect typing");
+  }
   const router = useRouter();
-  const { input } = cost;
   const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
-  const [runLimit, setRunLimit] = useState<number>(description.run_limit);
-
+  const [runLimit, setRunLimit] = useState<number>(
+    description.type == "quota" ? description.run_limit ?? 0 : 0
+  );
+  const { input } = cost;
   const showRunLimitEditor =
     description.type !== "disk" && description.type !== "vm";
 
@@ -564,6 +608,24 @@ function DescriptionColumn(props: DCProps) {
           <Icon name="trash" /> Delete
         </Button>
       </Popconfirm>
+    </div>
+  );
+}
+
+const PRODUCTS = {
+  "site-license": { icon: "key", label: "License" },
+  "cash-voucher": { icon: "money", label: "Cash Voucher" },
+};
+
+function ProductColumn({ product }) {
+  const { icon, label } = PRODUCTS[product] ?? {
+    icon: "check",
+    label: "Unknown",
+  };
+  return (
+    <div style={{ color: "darkblue" }}>
+      <Icon name={icon} style={{ fontSize: "24px" }} />
+      <div style={{ fontSize: "10pt" }}>{label}</div>
     </div>
   );
 }
