@@ -3,22 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import getPool, { PoolClient } from "@cocalc/database/pool";
 import { getLogger } from "@cocalc/backend/logger";
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { adjustDateRangeEndOnSameDay } from "@cocalc/util/stripe/timecalcs";
 import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 import { v4 as uuid } from "uuid";
+import dayjs from "dayjs";
+
 const logger = getLogger("createLicense");
 
 // ATTN: for specific intervals, the activates/expires start/end dates should be at the start/end of the day in the user's timezone.
 // this is done while selecting the time interval – here, server side, we no longer know the user's time zone.
 export default async function createLicense(
-  database: PostgreSQL,
   account_id: string,
-  info: PurchaseInfo
+  info: PurchaseInfo,
+  client?: PoolClient
 ): Promise<string> {
-  const license_id = await getUUID(database, info);
+  const pool = client ?? getPool();
+  const license_id = await getUUID(pool, info);
   logger.debug("creating a license...", license_id, info);
   if (info.type == "vouchers") {
     throw Error("purchaseLicense can't be used to purchase vouchers");
@@ -27,40 +30,33 @@ export default async function createLicense(
   const [start, end] =
     info.type !== "disk"
       ? adjustDateRangeEndOnSameDay([info.start, info.end])
-      : [info.start, undefined];
+      : [info.start, info.end];
 
-  const values: { [key: string]: any } = {
-    "id::UUID": license_id,
-    "info::JSONB": {
-      purchased: { account_id, ...info },
-    },
-    "activates::TIMESTAMP":
+  await pool.query(
+    `INSERT INTO site_licenses (id, info, activates, created, managers, quota, title, description, run_limit, expires)
+     VALUES($1::UUID, $2::JSONB, $3::TIMESTAMP, NOW(), $4::TEXT[], $5::JSONB, $6::TEXT, $7::TEXT, $8::INTEGER, $9::TIMESTAMP)`,
+    [
+      license_id,
+      {
+        purchased: { account_id, ...info },
+      },
       info.subscription != "no"
-        ? new Date(new Date().valueOf() - 60000) // one minute in past to avoid any funny confusion.
+        ? dayjs().subtract(1, "minute").toDate() // one minute in past to avoid any funny confusion.
         : start,
-    "created::TIMESTAMP": new Date(),
-    "managers::TEXT[]": [account_id],
-    "quota::JSONB": await getQuota(info, license_id),
-    "title::TEXT": info.title,
-    "description::TEXT": info.description,
-    "run_limit::INTEGER": info.quantity,
-  };
-
-  if (info.type !== "disk" && end != null) {
-    values["expires::TIMESTAMP"] = end;
-  }
-
-  await database.async_query({
-    query: "INSERT INTO site_licenses",
-    values,
-  });
-
+      [account_id],
+      getQuota(info, license_id),
+      info.title,
+      info.description,
+      info.quantity,
+      end,
+    ]
+  );
   return license_id;
 }
 
 // this constructs the "quota" object for the license,
 // while it also sanity checks all fields. Last chance to find a problem!
-async function getQuota(info: PurchaseInfo, license_id: string) {
+export function getQuota(info: PurchaseInfo, license_id: string) {
   switch (info.type) {
     case "quota":
       return {
@@ -102,29 +98,35 @@ async function getQuota(info: PurchaseInfo, license_id: string) {
   }
 }
 
-const VM_NAME_EXISTS = `
-SELECT EXISTS(
-  SELECT 1 FROM site_licenses WHERE quota -> 'dedicated_vm' ->> 'name' = $1
-) AS exists`;
+async function getUUID(pool, info: PurchaseInfo) {
+  if (info.type !== "vm") {
+    // non-vm case is easy -- no need to check if id already exists, since
+    // if the id conflicted with one in the database,
+    // then the insert of the license later to create it would result in an error.
+    return uuid();
+  }
 
-async function getUUID(database: PostgreSQL, info: PurchaseInfo) {
   // in the case of type == 'vm', we derive the "name" from the UUID
-  // and double check that this is a unique name.
-  if (info.type !== "vm") return uuid();
+  // and double check that this is a unique name, since it's much more
+  // likely that there could be a collision.
 
   // we try up to 10 times
   for (let i = 0; i < 10; i++) {
     const id = uuid();
     // use the last part of the UUID id after the last dash
     const name = uuid2name(id);
-    const res = await database.async_query({
-      query: VM_NAME_EXISTS,
-      params: [name],
-    });
-    if (res.rows[0]?.exists === false) {
+    const { rows } = await pool.query(
+      `
+SELECT EXISTS(
+  SELECT 1 FROM site_licenses WHERE quota -> 'dedicated_vm' ->> 'name' = $1
+) AS exists`,
+      [name]
+    );
+    if (!rows[0]?.exists) {
       return id;
     }
   }
+  // insanely unlikely...
   throw new Error(`Unable to generate a unique name for VM`);
 }
 

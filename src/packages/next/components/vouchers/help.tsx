@@ -16,16 +16,36 @@ export default function Help() {
           maxWidth: "600px",
         }}
       >
-        When you <A href="/redeem">redeem</A> a{" "}
-        <A href="/store/vouchers">voucher</A>, one or more{" "}
-        <A href="https://doc.cocalc.com/licenses.html">licenses</A> will be
-        added to your account. You can use{" "}
-        <A href="/licenses/managed">licenses</A> to{" "}
-        <A href="https://doc.cocalc.com/add-lic-project.html">
-          upgrade your projects
-        </A>
-        . If you have any questions, <A href="/support">contact support</A>{" "}
-        visit <A href="/vouchers">the Voucher Center</A>, or{" "}
+        <p>
+          When a voucher code is redeeemed,{" "}
+          <A href="/settings/purchases" external>
+            money
+          </A>{" "}
+          or{" "}
+          <A href="/settings/licenses" external>
+            licenses
+          </A>{" "}
+          will be added to the account. Use the corresponding{" "}
+          <A href="/settings/purchases" external>
+            money
+          </A>{" "}
+          to make purchases, or the{" "}
+          <A href="/settings/licenses" external>
+            licenses
+          </A>{" "}
+          to{" "}
+          <A href="https://doc.cocalc.com/add-lic-project.html">
+            upgrade projects.
+          </A>{" "}
+          If a license doesn't fit,{" "}
+          <A href="/settings/licenses" external>
+            easily edit it,
+          </A>{" "}
+          including receiving a prorated refund to buy something else, or paying
+          more for a more powerful license.
+        </p>
+        If you have any questions, <A href="/support">contact support</A> visit{" "}
+        <A href="/vouchers">the Voucher Center</A>, or{" "}
         <A href="https://doc.cocalc.com/vouchers.html">read the docs</A>.
       </div>
     </>

@@ -15,15 +15,16 @@ import Loading from "components/share/loading";
 import useAPI from "lib/hooks/api";
 
 function Description({ hosted_invoice_url, lines, metadata }) {
-  const license_id = metadata?.license_id ?? lines.data[0].metadata?.license_id;
+  const license_id =
+    metadata?.license_id ?? lines.data[0]?.metadata?.license_id;
   return (
     <div style={{ wordWrap: "break-word", wordBreak: "break-word" }}>
-      {lines.data[0].description}
+      {lines.data[0]?.description}
       {(lines?.total_count ?? 1) > 1 && ", etc."}
       {hosted_invoice_url && (
         <div>
           <A href={hosted_invoice_url}>
-            <Icon name="external-link" /> Invoice
+            <Icon name="external-link" /> Invoice/Receipt
           </A>
         </div>
       )}
@@ -112,8 +113,8 @@ export default function InvoicesAndReceipts() {
     <div>
       <Title level={2}>Invoices and Receipts</Title>
       <Paragraph style={{ marginBottom: "30px" }}>
-        Your invoices and receipts are listed below. Click on the "Invoice" link
-        to get a printable invoice or receipt version.
+        Your recent invoices and receipts are listed below. Click on the
+        "Invoice" link to get a printable invoice or receipt version.
       </Paragraph>
       <Table
         columns={columns as any}

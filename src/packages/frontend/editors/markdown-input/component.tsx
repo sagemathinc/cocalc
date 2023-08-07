@@ -454,6 +454,11 @@ export function MarkdownInput(props: Props) {
           }
           cm.current.setCursor({ line: y, ch: x });
         },
+        get_cursor: () => {
+          if (cm.current == null) return { x: 0, y: 0 };
+          const { line, ch } = cm.current.getCursor();
+          return { y: line, x: ch };
+        },
       });
     }
 

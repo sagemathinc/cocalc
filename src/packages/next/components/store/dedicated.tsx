@@ -122,7 +122,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
-  const [durationTypes, setDdurationTypes] = useState<"monthly" | "range">(
+  const [durationTypes, setDurationTypes] = useState<"monthly" | "range">(
     "monthly"
   );
   const [vmMachine, setVmMachine] = useState<keyof VMsType | null>(null);
@@ -139,13 +139,13 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
   function fixupDuration() {
     switch (form.getFieldValue("type")) {
       case "disk":
-        setDdurationTypes("monthly");
+        setDurationTypes("monthly");
         if (form.getFieldValue("period") === "range") {
           form.setFieldsValue({ period: "monthly" });
         }
         break;
       case "vm":
-        setDdurationTypes("range");
+        setDurationTypes("range");
         if (form.getFieldValue("period") !== "range") {
           form.setFieldsValue({ period: "range" });
         }

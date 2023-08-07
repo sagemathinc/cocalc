@@ -2938,14 +2938,6 @@ message({
   id: undefined,
 });
 
-// Ensures the expire date on licenses paid by subscriptions matches stripe customer field.
-// Call this to ensure expire gets set when it should be, but also gets unset when customer
-// has paid.
-message({
-  event: "stripe_sync_site_license_subscriptions",
-  id: undefined,
-});
-
 /*
 Sage Worksheet Support, v2
 */

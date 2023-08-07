@@ -386,7 +386,7 @@ function Purchase({ defaultValue, onChange, showExtra }) {
     <>
       {showExtra && (
         <Paragraph>
-          Please describe what you want to purchse. We need some context in
+          Please describe what you want to purchase. We need some context in
           order to guide you. In particular:
           <ul>
             <li>

@@ -20,6 +20,7 @@ import initProxy from "../proxy";
 import initAPI from "./app/api";
 import initAppRedirect from "./app/app-redirect";
 import initBlobs from "./app/blobs";
+import initStripeWebhook from "./app/webhooks/stripe";
 import initCustomize from "./app/customize";
 import { setupInstrumentation, initMetricsEndpoint } from "./app/metrics";
 import initNext from "./app/next";
@@ -122,6 +123,7 @@ export default async function init(opts: Options): Promise<{
   });
 
   initBlobs(router);
+  initStripeWebhook(router);
   initSetCookies(router);
   initCustomize(router, opts.isPersonal);
   initStats(router);

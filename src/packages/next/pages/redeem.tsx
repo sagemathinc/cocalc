@@ -117,25 +117,29 @@ export default function Redeem({ customize }) {
                   {error && (
                     <Alert
                       type="error"
-                      message={error}
+                      message={"Error"}
+                      description={error}
                       showIcon
                       style={{ width: "100%", marginBottom: "30px" }}
                       closable
                       onClose={() => setError("")}
                     />
                   )}
-                  <Button
-                    disabled={code.length < 8 || state != "input" || !!error}
-                    size="large"
-                    type="primary"
-                    onClick={redeemCode}
-                  >
-                    {state == "input" && <>Redeem</>}
-                    {state == "redeeming" && (
-                      <Loading delay={0}>Redeeming...</Loading>
-                    )}
-                    {state == "redeemed" && <>Success!</>}
-                  </Button>
+                  {state != "redeemed" ? (
+                    <Button
+                      disabled={code.length < 8 || state != "input" || !!error}
+                      size="large"
+                      type="primary"
+                      onClick={redeemCode}
+                    >
+                      {state == "input" && <>Redeem</>}
+                      {state == "redeeming" && (
+                        <Loading delay={0}>Redeeming...</Loading>
+                      )}
+                    </Button>
+                  ) : (
+                    <Alert showIcon message={"Success!"} type="success" />
+                  )}
                   {project_id && (
                     <Alert
                       showIcon
@@ -216,8 +220,12 @@ export default function Redeem({ customize }) {
                     }}
                   >
                     <p>
-                      When you redeem a voucher code, one or more{" "}
-                      <A href="https://doc.cocalc.com/licenses.html">
+                      When you redeem a voucher code,{" "}
+                      <A href="/settings/purchases" external>
+                        money
+                      </A>{" "}
+                      or{" "}
+                      <A href="/settings/licenses" external>
                         licenses
                       </A>{" "}
                       will be added to your account
@@ -226,11 +234,29 @@ export default function Redeem({ customize }) {
                       ) : (
                         ""
                       )}
-                      . Once you redeem a voucher code, you can use the
-                      corresponding <A href="/licenses/managed">licenses</A> to{" "}
+                      .
+                    </p>
+                    <p>
+                      Once you redeem a voucher code, you can use the
+                      corresponding{" "}
+                      <A href="/settings/purchases" external>
+                        money
+                      </A>{" "}
+                      to make purchases, or the{" "}
+                      <A href="/settings/licenses" external>
+                        licenses
+                      </A>{" "}
+                      to{" "}
                       <A href="https://doc.cocalc.com/add-lic-project.html">
                         upgrade your projects.
-                      </A>
+                      </A>{" "}
+                      If a license doesn't fit your needs, you can{" "}
+                      <A href="/settings/licenses" external>
+                        easily edit it here
+                      </A>{" "}
+                      including receiving a prorated refund so you can buy
+                      something else, or paying a little more for a more
+                      powerful license.
                     </p>
                     <p>
                       You can browse{" "}
@@ -243,9 +269,9 @@ export default function Redeem({ customize }) {
                     </p>
                     <p>
                       If you have any questions,{" "}
-                      <A href="/support">contact support</A>, or{" "}
+                      <A href="/support">contact support</A> and{" "}
                       <A href="https://doc.cocalc.com/vouchers.html">
-                        read the docs
+                        read the documentation
                       </A>
                       .
                     </p>

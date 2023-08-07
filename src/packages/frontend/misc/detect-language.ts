@@ -18,8 +18,7 @@ languages".
 // in the C programming language?" were helpful.
 
 import { file_associations } from "../file-associations";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { join } from "path";
+import api from "@cocalc/frontend/client/api";
 
 const LANGUAGES = [
   [
@@ -119,7 +118,7 @@ export default function detectLanguage(code: string): string {
   return v[0]?.[0] ?? "txt";
 }
 
-// This calls a sophisticated tensor flow model, see
+// This calls a sophisticated tensorflow model, see
 // https://github.com/microsoft/vscode-languagedetection
 // and https://github.com/yoeo/guesslang
 // It returns up to cutoff guesses, with the first one the most likely.
@@ -127,18 +126,6 @@ export async function guesslang(
   code: string,
   cutoff: number = 1
 ): Promise<string[]> {
-  return (
-    await (
-      await fetch(join(appBasePath, "api/v2/guesslang"), {
-        method: "POST",
-        body: JSON.stringify({
-          code,
-          cutoff,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-    ).json()
-  ).result;
+  return (await api("guesslang", { code, cutoff })).result;
 }
+

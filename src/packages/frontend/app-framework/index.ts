@@ -40,8 +40,8 @@ import { NAME_TYPE as ComputeImageStoreType } from "../custom-software/util";
 import { NEWS } from "@cocalc/frontend/notifications/news/init";
 
 import * as types from "./actions-and-stores";
-declare type ProjectStore = import("../project_store").ProjectStore;
-declare type ProjectActions = import("../project_actions").ProjectActions;
+import type { ProjectStore } from "../project_store";
+import type { ProjectActions } from "../project_actions";
 export type { ProjectStore, ProjectActions };
 
 export class AppRedux extends AppReduxBase {
@@ -214,7 +214,6 @@ export class AppRedux extends AppReduxBase {
     this.removeActions(name);
     this.removeStore(name);
   }
-
 
   // getEditorActions but for whatever editor  -- this is mainly meant to be used
   // from the console when debugging, e.g., smc.redux.currentEditorActions()

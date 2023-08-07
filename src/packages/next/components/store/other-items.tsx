@@ -22,6 +22,7 @@ import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import Loading from "components/share/loading";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { search_split, search_match } from "@cocalc/util/misc";
+import { ProductColumn } from "./cart";
 
 type MenuItem = Required<MenuProps>["items"][number];
 type Tab = "saved-for-later" | "buy-it-again";
@@ -174,12 +175,7 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
       responsive: ["sm" as "sm"],
       title: "Product",
       align: "center" as "center",
-      render: () => (
-        <div style={{ color: "darkblue" }}>
-          <Icon name="key" style={{ fontSize: "24px" }} />
-          <div style={{ fontSize: "10pt" }}>Site License</div>
-        </div>
-      ),
+      render: (_, { product }) => <ProductColumn product={product} />,
     },
     {
       responsive: ["sm" as "sm"],

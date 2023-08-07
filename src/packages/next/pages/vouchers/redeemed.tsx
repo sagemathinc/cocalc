@@ -18,7 +18,7 @@ import { useRouter } from "next/router";
 import Loading from "components/share/loading";
 import useDatabase from "lib/hooks/database";
 import TimeAgo from "timeago-react";
-import { field_cmp } from "@cocalc/util/misc";
+import { field_cmp, plural } from "@cocalc/util/misc";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import License from "components/licenses/license";
 import Help from "components/vouchers/help";
@@ -31,6 +31,7 @@ const VOUCHER_CODES_QUERY = {
       when_redeemed: null,
       canceled: null,
       license_ids: null,
+      purchase_ids: null,
     },
   ],
 } as const;
@@ -63,11 +64,27 @@ const COLUMNS = [
     dataIndex: "license_ids",
     key: "license_ids",
     render: (_, { license_ids }) => {
-      if (!license_ids) return null;
+      if (!license_ids || license_ids.length == 0) return null;
       return r_join(
         license_ids.map((license_id) => (
           <License key={license_id} license_id={license_id} />
         ))
+      );
+    },
+  },
+  {
+    title: "Credits to Account",
+    dataIndex: "purchase_ids",
+    key: "purchase_ids",
+    render: (_, { purchase_ids }) => {
+      if (!purchase_ids || purchase_ids.length == 0) return null;
+      return (
+        <div>
+          <A href="/settings/purchases" external>
+            {plural(purchase_ids.length, "Transaction Id")}:{" "}
+            {purchase_ids.join(", ")}
+          </A>
+        </div>
       );
     },
   },

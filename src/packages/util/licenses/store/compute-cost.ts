@@ -8,15 +8,16 @@ import {
   compute_cost,
   compute_cost_dedicated,
 } from "@cocalc/util/licenses/purchase/compute-cost";
-import {
+import type {
   CostInputPeriod,
   PurchaseInfo,
 } from "@cocalc/util/licenses/purchase/types";
+import { fixRange } from "@cocalc/util/licenses/purchase/purchase-info";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
-import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
+import type { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
 
-export function computeDedicatedDiskCost(
+function computeDedicatedDiskCost(
   props: ComputeCostProps
 ): CostInputPeriod | undefined {
   if (props.type !== "disk") {
@@ -41,7 +42,7 @@ export function computeDedicatedDiskCost(
   }
 }
 
-export function computeDedicatedVMCost(
+function computeDedicatedVMCost(
   props: ComputeCostProps
 ): CostInputPeriod | undefined {
   if (props.type !== "vm") {
@@ -74,11 +75,35 @@ export function computeDedicatedVMCost(
   };
 }
 
+function computeCashVoucherPrice(props: ComputeCostProps) {
+  if (props.type != "cash-voucher") {
+    throw Error("BUG");
+  }
+  const cost = props.amount;
+  return {
+    // a lot of this is mainly for typescript.
+    cost,
+    cost_per_unit: cost,
+    discounted_cost: cost,
+    input: {
+      ...props,
+      subscription: "no",
+    },
+    period: "range",
+    cost_per_project_per_month: 0,
+    cost_sub_month: 0,
+    cost_sub_year: 0,
+  } as const;
+}
+
 export function computeCost(
   props: ComputeCostProps
 ): CostInputPeriod | undefined {
   const type = props.type ?? "quota";
   switch (type) {
+    case "cash-voucher":
+      return computeCashVoucherPrice(props);
+
     case "disk":
       return computeDedicatedDiskCost(props);
 
@@ -87,7 +112,11 @@ export function computeCost(
 
     case "quota":
     default:
-      if (props.type === "disk" || props.type === "vm") {
+      if (
+        props.type == "disk" ||
+        props.type == "vm" ||
+        props.type == "cash-voucher"
+      ) {
         throw Error("must be a quota upgrade license");
       }
       const {
@@ -117,8 +146,6 @@ export function computeCost(
           | "no"
           | "monthly"
           | "yearly",
-        start: range?.[0] ?? new Date(),
-        end: range?.[1],
         custom_ram: ram,
         custom_dedicated_ram: 0,
         custom_cpu: cpu,
@@ -128,6 +155,7 @@ export function computeCost(
         custom_member: member,
         custom_uptime: uptime,
         boost,
+        ...fixRange(range, period),
       };
       return {
         ...compute_cost(input),

@@ -27,13 +27,13 @@ import * as misc from "@cocalc/util/misc";
 import { round1 } from "@cocalc/util/misc";
 import { Col, Grid, Row } from "react-bootstrap";
 import { SystemProcess } from "./system-process";
-import {
+import type {
   AssistantEvent,
   CollaboratorEvent,
   FileActionEvent,
-  isUnknownEvent,
   LibraryEvent,
   LicenseEvent,
+  PayAsYouGoUpgradeEvent,
   MiniTermEvent,
   OpenFile,
   ProjectControlEvent,
@@ -43,6 +43,8 @@ import {
   UpgradeEvent,
   X11Event,
 } from "./types";
+import { isUnknownEvent } from "./types";
+import { DisplayProjectQuota } from "@cocalc/frontend/purchases/purchases";
 
 const TRUNC = 90;
 
@@ -496,6 +498,15 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
+    function render_pay_as_you_go(event: PayAsYouGoUpgradeEvent) {
+      return (
+        <span>
+          ran this project with temporary Pay As You Go Upgrade:{" "}
+          {event.quota && <DisplayProjectQuota quota={event.quota} />}
+        </span>
+      );
+    }
+
     function render_invite_user(event: CollaboratorEvent): JSX.Element {
       return (
         <span>
@@ -550,6 +561,8 @@ export const LogEntry: React.FC<Props> = React.memo(
           return render_upgrade(event);
         case "license":
           return render_license(event);
+        case "pay-as-you-go-upgrade":
+          return render_pay_as_you_go(event);
         case "invite_user":
           return render_invite_user(event);
         case "invite_nonuser":

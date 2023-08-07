@@ -5,6 +5,8 @@ import { pgType } from "./pg-type";
 import { createIndexesQueries } from "./indexes";
 import { createTable } from "./table";
 import getLogger from "@cocalc/backend/logger";
+import { SCHEMA } from "@cocalc/util/schema";
+
 const log = getLogger("db:schema:sync");
 
 async function syncTableSchema(db: Client, schema: TableSchema): Promise<void> {
@@ -216,7 +218,7 @@ function getMissingTables(
 }
 
 export async function syncSchema(
-  dbSchema: DBSchema,
+  dbSchema: DBSchema = SCHEMA,
   role?: string
 ): Promise<void> {
   const dbg = (...args) => log.debug("syncSchema", { role }, ...args);
@@ -234,10 +236,12 @@ export async function syncSchema(
     }
 
     const allTables = await getAllTables(db);
+    dbg("allTables", allTables);
 
     // Create from scratch any missing tables -- usually this creates all tables and
     // indexes the first time around.
     const missingTables = await getMissingTables(dbSchema, allTables);
+    dbg("missingTables", missingTables);
     for (const table of missingTables) {
       dbg("create missing table", table);
       const schema = dbSchema[table];

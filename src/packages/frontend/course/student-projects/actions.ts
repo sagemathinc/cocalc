@@ -9,7 +9,6 @@ Actions specific to manipulating the student projects that students have in a co
 
 import { delay, map as awaitMap } from "awaiting";
 import { sortBy } from "lodash";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
@@ -505,27 +504,11 @@ export class StudentProjectsActions {
     }
   }
 
-  public async set_all_student_project_course_info(
-    pay?: string | Date | undefined
-  ): Promise<void> {
+  public async set_all_student_project_course_info(): Promise<void> {
     const store = this.get_store();
-    if (pay == null) {
-      // read pay from syncdb then do the configuration below
-      pay = store.get_pay();
-      if (pay == null) {
-        pay = "";
-      }
-    } else {
-      // setting pay in the syncdb, and will then later
-      // do some configu below.
-      if (pay instanceof Date) {
-        pay = pay.toISOString();
-      }
-      this.course_actions.set({
-        pay,
-        table: "settings",
-      });
-    }
+    if (store == null) return;
+    let pay = store.get_pay() ?? "";
+    const payInfo = store.get_payInfo();
 
     if (pay != "" && !(pay instanceof Date)) {
       // pay *must* be a Date, not just a string timestamp... or "" for not paying.
@@ -555,6 +538,7 @@ export class StudentProjectsActions {
           store.get("course_project_id"),
           store.get("course_filename"),
           pay,
+          payInfo,
           student_account_id,
           student_email_address,
           datastore,

@@ -20,6 +20,7 @@ export default function TimeValue({ value, onChange }) {
     <Space>
       {mode == "absolute" && (
         <DatePicker
+          changeOnBlur
           style={{ width: "190px" }}
           showTime
           defaultValue={dayjs(value)}

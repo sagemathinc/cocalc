@@ -9,18 +9,15 @@ import {
   describeQuotaOnLine,
   describe_quota,
 } from "@cocalc/util/licenses/describe-quota";
-import {
+import type {
+  CostInput,
   CostInputPeriod,
   PurchaseInfo,
   Subscription,
 } from "@cocalc/util/licenses/purchase/types";
 import { money, percent_discount } from "@cocalc/util/licenses/purchase/utils";
 import { plural } from "@cocalc/util/misc";
-import {
-  appendAfterNowToDate,
-  getDays,
-  roundToMidnight,
-} from "@cocalc/util/stripe/timecalcs";
+import { appendAfterNowToDate, getDays } from "@cocalc/util/stripe/timecalcs";
 import {
   dedicatedDiskDisplay,
   dedicatedVmDisplay,
@@ -29,6 +26,7 @@ import Timestamp, { processTimestamp } from "components/misc/timestamp";
 import { ReactNode } from "react";
 import { useTimeFixer } from "./util";
 import { Tooltip, Typography } from "antd";
+import { currency } from "@cocalc/util/misc";
 const { Text } = Typography;
 
 interface Props {
@@ -48,9 +46,10 @@ export function DisplayCost({
   discountTooltip = false,
   noDiscount = false,
 }: Props) {
-  if (isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
+  if (cost == null || isNaN(cost.cost) || isNaN(cost.discounted_cost)) {
     return <>&ndash;</>;
   }
+
   const discount_pct = percent_discount(cost);
   if (simple) {
     const discount = discount_pct > 0 && (
@@ -104,7 +103,7 @@ export function DisplayCost({
 }
 
 interface DescribeItemProps {
-  info: Partial<PurchaseInfo>;
+  info: CostInput;
   variant?: "short" | "long";
   voucherPeriod?: boolean;
 }
@@ -117,6 +116,9 @@ export function describeItem({
   variant = "long",
   voucherPeriod,
 }: DescribeItemProps): ReactNode {
+  if (info.type == "cash-voucher") {
+    return <>Cash Voucher for {currency(info.amount)}</>;
+  }
   if (info.type === "disk") {
     return (
       <>
@@ -204,7 +206,8 @@ interface PeriodProps {
 }
 
 /**
- * ATTN: this is not a general purpose period description generator. It's very specific to the purchases in the store!
+ * ATTN: this is not a general purpose period description generator. It's very specific
+ * to the purchases in the store!
  */
 export function describePeriod({
   quota,
@@ -218,11 +221,8 @@ export function describePeriod({
   if (subscription == "no") {
     if (startRaw == null || endRaw == null)
       throw new Error(`start date not set!`);
-    // we do not use startOfDay and endOfDay, because this was already
-    // done in "usage-and-duration::fixRangeSelector"
-    // rather, we calculate back to the user's offset
-    const start = roundToMidnight(fromServerTime(startRaw), "start");
-    const end = roundToMidnight(fromServerTime(endRaw), "end");
+    const start = fromServerTime(startRaw);
+    const end = fromServerTime(endRaw);
 
     if (start == null || end == null) {
       throw new Error(`this should never happen`);
@@ -240,7 +240,7 @@ export function describePeriod({
     }
 
     // but the displayed end mimics what will happen later on the backend
-    // i.e. if the day alreaday started, we append the already elapsed period to the end
+    // i.e. if the day already started, we append the already elapsed period to the end
     const endDisplay = appendAfterNowToDate({
       now: serverTimeDate,
       start,
@@ -266,8 +266,8 @@ export function describePeriod({
     } else {
       return (
         <>
-          <Timestamp dateOnly datetime={start} absolute /> to{" "}
-          <Timestamp dateOnly datetime={endDisplay} absolute />, {days}{" "}
+          <Timestamp datetime={start} absolute /> to{" "}
+          <Timestamp datetime={endDisplay} absolute />, {days}{" "}
           {plural(days, "day")}
         </>
       );

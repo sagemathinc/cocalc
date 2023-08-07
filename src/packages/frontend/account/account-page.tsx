@@ -21,12 +21,14 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { BillingPage } from "../billing/billing-page";
 import { AccountPreferences } from "./account-preferences";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { UpgradesPage } from "./upgrades/upgrades-page";
+import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
+import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
+import StatementsPage from "@cocalc/frontend/purchases/statements-page";
 
 export const AccountPage: React.FC = () => {
   const active_page = useTypedRedux("account", "active_page");
@@ -128,6 +130,36 @@ export const AccountPage: React.FC = () => {
       return [];
     }
     const items: AntdTabItem[] = [];
+    if (is_commercial) {
+      items.push({
+        key: "purchases",
+        label: (
+          <span>
+            <Icon name="money" /> Purchases
+          </span>
+        ),
+        children: active_page === "purchases" && <PurchasesPage />,
+      });
+      items.push({
+        key: "subscriptions",
+        label: (
+          <span>
+            <Icon name="calendar" /> Subscriptions
+          </span>
+        ),
+        children: active_page === "subscriptions" && <SubscriptionsPage />,
+      });
+      items.push({
+        key: "statements",
+        label: (
+          <span>
+            <Icon name="money" /> Statements
+          </span>
+        ),
+        children: active_page === "statements" && <StatementsPage />,
+      });
+    }
+
     if (
       kucalc === KUCALC_COCALC_COM ||
       kucalc === KUCALC_ON_PREMISES ||
@@ -144,19 +176,6 @@ export const AccountPage: React.FC = () => {
       });
     }
 
-    if (is_commercial) {
-      items.push({
-        key: "billing",
-        label: (
-          <span>
-            <Icon name="money" /> Purchases
-          </span>
-        ),
-        children: active_page === "billing" && (
-          <BillingPage is_simplified={false} />
-        ),
-      });
-    }
     if (ssh_gateway || kucalc === KUCALC_COCALC_COM) {
       items.push({
         key: "ssh-keys",
@@ -188,15 +207,17 @@ export const AccountPage: React.FC = () => {
       ),
       children: active_page === "public-files" && <PublicPaths />,
     });
-    items.push({
-      key: "upgrades",
-      label: (
-        <span>
-          <Icon name="arrow-circle-up" /> Upgrades
-        </span>
-      ),
-      children: active_page === "upgrades" && <UpgradesPage />,
-    });
+    if (is_commercial && kucalc === KUCALC_COCALC_COM) {
+      items.push({
+        key: "upgrades",
+        label: (
+          <span>
+            <Icon name="arrow-circle-up" /> Upgrades
+          </span>
+        ),
+        children: active_page === "upgrades" && <UpgradesPage />,
+      });
+    }
 
     return items;
   }

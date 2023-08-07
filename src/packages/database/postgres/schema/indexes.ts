@@ -1,5 +1,5 @@
 import getLogger from "@cocalc/backend/logger";
-import { Client } from "@cocalc/database/pool";
+import type { Client } from "@cocalc/database/pool";
 import type { TableSchema } from "./types";
 import { make_valid_name } from "@cocalc/util/misc";
 

@@ -173,8 +173,9 @@ export class EmailAddressSetting extends Component<Props, State> {
               value={this.state.password}
               placeholder={password_label}
               onChange={() => {
-                const password = ReactDOM.findDOMNode(this.refs.password)
-                  ?.value;
+                const password = ReactDOM.findDOMNode(
+                  this.refs.password
+                )?.value;
                 if (password != null) {
                   this.setState({
                     password,

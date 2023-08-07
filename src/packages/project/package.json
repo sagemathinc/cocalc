@@ -42,7 +42,6 @@
     "expect": "^26.6.2",
     "express": "^4.17.1",
     "express-rate-limit": "^6.3.0",
-    "fast-json-stable-stringify": "^2.1.0",
     "formidable": "^1.2.2",
     "fs-extra": "^9.0.0",
     "get-port": "^5.1.1",

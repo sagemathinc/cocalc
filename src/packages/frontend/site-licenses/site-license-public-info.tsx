@@ -7,6 +7,7 @@ import { QuestionCircleOutlined } from "@ant-design/icons";
 import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
 import { reuseInFlight } from "async-await-utils/hof";
 import { isEqual } from "lodash";
+import Export from "@cocalc/frontend/purchases/export";
 
 import {
   React,
@@ -24,7 +25,7 @@ import {
 } from "@cocalc/frontend/components";
 import { useProjectState } from "@cocalc/frontend/project/page/project-state-hook";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
-import { trunc, unreachable } from "@cocalc/util/misc";
+import { trunc, unreachable, cmp } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import {
@@ -215,8 +216,8 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
 
     setData(
       Object.entries(infos)
-        // sort by UUID, to make the table stable
-        .sort(([a, _a], [b, _b]) => (a < b ? -1 : a > b ? 1 : 0))
+        // sort by most recently created, since recent licenses are more likely to be of interest
+        .sort(([_id, a], [_id2, b]) => -cmp(a.created, b.created))
         // process all values
         .map(([k, v], idx) => {
           // we check if we definitely know the status, otherwise use the date
@@ -474,13 +475,16 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     ));
   }
 
-  function renderReload(): JSX.Element {
+  function renderButtons(): JSX.Element {
     return (
-      <Tooltip placement="bottom" title={"Reload license information"}>
-        <Button onClick={() => fetchInfos(true)}>
-          <Icon name="redo" />
-        </Button>
-      </Tooltip>
+      <div style={{ display: "flex" }}>
+        <Tooltip placement="bottom" title={"Reload license information"}>
+          <Button onClick={() => fetchInfos(true)}>
+            <Icon name="refresh" /> Refresh
+          </Button>
+        </Tooltip>
+        <Export data={data} name="licenses" style={{ marginLeft: "8px" }} />
+      </div>
     );
   }
 
@@ -494,7 +498,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         size={isFlyout ? "small" : undefined}
         className={"cc-license-table-public-info"}
         rowClassName={() => "cursor-pointer"}
-        pagination={{ hideOnSinglePage: true, defaultPageSize: 5 }}
+        pagination={{ hideOnSinglePage: true, defaultPageSize: 25 }}
         expandable={{
           expandedRowRender: (record) => rowInfo(record),
           expandRowByClick: true,
@@ -524,7 +528,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         {isFlyout ? undefined : (
           <Table.Column<TableRow>
             key="actions"
-            title={renderReload()}
+            title={renderButtons()}
             dataIndex="license_id"
             align={"right"}
             render={(license_id) => renderRemove(license_id)}

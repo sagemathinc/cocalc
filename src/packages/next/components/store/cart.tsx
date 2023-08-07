@@ -16,7 +16,7 @@ import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { capitalize, isValidUUID, plural } from "@cocalc/util/misc";
-import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
+import { Alert, Button, Checkbox, Popconfirm, Space, Table } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -29,6 +29,11 @@ import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import OtherItems from "./other-items";
 import { EditRunLimit } from "./run-limit";
 import { describeItem, describePeriod, DisplayCost } from "./site-license-cost";
+import type {
+  ProductDescription,
+  ProductType,
+} from "@cocalc/util/db-schema/shopping-cart-items";
+import { currency } from "@cocalc/util/misc";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
@@ -95,7 +100,15 @@ export default function ShoppingCart() {
   const columns = [
     {
       responsive: ["xs" as "xs"],
-      render: ({ id, checked, cost, description, type, project_id }) => {
+      render: ({
+        id,
+        product,
+        checked,
+        cost,
+        description,
+        type,
+        project_id,
+      }) => {
         return (
           <div>
             <CheckboxColumn
@@ -103,6 +116,7 @@ export default function ShoppingCart() {
             />
             <DescriptionColumn
               {...{
+                product,
                 id,
                 cost,
                 description,
@@ -137,19 +151,15 @@ export default function ShoppingCart() {
       responsive: ["sm" as "sm"],
       title: "Product",
       align: "center" as "center",
-      render: () => (
-        <div style={{ color: "darkblue" }}>
-          <Icon name="key" style={{ fontSize: "24px" }} />
-          <div style={{ fontSize: "10pt" }}>Site License</div>
-        </div>
-      ),
+      render: (_, { product }) => <ProductColumn product={product} />,
     },
     {
       responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { id, cost, description, type, project_id }) => (
+      render: (_, { product, id, cost, description, type, project_id }) => (
         <DescriptionColumn
           {...{
+            product,
             id,
             cost,
             description,
@@ -202,20 +212,18 @@ export default function ShoppingCart() {
       </Button>
     );
     return (
-      <div>
-        <Button.Group>
-          {checkout}
-          <Button
-            disabled={subTotal == 0 || updating}
-            size="large"
-            onClick={() => {
-              router.push("/store/vouchers");
-            }}
-          >
-            Create Vouchers
-          </Button>
-        </Button.Group>
-      </div>
+      <Space>
+        {checkout}
+        <Button
+          disabled={subTotal == 0 || updating}
+          size="large"
+          onClick={() => {
+            router.push("/store/vouchers");
+          }}
+        >
+          Create Vouchers
+        </Button>
+      </Space>
     );
   }
 
@@ -375,9 +383,10 @@ function CheckboxColumn({
 }
 
 interface DCProps {
+  product: ProductType;
   id: string;
   cost: CostInputPeriod;
-  description;
+  description: ProductDescription;
   updating: boolean;
   setUpdating: (u: boolean) => void;
   isMounted: { current: boolean };
@@ -386,22 +395,59 @@ interface DCProps {
   project_id?: string;
 }
 
+const DESCRIPTION_STYLE = {
+  border: "1px solid lightblue",
+  background: "white",
+  padding: "15px",
+  margin: "5px 0 10px 0",
+  borderRadius: "5px",
+} as const;
+
 function DescriptionColumn(props: DCProps) {
-  const {
-    id,
-    cost,
-    description,
-    updating,
-    setUpdating,
-    isMounted,
-    reload,
-    compact,
-    project_id,
-  } = props;
+  const { description } = props;
+  if (
+    description.type == "disk" ||
+    description.type == "vm" ||
+    description.type == "quota"
+  ) {
+    return <DescriptionColumnSiteLicense {...props} />;
+  } else if (description.type == "cash-voucher") {
+    return (
+      <div>
+        <b style={{ fontSize: "12pt" }}>Cash voucher</b>
+        <div style={DESCRIPTION_STYLE}>
+          Voucher for {currency(description.amount)}.
+        </div>
+        <SaveForLater {...props} />
+        <DeleteItem {...props} />
+      </div>
+    );
+  } else {
+    return <pre>{JSON.stringify(description, undefined, 2)}</pre>;
+  }
+}
+
+function DescriptionColumnSiteLicense(props: DCProps) {
+  const { id, cost, description, updating, reload, compact, project_id } =
+    props;
+  if (
+    !(
+      description.type == "disk" ||
+      description.type == "vm" ||
+      description.type == "quota"
+    )
+  ) {
+    throw Error("BUG -- incorrect typing");
+  }
   const router = useRouter();
-  const { input } = cost;
   const [editRunLimit, setEditRunLimit] = useState<boolean>(false);
-  const [runLimit, setRunLimit] = useState<number>(description.run_limit);
+  const [runLimit, setRunLimit] = useState<number>(
+    description.type == "quota" ? description.run_limit ?? 0 : 0
+  );
+  const { input } = cost;
+  if (input.type == "cash-voucher") {
+    throw Error("incorrect typing");
+  }
 
   const showRunLimitEditor =
     description.type !== "disk" && description.type !== "vm";
@@ -459,6 +505,7 @@ function DescriptionColumn(props: DCProps) {
   }
 
   function editableQuota() {
+    if (input.type == "cash-voucher") return null;
     return (
       <div>
         <div>
@@ -483,8 +530,10 @@ function DescriptionColumn(props: DCProps) {
   }
 
   // this could rely an the "type" field, but we rather check the data directly
-  function editPage(): "site-license" | "boost" | "dedicated" {
-    if (input.type === "disk" || input.type === "vm") {
+  function editPage(): "site-license" | "boost" | "dedicated" | "vouchers" {
+    if (input.type == "cash-voucher") {
+      return "vouchers";
+    } else if (input.type === "disk" || input.type === "vm") {
       return "dedicated";
     } else if (input.boost) {
       return "boost";
@@ -507,15 +556,7 @@ function DescriptionColumn(props: DCProps) {
             : capitalize(input.subscription) + " subscription"}
         </b>
       </div>
-      <div
-        style={{
-          border: "1px solid lightblue",
-          background: "white",
-          padding: "15px 15px 5px 15px",
-          margin: "5px 0 10px 0",
-          borderRadius: "5px",
-        }}
-      >
+      <div style={DESCRIPTION_STYLE}>
         {compact ? describeItem({ info: input }) : editableQuota()}{" "}
       </div>
       <Button
@@ -527,43 +568,73 @@ function DescriptionColumn(props: DCProps) {
       >
         <Icon name="pencil" /> Edit
       </Button>
-      <Button
-        style={{ margin: "0 5px 5px 0" }}
-        disabled={updating}
-        onClick={async () => {
-          setUpdating(true);
-          try {
-            await apiPost("/shopping/cart/remove", { id });
-            if (!isMounted.current) return;
-            await reload();
-          } finally {
-            if (!isMounted.current) return;
-            setUpdating(false);
-          }
-        }}
-      >
-        <Icon name="save" /> Save for later
+      <SaveForLater {...props} />
+      <DeleteItem {...props} />
+    </div>
+  );
+}
+
+function SaveForLater({ id, reload, updating, setUpdating, isMounted }) {
+  return (
+    <Button
+      style={{ margin: "0 5px 5px 0" }}
+      disabled={updating}
+      onClick={async () => {
+        setUpdating(true);
+        try {
+          await apiPost("/shopping/cart/remove", { id });
+          if (!isMounted.current) return;
+          await reload();
+        } finally {
+          if (!isMounted.current) return;
+          setUpdating(false);
+        }
+      }}
+    >
+      <Icon name="save" /> Save for later
+    </Button>
+  );
+}
+
+function DeleteItem({ id, reload, updating, setUpdating, isMounted }) {
+  return (
+    <Popconfirm
+      title={"Are you sure you want to delete this item?"}
+      onConfirm={async () => {
+        setUpdating(true);
+        try {
+          await apiPost("/shopping/cart/delete", { id });
+          if (!isMounted.current) return;
+          await reload();
+        } finally {
+          if (!isMounted.current) return;
+          setUpdating(false);
+        }
+      }}
+      okText={"Yes, delete this item"}
+      cancelText={"Cancel"}
+    >
+      <Button disabled={updating} type="dashed">
+        <Icon name="trash" /> Delete
       </Button>
-      <Popconfirm
-        title={"Are you sure you want to delete this item?"}
-        onConfirm={async () => {
-          setUpdating(true);
-          try {
-            await apiPost("/shopping/cart/delete", { id });
-            if (!isMounted.current) return;
-            await reload();
-          } finally {
-            if (!isMounted.current) return;
-            setUpdating(false);
-          }
-        }}
-        okText={"Yes, delete this item"}
-        cancelText={"Cancel"}
-      >
-        <Button disabled={updating} type="dashed">
-          <Icon name="trash" /> Delete
-        </Button>
-      </Popconfirm>
+    </Popconfirm>
+  );
+}
+
+const PRODUCTS = {
+  "site-license": { icon: "key", label: "License" },
+  "cash-voucher": { icon: "money", label: "Cash Voucher" },
+};
+
+export function ProductColumn({ product }) {
+  const { icon, label } = PRODUCTS[product] ?? {
+    icon: "check",
+    label: "Unknown",
+  };
+  return (
+    <div style={{ color: "darkblue" }}>
+      <Icon name={icon} style={{ fontSize: "24px" }} />
+      <div style={{ fontSize: "10pt" }}>{label}</div>
     </div>
   );
 }

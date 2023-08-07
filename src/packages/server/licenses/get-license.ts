@@ -7,7 +7,7 @@ import getPool from "@cocalc/database/pool";
 import { toEpoch } from "@cocalc/database/postgres/util";
 import { numberRunningQuery } from "@cocalc/database/postgres/site-license/analytics";
 import { isValidUUID } from "@cocalc/util/misc";
-import { License as FullLicense } from "./get-managed";
+import type { License as FullLicense } from "./get-managed";
 
 export async function isManager(
   license_id: string,

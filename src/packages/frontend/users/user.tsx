@@ -5,7 +5,7 @@
 
 //TODO: Make useable without passing in user_map
 
-import { Component } from "../app-framework";
+import { Component, redux } from "../app-framework";
 import { Gap, TimeAgo, Tip } from "../components";
 import { is_valid_uuid_string, trunc_middle } from "@cocalc/util/misc";
 import { UserMap } from "./types";
@@ -14,7 +14,7 @@ import { Avatar } from "../account/avatar/avatar";
 
 interface Props {
   account_id: string;
-  user_map: UserMap;
+  user_map?: UserMap;
   last_active?: Date | number;
   show_original?: boolean;
   name?: string;
@@ -105,13 +105,12 @@ export class User extends Component<Props> {
   }
 
   render() {
-    if (this.props.user_map == null || this.props.user_map.size === 0) {
+    const user_map =
+      this.props.user_map ?? redux.getStore("users").get("user_map");
+    if (user_map == null || user_map.size === 0) {
       return <span>Loading...</span>;
     }
-    let info =
-      this.props.user_map != null
-        ? this.props.user_map.get(this.props.account_id)
-        : undefined;
+    let info = user_map?.get(this.props.account_id);
     if (info == null) {
       if (!is_valid_uuid_string(this.props.account_id)) {
         return <span>Unknown User {this.props.account_id}</span>;

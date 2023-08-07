@@ -31,6 +31,11 @@ import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import { Paragraph, Title } from "components/misc";
+import dayjs from "dayjs";
+
+function addMonth(date: Date): Date {
+  return dayjs(date).add(30, "days").add(12, "hours").toDate();
+}
 
 interface Item {
   title: string;
@@ -45,6 +50,8 @@ interface Item {
   yearly: number;
   conf: StoreConf;
 }
+
+const now = new Date();
 
 const hobby: Item = (() => {
   const conf = {
@@ -62,7 +69,8 @@ const hobby: Item = (() => {
     upgrade: "custom",
     quantity: conf.run_limit,
     subscription: "monthly",
-    start: new Date(),
+    start: now,
+    end: addMonth(now),
     custom_ram: conf.ram,
     custom_cpu: conf.cpu,
     custom_disk: conf.disk,
@@ -106,7 +114,8 @@ const academic: Item = (() => {
     upgrade: "custom",
     quantity: conf.run_limit,
     subscription: "monthly",
-    start: new Date(),
+    start: now,
+    end: addMonth(now),
     custom_ram: conf.ram,
     custom_cpu: conf.cpu,
     custom_disk: conf.disk,
@@ -151,7 +160,8 @@ const business: Item = (() => {
     upgrade: "custom",
     quantity: conf.run_limit,
     subscription: "monthly",
-    start: new Date(),
+    start: now,
+    end: addMonth(now),
     custom_ram: conf.ram,
     custom_cpu: conf.cpu,
     custom_disk: conf.disk,

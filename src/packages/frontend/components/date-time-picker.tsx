@@ -67,5 +67,5 @@ export function DateTimePicker(props: Props) {
     };
   }
 
-  return <DatePicker {...props2} />;
+  return <DatePicker changeOnBlur {...props2} />;
 }

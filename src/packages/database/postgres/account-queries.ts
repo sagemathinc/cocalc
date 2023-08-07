@@ -19,6 +19,8 @@ import { PostgreSQL } from "./types";
 /* For now we define "paying customer" to mean they have a subscription.
   It's OK if it expired.  They at least bought one once.
   This is mainly used for anti-abuse purposes...
+  
+  TODO: modernize this or don't use this at all...
 */
 export async function is_paying_customer(
   db: PostgreSQL,

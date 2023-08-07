@@ -27,6 +27,7 @@ import initProjectControl, {
 } from "@cocalc/server/projects/control";
 import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects";
 import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
+import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
 import {
   initEmailSharedSecret,
@@ -39,6 +40,7 @@ import { getClients } from "./clients";
 import { set_agent_endpoint } from "./health-checks";
 import { start as startHubRegister } from "./hub_register";
 import { getLogger } from "./logger";
+import { trimLogFileSize } from "@cocalc/backend/logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
 import initHttpRedirect from "./servers/http-redirect";
@@ -290,8 +292,12 @@ async function startServer(): Promise<void> {
     // new project pool maintenance, salesloft and email queue
     // On non-kucalc it'll get done by *the* hub because of program.all.
     initNewProjectPoolMaintenanceLoop();
+    // Starts periodic maintenance on pay-as-you-go purchases, e.g., quota
+    // upgrades of projects.
+    initPurchasesMaintenanceLoop();
     initSalesloftMaintenance();
     initProcessingEmailQueue();
+    setInterval(trimLogFileSize, 1000 * 60 * 3);
   }
 
   addErrorListeners(uncaught_exception_total);

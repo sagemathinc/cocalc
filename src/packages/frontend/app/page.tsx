@@ -39,6 +39,7 @@ import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
+import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -380,6 +381,7 @@ export const Page: React.FC = () => {
         <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
       )}
       <ActiveContent />
+      <PayAsYouGoModal />
     </div>
   );
 };

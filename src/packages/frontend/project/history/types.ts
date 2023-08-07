@@ -8,6 +8,8 @@ import { Map } from "immutable";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+
 export type EventRecord = {
   id: string;
   event: TypedMap<ProjectEvent>;
@@ -31,6 +33,7 @@ export type ProjectEvent =
   | FileActionEvent
   | LibraryEvent
   | UpgradeEvent
+  | PayAsYouGoUpgradeEvent
   | LicenseEvent
   | OpenFile
   | MiniTermEvent
@@ -95,6 +98,11 @@ export type CollaboratorEvent = {
 export type UpgradeEvent = {
   event: "upgrade";
   upgrades: any;
+};
+
+export type PayAsYouGoUpgradeEvent = {
+  event: "pay-as-you-go-upgrade";
+  quota: ProjectQuota;
 };
 
 export type LicenseEvent = {

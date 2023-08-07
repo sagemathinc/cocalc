@@ -3,12 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Card } from "antd";
+import { Card, Typography } from "antd";
 import { CSSProperties, ReactNode } from "react";
-
-import { Title } from "@cocalc/frontend/components";
 import { CloseX2 } from "./close-x2";
 import { Icon, IconName } from "./icon";
+
+const { Title } = Typography;
 
 interface Props {
   icon?: IconName;

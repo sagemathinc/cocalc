@@ -14,12 +14,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, IconName, VisibleMDLG } from "@cocalc/frontend/components";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { COLORS } from "@cocalc/util/theme";
-import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
-import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
 import { capitalize } from "@cocalc/util/misc";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { useInterval } from "react-interval-hook";
 import TitleBarButtonTour from "./title-bar-button-tour";
+import ModelSwitch, { modelToName, Model } from "./model-switch";
+import Context from "./context";
 
 interface Preset {
   command: string;
@@ -135,6 +133,7 @@ export default function ChatGPT({
   const showOptions = frameType != "terminal";
   const [input, setInput] = useState<string>("");
   const [truncated, setTruncated] = useState<number>(0);
+  const [truncatedReason, setTruncatedReason] = useState<string>("");
   const [scope, setScope] = useState<Scope | "all">(() =>
     showChatGPT ? getScope(id, actions) : "all"
   );
@@ -143,6 +142,7 @@ export default function ChatGPT({
   const scopeRef = useRef<any>(null);
   const contextRef = useRef<any>(null);
   const submitRef = useRef<any>(null);
+  const [model, setModel] = useState<Model>("gpt-3.5-turbo");
 
   useEffect(() => {
     if (showChatGPT) {
@@ -169,7 +169,7 @@ export default function ChatGPT({
       // don't waste time on update if it is not visible.
       return;
     }
-    const { input, inputOrig } = await updateInput(actions, id, scope);
+    const { input, inputOrig } = await updateInput(actions, id, scope, model);
     setInput(input);
     setTruncated(
       Math.round(
@@ -178,17 +178,18 @@ export default function ChatGPT({
             (inputOrig.length - input.length) / Math.max(1, inputOrig.length))
       )
     );
+    setTruncatedReason(
+      `Input truncated from ${inputOrig.length} to ${input.length} characters.${
+        model == "gpt-3.5-turbo"
+          ? "  Try using a different model with a bigger context size."
+          : ""
+      }`
+    );
   };
 
   useEffect(() => {
     doUpdateInput();
-  }, [id, scope, visible, path, showChatGPT]);
-
-  // This is lame -- it would be better to hook into a change event, but that's hard to
-  // in general.
-  useInterval(() => {
-    doUpdateInput();
-  }, 2500);
+  }, [id, scope, visible, path, showChatGPT, model]);
 
   const [description, setDescription] = useState<string>(
     showOptions ? "" : getCustomDescription(frameType)
@@ -213,6 +214,7 @@ export default function ChatGPT({
         command: custom.trim(),
         codegen: false,
         allowEmpty: true,
+        model,
         tag: "custom",
       });
       return;
@@ -223,6 +225,9 @@ export default function ChatGPT({
         break;
       }
     }
+    setShowChatGPT(false);
+    setError("");
+    actions.focus();
   };
 
   return (
@@ -230,7 +235,8 @@ export default function ChatGPT({
       title={
         <div style={{ fontSize: "18px" }}>
           <OpenAIAvatar size={24} style={{ marginRight: "5px" }} />
-          What would you like ChatGPT to do?
+          <ModelSwitch size="small" model={model} setModel={setModel} /> What
+          would you like to do using {modelToName(model)}?
           <Button
             onClick={() => {
               setShowChatGPT(false);
@@ -265,7 +271,7 @@ export default function ChatGPT({
                 allowClear
                 autoFocus
                 style={{ flex: 1 }}
-                placeholder="Describe what you want ChatGPT to do..."
+                placeholder={"What you want to do..."}
                 value={custom}
                 onChange={(e) => {
                   setCustom(e.target.value);
@@ -322,9 +328,15 @@ export default function ChatGPT({
                 }}
               >
                 <div style={{ marginBottom: "5px" }} ref={scopeRef}>
-                  {truncated < 100 && (
+                  {truncated < 100 ? (
+                    <Tooltip title={truncatedReason}>
+                      <div style={{ float: "right" }}>
+                        Truncated ({truncated}% remains)
+                      </div>
+                    </Tooltip>
+                  ) : (
                     <div style={{ float: "right" }}>
-                      Truncated ({truncated}% remains)
+                      NOT Truncated (100% included)
                     </div>
                   )}
                   ChatGPT will see:
@@ -361,7 +373,7 @@ export default function ChatGPT({
                   name={querying ? "spinner" : "paper-plane"}
                   spin={querying}
                 />{" "}
-                Ask ChatGPT (shift+enter)
+                Ask {modelToName(model)} (shift+enter)
               </Button>
             </div>
             {error && <Alert type="error" message={error} />}
@@ -392,7 +404,8 @@ export default function ChatGPT({
 async function updateInput(
   actions,
   id,
-  scope
+  scope,
+  model
 ): Promise<{ input: string; inputOrig: string }> {
   if (scope == "none") {
     return { input: "", inputOrig: "" };
@@ -401,52 +414,13 @@ async function updateInput(
   const inputOrig = input;
   if (input.length > 2000) {
     // Truncate input (also this MUST be a lazy import):
-    const { truncateMessage, MAX_CHATGPT_TOKENS } = await import(
+    const { truncateMessage, getMaxTokens } = await import(
       "@cocalc/frontend/misc/openai"
     );
-    const maxTokens = MAX_CHATGPT_TOKENS - 1000; // 1000 tokens reserved for output and the prompt below.
+    const maxTokens = getMaxTokens(model) - 1000; // 1000 tokens reserved for output and the prompt below.
     input = truncateMessage(input, maxTokens);
   }
   return { input, inputOrig };
-}
-
-const contextStyle = {
-  overflowY: "auto",
-  margin: "5px",
-  padding: "5px",
-  width: undefined,
-} as const;
-
-function Context({ value, info }) {
-  if (!value?.trim()) {
-    return (
-      <b style={{ fontSize: "12pt" }}>
-        No context from your file will be included.
-      </b>
-    );
-  }
-  if (info == "md" || info == "markdown") {
-    return (
-      <StaticMarkdown
-        value={value}
-        style={{
-          ...contextStyle,
-          border: "1px solid #ddd",
-          borderRadius: "5px",
-        }}
-      />
-    );
-  } else {
-    return (
-      <CodeMirrorStatic
-        style={contextStyle}
-        options={{
-          mode: infoToMode(info),
-        }}
-        value={value}
-      />
-    );
-  }
 }
 
 function getScope(id, actions): Scope {

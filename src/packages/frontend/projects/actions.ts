@@ -5,11 +5,9 @@
 
 import { Set } from "immutable";
 import { isEqual } from "lodash";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
-import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
 import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
@@ -30,14 +28,17 @@ import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import api from "@cocalc/frontend/client/api";
+import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
 
-export type Datastore = boolean | string[] | undefined;
-
-// in the future, we might want to extend this to include custom environmment variables
-export interface EnvVarsRecord {
-  inherit?: boolean;
-}
-export type EnvVars = EnvVarsRecord | undefined;
+import type {
+  CourseInfo,
+  Datastore,
+  EnvVars,
+  EnvVarsRecord,
+} from "@cocalc/util/db-schema/projects";
+export type { Datastore, EnvVars, EnvVarsRecord };
 
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
@@ -289,23 +290,25 @@ export class ProjectsActions extends Actions<ProjectsState> {
     course_project_id: string,
     path: string,
     pay: Date | "",
+    payInfo: PurchaseInfo | null | undefined,
     account_id: string | null,
     email_address: string | null,
     datastore: Datastore,
     type: "student" | "shared" | "nbgrader",
     student_project_functionality?: StudentProjectFunctionality,
     envvars?: EnvVars
-  ): Promise<void> {
+  ): Promise<void | { course: null | CourseInfo }> {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
       console.warn(msg);
       return;
     }
     const course_info = store.get_course_info(project_id)?.toJS();
-    const course: any = {
+    const course: CourseInfo = {
       project_id: course_project_id,
       path,
-      pay,
+      pay: typeof pay != "string" ? pay.toISOString() : pay,
+      payInfo: payInfo ?? undefined,
       datastore,
       type,
     };
@@ -329,7 +332,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       // already set as required; do nothing
       return;
     }
-    await this.projects_table_set({ project_id, course });
+    return await api("projects/course/set-course-info", { project_id, course });
   }
 
   // Create a new project; returns the project_id of the new project.
@@ -921,7 +924,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
       });
       await this.projects_table_set({
         project_id,
-        action_request: { action: "start", time: webapp_client.server_time() },
+        action_request: {
+          action: "start",
+          time: webapp_client.server_time(),
+        },
       });
       did_start = true;
     }

@@ -160,14 +160,14 @@ export const ProjectSearchBody: React.FC<{
           checked={subdirectories}
           onChange={() => actions?.toggle_search_checkbox_subdirectories()}
         >
-          <Icon name="folder-open" /> Sub-directories
+          <Icon name="folder-open" /> Subdirectories
         </Checkbox>
         <Checkbox
           disabled={neural_search}
           checked={case_sensitive}
           onChange={() => actions?.toggle_search_checkbox_case_sensitive()}
         >
-          <Icon name="font-size" /> Case-sensitive
+          <Icon name="font-size" /> Case sensitive
         </Checkbox>
         <Checkbox
           disabled={neural_search}

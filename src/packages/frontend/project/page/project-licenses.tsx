@@ -3,6 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Divider } from "antd";
 import { redux } from "@cocalc/frontend//app-framework";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -11,6 +12,7 @@ import { ICON_UPGRADES, ROOT_STYLE, TITLE_UPGRADES } from "../servers/consts";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
 import { UpgradeUsage } from "../settings/upgrade-usage";
 import { useProject } from "./common";
+import Purchases from "@cocalc/frontend/purchases/purchases";
 
 export function ProjectLicenses({ project_id }): JSX.Element {
   const { project, group } = useProject(project_id);
@@ -24,7 +26,6 @@ export function ProjectLicenses({ project_id }): JSX.Element {
     get_total_upgrades_you_have_applied,
     get_upgrades_you_applied_to_project,
     get_total_project_quotas,
-    get_upgrades_to_project,
   } = projects_store;
 
   const get_total_upgrades = redux.getStore("account").get_total_upgrades;
@@ -35,10 +36,7 @@ export function ProjectLicenses({ project_id }): JSX.Element {
   const upgrades_you_applied_to_this_project =
     get_upgrades_you_applied_to_project(project_id);
   const total_project_quotas = get_total_project_quotas(project_id); // only available for non-admin for now.
-  const all_upgrades_to_this_project = get_upgrades_to_project(project_id);
   const store = redux.getStore("projects");
-  const site_license_upgrades =
-    store.get_total_site_license_upgrades_to_project(project_id);
   const site_license_ids: string[] = store.get_site_license_ids(project_id);
   const dedicated_resources =
     store.get_total_site_license_dedicated(project_id);
@@ -59,9 +57,7 @@ export function ProjectLicenses({ project_id }): JSX.Element {
           upgrades_you_applied_to_this_project
         }
         total_project_quotas={total_project_quotas}
-        all_upgrades_to_this_project={all_upgrades_to_this_project}
         all_projects_have_been_loaded={all_projects_have_been_loaded}
-        site_license_upgrades={site_license_upgrades}
         site_license_ids={site_license_ids}
         dedicated_resources={dedicated_resources}
         mode="project"
@@ -87,15 +83,18 @@ export function ProjectLicenses({ project_id }): JSX.Element {
   }
 
   return (
-    <div style={ROOT_STYLE}>
+    <div style={{ ...ROOT_STYLE, maxWidth: undefined }}>
       <Title level={2}>
         <Icon name={ICON_UPGRADES} /> Quotas and {TITLE_UPGRADES}
       </Title>
       <Paragraph>
-        Licenses change the quotas and features available to a project.
+        Licenses and pay as you go upgrades change the quotas and features
+        available to a project.
       </Paragraph>
       {renderAdmin()}
       {renderBody()}
+      <Divider />
+      <Purchases project_id={project_id} group={false} />
     </div>
   );
 }

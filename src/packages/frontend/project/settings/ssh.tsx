@@ -12,6 +12,7 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Project } from "./types";
+import CopyToClipBoard from "@cocalc/frontend/components/copy-to-clipboard";
 
 const { Text, Paragraph } = Typography;
 
@@ -54,12 +55,16 @@ export function SSHPanel({ project, mode = "project" }: Props) {
         <hr />
         <Paragraph>
           Use the following <Text code>username@host</Text> to connect to this
-          project:{" "}
-          <Paragraph copyable={{ text }} style={{ display: "inline" }}>
-            <Text code style={{ fontWeight: "bold", whiteSpace: "pre-wrap" }}>
-              {text}
-            </Text>
-          </Paragraph>
+          project:
+        </Paragraph>
+        <Paragraph>
+          <CopyToClipBoard
+            style={{
+              textAlign: "center",
+            }}
+            value={text}
+            inputStyle={{ margin: "auto" }}
+          />
         </Paragraph>
         {render_fingerprint()}
         <Paragraph>
