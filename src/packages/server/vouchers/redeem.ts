@@ -82,7 +82,7 @@ export default async function redeemVoucher({
         account_id,
         amount: description.amount,
         tag: "cash-voucher",
-        notes: `Cash voucher: '${voucher.title}'`,
+        notes: voucher.title,
         description: { voucher_code: code },
       });
       purchase_ids.push(id);

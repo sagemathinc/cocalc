@@ -15,7 +15,6 @@ too late to change t use amount internally.  That's the only reason.
 import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
-import { NOTES } from "./crm";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { CourseInfo } from "./projects";
 
@@ -223,7 +222,14 @@ Table({
       type: "integer",
       desc: "id of the monthly statement that includes this purchase",
     },
-    notes: NOTES, // for admins to make notes about this purchase
+    notes: {
+      type: "string",
+      desc: "Non-private notes about this purchase.  The user CAN see but not edit them.",
+      render: {
+        type: "markdown",
+        editable: true,
+      },
+    },
   },
   rules: {
     desc: "Purchase Log",
@@ -246,6 +252,7 @@ Table({
           invoice_id: null,
           project_id: null,
           tag: null,
+          notes: null,
         },
       },
     },

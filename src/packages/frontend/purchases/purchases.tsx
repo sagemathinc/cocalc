@@ -33,6 +33,7 @@ import Refresh from "@cocalc/frontend/components/refresh";
 import ShowError from "@cocalc/frontend/components/error";
 import Export from "./export";
 import EmailStatement from "./email-statement";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 const DEFAULT_LIMIT = 150;
 
@@ -351,10 +352,16 @@ function DetailedPurchaseTable({
               dataIndex: "description",
               key: "description",
               width: "35%",
-              render: (_, { description, invoice_id }) => (
+              render: (_, { description, invoice_id, notes }) => (
                 <div>
                   <Description description={description} />
                   {invoice_id && <InvoiceLink invoice_id={invoice_id} />}
+                  {notes && (
+                    <StaticMarkdown
+                      style={{ marginTop: "8px" }}
+                      value={`**Notes:** ${notes}`}
+                    />
+                  )}
                 </div>
               ),
             },
