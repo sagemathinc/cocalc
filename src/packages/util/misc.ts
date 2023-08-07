@@ -1727,6 +1727,9 @@ export function to_money(n: number, d = 2): string {
 // if d is not given and n is less than 10 cents, will show 3 digits
 // instead of 2.
 export function currency(n: number, d?: number) {
+  if (n == 0) {
+    return `$0.00`;
+  }
   return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.1 ? 3 : 2))}`;
 }
 
@@ -1738,7 +1741,7 @@ export function stripeAmount(
   // input is in pennies
   if (currency !== "usd") {
     // TODO: need to make this look nice with symbols for other currencies...
-    return `${(currency == "eur" ? "€" : "")}${to_money(
+    return `${currency == "eur" ? "€" : ""}${to_money(
       (units * unitPrice) / 100
     )} ${currency.toUpperCase()}`;
   }

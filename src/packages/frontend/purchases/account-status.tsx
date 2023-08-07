@@ -16,6 +16,7 @@ import {
   getMinBalance as getMinBalanceUsingApi,
   getSpendRate as getSpendRateUsingApi,
 } from "./api";
+import Next from "@cocalc/frontend/components/next";
 
 export default function AccountStatus() {
   const [loading, setLoading] = useState<boolean>(true);
@@ -98,6 +99,10 @@ export default function AccountStatus() {
           <div style={{ width: "30px" }} />
           <SpendRate spendRate={spendRate} />
         </Space>
+      </div>
+      <div style={{ color: "#666", float: "right" }}>
+        To transfer money to another account,{" "}
+        <Next href={"store/vouchers"}>create a cash voucher</Next>.
       </div>
     </SettingBox>
   );
