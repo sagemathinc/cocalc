@@ -1,8 +1,8 @@
 /*
-Create the given credit.  
+Create the given credit.
 
 If there is already a credit with the given invoice_id, then
-do not create the credit again.  
+do not create the credit again.
 
 In all cases, it returns the purchase id number.
 */
@@ -21,12 +21,14 @@ export default async function createCredit({
   amount,
   notes,
   tag,
+  description,
 }: {
   account_id: string;
   invoice_id?: string;
   amount: number;
   notes?: string;
   tag?: string;
+  description?: Omit<Credit, "type">;
 }): Promise<number> {
   logger.debug("createCredit", { account_id, invoice_id, amount });
   if (!(await isValidAccount(account_id))) {
@@ -55,7 +57,14 @@ export default async function createCredit({
   logger.debug("createCredit -- adding to database");
   const { rows } = await pool.query(
     "INSERT INTO purchases (service, time, account_id, cost, description, invoice_id, notes, tag) VALUES('credit', CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6) RETURNING id",
-    [account_id, -amount, { type: "credit" } as Credit, invoice_id, notes, tag]
+    [
+      account_id,
+      -amount,
+      { type: "credit", ...description } as Credit,
+      invoice_id,
+      notes,
+      tag,
+    ]
   );
   await updatePending(account_id);
 

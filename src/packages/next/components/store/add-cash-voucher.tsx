@@ -6,8 +6,23 @@ import SiteName from "components/share/site-name";
 import { currency } from "@cocalc/util/misc";
 import apiPost from "lib/api/post";
 
-export default function AddCashVoucher() {
+interface Props {
+  onAdd: () => void;
+  defaultExpand?: boolean;
+  style?;
+}
+
+export default function AddCashVoucher({ onAdd, defaultExpand, style }: Props) {
+  const [expand, setExpand] = useState<boolean>(!!defaultExpand);
   const [amount, setAmount] = useState<number>(5);
+
+  if (!expand) {
+    return (
+      <Button style={style} onClick={() => setExpand(!expand)}>
+        Add Cash Voucher...
+      </Button>
+    );
+  }
 
   const disabled = !amount;
   const addVoucher = async () => {
@@ -16,11 +31,27 @@ export default function AddCashVoucher() {
       product: "cash-voucher",
       description: { type: "cash-voucher", amount },
     });
+    onAdd();
   };
 
   return (
-    <Card title="Create Cash Voucher" style={{ margin: "15px 0" }}>
-      <Space direction="vertical" style={{ width: "100%" }}>
+    <Card
+      title={
+        <>
+          Add Cash Voucher{" "}
+          {!defaultExpand && (
+            <Button
+              style={{ marginLeft: "30px" }}
+              onClick={() => setExpand(false)}
+            >
+              Close
+            </Button>
+          )}
+        </>
+      }
+      style={{ margin: "15px 0", ...style }}
+    >
+      <Space>
         <InputNumber
           min={0}
           max={9999}
@@ -31,7 +62,16 @@ export default function AddCashVoucher() {
           addonAfter="$"
           addonBefore="Amount (USD)"
         />
-        <Button onClick={addVoucher} disabled={disabled}>
+        <Button
+          onClick={() => {
+            addVoucher();
+            if (!defaultExpand) {
+              setExpand(false);
+            }
+          }}
+          disabled={disabled}
+          type="primary"
+        >
           <Icon name="shopping-cart" /> Add to Cart
         </Button>
       </Space>

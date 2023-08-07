@@ -373,11 +373,11 @@ export default function CreateVouchers() {
           ) : (
             <>
               Your <SiteName /> <A href="/store/cart">Shopping Cart</A> must
-              contain at least one non-subscription item
+              contain at least one non-subscription license or cash voucher
             </>
           )}
         </h3>
-        <AddCashVoucher />
+        <AddCashVoucher onAdd={() => cart0.call()} defaultExpand />
         <p style={{ color: "#666" }}>
           You must have at least one non-subscription item in{" "}
           <A href="/store/cart">your cart</A> to create vouchers from the items
@@ -454,9 +454,9 @@ export default function CreateVouchers() {
             <Check done={(numVouchers ?? 0) > 0} /> How Many Voucher Codes?
           </h4>
           <Paragraph style={{ color: "#666" }}>
-            Input the number of voucher codes you would like to{" "}
+            Input the number of voucher codes to create{" "}
             {whenPay == "now" ? "buy" : "create"} (limit:{" "}
-            {MAX_VOUCHERS[whenPay]}).
+            {MAX_VOUCHERS[whenPay]}):
             <div style={{ textAlign: "center", marginTop: "15px" }}>
               <InputNumber
                 size="large"
@@ -524,17 +524,38 @@ export default function CreateVouchers() {
               </Form>
             </>
           )}
-          <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+          <h4
+            style={{
+              fontSize: "13pt",
+              marginTop: "20px",
+              color: !title ? "darkred" : undefined,
+            }}
+          >
             <Check done={!!title.trim()} /> Customize
           </h4>
           <Paragraph style={{ color: "#666" }}>
-            Describe this voucher so you can easily find it later.
-            <Input
-              style={{ marginBottom: "15px", marginTop: "5px" }}
-              onChange={(e) => setQuery({ title: e.target.value })}
-              value={title}
-              addonBefore={"Description"}
-            />
+            <div
+              style={
+                !title
+                  ? { borderRight: "5px solid darkred", paddingRight: "15px" }
+                  : undefined
+              }
+            >
+              <div
+                style={
+                  !title ? { fontWeight: 700, color: "darkred" } : undefined
+                }
+              >
+                Describe this voucher:
+              </div>
+              <Input
+                allowClear
+                style={{ marginBottom: "15px", marginTop: "5px" }}
+                onChange={(e) => setQuery({ title: e.target.value })}
+                value={title}
+                addonBefore={"Description"}
+              />
+            </div>
             Customize how your voucher codes are randomly generated (optional):
             <Space direction="vertical" style={{ marginTop: "5px" }}>
               <Space>
@@ -609,6 +630,12 @@ export default function CreateVouchers() {
             pagination={{ hideOnSinglePage: true }}
           />
         </div>
+        <Space style={{ marginTop: "15px" }}>
+          <AddCashVoucher onAdd={() => cart0.call()} />
+          <A href="/store/cart">
+            <Button>Edit Cart</Button>
+          </A>
+        </Space>
         <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
           <Check done={!disabled} /> Create Your{" "}
           {plural(numVouchers ?? 0, "Voucher Code")}

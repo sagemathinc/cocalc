@@ -490,7 +490,18 @@ function Description({ description }: { description?: Description }) {
     );
   }
   if (description.type == "credit") {
-    return <Tooltip title="Thank you!">Credit</Tooltip>;
+    return (
+      <Tooltip title="Thank you!">
+        Credit{" "}
+        {description.voucher_code ? (
+          <>
+            from voucher <Tag>{description.voucher_code}</Tag>
+          </>
+        ) : (
+          ""
+        )}
+      </Tooltip>
+    );
   }
   if (description.type == "project-upgrade") {
     const quota = description?.quota ?? {};

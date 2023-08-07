@@ -111,7 +111,7 @@ export interface EditLicense {
 
 export interface Credit {
   type: "credit";
-  // not sure what else, e.g., if it comes from a voucher, could be the voucher code here.
+  voucher_code?: string; // if credit is the result of redeeming a voucher code
 }
 
 export type Description =

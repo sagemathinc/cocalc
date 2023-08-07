@@ -16,7 +16,7 @@ import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { capitalize, isValidUUID, plural } from "@cocalc/util/misc";
-import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
+import { Alert, Button, Checkbox, Popconfirm, Space, Table } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -55,23 +55,21 @@ export default function ShoppingCart() {
     const x: any[] = [];
     let subTotal = 0;
     for (const item of cart.result) {
-      if (item.product == "site-license") {
-        try {
-          item.cost = computeCost(item.description);
-        } catch (err) {
-          // sadly computeCost is buggy, or rather - it crashes because of other bugs.
-          // It's much better to
-          // have something not in the cart and an error than to make the cart and
-          // store just be 100% broken
-          // forever for a user!
-          // That said, I've fixed every bug I could find and tested things, so hopefully
-          // this doesn't come up.
-          console.warn("Invalid item in cart -- not showing", item);
-          continue;
-        }
-        if (item.checked) {
-          subTotal += item.cost.discounted_cost;
-        }
+      try {
+        item.cost = computeCost(item.description);
+      } catch (err) {
+        // sadly computeCost is buggy, or rather - it crashes because of other bugs.
+        // It's much better to
+        // have something not in the cart and an error than to make the cart and
+        // store just be 100% broken
+        // forever for a user!
+        // That said, I've fixed every bug I could find and tested things, so hopefully
+        // this doesn't come up.
+        console.warn("Invalid item in cart -- not showing", item);
+        continue;
+      }
+      if (item.checked) {
+        subTotal += item.cost.discounted_cost;
       }
       x.push(item);
     }
@@ -214,20 +212,18 @@ export default function ShoppingCart() {
       </Button>
     );
     return (
-      <div>
-        <Button.Group>
-          {checkout}
-          <Button
-            disabled={subTotal == 0 || updating}
-            size="large"
-            onClick={() => {
-              router.push("/store/vouchers");
-            }}
-          >
-            Create Vouchers
-          </Button>
-        </Button.Group>
-      </div>
+      <Space>
+        {checkout}
+        <Button
+          disabled={subTotal == 0 || updating}
+          size="large"
+          onClick={() => {
+            router.push("/store/vouchers");
+          }}
+        >
+          Create Vouchers
+        </Button>
+      </Space>
     );
   }
 
@@ -402,7 +398,7 @@ interface DCProps {
 const DESCRIPTION_STYLE = {
   border: "1px solid lightblue",
   background: "white",
-  padding: "15px 15px 5px 15px",
+  padding: "15px",
   margin: "5px 0 10px 0",
   borderRadius: "5px",
 } as const;
@@ -418,7 +414,7 @@ function DescriptionColumn(props: DCProps) {
   } else if (description.type == "cash-voucher") {
     return (
       <div>
-        <b style={{ fontSize: "12pt" }}>Cash Voucher</b>
+        <b style={{ fontSize: "12pt" }}>Cash voucher</b>
         <div style={DESCRIPTION_STYLE}>
           Voucher for {currency(description.amount)}.
         </div>

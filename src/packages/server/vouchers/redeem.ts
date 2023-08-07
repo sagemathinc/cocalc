@@ -8,6 +8,7 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { isValidUUID } from "@cocalc/util/misc";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
+import createCredit from "@cocalc/server/purchases/create-credit";
 
 const log = getLogger("server:vouchers:redeem");
 
@@ -73,40 +74,54 @@ export default async function redeemVoucher({
     voucher
   );
   const license_ids: string[] = [];
+  const purchase_ids: number[] = [];
   for (const { product, description } of voucher.cart) {
-    if (product != "site-license") {
+    if (product == "cash-voucher") {
+      // create a cash account credit.
+      const id = await createCredit({
+        account_id,
+        amount: description.amount,
+        tag: "cash-voucher",
+        notes: `Cash voucher: '${voucher.title}'`,
+        description: { voucher_code: code },
+      });
+      purchase_ids.push(id);
+    } else if (product == "site-license") {
+      // shift range in the description so license starts now.
+      if (description["range"] == null) {
+        throw Error(
+          "invalid voucher: only items with explicit range are allowed"
+        );
+      }
+      let [start, end] = description["range"];
+      if (!start || !end) {
+        throw Error("nvalid voucher: each license must have an explicit range");
+      }
+      // start and end are ISO string rep, since they are from JSONB in the database,
+      // and JSON doesn't have a date type.
+      const interval = new Date(end).valueOf() - new Date(start).valueOf();
+      description["range"] = [now, new Date(now.valueOf() + interval)];
+      const license_id = await createLicenseWithoutPurchase({
+        account_id,
+        description,
+      });
+      log.debug(
+        "created license ",
+        license_id,
+        " associated to voucher code ",
+        code
+      );
+      license_ids.push(license_id);
+    } else {
       // this is assumed by createLicenseWithoutPurchase
-      throw Error("the only product that is implemented is 'site-license'");
-    }
-    // shift range in the description so license starts now.
-    if (description["range"] == null) {
       throw Error(
-        "invalid voucher: only items with explicit range are allowed"
+        `Redeeming voucher product ${product} is not implemented. Contact support.`
       );
     }
-    let [start, end] = description["range"];
-    if (!start || !end) {
-      throw Error("nvalid voucher: each license must have an explicit range");
-    }
-    // start and end are ISO string rep, since they are from JSONB in the database,
-    // and JSON doesn't have a date type.
-    const interval = new Date(end).valueOf() - new Date(start).valueOf();
-    description["range"] = [now, new Date(now.valueOf() + interval)];
-    const license_id = await createLicenseWithoutPurchase({
-      account_id,
-      description,
-    });
-    log.debug(
-      "created license ",
-      license_id,
-      " associated to voucher code ",
-      code
-    );
-    license_ids.push(license_id);
   }
   // set voucher as redeemed for the license_ids in the voucher_code,
   // (so we know what licenses were created).
-  await redeemVoucherCode({ code, account_id, license_ids });
+  await redeemVoucherCode({ code, account_id, license_ids, purchase_ids });
   await applyLicensesToProject({ account_id, project_id, license_ids });
   return license_ids;
 }
