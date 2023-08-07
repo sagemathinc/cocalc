@@ -78,6 +78,9 @@ export default async function createVouchers({
     cart,
     cost,
   });
+  if (cart.length == 0) {
+    throw Error("cart must be nonempty");
+  }
 
   // Make some checks.
   if (whenPay == "admin") {
@@ -197,6 +200,17 @@ export default async function createVouchers({
         id,
       ]);
     }
+
+    // Mark every item in the cart as "purchased".
+    await client.query(
+      "UPDATE shopping_cart_items SET purchased=$3 WHERE account_id=$1 AND id=ANY($2)",
+      [
+        cart[0].account_id,
+        cart.map((x) => x.id),
+        { success: true, time: new Date(), voucher_id: id },
+      ]
+    );
+
     await client.query("COMMIT");
     return { id, codes, cost, cart };
   } catch (err) {

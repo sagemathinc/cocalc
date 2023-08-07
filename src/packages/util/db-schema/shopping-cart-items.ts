@@ -28,7 +28,12 @@ export interface Item {
   account_id: string;
   added: Date;
   checked?: boolean;
-  purchased?: PurchaseInfo;
+  purchased?: {
+    success: true;
+    time: Date;
+    license_id?: string;
+    voucher_id?: number;
+  };
   removed?: Date;
   product: ProductType;
   description: ProductDescription;
