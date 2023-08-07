@@ -149,7 +149,7 @@ async function cancelSubscriptionLink(
   subscription_id: number
 ): Promise<string> {
   const url = await cancelSubscription({ subscription_id, account_id });
-  return ` <a href="${url}">(one-click cancel)</a>`;
+  return ` <a href="${url}">(cancel)</a>`;
 }
 
 /*

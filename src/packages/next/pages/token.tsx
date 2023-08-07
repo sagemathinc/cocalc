@@ -21,10 +21,11 @@ import Header from "components/landing/header";
 import { Customize, CustomizeType } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import useAPI from "lib/hooks/api";
-import { Alert, Spin } from "antd";
+import { Alert, Button, Space, Spin } from "antd";
 import { useRouter } from "next/router";
 import type { Description } from "@cocalc/util/db-schema/token-actions";
 import { capitalize } from "@cocalc/util/misc";
+import { useState } from "react";
 
 const STYLE = { margin: "30px auto", maxWidth: "600px", fontSize: "14pt" };
 
@@ -35,6 +36,8 @@ interface Props {
 export default function TokenActions(props: Props) {
   const { customize } = props;
   const router = useRouter();
+  const [doAction, setDoAction] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   return (
     <Customize value={customize}>
@@ -44,7 +47,21 @@ export default function TokenActions(props: Props) {
         {router.query.result ? (
           <ShowResult result={router.query.result} />
         ) : router.query.token ? (
-          <HandleToken token={router.query.token} />
+          doAction ? (
+            <HandleToken token={router.query.token} />
+          ) : (
+            <Confirm
+              loading={loading}
+              action={getTitle(router.query.type)}
+              onConfirm={() => {
+                setDoAction(true);
+              }}
+              onCancel={() => {
+                setLoading(true);
+                router.push("/");
+              }}
+            />
+          )
         ) : (
           <div>
             Invalid URL -- should pass a token or result in as a query parameter
@@ -53,6 +70,30 @@ export default function TokenActions(props: Props) {
         <Footer />
       </Layout>
     </Customize>
+  );
+}
+
+function Confirm({ action, onConfirm, onCancel, loading }) {
+  return (
+    <Alert
+      style={{ margin: "30px auto", width: "400px" }}
+      type="warning"
+      showIcon
+      message={`${action}?`}
+      description={
+        <div>
+          <Space style={{ marginTop: "8px" }}>
+            <Button onClick={onCancel} disabled={loading}>
+              Cancel
+            </Button>
+            <Button onClick={onConfirm} disabled={loading}>
+              Confirm
+            </Button>
+            {loading && <Spin />}
+          </Space>
+        </div>
+      }
+    />
   );
 }
 
