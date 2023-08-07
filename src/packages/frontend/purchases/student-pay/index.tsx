@@ -16,7 +16,6 @@ export default function StudentPayUpgrade({ project_id }) {
   const account_id = useTypedRedux("account", "account_id");
 
   const { when, paid, purchaseInfo, student_account_id } = useMemo(() => {
-    console.log("course = ", course);
     if (course == null) {
       return { when: null, purchaseInfo: null, paid: null };
     }
