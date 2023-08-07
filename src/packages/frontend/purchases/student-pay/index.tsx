@@ -16,6 +16,7 @@ export default function StudentPayUpgrade({ project_id }) {
   const account_id = useTypedRedux("account", "account_id");
 
   const { when, paid, purchaseInfo, student_account_id } = useMemo(() => {
+    console.log("course = ", course);
     if (course == null) {
       return { when: null, purchaseInfo: null, paid: null };
     }
@@ -25,13 +26,16 @@ export default function StudentPayUpgrade({ project_id }) {
       return { when: null, purchaseInfo: null, paid: null };
     }
 
-    const purchaseInfo = (course.payInfo ??
-      DEFAULT_PURCHASE_INFO) as PurchaseInfo;
-
-    if (purchaseInfo.end <= new Date()) {
+    if (
+      course.payInfo?.end != null &&
+      new Date(course.payInfo.end) <= new Date()
+    ) {
       // no pay requirement after course is over
       return { when: null, purchaseInfo: null, paid: null };
     }
+
+    const purchaseInfo = (course.payInfo ??
+      DEFAULT_PURCHASE_INFO) as PurchaseInfo;
 
     // during the course, required to pay, etc.
     return {
