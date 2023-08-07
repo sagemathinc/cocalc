@@ -80,6 +80,7 @@ export async function getCheckoutCart(
 ) {
   // Get the list of items in the cart that haven't been purchased
   // or saved for later, and are currently checked.
+  // TODO -- typing
   let cart: any[] = await getCart({
     account_id,
     purchased: false,
@@ -93,6 +94,9 @@ export async function getCheckoutCart(
   let total = 0;
   for (const item of cart) {
     item.cost = computeCost(item.description);
+    if (item.cost == null) {
+      throw Error("bug cost must not be null");
+    }
     total += item.cost.discounted_cost;
   }
   return { total, cart };

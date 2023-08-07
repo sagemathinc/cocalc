@@ -27,7 +27,6 @@ export type CostInput =
   | { type: "cash-voucher"; amount: number; subscription: Subscription };
 
 export interface CostInputPeriod extends Cost {
-  // enforce setting the subcription field
   input: CostInput;
   period: Period;
 }

@@ -125,18 +125,21 @@ export default function Redeem({ customize }) {
                       onClose={() => setError("")}
                     />
                   )}
-                  <Button
-                    disabled={code.length < 8 || state != "input" || !!error}
-                    size="large"
-                    type="primary"
-                    onClick={redeemCode}
-                  >
-                    {state == "input" && <>Redeem</>}
-                    {state == "redeeming" && (
-                      <Loading delay={0}>Redeeming...</Loading>
-                    )}
-                    {state == "redeemed" && <>Success!</>}
-                  </Button>
+                  {state != "redeemed" ? (
+                    <Button
+                      disabled={code.length < 8 || state != "input" || !!error}
+                      size="large"
+                      type="primary"
+                      onClick={redeemCode}
+                    >
+                      {state == "input" && <>Redeem</>}
+                      {state == "redeeming" && (
+                        <Loading delay={0}>Redeeming...</Loading>
+                      )}
+                    </Button>
+                  ) : (
+                    <Alert showIcon message={"Success!"} type="success" />
+                  )}
                   {project_id && (
                     <Alert
                       showIcon

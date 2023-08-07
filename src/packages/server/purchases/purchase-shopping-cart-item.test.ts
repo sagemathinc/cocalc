@@ -64,7 +64,7 @@ describe("create a subscription license and edit it and confirm the subscription
     }
     await setClosingDay(item.account_id, day);
     const client = await getPoolClient();
-    await purchaseShoppingCartItem(item, client);
+    await purchaseShoppingCartItem(item as any, client);
     client.release();
   });
 

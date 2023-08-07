@@ -145,7 +145,7 @@ export default async function purchaseShoppingCartItem(
   logger.debug("moved shopping cart item to purchased.");
 }
 
-async function createLicenseFromShoppingCartItem(
+export async function createLicenseFromShoppingCartItem(
   item,
   client: PoolClient
 ): Promise<{ license_id: string; info; licenseCost }> {
