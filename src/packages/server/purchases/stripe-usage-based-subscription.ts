@@ -217,7 +217,7 @@ export async function getUsageSubscription(account_id: string) {
         // The card was deleted or canceled from stripe, so we delete it from our records.
         // If we don't do this, deleted/canceled cards can get replaced
         // in the "Automic Payments: Update Required" process.
-        await setUsageSubscription(account_id, "");
+        await setUsageSubscription({ account_id, subscription_id: "" });
         return null;
       }
     }
