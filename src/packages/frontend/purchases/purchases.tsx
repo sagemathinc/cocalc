@@ -510,6 +510,15 @@ function Description({ description }: { description?: Description }) {
       </Tooltip>
     );
   }
+  if (description.type == "refund") {
+    const { notes, reason, purchase_id } = description;
+    return (
+      <Tooltip title={`Reason: ${reason.replace(/_/g,' ')}\nNotes: ${notes}`}>
+        Refund from transaction number {purchase_id}
+      </Tooltip>
+    );
+  }
+
   if (description.type == "project-upgrade") {
     const quota = description?.quota ?? {};
     return <DisplayProjectQuota quota={quota} />;
