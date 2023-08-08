@@ -206,11 +206,21 @@ export async function getUsageSubscription(account_id: string) {
   if (stripe_usage_subscription.startsWith("card")) {
     // Deprecated LEGACY fallback until all users upgrade their card
     // on file to a stripe usage subscription...
-    const card = await stripe.customers.retrieveSource(
-      stripe_customer_id,
-      stripe_usage_subscription
-    );
-    return card;
+    try {
+      const card = await stripe.customers.retrieveSource(
+        stripe_customer_id,
+        stripe_usage_subscription
+      );
+      return card;
+    } catch (err) {
+      if (err.code == "resource_missing") {
+        // The card was deleted or canceled from stripe, so we delete it from our records.
+        // If we don't do this, deleted/canceled cards can get replaced
+        // in the "Automic Payments: Update Required" process.
+        await setUsageSubscription(account_id, "");
+        return null;
+      }
+    }
   }
 
   const subscription_id = rows[0].stripe_usage_subscription;
