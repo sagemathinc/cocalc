@@ -15,7 +15,7 @@ export default async function createRefund(opts: {
   account_id: string;
   purchase_id: number;
   reason: Reason;
-  amount?: number; // default is entire charge
+  amount: number;
   notes?: string;
 }): Promise<number> {
   logger.debug("createRefund", opts);
@@ -34,7 +34,7 @@ export default async function createRefund(opts: {
       `reason must be one of "duplicate", "fraudulent" or "requested_by_customer"`
     );
   }
-  if (!amount || amount < 0) {
+  if (amount == null || amount < 0) {
     throw Error("amount must be positive");
   }
 
@@ -77,6 +77,7 @@ export default async function createRefund(opts: {
       notes,
       reason,
     } as Refund;
+    // probably right:
     const id = await createPurchase({
       account_id: purchases[0].account_id,
       cost: amount == null ? -cost : amount,
@@ -90,16 +91,21 @@ export default async function createRefund(opts: {
       metadata: { account_id, purchase_id, notes } as any,
       reason,
     });
+    // put actual information about claimed refund amount  and refund id in the database:
+    description.refund_id = refund.id;
+    if (refund.currency == "usd") {
+      await client.query(
+        "UPDATE purchases SET description=$2, cost=$3 WHERE id=$1",
+        [id, description, refund.amount / 100]
+      );
+    } else {
+      await client.query(
+        "UPDATE purchases SET description=$2 WHERE id=$1",
+        [id, description]
+      );
+    }
     // commit now, since at this point it worked
     await client.query("COMMIT");
-
-    // This is just an extra bit of info for convenience.  If it failed
-    // it wouldn't matter.
-    description.refund_id = refund.id;
-    await client.query("UPDATE purchases SET description=$1 WHERE id=$2", [
-      description,
-      id,
-    ]);
     return id;
   } catch (err) {
     logger.debug("error creating refund", { account_id, invoice_id }, err);
