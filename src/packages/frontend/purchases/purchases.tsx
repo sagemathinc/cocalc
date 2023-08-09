@@ -745,3 +745,19 @@ function getFilename({ thisMonth, cutoff, limit, offset, noStatement }) {
   }
   return v.join("-");
 }
+
+export function PurchasesButton(props: Props) {
+  const [show, setShow] = useState<boolean>(false);
+  return (
+    <div>
+      <Button onClick={() => setShow(!show)}>
+        <Icon name="table" /> Transactions...
+      </Button>
+      {show && (
+        <div style={{ marginTop: "8px" }}>
+          <Purchases {...props} />
+        </div>
+      )}
+    </div>
+  );
+}

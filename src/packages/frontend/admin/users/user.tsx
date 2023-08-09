@@ -17,7 +17,7 @@ import { Impersonate } from "./impersonate";
 import { PasswordReset } from "./password-reset";
 import { Ban } from "./ban";
 import PayAsYouGoMinBalance from "@cocalc/frontend/frame-editors/crm-editor/users/pay-as-you-go-min-balance";
-import Purchases from "@cocalc/frontend/purchases/purchases";
+import { PurchasesButton } from "@cocalc/frontend/purchases/purchases";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 interface State {
@@ -95,7 +95,7 @@ export class UserResult extends Component<Props, State> {
       <div style={{ margin: "15px 0" }}>
         <PayAsYouGoMinBalance account_id={this.props.account_id} />
         <div style={{height:'15px'}}/>
-        <Purchases account_id={this.props.account_id}/>
+        <PurchasesButton account_id={this.props.account_id}/>
       </div>
     );
   }
