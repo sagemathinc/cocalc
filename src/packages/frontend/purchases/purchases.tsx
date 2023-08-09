@@ -34,6 +34,7 @@ import ShowError from "@cocalc/frontend/components/error";
 import Export from "./export";
 import EmailStatement from "./email-statement";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 
 const DEFAULT_LIMIT = 150;
 
@@ -42,6 +43,7 @@ interface Props {
   group?: boolean;
   day_statement_id?: number; // if given, restrict to purchases on this day statement.
   month_statement_id?: number; // if given, restrict to purchases on this month statement.
+  account_id?: string; // used by admins to specify a different user
 }
 
 export default function Purchases(props: Props) {
@@ -57,6 +59,7 @@ function Purchases0({
   group: group0,
   day_statement_id,
   month_statement_id,
+  account_id,
 }: Props) {
   const [group, setGroup] = useState<boolean>(!!group0);
   const [thisMonth, setThisMonth] = useState<boolean>(true);
@@ -66,6 +69,7 @@ function Purchases0({
     <SettingBox
       title={
         <>
+          {account_id && <Avatar account_id={account_id} />}
           {project_id ? (
             <span>
               {project_id ? (
@@ -113,6 +117,7 @@ function Purchases0({
       </div>
       <PurchasesTable
         project_id={project_id}
+        account_id={account_id}
         group={group}
         thisMonth={thisMonth}
         day_statement_id={day_statement_id}
@@ -126,6 +131,7 @@ function Purchases0({
 }
 
 export function PurchasesTable({
+  account_id,
   project_id,
   group,
   thisMonth,
@@ -170,7 +176,8 @@ export function PurchasesTable({
       setTotal(null);
       setPurchases(null);
       setGroupedPurchases(null);
-      const x = await api.getPurchases({
+      const opts = {
+        account_id,
         thisMonth,
         cutoff,
         limit,
@@ -181,7 +188,10 @@ export function PurchasesTable({
         day_statement_id,
         month_statement_id,
         no_statement: noStatement,
-      });
+      };
+      const x = account_id
+        ? await api.getPurchasesAdmin(opts)
+        : await api.getPurchases(opts);
       if (group) {
         setGroupedPurchases(x);
       } else {
@@ -513,7 +523,7 @@ function Description({ description }: { description?: Description }) {
   if (description.type == "refund") {
     const { notes, reason, purchase_id } = description;
     return (
-      <Tooltip title={`Reason: ${reason.replace(/_/g,' ')}\nNotes: ${notes}`}>
+      <Tooltip title={`Reason: ${reason.replace(/_/g, " ")}\nNotes: ${notes}`}>
         Refund from transaction number {purchase_id}
       </Tooltip>
     );

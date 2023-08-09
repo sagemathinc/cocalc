@@ -61,7 +61,7 @@ export async function isPurchaseAllowed(
   return await api("purchases/is-purchase-allowed", { service, cost });
 }
 
-export async function getPurchases(opts: {
+interface PurchasesOptions {
   thisMonth?: boolean; // if true, limit and offset are ignored
   cutoff?: Date; // if given, returns purchases back to this date (limit/offset NOT ignored)
   limit?: number;
@@ -72,8 +72,18 @@ export async function getPurchases(opts: {
   day_statement_id?: number;
   month_statement_id?: number;
   no_statement?: boolean;
-}) {
+}
+
+export async function getPurchases(opts: PurchasesOptions) {
   return await api("purchases/get-purchases", opts);
+}
+
+// Admins can get purchases for any specified user -- error if called by non-admin.
+// Same options as getPurchases, but specify the account_id.
+export async function getPurchasesAdmin(
+  opts: PurchasesOptions & { account_id: string }
+) {
+  return await api("purchases/get-purchases-admin", opts);
 }
 
 export async function getSubscriptions(opts: {
