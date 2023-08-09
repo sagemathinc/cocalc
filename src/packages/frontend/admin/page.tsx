@@ -15,6 +15,7 @@ import { UserSearch } from "./users/user-search";
 import { Icon } from "@cocalc/frontend/components";
 
 const { Panel } = Collapse;
+const headerStyle = { fontSize: "12pt" } as const;
 
 export function AdminPage() {
   const [activeKey, setActiveKey] = useState<string[]>([]);
@@ -37,25 +38,25 @@ export function AdminPage() {
       >
         <Panel
           key="user-search"
-          header=<>
+          header=<div style={headerStyle}>
             <Icon name="users" style={{ marginRight: "8px" }} /> User Search
-          </>
+          </div>
         >
           <UserSearch />
         </Panel>
         <Panel
           key="site-licenses"
-          header=<>
+          header=<div style={headerStyle}>
             <Icon name="key" style={{ marginRight: "8px" }} /> Licenses
-          </>
+          </div>
         >
           <SiteLicenses />
         </Panel>
         <Panel
           key="site-settings"
-          header=<>
+          header=<div style={headerStyle}>
             <Icon name="gears" style={{ marginRight: "8px" }} /> Site Settings
-          </>
+          </div>
         >
           <SiteSettings
             close={() => {
@@ -65,28 +66,28 @@ export function AdminPage() {
         </Panel>
         <Panel
           key="registration-tokens"
-          header=<>
+          header=<div style={headerStyle}>
             <Icon name="sign-in" style={{ marginRight: "8px" }} /> Registration
             Tokens
-          </>
+          </div>
         >
           <RegistrationToken />
         </Panel>
         <Panel
           key="system-notifications"
-          header=<>
+          header=<div style={headerStyle}>
             <Icon name="comment" style={{ marginRight: "8px" }} /> System
             Notifications
-          </>
+          </div>
         >
           <SystemNotifications />
         </Panel>
         <Panel
           key="usage-stats"
-          header=<>
+          header=<div style={headerStyle}>
             <Icon name="line-chart" style={{ marginRight: "8px" }} /> Usage
             Statistics
-          </>
+          </div>
         >
           <UsageStatistics />
         </Panel>

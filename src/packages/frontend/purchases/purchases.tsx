@@ -69,7 +69,9 @@ function Purchases0({
     <SettingBox
       title={
         <>
-          {account_id && <Avatar account_id={account_id} />}
+          {account_id && (
+            <Avatar account_id={account_id} style={{ marginRight: "15px" }} />
+          )}
           {project_id ? (
             <span>
               {project_id ? (
@@ -177,7 +179,6 @@ export function PurchasesTable({
       setPurchases(null);
       setGroupedPurchases(null);
       const opts = {
-        account_id,
         thisMonth,
         cutoff,
         limit,
@@ -190,7 +191,7 @@ export function PurchasesTable({
         no_statement: noStatement,
       };
       const x = account_id
-        ? await api.getPurchasesAdmin(opts)
+        ? await api.getPurchasesAdmin({ ...opts, account_id })
         : await api.getPurchases(opts);
       if (group) {
         setGroupedPurchases(x);
