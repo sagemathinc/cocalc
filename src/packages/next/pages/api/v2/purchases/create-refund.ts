@@ -14,7 +14,7 @@ We may create another different admin API call for canceling/refunding internal
 transactions, if that turns out to be necessary.
 
 - purchase_id - id of some purchase in the purchases table, so a positive integer
-- reason -  "duplicate", "fraudulent" or "requested_by_customer" (same as in stripe)
+- reason -  "duplicate", "fraudulent", "requested_by_customer" or "other" (same as in stripe)
 - admount - positive floating point number in *dollars* (NOT cents like in stripe)
 - notes - optional string; user DOES see this.
 */

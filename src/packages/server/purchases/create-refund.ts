@@ -27,11 +27,12 @@ export default async function createRefund(opts: {
   if (
     reason != "duplicate" &&
     reason != "fraudulent" &&
-    reason != "requested_by_customer"
+    reason != "requested_by_customer" &&
+    reason != "other"
   ) {
     // don't trust typescript, since used via api...
     throw Error(
-      `reason must be one of "duplicate", "fraudulent" or "requested_by_customer"`
+      `reason must be one of "duplicate", "fraudulent", "requested_by_customer" or "other"`
     );
   }
   if (amount == null || amount < 0) {
@@ -89,7 +90,7 @@ export default async function createRefund(opts: {
       charge,
       amount: amount == null ? undefined : Math.floor(amount * 100),
       metadata: { account_id, purchase_id, notes } as any,
-      reason,
+      reason: reason != "other" ? reason : undefined,
     });
     // put actual information about claimed refund amount  and refund id in the database:
     description.refund_id = refund.id;
@@ -99,10 +100,10 @@ export default async function createRefund(opts: {
         [id, description, refund.amount / 100]
       );
     } else {
-      await client.query(
-        "UPDATE purchases SET description=$2 WHERE id=$1",
-        [id, description]
-      );
+      await client.query("UPDATE purchases SET description=$2 WHERE id=$1", [
+        id,
+        description,
+      ]);
     }
     // commit now, since at this point it worked
     await client.query("COMMIT");

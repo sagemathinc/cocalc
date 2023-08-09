@@ -17,7 +17,7 @@ import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { CourseInfo } from "./projects";
-export type Reason = "duplicate" | "fraudulent" | "requested_by_customer";
+export type Reason = "duplicate" | "fraudulent" | "requested_by_customer" | "other";
 
 // The general categories of services we offer.  These must
 // be at most 127 characters, and users can set an individual

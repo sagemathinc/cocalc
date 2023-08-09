@@ -35,6 +35,7 @@ import Export from "./export";
 import EmailStatement from "./email-statement";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import AdminRefund from "./admin-refund";
 
 const DEFAULT_LIMIT = 150;
 
@@ -264,7 +265,7 @@ export function PurchasesTable({
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
         {!group && purchases != null && (
-          <DetailedPurchaseTable purchases={purchases} />
+          <DetailedPurchaseTable purchases={purchases} admin={!!account_id} />
         )}
         {group && <GroupedPurchaseTable purchases={groupedPurchases} />}
       </div>
@@ -337,8 +338,10 @@ function GroupedPurchaseTable({ purchases }) {
 
 function DetailedPurchaseTable({
   purchases,
+  admin,
 }: {
   purchases: Partial<Purchase>[];
+  admin: boolean;
 }) {
   if (purchases == null) {
     return <Spin size="large" delay={500} />;
@@ -363,9 +366,13 @@ function DetailedPurchaseTable({
               dataIndex: "description",
               key: "description",
               width: "35%",
-              render: (_, { description, invoice_id, notes }) => (
+              render: (_, { id, description, invoice_id, notes }) => (
                 <div>
-                  <Description description={description} />
+                  <Description
+                    description={description}
+                    admin={admin}
+                    purchase_id={id}
+                  />
                   {invoice_id && <InvoiceLink invoice_id={invoice_id} />}
                   {notes && (
                     <StaticMarkdown
@@ -462,7 +469,15 @@ function DetailedPurchaseTable({
 
 // "credit" | "openai-gpt-4" | "project-upgrade" | "license" | "edit-license"
 
-function Description({ description }: { description?: Description }) {
+function Description({
+  description,
+  admin,
+  purchase_id,
+}: {
+  description?: Description;
+  admin: boolean;
+  purchase_id?: number;
+}) {
   if (description == null) {
     return null;
   }
@@ -509,16 +524,19 @@ function Description({ description }: { description?: Description }) {
   }
   if (description.type == "credit") {
     return (
-      <Tooltip title="Thank you!">
-        Credit{" "}
-        {description.voucher_code ? (
-          <>
-            from voucher <Tag>{description.voucher_code}</Tag>
-          </>
-        ) : (
-          ""
-        )}
-      </Tooltip>
+      <Space>
+        <Tooltip title="Thank you!">
+          Credit{" "}
+          {description.voucher_code ? (
+            <>
+              from voucher <Tag>{description.voucher_code}</Tag>
+            </>
+          ) : (
+            ""
+          )}
+        </Tooltip>
+        {admin && purchase_id != null && <AdminRefund purchase_id={purchase_id} />}
+      </Space>
     );
   }
   if (description.type == "refund") {
