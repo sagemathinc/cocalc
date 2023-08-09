@@ -7,6 +7,7 @@ import { zIndex as zIndexPayAsGo } from "../pay-as-you-go/modal";
 import Cost, { getCost } from "./cost";
 import { isPurchaseAllowed, studentPay } from "../api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { redux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   when: dayjs.Dayjs;
@@ -130,6 +131,19 @@ export default function PayNow({
           )}
         </>
       )}
+      <hr />
+      <div style={{ textAlign: "right" }}>
+        <Button
+          onClick={() => {
+            const actions = redux.getActions("page");
+            if (actions != null) {
+              actions.close_project_tab(project_id);
+            }
+          }}
+        >
+          Close Project
+        </Button>
+      </div>
     </Modal>
   );
 }

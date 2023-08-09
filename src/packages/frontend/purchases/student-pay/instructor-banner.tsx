@@ -60,7 +60,6 @@ export default function PaySoon({ when, purchaseInfo, paid, course }: Props) {
           <Button
             type="primary"
             onClick={() => {
-              console.log(course);
               redux.getProjectActions(course.project_id).open_file({
                 path: course.path,
                 foreground: true,

@@ -7,7 +7,7 @@ This fails if:
  - The user doesn't have sufficient funds on their account to pay for the license.
  - The user is not the STUDENT that the project is meant for.
  - The course fee was already paid.
- 
+
 Everything is done in a single atomic transaction.
 */
 
@@ -111,6 +111,7 @@ export default async function studentPay({
       noCheck: true,
       client,
     });
+    await client.query("COMMIT");
 
     return { purchase_id };
   } catch (err) {

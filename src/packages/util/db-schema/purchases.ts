@@ -17,6 +17,7 @@ import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { CourseInfo } from "./projects";
+export type Reason = "duplicate" | "fraudulent" | "requested_by_customer";
 
 // The general categories of services we offer.  These must
 // be at most 127 characters, and users can set an individual
@@ -25,6 +26,7 @@ import type { CourseInfo } from "./projects";
 
 export type Service =
   | "credit"
+  | "refund"
   | "openai-gpt-4"
   | "openai-gpt-4-32k"
   | "openai-gpt-3.5-turbo"
@@ -113,6 +115,14 @@ export interface Credit {
   voucher_code?: string; // if credit is the result of redeeming a voucher code
 }
 
+export interface Refund {
+  type: "refund";
+  purchase_id: number; // id of entry in purchases table of the credit that this is refunding back from
+  refund_id?: string; // stripe Refund object id for the refund
+  reason: Reason;
+  notes: string;
+}
+
 export type Description =
   | OpenaiGPT4
   | OpenaiGPT4_32k
@@ -121,6 +131,7 @@ export type Description =
   | OpenaiTextEmbeddingsAda002
   | ProjectUpgrade
   | Credit
+  | Refund
   | License
   | Voucher
   | EditLicense;
