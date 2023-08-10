@@ -7,8 +7,8 @@ import { aggregate } from "@cocalc/util/aggregate";
 import * as message from "@cocalc/util/message";
 import { callback2 } from "@cocalc/util/async-utils";
 import { AsyncCall } from "./client";
-import { OPENAI_USERNAMES } from "@cocalc/util/db-schema/openai";
 import { User } from "../frame-editors/generic/client";
+import { isChatBot, chatBotName } from "@cocalc/frontend/account/chatbot";
 
 const get_username = aggregate(
   { omit: ["call"] },
@@ -67,8 +67,8 @@ export class UsersClient {
   public async get_username(
     account_id: string
   ): Promise<{ first_name: string; last_name: string }> {
-    if (account_id.startsWith("chatgpt")) {
-      return OPENAI_USERNAMES[account_id] ?? account_id;
+    if (isChatBot(account_id)) {
+      return { first_name: chatBotName(account_id), last_name: "" };
     }
     const v = await callback2(get_username, {
       call: this.call,
