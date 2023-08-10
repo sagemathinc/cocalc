@@ -5,7 +5,7 @@ Some of these are only used by the nextjs app!
 */
 
 import api from "@cocalc/frontend/client/api";
-import type { Service } from "@cocalc/util/db-schema/purchases";
+import type { Reason, Service } from "@cocalc/util/db-schema/purchases";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import LRU from "lru-cache";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
@@ -334,6 +334,15 @@ export async function adminSetMinBalance(
   await api("user-query", {
     query: { crm_accounts: { account_id, min_balance } },
   });
+}
+
+export async function adminCreateRefund(opts: {
+  purchase_id: number;
+  reason: Reason;
+  amount: number;
+  notes?: string;
+}) {
+  return await api("create-refund", opts);
 }
 
 export async function getLicense(license_id: string) {

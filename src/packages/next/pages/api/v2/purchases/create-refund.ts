@@ -44,5 +44,7 @@ async function get(req) {
   }
 
   const { purchase_id, reason, amount, notes } = getParams(req);
-  return await createRefund({ account_id, purchase_id, reason, amount, notes });
+  return {
+    id: await createRefund({ account_id, purchase_id, reason, amount, notes }),
+  };
 }

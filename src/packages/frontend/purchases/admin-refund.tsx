@@ -7,10 +7,24 @@ a service="refund" transaction.
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useState } from "react";
-import { Button, Modal, Input, InputNumber, Select, Form, Divider } from "antd";
+import {
+  Button,
+  Modal,
+  Input,
+  InputNumber,
+  Select,
+  Form,
+  Divider,
+  Spin,
+} from "antd";
+import { adminCreateRefund } from "./api";
+import ShowError from "@cocalc/frontend/components/error";
+
 const labelStyle = { width: "60px" } as const;
 
 export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
+  const [error, setError] = useState<string>("");
+  const [refunding, setRefunding] = useState<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm(); // Add this line
 
@@ -24,10 +38,18 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
     setIsModalVisible(true);
   };
 
-  const handleOk = () => {
+  const handleOk = async () => {
     const values = form.getFieldsValue(); // Get the form data
     console.log(values);
-    setIsModalVisible(false);
+    try {
+      setRefunding(true);
+      await adminCreateRefund({ purchase_id, ...values });
+      setIsModalVisible(false);
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setRefunding(false);
+    }
   };
 
   const handleCancel = () => {
@@ -46,6 +68,7 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
         onOk={handleOk}
         onCancel={handleCancel}
         okText="Refund"
+        okButtonProps={{ disabled: refunding }}
       >
         <Divider />
         <Form form={form}>
@@ -53,10 +76,7 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
             <InputNumber style={{ width: "100%" }} min={0.01} />
           </Form.Item>
           <Form.Item name="reason" label={<div style={labelStyle}>Reason</div>}>
-            <Select
-              style={{ width: "100%" }}
-              placeholder="Select Reason..."
-            >
+            <Select style={{ width: "100%" }} placeholder="Select Reason...">
               <Select.Option value="duplicate">Duplicate</Select.Option>
               <Select.Option value="fraudulent">Fraudulent</Select.Option>
               <Select.Option value="requested_by_customer">
@@ -80,6 +100,8 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
             exchange rate, which may differ from the original rate.
           </div>
         </Form>
+        {refunding && <Spin />}
+        <ShowError error={error} setError={setError} />
       </Modal>
     </>
   );
