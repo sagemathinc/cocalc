@@ -48,10 +48,11 @@ interface Props {
   style?: CSSProperties;
 }
 
-export function Avatar(props) {
+export function Avatar(props: Props) {
+  const { account_id } = props;
   if (
-    props.account_id.startsWith("chatgpt") ||
-    props.account_id.startsWith("openai-")
+    account_id != null &&
+    (account_id.startsWith("chatgpt") || account_id.startsWith("openai-"))
   ) {
     return <OpenAIAvatar size={props.size} style={props.style} />;
   } else {
