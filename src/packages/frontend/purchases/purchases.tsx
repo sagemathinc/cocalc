@@ -36,6 +36,8 @@ import EmailStatement from "./email-statement";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import AdminRefund from "./admin-refund";
+import { A } from "@cocalc/frontend/components/A";
+import getSupportURL from "@cocalc/frontend/support/url";
 
 const DEFAULT_LIMIT = 150;
 
@@ -537,6 +539,18 @@ function Description({
         </Tooltip>
         {admin && purchase_id != null && (
           <AdminRefund purchase_id={purchase_id} />
+        )}
+        {!admin && (
+          <A
+            href={getSupportURL({
+              body: `I would like to request a full refund for transaction ${purchase_id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
+              subject: `Refund Request: Transaction ${purchase_id}`,
+              type: "purchase",
+              hideExtra: true,
+            })}
+          >
+            <Icon name="external-link" /> Refund
+          </A>
         )}
       </Space>
     );

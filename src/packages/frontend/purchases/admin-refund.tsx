@@ -78,13 +78,14 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
           <div style={{ color: "#666" }}>
             <Divider>What Happens</Divider>
             The above information is visible to the user. When you click OK,
-            they will be refunded in 5-10 days, and their transactions log and
-            statement will include a new "Refund" entry in CoCalc immediately
-            (click Refresh to confirm). If they have an email address
-            configured, they will also be sent an email. Stripe's fees for the
-            original payment won't be returned, but there are no additional fees
-            for the refund. This refund will use the latest Stripe-provided
-            exchange rate, which may differ from the original rate.
+            their money will be refunded in 5-10 days, and their CoCalc
+            transactions log and statement will include a new "Refund" entry
+            immediately (click Refresh to confirm). If they have an email
+            address configured, they will also be sent an email. Stripe's fees
+            for the original payment won't be returned, but there are no
+            additional fees for the refund. This refund will use the latest
+            Stripe-provided exchange rate, which may differ from the original
+            rate.  (Partial refunds are not implemented.)
           </div>
         </Form>
         {refunding && <Spin />}
