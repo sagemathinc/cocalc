@@ -1,22 +1,19 @@
 /*
-Show a Refund... button.  When clicked, shows modal and uses API to get information from database
-about status of refunding the given purchase and form to enter reason and notes,
+Show a Refund... button.  When clicked, shows modal to enter reason and notes,
 and submit the refund.  The backend then has stripe do the refund, and also creates
 a service="refund" transaction.
+
+NOTE: we do not implement partial refunds, since it's **really complicated** to even
+figure out *what* to refund, due to sales tax, currency conversion rates, etc.  If we ever
+need to deal with that, maybe something can be done manually.  It's pretty rare,
+and can at least be done via stripe directly in terms of providing money back,
+and we could manually create a corresponding refund transaction to match that.
+I had implemented this and realized that its super hard to get right given tax, etc.
 */
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useState } from "react";
-import {
-  Button,
-  Modal,
-  Input,
-  InputNumber,
-  Select,
-  Form,
-  Divider,
-  Spin,
-} from "antd";
+import { Button, Modal, Input, Select, Form, Divider, Spin } from "antd";
 import { adminCreateRefund } from "./api";
 import ShowError from "@cocalc/frontend/components/error";
 
@@ -28,19 +25,12 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm(); // Add this line
 
-  // Replace with actual function that fetches refund details
-  const fetchRefundInfo = async () => {
-    console.log("Fetching refund information");
-  };
-
   const showModal = () => {
-    fetchRefundInfo();
     setIsModalVisible(true);
   };
 
   const handleOk = async () => {
     const values = form.getFieldsValue(); // Get the form data
-    console.log(values);
     try {
       setRefunding(true);
       await adminCreateRefund({ purchase_id, ...values });
@@ -72,9 +62,6 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
       >
         <Divider />
         <Form form={form}>
-          <Form.Item name="amount" label={<div style={labelStyle}>Amount</div>}>
-            <InputNumber style={{ width: "100%" }} min={0.01} />
-          </Form.Item>
           <Form.Item name="reason" label={<div style={labelStyle}>Reason</div>}>
             <Select style={{ width: "100%" }} placeholder="Select Reason...">
               <Select.Option value="duplicate">Duplicate</Select.Option>

@@ -15,7 +15,6 @@ export default async function createRefund(opts: {
   account_id: string;
   purchase_id: number;
   reason: Reason;
-  amount: number;
   notes?: string;
 }): Promise<number> {
   logger.debug("createRefund", opts);
@@ -23,7 +22,7 @@ export default async function createRefund(opts: {
   if (!(await userIsInGroup(account_id, "admin"))) {
     throw Error("only admins can create refunds");
   }
-  const { purchase_id, amount, reason, notes = "" } = opts;
+  const { purchase_id, reason, notes = "" } = opts;
   if (
     reason != "duplicate" &&
     reason != "fraudulent" &&
@@ -34,9 +33,6 @@ export default async function createRefund(opts: {
     throw Error(
       `reason must be one of "duplicate", "fraudulent", "requested_by_customer" or "other"`
     );
-  }
-  if (amount == null || amount < 0) {
-    throw Error("amount must be positive");
   }
 
   logger.debug("get the purchase");
@@ -78,35 +74,28 @@ export default async function createRefund(opts: {
       notes,
       reason,
     } as Refund;
-    // probably right:
     const id = await createPurchase({
       account_id: purchases[0].account_id,
-      cost: amount == null ? -cost : amount,
       service: "refund",
+      cost: -cost,
       description,
       client,
     });
     const refund = await stripe.refunds.create({
       charge,
-      amount: amount == null ? undefined : Math.floor(amount * 100),
       metadata: { account_id, purchase_id, notes } as any,
       reason: reason != "other" ? reason : undefined,
     });
-    // put actual information about claimed refund amount  and refund id in the database:
-    description.refund_id = refund.id;
-    if (refund.currency == "usd") {
-      await client.query(
-        "UPDATE purchases SET description=$2, cost=$3 WHERE id=$1",
-        [id, description, refund.amount / 100]
-      );
-    } else {
-      await client.query("UPDATE purchases SET description=$2 WHERE id=$1", [
-        id,
-        description,
-      ]);
-    }
-    // commit now, since at this point it worked
     await client.query("COMMIT");
+    // put actual information about refund id in the database.
+    // It's fine doing this after the commit, since the refund.id
+    // is not ever used; it just seems like a good idea to include
+    // for our records, but we only know it *after* calling stripe.
+    description.refund_id = refund.id;
+    await client.query("UPDATE purchases SET description=$2 WHERE id=$1", [
+      id,
+      description,
+    ]);
     return id;
   } catch (err) {
     logger.debug("error creating refund", { account_id, invoice_id }, err);

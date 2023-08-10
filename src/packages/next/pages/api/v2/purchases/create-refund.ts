@@ -43,8 +43,8 @@ async function get(req) {
     throw Error("only admins can create refunds");
   }
 
-  const { purchase_id, reason, amount, notes } = getParams(req);
+  const { purchase_id, reason, notes } = getParams(req);
   return {
-    id: await createRefund({ account_id, purchase_id, reason, amount, notes }),
+    id: await createRefund({ account_id, purchase_id, reason, notes }),
   };
 }

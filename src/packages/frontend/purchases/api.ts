@@ -339,10 +339,9 @@ export async function adminSetMinBalance(
 export async function adminCreateRefund(opts: {
   purchase_id: number;
   reason: Reason;
-  amount: number;
   notes?: string;
 }) {
-  return await api("create-refund", opts);
+  return await api("purchases/create-refund", opts);
 }
 
 export async function getLicense(license_id: string) {

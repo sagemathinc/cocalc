@@ -535,15 +535,29 @@ function Description({
             ""
           )}
         </Tooltip>
-        {admin && purchase_id != null && <AdminRefund purchase_id={purchase_id} />}
+        {admin && purchase_id != null && (
+          <AdminRefund purchase_id={purchase_id} />
+        )}
       </Space>
     );
   }
   if (description.type == "refund") {
     const { notes, reason, purchase_id } = description;
     return (
-      <Tooltip title={`Reason: ${reason.replace(/_/g, " ")}\nNotes: ${notes}`}>
-        Refund from transaction number {purchase_id}
+      <Tooltip
+        title={
+          <div>
+            Reason: {capitalize(reason.replace(/_/g, " "))}
+            {!!notes && (
+              <>
+                <br />
+                Notes: {notes}
+              </>
+            )}
+          </div>
+        }
+      >
+        Refund Transaction {purchase_id}
       </Tooltip>
     );
   }
