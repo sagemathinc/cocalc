@@ -33,7 +33,7 @@ export async function migrateAllActiveLicenseSubscriptions() {
 }
 
 export async function migrateActiveLicenseSubscriptions(account_id: string) {
-  const subs = await getActiveLicenseSubscriptions(account_id);
+  const subs = await getNonCanceledLicenseSubscriptions(account_id);
   logger.debug(
     "migrateActiveLicenseSubscriptions",
     { account_id },
@@ -54,14 +54,13 @@ Get all of the current active stripe subscriptions for the given account.
 This ignores non-active subscriptions, since there is no need to do anything
 with them anymore.
 */
-export async function getActiveLicenseSubscriptions(account_id: string) {
+export async function getNonCanceledLicenseSubscriptions(account_id: string) {
   const stripe = await getConn();
   const customer = await getStripeCustomerId({ account_id, create: false });
   if (!customer) return [];
   const resp = await stripe.subscriptions.list({
     limit: 100,
     customer,
-    status: "active",
   });
   if (resp.has_more) {
     throw Error("TODO: have to handle paging");
@@ -69,7 +68,8 @@ export async function getActiveLicenseSubscriptions(account_id: string) {
   return resp.data.filter(
     (sub) =>
       (sub as any).plan?.product.startsWith("license") &&
-      sub.metadata.license_id
+      sub.metadata.license_id &&
+      !sub.canceled_at // because it might still be canceled.
   );
 }
 
