@@ -395,9 +395,10 @@ function CloseEditor({ activeTab, project_id }): JSX.Element | null {
   return (
     <Tooltip title={<>Close Editor</>}>
       <AntdButton
-        type="ghost"
+        ghost={true}
+        type="text"
         onClick={handleOnClick}
-        style={{ color: COLORS.GRAY_M, fontSize: "12px", padding: "0 10px" }}
+        style={{ color: COLORS.GRAY_M, fontSize: "12px", padding: "0" }}
         icon={<Icon name="times" />}
       />
     </Tooltip>
