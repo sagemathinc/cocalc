@@ -15,7 +15,7 @@ export default function MinBalance({ minBalance, style }: Props) {
   return (
     <Card style={style} title="Balance Cannot Go Below">
       <MoneyStatistic title={"Minimum Balance"} value={minBalance} />
-      <Support>Request change...</Support>
+      <Support>Request Smaller Minimum...</Support>
     </Card>
   );
 }

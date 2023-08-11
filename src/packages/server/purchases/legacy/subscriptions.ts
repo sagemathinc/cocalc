@@ -116,7 +116,7 @@ export async function migrateSubscription(sub) {
     const subscription_id = await createSubscription(
       {
         account_id,
-        cost: sub.plan.amount / 100, // grandfathered pricing
+        cost: sub.plan.amount / 100, // grandfathered pricing <-- THIS IS WRONG -- see updateMigratedSubscriptionPrice below.
         interval: sub.plan.interval,
         current_period_start,
         current_period_end,
@@ -179,4 +179,88 @@ export async function cancelStripeSubscription(id: string) {
   logger.debug("cancelStripeSubscription", id);
   const stripe = await getConn();
   await stripe.subscriptions.cancel(id);
+}
+
+export async function updateAllMigratedSubscriptionPrices() {
+    const pool = getPool();
+  const { rows } = await pool.query("SELECT id FROM subscriptions where notes like 'Created by migrating legacy stripe license%' AND notes not like '%Pricing updated.'");
+  logger.debug("updateAllMigratedSubscriptionPrices: got ", rows.length, ' subscriptions')
+  for(const row of rows) {
+    await updateMigratedSubscriptionPrice(row.id);
+  }
+}
+
+export async function updateMigratedSubscriptionPrice(subscription_id: number) {
+  logger.debug("updateMigratedSubscriptionPrice", { subscription_id });
+  const pool = getPool();
+  const { rows } = await pool.query("SELECT * FROM subscriptions where id=$1", [
+    subscription_id,
+  ]);
+  logger.debug({ subscription: rows[0] });
+  const { cost, metadata, notes } = rows[0];
+  if (notes.includes("Pricing updated")) {
+    logger.debug("already done");
+    return;
+  }
+  // notes looks like "Created by migrating legacy stripe license subscription sub_KCNGl2r8hgxn3r."
+  const i = notes.lastIndexOf("sub_");
+  if (i == -1) {
+    logger.debug("not a migrated subscription");
+    return;
+  }
+  const stripe_id = notes.slice(i, notes.length-1);
+  const stripe = await getConn();
+  const sub = await stripe.subscriptions.retrieve(stripe_id);
+  logger.debug({ sub });
+  // @ts-ignore
+  const cost_per_unit = sub.plan.amount / 100;
+  if (Math.abs(cost - cost_per_unit) > 0.1) {
+    logger.debug(
+      "cost changed substantially from what we set during migration"
+    );
+    logger.debug(
+      "so nothing to do -- it would have been properly fixed already."
+    );
+  }
+  // @ts-ignore
+  if (sub.quantity == 1) {
+    logger.debug("nothing to do since quantity is 1");
+  }
+  // @ts-ignore
+  const corrected_cost = cost_per_unit * sub.quantity;
+  logger.debug("setting cost to ", { corrected_cost });
+  await pool.query("UPDATE subscriptions SET cost=$1, notes=$2 WHERE id=$3", [
+    corrected_cost,
+    notes + " Pricing updated.",
+    subscription_id,
+  ]);
+
+  logger.debug(
+    "Also set the type:'quota' and end date of the corresponding license."
+  );
+  await updateLicense(metadata.license_id);
+}
+
+export async function updateLicense(license_id: string) {
+  logger.debug("Setting the type:'quota' and end date of", { license_id });
+  const pool = getPool();
+  const { rows } = await pool.query("SELECT * from site_licenses where id=$1", [
+    license_id,
+  ]);
+  const { expires, info } = rows[0];
+  let changed = false;
+  if (info.purchased.type == null) {
+    info.purchased.type = "quota";
+    changed = true;
+  }
+  if (info.purchased.end == null) {
+    info.purchased.end = expires.toISOString();
+    changed = true;
+  }
+  if (changed) {
+    await pool.query("UPDATE site_licenses SET info=$1 WHERE id=$2", [
+      info,
+      license_id,
+    ]);
+  }
 }

@@ -31,7 +31,7 @@ export const OPENAI_USERNAMES = {
   "gpt-4-32k": "GPT-4-32k",
   "gpt-3.5-turbo": "GPT-3.5",
   "gpt-3.5-turbo-16k": "GPT-3.5-16k",
-};
+} as const;
 
 // This is the official published cost that openai charges.
 // It changes over time, so this will sometimes need to be updated.
@@ -64,7 +64,7 @@ export const OPENAI_COST = {
     completion_tokens: 0.0001 / 1000, // NOTE: this isn't a thing with embeddings
     max_tokens: 8191,
   },
-};
+} as const;
 
 export function isValidModel(model?: Model) {
   return OPENAI_COST[model ?? ""] != null;
