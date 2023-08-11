@@ -266,7 +266,7 @@ export function PurchasesTable({
         )}
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
-        {!group && purchases != null && (
+        {!group && (
           <DetailedPurchaseTable purchases={purchases} admin={!!account_id} />
         )}
         {group && <GroupedPurchaseTable purchases={groupedPurchases} />}
@@ -282,7 +282,7 @@ export function PurchasesTable({
 
 function GroupedPurchaseTable({ purchases }) {
   if (purchases == null) {
-    return <Spin size="large" delay={500} />;
+    return <Spin size="large" />;
   }
   return (
     <div style={{ overflow: "auto" }}>
@@ -342,11 +342,11 @@ function DetailedPurchaseTable({
   purchases,
   admin,
 }: {
-  purchases: Partial<Purchase>[];
+  purchases: Partial<Purchase>[] | null;
   admin: boolean;
 }) {
   if (purchases == null) {
-    return <Spin size="large" delay={500} />;
+    return <Spin size="large" />;
   }
   return (
     <div style={{ overflow: "auto" }}>
@@ -370,12 +370,27 @@ function DetailedPurchaseTable({
               width: "35%",
               render: (_, { id, description, invoice_id, notes }) => (
                 <div>
-                  <Description
-                    description={description}
-                    admin={admin}
-                    purchase_id={id}
-                  />
-                  {invoice_id && <InvoiceLink invoice_id={invoice_id} />}
+                  <Description description={description} />
+                  {invoice_id && (
+                    <div
+                      style={{ marginLeft: "15px", display: "inline-block" }}
+                    >
+                      {admin && id != null && <AdminRefund purchase_id={id} />}
+                      {!admin && (
+                        <A
+                          href={getSupportURL({
+                            body: `I would like to request a full refund for transaction ${id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
+                            subject: `Refund Request: Transaction ${id}`,
+                            type: "purchase",
+                            hideExtra: true,
+                          })}
+                        >
+                          <Icon name="external-link" /> Refund
+                        </A>
+                      )}
+                      <InvoiceLink invoice_id={invoice_id} />
+                    </div>
+                  )}
                   {notes && (
                     <StaticMarkdown
                       style={{ marginTop: "8px" }}
@@ -471,15 +486,7 @@ function DetailedPurchaseTable({
 
 // "credit" | "openai-gpt-4" | "project-upgrade" | "license" | "edit-license"
 
-function Description({
-  description,
-  admin,
-  purchase_id,
-}: {
-  description?: Description;
-  admin: boolean;
-  purchase_id?: number;
-}) {
+function Description({ description }: { description?: Description }) {
   if (description == null) {
     return null;
   }
@@ -537,21 +544,6 @@ function Description({
             ""
           )}
         </Tooltip>
-        {admin && purchase_id != null && (
-          <AdminRefund purchase_id={purchase_id} />
-        )}
-        {!admin && (
-          <A
-            href={getSupportURL({
-              body: `I would like to request a full refund for transaction ${purchase_id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
-              subject: `Refund Request: Transaction ${purchase_id}`,
-              type: "purchase",
-              hideExtra: true,
-            })}
-          >
-            <Icon name="external-link" /> Refund
-          </A>
-        )}
       </Space>
     );
   }
