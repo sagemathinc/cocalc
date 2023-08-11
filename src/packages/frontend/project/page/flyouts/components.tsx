@@ -143,8 +143,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       <Tooltip title="File is published" placement="right">
         <Button
           size="small"
-          ghost={true}
-          type="link"
+          type="text"
           style={BTN_STYLE}
           icon={<Icon name="bullhorn" />}
           onClick={(e) => {
