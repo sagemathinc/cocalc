@@ -33,6 +33,11 @@ import Refresh from "@cocalc/frontend/components/refresh";
 import ShowError from "@cocalc/frontend/components/error";
 import Export from "./export";
 import EmailStatement from "./email-statement";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import AdminRefund from "./admin-refund";
+import { A } from "@cocalc/frontend/components/A";
+import getSupportURL from "@cocalc/frontend/support/url";
 
 const DEFAULT_LIMIT = 150;
 
@@ -41,6 +46,7 @@ interface Props {
   group?: boolean;
   day_statement_id?: number; // if given, restrict to purchases on this day statement.
   month_statement_id?: number; // if given, restrict to purchases on this month statement.
+  account_id?: string; // used by admins to specify a different user
 }
 
 export default function Purchases(props: Props) {
@@ -56,6 +62,7 @@ function Purchases0({
   group: group0,
   day_statement_id,
   month_statement_id,
+  account_id,
 }: Props) {
   const [group, setGroup] = useState<boolean>(!!group0);
   const [thisMonth, setThisMonth] = useState<boolean>(true);
@@ -65,6 +72,9 @@ function Purchases0({
     <SettingBox
       title={
         <>
+          {account_id && (
+            <Avatar account_id={account_id} style={{ marginRight: "15px" }} />
+          )}
           {project_id ? (
             <span>
               {project_id ? (
@@ -85,7 +95,7 @@ function Purchases0({
       }
     >
       <div style={{ float: "right" }}>
-        <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project.">
+        <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
           <Checkbox
             checked={group}
             onChange={(e) => setGroup(e.target.checked)}
@@ -112,6 +122,7 @@ function Purchases0({
       </div>
       <PurchasesTable
         project_id={project_id}
+        account_id={account_id}
         group={group}
         thisMonth={thisMonth}
         day_statement_id={day_statement_id}
@@ -125,6 +136,7 @@ function Purchases0({
 }
 
 export function PurchasesTable({
+  account_id,
   project_id,
   group,
   thisMonth,
@@ -169,7 +181,7 @@ export function PurchasesTable({
       setTotal(null);
       setPurchases(null);
       setGroupedPurchases(null);
-      const x = await api.getPurchases({
+      const opts = {
         thisMonth,
         cutoff,
         limit,
@@ -180,7 +192,10 @@ export function PurchasesTable({
         day_statement_id,
         month_statement_id,
         no_statement: noStatement,
-      });
+      };
+      const x = account_id
+        ? await api.getPurchasesAdmin({ ...opts, account_id })
+        : await api.getPurchases(opts);
       if (group) {
         setGroupedPurchases(x);
       } else {
@@ -251,8 +266,8 @@ export function PurchasesTable({
         )}
       </div>
       <div style={{ textAlign: "center", marginTop: "15px" }}>
-        {!group && purchases != null && (
-          <DetailedPurchaseTable purchases={purchases} />
+        {!group && (
+          <DetailedPurchaseTable purchases={purchases} admin={!!account_id} />
         )}
         {group && <GroupedPurchaseTable purchases={groupedPurchases} />}
       </div>
@@ -267,7 +282,7 @@ export function PurchasesTable({
 
 function GroupedPurchaseTable({ purchases }) {
   if (purchases == null) {
-    return <Spin size="large" delay={500} />;
+    return <Spin size="large" />;
   }
   return (
     <div style={{ overflow: "auto" }}>
@@ -292,8 +307,7 @@ function GroupedPurchaseTable({ purchases }) {
               dataIndex: "sum",
               key: "sum",
               align: "right" as "right",
-              render: (amount) =>
-                currency(amount, Math.abs(amount) < 0.1 ? 3 : 2),
+              render: (amount) => <Amount record={{ cost: amount }} />,
               sorter: (a: any, b: any) => (a.sum ?? 0) - (b.sum ?? 0),
               sortDirections: ["ascend", "descend"],
             },
@@ -326,11 +340,13 @@ function GroupedPurchaseTable({ purchases }) {
 
 function DetailedPurchaseTable({
   purchases,
+  admin,
 }: {
-  purchases: Partial<Purchase>[];
+  purchases: Partial<Purchase>[] | null;
+  admin: boolean;
 }) {
   if (purchases == null) {
-    return <Spin size="large" delay={500} />;
+    return <Spin size="large" />;
   }
   return (
     <div style={{ overflow: "auto" }}>
@@ -352,10 +368,35 @@ function DetailedPurchaseTable({
               dataIndex: "description",
               key: "description",
               width: "35%",
-              render: (_, { description, invoice_id }) => (
+              render: (_, { id, description, invoice_id, notes }) => (
                 <div>
                   <Description description={description} />
-                  {invoice_id && <InvoiceLink invoice_id={invoice_id} />}
+                  {invoice_id && (
+                    <div
+                      style={{ marginLeft: "15px", display: "inline-block" }}
+                    >
+                      {admin && id != null && <AdminRefund purchase_id={id} />}
+                      {!admin && (
+                        <A
+                          href={getSupportURL({
+                            body: `I would like to request a full refund for transaction ${id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
+                            subject: `Refund Request: Transaction ${id}`,
+                            type: "purchase",
+                            hideExtra: true,
+                          })}
+                        >
+                          <Icon name="external-link" /> Refund
+                        </A>
+                      )}
+                      <InvoiceLink invoice_id={invoice_id} />
+                    </div>
+                  )}
+                  {notes && (
+                    <StaticMarkdown
+                      style={{ marginTop: "8px" }}
+                      value={`**Notes:** ${notes}`}
+                    />
+                  )}
                 </div>
               ),
             },
@@ -491,8 +532,42 @@ function Description({ description }: { description?: Description }) {
     );
   }
   if (description.type == "credit") {
-    return <Tooltip title="Thank you!">Credit</Tooltip>;
+    return (
+      <Space>
+        <Tooltip title="Thank you!">
+          Credit{" "}
+          {description.voucher_code ? (
+            <>
+              from voucher <Tag>{description.voucher_code}</Tag>
+            </>
+          ) : (
+            ""
+          )}
+        </Tooltip>
+      </Space>
+    );
   }
+  if (description.type == "refund") {
+    const { notes, reason, purchase_id } = description;
+    return (
+      <Tooltip
+        title={
+          <div>
+            Reason: {capitalize(reason.replace(/_/g, " "))}
+            {!!notes && (
+              <>
+                <br />
+                Notes: {notes}
+              </>
+            )}
+          </div>
+        }
+      >
+        Refund Transaction {purchase_id}
+      </Tooltip>
+    );
+  }
+
   if (description.type == "project-upgrade") {
     const quota = description?.quota ?? {};
     return <DisplayProjectQuota quota={quota} />;
@@ -707,4 +782,20 @@ function getFilename({ thisMonth, cutoff, limit, offset, noStatement }) {
     v.push(`offset${offset}`);
   }
   return v.join("-");
+}
+
+export function PurchasesButton(props: Props) {
+  const [show, setShow] = useState<boolean>(false);
+  return (
+    <div>
+      <Button onClick={() => setShow(!show)}>
+        <Icon name="table" /> Transactions...
+      </Button>
+      {show && (
+        <div style={{ marginTop: "8px" }}>
+          <Purchases {...props} />
+        </div>
+      )}
+    </div>
+  );
 }

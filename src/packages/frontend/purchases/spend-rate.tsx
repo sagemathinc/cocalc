@@ -15,7 +15,7 @@ export default function SpendRate({ style, spendRate }: Props) {
       <Statistic
         title={"Metered Spend (USD)"}
         value={spendRate}
-        precision={3}
+        precision={spendRate ? 3 : 2}
         prefix={"$"}
         suffix={"/hour"}
       />

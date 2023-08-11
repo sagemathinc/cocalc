@@ -18,7 +18,10 @@ export interface Voucher {
   created: Date;
   created_by: string;
   title: string;
-  cart: { description: SiteLicenseDescriptionDB; product: "site-license" }[];
+  cart: (
+    | { description: SiteLicenseDescriptionDB; product: "site-license" }
+    | { description: { amount: number }; product: "cash-voucher" }
+  )[];
   count: number;
   cost: number;
   tax: number;
@@ -191,6 +194,7 @@ export interface VoucherCode {
   canceled?: Date;
   notes?: string;
   license_ids?: string[];
+  purchase_ids?: number[]; // if voucher results in a credit to an account, this is the amount
 }
 
 Table({
@@ -229,7 +233,13 @@ Table({
       title: "License IDs",
       type: "array",
       pg_type: "UUID[]",
-      desc: "The ids of the licenses created when this voucher code was redeemed.",
+      desc: "The ids of the licenses created when this voucher code was redeemed (if this was for a license)",
+    },
+    purchase_ids: {
+      title: "Ids of Account Credits",
+      type: "array",
+      pg_type: "integer[]",
+      desc: "If voucher results in credit to an account, these are the id's of the transaction in the purchases table. Technically a single voucher could have multiple cash vouchers on it (which is silly but allowed).",
     },
     notes: NOTES,
   },
@@ -247,6 +257,7 @@ Table({
           redeemed_by: null,
           canceled: null,
           license_ids: null,
+          purchase_ids: null,
         },
       },
     },
@@ -271,6 +282,7 @@ Table({
           notes: null,
           canceled: null,
           license_ids: null,
+          purchase_ids: null,
         },
       },
       set: {

@@ -38,7 +38,8 @@ export type ComputeCostProps =
       type: "disk";
       dedicated_disk: DedicatedDisk;
       period: Period;
-    };
+    }
+  | { type: "cash-voucher"; amount: number };
 
 export type ComputeCostPropsTypes = ComputeCostProps["type"];
 

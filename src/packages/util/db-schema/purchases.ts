@@ -15,9 +15,13 @@ too late to change t use amount internally.  That's the only reason.
 import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
-import { NOTES } from "./crm";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { CourseInfo } from "./projects";
+export type Reason =
+  | "duplicate"
+  | "fraudulent"
+  | "requested_by_customer"
+  | "other";
 
 // The general categories of services we offer.  These must
 // be at most 127 characters, and users can set an individual
@@ -26,6 +30,7 @@ import type { CourseInfo } from "./projects";
 
 export type Service =
   | "credit"
+  | "refund"
   | "openai-gpt-4"
   | "openai-gpt-4-32k"
   | "openai-gpt-3.5-turbo"
@@ -111,7 +116,15 @@ export interface EditLicense {
 
 export interface Credit {
   type: "credit";
-  // not sure what else, e.g., if it comes from a voucher, could be the voucher code here.
+  voucher_code?: string; // if credit is the result of redeeming a voucher code
+}
+
+export interface Refund {
+  type: "refund";
+  purchase_id: number; // id of entry in purchases table of the credit that this is refunding back from
+  refund_id?: string; // stripe Refund object id for the refund
+  reason: Reason;
+  notes: string;
 }
 
 export type Description =
@@ -122,6 +135,7 @@ export type Description =
   | OpenaiTextEmbeddingsAda002
   | ProjectUpgrade
   | Credit
+  | Refund
   | License
   | Voucher
   | EditLicense;
@@ -172,7 +186,7 @@ Table({
       desc: "If true, then this transaction is considered pending, which means that for a few days it doesn't count against the user's quotas for the purposes of deciding whether or not a purchase is allowed.  This is needed so we can charge a user for their subscriptions, then collect the money from them, without all of the running pay-as-you-go project upgrades suddenly breaking (etc.).",
     },
     cost_per_hour: {
-      title: "Cost ($)",
+      title: "Cost per Hour",
       desc: "The cost in US dollars per hour.  This is used to compute the cost so far for metered purchases when the cost field isn't set yet.  The cost so far is the number of hours since period_start times the cost_per_hour.  The description field may also contain redundant cost per hour information, but this cost_per_hour field is the definitive source of truth.  Once the cost field is set, this cost_per_hour is just useful for display purposes.",
       type: "number",
       pg_type: "real",
@@ -223,7 +237,14 @@ Table({
       type: "integer",
       desc: "id of the monthly statement that includes this purchase",
     },
-    notes: NOTES, // for admins to make notes about this purchase
+    notes: {
+      type: "string",
+      desc: "Non-private notes about this purchase.  The user CAN see but not edit them.",
+      render: {
+        type: "markdown",
+        editable: true,
+      },
+    },
   },
   rules: {
     desc: "Purchase Log",
@@ -246,6 +267,7 @@ Table({
           invoice_id: null,
           project_id: null,
           tag: null,
+          notes: null,
         },
       },
     },

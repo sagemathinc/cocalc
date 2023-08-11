@@ -149,10 +149,17 @@ export class JupyterStore extends Store<JupyterStoreState> {
   // Get the id of the cell that is delta positions from
   // cell with given id (second input).
   // Returns undefined if delta positions moves out of
-  // the notebook (so there is no such cell); in particular,
+  // the notebook (so there is no such cell) or there
+  // is no cell with the given id; in particular,
   // we do NOT wrap around.
   public get_cell_id(delta = 0, id: string): string | undefined {
-    let i: number = this.get_cell_index(id);
+    let i: number;
+    try {
+      i = this.get_cell_index(id);
+    } catch (_) {
+      // no such cell. This can happen, e.g., https://github.com/sagemathinc/cocalc/issues/6686
+      return;
+    }
     i += delta;
     const cell_list = this.get("cell_list");
     if (cell_list == null || i < 0 || i >= cell_list.size) {

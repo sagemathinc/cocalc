@@ -179,7 +179,7 @@ export default function EditNews(props: Props) {
               form.getFieldValue("date")?.isAfter(dayjs()) ? "future" : "past"
             }.`}
           >
-            <DatePicker showTime={true} allowClear={false} />
+            <DatePicker changeOnBlur showTime={true} allowClear={false} />
           </Form.Item>
           <Form.Item
             label="Channel"

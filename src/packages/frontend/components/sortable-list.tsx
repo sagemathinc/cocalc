@@ -1,7 +1,7 @@
 /*
 A sortable vertical list of items.
 
-This uses @dnd-kit for sorting and has support  for the list
+This uses @dnd-kit for sorting and has support for the list
 being virtualized with react-virtuoso.
 
 - Use the SortableList component with your list of items inside of it.
@@ -43,11 +43,11 @@ export function SortableList({
   function onDragEnd(event) {
     const { active, over } = event;
     setDragId(null);
-    if (active == null || active.id == over?.id) {
+    if (active == null || over == null || active.id == over.id) {
       return;
     }
     const oldIndex = items.indexOf(active.id);
-    const newIndex = over == null ? items.length - 1 : items.indexOf(over?.id);
+    const newIndex = items.indexOf(over?.id);
     onDragStop?.(oldIndex, newIndex);
   }
 

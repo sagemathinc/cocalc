@@ -77,7 +77,10 @@ export default async function vouchersCheckout({
 export async function getVoucherCheckoutCart(account_id) {
   return await getCheckoutCart(
     account_id,
-    (item) => item.checked && item.description?.["period"] == "range"
+    (item) =>
+      item.checked &&
+      (item.description?.["period"] == "range" ||
+        item.product == "cash-voucher")
   );
 }
 

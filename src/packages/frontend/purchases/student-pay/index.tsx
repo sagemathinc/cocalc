@@ -19,10 +19,28 @@ export default function StudentPayUpgrade({ project_id }) {
     if (course == null) {
       return { when: null, purchaseInfo: null, paid: null };
     }
+    if (new Date(course.pay) < new Date("2023-08-01")) {
+      // grandfather in all projects from before we switched to the new format,
+      // no matter what their status
+      return { when: null, purchaseInfo: null, paid: null };
+    }
+
+    if (
+      course.payInfo?.end != null &&
+      new Date(course.payInfo.end) <= new Date()
+    ) {
+      // no pay requirement after course is over
+      return { when: null, purchaseInfo: null, paid: null };
+    }
+
+    const purchaseInfo = (course.payInfo ??
+      DEFAULT_PURCHASE_INFO) as PurchaseInfo;
+
+    // during the course, required to pay, etc.
     return {
       when: course.pay ? dayjs(course.pay) : null,
       paid: course.paid ? dayjs(course.paid) : null,
-      purchaseInfo: (course.payInfo ?? DEFAULT_PURCHASE_INFO) as PurchaseInfo,
+      purchaseInfo,
       student_account_id: course.account_id,
     };
   }, [course]);

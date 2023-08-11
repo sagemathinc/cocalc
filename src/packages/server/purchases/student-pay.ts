@@ -7,7 +7,7 @@ This fails if:
  - The user doesn't have sufficient funds on their account to pay for the license.
  - The user is not the STUDENT that the project is meant for.
  - The course fee was already paid.
- 
+
 Everything is done in a single atomic transaction.
 */
 
@@ -63,6 +63,10 @@ export default async function studentPay({
       title,
       description,
     };
+    if (purchaseInfo.type != "quota") {
+      // typescript wants this
+      throw Error("must purchase a quota license");
+    }
     const cost = getCost(purchaseInfo);
     await assertPurchaseAllowed({
       account_id,
@@ -93,6 +97,8 @@ export default async function studentPay({
       account_id,
       service: "license",
       cost,
+      period_start: purchaseInfo.start,
+      period_end: purchaseInfo.end,
       description: {
         type: "license",
         license_id,
@@ -111,6 +117,7 @@ export default async function studentPay({
       noCheck: true,
       client,
     });
+    await client.query("COMMIT");
 
     return { purchase_id };
   } catch (err) {

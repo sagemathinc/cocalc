@@ -18,6 +18,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { ensure_bound, startswith, trunc_middle } from "@cocalc/util/misc";
 import { avatar_fontcolor } from "./font-color";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
+import { isChatBot } from "@cocalc/frontend/account/chatbot";
 
 const CIRCLE_OUTER_STYLE: CSSProperties = {
   textAlign: "center",
@@ -49,10 +50,7 @@ interface Props {
 }
 
 export function Avatar(props) {
-  if (
-    props.account_id.startsWith("chatgpt") ||
-    props.account_id.startsWith("openai-")
-  ) {
+  if (isChatBot(props.account_id)) {
     return <OpenAIAvatar size={props.size} style={props.style} />;
   } else {
     return <Avatar0 {...props} />;

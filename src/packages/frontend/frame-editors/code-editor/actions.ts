@@ -1131,7 +1131,6 @@ export class Actions<
   //  -- setting uri fragment page= at top of browser, so URL link is useful
   //  -- don't delete trailing whitespace in lines with cursors
   set_cursor_locs(locs: any[]): void {
-    // console.log("set_cursor_locs", JSON.stringify(locs));
     if (!this._syncstring) {
       return; // not currently valid.
     }

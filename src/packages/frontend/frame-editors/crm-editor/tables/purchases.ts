@@ -16,6 +16,7 @@ register({
         period_end: null,
         account_id: null,
         cost: null,
+        cost_per_hour: null,
         pending: null,
         service: null,
         description: null,

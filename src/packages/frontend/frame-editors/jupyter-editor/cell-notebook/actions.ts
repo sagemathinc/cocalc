@@ -27,12 +27,12 @@ import { NotebookFrameStore } from "./store";
 
 export interface EditorFunctions {
   set_cursor: (pos: { x?: number; y?: number }) => void;
+  get_cursor: () => { line: number; ch: number };
   // most are not defined for markdown input.
   save?: () => string | undefined;
   tab_key?: () => void;
   shift_tab_key?: () => void;
   refresh?: () => void;
-  get_cursor?: () => { line: number; ch: number };
   get_cursor_xy?: () => { x: number; y: number };
   getSelection?: () => string;
   focus?: () => void;

@@ -24,6 +24,7 @@ import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import { currency } from "@cocalc/util/misc";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import PaymentConfig from "@cocalc/frontend/purchases/payment-config";
+import { ProductColumn } from "./cart";
 
 export default function Checkout() {
   const router = useRouter();
@@ -575,12 +576,7 @@ export function getColumns({
       responsive: ["sm" as "sm"],
       title: "Product",
       align: "center" as "center",
-      render: () => (
-        <div style={{ color: "darkblue" }}>
-          <Icon name="key" style={{ fontSize: "24px" }} />
-          <div style={{ fontSize: "10pt" }}>License</div>
-        </div>
-      ),
+      render: (_, { product }) => <ProductColumn product={product} />,
     },
     {
       responsive: ["sm" as "sm"],
@@ -606,7 +602,7 @@ export function getColumns({
         </b>
       ),
     },
-  ];
+  ] as any;
 }
 
 function ProjectID({ project_id }: { project_id: string }): JSX.Element | null {
@@ -654,7 +650,14 @@ export function ExplainPaymentSituation({
             <i>
               You can complete this purchase <b>without making a payment now</b>
             </i>
-            , since your account balance is {currency(balance)}.
+            , since your account balance is {currency(balance)}
+            {minBalance < 0 && (
+              <>
+                , and your balance is allowed to go as low as{" "}
+                {currency(minBalance)}
+              </>
+            )}
+            .
           </>
         }
       />
@@ -695,9 +698,8 @@ export function ExplainPaymentSituation({
             To complete this purchase,{" "}
             <b>add at least {currency(chargeAmount)}</b> to your account
             balance.
-          </i>
-          .{" "}
-          {chargeAmount > total && (
+          </i>{" "}
+          {chargeAmount > total && params.minBalance < 0 && (
             <>
               Your account balance must always be at least{" "}
               {currency(params.minBalance)}.

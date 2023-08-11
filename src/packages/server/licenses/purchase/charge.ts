@@ -152,7 +152,7 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
     await conn.products.create({
       id: product_id,
       name,
-      metadata,
+      metadata: metadata as any,
       statement_descriptor,
     });
     await stripeCreatePrice(info);
@@ -229,7 +229,7 @@ async function stripePurchaseProduct(
       customer,
       price,
       quantity,
-      metadata: info,
+      metadata: info as any,
     });
     tax_percent = info.tax / Math.max(0.001, info.cost);
   } else {

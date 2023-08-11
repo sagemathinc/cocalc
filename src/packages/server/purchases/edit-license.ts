@@ -5,7 +5,7 @@ or credited for the requested changes.
 ** ONLY the user that purchased the license can edit it. **
 Justification: They can easily make a purchase, then let another user
 manage the license, and the other user could then edit it and get all
-the remaining money.  Imagine a $20K university purchase for a single 
+the remaining money.  Imagine a $20K university purchase for a single
 license.
 
 Some interesting notes and special cases:
@@ -89,7 +89,11 @@ export default async function editLicense(
       );
     }
   }
-  if (changes.start == null && changes.end != null && changes.end < info.start) {
+  if (
+    changes.start == null &&
+    changes.end != null &&
+    changes.end < info.start
+  ) {
     // if changing end to be before start, just reset start to
     // also equal end -- the result will of course cost 0.
     changes = { ...changes, start: changes.end };
@@ -187,6 +191,7 @@ export default async function editLicense(
         period_start,
         period_end,
         pending,
+        tag: isSubscriptionRenewal ? "subscription" : "edit",
       });
     }
 
@@ -412,20 +417,20 @@ NOTES about how the above works.
 Here's what a typical license record in the database looks like:
 
 id           | 16536ef0-20a3-4573-b07e-8549446ade62
-title        | 
-description  | 
+title        |
+description  |
 info         | {"purchased": {"end": "2023-07-27T06:59:59.999Z", "type": "quota", "user": "academic", "boost": false, "start": "2023-06-26T07:00:00.000Z", "upgrade": "custom", "quantity": 2, "account_id": "8e138678-9264-431c-8dc6-5c4f6efe66d8", "custom_cpu": 1, "custom_ram": 6, "custom_disk": 15, "subscription": "no", "custom_member": true, "custom_uptime": "medium", "custom_dedicated_cpu": 0, "custom_dedicated_ram": 0}}
 expires      | 2023-07-30 00:26:49.619
 activates    | 2023-06-26 07:00:00
 created      | 2023-06-29 00:26:49.62
-last_used    | 
+last_used    |
 managers     | {8e138678-9264-431c-8dc6-5c4f6efe66d8}
-restricted   | 
-upgrades     | 
+restricted   |
+upgrades     |
 quota        | {"cpu": 1, "ram": 6, "disk": 15, "user": "academic", "boost": false, "member": true, "idle_timeout": "medium", "dedicated_cpu": 0, "dedicated_ram": 0, "always_running": false}
 run_limit    | 2
-apply_limit  | 
-voucher_code | 
+apply_limit  |
+voucher_code |
 
 The info.purchased JSONB thing, which above is this:
 
@@ -458,12 +463,12 @@ Editing 'vouchers' isn't supported - there should be no possible way a license w
 The function compute_cost defined in
 
     packages/util/licenses/purchase/compute-cost.ts
-    
+
 takes as input a PurchaseInfo object and outputs this sort of object:
 
-{ 
-  cost_per_unit: 19.547278681226473,  
-  cost: 39.094557362452946,  
+{
+  cost_per_unit: 19.547278681226473,
+  cost: 39.094557362452946,
   discounted_cost: 39.094557362452946,
   cost_per_project_per_month: 19.232,
   cost_sub_month: 17.3088,

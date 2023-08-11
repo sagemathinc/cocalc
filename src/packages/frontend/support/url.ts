@@ -8,7 +8,7 @@ export interface Options {
   url?: string;
   subject?: string;
   body?: string;
-  type?: "problem" | "question" | "task";
+  type?: "problem" | "question" | "task" | "purchase";
   hideExtra?: boolean;
   context?: string; // additional context
 }

@@ -185,7 +185,7 @@ describe("create a subscription license and edit it and confirm the subscription
       account_id: item.account_id,
     });
     const client = await getPoolClient();
-    await purchaseShoppingCartItem(item, client);
+    await purchaseShoppingCartItem(item as any, client);
     client.release();
   });
 

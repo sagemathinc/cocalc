@@ -57,6 +57,7 @@ import {
 } from "@cocalc/frontend/purchases/api";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ExplainPaymentSituation } from "./checkout";
+import AddCashVoucher from "./add-cash-voucher";
 
 interface Config {
   whenPay: WhenPay;
@@ -257,7 +258,15 @@ export default function CreateVouchers() {
   const cart0 = useAPI("/shopping/cart/get");
 
   const cart = useMemo(() => {
-    return cart0.result?.filter((item) => item.description?.period == "range");
+    return cart0.result?.filter((item) => {
+      if (item.product == "site-license") {
+        return item.description?.period == "range";
+      }
+      if (item.product == "cash-voucher") {
+        return true;
+      }
+      return false;
+    });
   }, [cart0.result]);
 
   const items = useMemo(() => {
@@ -364,19 +373,24 @@ export default function CreateVouchers() {
           ) : (
             <>
               Your <SiteName /> <A href="/store/cart">Shopping Cart</A> must
-              contain at least one non-subscription item
+              contain at least one non-subscription license or cash voucher
             </>
           )}
         </h3>
-        You must have at least one non-subscription item in{" "}
-        <A href="/store/cart">your cart</A> to create vouchers. Shop for{" "}
-        <A href="/store/site-license">upgrades</A>, a{" "}
-        <A href="/store/boost">license boost</A>, or a{" "}
-        <A href="/dedicated">dedicated VM or disk</A>, and select a specific
-        range of dates. When you <A href="/redeem">redeem a voucher</A>, the
-        corresponding licenses start at the redemption date, and last for the
-        same number of days as your shopping cart item. You can also browse all{" "}
-        <A href="/vouchers/redeemed">vouchers you have redeeemed</A>.
+        <AddCashVoucher onAdd={() => cart0.call()} defaultExpand />
+        <p style={{ color: "#666" }}>
+          You must have at least one non-subscription item in{" "}
+          <A href="/store/cart">your cart</A> to create vouchers from the items
+          in your shopping cart. Shop for{" "}
+          <A href="/store/site-license">upgrades</A>, a{" "}
+          <A href="/store/boost">license boost</A>, or a{" "}
+          <A href="/dedicated">dedicated VM or disk</A>, and select a specific
+          range of dates. When you{" "}
+          <A href="/redeem">redeem a voucher for shopping cart items</A>, the
+          corresponding licenses start at the redemption date, and last for the
+          same number of days as your shopping cart item. You can also browse
+          all <A href="/vouchers/redeemed">vouchers you have redeeemed</A>.
+        </p>
       </div>
     );
   }
@@ -440,9 +454,9 @@ export default function CreateVouchers() {
             <Check done={(numVouchers ?? 0) > 0} /> How Many Voucher Codes?
           </h4>
           <Paragraph style={{ color: "#666" }}>
-            Input the number of voucher codes you would like to{" "}
+            Input the number of voucher codes to create{" "}
             {whenPay == "now" ? "buy" : "create"} (limit:{" "}
-            {MAX_VOUCHERS[whenPay]}).
+            {MAX_VOUCHERS[whenPay]}):
             <div style={{ textAlign: "center", marginTop: "15px" }}>
               <InputNumber
                 size="large"
@@ -510,17 +524,38 @@ export default function CreateVouchers() {
               </Form>
             </>
           )}
-          <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+          <h4
+            style={{
+              fontSize: "13pt",
+              marginTop: "20px",
+              color: !title ? "darkred" : undefined,
+            }}
+          >
             <Check done={!!title.trim()} /> Customize
           </h4>
           <Paragraph style={{ color: "#666" }}>
-            Describe this voucher so you can easily find it later.
-            <Input
-              style={{ marginBottom: "15px", marginTop: "5px" }}
-              onChange={(e) => setQuery({ title: e.target.value })}
-              value={title}
-              addonBefore={"Description"}
-            />
+            <div
+              style={
+                !title
+                  ? { borderRight: "5px solid darkred", paddingRight: "15px" }
+                  : undefined
+              }
+            >
+              <div
+                style={
+                  !title ? { fontWeight: 700, color: "darkred" } : undefined
+                }
+              >
+                Describe this voucher:
+              </div>
+              <Input
+                allowClear
+                style={{ marginBottom: "15px", marginTop: "5px" }}
+                onChange={(e) => setQuery({ title: e.target.value })}
+                value={title}
+                addonBefore={"Description"}
+              />
+            </div>
             Customize how your voucher codes are randomly generated (optional):
             <Space direction="vertical" style={{ marginTop: "5px" }}>
               <Space>
@@ -575,8 +610,7 @@ export default function CreateVouchers() {
           {(numVouchers ?? 0) == 1
             ? "Your Voucher"
             : `Each of Your ${numVouchers ?? 0} Voucher Codes`}{" "}
-          Provides the Following {items.length}{" "}
-          {plural(items.length, "License")}
+          Provides the Following {items.length} {plural(items.length, "Item")}
         </h4>
         <Paragraph style={{ color: "#666" }}>
           These are the licenses with a fixed range of time from your shopping
@@ -596,6 +630,12 @@ export default function CreateVouchers() {
             pagination={{ hideOnSinglePage: true }}
           />
         </div>
+        <Space style={{ marginTop: "15px" }}>
+          <AddCashVoucher onAdd={() => cart0.call()} />
+          <A href="/store/cart">
+            <Button>Edit Cart</Button>
+          </A>
+        </Space>
         <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
           <Check done={!disabled} /> Create Your{" "}
           {plural(numVouchers ?? 0, "Voucher Code")}

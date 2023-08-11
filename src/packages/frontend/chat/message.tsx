@@ -622,6 +622,7 @@ export default function Message(props: Props) {
             </Tooltip>
           )}
           {!generating &&
+            isChatGPTThread &&
             props.actions &&
             Date.now() - date <= regenerateCutoff && (
               <Button

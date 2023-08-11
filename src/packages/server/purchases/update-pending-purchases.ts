@@ -1,6 +1,6 @@
 import knapsack from "@cocalc/util/knapsack";
 import type { Items } from "@cocalc/util/knapsack";
-import getPool from "@cocalc/database/pool";
+import getPool, { PoolClient } from "@cocalc/database/pool";
 import getBalance from "./get-balance";
 import getLogger from "@cocalc/backend/logger";
 
@@ -11,11 +11,12 @@ If there are any purchases that are marked as pending, but there is now sufficie
 balance to mark them as NOT pending, we do so.   We check this whenever the user
 increases their balance, e.g., as a result of an automatic payment via a stripe
 subscription, a refund, etc.
-
-
 */
-export default async function updatePendingPurchases(account_id: string) {
-  const pool = getPool();
+export default async function updatePendingPurchases(
+  account_id: string,
+  client?: PoolClient
+) {
+  const pool = client ?? getPool();
   const { rows } = await pool.query(
     "SELECT id, cost FROM purchases WHERE account_id=$1 AND pending IS TRUE AND cost > 0",
     [account_id]
@@ -25,7 +26,7 @@ export default async function updatePendingPurchases(account_id: string) {
     // nothing to do  -- there are no pending purchases
     return;
   }
-  const balance = await getBalance(account_id);
+  const balance = await getBalance(account_id, client);
   // Use approx solution to knapsack problem to mark an (almost) maximal set of
   // purchases as no longer pending.
   const purchase_ids = purchasesToMarkNotPending(rows, balance);

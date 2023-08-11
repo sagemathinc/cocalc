@@ -19,12 +19,15 @@ export interface Cost {
   cost_sub_year: number;
 }
 
+export type CostInput =
+  | (Partial<PurchaseInfo> & {
+      type: "vm" | "disk" | "quota";
+      subscription: Subscription;
+    })
+  | { type: "cash-voucher"; amount: number; subscription: Subscription };
+
 export interface CostInputPeriod extends Cost {
-  // enforce setting the subcription field
-  input: Partial<PurchaseInfo> & {
-    type: "vm" | "disk" | "quota";
-    subscription: Subscription;
-  };
+  input: CostInput;
   period: Period;
 }
 
@@ -66,19 +69,19 @@ export type PurchaseInfoQuota = {
   custom_uptime: Uptime;
   custom_always_running?: boolean; // no longer really used, defined by custom_uptime above!
   boost?: boolean;
+  run_limit?: number;
 } & StartEndDates &
   CustomDescription;
 
 export type PurchaseInfo =
   | PurchaseInfoQuota
-  | {
+  | ({
       type: "vouchers";
       id: number;
       quantity: number;
       cost: number;
       tax: number;
-      title: string;
-    }
+    } & CustomDescription)
   | ({
       type: "vm";
       quantity: 1;
@@ -131,10 +134,10 @@ export type ProductMetadataDisk = Record<
   type: "disk";
 };
 
-export type ProductMetadataVouchers = Record<"title", string> & {
+export interface ProductMetadataVouchers {
   type: "vouchers";
   id: number; // id of the voucher in the vouchers table of the database
-};
+}
 
 export type ProductMetadata =
   | ProductMetadataVouchers

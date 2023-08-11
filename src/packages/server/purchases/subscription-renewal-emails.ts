@@ -108,7 +108,7 @@ You have ${subs.length} ${siteName} ${plural(
 <ul>
 ${subscriptionList.join("\n")}
 </ul>
-NOTE: You can easily cancel any subscription with one click above without having to sign in to ${siteName}.
+NOTE: You can easily cancel any subscription by clicking the link above without having to sign in to ${siteName}.
 
 <br/><br/>
 
@@ -149,7 +149,7 @@ async function cancelSubscriptionLink(
   subscription_id: number
 ): Promise<string> {
   const url = await cancelSubscription({ subscription_id, account_id });
-  return ` <a href="${url}">(one-click cancel)</a>`;
+  return ` <a href="${url}">(cancel)</a>`;
 }
 
 /*

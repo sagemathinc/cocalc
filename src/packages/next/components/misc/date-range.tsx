@@ -63,6 +63,7 @@ export default function DateRange(props: Props) {
   return (
     <div style={style}>
       <DatePicker.RangePicker
+        changeOnBlur
         showTime
         disabled={disabled}
         allowEmpty={[true, true]}

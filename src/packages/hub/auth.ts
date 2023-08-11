@@ -388,7 +388,7 @@ export class PassportManager {
 
         cookies.set(name, token, {
           maxAge: ms("5 minutes"),
-          secure: secure,
+          secure,
           overwrite: true,
           httpOnly: false,
         });

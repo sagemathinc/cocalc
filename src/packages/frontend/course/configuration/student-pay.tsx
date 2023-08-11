@@ -89,107 +89,6 @@ export default function StudentPay({ actions, settings }) {
     return settings.get("student_pay") || settings.get("institute_pay");
   }, [settings]);
 
-  function render_require_students_pay_desc() {
-    if (when > dayjs()) {
-      return (
-        <span>
-          <b>
-            Your students will see a warning until <TimeAgo date={when} />.
-          </b>{" "}
-          {cost != null && (
-            <>
-              They will then be required to upgrade for a{" "}
-              <b>one-time fee of {currency(cost)}</b>. This cost in USD is
-              locked in, even if the rates on our site change.{" "}
-              {minPayment != null && cost < minPayment
-                ? `NOTE: Students will have
-               to pay ${currency(
-                 minPayment
-               )} since that is the minimum transaction; they can use excess credit for other purchases.`
-                : ""}
-            </>
-          )}
-        </span>
-      );
-    } else {
-      return (
-        <span>
-          <b>
-            Your students are required to upgrade their project now to use it.
-          </b>{" "}
-          If you want to give them more time to upgrade, move the date forward.
-        </span>
-      );
-    }
-  }
-
-  function render_require_students_pay_when() {
-    if (!settings.get("pay")) {
-      return <span />;
-    }
-
-    return (
-      <div style={{ marginBottom: "15px" }}>
-        <div style={{ textAlign: "center", marginBottom: "15px" }}>
-          <DatePicker
-            allowClear={false}
-            disabledDate={(current) => current < dayjs().subtract(1, "day")}
-            value={when}
-            onChange={(date) => {
-              setWhen(date ?? dayjs());
-            }}
-          />
-        </div>
-        {settings.get("pay") ? render_require_students_pay_desc() : undefined}
-      </div>
-    );
-  }
-
-  function render_students_pay_checkbox_label() {
-    if (settings.get("pay")) {
-      if (webapp_client.server_time() >= settings.get("pay")) {
-        return <span>Require that students upgrade immediately:</span>;
-      } else {
-        return (
-          <span>
-            Require that students upgrade by <TimeAgo date={when} />:{" "}
-          </span>
-        );
-      }
-    } else {
-      return <span>Require that students upgrade...</span>;
-    }
-  }
-
-  function render_student_pay_desc() {
-    if (settings.get("pay")) {
-      return (
-        <span>
-          <span style={{ fontSize: "18pt" }}>
-            <Icon name="check" />
-          </span>{" "}
-          <Gap />
-          {render_require_students_pay_desc()}
-        </span>
-      );
-    } else {
-      return (
-        <span>
-          Require that all students in the course pay a one-time fee to upgrade
-          their project. This is strongly recommended, and ensures that your
-          students have a much better experience, and do not see a large{" "}
-          <span
-            style={{ color: "white", background: "darkred", padding: "0 5px" }}
-          >
-            RED warning banner
-          </span>{" "}
-          all the time. Alternatively, you (or your university) can pay for all
-          students -- see below.
-        </span>
-      );
-    }
-  }
-
   if (settings == null || actions == null) {
     return <Spin />;
   }
@@ -297,20 +196,138 @@ export default function StudentPay({ actions, settings }) {
                       hiddenFields={new Set(["quantity", "custom_member"])}
                     />
                     <div style={{ margin: "15px 0" }}>
-                      {render_students_pay_checkbox_label()}
+                      <StudentPayCheckboxLabel
+                        settings={settings}
+                        when={when}
+                      />
                     </div>
-                    {settings.get("pay")
-                      ? render_require_students_pay_when()
-                      : undefined}
+                    {!!settings.get("pay") && (
+                      <RequireStudentsPayWhen
+                        when={when}
+                        setWhen={setWhen}
+                        cost={cost}
+                        minPayment={minPayment}
+                      />
+                    )}
                   </div>
                 }
               />
             )}
             <hr />
-            <div style={{ color: "#666" }}>{render_student_pay_desc()}</div>
+            <div style={{ color: "#666" }}>
+              <StudentPayDesc
+                settings={settings}
+                when={when}
+                cost={cost}
+                minPayment={minPayment}
+              />
+            </div>
           </div>
         </div>
       )}
     </Card>
   );
+}
+
+function StudentPayCheckboxLabel({ settings, when }) {
+  if (settings.get("pay")) {
+    if (webapp_client.server_time() >= settings.get("pay")) {
+      return <span>Require that students upgrade immediately:</span>;
+    } else {
+      return (
+        <span>
+          Require that students upgrade by <TimeAgo date={when} />:{" "}
+        </span>
+      );
+    }
+  } else {
+    return <span>Require that students upgrade...</span>;
+  }
+}
+
+function RequireStudentsPayWhen({ when, setWhen, cost, minPayment }) {
+  return (
+    <div style={{ marginBottom: "15px" }}>
+      <div style={{ textAlign: "center", marginBottom: "15px" }}>
+        <DatePicker
+          changeOnBlur
+          showToday
+          allowClear={false}
+          disabledDate={(current) => current < dayjs().subtract(1, "day")}
+          defaultValue={when}
+          onChange={(date) => {
+            setWhen(date ?? dayjs());
+          }}
+        />
+      </div>
+      <RequireStudentPayDesc cost={cost} when={when} minPayment={minPayment} />
+    </div>
+  );
+}
+
+function StudentPayDesc({ settings, cost, when, minPayment }) {
+  if (settings.get("pay")) {
+    return (
+      <span>
+        <span style={{ fontSize: "18pt" }}>
+          <Icon name="check" />
+        </span>{" "}
+        <Gap />
+        <RequireStudentPayDesc
+          cost={cost}
+          when={when}
+          minPayment={minPayment}
+        />
+      </span>
+    );
+  } else {
+    return (
+      <span>
+        Require that all students in the course pay a one-time fee to upgrade
+        their project. This is strongly recommended, and ensures that your
+        students have a much better experience, and do not see a large{" "}
+        <span
+          style={{ color: "white", background: "darkred", padding: "0 5px" }}
+        >
+          RED warning banner
+        </span>{" "}
+        all the time. Alternatively, you (or your university) can pay for all
+        students -- see below.
+      </span>
+    );
+  }
+}
+
+function RequireStudentPayDesc({ cost, when, minPayment }) {
+  if (when > dayjs()) {
+    return (
+      <span>
+        <b>
+          Your students will see a warning until <TimeAgo date={when} />.
+        </b>{" "}
+        {cost != null && (
+          <>
+            They will then be required to upgrade for a{" "}
+            <b>one-time fee of {currency(cost)}</b>. This cost in USD is locked
+            in, even if the rates on our site change.{" "}
+            {minPayment != null && cost < minPayment
+              ? `NOTE: Students will have
+               to pay ${currency(
+                 minPayment
+               )} since that is the minimum transaction; they can use excess credit for other purchases.`
+              : ""}
+          </>
+        )}
+      </span>
+    );
+  } else {
+    return (
+      <span>
+        <b>
+          Your students are required to upgrade their project now to use it.
+        </b>{" "}
+        If you want to give them more time to upgrade, move the date forward.
+      </span>
+    );
+  }
 }

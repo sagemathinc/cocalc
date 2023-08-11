@@ -3,13 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { join } from "path";
 import { callback } from "awaiting";
 declare const $: any; // jQuery
 import * as message from "@cocalc/util/message";
 import { AsyncCall, WebappClient } from "./client";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
+import api from "./api";
 
 export class AccountClient {
   private async_call: AsyncCall;
@@ -62,6 +61,7 @@ export class AccountClient {
   }
 
   public async sign_in_using_auth_token(auth_token: string): Promise<any> {
+    console.log("sign_in_using_auth_token", auth_token);
     return await this.call(
       message.sign_in_using_auth_token({
         auth_token,
@@ -93,19 +93,8 @@ export class AccountClient {
     await callback(f);
   }
 
-  private async delete_remember_me_cookie(): Promise<void> {
-    // This actually sets the content of the cookie to empty.
-    // (I just didn't implement a delete action on the backend yet.)
-    const base_path = appBasePath;
-    const mesg = {
-      url: join(base_path, "cookies"),
-      set: base_path + "remember_me", // correct that there is no slash -- it's name of a cookie.
-    };
-    await this.cookies(mesg);
-  }
-
   public async sign_out(everywhere: boolean = false): Promise<void> {
-    await this.delete_remember_me_cookie();
+    await api("/accounts/sign-out", { all: everywhere });
     delete this.client.account_id;
     await this.call(message.sign_out({ everywhere }));
     this.client.emit("signed_out");

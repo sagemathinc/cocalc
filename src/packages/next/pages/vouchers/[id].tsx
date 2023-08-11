@@ -7,15 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
-import {
-  Alert,
-  Button,
-  Card,
-  Layout,
-  Modal,
-  Space,
-  Table,
-} from "antd";
+import { Alert, Button, Card, Layout, Modal, Space, Table } from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -25,7 +17,6 @@ import TimeAgo from "timeago-react";
 import apiPost from "lib/api/post";
 import Avatar from "components/account/avatar";
 import type { VoucherCode } from "@cocalc/util/db-schema/vouchers";
-import Copyable from "components/misc/copyable";
 import { stringify as csvStringify } from "csv-stringify/sync";
 import { human_readable_size } from "@cocalc/util/misc";
 import CodeMirror from "components/share/codemirror";
@@ -33,12 +24,14 @@ import { trunc } from "lib/share/util";
 import useDatabase from "lib/hooks/database";
 import Notes from "./notes";
 import Help from "components/vouchers/help";
+import Copyable from "components/misc/copyable";
 
 const COLUMNS = [
   {
     title: "Voucher Code",
     dataIndex: "code",
     key: "code",
+    render: (code) => <Copyable value={code} />,
   },
   {
     title: "Created",
@@ -75,9 +68,8 @@ const COLUMNS = [
     align: "center",
     render: (_, { canceled }) => (canceled ? "Yes" : "-"),
   },
-
   {
-    title: "Private Notes",
+    title: "Your Private Notes",
     dataIndex: "notes",
     key: "notes",
     render: (_, { notes, code }) => <Notes notes={notes} code={code} />,
