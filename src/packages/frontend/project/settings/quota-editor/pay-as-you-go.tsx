@@ -13,19 +13,12 @@ import Information from "./information";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import { useRedux, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import CostPerHour from "./cost-per-hour";
-import { getPricePerHour } from "@cocalc/util/purchases/project-quotas";
 import { copy_without } from "@cocalc/util/misc";
 import { load_target } from "@cocalc/frontend/history";
 import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
+import startProject from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 import track0 from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
-
-// when checking user has sufficient credits to run project with
-// upgrade, require that they have enough for this many hours.
-// Otherwise, it is way too easy to start project with upgrades,
-// then have it just stop again an hour or less later, which is
-// just annoying.
-const MIN_HOURS = 12;
 
 function track(obj) {
   track0("pay-as-you-go-project-upgrade", obj);
@@ -168,58 +161,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     if (quotaState == null) return;
     try {
       setError("");
-      setStatus("Computing cost...");
-      const prices =
-        await webapp_client.purchases_client.getPayAsYouGoPricesProjectQuotas();
-      const cost = getPricePerHour(quotaState, prices);
-      setStatus("Saving quotas...");
-      const quota = {
-        ...quotaState,
-        enabled: webapp_client.server_time().valueOf(),
-        cost,
-      };
-      track({ action: "run", quota, project_id });
-      setQuotaState(quota);
-
-      const { allowed, reason } =
-        await webapp_client.purchases_client.isPurchaseAllowed(
-          "project-upgrade",
-          cost * MIN_HOURS
-        );
-      if (!allowed) {
-        await webapp_client.purchases_client.quotaModal({
-          service: "project-upgrade",
-          reason,
-          allowed,
-          cost: cost * MIN_HOURS,
-        });
-        {
-          // Check again, since result of modal may not be sufficient.
-          // This time if not allowed, will show an error.
-          const { allowed, reason } =
-            await webapp_client.purchases_client.isPurchaseAllowed(
-              "project-upgrade",
-              cost * MIN_HOURS
-            );
-          if (!allowed) {
-            throw Error(reason);
-          }
-        }
-      }
-
-      await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
-        project_id,
-        quota
-      );
-      const actions = redux.getActions("projects");
-      setStatus("Stopping project...");
-      await actions.stop_project(project_id);
-      setStatus("Starting project...");
-      await actions.start_project(project_id);
-      actions.project_log(project_id, {
-        event: "pay-as-you-go-upgrade",
-        quota,
-      });
+      await startProject({ quota: quotaState, project_id, setStatus });
     } catch (err) {
       console.warn(err);
       setError(`${err}`);
