@@ -63,6 +63,10 @@ export default async function studentPay({
       title,
       description,
     };
+    if (purchaseInfo.type != "quota") {
+      // typescript wants this
+      throw Error("must purchase a quota license");
+    }
     const cost = getCost(purchaseInfo);
     await assertPurchaseAllowed({
       account_id,
@@ -93,6 +97,8 @@ export default async function studentPay({
       account_id,
       service: "license",
       cost,
+      period_start: purchaseInfo.start,
+      period_end: purchaseInfo.end,
       description: {
         type: "license",
         license_id,
