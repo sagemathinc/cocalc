@@ -2,16 +2,17 @@
 Create a refund.
 */
 
-import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import getLogger from "@cocalc/backend/logger";
-import getConn from "@cocalc/server/stripe/connection";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
-import createPurchase from "./create-purchase";
-import type { Reason, Refund } from "@cocalc/util/db-schema/purchases";
+import getEmailAddress from "@cocalc/server/accounts/get-email-address";
+import userIsInGroup from "@cocalc/server/accounts/is-in-group";
+import { Message } from "@cocalc/server/email/message";
 import sendEmail from "@cocalc/server/email/send-email";
 import { getServerSettings } from "@cocalc/server/settings";
-import getEmailAddress from "@cocalc/server/accounts/get-email-address";
+import getConn from "@cocalc/server/stripe/connection";
+import type { Reason, Refund } from "@cocalc/util/db-schema/purchases";
 import { currency } from "@cocalc/util/misc";
+import createPurchase from "./create-purchase";
 
 const logger = getLogger("purchase:create-refund");
 
@@ -127,8 +128,15 @@ export default async function createRefund(opts: {
 
         <br/><br/>
         NOTES: ${notes}`;
-        const mesg = { from, to, subject, html, text: html };
-        await sendEmail(mesg);
+        const mesg: Message = {
+          from,
+          to,
+          subject,
+          html,
+          text: html,
+          channel: "custom",
+        };
+        await sendEmail({ message: mesg });
       }
     } catch (err) {
       logger.debug("WARNING -- issue sending email", err);
