@@ -113,10 +113,13 @@ export async function migrateSubscription(sub) {
     logger.debug("create the new subscription that manages this license", {
       license_id,
     });
+    const cost_per_unit = sub.plan.amount / 100;
+    const cost = cost_per_unit * (sub.quantity ?? 1);
+
     const subscription_id = await createSubscription(
       {
         account_id,
-        cost: sub.plan.amount / 100, // grandfathered pricing <-- THIS IS WRONG -- see updateMigratedSubscriptionPrice below.
+        cost,
         interval: sub.plan.interval,
         current_period_start,
         current_period_end,
@@ -182,10 +185,16 @@ export async function cancelStripeSubscription(id: string) {
 }
 
 export async function updateAllMigratedSubscriptionPrices() {
-    const pool = getPool();
-  const { rows } = await pool.query("SELECT id FROM subscriptions where notes like 'Created by migrating legacy stripe license%' AND notes not like '%Pricing updated.'");
-  logger.debug("updateAllMigratedSubscriptionPrices: got ", rows.length, ' subscriptions')
-  for(const row of rows) {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT id FROM subscriptions where notes like 'Created by migrating legacy stripe license%' AND notes not like '%Pricing updated.'"
+  );
+  logger.debug(
+    "updateAllMigratedSubscriptionPrices: got ",
+    rows.length,
+    " subscriptions"
+  );
+  for (const row of rows) {
     await updateMigratedSubscriptionPrice(row.id);
   }
 }
@@ -208,7 +217,7 @@ export async function updateMigratedSubscriptionPrice(subscription_id: number) {
     logger.debug("not a migrated subscription");
     return;
   }
-  const stripe_id = notes.slice(i, notes.length-1);
+  const stripe_id = notes.slice(i, notes.length - 1);
   const stripe = await getConn();
   const sub = await stripe.subscriptions.retrieve(stripe_id);
   logger.debug({ sub });
