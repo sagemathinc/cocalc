@@ -13,7 +13,7 @@ export default async function copyPublicPath({
     await api("/projects/copy-url", {
       project_id: target_project_id,
       url,
-      timeout: 30, // if big we do NOT want to allow copying something ridiculuos
+      timeout: 60, // if big we do NOT want to allow copying something ridiculuos
     });
   }
 
@@ -23,6 +23,6 @@ export default async function copyPublicPath({
     target_project_id,
     path: join(path, relativePath),
     public_id: id,
-    timeout: 30, // if big we do NOT want to allow copying something ridiculuos
+    timeout: 60, // if big we do NOT want to allow copying something ridiculuos
   });
 }
