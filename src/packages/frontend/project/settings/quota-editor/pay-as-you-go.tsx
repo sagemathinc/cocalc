@@ -11,12 +11,13 @@ import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import QuotaRow from "./quota-row";
 import Information from "./information";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
-import { useRedux, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import CostPerHour from "./cost-per-hour";
 import { copy_without } from "@cocalc/util/misc";
 import { load_target } from "@cocalc/frontend/history";
 import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
 import startProject from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
+import stopProject from "@cocalc/frontend/purchases/pay-as-you-go/stop-project";
 import track0 from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
 
@@ -102,16 +103,22 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     }
   }
 
-  async function handleStop() {
-    track({ action: "stop", project_id });
-    const quota = { ...quotaState, enabled: 0 };
-    setQuotaState(quota);
-    await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
-      project_id,
-      quota
-    );
-    const actions = redux.getActions("projects");
-    await actions.stop_project(project_id);
+  async function handleStop(disable?: boolean) {
+    if (quotaState == null) return;
+    try {
+      setError("");
+      await stopProject({
+        quota: quotaState,
+        project_id,
+        setStatus,
+        disable,
+      });
+    } catch (err) {
+      console.warn(err);
+      setError(`${err}`);
+    } finally {
+      setStatus("");
+    }
   }
 
   function handlePreset(preset) {
@@ -235,7 +242,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       )}
       {runningWithUpgrade && (
         <div>
-          This project is running with the quota upgrades that{" "}
+          This project is running with the pay as you go quota upgrades that{" "}
           <a
             onClick={() => {
               load_target("settings/purchases");
@@ -248,11 +255,31 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           <div>
             <Popconfirm
               title={"Stop project?"}
-              description={"Remove upgrades and stop the project?"}
-              onConfirm={handleStop}
+              description={
+                <div style={{ maxWidth: "400px" }}>
+                  When you next start the project, it will be upgraded unless
+                  you explicitly disable upgrades. (If a collaborator starts the
+                  project you will not be charged.)
+                </div>
+              }
+              onConfirm={() => handleStop(false)}
             >
               <Button style={{ marginRight: "8px", marginTop: "15px" }}>
                 <Icon name="stop" /> Stop Project
+              </Button>
+            </Popconfirm>
+            <Popconfirm
+              title={"Stop project and disable upgrades?"}
+              description={
+                <div style={{ maxWidth: "400px" }}>
+                  Project will stop and will not automatically be upgraded until
+                  you explicitly enable upgrades again here.
+                </div>
+              }
+              onConfirm={() => handleStop(true)}
+            >
+              <Button style={{ marginRight: "8px", marginTop: "15px" }}>
+                <Icon name="stop" /> Disable Upgrades...
               </Button>
             </Popconfirm>
             <Button onClick={() => setEditing(!editing)}>
@@ -297,7 +324,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
             cancelText="No"
           >
             <Button style={{ marginLeft: "8px" }} type="primary">
-              <Icon name="save" /> Upgrade Project...
+              <Icon name="save" /> Start With Upgrades...
             </Button>
           </Popconfirm>
         </div>

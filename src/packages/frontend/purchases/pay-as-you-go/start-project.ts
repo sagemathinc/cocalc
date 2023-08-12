@@ -32,19 +32,14 @@ export default async function startProject({
   setStatus("Computing cost...");
   const prices = await getPayAsYouGoPricesProjectQuotas();
   const cost = getPricePerHour(quota, prices);
-  setStatus("Saving quotas...");
-  quota = {
-    ...quota,
-    enabled: webapp_client.server_time().valueOf(),
-    cost,
-  };
-  track("pay-as-you-go-upgrade", { action: "run", quota, project_id });
 
+  setStatus("Checking balance and limits...");
   const { allowed, reason } = await isPurchaseAllowed(
     "project-upgrade",
     cost * MIN_HOURS
   );
   if (!allowed) {
+    setStatus("Increasing balance or limits ...");
     await webapp_client.purchases_client.quotaModal({
       service: "project-upgrade",
       reason,
@@ -54,6 +49,7 @@ export default async function startProject({
     {
       // Check again, since result of modal may not be sufficient.
       // This time if not allowed, will show an error.
+      setStatus("Checking balance and limits...");
       const { allowed, reason } = await isPurchaseAllowed(
         "project-upgrade",
         cost * MIN_HOURS
@@ -64,6 +60,14 @@ export default async function startProject({
     }
   }
 
+  quota = {
+    ...quota,
+    enabled: webapp_client.server_time().valueOf(),
+    cost,
+  };
+  track("pay-as-you-go-upgrade", { action: "start", quota, project_id });
+
+  setStatus("Saving quotas...");
   await setPayAsYouGoProjectQuotas(project_id, quota);
   const actions = redux.getActions("projects");
 
