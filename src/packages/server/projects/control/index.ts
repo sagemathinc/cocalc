@@ -1,12 +1,12 @@
 import getLogger from "@cocalc/backend/logger";
 import { db } from "@cocalc/database";
 import connectToProject from "@cocalc/server/projects/connection";
-
 import { BaseProject } from "./base";
 import kubernetes from "./kubernetes";
 import kucalc from "./kucalc";
 import multiUser from "./multi-user";
 import singleUser from "./single-user";
+import getPool from "@cocalc/database/pool";
 
 export const COCALC_MODES = [
   "single-user",
@@ -67,12 +67,25 @@ export default function init(mode?: CocalcMode): ProjectControlFunction {
     project_id: string,
     cb?: Function
   ): Promise<void> => {
-    winston.debug("ensure_connection_to_project --", project_id);
+    const dbg = (...args) => {
+      winston.debug("ensure_connection_to_project: ", project_id, ...args);
+    };
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "SELECT state->'state' AS state FROM projects WHERE project_id=$1",
+      [project_id]
+    );
+    const state = rows[0]?.state;
+    if (state != "running") {
+      dbg("NOT connecting because state is not 'running', state=", state);
+      return;
+    }
+    dbg("connecting");
     try {
       await connectToProject(project_id);
       cb?.();
     } catch (err) {
-      winston.debug("WARNING: unable to make a connection to", project_id, err);
+      dbg("WARNING: unable to make a connection", err);
       cb?.(err);
     }
   };
