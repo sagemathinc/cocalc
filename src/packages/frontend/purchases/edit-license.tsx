@@ -172,11 +172,13 @@ export default function EditLicense({ license_id, refresh }: Props) {
                 okText="Yes"
                 cancelText="No"
               >
-                <Button disabled={!cost || makingChange} type="primary">
+                <Button
+                  style={{ marginRight: "8px" }}
+                  disabled={!cost || makingChange}
+                  type="primary"
+                >
                   {cost > 0 && (
-                    <>
-                      Change License -- pay {currency(cost)} change fee
-                    </>
+                    <>Change License -- pay {currency(cost)} change fee</>
                   )}
                   {cost < 0 && (
                     <>
@@ -211,8 +213,11 @@ export default function EditLicense({ license_id, refresh }: Props) {
                     modifiedSubscriptionCost != null &&
                     modifiedSubscriptionCost != subscription.cost && (
                       <>
-                        cost: <b>{currency(modifiedSubscriptionCost)}/
-                    {subscription.interval}</b>
+                        cost:{" "}
+                        <b>
+                          {currency(modifiedSubscriptionCost)}/
+                          {subscription.interval}
+                        </b>
                       </>
                     )}
                 </>

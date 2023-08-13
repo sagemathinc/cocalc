@@ -7,6 +7,7 @@ import { is_integer } from "@cocalc/util/type-checking";
 import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import type { Uptime } from "@cocalc/util/consts/site-license";
 import { MAX } from "@cocalc/util/licenses/purchase/consts";
+import dayjs from "dayjs";
 
 export interface Changes {
   end?: Date;
@@ -39,9 +40,10 @@ export default function costToEditLicense(
   log({ info, changes });
 
   const now = new Date();
+  const recent = dayjs().subtract(10, "minutes").toDate();
   // check constraints on the changes:
   if (changes.start != null) {
-    if (info.start <= now) {
+    if (info.start <= recent) {
       throw Error(
         "if you are going to change the start date, then the license can't have already started"
       );
@@ -55,7 +57,7 @@ export default function costToEditLicense(
     }
   }
   if (changes.end != null) {
-    if (changes.end < now) {
+    if (changes.end < recent) {
       throw Error(
         "if you're changing the end date, then you can't change it to be in the past"
       );

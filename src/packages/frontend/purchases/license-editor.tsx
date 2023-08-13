@@ -41,13 +41,15 @@ interface Props {
 const END_PRESETS: {
   label: string;
   number: number;
-  interval: "week" | "month" | "year";
+  interval: "day" | "week" | "month" | "year";
+  color?: string;
 }[] = [
-  { label: "Week", number: 1, interval: "week" },
-  { label: "Month", number: 1, interval: "month" },
+  { label: "1 Day", number: 1, interval: "day", color: "volcano" },
+  { label: "1 Week", number: 1, interval: "week", color: "orange" },
+  { label: "1 Month", number: 1, interval: "month" },
   { label: "3 Months", number: 3, interval: "month" },
-  { label: "4 Months", number: 4, interval: "month" },
-  { label: "Year", number: 1, interval: "year" },
+  { label: "1 Year", number: 1, interval: "year", color: "green" },
+  { label: "Cancel", number: 0, interval: "day", color: "red" },
 ];
 
 export default function LicenseEditor({
@@ -94,14 +96,16 @@ export default function LicenseEditor({
     const start = dayjs(info.start);
     return (
       <div style={{ marginTop: "8px" }}>
-        {END_PRESETS.map(({ label, interval, number }) => (
+        {END_PRESETS.map(({ label, interval, number, color }) => (
           <Tag
             key={label}
             style={{ cursor: "pointer" }}
-            color="blue"
-            onClick={() =>
-              handleFieldChange("end")(start.add(number, interval))
-            }
+            color={color ?? "blue"}
+            onClick={() => {
+              const now = dayjs();
+              const end = (now > start ? now : start).add(number, interval);
+              handleFieldChange("end")(end);
+            }}
           >
             {label}
           </Tag>
@@ -120,7 +124,7 @@ export default function LicenseEditor({
           changeOnBlur
           allowClear={false}
           disabled={isSubscription || disabledFields?.has("start")}
-          defaultValue={info.start ? dayjs(info.start) : undefined}
+          value={info.start ? dayjs(info.start) : undefined}
           onChange={handleFieldChange("start")}
           disabledDate={(current) => current < dayjs().startOf("day")}
         />
@@ -136,7 +140,7 @@ export default function LicenseEditor({
             changeOnBlur
             allowClear={false}
             disabled={isSubscription || disabledFields?.has("end")}
-            defaultValue={info.end ? dayjs(info.end) : undefined}
+            value={info.end ? dayjs(info.end) : undefined}
             onChange={handleFieldChange("end")}
             disabledDate={(current) => {
               if (current <= dayjs().startOf("day")) {
