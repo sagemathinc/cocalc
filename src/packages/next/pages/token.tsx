@@ -53,6 +53,7 @@ export default function TokenActions(props: Props) {
             <Confirm
               loading={loading}
               action={getTitle(router.query.type)}
+              description={router.query.desc ?? ""}
               onConfirm={() => {
                 setDoAction(true);
               }}
@@ -73,13 +74,13 @@ export default function TokenActions(props: Props) {
   );
 }
 
-function Confirm({ action, onConfirm, onCancel, loading }) {
+function Confirm({ action, description, onConfirm, onCancel, loading }) {
   return (
     <Alert
       style={{ margin: "30px auto", width: "400px" }}
       type="warning"
       showIcon
-      message={`${action}?`}
+      message={`${action}? ${description}`}
       description={
         <div>
           <Space style={{ marginTop: "8px" }}>

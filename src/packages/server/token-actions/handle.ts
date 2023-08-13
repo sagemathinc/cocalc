@@ -1,7 +1,4 @@
-import type {
-  Description,
-  TokenAction,
-} from "@cocalc/util/db-schema/token-actions";
+import type { Description } from "@cocalc/util/db-schema/token-actions";
 import getPool from "@cocalc/database/pool";
 import getName from "@cocalc/server/accounts/get-name";
 import makePayment from "./make-payment";
@@ -14,27 +11,14 @@ If a user visits the URL for an action link, then this gets called.
 export default async function handleTokenAction(
   token: string
 ): Promise<{ description: Description; data: any }> {
-  if (token.length < 20) {
-    throw Error(`invalid token: '${token}'`);
-  }
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "SELECT token, expire, description FROM token_actions WHERE token=$1",
-    [token]
-  );
-  if (rows.length == 0) {
-    throw Error(`The token '${token}' has expired or does not exist.`);
-  }
-  const action = rows[0] as TokenAction;
-  if (action.expire <= new Date()) {
-    throw Error(`The token '${token}' has expired or does not exist.`);
-  }
+  const description = await getTokenDescription(token, false);
   try {
     return {
-      description: action.description,
-      data: await handleDescription(action.description),
+      description,
+      data: await handleDescription(description),
     };
   } finally {
+    const pool = getPool();
     await pool.query("DELETE FROM token_actions WHERE token=$1", [token]);
   }
 }
@@ -50,6 +34,20 @@ async function handleDescription(description: Description): Promise<any> {
     default:
       // @ts-ignore
       throw Error(`action of type ${description.type} not implemented`);
+  }
+}
+
+async function includeExtraInfoInDescription(description: Description) {
+  switch (description.type) {
+    case "student-pay":
+      const pool = getPool();
+      const { rows } = await pool.query(
+        "SELECT course FROM projects WHERE project_id=$1",
+        [description.project_id]
+      );
+      return { ...description, course: rows[0]?.course };
+    default:
+      return description;
   }
 }
 
@@ -73,4 +71,33 @@ async function handleCancelSubscription({ account_id, subscription_id }) {
       account_id
     )}. You can resume the subscription at any time in the settings/subscriptions page.`,
   };
+}
+
+export async function getTokenDescription(
+  token: string,
+  includeExtraInfo?: boolean
+): Promise<Description> {
+  if (!token || token.length < 20) {
+    throw Error(`invalid token: '${token}'`);
+  }
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT expire, description FROM token_actions WHERE token=$1",
+    [token]
+  );
+  if (rows.length == 0) {
+    throw Error(`The token '${token}' has expired or does not exist.`);
+  }
+  if (rows[0].expire <= new Date()) {
+    await pool.query("DELETE FROM token_actions WHERE token=$1", [token]);
+    throw Error(`The token '${token}' has expired.`);
+  }
+  const { description } = rows[0];
+  if (description == null) {
+    throw Error(`invalid token ${token}`);
+  }
+  if (includeExtraInfo) {
+    return await includeExtraInfoInDescription(description);
+  }
+  return description;
 }

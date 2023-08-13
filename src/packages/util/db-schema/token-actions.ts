@@ -55,10 +55,17 @@ interface DisableDailyStatements {
   account_id: string;
 }
 
+export interface StudentPay {
+  type: "student-pay";
+  account_id: string;
+  project_id: string;
+}
+
 export type Description =
   | CancelSubscription
   | MakePayment
-  | DisableDailyStatements;
+  | DisableDailyStatements
+  | StudentPay;
 
 export interface TokenAction {
   token: string;

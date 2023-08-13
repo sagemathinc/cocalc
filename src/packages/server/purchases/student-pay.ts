@@ -23,6 +23,11 @@ import { assertPurchaseAllowed } from "./is-purchase-allowed";
 import setCourseInfo from "@cocalc/server/projects/course/set-course-info";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
+import type { StudentPay } from "@cocalc/util/db-schema/token-actions";
+import createTokenAction, {
+  getTokenUrl,
+} from "@cocalc/server/token-actions/create";
+import dayjs from "dayjs";
 
 const logger = getLogger("purchases:student-pay");
 
@@ -140,4 +145,16 @@ export function getCost(purchaseInfo: PurchaseInfo): number {
     return cost;
   }
   return cost.discounted_cost;
+}
+
+export async function studentPayLink({
+  account_id,
+  project_id,
+}: Options): Promise<string> {
+  return await getTokenUrl(
+    await createTokenAction(
+      { type: "student-pay", account_id, project_id } as StudentPay,
+      dayjs().add(1, "week").toDate()
+    )
+  );
 }
