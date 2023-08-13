@@ -245,7 +245,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
         style={expired ? { fontSize: "110%", fontWeight: "bold" } : undefined}
       >
         {word} {when}
-        {!!info?.expires && (
+        {!!info?.expires && !expired && (
           <>
             {info?.subscription_id
               ? " depending on subscription status."

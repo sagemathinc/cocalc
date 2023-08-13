@@ -1,20 +1,27 @@
-/* 
+/*
 Frontend react component that enables any user to edit the parameters
-of a license **they purchased**.  They may have to pay for changes they 
-make, or get a refund. 
+of a license **they purchased**.  They may have to pay for changes they
+make, or get a refund.
 */
 
 import { Alert, Button, Card, Divider, Popconfirm, Spin } from "antd";
 import { useEffect, useState } from "react";
-import { getLicense, editLicense, isPurchaseAllowed } from "./api";
+import {
+  getLicense,
+  editLicense,
+  getSubscription,
+  isPurchaseAllowed,
+} from "./api";
 import { Icon } from "@cocalc/frontend/components/icon";
 import LicenseEditor from "./license-editor";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import costToEditLicense from "@cocalc/util/purchases/cost-to-edit-license";
 import { currency } from "@cocalc/util/misc";
 import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
 import { isEqual } from "lodash";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 
 interface Props {
   license_id: string;
@@ -35,8 +42,18 @@ export default function EditLicense({ license_id, refresh }: Props) {
   const [editError, setEditError] = useState<string>("");
   const [modifiedInfo, setModifiedInfo] = useState<PurchaseInfo | null>(null);
   const [info, setInfo] = useState<PurchaseInfo | null>(null);
-  const [cost, setCost] = useState<number>(0);
   const [makingChange, setMakingChange] = useState<boolean>(false);
+
+  // the charge right now to make changes to the license
+  const [cost, setCost] = useState<number>(0);
+
+  // If this is a subscription license, this the subscription before making
+  // any the changes.
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  // And this is the new monthly subscription cost *after* making the changes.
+  const [modifiedSubscriptionCost, setModifiedSubscriptionCost] = useState<
+    number | null
+  >(null);
 
   const isSubscription =
     info?.type != "vouchers" &&
@@ -48,6 +65,9 @@ export default function EditLicense({ license_id, refresh }: Props) {
       setLoading(true);
       const license = await getLicense(license_id);
       setLicense(license);
+      if (license.subscription_id) {
+        setSubscription(await getSubscription(license.subscription_id));
+      }
       const info = license.info?.purchased ?? null;
       if (info != null) {
         if (info.start != null) {
@@ -75,6 +95,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
     try {
       setEditError("");
       setCost(costToChange(info, modifiedInfo));
+      setModifiedSubscriptionCost(compute_cost(modifiedInfo).discounted_cost);
     } catch (err) {
       setEditError(`${err}`);
     }
@@ -153,7 +174,9 @@ export default function EditLicense({ license_id, refresh }: Props) {
               >
                 <Button disabled={!cost || makingChange} type="primary">
                   {cost > 0 && (
-                    <>Change License -- you will be charged {currency(cost)}</>
+                    <>
+                      Change License -- pay {currency(cost)} change fee
+                    </>
                   )}
                   {cost < 0 && (
                     <>
@@ -182,8 +205,42 @@ export default function EditLicense({ license_id, refresh }: Props) {
                 showIcon
                 style={{ margin: "15px" }}
                 type="info"
-                message="Subscription License"
-                description="This is a subscription license, so editing it will also impact the cost of your monthly subscription going forward."
+                message=<>
+                  Subscription{" "}
+                  {subscription != null &&
+                    modifiedSubscriptionCost != null &&
+                    modifiedSubscriptionCost != subscription.cost && (
+                      <>
+                        cost: <b>{currency(modifiedSubscriptionCost)}/
+                    {subscription.interval}</b>
+                      </>
+                    )}
+                </>
+                description=<>
+                  {subscription?.cost != null && (
+                    <div>
+                      {" "}
+                      Current cost: {currency(subscription?.cost)}/
+                      {subscription.interval}.
+                    </div>
+                  )}
+                  {subscription != null &&
+                    modifiedSubscriptionCost != null &&
+                    modifiedSubscriptionCost != subscription.cost && (
+                      <div>
+                        <b>
+                          New cost: {currency(modifiedSubscriptionCost)}/
+                          {subscription.interval}.
+                        </b>
+                      </div>
+                    )}
+                  <hr />
+                  <div style={{ color: "#666" }}>
+                    This is a subscription license, so editing it may impact the
+                    cost of your subscription going forward. The new
+                    subscription cost will be computed at the current rates.
+                  </div>
+                </>
               />
             )}
             <Button
