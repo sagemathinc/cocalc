@@ -29,7 +29,7 @@ export async function disableDailyStatements(
 }
 
 export async function getTokenUrl(token: string): Promise<string> {
-  return `${await siteURL()}/${token}`;
+  return `${await siteURL()}/token/${token}`;
 }
 
 export async function getResultUrl(result: string): Promise<string> {
