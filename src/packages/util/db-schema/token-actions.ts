@@ -44,6 +44,10 @@ interface CancelSubscription {
   subscription_id: number;
 }
 
+interface Error {
+  type: "error";
+}
+
 export interface MakePayment {
   type: "make-payment";
   account_id: string;
@@ -62,6 +66,7 @@ export interface StudentPay {
 }
 
 export type Description =
+  | Error
   | CancelSubscription
   | MakePayment
   | DisableDailyStatements

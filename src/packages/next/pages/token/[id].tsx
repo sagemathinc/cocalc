@@ -11,26 +11,52 @@ Visit
 to carry out the action associated with the token vZmCKcIMha2nKyFQ0rgK.
 */
 
-import { Divider, Layout } from "antd";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import { Customize, CustomizeType } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import useAPI from "lib/hooks/api";
-import { Alert, Button, Card, Space, Spin } from "antd";
+import { Alert, Button, Card, Divider, Layout, Space, Spin } from "antd";
 import { useRouter } from "next/router";
 import type { Description } from "@cocalc/util/db-schema/token-actions";
 import { capitalize } from "@cocalc/util/misc";
 import { useState } from "react";
 import { getTokenDescription } from "@cocalc/server/token-actions/handle";
+import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import getAccountId from "lib/account/get-account";
 
 const STYLE = { margin: "30px auto", maxWidth: "600px", fontSize: "14pt" };
+
+export async function getServerSideProps(context) {
+  const { id: token_id } = context.params;
+  const account_id = await getAccountId(context.req);
+  let description;
+  try {
+    description = await getTokenDescription(token_id, account_id);
+  } catch (error) {
+    description = {
+      type: "error",
+      title: "Error",
+      details: `${error}`,
+      cancelText: "",
+      okText: "OK",
+    };
+  }
+  return await withCustomize({ context, props: { token_id, description } });
+}
 
 interface Props {
   customize: CustomizeType;
   token_id: string;
-  description: Description;
+  description: Description & {
+    title?: string;
+    details?: string;
+    okText?: string;
+    cancelText?: string;
+    icon?: IconName;
+  };
 }
 
 export default function TokenActions({
@@ -41,7 +67,7 @@ export default function TokenActions({
   const router = useRouter();
   const [doAction, setDoAction] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [title] = useState<string>(getTitle(description.type));
+  const title = getTitle(description);
 
   return (
     <Customize value={customize}>
@@ -53,7 +79,11 @@ export default function TokenActions({
         ) : (
           <Confirm
             loading={loading}
-            action={title}
+            title={title}
+            details={description.details}
+            okText={description.okText}
+            cancelText={description.cancelText}
+            icon={description.icon}
             onConfirm={() => {
               setDoAction(true);
             }}
@@ -70,22 +100,45 @@ export default function TokenActions({
   );
 }
 
-function Confirm({ action, onConfirm, onCancel, loading }) {
+function Confirm({
+  title,
+  details,
+  okText,
+  cancelText,
+  icon,
+  onConfirm,
+  onCancel,
+  loading,
+}) {
   return (
     <Card
-      style={{ margin: "30px auto", minWidth: "400px", maxWidth: "700px" }}
-      title={action}
+      style={{
+        margin: "30px auto",
+        minWidth: "400px",
+        maxWidth: "min(700px,100%)",
+      }}
+      title={
+        <Space>
+          {icon && <Icon name={icon} />}
+          <Markdown value={title} style={{ marginBottom: "-1em" }} />
+        </Space>
+      }
     >
+      {details && <Markdown value={details} />}
       <Divider />
       <div style={{ float: "right" }}>
         <Space style={{ marginTop: "8px" }}>
-          <Button onClick={onCancel} disabled={loading}>
-            Cancel
-          </Button>
-          <Button onClick={onConfirm} disabled={loading}>
-            Confirm
-          </Button>
           {loading && <Spin />}
+          {cancelText != "" && (
+            <Button onClick={onCancel} disabled={loading}>
+              {cancelText ?? "Cancel"}
+            </Button>
+          )}
+          {okText != "" && (
+            <Button onClick={onConfirm} disabled={loading} type="primary">
+              {okText ?? "Confirm"}
+            </Button>
+          )}
         </Space>
       </div>
     </Card>
@@ -135,19 +188,16 @@ function RenderResult({
         style={STYLE}
         type="info"
         message="Success"
-        description={data?.text}
+        description={data?.text ? <Markdown value={data?.text} /> : undefined}
       />
     );
   }
 }
 
-export async function getServerSideProps(context) {
-  const { id: token_id } = context.params;
-  const description = await getTokenDescription(token_id, true);
-  return await withCustomize({ context, props: { token_id, description } });
-}
-
-function getTitle(type?: string | string[]) {
+function getTitle({ title, type }: Description & { title?: string }) {
+  if (title) {
+    return title;
+  }
   switch (type) {
     case "make-payment":
       return "Make a Payment";
