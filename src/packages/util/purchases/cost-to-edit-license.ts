@@ -40,7 +40,7 @@ export default function costToEditLicense(
   log({ info, changes });
 
   const now = new Date();
-  const recent = dayjs().subtract(10, "minutes").toDate();
+  const recent = dayjs().subtract(5, "minutes").toDate();
   // check constraints on the changes:
   if (changes.start != null) {
     if (info.start <= recent) {
