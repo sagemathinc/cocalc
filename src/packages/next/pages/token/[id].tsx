@@ -26,6 +26,7 @@ import { getTokenDescription } from "@cocalc/server/token-actions/handle";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import getAccountId from "lib/account/get-account";
+import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 
 const STYLE = { margin: "30px auto", maxWidth: "600px", fontSize: "14pt" };
 
@@ -56,6 +57,7 @@ interface Props {
     okText?: string;
     cancelText?: string;
     icon?: IconName;
+    signIn?: boolean;
   };
 }
 
@@ -74,25 +76,33 @@ export default function TokenActions({
       <Head title={title} />
       <Layout>
         <Header />
-        {doAction ? (
-          <HandleToken token={token_id} />
-        ) : (
-          <Confirm
-            loading={loading}
-            title={title}
-            details={description.details}
-            okText={description.okText}
-            cancelText={description.cancelText}
-            icon={description.icon}
-            onConfirm={() => {
-              setDoAction(true);
-            }}
-            onCancel={() => {
-              setLoading(true);
-              router.push("/");
-            }}
-          />
+        {!!description.signIn && (
+          <div style={{ marginTop: "30px" }}>
+            <InPlaceSignInOrUp
+              title={"You must create an account or sign in first"}
+            />
+          </div>
         )}
+        {!description.signIn &&
+          (doAction ? (
+            <HandleToken token={token_id} />
+          ) : (
+            <Confirm
+              loading={loading}
+              title={title}
+              details={description.details}
+              okText={description.okText}
+              cancelText={description.cancelText}
+              icon={description.icon}
+              onConfirm={() => {
+                setDoAction(true);
+              }}
+              onCancel={() => {
+                setLoading(true);
+                router.push("/");
+              }}
+            />
+          ))}
         <pre>{JSON.stringify(description, undefined, 2)}</pre>
         <Footer />
       </Layout>

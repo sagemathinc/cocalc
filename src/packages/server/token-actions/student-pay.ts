@@ -44,9 +44,6 @@ export async function extraInfo(description: Description, account_id?: string) {
   if (description.type != "student-pay") {
     throw Error("description must be of type student-pay");
   }
-  if (!account_id) {
-    return { ...description, signIn: true };
-  }
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT course FROM projects WHERE project_id=$1",
@@ -57,41 +54,45 @@ export async function extraInfo(description: Description, account_id?: string) {
     throw Error("Invalid token -- not a course project.");
   }
   const cost = getCost(course.payInfo);
+  if (course.paid) {
+    return {
+      ...description,
+      title: "Pay Course Fee",
+      details: `The ${currency(cost)} course fee for [this project](/projects/${
+        description.project_id
+      }) has already been paid. Thank you!`,
+      okText: "",
+      cancelText: "Close",
+      icon: "graduation-cap",
+    };
+  }
+  if (!account_id) {
+    return { ...description, signIn: true };
+  }
   const balance = await getBalance(account_id);
   const balanceAfterPay = balance - cost;
   const minBalance = await getMinBalance(account_id);
   const due = Math.max(0, minBalance - balanceAfterPay);
-  let okText;
-  let cancelText: string | undefined = undefined;
-  if (course.paid) {
-    okText = "";
-    cancelText = "Close";
-  } else if (due > 0) {
-    okText = `Add ${currency(due)} to my account`;
-  } else {
-    okText = "Pay course fee";
-  }
   return {
     ...description,
     due,
     title: "Pay Course Fee",
-    details: course.paid
-      ? `The ${currency(cost)} course fee has already been paid. Thank you!`
-      : `- The course fee of ${currency(cost)} for ${await getName(
-          course.account_id
-        )} has not yet been paid to upgrade [this project](/projects/${
-          description.project_id
-        }).${
-          due == 0
-            ? "\n\n- You can pay this now from your current balance without having to add money to your account."
-            : `\n\n- To pay you will first have to add \\${currency(
-                due
-              )} to your account.`
-        } \n\n- Your balance is \\${currency(
-          balance
-        )}, which must stay above \\${currency(minBalance)}.`,
-    okText,
-    cancelText,
+    details: `
+- The course fee of ${currency(cost)} for ${await getName(
+      course.account_id
+    )} has not yet been paid to upgrade [this project](/projects/${
+      description.project_id
+    }).${
+      due == 0
+        ? "\n\n- You can pay this now from your current balance without having to add money to your account."
+        : `\n\n- To pay you will first have to add \\${currency(
+            due
+          )} to your account.`
+    } \n\n- Your balance is \\${currency(
+      balance
+    )}, which must stay above \\${currency(minBalance)}.
+`,
+    okText: due > 0 ? `Add ${currency(due)} to my account` : "Pay course fee",
     icon: "graduation-cap",
   };
 }
