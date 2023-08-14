@@ -191,6 +191,7 @@ export async function createCreditFromPaidStripeInvoice(
       return false;
     }
   }
+  logger.debug("createCreditFromPaidStripeInvoice -- metadata=", metadata);
   const { account_id } = metadata;
   if (!(await isValidAccount(account_id))) {
     logger.debug(

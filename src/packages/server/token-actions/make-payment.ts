@@ -30,6 +30,7 @@ export default async function makePayment(
     success_url: url,
     cancel_url: url,
     force: true,
+    token,
   });
   return {
     type: "create-credit",

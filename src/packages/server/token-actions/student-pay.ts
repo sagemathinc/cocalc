@@ -27,6 +27,7 @@ export async function studentPay(token, description, account_id): Promise<any> {
       success_url: url,
       cancel_url: url,
       force: true,
+      token,
     });
     return {
       type: "create-credit",
@@ -60,7 +61,7 @@ export async function extraInfo(description: Description, account_id?: string) {
     throw Error("Invalid token -- not a course project.");
   }
   const cost = getCost(course.payInfo);
-  if (course.paid) {
+  if (course.paid || description.paid) {
     return {
       ...description,
       title: "Pay Course Fee",

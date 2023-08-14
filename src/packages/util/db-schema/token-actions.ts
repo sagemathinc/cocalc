@@ -64,6 +64,7 @@ export interface StudentPay {
   type: "student-pay";
   account_id: string;
   project_id: string;
+  paid?: number; // time in ms since epoch when payment completed
 }
 
 export type Description =
