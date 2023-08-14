@@ -79,28 +79,26 @@ export default function TokenActions({
         {!!description.signIn && (
           <div style={{ marginTop: "30px" }}>
             <InPlaceSignInOrUp
-              title={"You must create an account or sign in first"}
+              title={"Please create an account (which is very easy) or sign in"}
             />
           </div>
         )}
-        {!description.signIn && (
-          <Dialog
-            disabled={doAction}
-            loading={loading}
-            title={title}
-            details={description.details}
-            okText={description.okText}
-            cancelText={description.cancelText}
-            icon={description.icon}
-            onConfirm={() => {
-              setDoAction(true);
-            }}
-            onCancel={() => {
-              setLoading(true);
-              router.push("/");
-            }}
-          />
-        )}
+        <Dialog
+          disabled={doAction || !!description.signIn}
+          loading={loading}
+          title={title}
+          details={description.details}
+          okText={description.okText}
+          cancelText={description.cancelText}
+          icon={description.icon}
+          onConfirm={() => {
+            setDoAction(true);
+          }}
+          onCancel={() => {
+            setLoading(true);
+            router.push("/");
+          }}
+        />
         {!description.signIn && doAction && <HandleToken token={token_id} />}
         <Footer />
       </Layout>
