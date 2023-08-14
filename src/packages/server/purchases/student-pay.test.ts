@@ -27,7 +27,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     }
   });
 
-  it("creates project, then fails because user isn't the student", async () => {
+  it("creates project, then fails because student pay not configured yet", async () => {
     project_id = await createProject({
       account_id,
       title: "My First Project",
@@ -36,15 +36,25 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     try {
       await studentPay({ account_id, project_id });
     } catch (e) {
+      expect(e.message).toMatch("course fee not configured for this project");
+    }
+  });
+
+  it("configures course pay, then fails because user isn't the student", async () => {
+    const pool = getPool();
+    await pool.query(
+      `UPDATE projects SET course='{"account_id":"${account_id}"}' WHERE project_id=$1`,
+      [project_id]
+    );
+    expect.assertions(1);
+    try {
+      await studentPay({ account_id: uuid(), project_id });
+    } catch (e) {
       expect(e.message).toMatch("can pay the course fee");
     }
   });
 
-  it("sets user to be the student, then fails due to invalid account", async () => {
-    const pool = getPool();
-    await pool.query(
-      `UPDATE projects SET course='{"account_id":"${account_id}"}'`
-    );
+  it("sets user to be the student, but fails due to invalid account", async () => {
     expect.assertions(1);
     try {
       await studentPay({ account_id, project_id });
@@ -88,7 +98,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     expect(course.paid.length).toBeGreaterThanOrEqual(10);
     const paid = dayjs(course.paid);
     // paid timestamp is close to now
-    expect(Math.abs(paid.diff(dayjs()))).toBeLessThanOrEqual(5000); 
+    expect(Math.abs(paid.diff(dayjs()))).toBeLessThanOrEqual(5000);
 
     // also check that site_license on target project is properly set
     const x = await pool.query(
