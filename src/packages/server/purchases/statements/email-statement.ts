@@ -72,6 +72,7 @@ export default async function emailStatement(opts: {
         const payUrl = await makePayment({
           account_id,
           amount: -statement.balance,
+          reason: `Pay the balance on statement ${statement_id}.`
         });
         pay = `<b><a href="${payUrl}">Click here to pay ${toPay}</a>, since you do NOT have automatic payments setup and your statement balance is negative.  You can also sign in and add money on <a href="${await siteURL()}/settings/purchases">the purchases page</a>.</b>`;
       }

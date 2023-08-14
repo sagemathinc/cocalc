@@ -1,6 +1,6 @@
 import type { Description } from "@cocalc/util/db-schema/token-actions";
 import getPool from "@cocalc/database/pool";
-import makePayment from "./make-payment";
+import makePayment, { extraInfo as makePaymentExtraInfo } from "./make-payment";
 import { studentPay, extraInfo as studentPayExtraInfo } from "./student-pay";
 import {
   disableDailyStatements,
@@ -36,7 +36,7 @@ async function handleDescription(
     case "disable-daily-statements":
       return await disableDailyStatements(description.account_id);
     case "make-payment":
-      return await makePayment(description);
+      return await makePayment(token, description);
     case "student-pay":
       return await studentPay(token, description, account_id);
     case "cancel-subscription":
@@ -70,15 +70,21 @@ export async function getTokenDescription(
   if (description == null) {
     throw Error(`invalid token ${token}`);
   }
-  return await includeExtraInfo(description, account_id);
+  return await includeExtraInfo(description, account_id, token);
 }
 
-async function includeExtraInfo(description: Description, account_id?: string) {
+async function includeExtraInfo(
+  description: Description,
+  account_id: string | undefined,
+  token: string
+) {
   switch (description.type) {
     case "disable-daily-statements":
       return await dailyStatementsExtraInfo(description);
     case "student-pay":
       return await studentPayExtraInfo(description, account_id);
+    case "make-payment":
+      return await makePaymentExtraInfo(description, token);
     case "cancel-subscription":
       return await cancelSubscriptionExtraInfo(description);
     default:

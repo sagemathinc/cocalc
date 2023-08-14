@@ -78,7 +78,7 @@ export async function extraInfo(description: Description, account_id?: string) {
   if (!account_id) {
     return { ...description, signIn: true };
   }
-  // If you just added cash to do student pay, then it's important tosee
+  // If you just added cash to do student pay, then it's important to see
   // it reflected in your balance, so you can then complete the purchase.
   // NOTE: with webhooks this would already happen automatically -- this is
   // just a backup.

@@ -23,13 +23,15 @@ interface Options {
   success_url: string;
   cancel_url?: string;
   force?: boolean; // if true and there's an existing session, discard it instead of throwing an error; also allow payments less than the minimum
+  token?: string; // if this is for a token action, this is the token; will be set in metadata, and when payment is processed, the token has the paid field of the description.
 }
 
 export default async function createStripeCheckoutSession(
   opts: Options
 ): Promise<Stripe.Checkout.Session> {
   let { amount } = opts;
-  const { account_id, description, success_url, cancel_url, force } = opts;
+  const { account_id, description, success_url, cancel_url, force, token } =
+    opts;
   logger.debug("createStripeCheckoutSession", opts);
 
   // check if there is already a stripe checkout session; if so throw error.
@@ -82,7 +84,13 @@ export default async function createStripeCheckoutSession(
       customer == null ? await getEmailAddress(account_id) : undefined,
     invoice_creation: {
       enabled: true,
-      invoice_data: { metadata: { account_id, service: "credit" } },
+      invoice_data: {
+        metadata: {
+          account_id,
+          service: "credit",
+          ...(token != null ? { token } : undefined),
+        },
+      },
     },
     tax_id_collection: { enabled: true },
     automatic_tax: {

@@ -39,6 +39,7 @@ export async function getResultUrl(result: string): Promise<string> {
 export async function makePayment(opts: {
   account_id: string;
   amount: number;
+  reason: string;
 }): Promise<string> {
   return await getTokenUrl(
     await createTokenAction({

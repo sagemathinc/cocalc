@@ -19,6 +19,7 @@ import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import createCredit from "./create-credit";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { markTokenActionPaid } from "@cocalc/server/token-actions/make-payment";
 
 const logger = getLogger("purchases:create-invoice");
 
@@ -239,6 +240,12 @@ export async function createCreditFromPaidStripeInvoice(
     invoice_id: invoice.id,
     amount,
   });
+
+  const { token } = metadata;
+  if (token) {
+    await markTokenActionPaid(token);
+  }
+
   return true;
 }
 
