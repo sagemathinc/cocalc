@@ -289,17 +289,35 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
         </div>
       )}
       {!editing && !runningWithUpgrade && (
-        <Button
-          size="large"
-          onClick={() => {
-            if (!editing) {
-              track({ action: "open", project_id });
-            }
-            setEditing(!editing);
-          }}
-        >
-          <Icon name="credit-card" /> Upgrade...
-        </Button>
+        <div>
+          <Button
+            onClick={() => {
+              if (!editing) {
+                track({ action: "open", project_id });
+              }
+              setEditing(!editing);
+            }}
+          >
+            <Icon name="credit-card" /> Upgrade...
+          </Button>
+          {project?.getIn(["state", "state"]) != "running" && (
+            <Button
+              disabled={
+                quotaState == null || Object.keys(quotaState).length == 0
+              }
+              style={{ marginLeft: "8px" }}
+              onClick={async () => {
+                setQuotaState(null);
+                await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
+                  project_id,
+                  {}
+                );
+              }}
+            >
+              <Icon name="credit-card" /> Clear Upgrades
+            </Button>
+          )}
+        </div>
       )}
       {editing && !runningWithUpgrade && (
         <div style={{ marginTop: "15px" }}>

@@ -14,7 +14,6 @@ happens, and also when the system is heavily loaded.
 
 import { Alert, Button } from "antd";
 import { CSSProperties, useRef } from "react";
-
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
@@ -162,8 +161,13 @@ export function StartButton() {
           type="primary"
           size="large"
           disabled={!enabled || starting}
-          onClick={() => {
-            redux.getActions("projects").start_project(project_id);
+          onClick={async () => {
+            try {
+              await redux.getActions("projects").start_project(project_id);
+            } catch (err) {
+              // ui should show this some other way
+              console.warn("WARNING -- issue starting project ", err);
+            }
           }}
         >
           {starting ? <Icon name="cocalc-ring" spin /> : <Icon name="play" />}
