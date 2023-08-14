@@ -6,7 +6,10 @@ import {
   disableDailyStatements,
   extraInfo as dailyStatementsExtraInfo,
 } from "./daily-statements";
-import { handleCancelSubscription } from "./cancel-subscription";
+import {
+  handleCancelSubscription,
+  extraInfo as cancelSubscriptionExtraInfo,
+} from "./cancel-subscription";
 
 /*
 If a user visits the URL for an action link, then this gets called.
@@ -76,6 +79,8 @@ async function includeExtraInfo(description: Description, account_id?: string) {
       return await dailyStatementsExtraInfo(description);
     case "student-pay":
       return await studentPayExtraInfo(description, account_id);
+    case "cancel-subscription":
+      return await cancelSubscriptionExtraInfo(description);
     default:
       return description;
   }

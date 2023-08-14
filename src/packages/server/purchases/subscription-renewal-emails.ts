@@ -89,7 +89,7 @@ so they are not automatically canceled.   You will receive a reminder email in a
         sub.id
       }) for ${currency(sub.cost)}/${sub.interval}: ${await describeLicense(
         sub.metadata?.license_id
-      )} ${await cancelSubscriptionLink(account_id, sub.id)}</li>`
+      )} ${await cancelSubscriptionLink(sub.id)}</li>`
     );
   }
 
@@ -145,10 +145,9 @@ async function describeLicense(license_id: string): Promise<string> {
 }
 
 async function cancelSubscriptionLink(
-  account_id: string,
   subscription_id: number
 ): Promise<string> {
-  const url = await cancelSubscription({ subscription_id, account_id });
+  const url = await cancelSubscription(subscription_id);
   return ` <a href="${url}">(cancel)</a>`;
 }
 

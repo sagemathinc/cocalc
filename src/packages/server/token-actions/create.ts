@@ -48,14 +48,13 @@ export async function makePayment(opts: {
   );
 }
 
-export async function cancelSubscription(opts: {
-  account_id: string;
-  subscription_id: number;
-}): Promise<string> {
+export async function cancelSubscription(
+  subscription_id: number
+): Promise<string> {
   return await getTokenUrl(
     await createTokenAction({
       type: "cancel-subscription",
-      ...opts,
+      subscription_id,
     })
   );
 }

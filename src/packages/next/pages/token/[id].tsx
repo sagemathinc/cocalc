@@ -102,7 +102,6 @@ export default function TokenActions({
           />
         )}
         {!description.signIn && doAction && <HandleToken token={token_id} />}
-        <pre>{JSON.stringify(description, undefined, 2)}</pre>
         <Footer />
       </Layout>
     </Customize>

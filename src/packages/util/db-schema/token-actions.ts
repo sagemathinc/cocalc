@@ -40,7 +40,6 @@ import tokenGenerator from "voucher-code-generator";
 
 interface CancelSubscription {
   type: "cancel-subscription";
-  account_id: string;
   subscription_id: number;
 }
 
