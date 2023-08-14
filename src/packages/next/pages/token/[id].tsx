@@ -83,26 +83,25 @@ export default function TokenActions({
             />
           </div>
         )}
-        {!description.signIn &&
-          (doAction ? (
-            <HandleToken token={token_id} />
-          ) : (
-            <Confirm
-              loading={loading}
-              title={title}
-              details={description.details}
-              okText={description.okText}
-              cancelText={description.cancelText}
-              icon={description.icon}
-              onConfirm={() => {
-                setDoAction(true);
-              }}
-              onCancel={() => {
-                setLoading(true);
-                router.push("/");
-              }}
-            />
-          ))}
+        {!description.signIn && (
+          <Dialog
+            disabled={doAction}
+            loading={loading}
+            title={title}
+            details={description.details}
+            okText={description.okText}
+            cancelText={description.cancelText}
+            icon={description.icon}
+            onConfirm={() => {
+              setDoAction(true);
+            }}
+            onCancel={() => {
+              setLoading(true);
+              router.push("/");
+            }}
+          />
+        )}
+        {!description.signIn && doAction && <HandleToken token={token_id} />}
         <pre>{JSON.stringify(description, undefined, 2)}</pre>
         <Footer />
       </Layout>
@@ -110,7 +109,8 @@ export default function TokenActions({
   );
 }
 
-function Confirm({
+function Dialog({
+  disabled,
   title,
   details,
   okText,
@@ -140,12 +140,16 @@ function Confirm({
         <Space style={{ marginTop: "8px" }}>
           {loading && <Spin />}
           {cancelText != "" && (
-            <Button onClick={onCancel} disabled={loading}>
+            <Button onClick={onCancel} disabled={disabled || loading}>
               {cancelText ?? "Cancel"}
             </Button>
           )}
           {okText != "" && (
-            <Button onClick={onConfirm} disabled={loading} type="primary">
+            <Button
+              onClick={onConfirm}
+              disabled={disabled || loading}
+              type="primary"
+            >
               {okText ?? "Confirm"}
             </Button>
           )}
@@ -167,20 +171,14 @@ function HandleToken({ token }) {
       )}
       {error && <Alert showIcon style={STYLE} type="error" message={error} />}
       {!calling && result != null && !error && (
-        <RenderResult description={result.description} data={result.data} />
+        <RenderResult data={result.data} />
       )}
     </div>
   );
 }
 
-function RenderResult({
-  description,
-  data,
-}: {
-  description: Description;
-  data: any;
-}) {
-  if (description.type == "make-payment") {
+function RenderResult({ data }: { data: any }) {
+  if (data?.type == "create-credit") {
     const { session, instructions } = data;
     return (
       <Alert
@@ -196,8 +194,8 @@ function RenderResult({
       <Alert
         showIcon
         style={STYLE}
-        type="info"
-        message="Success"
+        type="success"
+        message="Success!"
         description={data?.text ? <Markdown value={data?.text} /> : undefined}
       />
     );

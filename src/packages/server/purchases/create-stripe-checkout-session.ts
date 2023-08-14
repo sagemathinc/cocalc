@@ -22,14 +22,14 @@ interface Options {
   description: string;
   success_url: string;
   cancel_url?: string;
-  force?: boolean; // if true and there's an existing session, discard it instead of throwing an error.
+  force?: boolean; // if true and there's an existing session, discard it instead of throwing an error; also allow payments less than the minimum
 }
 
 export default async function createStripeCheckoutSession(
   opts: Options
 ): Promise<Stripe.Checkout.Session> {
-  const { account_id, amount, description, success_url, cancel_url, force } =
-    opts;
+  let { amount } = opts;
+  const { account_id, description, success_url, cancel_url, force } = opts;
   logger.debug("createStripeCheckoutSession", opts);
 
   // check if there is already a stripe checkout session; if so throw error.
@@ -37,9 +37,16 @@ export default async function createStripeCheckoutSession(
     throw Error("there is already an active stripe checkout session");
   }
 
-  const { pay_as_you_go_min_payment } = await getServerSettings();
-  if (!amount || amount < pay_as_you_go_min_payment) {
-    throw Error(`amount must be at least $${pay_as_you_go_min_payment}`);
+  if (!force) {
+    const { pay_as_you_go_min_payment } = await getServerSettings();
+    if (!amount || amount < pay_as_you_go_min_payment) {
+      throw Error(`amount must be at least $${pay_as_you_go_min_payment}`);
+    }
+  } else {
+    // has to be at least $0.50 due to stripe rules.
+    if (!amount || amount < 0.5) {
+      amount = 0.5;
+    }
   }
   if (!description?.trim()) {
     throw Error("description must be nontrivial");

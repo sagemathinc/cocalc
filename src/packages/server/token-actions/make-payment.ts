@@ -31,6 +31,7 @@ export default async function makePayment(description: MakePayment) {
     force: true,
   });
   return {
+    type: "create-credit",
     session,
     instructions: `Click here to deposit ${currency(
       amount
