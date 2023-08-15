@@ -357,6 +357,12 @@ export default function ManagedLicenses() {
         <A href="/billing/subscriptions">manage your purchased subscriptions</A>{" "}
         and browse <A href="/billing/receipts">your receipts and invoices</A>.
       </Paragraph>
+      <Paragraph>
+        You can also{" "}
+        <A href="/settings/licenses" external>
+          edit or cancel for a refund any license that you purchased...
+        </A>
+      </Paragraph>
       <Paragraph style={{ margin: "15px 0" }}>
         <Checkbox
           disabled={numExpired == 0}

@@ -115,6 +115,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   const fetchInfos = reuseInFlight(async function (
     force: boolean = false
   ): Promise<void> {
+    await redux.getActions("billing").update_managed_licenses();
     setLoading(true);
     const infos: { [license_id: string]: Info } = {};
     const errors: { [license_id: string]: string } = {};

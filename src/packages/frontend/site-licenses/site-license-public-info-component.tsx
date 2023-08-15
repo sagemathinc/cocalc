@@ -72,7 +72,6 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     refresh,
   } = props;
   const [info, set_info] = useState<Info | undefined>(undefined);
-  console.log(info);
   const [err, set_err] = useState<string | undefined>(undefined);
   const [loading, set_loading] = useState<boolean>(true);
   const isMountedRef = useIsMountedRef();
