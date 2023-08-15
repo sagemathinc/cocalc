@@ -13,6 +13,7 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/api-client": "workspace:*",
     "got": "^12.6.0",
     "tsimportlib": "^0.0.5"
   },

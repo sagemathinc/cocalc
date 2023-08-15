@@ -2,9 +2,9 @@
 
 ## Goal
 
-The minimal goal of this package is to connect from a nodejs process to a cocalc project, open a Jupyter notebook sync session, and provide the output.  I.e., instead of the project itself running a kernel and providing output, the kernel will be provided by whatever client is running this @cocalc/compute!
+The minimal goal of this package is to connect from a nodejs process to a cocalc project, open a Jupyter notebook sync session, and provide the output.  I.e., instead of the project itself running a kernel and providing output, the kernel will be provided by whatever client is running this `@cocalc/compute` package!
 
-Constraint: I want this package to remain lightweight if at all possible, so it's fast to install and uses little space.  Also, we eventually plan to run a variant of it in a web browser, which is another reason to keep it small.
+Concern: I want this package to remain lightweight if at all possible, so it's fast to install and uses little space.  Also, we eventually plan to run a variant of it in a web browser, which is another reason to keep it small.  On the other hand, to offer a really useful Jupyter kernel environment, this will probably be part of a big Docker container or something...
 
 ## Examples of where to run this
 
