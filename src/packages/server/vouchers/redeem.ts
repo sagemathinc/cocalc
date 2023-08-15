@@ -19,11 +19,24 @@ interface Options {
   code: string;
 }
 
+interface CreatedLicense {
+  type: "license";
+  license_id: string;
+}
+
+interface CreatedCash {
+  type: "cash";
+  amount: number;
+  purchase_id: number;
+}
+
+export type CreatedItem = CreatedLicense | CreatedCash;
+
 export default async function redeemVoucher({
   account_id,
   project_id,
   code,
-}: Options): Promise<string[]> {
+}: Options): Promise<CreatedItem[]> {
   // get info from db about given voucher code
   log.debug("code=", code);
   const voucherCode = await getVoucherCode(code);
@@ -44,7 +57,13 @@ export default async function redeemVoucher({
         );
       }
       await applyLicensesToProject({ account_id, project_id, license_ids });
-      return license_ids;
+      // just return the licenses; ignoring cash that might have been part of this voucher, if any
+      return license_ids.map((license_id) => {
+        return {
+          type: "license",
+          license_id,
+        };
+      });
     } else {
       throw Error(`Voucher '${code}' was already redeemed by somebody else.`);
     }
@@ -75,6 +94,7 @@ export default async function redeemVoucher({
     voucher
   );
   const client = await getTransactionClient();
+  const createdItems: CreatedItem[] = [];
   try {
     // start atomic transaction
     const license_ids: string[] = [];
@@ -92,6 +112,11 @@ export default async function redeemVoucher({
           client,
         });
         purchase_ids.push(id);
+        createdItems.push({
+          type: "cash",
+          amount: description.amount,
+          purchase_id: id,
+        });
       } else if (product == "site-license") {
         // shift range in the description so license starts now.
         if (description["range"] == null) {
@@ -102,7 +127,7 @@ export default async function redeemVoucher({
         let [start, end] = description["range"];
         if (!start || !end) {
           throw Error(
-            "nvalid voucher: each license must have an explicit range"
+            "invalid voucher: each license must have an explicit range"
           );
         }
         // start and end are ISO string rep, since they are from JSONB in the database,
@@ -113,6 +138,10 @@ export default async function redeemVoucher({
           { ...item, account_id }, // changing account_id to the redeemer not the original creator!
           client
         );
+        createdItems.push({
+          type: "license",
+          license_id,
+        });
         log.debug(
           "created license ",
           license_id,
@@ -143,7 +172,7 @@ export default async function redeemVoucher({
       // nonfatal
       log.debug("WARNING -- issue applying voucher license to project");
     }
-    return license_ids;
+    return createdItems;
   } catch (err) {
     await client.query("ROLLBACK");
     log.debug("error -- rolling back entire transaction", err);
