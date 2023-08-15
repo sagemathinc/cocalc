@@ -460,6 +460,10 @@ function DescriptionColumnSiteLicense(props: DCProps) {
   const [runLimit, setRunLimit] = useState<number>(
     description.type == "quota" ? description.run_limit ?? 0 : 0
   );
+  if (cost == null) {
+    // don't crash when used on deprecated items
+    return <pre>{JSON.stringify(description, undefined, 2)}</pre>;
+  }
   const { input } = cost;
   if (input.type == "cash-voucher") {
     throw Error("incorrect typing");
