@@ -17,7 +17,7 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { MAX } from "@cocalc/util/licenses/purchase/consts";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 type Field =
   | "start"
@@ -36,6 +36,7 @@ interface Props {
   cellStyle?;
   disabledFields?: Set<Field>;
   hiddenFields?: Set<Field>;
+  noCancel?: boolean;
 }
 
 const END_PRESETS: {
@@ -48,6 +49,7 @@ const END_PRESETS: {
   { label: "1 Week", number: 1, interval: "week", color: "orange" },
   { label: "1 Month", number: 1, interval: "month" },
   { label: "3 Months", number: 3, interval: "month" },
+  { label: "4 Months", number: 4, interval: "month" },
   { label: "1 Year", number: 1, interval: "year", color: "green" },
   { label: "Cancel", number: 0, interval: "day", color: "red" },
 ];
@@ -59,7 +61,18 @@ export default function LicenseEditor({
   disabledFields,
   hiddenFields,
   cellStyle,
+  noCancel,
 }: Props) {
+  if (info.type == "vouchers") {
+    return <Alert type="error" message="Editing vouchers is not allowed." />;
+  }
+
+  const [start, setStart] = useState<dayjs.Dayjs | undefined>(
+    info.start ? dayjs(info.start) : undefined
+  );
+  const [end, setEnd] = useState<dayjs.Dayjs | undefined>(
+    info.end ? dayjs(info.end) : undefined
+  );
   const columns = [
     {
       title: <div style={{ textAlign: "center" }}>Field</div>,
@@ -77,42 +90,48 @@ export default function LicenseEditor({
 
   const handleFieldChange = (field: keyof Changes) => (value: any) => {
     if (field == "start" || field == "end") {
+      if (field == "start") {
+        setStart(value);
+      } else if (field == "end") {
+        setEnd(value);
+      }
       value = value?.toDate();
     }
     onChange({ ...info, [field]: value });
   };
 
-  if (info.type == "vouchers") {
-    return <Alert type="error" message="Editing vouchers is not allowed." />;
-  }
-
   const isSubscription = info.subscription != null && info.subscription != "no";
 
   const endPresets = useMemo(() => {
-    if (isSubscription || info.start == null) {
+    if (isSubscription || start == null) {
       return null;
     }
 
-    const start = dayjs(info.start);
     return (
       <div style={{ marginTop: "8px" }}>
-        {END_PRESETS.map(({ label, interval, number, color }) => (
-          <Tag
-            key={label}
-            style={{ cursor: "pointer" }}
-            color={color ?? "blue"}
-            onClick={() => {
-              const now = dayjs();
-              const end = (now > start ? now : start).add(number, interval);
-              handleFieldChange("end")(end);
-            }}
-          >
-            {label}
-          </Tag>
-        ))}
+        {END_PRESETS.map(({ label, interval, number, color }) => {
+          if (noCancel && number == 0) return null;
+          return (
+            <Tag
+              key={label}
+              style={{ cursor: "pointer" }}
+              color={color ?? "blue"}
+              onClick={() => {
+                const now = dayjs();
+                const end = (
+                  start === undefined || now.diff(start) > 0 ? now : start
+                ).add(number, interval);
+                console.log("end = ", end.toDate());
+                handleFieldChange("end")(end);
+              }}
+            >
+              {label}
+            </Tag>
+          );
+        })}
       </div>
     );
-  }, [isSubscription, info.start]);
+  }, [isSubscription, start?.valueOf() ?? 0]);
 
   let data = [
     {
@@ -124,7 +143,7 @@ export default function LicenseEditor({
           changeOnBlur
           allowClear={false}
           disabled={isSubscription || disabledFields?.has("start")}
-          defaultValue={info.start ? dayjs(info.start) : undefined}
+          value={start}
           onChange={handleFieldChange("start")}
           disabledDate={(current) => current < dayjs().startOf("day")}
         />
@@ -140,13 +159,13 @@ export default function LicenseEditor({
             changeOnBlur
             allowClear={false}
             disabled={isSubscription || disabledFields?.has("end")}
-            defaultValue={info.end ? dayjs(info.end) : undefined}
+            value={end}
             onChange={handleFieldChange("end")}
             disabledDate={(current) => {
               if (current <= dayjs().startOf("day")) {
                 return true;
               }
-              if (info.start != null && current <= dayjs(info.start)) {
+              if (start != null && current <= dayjs(start)) {
                 return true;
               }
               return false;
