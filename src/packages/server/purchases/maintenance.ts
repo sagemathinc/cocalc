@@ -4,6 +4,7 @@ import maintainSubscriptions from "./maintain-subscriptions";
 import maintainStatements from "./statements/maintenance";
 import getLogger from "@cocalc/backend/logger";
 import maintainAutomaticPayments from "./maintain-automatic-payments";
+import maintainLegacyUpgrades from "./legacy/maintain-legacy-upgrades";
 
 const logger = getLogger("purchases:maintenance");
 
@@ -16,6 +17,10 @@ const FUNCTIONS = [
   { f: maintainSubscriptions, desc: "maintain subscriptions" },
   { f: maintainStatements, desc: "maintain statements" },
   { f: maintainAutomaticPayments, desc: "maintain automatic payments" },
+  {
+    f: maintainLegacyUpgrades,
+    desc: "maintain legacy upgrade packages from long long ago",
+  },
 ];
 
 export default async function init() {
