@@ -52,6 +52,7 @@ describe("main quota functionality", () => {
       cpu_limit: 1,
       cpu_request: 0.02,
       disk_quota: 3000,
+      gpu: false,
       idle_timeout: 1800,
       member_host: false,
       memory_limit: 1000,
@@ -71,6 +72,7 @@ describe("main quota functionality", () => {
       cpu_limit: 1,
       cpu_request: 0.05, // set at the top of quota config
       disk_quota: 3000,
+      gpu: false,
       idle_timeout: 1800,
       member_host: true, // what this upgrade is about
       memory_limit: 1000, // set at the top of quota config
@@ -90,6 +92,7 @@ describe("main quota functionality", () => {
       cpu_limit: 1,
       cpu_request: 0.05, // set at the top of quota config
       disk_quota: 3000,
+      gpu: false,
       idle_timeout: 1800,
       member_host: true, // what this upgrade is about
       memory_limit: 1000, // set at the top of quota config
@@ -143,6 +146,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     };
     expect(added).toEqual(exp);
   });
@@ -168,6 +172,7 @@ describe("main quota functionality", () => {
       privileged: false,
       idle_timeout: 1800, // 1800 secs free
       disk_quota: 3000,
+      gpu: false,
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
@@ -205,6 +210,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     };
     expect(maxedout).toEqual(exp);
   });
@@ -235,6 +241,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     };
     expect(maxedout).toEqual(exp);
   });
@@ -286,6 +293,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     };
     expect(quota(settings, users)).toEqual(exp);
   });
@@ -317,6 +325,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     };
 
     expect(quota(settings, users)).toEqual(exp);
@@ -346,6 +355,7 @@ describe("main quota functionality", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -424,6 +434,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -451,6 +462,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -496,6 +508,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -545,6 +558,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -585,6 +599,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -621,6 +636,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -652,6 +668,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -688,6 +705,7 @@ describe("main quota functionality", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -721,6 +739,7 @@ describe("main quota functionality", () => {
       cpu_request: 0.05,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
       disk_quota: 3000,
       idle_timeout: 1800,
       member_host: true,
@@ -780,6 +799,7 @@ describe("main quota functionality", () => {
         cpu_request: 0.25,
         dedicated_disks: [],
         dedicated_vm: false,
+        gpu: false,
         disk_quota: 3000,
         idle_timeout: 1800,
         member_host: false,
@@ -828,6 +848,7 @@ describe("main quota functionality", () => {
       cpu_request: 11,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
       disk_quota: 3000,
       idle_timeout: 1800,
       member_host: true,
@@ -874,6 +895,7 @@ describe("main quota functionality", () => {
       cpu_request: 16,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
       disk_quota: 3000,
       idle_timeout: 1800,
       member_host: true,
@@ -1001,6 +1023,7 @@ describe("always running", () => {
       always_running: true,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     };
     expect(admin1).toEqual(exp);
   });
@@ -1057,6 +1080,7 @@ describe("site licenses", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1098,6 +1122,7 @@ describe("site licenses", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1232,6 +1257,7 @@ describe("site licenses", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1299,6 +1325,7 @@ describe("site licenses", () => {
       disk_quota: 333,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1348,6 +1375,7 @@ describe("site licenses", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1380,6 +1408,7 @@ describe("site licenses", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1464,6 +1493,7 @@ describe("site licenses", () => {
       always_running: true,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1502,6 +1532,7 @@ describe("site licenses", () => {
       always_running: true,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1531,6 +1562,7 @@ describe("site licenses", () => {
       always_running: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 });
@@ -1578,6 +1610,7 @@ describe("dedicated", () => {
       dedicated_disks: [{ type: "standard", size_gb: 128, name: "bar" }],
       dedicated_vm: { machine: "n2-highmem-8", name: "foo" },
       pay_as_you_go: null,
+      gpu: false,
     });
   });
 
@@ -1682,6 +1715,7 @@ describe("idle timeout license", () => {
       disk_quota: 5000,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1720,6 +1754,7 @@ describe("idle timeout license", () => {
       disk_quota: 6000,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1875,6 +1910,7 @@ describe("idle timeout license", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1919,6 +1955,7 @@ describe("idle timeout license", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 });
@@ -1955,6 +1992,7 @@ describe("boost", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -1994,6 +2032,7 @@ describe("boost", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -2038,6 +2077,7 @@ describe("boost", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -2094,6 +2134,7 @@ describe("boost", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -2150,6 +2191,7 @@ describe("boost", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -2177,6 +2219,7 @@ describe("boost", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -2210,6 +2253,7 @@ describe("boost", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 
@@ -2249,6 +2293,7 @@ describe("boost", () => {
       privileged: false,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
     });
   });
 });
@@ -2327,6 +2372,7 @@ describe("cobine quota/patch with regular licenses", () => {
       cpu_request: 0.05,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
       patch: [...deep_copy(patch1), ...deep_copy(patch2)],
       disk_quota: 3000,
       idle_timeout: 1800,
@@ -2370,6 +2416,7 @@ describe("combine ext_rw with regular licenses", () => {
       cpu_request: 0.05,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
       disk_quota: 3000,
       ext_rw: true,
       idle_timeout: 7200,
@@ -2481,6 +2528,7 @@ describe("test pay-you-go-quota inclusion", () => {
       cpu_request: 0.05,
       dedicated_disks: [],
       dedicated_vm: false,
+      gpu: false,
       disk_quota: 5500,
       idle_timeout: 3600,
       member_host: true,
@@ -2499,6 +2547,41 @@ describe("test pay-you-go-quota inclusion", () => {
           network: 1,
         },
       },
+      privileged: false,
+    });
+  });
+});
+
+describe("Test GPU", () => {
+  it("extract GPU info + upgrades", () => {
+    const l1: SiteLicense = {
+      id: "1234-gpu",
+      quota: {
+        cpu: 1,
+        ram: 5,
+        disk: 10,
+        member: true,
+        idle_timeout: "medium",
+        always_running: false,
+        gpu: { type: "t4" },
+      },
+    };
+
+    const q = quota({}, {}, { l1 });
+
+    expect(q).toEqual({
+      always_running: false,
+      cpu_limit: 1,
+      cpu_request: 0.05,
+      dedicated_disks: [],
+      dedicated_vm: false,
+      disk_quota: 10000,
+      gpu: { type: "t4" },
+      idle_timeout: 7200,
+      member_host: true,
+      memory_limit: 5000,
+      memory_request: 300,
+      network: true,
       privileged: false,
     });
   });
