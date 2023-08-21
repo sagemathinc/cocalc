@@ -6,12 +6,20 @@
 /*
 Visit
 
-    https://cocalc.com/token?vZmCKcIMha2nKyFQ0rgK
+    https://cocalc.com/token?token=vZmCKcIMha2nKyFQ0rgK&type=...
 
 to carry out the action associated with the token vZmCKcIMha2nKyFQ0rgK.
 
-TODO: It's probably much better to have a confirmation step before actually
-doing the action.  That's just more work to implement, and I'll do it later.
+Also use https://cocalc.com/token?result=.... as a confirmation URL
+for payments.
+
+Note that  https://cocalc.com/token?token=vZmCKcIMha2nKyFQ0rgK&type=... is DEPRECATED
+and replaced by
+
+   https://cocalc.com/token/vZmCKcIMha2nKyFQ0rgK
+
+which is a cleaner.  We're leaving this deprecated endpoint with a redirect
+for a few weeks to handle any outstanding tokens.
 */
 
 import { Layout } from "antd";
@@ -20,12 +28,10 @@ import Head from "components/landing/head";
 import Header from "components/landing/header";
 import { Customize, CustomizeType } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import useAPI from "lib/hooks/api";
-import { Alert, Button, Space, Spin } from "antd";
+import { Alert } from "antd";
 import { useRouter } from "next/router";
-import type { Description } from "@cocalc/util/db-schema/token-actions";
 import { capitalize } from "@cocalc/util/misc";
-import { useState } from "react";
+import { useEffect } from "react";
 
 const STYLE = { margin: "30px auto", maxWidth: "600px", fontSize: "14pt" };
 
@@ -36,36 +42,21 @@ interface Props {
 export default function TokenActions(props: Props) {
   const { customize } = props;
   const router = useRouter();
-  const [doAction, setDoAction] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (router.query.token) {
+      // redirect due to deprecation
+      router.push(`/token/${router.query.token}`);
+    }
+  }, []);
 
   return (
     <Customize value={customize}>
       <Head title={getTitle(router.query.type)} />
       <Layout>
         <Header />
-        {router.query.result ? (
+        {router.query.result != null && (
           <ShowResult result={router.query.result} />
-        ) : router.query.token ? (
-          doAction ? (
-            <HandleToken token={router.query.token} />
-          ) : (
-            <Confirm
-              loading={loading}
-              action={getTitle(router.query.type)}
-              onConfirm={() => {
-                setDoAction(true);
-              }}
-              onCancel={() => {
-                setLoading(true);
-                router.push("/");
-              }}
-            />
-          )
-        ) : (
-          <div>
-            Invalid URL -- should pass a token or result in as a query parameter
-          </div>
         )}
         <Footer />
       </Layout>
@@ -73,85 +64,12 @@ export default function TokenActions(props: Props) {
   );
 }
 
-function Confirm({ action, onConfirm, onCancel, loading }) {
-  return (
-    <Alert
-      style={{ margin: "30px auto", width: "400px" }}
-      type="warning"
-      showIcon
-      message={`${action}?`}
-      description={
-        <div>
-          <Space style={{ marginTop: "8px" }}>
-            <Button onClick={onCancel} disabled={loading}>
-              Cancel
-            </Button>
-            <Button onClick={onConfirm} disabled={loading}>
-              Confirm
-            </Button>
-            {loading && <Spin />}
-          </Space>
-        </div>
-      }
-    />
-  );
-}
-
 function ShowResult({ result }) {
   return <Alert showIcon style={STYLE} type="info" message={result} />;
 }
 
-function HandleToken({ token }) {
-  const { calling, result, error } = useAPI("token-action", { token });
-
-  return (
-    <div>
-      {calling && (
-        <div style={{ ...STYLE, textAlign: "center" }}>
-          <Spin />
-        </div>
-      )}
-      {error && <Alert showIcon style={STYLE} type="error" message={error} />}
-      {!calling && result != null && !error && (
-        <RenderResult description={result.description} data={result.data} />
-      )}
-    </div>
-  );
-}
-
 export async function getServerSideProps(context) {
   return await withCustomize({ context });
-}
-
-function RenderResult({
-  description,
-  data,
-}: {
-  description: Description;
-  data: any;
-}) {
-  if (description.type == "make-payment") {
-    const { session, instructions } = data;
-    return (
-      <Alert
-        showIcon
-        style={STYLE}
-        type="warning"
-        message="Make a Payment"
-        description={<a href={session.url}>{instructions}</a>}
-      />
-    );
-  } else {
-    return (
-      <Alert
-        showIcon
-        style={STYLE}
-        type="info"
-        message="Success"
-        description={data?.text}
-      />
-    );
-  }
 }
 
 function getTitle(type?: string | string[]) {

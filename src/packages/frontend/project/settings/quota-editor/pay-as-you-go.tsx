@@ -11,21 +11,15 @@ import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import QuotaRow from "./quota-row";
 import Information from "./information";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
-import { useRedux, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import CostPerHour from "./cost-per-hour";
-import { getPricePerHour } from "@cocalc/util/purchases/project-quotas";
 import { copy_without } from "@cocalc/util/misc";
 import { load_target } from "@cocalc/frontend/history";
 import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
+import startProject from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
+import stopProject from "@cocalc/frontend/purchases/pay-as-you-go/stop-project";
 import track0 from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
-
-// when checking user has sufficient credits to run project with
-// upgrade, require that they have enough for this many hours.
-// Otherwise, it is way too easy to start project with upgrades,
-// then have it just stop again an hour or less later, which is
-// just annoying.
-const MIN_HOURS = 12;
 
 function track(obj) {
   track0("pay-as-you-go-project-upgrade", obj);
@@ -109,16 +103,22 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     }
   }
 
-  async function handleStop() {
-    track({ action: "stop", project_id });
-    const quota = { ...quotaState, enabled: 0 };
-    setQuotaState(quota);
-    await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
-      project_id,
-      quota
-    );
-    const actions = redux.getActions("projects");
-    await actions.stop_project(project_id);
+  async function handleStop(disable?: boolean) {
+    if (quotaState == null) return;
+    try {
+      setError("");
+      await stopProject({
+        quota: quotaState,
+        project_id,
+        setStatus,
+        disable,
+      });
+    } catch (err) {
+      console.warn(err);
+      setError(`${err}`);
+    } finally {
+      setStatus("");
+    }
   }
 
   function handlePreset(preset) {
@@ -168,58 +168,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     if (quotaState == null) return;
     try {
       setError("");
-      setStatus("Computing cost...");
-      const prices =
-        await webapp_client.purchases_client.getPayAsYouGoPricesProjectQuotas();
-      const cost = getPricePerHour(quotaState, prices);
-      setStatus("Saving quotas...");
-      const quota = {
-        ...quotaState,
-        enabled: webapp_client.server_time().valueOf(),
-        cost,
-      };
-      track({ action: "run", quota, project_id });
-      setQuotaState(quota);
-
-      const { allowed, reason } =
-        await webapp_client.purchases_client.isPurchaseAllowed(
-          "project-upgrade",
-          cost * MIN_HOURS
-        );
-      if (!allowed) {
-        await webapp_client.purchases_client.quotaModal({
-          service: "project-upgrade",
-          reason,
-          allowed,
-          cost: cost * MIN_HOURS,
-        });
-        {
-          // Check again, since result of modal may not be sufficient.
-          // This time if not allowed, will show an error.
-          const { allowed, reason } =
-            await webapp_client.purchases_client.isPurchaseAllowed(
-              "project-upgrade",
-              cost * MIN_HOURS
-            );
-          if (!allowed) {
-            throw Error(reason);
-          }
-        }
-      }
-
-      await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
-        project_id,
-        quota
-      );
-      const actions = redux.getActions("projects");
-      setStatus("Stopping project...");
-      await actions.stop_project(project_id);
-      setStatus("Starting project...");
-      await actions.start_project(project_id);
-      actions.project_log(project_id, {
-        event: "pay-as-you-go-upgrade",
-        quota,
-      });
+      await startProject({ quota: quotaState, project_id, setStatus });
     } catch (err) {
       console.warn(err);
       setError(`${err}`);
@@ -293,7 +242,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       )}
       {runningWithUpgrade && (
         <div>
-          This project is running with the quota upgrades that{" "}
+          This project is running with the pay as you go quota upgrades that{" "}
           <a
             onClick={() => {
               load_target("settings/purchases");
@@ -306,11 +255,31 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           <div>
             <Popconfirm
               title={"Stop project?"}
-              description={"Remove upgrades and stop the project?"}
-              onConfirm={handleStop}
+              description={
+                <div style={{ maxWidth: "400px" }}>
+                  When you next start the project, it will be upgraded unless
+                  you explicitly disable upgrades. (If a collaborator starts the
+                  project you will not be charged.)
+                </div>
+              }
+              onConfirm={() => handleStop(false)}
             >
               <Button style={{ marginRight: "8px", marginTop: "15px" }}>
                 <Icon name="stop" /> Stop Project
+              </Button>
+            </Popconfirm>
+            <Popconfirm
+              title={"Stop project and disable upgrades?"}
+              description={
+                <div style={{ maxWidth: "400px" }}>
+                  Project will stop and will not automatically be upgraded until
+                  you explicitly enable upgrades again here.
+                </div>
+              }
+              onConfirm={() => handleStop(true)}
+            >
+              <Button style={{ marginRight: "8px", marginTop: "15px" }}>
+                <Icon name="stop" /> Disable Upgrades...
               </Button>
             </Popconfirm>
             <Button onClick={() => setEditing(!editing)}>
@@ -320,17 +289,35 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
         </div>
       )}
       {!editing && !runningWithUpgrade && (
-        <Button
-          size="large"
-          onClick={() => {
-            if (!editing) {
-              track({ action: "open", project_id });
-            }
-            setEditing(!editing);
-          }}
-        >
-          <Icon name="credit-card" /> Upgrade...
-        </Button>
+        <div>
+          <Button
+            onClick={() => {
+              if (!editing) {
+                track({ action: "open", project_id });
+              }
+              setEditing(!editing);
+            }}
+          >
+            <Icon name="credit-card" /> Upgrade...
+          </Button>
+          {project?.getIn(["state", "state"]) != "running" && (
+            <Button
+              disabled={
+                quotaState == null || Object.keys(quotaState).length == 0
+              }
+              style={{ marginLeft: "8px" }}
+              onClick={async () => {
+                setQuotaState(null);
+                await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
+                  project_id,
+                  {}
+                );
+              }}
+            >
+              <Icon name="credit-card" /> Clear Upgrades
+            </Button>
+          )}
+        </div>
       )}
       {editing && !runningWithUpgrade && (
         <div style={{ marginTop: "15px" }}>
@@ -355,7 +342,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
             cancelText="No"
           >
             <Button style={{ marginLeft: "8px" }} type="primary">
-              <Icon name="save" /> Upgrade Project...
+              <Icon name="save" /> Start With Upgrades...
             </Button>
           </Popconfirm>
         </div>

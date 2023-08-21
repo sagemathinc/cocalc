@@ -21,6 +21,7 @@ import { is_valid_uuid_string } from "../misc";
 import { SCHEMA } from "./index";
 import { Table } from "./types";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 
 export interface License {
   id: string;
@@ -36,7 +37,6 @@ export interface License {
   created?: Date; // some old licenses don't have this
   last_used?: Date;
   managers: string[];
-  upgrades?: object;
   quota?: {
     cpu: number;
     ram: number;
@@ -44,10 +44,18 @@ export interface License {
     user: "business" | "academic";
     boost: boolean;
     member: boolean;
-    idle_timeout: "short" | "medium" | "day";
+    idle_timeout: keyof typeof LicenseIdleTimeouts;
     dedicated_cpu: number;
     dedicated_ram: number;
     always_running: boolean;
+  };
+  upgrades?: {
+    cores: number;
+    cpu_shares: number;
+    disk_quota: number;
+    memory: number;
+    mintime: number;
+    network: number;
   };
   run_limit: number;
   voucher_code?: string;

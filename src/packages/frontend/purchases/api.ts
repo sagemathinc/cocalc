@@ -378,3 +378,9 @@ export async function renewSubscription(
 export async function studentPay(project_id: string) {
   return await api("purchases/student-pay", { project_id });
 }
+
+export async function studentPayLink(
+  project_id: string
+): Promise<{ url: string }> {
+  return await api("purchases/student-pay-link", { project_id });
+}

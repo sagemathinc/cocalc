@@ -22,13 +22,15 @@ interface Options {
   description: string;
   success_url: string;
   cancel_url?: string;
-  force?: boolean; // if true and there's an existing session, discard it instead of throwing an error.
+  force?: boolean; // if true and there's an existing session, discard it instead of throwing an error; also allow payments less than the minimum
+  token?: string; // if this is for a token action, this is the token; will be set in metadata, and when payment is processed, the token has the paid field of the description.
 }
 
 export default async function createStripeCheckoutSession(
   opts: Options
 ): Promise<Stripe.Checkout.Session> {
-  const { account_id, amount, description, success_url, cancel_url, force } =
+  let { amount } = opts;
+  const { account_id, description, success_url, cancel_url, force, token } =
     opts;
   logger.debug("createStripeCheckoutSession", opts);
 
@@ -37,9 +39,16 @@ export default async function createStripeCheckoutSession(
     throw Error("there is already an active stripe checkout session");
   }
 
-  const { pay_as_you_go_min_payment } = await getServerSettings();
-  if (!amount || amount < pay_as_you_go_min_payment) {
-    throw Error(`amount must be at least $${pay_as_you_go_min_payment}`);
+  if (!force) {
+    const { pay_as_you_go_min_payment } = await getServerSettings();
+    if (!amount || amount < pay_as_you_go_min_payment) {
+      throw Error(`amount must be at least $${pay_as_you_go_min_payment}`);
+    }
+  } else {
+    // has to be at least $0.50 due to stripe rules.
+    if (!amount || amount < 0.5) {
+      amount = 0.5;
+    }
   }
   if (!description?.trim()) {
     throw Error("description must be nontrivial");
@@ -75,7 +84,13 @@ export default async function createStripeCheckoutSession(
       customer == null ? await getEmailAddress(account_id) : undefined,
     invoice_creation: {
       enabled: true,
-      invoice_data: { metadata: { account_id, service: "credit" } },
+      invoice_data: {
+        metadata: {
+          account_id,
+          service: "credit",
+          ...(token != null ? { token } : undefined),
+        },
+      },
     },
     tax_id_collection: { enabled: true },
     automatic_tax: {

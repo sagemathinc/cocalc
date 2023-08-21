@@ -1,50 +1,44 @@
-import type {
-  Description,
-  TokenAction,
-} from "@cocalc/util/db-schema/token-actions";
+import type { Description } from "@cocalc/util/db-schema/token-actions";
 import getPool from "@cocalc/database/pool";
-import getName from "@cocalc/server/accounts/get-name";
-import makePayment from "./make-payment";
-import cancelSubscription from "@cocalc/server/purchases/cancel-subscription";
+import makePayment, { extraInfo as makePaymentExtraInfo } from "./make-payment";
+import { studentPay, extraInfo as studentPayExtraInfo } from "./student-pay";
+import {
+  disableDailyStatements,
+  extraInfo as dailyStatementsExtraInfo,
+} from "./daily-statements";
+import {
+  handleCancelSubscription,
+  extraInfo as cancelSubscriptionExtraInfo,
+} from "./cancel-subscription";
 
 /*
 If a user visits the URL for an action link, then this gets called.
 */
 
 export default async function handleTokenAction(
-  token: string
+  token: string,
+  account_id: string | undefined
 ): Promise<{ description: Description; data: any }> {
-  if (token.length < 20) {
-    throw Error(`invalid token: '${token}'`);
-  }
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "SELECT token, expire, description FROM token_actions WHERE token=$1",
-    [token]
-  );
-  if (rows.length == 0) {
-    throw Error(`The token '${token}' has expired or does not exist.`);
-  }
-  const action = rows[0] as TokenAction;
-  if (action.expire <= new Date()) {
-    throw Error(`The token '${token}' has expired or does not exist.`);
-  }
-  try {
-    return {
-      description: action.description,
-      data: await handleDescription(action.description),
-    };
-  } finally {
-    await pool.query("DELETE FROM token_actions WHERE token=$1", [token]);
-  }
+  const description = await getTokenDescription(token, account_id);
+  const data = await handleDescription(token, description, account_id);
+  return {
+    description,
+    data,
+  };
 }
 
-async function handleDescription(description: Description): Promise<any> {
+async function handleDescription(
+  token: string,
+  description: Description,
+  account_id: string | undefined
+): Promise<any> {
   switch (description.type) {
     case "disable-daily-statements":
       return await disableDailyStatements(description.account_id);
     case "make-payment":
-      return await makePayment(description);
+      return await makePayment(token, description);
+    case "student-pay":
+      return await studentPay(token, description, account_id);
     case "cancel-subscription":
       return await handleCancelSubscription(description);
     default:
@@ -53,24 +47,47 @@ async function handleDescription(description: Description): Promise<any> {
   }
 }
 
-async function disableDailyStatements(account_id: string) {
+export async function getTokenDescription(
+  token: string,
+  account_id?: string
+): Promise<Description> {
+  if (!token || token.length < 20) {
+    throw Error(`invalid token: '${token}'`);
+  }
   const pool = getPool();
-  await pool.query(
-    "UPDATE accounts SET email_daily_statements=false WHERE account_id=$1",
-    [account_id]
+  const { rows } = await pool.query(
+    "SELECT expire, description FROM token_actions WHERE token=$1",
+    [token]
   );
-  return {
-    text: `Disabled sending daily statements for ${await getName(
-      account_id
-    )}. You can enable emailing of daily statements in the Daily Statements panel of the settings/statements page.`,
-  };
+  if (rows.length == 0) {
+    throw Error(`The token '${token}' has expired or does not exist.`);
+  }
+  if (rows[0].expire <= new Date()) {
+    await pool.query("DELETE FROM token_actions WHERE token=$1", [token]);
+    throw Error(`The token '${token}' has expired.`);
+  }
+  const { description } = rows[0];
+  if (description == null) {
+    throw Error(`invalid token ${token}`);
+  }
+  return await includeExtraInfo(description, account_id, token);
 }
 
-async function handleCancelSubscription({ account_id, subscription_id }) {
-  await cancelSubscription({ account_id, subscription_id });
-  return {
-    text: `Successfully canceled subscription with id ${subscription_id} for ${await getName(
-      account_id
-    )}. You can resume the subscription at any time in the settings/subscriptions page.`,
-  };
+async function includeExtraInfo(
+  description: Description,
+  account_id: string | undefined,
+  token: string
+) {
+  switch (description.type) {
+    case "disable-daily-statements":
+      return await dailyStatementsExtraInfo(description);
+    case "student-pay":
+      return await studentPayExtraInfo(description, account_id);
+    case "make-payment":
+      return await makePaymentExtraInfo(description, token);
+    case "cancel-subscription":
+      return await cancelSubscriptionExtraInfo(description);
+    default:
+      return description;
+  }
 }

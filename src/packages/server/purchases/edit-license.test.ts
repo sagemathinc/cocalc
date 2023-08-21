@@ -128,7 +128,12 @@ describe("create a license and then edit it in various ways", () => {
     });
   });
 
-  it("try to change start date (which is now in past) and get error", async () => {
+  it("set start date to 1 hour ago, then try to change start date (which is now in solidly in past) and get error", async () => {
+    const pool = getPool();
+    await pool.query(
+      "UPDATE site_licenses SET activates=NOW() - interval '1 hour' WHERE id=$1",
+      [x.license_id]
+    );
     const start = dayjs().add(1, "week").toDate();
     await expect(
       async () =>

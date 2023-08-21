@@ -1,7 +1,7 @@
 /*
 Example use:
 
-~/cocalc/src/packages/compute$ PROJECT_PORT=33177 DEBUG='cocalc:sync*' node
+~/cocalc/src/packages/sync-client$ PROJECT_PORT=33177 DEBUG='cocalc:sync*' node
 ...
 
 > c = new (require('.').default)(); s = c.sync_client.sync_db({project_id:'97ce5a7c-25c1-4059-8670-c7de96a0db92',path:'b.tasks',primary_keys:["task_id"], string_cols:['desc']})

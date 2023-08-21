@@ -393,6 +393,8 @@ interface DCProps {
   reload: () => void;
   compact: boolean;
   project_id?: string;
+  readOnly?: boolean; // if true, don't show any buttons
+  style?;
 }
 
 const DESCRIPTION_STYLE = {
@@ -403,8 +405,9 @@ const DESCRIPTION_STYLE = {
   borderRadius: "5px",
 } as const;
 
-function DescriptionColumn(props: DCProps) {
-  const { description } = props;
+// Also used externally for showing what a voucher is for in next/pages/vouchers/[id].tsx
+export function DescriptionColumn(props: DCProps) {
+  const { description, style, readOnly } = props;
   if (
     description.type == "disk" ||
     description.type == "vm" ||
@@ -413,13 +416,17 @@ function DescriptionColumn(props: DCProps) {
     return <DescriptionColumnSiteLicense {...props} />;
   } else if (description.type == "cash-voucher") {
     return (
-      <div>
+      <div style={style}>
         <b style={{ fontSize: "12pt" }}>Cash voucher</b>
         <div style={DESCRIPTION_STYLE}>
           Voucher for {currency(description.amount)}.
         </div>
-        <SaveForLater {...props} />
-        <DeleteItem {...props} />
+        {!readOnly && (
+          <>
+            <SaveForLater {...props} />
+            <DeleteItem {...props} />
+          </>
+        )}
       </div>
     );
   } else {
@@ -428,8 +435,17 @@ function DescriptionColumn(props: DCProps) {
 }
 
 function DescriptionColumnSiteLicense(props: DCProps) {
-  const { id, cost, description, updating, reload, compact, project_id } =
-    props;
+  const {
+    id,
+    cost,
+    description,
+    updating,
+    reload,
+    compact,
+    project_id,
+    style,
+    readOnly,
+  } = props;
   if (
     !(
       description.type == "disk" ||
@@ -444,6 +460,10 @@ function DescriptionColumnSiteLicense(props: DCProps) {
   const [runLimit, setRunLimit] = useState<number>(
     description.type == "quota" ? description.run_limit ?? 0 : 0
   );
+  if (cost == null) {
+    // don't crash when used on deprecated items
+    return <pre>{JSON.stringify(description, undefined, 2)}</pre>;
+  }
   const { input } = cost;
   if (input.type == "cash-voucher") {
     throw Error("incorrect typing");
@@ -461,6 +481,7 @@ function DescriptionColumnSiteLicense(props: DCProps) {
           padding: "15px",
           margin: "15px 0",
           background: "white",
+          ...style,
         }}
       >
         <Icon
@@ -470,21 +491,25 @@ function DescriptionColumnSiteLicense(props: DCProps) {
             setEditRunLimit(false);
           }}
         />
-        <EditRunLimit value={runLimit} onChange={setRunLimit} />
-        <Button
-          type="primary"
-          style={{ marginTop: "15px" }}
-          onClick={async () => {
-            setEditRunLimit(false);
-            await apiPost("/shopping/cart/edit", {
-              id,
-              description: { ...description, run_limit: runLimit },
-            });
-            await reload();
-          }}
-        >
-          Save
-        </Button>
+        {!readOnly && (
+          <>
+            <EditRunLimit value={runLimit} onChange={setRunLimit} />
+            <Button
+              type="primary"
+              style={{ marginTop: "15px" }}
+              onClick={async () => {
+                setEditRunLimit(false);
+                await apiPost("/shopping/cart/edit", {
+                  id,
+                  description: { ...description, run_limit: runLimit },
+                });
+                await reload();
+              }}
+            >
+              Save
+            </Button>
+          </>
+        )}
       </div>
     );
   }
@@ -557,19 +582,23 @@ function DescriptionColumnSiteLicense(props: DCProps) {
         </b>
       </div>
       <div style={DESCRIPTION_STYLE}>
-        {compact ? describeItem({ info: input }) : editableQuota()}{" "}
+        {compact || readOnly ? describeItem({ info: input }) : editableQuota()}{" "}
       </div>
-      <Button
-        style={{ marginRight: "5px" }}
-        onClick={() => {
-          const page = editPage();
-          router.push(`/store/${page}?id=${id}`);
-        }}
-      >
-        <Icon name="pencil" /> Edit
-      </Button>
-      <SaveForLater {...props} />
-      <DeleteItem {...props} />
+      {!readOnly && (
+        <>
+          <Button
+            style={{ marginRight: "5px" }}
+            onClick={() => {
+              const page = editPage();
+              router.push(`/store/${page}?id=${id}`);
+            }}
+          >
+            <Icon name="pencil" /> Edit
+          </Button>
+          <SaveForLater {...props} />
+          <DeleteItem {...props} />
+        </>
+      )}
     </div>
   );
 }

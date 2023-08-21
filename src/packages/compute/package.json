@@ -14,12 +14,10 @@
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
+    "@cocalc/compute": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/sync": "workspace:*",

@@ -19,9 +19,9 @@ import apiPost from "lib/api/post";
 import useIsMounted from "lib/hooks/mounted";
 import Loading from "components/share/loading";
 import Project from "components/project/link";
-import { plural } from "@cocalc/util/misc";
 import License from "components/licenses/license";
-import { r_join } from "@cocalc/frontend/components/r_join";
+import type { CreatedItem } from "@cocalc/server/vouchers/redeem";
+import { currency } from "@cocalc/util/misc";
 
 type State = "input" | "redeeming" | "redeemed";
 
@@ -33,7 +33,7 @@ export default function Redeem({ customize }) {
   const profile = useProfile({ noCache: true });
   const [signedIn, setSignedIn] = useState<boolean>(!!profile?.account_id);
   const router = useRouter();
-  const [licenseIds, setLicenseIds] = useState<string[] | null>(null);
+  const [createdItems, setCreatedItems] = useState<CreatedItem[] | null>(null);
 
   // optional project_id to automatically apply all the licenses we get on redeeming the voucher
   const { project_id } = router.query;
@@ -44,12 +44,12 @@ export default function Redeem({ customize }) {
       setState("redeeming");
       // This api call tells the backend, "create requested vouchers from everything in my
       // shopping cart that is not a subscription."
-      const { license_ids } = await apiPost("/vouchers/redeem", {
+      const createdItems = await apiPost("/vouchers/redeem", {
         code: code.trim(),
         project_id,
       });
       if (!isMounted.current) return;
-      setLicenseIds(license_ids);
+      setCreatedItems(createdItems);
       // success!
       setState("redeemed");
     } catch (err) {
@@ -138,7 +138,19 @@ export default function Redeem({ customize }) {
                       )}
                     </Button>
                   ) : (
-                    <Alert showIcon message={"Success!"} type="success" />
+                    <Alert
+                      showIcon
+                      message={
+                        "Success!  You redeemed the voucher, which added the following to your account:"
+                      }
+                      type="success"
+                      description={
+                        <DisplayCreatedItems
+                          createdItems={createdItems}
+                          project_id={project_id}
+                        />
+                      }
+                    />
                   )}
                   {project_id && (
                     <Alert
@@ -168,27 +180,11 @@ export default function Redeem({ customize }) {
                               ...
                             </>
                           )}
-                          {state == "redeemed" && licenseIds != null && (
-                            <>
-                              <p>
-                                The {licenseIds.length}{" "}
-                                {plural(licenseIds?.length ?? 0, "license")}{" "}
-                                provided by this voucher were applied to your
-                                project <Project project_id={project_id} />.
-                              </p>
-                              <p>
-                                The voucher provided the following{" "}
-                                {plural(licenseIds?.length ?? 0, "license")}:{" "}
-                                {r_join(
-                                  licenseIds.map((license_id) => (
-                                    <License
-                                      key={license_id}
-                                      license_id={license_id}
-                                    />
-                                  ))
-                                )}
-                              </p>
-                            </>
+                          {state == "redeemed" && createdItems != null && (
+                            <DisplayCreatedItems
+                              createdItems={createdItems}
+                              project_id={project_id}
+                            />
                           )}
                         </div>
                       }
@@ -201,7 +197,7 @@ export default function Redeem({ customize }) {
                           setState("input");
                           setCode("");
                           setError("");
-                          setLicenseIds(null);
+                          setCreatedItems(null);
                         }}
                       >
                         Redeem Another Voucher
@@ -291,6 +287,56 @@ export default function Redeem({ customize }) {
       </Layout>
     </Customize>
   );
+}
+
+function DisplayCreatedItems({ createdItems, project_id }) {
+  if (createdItems == null) {
+    return null;
+  }
+  return (
+    <ol>
+      {createdItems.map((item, n) => (
+        <DisplayCreatedItem item={item} project_id={project_id} key={n} />
+      ))}
+    </ol>
+  );
+}
+
+function DisplayCreatedItem({ item, project_id }) {
+  if (item.type == "cash") {
+    return (
+      <li>
+        {currency(item.amount)} was credited{" "}
+        <A href="/settings/purchases" external>
+          to your account
+        </A>{" "}
+        (transaction id: {item.purchase_id})
+      </li>
+    );
+  } else if (item.type == "license") {
+    return (
+      <li>
+        The following license <License license_id={item.license_id} /> was added{" "}
+        <A href="/settings/licenses" external>
+          to your licenses
+        </A>
+        .
+        {!!project_id && (
+          <>
+            {" "}
+            This license was applied to the project{" "}
+            <Project project_id={project_id} />.
+          </>
+        )}
+      </li>
+    );
+  } else {
+    return (
+      <li>
+        <pre>{JSON.stringify(item)}</pre>
+      </li>
+    );
+  }
 }
 
 export async function getServerSideProps(context) {

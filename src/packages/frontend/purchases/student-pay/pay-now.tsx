@@ -8,6 +8,7 @@ import Cost, { getCost } from "./cost";
 import { isPurchaseAllowed, studentPay } from "../api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { redux } from "@cocalc/frontend/app-framework";
+import PayLink from "./pay-link";
 
 interface Props {
   when: dayjs.Dayjs;
@@ -132,7 +133,7 @@ export default function PayNow({
         </>
       )}
       <hr />
-      <div style={{ textAlign: "right" }}>
+      <div style={{ float:'right' }}>
         <Button
           onClick={() => {
             const actions = redux.getActions("page");
@@ -144,6 +145,7 @@ export default function PayNow({
           Close Project
         </Button>
       </div>
+      <PayLink project_id={project_id} />
     </Modal>
   );
 }

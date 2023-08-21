@@ -64,7 +64,12 @@ export default function StudentPayUpgrade({ project_id }) {
     }
     return (
       <>
-        <PaySoon when={when} purchaseInfo={purchaseInfo} setOpen={setOpen} />
+        <PaySoon
+          when={when}
+          purchaseInfo={purchaseInfo}
+          setOpen={setOpen}
+          project_id={project_id}
+        />
         <PayNow
           open={open}
           setOpen={setOpen}

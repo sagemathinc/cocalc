@@ -7,7 +7,16 @@ import { useEffect, useMemo, useState } from "react";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
-import { Alert, Button, Card, Layout, Modal, Space, Table } from "antd";
+import {
+  Alert,
+  Button,
+  Card,
+  Divider,
+  Layout,
+  Modal,
+  Space,
+  Table,
+} from "antd";
 import withCustomize from "lib/with-customize";
 import { Customize } from "lib/customize";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -25,6 +34,7 @@ import useDatabase from "lib/hooks/database";
 import Notes from "./notes";
 import Help from "components/vouchers/help";
 import Copyable from "components/misc/copyable";
+import { DescriptionColumn } from "components/store/cart";
 
 const COLUMNS = [
   {
@@ -79,7 +89,7 @@ const COLUMNS = [
 type DownloadType = "csv" | "json";
 
 export default function VoucherCodes({ customize, id }) {
-  const database = useDatabase({ vouchers: { id, title: null } });
+  const database = useDatabase({ vouchers: { id, title: null, cart: null } });
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<VoucherCode[] | null>(null);
@@ -143,6 +153,19 @@ export default function VoucherCodes({ customize, id }) {
                 {database.value?.vouchers?.title && (
                   <h3>Title: {database.value.vouchers.title}</h3>
                 )}
+                <div
+                  style={{
+                    width: "min(600px, 100vw)",
+                    margin: "auto",
+                    padding: "15px",
+                  }}
+                >
+                  {database.value?.vouchers?.cart?.map((item, n) => (
+                    <DescriptionColumn key={n} {...item} readOnly />
+                  ))}
+                </div>
+                <Divider />
+
                 {error && (
                   <Alert
                     type="error"

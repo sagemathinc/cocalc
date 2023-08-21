@@ -38,7 +38,7 @@ export default async function getLicense(
   const query = is_manager
     ? `SELECT id, title, description,
     expires, activates, last_used,
-    managers, upgrades, quota, run_limit, info
+    managers, upgrades, quota, run_limit, info, subscription_id
     FROM site_licenses WHERE $1=id`
     : `SELECT title, expires, activates, upgrades, quota, run_limit
     FROM site_licenses WHERE $1=id`;
