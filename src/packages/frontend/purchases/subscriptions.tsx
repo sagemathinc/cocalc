@@ -33,25 +33,25 @@ import {
   Tag,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import {
-  getSubscriptions as getSubscriptionsUsingApi,
-  cancelSubscription,
-  resumeSubscription,
-  renewSubscription,
-  getLicense,
-} from "./api";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { SettingBox } from "@cocalc/frontend/components/setting-box";
+import { TimeAgo } from "@cocalc/frontend/components/time-ago";
+import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { License } from "@cocalc/util/db-schema/site-licenses";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import { STATUS_TO_COLOR } from "@cocalc/util/db-schema/subscriptions";
-import { SettingBox } from "@cocalc/frontend/components/setting-box";
-import { TimeAgo } from "@cocalc/frontend/components/time-ago";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { capitalize } from "@cocalc/util/misc";
-import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import UnpaidSubscriptions from "./unpaid-subscriptions";
-import { currency } from "@cocalc/util/misc";
+import { capitalize, currency } from "@cocalc/util/misc";
+import {
+  cancelSubscription,
+  getLicense,
+  getSubscriptions as getSubscriptionsUsingApi,
+  renewSubscription,
+  resumeSubscription,
+} from "./api";
 import Export from "./export";
+import UnpaidSubscriptions from "./unpaid-subscriptions";
 
 export function SubscriptionStatus({ status }) {
   return (
@@ -268,13 +268,20 @@ function SubscriptionActions({
     </Space>
   );
 }
+
 function LicenseDescription({ license_id, refresh }) {
   return (
-    <Collapse>
-      <Collapse.Panel key="license" header={`License: ${license_id}`}>
-        <SiteLicensePublicInfo license_id={license_id} refresh={refresh} />
-      </Collapse.Panel>
-    </Collapse>
+    <Collapse
+      items={[
+        {
+          key: "license",
+          label: `License: ${license_id}`,
+          children: (
+            <SiteLicensePublicInfo license_id={license_id} refresh={refresh} />
+          ),
+        },
+      ]}
+    />
   );
 }
 
