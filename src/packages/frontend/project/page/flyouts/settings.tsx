@@ -4,7 +4,7 @@
  */
 
 import { ReloadOutlined } from "@ant-design/icons";
-import { Button, Collapse, Space, Tooltip } from "antd";
+import { Button, Collapse, CollapseProps, Space, Tooltip } from "antd";
 
 import {
   redux,
@@ -204,22 +204,17 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
 
   function renderSettings() {
     if (project == null) return <Loading theme="medium" transparent />;
-    return (
-      <Collapse
-        style={{ borderRadius: 0, borderLeft: "none", borderRight: "none" }}
-        activeKey={expandedPanels}
-        onChange={(keys) => setExpandedPanelsHandler(keys as string[])}
-        destroyInactivePanel={true}
-      >
-        <Collapse.Panel
-          key="about"
-          header={
-            <>
-              <Icon name="file-alt" /> About
-            </>
-          }
-        >
-          {project == null ? (
+
+    const items: CollapseProps["items"] = [
+      {
+        key: "about",
+        label: (
+          <>
+            <Icon name="file-alt" /> About
+          </>
+        ),
+        children:
+          project == null ? (
             <Loading theme="medium" transparent />
           ) : (
             <AboutBox
@@ -231,106 +226,123 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
               name={project.get("name")}
               actions={redux.getActions("projects")}
             />
-          )}
-        </Collapse.Panel>
-        <Collapse.Panel
-          key="control"
-          header={
-            <>
-              <Icon name="gears" /> Control
-            </>
-          }
-        >
-          <ProjectControl project={project} mode="flyout" />
-        </Collapse.Panel>
-        <Collapse.Panel
-          key="hide-delete"
-          header={
-            <>
-              <Icon name="warning" /> Hide or Delete
-            </>
-          }
-        >
+          ),
+      },
+
+      {
+        key: "control",
+        label: (
+          <>
+            <Icon name="gears" /> Control
+          </>
+        ),
+        children: <ProjectControl project={project} mode="flyout" />,
+      },
+
+      {
+        key: "hide-delete",
+        label: (
+          <>
+            <Icon name="warning" /> Hide or Delete
+          </>
+        ),
+        children: (
           <HideDeleteBox
             project={project}
             actions={redux.getActions("projects")}
             mode="flyout"
           />
-        </Collapse.Panel>
-        <Collapse.Panel
-          key="api"
-          header={
-            <>
-              <Icon name="api" /> API Keys
-            </>
-          }
-          className={"cc-project-flyout-settings-panel"}
-        >
-          <ApiKeys project_id={project_id} mode="flyout" />
-        </Collapse.Panel>
-        {showSSH ? (
-          <Collapse.Panel
-            key="ssh"
-            header={
-              <>
-                <Icon name="list-ul" /> SSH Keys
-              </>
-            }
-          >
-            <SSHPanel
-              mode="flyout"
-              key="ssh-keys"
-              project={project}
-              account_id={account_id}
-            />
-          </Collapse.Panel>
-        ) : undefined}
-        <Collapse.Panel
-          key="env"
-          header={
-            <>
-              <Icon name={ENV_VARS_ICON} /> Environment Variables
-            </>
-          }
-          className={"cc-project-flyout-settings-panel"}
-        >
-          <Environment project_id={project_id} mode="flyout" />
-        </Collapse.Panel>
-        {showDatastore ? (
-          <Collapse.Panel
-            className={"cc-project-flyout-settings-panel"}
-            key="datastore"
-            header={
-              <>
-                <Icon name="database" /> {DATASTORE_TITLE}
-              </>
-            }
-            extra={renderDatastoreRelaod()}
-          >
-            <Datastore
-              project_id={project_id}
-              mode="flyout"
-              reloadTrigger={datastoreReload}
-            />
-          </Collapse.Panel>
-        ) : undefined}
-        <Collapse.Panel
-          key="features"
-          header={
-            <>
-              <Icon name="clipboard-check" /> Features and configuration
-            </>
-          }
-          style={{ borderRadius: 0 }}
-          extra={featuresRealodButton()}
-        >
-          <ProjectCapabilities
+        ),
+      },
+
+      {
+        key: "api",
+        label: (
+          <>
+            <Icon name="api" /> API Keys
+          </>
+        ),
+        className: "cc-project-flyout-settings-panel",
+        children: <ApiKeys project_id={project_id} mode="flyout" />,
+      },
+    ];
+
+    if (showSSH) {
+      items.push({
+        key: "ssh",
+        label: (
+          <>
+            <Icon name="list-ul" /> SSH Keys
+          </>
+        ),
+        children: (
+          <SSHPanel
+            mode="flyout"
+            key="ssh-keys"
             project={project}
+            account_id={account_id}
+          />
+        ),
+      });
+    }
+
+    items.push({
+      key: "env",
+      label: (
+        <>
+          <Icon name={ENV_VARS_ICON} /> Environment Variables
+        </>
+      ),
+      className: "cc-project-flyout-settings-panel",
+      children: <Environment project_id={project_id} mode="flyout" />,
+    });
+
+    if (showDatastore) {
+      items.push({
+        key: "datastore",
+        label: (
+          <>
+            <Icon name="database" /> {DATASTORE_TITLE}
+          </>
+        ),
+        className: "cc-project-flyout-settings-panel",
+        extra: renderDatastoreRelaod(),
+        children: (
+          <Datastore
             project_id={project_id}
             mode="flyout"
+            reloadTrigger={datastoreReload}
           />
-        </Collapse.Panel>
-      </Collapse>
+        ),
+      });
+    }
+
+    items.push({
+      key: "features",
+      label: (
+        <>
+          <Icon name="clipboard-check" /> Features and configuration
+        </>
+      ),
+      style: { borderRadius: 0 },
+      extra: featuresRealodButton(),
+      children: (
+        <ProjectCapabilities
+          project={project}
+          project_id={project_id}
+          mode="flyout"
+        />
+      ),
+    });
+
+    return (
+      <Collapse
+        style={{ borderRadius: 0, borderLeft: "none", borderRight: "none" }}
+        activeKey={expandedPanels}
+        onChange={(keys) => setExpandedPanelsHandler(keys as string[])}
+        destroyInactivePanel={true}
+        items={items}
+      />
     );
   }
 
