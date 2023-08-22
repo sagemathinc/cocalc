@@ -236,8 +236,8 @@ function Body(): JSX.Element {
       </Paragraph>
       <Paragraph>
         You will need to purchase an appropriate license for your course, or
-        have the students pay the one-time $14 fee, since CoCalc is not funded
-        by advertisers or other intrusive methods.
+        have the students pay the one-time fee, since CoCalc is not funded by
+        advertisers or other intrusive methods.
       </Paragraph>
 
       <h2>How to get started?</h2>
@@ -291,8 +291,9 @@ function Body(): JSX.Element {
               </A>
             </b>{" "}
             In the configuration frame of the course management file, you opt to
-            require all students to pay a one-time $14 fee to upgrade their own
-            projects.
+            require all students to pay a one-time fee to upgrade their own
+            projects. You can decide on the exact parameters of the license the
+            students will purchase, depending on the needs for your course.
           </li>
         </ul>
       </Paragraph>
@@ -342,24 +343,6 @@ function Body(): JSX.Element {
                   {money(item.online, true)}
                 </span>{" "}
               </div>
-              {item.retail ? (
-                <div style={{ color: COLORS.GRAY }}>
-                  (
-                  <span
-                    style={{
-                      fontWeight: "bold",
-                      fontSize: "14pt",
-                    }}
-                  >
-                    {money(item.retail, true)}
-                  </span>{" "}
-                  via purchase order)
-                </div>
-              ) : (
-                <div>
-                  <span style={{ fontSize: "14pt" }}>&nbsp;</span>
-                </div>
-              )}
               <LinkToStore conf={conf} />
             </PricingItem>
           );
