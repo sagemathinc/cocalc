@@ -2576,7 +2576,7 @@ describe("Test GPU", () => {
       dedicated_disks: [],
       dedicated_vm: false,
       disk_quota: 10000,
-      gpu: { type: "t4" },
+      gpu: true,
       idle_timeout: 7200,
       member_host: true,
       memory_limit: 5000,

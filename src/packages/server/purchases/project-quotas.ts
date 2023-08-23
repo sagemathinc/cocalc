@@ -24,6 +24,10 @@ import getMinBalance from "./get-min-balance";
 
 const logger = getLogger("purchases:project-quota");
 
+export async function areGPUsAvailableForPAYGO(): Promise<boolean> {
+  return true;
+}
+
 export async function getMaxQuotas() {
   const { pay_as_you_go_max_project_upgrades } = await getServerSettings();
   return pay_as_you_go_max_project_upgrades;
@@ -34,8 +38,13 @@ export async function getPricePerHour(quota: ProjectQuota): Promise<number> {
 }
 
 export async function getPrices() {
-  const { pay_as_you_go_price_project_upgrades } = await getServerSettings();
-  return pay_as_you_go_price_project_upgrades;
+  const { pay_as_you_go_price_project_upgrades: price } =
+    await getServerSettings();
+  // fallback: if gpu is not set, use 4x cpu
+  if (price.gpu == null) {
+    price.gpu = 4 * price.cpu;
+  }
+  return price;
 }
 
 // If there are any open pay as you go purchases for this project,
@@ -201,7 +210,7 @@ async function setRunQuotaPurchaseId(project_id: string, purchase_id: number) {
 const MAX_ELAPSED_MS = 1000 * 60 * 60 * 24; // 1 day
 
 /*
-This function ensures everything is in sync, and close out project purchases once per day.  
+This function ensures everything is in sync, and close out project purchases once per day.
 In particular:
 
 - If a project is not running/starting and there is an unclosed purchase, close it.
@@ -209,7 +218,7 @@ In particular:
   it doesn't due to some weird issue, so this catches it.
 - If there is a purchase of a project-upgrade that is actively being charged, make
   sure the project has the given run quota; otherwise end purchase.
-  
+
 - Also, if the total amount of time is at least 24 hours, we close the purchase out
   and make a new one starting now.  This is so an always running project can't just run
   for months and *never* get billed for usage, and also, so usage is clearly displayed
@@ -220,14 +229,14 @@ Probably other issues will arise, but I can't think of any yet....
 export async function maintainActivePurchases() {
   logger.debug("maintainActivePurchases");
 
-  /* 
+  /*
   Query the database for the following:
-    
+
     - purchase id
     - project_id
     - run_quota
     - state
-    
+
   For all open project-upgrade purchases.
   */
   const pool = getPool();

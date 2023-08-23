@@ -463,7 +463,9 @@ export const EXTRAS: SettingsExtras = {
   pay_as_you_go_price_project_upgrades: {
     name: "Pay As You Go - Price for Project Upgrades",
     desc: 'Example -- `{"cores":32, "memory":4, "disk_quota":0.25, "member_host":4}`. This is a json object, where\n\n- cores = price per month for 1 vCPU\n- memory = price per month for 1GB of RAM\n- disk_quota = price per month for 1GB of disk\n- member_host = non-disk part of non-member hosting cost is divided by this',
-    default: '{"cores":32, "memory":4, "disk_quota":0.25, "member_host":4}',
+    // GPU: a T4 costs about the same as a 4 core highmem. So, that's why this is 4x CPU. Adjust this!
+    default:
+      '{"cores":32, "memory":4, "disk_quota":0.25, "member_host":4, "gpu" : 128}',
     show: only_commercial,
     to_val: from_json,
     to_display: displayJson,

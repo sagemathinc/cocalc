@@ -99,7 +99,7 @@ interface QuotaBase {
   idle_timeout?: number;
   dedicated_vm?: { machine: string } | boolean;
   dedicated_disks?: DedicatedDisk[];
-  gpu?: GPU;
+  gpu?: boolean;
   pay_as_you_go?: null | {
     account_id: string;
     purchase_id: number;
@@ -148,6 +148,7 @@ export interface Upgrades {
   ephemeral_disk: number;
   ext_rw?: number;
   patch?: Patch;
+  gpu: number; // just 0 or 1, for PAYGO upgrades
 }
 
 // this is onprem specific only!
@@ -639,6 +640,11 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
     x != null ? (typeof x === "boolean" ? x : to_int(x) >= 1) : false;
   const dflt_num = (x) =>
     x != null ? (typeof x === "number" ? x : to_float(x)) : 0;
+
+  // TODO this is just a special case for now. Later, the PAYGO upgrade
+  // might encode more about the GPU (number/shares, type, etc.)
+  const gpu: boolean = dflt_false(up.gpu);
+
   return {
     network: dflt_false(up.network),
     member_host: dflt_false(up.member_host),
@@ -652,7 +658,7 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
     idle_timeout: dflt_num(up.mintime),
     dedicated_vm: false, // old schema has no dedicated_vm upgrades
     dedicated_disks: [] as DedicatedDisk[], // old schema has no dedicated_disk upgrades
-    gpu: false,
+    gpu,
     ext_rw: false,
     pay_as_you_go: null,
     patch: [],
@@ -1031,7 +1037,7 @@ export function quota_with_reasons(
   total_quota.dedicated_disks = dedicated_disks;
   if (ext_rw === true) total_quota.ext_rw = true;
   if (patch.length > 0) total_quota.patch = patch;
-  if (gpu) total_quota.gpu = gpu;
+  if (gpu) total_quota.gpu = gpu?.type === "t4"; // TODO: just a special case, for now
 
   if (pay_as_you_go != null) {
     // do this after any other processing or it would just go away, e.g., when min'ing with max's

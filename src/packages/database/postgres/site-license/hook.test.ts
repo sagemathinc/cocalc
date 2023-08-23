@@ -37,7 +37,7 @@ test("allow for much larger max_upgrades", () => {
       cpu_shares: 1024,
       mintime: 7776000,
       member_host: 1,
-      gpu: false,
+      gpu: 0,
       ephemeral_state: 1,
       ephemeral_disk: 1,
       always_running: 1,

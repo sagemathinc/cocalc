@@ -13,6 +13,7 @@ export const QUOTAS_BOOLEAN = [
   "network",
   "always_running",
   "ext_rw",
+  "gpu",
 ] as const;
 
 export const SHOW_MAX: readonly string[] = [

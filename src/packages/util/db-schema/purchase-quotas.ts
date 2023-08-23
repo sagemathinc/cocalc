@@ -52,24 +52,11 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: "#00238b",
     noSet: true,
   },
-};
+} as const;
 
-// For pay-as-you-go project quota upgrades
-export interface ProjectQuota {
-  cost?: number; // dollars per hour
-  enabled?: number;
-  cores?: number;
-  disk_quota?: number;
-  memory?: number;
-  mintime?: number;
-  network?: number;
-  member_host?: number;
-  always_running?: number;
-}
-
-export const PROJECT_QUOTA_KEYS = new Set<string>([
+export const PROJECT_QUOTA_KEYS = [
+  "cost", // value: dollars per hour
   "enabled",
-  "cost",
   "cores",
   "disk_quota",
   "memory",
@@ -77,7 +64,17 @@ export const PROJECT_QUOTA_KEYS = new Set<string>([
   "network",
   "member_host",
   "always_running",
-]);
+  "gpu",
+] as const;
+
+type ProjectQuotaKey = (typeof PROJECT_QUOTA_KEYS)[number];
+
+// For pay-as-you-go project quota upgrades
+export type ProjectQuota = Partial<Record<ProjectQuotaKey, number>>;
+
+export function isProjectQuotaKey(key: string): key is ProjectQuotaKey {
+  return PROJECT_QUOTA_KEYS.includes(key as any);
+}
 
 export function serviceToDisplay(service: Service): string {
   return QUOTA_SPEC[service]?.display ?? service;

@@ -134,11 +134,16 @@ export class PurchasesClient {
     return await purchasesApi.getPayAsYouGoMaxProjectQuotas();
   }
 
+  async areGPUsAvailableForPAYGO(): Promise<boolean> {
+    return await purchasesApi.areGPUsAvailableForPAYGO();
+  }
+
   async getPayAsYouGoPricesProjectQuotas(): Promise<{
     cores: number;
     disk_quota: number;
     memory: number;
     member_host: number;
+    gpu: number;
   }> {
     return await purchasesApi.getPayAsYouGoPricesProjectQuotas();
   }

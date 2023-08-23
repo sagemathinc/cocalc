@@ -232,11 +232,22 @@ export async function getPayAsYouGoMaxProjectQuotas(): Promise<ProjectQuota> {
   return m;
 }
 
+export async function areGPUsAvailableForPAYGO(): Promise<boolean> {
+  const key = "areGPUsAvailableForPAYGO";
+  if (cache.has(key)) {
+    return cache.get(key)!;
+  }
+  const m = await api("purchases/are-gpus-available-for-paygo");
+  cache.set(key, m);
+  return m;
+}
+
 export async function getPayAsYouGoPricesProjectQuotas(): Promise<{
   cores: number;
   disk_quota: number;
   memory: number;
   member_host: number;
+  gpu: number;
 }> {
   const key = "getPayAsYouGoPricesProjectQuotas";
   if (cache.has(key)) {

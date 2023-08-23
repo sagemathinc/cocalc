@@ -52,6 +52,11 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
     savedQuotaState
   );
 
+  const isGPUUpgradeSelected = useMemo(
+    () => quotaState?.gpu === 1,
+    [quotaState?.gpu]
+  );
+
   const runningWithUpgrade = useMemo(() => {
     return (
       project?.getIn(["state", "state"]) == "running" &&
@@ -61,6 +66,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   }, [project]);
 
   const [maxQuotas, setMaxQuotas] = useState<ProjectQuota | null>(null);
+  const [gpuAvailable, setGpuAvailable] = useState<boolean | null>(null);
   const [error, setError] = useState<string>("");
   const [status, setStatus] = useState<string>("");
 
@@ -70,6 +76,9 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
         setStatus("Loading quotas...");
         setMaxQuotas(
           await webapp_client.purchases_client.getPayAsYouGoMaxProjectQuotas()
+        );
+        setGpuAvailable(
+          await webapp_client.purchases_client.areGPUsAvailableForPAYGO()
         );
       } catch (err) {
         setError(`${err}`);
@@ -396,16 +405,23 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           </div>
           {PROJECT_UPGRADES.field_order
             .filter((name) => !EXCLUDE.has(name))
-            .map((name) => (
-              <QuotaRow
-                key={name}
-                name={name}
-                quotaState={quotaState}
-                setQuotaState={setQuotaState}
-                maxQuotas={maxQuotas}
-                disabled={runningWithUpgrade}
-              />
-            ))}
+            .map((name) => {
+              const disabled =
+                runningWithUpgrade ||
+                (name === "gpu" && gpuAvailable !== true) ||
+                (name !== "gpu" && isGPUUpgradeSelected);
+
+              return (
+                <QuotaRow
+                  key={name}
+                  name={name}
+                  quotaState={quotaState}
+                  setQuotaState={setQuotaState}
+                  maxQuotas={maxQuotas}
+                  disabled={disabled}
+                />
+              );
+            })}
         </>
       )}
     </Card>
