@@ -17,7 +17,7 @@ export default async function handle(req, res) {
 
 async function get(req) {
   const account_id = await getAccountId(req);
-  if (account_id == null) {
+  if (!account_id) {
     throw Error("must be signed in");
   }
   const {
