@@ -119,7 +119,8 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_openai_markup_percentage"
   | "pay_as_you_go_max_project_upgrades"
   | "pay_as_you_go_price_project_upgrades"
-  | "subscription_maintenance";
+  | "subscription_maintenance"
+  | "gpus_available";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
 
@@ -495,5 +496,13 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     to_val: toFloat,
     valid: onlyNonnegFloat,
+  },
+  gpus_available: {
+    name: "GPUs Available",
+    desc: "Set this to true, in order to allow PAYGO upgrades to select a GPU. The value is queried directly via the API, see areGPUsAvailableForPAYGO()",
+    default: "false",
+    show: only_commercial,
+    to_val: to_bool,
+    valid: only_booleans,
   },
 } as const;

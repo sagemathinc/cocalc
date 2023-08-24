@@ -2553,7 +2553,7 @@ describe("test pay-you-go-quota inclusion", () => {
 });
 
 describe("Test GPU", () => {
-  it("extract GPU info + upgrades", () => {
+  it("extract GPU info + upgrades from a license", () => {
     const l1: SiteLicense = {
       id: "1234-gpu",
       quota: {
@@ -2576,12 +2576,56 @@ describe("Test GPU", () => {
       dedicated_disks: [],
       dedicated_vm: false,
       disk_quota: 10000,
-      gpu: true,
+      gpu: { type: "t4" },
       idle_timeout: 7200,
       member_host: true,
       memory_limit: 5000,
       memory_request: 300,
       network: true,
+      privileged: false,
+    });
+  });
+
+  it("extacts GPU from a PAYGO upgrade", () => {
+    const q1 = {
+      memory: 4000,
+      cores: 1,
+      mintime: 3600,
+      disk_quota: 10000,
+      network: 1,
+      always_running: 1,
+      member_host: 1,
+      gpu: 1,
+    } as const;
+
+    const z = quota(
+      { memory: 8000 },
+      {},
+      {},
+      {},
+      {
+        quota: q1,
+        account_id: "752be8c3-ff74-41d8-ad1c-b2fb92c3e7eb",
+      }
+    );
+
+    expect(z).toStrictEqual({
+      always_running: true,
+      cpu_limit: 1,
+      cpu_request: 0.05,
+      dedicated_disks: [],
+      dedicated_vm: false,
+      gpu: { type: "t4" },
+      disk_quota: 10000,
+      idle_timeout: 3600,
+      member_host: true,
+      memory_limit: 8000,
+      memory_request: 300,
+      network: true,
+      pay_as_you_go: {
+        account_id: "752be8c3-ff74-41d8-ad1c-b2fb92c3e7eb",
+        quota: q1,
+      },
       privileged: false,
     });
   });

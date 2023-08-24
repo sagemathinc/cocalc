@@ -48,11 +48,11 @@ function ConfirmGPU({
     >
       <Paragraph>
         This pay-as-you-go upgrade will run your project on a machine with a
-        shared NVIDIA T4 GPU. The quota parameters for this project are fixed.
+        shared NVIDIA T4 GPU. The quota parameters can't be configured (yet).
         The GPU might not always be available. Additionally, the project will
         run in a different software environment, which is tailored to run
-        scientific software on such a GPU. (Once this PAYG-upgrade is disabled,
-        your project moves back to the usual stack of software.)
+        scientific software on such a GPU. Once the PAYG-upgrade is disabled,
+        your project moves back to the usual stack of software.
       </Paragraph>
       <Paragraph>
         This is an experimental new feature, and we are still working out the
@@ -122,6 +122,13 @@ export default function EditQuota({
       return (
         <Checkbox key={name} disabled style={{ marginLeft: 0 }}>
           Not supported
+        </Checkbox>
+      );
+    }
+    if (name === "gpu" && disabled) {
+      return (
+        <Checkbox key={name} disabled style={{ marginLeft: 0 }}>
+          Not available
         </Checkbox>
       );
     }

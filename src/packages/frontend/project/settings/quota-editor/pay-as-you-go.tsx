@@ -37,6 +37,7 @@ interface Props {
 
 export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   const project = useRedux(["projects", "project_map", project_id]);
+  const [gpuAvailable, setGpuAvailable] = useState<boolean | null>(null);
 
   // Slightly subtle -- it's null if not loaded but {} or the thing if loaded, even
   // if there is no data yet in the database.
@@ -48,13 +49,21 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           ?.toJS() ?? {};
   const [editing, setEditing] = useState<boolean>(false);
   // one we are editing:
-  const [quotaState, setQuotaState] = useState<ProjectQuota | null>(
+  const [quotaState, setQuotaState0] = useState<ProjectQuota | null>(
     savedQuotaState
   );
 
+  function setQuotaState(state: ProjectQuota | null) {
+    // if gpuAvailable is false, then we can't set the gpu quota
+    if (state?.gpu === 1 && gpuAvailable === false) {
+      state = { ...state, gpu: 0 };
+    }
+    setQuotaState0(state);
+  }
+
   const isGPUUpgradeSelected = useMemo(
-    () => quotaState?.gpu === 1,
-    [quotaState?.gpu]
+    () => quotaState?.gpu === 1 && gpuAvailable === true,
+    [quotaState?.gpu, gpuAvailable]
   );
 
   const runningWithUpgrade = useMemo(() => {
@@ -66,7 +75,6 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   }, [project]);
 
   const [maxQuotas, setMaxQuotas] = useState<ProjectQuota | null>(null);
-  const [gpuAvailable, setGpuAvailable] = useState<boolean | null>(null);
   const [error, setError] = useState<string>("");
   const [status, setStatus] = useState<string>("");
 
@@ -93,6 +101,13 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       setQuotaState(savedQuotaState);
     }
   }, [editing]);
+
+  useEffect(() => {
+    // just a double-check, to avoid race conditions
+    if (gpuAvailable === false) {
+      setQuotaState({ ...quotaState, gpu: 0 });
+    }
+  }, [gpuAvailable]);
 
   async function handleClose() {
     track({ action: "close", project_id });

@@ -99,7 +99,7 @@ interface QuotaBase {
   idle_timeout?: number;
   dedicated_vm?: { machine: string } | boolean;
   dedicated_disks?: DedicatedDisk[];
-  gpu?: boolean;
+  gpu?: GPU; // manage service expects nothing or a GPU config object
   pay_as_you_go?: null | {
     account_id: string;
     purchase_id: number;
@@ -643,7 +643,8 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
 
   // TODO this is just a special case for now. Later, the PAYGO upgrade
   // might encode more about the GPU (number/shares, type, etc.)
-  const gpu: boolean = dflt_false(up.gpu);
+  const gpu: GPU =
+    typeof up.gpu === "number" && up.gpu >= 1 ? { type: "t4" } : false;
 
   return {
     network: dflt_false(up.network),
@@ -708,7 +709,15 @@ function sum_quotas(...quotas: RQuota[]): RQuota {
 function op_quotas(q1: RQuota, q2: RQuota, op: "min" | "max"): RQuota {
   const q: Quota = {};
   for (const [k, v] of Object.entries(ZERO_QUOTA)) {
-    if (typeof v === "boolean") {
+    if (k === "gpu") {
+      if (op === "min") {
+        // if q1[k] or q2[k] is false, set q[k] to false
+        q[k] = q1[k] === false || q2[k] === false ? false : { type: "t4" };
+      } else if (op === "max") {
+        // if q1[k] or q2[k] is true-ish, set it to the GPU object
+        q[k] = !!q1[k] || !!q2[k] ? { type: "t4" } : false;
+      }
+    } else if (typeof v === "boolean") {
       q[k] = op === "min" ? q1[k] && q2[k] : q1[k] || q2[k];
     } else if (typeof v === "number") {
       const f = op === "min" ? Math.min : Math.max;
@@ -823,6 +832,7 @@ function quota_v2(opts: OptsV2): Quota {
     site_licenses = {},
     site_settings = {},
   } = opts;
+
   // limit the default quota by max upgrades
   quota = min_quotas(quota, max_upgrades);
 
@@ -1037,7 +1047,8 @@ export function quota_with_reasons(
   total_quota.dedicated_disks = dedicated_disks;
   if (ext_rw === true) total_quota.ext_rw = true;
   if (patch.length > 0) total_quota.patch = patch;
-  if (gpu) total_quota.gpu = gpu?.type === "t4"; // TODO: just a special case, for now
+  // combines either an upgrade via a license or via PAYGO
+  if (!!gpu || !!quota.gpu) total_quota.gpu = { type: "t4" };
 
   if (pay_as_you_go != null) {
     // do this after any other processing or it would just go away, e.g., when min'ing with max's

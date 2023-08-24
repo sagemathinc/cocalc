@@ -6,14 +6,23 @@
 // This is for selecting the "standard" compute images Ubuntu XX.YY, etc.
 
 import { DownOutlined } from "@ant-design/icons";
-import { Button, Dropdown, MenuProps, Col, Row } from "antd";
+import { Button, Col, Dropdown, MenuProps, Row } from "antd";
 import { fromJS } from "immutable";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Gap, Text } from "@cocalc/frontend/components";
+import {
+  A,
+  Gap,
+  Icon,
+  Loading,
+  Paragraph,
+  Text,
+} from "@cocalc/frontend/components";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../context";
+import { useRunQuota } from "./run-quota/hooks";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -47,6 +56,9 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   props: ComputeImageSelectorProps
 ) => {
   const { selected_image, onFocus, onBlur, onSelect, layout } = props;
+
+  const { project_id } = useProjectContext();
+  const runQuota = useRunQuota(project_id, null);
 
   const software_envs: SoftwareEnvironments | null = useTypedRedux(
     "customize",
@@ -166,11 +178,28 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
     );
   }
 
-  switch (layout) {
-    case "vertical":
-      // used in project settings → project control
+  function renderGPUImage() {
+    return (
+      <>
+        <Paragraph>
+          Project runs on a GPU. The software environment is tailored to work
+          with that GPU and is not configurable (yet). Install additional
+          software libraries using the terminal. Notes: see for example{" "}
+          <A href={"https://doc.cocalc.com/howto/install-python-lib.html"}>
+            installing Python packages
+          </A>
+          .
+        </Paragraph>
+      </>
+    );
+  }
+
+  function renderVertical() {
+    if (runQuota?.gpu) {
+      return renderGPUImage();
+    } else {
       return (
-        <Row gutter={[10, 10]} style={{ marginRight: 0, marginLeft: 0 }}>
+        <>
           <Col xs={24}>
             <Icon name={"hdd"} style={{ marginTop: "5px" }} />
             <Gap />
@@ -184,12 +213,17 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
           <Col xs={24} style={{ marginRight: 0, marginLeft: 0 }}>
             {render_info(true)}
           </Col>
-        </Row>
+        </>
       );
-    case "horizontal":
-      // used in projects → create new project
+    }
+  }
+
+  function renderHorizontal() {
+    if (runQuota?.gpu) {
+      return renderGPUImage();
+    } else {
       return (
-        <Row gutter={[10, 10]}>
+        <>
           <Col xs={24}>
             <Icon name={"hdd"} />
             <Gap />
@@ -199,8 +233,18 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
             <Gap />
             <span>{render_info(false)}</span>
           </Col>
-        </Row>
+        </>
       );
+    }
+  }
+
+  switch (layout) {
+    case "vertical":
+      <Row gutter={[10, 10]} style={{ marginRight: 0, marginLeft: 0 }}>
+        {renderVertical()}
+      </Row>;
+    case "horizontal":
+      return <Row gutter={[10, 10]}>{renderHorizontal()}</Row>;
     default:
       unreachable(layout);
       return null;

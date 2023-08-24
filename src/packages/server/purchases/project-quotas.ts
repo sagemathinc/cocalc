@@ -25,7 +25,9 @@ import getMinBalance from "./get-min-balance";
 const logger = getLogger("purchases:project-quota");
 
 export async function areGPUsAvailableForPAYGO(): Promise<boolean> {
-  return true;
+  // TODO: this should dynamically change based on availibility of GPUs
+  const { gpus_available } = await getServerSettings();
+  return gpus_available;
 }
 
 export async function getMaxQuotas() {
