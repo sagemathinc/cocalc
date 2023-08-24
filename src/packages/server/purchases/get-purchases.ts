@@ -36,15 +36,20 @@ export default async function getPurchases({
     throw Error(`limit must be specified and at most ${MAX_API_LIMIT}`);
   }
   const pool = getPool(noCache ? undefined : "medium");
+  const params: any[] = [];
   let query;
   if (group) {
     query =
-      "SELECT SUM(cost), service, project_id, CAST(COUNT(*) AS INTEGER) AS count FROM purchases WHERE account_id=$1";
+      "SELECT SUM(cost), service, project_id, CAST(COUNT(*) AS INTEGER) AS count FROM purchases";
   } else {
     query =
-      "SELECT id, time, cost, period_start, period_end, cost_per_hour, service, description, invoice_id, project_id, pending, notes FROM purchases WHERE account_id=$1";
+      "SELECT id, time, cost, period_start, period_end, cost_per_hour, service, description, invoice_id, project_id, pending, notes FROM purchases";
   }
-  const params: any[] = [account_id];
+  if (account_id) {
+    // account_id is not specified in one case -- admin using api to get all transactions.
+    query += " WHERE account_id=$1";
+    params.push(account_id);
+  }
   if (service != null) {
     params.push(service);
     query += ` AND service=$${params.length}`;
@@ -89,7 +94,6 @@ export default async function getPurchases({
       }
     }
   }
-
   const { rows } = await pool.query(query, params);
   return rows as unknown as Purchase[];
 }
