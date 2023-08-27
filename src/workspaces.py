@@ -110,7 +110,7 @@ def all_packages() -> List[str]:
         'packages/backend',
         'packages/api-client',
         'packages/jupyter',
-        'packages/compute',
+        #'packages/compute', # depends on libfuse so don't build by default
         'packages/project',  # frontend depends on project (and project on frontend!) right now...
         'packages/assets',
         'packages/frontend',  # static depends on frontend
@@ -120,6 +120,9 @@ def all_packages() -> List[str]:
         'packages/database',  # packages/next also assumes this is built
     ]
     for x in os.listdir('packages'):
+        if x == 'compute':
+            # see note above
+            continue
         path = os.path.join("packages", x)
         if path not in v and os.path.isdir(path) and os.path.exists(
                 os.path.join(path, 'package.json')):
