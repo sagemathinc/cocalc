@@ -95,6 +95,7 @@ describe("creates an account, then creates statements and corresponding emails a
       account_id,
       statement_id: statements[0].id,
       dryRun: true,
+      force: true,
     });
     expect(subject).toMatch("Monthly Statement");
     expect(text).toMatch(
@@ -128,6 +129,7 @@ describe("creates an account, then creates statements and corresponding emails a
       account_id,
       statement_id: statements[0].id,
       dryRun: true,
+      force: true,
     });
     expect(text).toMatch("No payment is currently required.");
   });
@@ -153,6 +155,7 @@ describe("creates an account, then creates statements and corresponding emails a
       account_id,
       statement_id: statements[0].id,
       dryRun: true,
+      force: true,
     });
     expect(text).toMatch("Payment required.");
   });
