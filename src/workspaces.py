@@ -120,8 +120,9 @@ def all_packages() -> List[str]:
         'packages/database',  # packages/next also assumes this is built
     ]
     for x in os.listdir('packages'):
-        if x == 'compute':
+        if x.endswith('compute'):
             # see note above
+            print("skipping ", x)
             continue
         path = os.path.join("packages", x)
         if path not in v and os.path.isdir(path) and os.path.exists(
@@ -265,10 +266,9 @@ def build(args) -> None:
         package_path = os.path.join(CUR, path)
         if args.dev and '"build-dev"' in open(
                 os.path.join(CUR, path, 'package.json')).read():
-            cmd("pnpm run --filter '!packages/compute' build-dev",
-                package_path)
+            cmd("pnpm run build-dev", package_path)
         else:
-            cmd("pnpm run --filter '!packages/compute' build", package_path)
+            cmd("pnpm run build", package_path)
         # The build succeeded, so touch a file
         # to indicate this, so we won't build again
         # until something is newer than this file
