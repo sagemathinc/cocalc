@@ -11,6 +11,7 @@ import { createStatements } from "./create-statements";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import getStatements from "./get-statements";
+import { setClosingDay } from "../closing-date";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -76,5 +77,79 @@ describe("creates an account, then creates statements and corresponding emails a
       dryRun: true,
       force: true,
     });
+  });
+
+  it("Statement balance is not negative -- makes a monthly statement, which doesn't ask the user to make a payment since balance isn't low", async () => {
+    // we won't get a statement if our closing date isn't today!
+    await setClosingDay(account_id, new Date().getDate());
+    await createStatements({
+      time: new Date(Date.now() - 1),
+      interval: "month",
+    });
+    const statements = await getStatements({
+      account_id,
+      limit: 1,
+      interval: "month",
+    });
+    const { text, subject } = await emailStatement({
+      account_id,
+      statement_id: statements[0].id,
+      dryRun: true,
+    });
+    expect(subject).toMatch("Monthly Statement");
+    expect(text).toMatch("Statement balance is not negative, so no payment is required.");
+  });
+
+  it("No payment is currently required. -- it sets min balance and makes a purchase that puts the balance below 0 but above the thresh to 'demand' payment.", async () => {
+    const pool = getPool();
+    await pool.query("UPDATE accounts SET min_balance=$1 WHERE account_id=$2", [
+      -10,
+      account_id,
+    ]);
+    await createPurchase({
+      account_id,
+      service: "license",
+      client: null,
+      cost: 11,
+    });
+    await createStatements({
+      time: new Date(Date.now() - 1),
+      interval: "month",
+    });
+    const statements = await getStatements({
+      account_id,
+      limit: 1,
+      interval: "month",
+    });
+    const { text } = await emailStatement({
+      account_id,
+      statement_id: statements[0].id,
+      dryRun: true,
+    });
+    expect(text).toMatch("No payment is currently required.");
+  });
+
+  it("Payment required -- makes a bigger purchase, then creates a monthly statement, which explicitly asks the user to make a payment", async () => {
+    await createPurchase({
+      account_id,
+      service: "license",
+      client: null,
+      cost: 12,
+    });
+    await createStatements({
+      time: new Date(Date.now() - 1),
+      interval: "month",
+    });
+    const statements = await getStatements({
+      account_id,
+      limit: 1,
+      interval: "month",
+    });
+    const { text } = await emailStatement({
+      account_id,
+      statement_id: statements[0].id,
+      dryRun: true,
+    });
+    expect(text).toMatch("Payment required.");
   });
 });

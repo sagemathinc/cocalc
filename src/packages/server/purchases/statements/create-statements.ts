@@ -31,7 +31,7 @@ function mostRecentMidnight(): Date {
 }
 
 /*
-createStatements -  Create the given type of statements for the given 
+createStatements -  Create the given type of statements for the given
 cutoff time and interval.
 
 It should be safe to call this multiple times with the same input
@@ -69,14 +69,14 @@ export async function createStatements({
     logger.debug(
       "createStatements",
       { time, interval },
-      "called within 4 hours, so no-op"
+      "called within 4 hours, so no-op",
     );
     return;
   } else {
     logger.debug(
       "createStatements",
       { time, interval },
-      "not called recently, so ensuring all statements exist and are up to date"
+      "not called recently, so ensuring all statements exist and are up to date",
     );
   }
   lastCalled.set(key, true);
@@ -104,7 +104,7 @@ export async function createStatements({
       { time, interval },
       " got purchases for ",
       accounts.size,
-      " distinct accounts"
+      " distinct accounts",
     );
     const statements: Omit<Omit<Omit<Statement, "id">, "interval">, "time">[] =
       [];
@@ -134,7 +134,7 @@ export async function createStatements({
         { time, interval },
         " inserting ",
         statements.length,
-        " statements into database"
+        " statements into database",
       );
       const { query, values } = multiInsert(
         "INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits) ",
@@ -155,18 +155,18 @@ export async function createStatements({
             num_charges,
             total_credits,
             num_credits,
-          ]
-        )
+          ],
+        ),
       );
       const { rows } = await client.query(
         query + " RETURNING id, account_id",
-        values
+        values,
       );
       // Finally, set the statement id's for all the purchases.
       for (const { account_id, id } of rows) {
         await client.query(
           `UPDATE purchases SET ${interval}_statement_id=$1 WHERE account_id=$2 AND ${interval}_statement_id IS NULL AND cost IS NOT NULL AND time<=$3`,
-          [id, account_id, time]
+          [id, account_id, time],
         );
       }
     }
@@ -183,7 +183,7 @@ export async function createStatements({
 function getQuery(
   time: Date,
   interval: Interval,
-  type: "charges" | "credits"
+  type: "charges" | "credits",
 ): string {
   if (interval == "day") {
     return `SELECT account_id, SUM(cost) AS total_${type}, count(*) AS num_${type} FROM purchases WHERE cost IS NOT NULL AND ${interval}_statement_id IS NULL AND time <= $1 AND cost ${
@@ -206,7 +206,7 @@ async function getData(
   time: Date,
   pool,
   interval: Interval,
-  type: "charges" | "credits"
+  type: "charges" | "credits",
 ) {
   const query = getQuery(time, interval, type);
   const { rows } = await pool.query(query, [time]);
@@ -236,11 +236,11 @@ function toAccountMap(rows) {
 async function getPreviousStatementBalance(
   account_id: string,
   pool,
-  interval: Interval
+  interval: Interval,
 ): Promise<number> {
   const { rows } = await pool.query(
     "SELECT balance FROM statements WHERE interval=$1 AND account_id=$2 ORDER BY id DESC limit 1",
-    [interval, account_id]
+    [interval, account_id],
   );
   return rows[0]?.balance ?? 0;
 }
