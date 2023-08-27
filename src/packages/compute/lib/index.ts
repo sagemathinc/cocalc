@@ -1,19 +1,5 @@
-import SyncClient from "@cocalc/sync-client";
-import { SyncDB } from "@cocalc/sync/editor/db";
+export { mountProject } from "./filesystem";
 
-export function tasks({
-  project_id,
-  path,
-}: {
-  project_id: string;
-  path: string;
-}): SyncDB {
-  const c = new SyncClient();
-  const s = c.sync_client.sync_db({
-    project_id,
-    path,
-    primary_keys: ["task_id"],
-    string_cols: ["desc"],
-  });
-  return s;
-}
+export { tasks } from "./tasks";
+
+export { jupyter } from "../jupyter";

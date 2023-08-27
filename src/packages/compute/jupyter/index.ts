@@ -6,18 +6,23 @@ import getLogger from "@cocalc/backend/logger";
 import { COMPUTE_THRESH_MS } from "@cocalc/jupyter/redux/project-actions";
 import { project } from "@cocalc/api-client";
 
-const logger = getLogger("compute");
+const logger = getLogger("compute:jupyter");
 
 // path should be something like "foo/bar.ipynb"
 export async function jupyter({
   project_id,
   path,
+  cwd,
 }: {
   project_id: string;
   path: string;
+  cwd?: string;
 }) {
   const log = (...args) => logger.debug(path, ...args);
   log();
+  if (cwd != null) {
+    process.chdir(cwd);
+  }
   const syncdb_path = meta_file(path, "jupyter2");
   const client = new SyncClient();
 

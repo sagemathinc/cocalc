@@ -60,6 +60,7 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
       dbg,
     });
   } catch (err) {
+    dbg(`api_key=${api_key}`);
     dbg("error trying to determine access; denying for now", err);
     access = false;
   }
@@ -117,7 +118,7 @@ async function checkForAccess({
   }
 
   throw Error(
-    "you must authenticate with either an api_key or remember_me cookie, but neither is set"
+    "you must authenticate with either an api_key or remember_me cookie, but neither is set",
   );
 }
 

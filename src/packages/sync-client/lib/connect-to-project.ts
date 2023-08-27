@@ -29,6 +29,7 @@ export default async function connectToProject(
     plugin: { responder, multiplex },
   } as const;
   const Socket = Primus.createSocket(opts);
+  log("API_COOKIE_NAME = ", API_COOKIE_NAME);
   const Cookie = toCookieHeader({
     ...versionCookie(),
     [API_COOKIE_NAME]: apiKey,
