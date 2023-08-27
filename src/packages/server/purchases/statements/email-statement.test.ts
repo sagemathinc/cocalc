@@ -97,7 +97,9 @@ describe("creates an account, then creates statements and corresponding emails a
       dryRun: true,
     });
     expect(subject).toMatch("Monthly Statement");
-    expect(text).toMatch("Statement balance is not negative, so no payment is required.");
+    expect(text).toMatch(
+      "Statement balance is not negative, so no payment is required.",
+    );
   });
 
   it("No payment is currently required. -- it sets min balance and makes a purchase that puts the balance below 0 but above the thresh to 'demand' payment.", async () => {
@@ -109,6 +111,7 @@ describe("creates an account, then creates statements and corresponding emails a
     await createPurchase({
       account_id,
       service: "license",
+      description: {} as any,
       client: null,
       cost: 11,
     });
@@ -133,6 +136,7 @@ describe("creates an account, then creates statements and corresponding emails a
     await createPurchase({
       account_id,
       service: "license",
+      description: {} as any,
       client: null,
       cost: 12,
     });
