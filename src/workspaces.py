@@ -110,7 +110,6 @@ def all_packages() -> List[str]:
         'packages/backend',
         'packages/api-client',
         'packages/jupyter',
-        #'packages/compute', # depends on libfuse so don't build by default
         'packages/project',  # frontend depends on project (and project on frontend!) right now...
         'packages/assets',
         'packages/frontend',  # static depends on frontend
@@ -118,6 +117,10 @@ def all_packages() -> List[str]:
         'packages/hub',
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes this is built
+
+        # We do NOT build packages/compute, since it indirectly depends on libfuse,
+        # and is not needed in most applications of cocalc.
+        #'packages/compute',
     ]
     for x in os.listdir('packages'):
         if x.endswith('compute'):
@@ -238,11 +241,12 @@ def banner(s: str) -> None:
 def install(args) -> None:
     v = packages(args)
     if v == all_packages():
+        print("install all packages -- fast special case")
         # much faster special case
-        cmd("cd packages && pnpm -r install")
+        cmd("cd packages && pnpm install")
         return
 
-    # First do "pnpm i" not in parallel
+    # Do "pnpm i" not in parallel
     for path in v:
         # filtering "There are cyclic workspace dependencies" since we know and it doesn't seem to be a problem for us.
         # TODO: but can they be removed?

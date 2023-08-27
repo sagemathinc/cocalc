@@ -6,6 +6,18 @@ The minimal goal of this package is to connect from a nodejs process to a cocalc
 
 Concern: I want this package to remain lightweight if at all possible, so it's fast to install and uses little space. Also, we eventually plan to run a variant of it in a web browser, which is another reason to keep it small. On the other hand, to offer a really useful Jupyter kernel environment, this will probably be part of a big Docker container or something...
 
+## Build
+
+Note that this is not built as part of the rest of cocalc and this directory is not one of the
+workspace packages. This is intentional, since the websocketfs dependency dependson libfuse support
+on the host machine, which can be a pain to build, and we don't need @cocalc/compute for running
+most of cocalc. In any case, after building cocalc, you can install deps and build this via
+this in the current directory:
+
+```sh
+pnpm make
+```
+
 ## Examples of where to run this
 
 - A powerful computer \(possibly with a GPU?\) and a Jupyter kernel installed
@@ -48,19 +60,20 @@ running this code in nodejs after setting all of the above environment variables
 await require("@cocalc/compute").mountProject({
   project_id: process.env.PROJECT_ID,
   path: "/tmp/project",
-}); 0;
+});
+0;
 ```
 
 ### Jupyter
 
 You should open the notebook Untitled.ipynb on [cocalc.com](http://cocalc.com).
-Then set all the above env variables in another terminal and run the following code in node.js.  **Running of that Jupyter notebook will then switch to your local machine.**
+Then set all the above env variables in another terminal and run the following code in node.js. **Running of that Jupyter notebook will then switch to your local machine.**
 
 ```js
 await require("@cocalc/compute").jupyter({
   project_id: process.env.PROJECT_ID,
   path: "Untitled.ipynb",
   cwd: "/tmp/project",
-}); 0;
+});
+0;
 ```
-
