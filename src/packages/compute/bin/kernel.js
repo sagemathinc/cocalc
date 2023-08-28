@@ -25,6 +25,9 @@ async function main() {
 
   const exitHandler = async () => {
     console.log("cleaning up...");
+    process.removeListener("exit", exitHandler);
+    process.removeListener("SIGINT", exitHandler);
+    process.removeListener("SIGTERM", exitHandler);
     await unmount?.();
     await tmpDir?.cleanup();
     process.exit();
