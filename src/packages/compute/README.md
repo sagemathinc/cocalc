@@ -36,22 +36,48 @@ This is currently an unfinished work in progress. We will focus mostly on the po
 
 We are also focusing initially on a single Jupyter notebook. However, this could also be useful for terminals and many other things.
 
-## Example
+## Try It Out
 
-Create an API*KEY in \_project settings*, where the api key is specific to the project you want to connect to.
+Define the following three environment variables:
+
+```sh
+export API_KEY="sk-xxxxxxxxxxxxxxxxxxxx"
+export PROJECT_ID="10f0e544-313c-4efe-8718-2142ac97ad11"
+export IPYNB_PATH="Untitled.ipynb"
+```
+
+- `API_KEY` -- You make this in project settings. It is specific to the project you want to connect to on https://cocalc.com:
+- `PROJECT_ID` -- The project id is in the URL or project settings
+- `IPYNB_PATH` -- The IPYNB_PATH is the path of a Jupyter notebook. You should have that notebook open in your browser.
+
+After setting the above variables, you can FUSE WebSocketFS mount the
+home directory of the project and switch to using your compute for
+that kernel as follows:
+
+```sh
+cd /cocalc/src/packages/compute
+node ./bin/kernel.js
+```
+
+### Tweaks
+
+Do this if you want to see VERY verbose logs:
+```sh
+export DEBUG=*
+export DEBUG_CONSOLE=yes
+```
+
+If you're using a different server, these could be relevant:
 
 ```sh
 export BASE_PATH="/"
-export API_KEY="sk-xxxxxxxxxxxxxxxxxxxx"
 export API_SERVER="https://cocalc.com"
 export API_BASE_PATH="/"
-export PROJECT_ID="10f0e544-313c-4efe-8718-2142ac97ad11"
-export DEBUG=cocalc:*
-export DEBUG_CONSOLE=yes
-
 ```
 
-### Mounting the project home directory
+
+
+### Mounting just the project home directory
 
 Mount the project's HOME directory at /tmp/project by
 running this code in nodejs after setting all of the above environment variables.
