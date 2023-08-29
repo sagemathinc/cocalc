@@ -39,6 +39,7 @@ smc=# \d accounts
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { collectPayment } from "./stripe-usage-based-subscription";
+import { getServerSettings } from "@cocalc/server/settings";
 
 const logger = getLogger("purchase:maintain-automatic-payments");
 
@@ -85,6 +86,8 @@ WHERE
 `;
 
 export default async function maintainAutomaticPayments() {
+  const { pay_as_you_go_min_payment } = await getServerSettings();
+
   const pool = getPool();
   const { rows } = await pool.query(QUERY);
   logger.debug("Got ", rows.length, " statements to automatically pay");
@@ -95,7 +98,7 @@ export default async function maintainAutomaticPayments() {
       " with balance ",
       balance,
       " from ",
-      time
+      time,
     );
     try {
       // disabling this since it seems potentially very confusing:
@@ -116,14 +119,14 @@ export default async function maintainAutomaticPayments() {
       // This only means there was an actual payment attempt if the balance was negative.
       await pool.query(
         "UPDATE statements SET automatic_payment=NOW() WHERE id=$1",
-        [statement_id]
+        [statement_id],
       );
-      if (balance < 0) {
+      if (balance < 0 && Math.abs(balance) >= pay_as_you_go_min_payment) {
         logger.debug(
           "Since balance ",
           balance,
-          " is negative, will try to collect",
-          balance
+          " is negative and at least the minimum payment thresh, will try to collect automatically",
+          balance,
         );
 
         // Now make the attempt.  This might work quickly, it might take a day, it might
