@@ -81,7 +81,7 @@
     "csv-parse": "^5.3.6",
     "csv-stringify": "^6.3.0",
     "d3": "^3.5.6",
-    "darkreader": "4.9.58",
+    "darkreader": "4.9.35",
     "dayjs": "^1.11.7",
     "debug": "^4.3.2",
     "direction": "^1.0.4",
