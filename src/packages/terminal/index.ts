@@ -15,6 +15,7 @@ import { envForSpawn } from "@cocalc/backend/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { console_init_filename, len, path_split } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/backend/logger";
+import { getCWD } from "./lib/util";
 
 const logger = getLogger("terminal");
 
@@ -45,6 +46,8 @@ const MAX_HISTORY_LENGTH: number = 10000000;
 const TRUNCATE_THRESH_MS: number = 10000;
 const CHECK_INTERVAL_MS: number = 5000;
 
+const terminals: { [name: string]: Terminal } = {};
+
 // this is used to know which process belongs to which terminal
 export function pid2path(pid: number): string | undefined {
   for (const term of Object.values(terminals)) {
@@ -53,23 +56,6 @@ export function pid2path(pid: number): string | undefined {
     }
   }
 }
-
-function getCWD(pathHead, cwd?): string {
-  // working dir can be set explicitly, and either be an empty string or $HOME
-  if (cwd != null) {
-    const HOME = process.env.HOME ?? "/home/user";
-    if (cwd === "") {
-      return HOME;
-    } else if (cwd.startsWith("$HOME")) {
-      return cwd.replace("$HOME", HOME);
-    } else {
-      return cwd;
-    }
-  }
-  return pathHead;
-}
-
-const terminals: { [name: string]: Terminal } = {};
 
 // INPUT: primus and description of a terminal session (the path)
 // OUTPUT: the name of a websocket channel that serves that terminal session.
