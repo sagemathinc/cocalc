@@ -250,8 +250,11 @@ def install(args) -> None:
     for path in v:
         # filtering "There are cyclic workspace dependencies" since we know and it doesn't seem to be a problem for us.
         # TODO: but can they be removed?
-        cmd("pnpm install | grep -v 'There are cyclic workspace dependencies'",
-            path)
+        c = "pnpm install "
+        if args.prod:
+            c += ' --prod '
+        c += " | grep -v 'There are cyclic workspace dependencies'"  # useless
+        cmd(c, path)
 
 
 # Build all the packages that need to be built.
@@ -418,6 +421,10 @@ def main() -> None:
 
     subparser = subparsers.add_parser(
         'install', help='install node_modules deps for all packages')
+    subparser.add_argument('--prod',
+                           action="store_const",
+                           const=True,
+                           help='only install prod deps (not dev ones)')
     packages_arg(subparser)
     subparser.set_defaults(func=install)
 

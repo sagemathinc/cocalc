@@ -146,9 +146,12 @@ importers:
       cookie:
         specifier: ^0.5.0
         version: 0.5.0
+      tmp-promise:
+        specifier: ^3.0.3
+        version: 3.0.3
       websocketfs:
-        specifier: ^0.6.2
-        version: 0.6.2
+        specifier: ^0.7.0
+        version: 0.7.0
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
@@ -8115,14 +8118,14 @@ packages:
       '@npmcli/fs': 3.1.0
       fs-minipass: 3.0.3
       glob: 10.3.3
-      lru-cache: 7.14.1
+      lru-cache: 7.18.3
       minipass: 7.0.3
       minipass-collect: 1.0.2
       minipass-flush: 1.0.5
       minipass-pipeline: 1.2.4
       p-map: 4.0.0
       ssri: 10.0.5
-      tar: 6.1.13
+      tar: 6.1.15
       unique-filename: 3.0.0
     dev: false
 
@@ -14045,6 +14048,11 @@ packages:
     engines: {node: '>=12'}
     dev: false
 
+  /lru-cache@7.18.3:
+    resolution: {integrity: sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==}
+    engines: {node: '>=12'}
+    dev: false
+
   /lru-queue@0.1.0:
     resolution: {integrity: sha512-BpdYkt9EvGl8OfWHDQPISVpcl5xZthb+XPsbELj5AQXxIC8IriDZIQYjBJPEm5rS420sjZ0TLEzRcq5KdBhYrQ==}
     dependencies:
@@ -14088,7 +14096,7 @@ packages:
       http-proxy-agent: 5.0.0
       https-proxy-agent: 5.0.1
       is-lambda: 1.0.1
-      lru-cache: 7.14.1
+      lru-cache: 7.18.3
       minipass: 5.0.0
       minipass-fetch: 3.0.4
       minipass-flush: 1.0.5
@@ -14470,6 +14478,7 @@ packages:
     requiresBuild: true
     dependencies:
       yallist: 4.0.0
+    optional: true
 
   /minipass@5.0.0:
     resolution: {integrity: sha512-3FnjYuehv9k6ovOEbyOswadCDPX1piCfhV8ncmYtHOjuPwylVWsghTLo7rabjC3Rx5xD4HDx8Wm1xnMF7S5qFQ==}
@@ -14900,7 +14909,7 @@ packages:
       npmlog: 6.0.2
       rimraf: 3.0.2
       semver: 7.5.4
-      tar: 6.1.13
+      tar: 6.1.15
       which: 2.0.2
     transitivePeerDependencies:
       - supports-color
@@ -18884,6 +18893,19 @@ packages:
       minizlib: 2.1.2
       mkdirp: 1.0.4
       yallist: 4.0.0
+    optional: true
+
+  /tar@6.1.15:
+    resolution: {integrity: sha512-/zKt9UyngnxIT/EAGYuxaMYgOIJiP81ab9ZfkILq4oNLPFX50qyYmu7jRj9qeXoxmJHjGlbH0+cm2uy1WCs10A==}
+    engines: {node: '>=10'}
+    dependencies:
+      chownr: 2.0.0
+      fs-minipass: 2.1.0
+      minipass: 5.0.0
+      minizlib: 2.1.2
+      mkdirp: 1.0.4
+      yallist: 4.0.0
+    dev: false
 
   /tdigest@0.1.2:
     resolution: {integrity: sha512-+G0LLgjjo9BZX2MfdvPfH+MKLCrxlXSYec5DaPYP1fe6Iyhf0/fSmJ0bFiZ1F8BT6cGXl2LpltQptzjXKWEkKA==}
@@ -19086,11 +19108,24 @@ packages:
     resolution: {integrity: sha512-ppJZNDuKGgxzkHihX8v9v9G5f+18gzaTfrukGrq6ueg0lmH4nqVnA2IPG0AEH3jKEk2GRJCUhDoqpoiw3PHLBA==}
     dev: false
 
+  /tmp-promise@3.0.3:
+    resolution: {integrity: sha512-RwM7MoPojPxsOBYnyd2hy0bxtIlVrihNs9pj5SUvY8Zz1sQcQG2tG1hSr8PDxfgEB8RNKDhqbIlroIarSNDNsQ==}
+    dependencies:
+      tmp: 0.2.1
+    dev: false
+
   /tmp@0.0.33:
     resolution: {integrity: sha512-jRCJlojKnZ3addtTOjdIqoRuPEKBvNXcGYqzO6zWZX8KfKEpnGY5jfggJQ3EjKuu8D4bJRr0y+cYJFmYbImXGw==}
     engines: {node: '>=0.6.0'}
     dependencies:
       os-tmpdir: 1.0.2
+    dev: false
+
+  /tmp@0.2.1:
+    resolution: {integrity: sha512-76SUhtfqR2Ijn+xllcI5P1oyannHNHByD80W1q447gU3mp9G9PSpGdWmjUOHRDPiHYacIk66W7ubDTuPF3BEtQ==}
+    engines: {node: '>=8.17.0'}
+    dependencies:
+      rimraf: 3.0.2
     dev: false
 
   /tmpl@1.0.5:
@@ -20248,8 +20283,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /websocket-sftp@0.6.0:
-    resolution: {integrity: sha512-2dthYtnLlTCXWgLDIhuWzXJD3pkJUstBLkU57qe0VXZV0gWxOIUosX+xp3xRdcWvl51qL2uaLQSPtLVjGbR3gQ==}
+  /websocket-sftp@0.7.0:
+    resolution: {integrity: sha512-oI++Xti0h/vqPp1t5J7lcTltsGY0QpFxAw/OwKuKDXnPQ5nuAxGLTDMuvaKpibTUOMNLXCa7ZjBKpe+48lYxNg==}
     engines: {node: '>=0.16.0'}
     requiresBuild: true
     dependencies:
@@ -20264,8 +20299,8 @@ packages:
       - utf-8-validate
     dev: false
 
-  /websocketfs@0.6.2:
-    resolution: {integrity: sha512-HjNDo64paVWVhA50R/SEUERT/GL60/UxVKmQ8Z0hw0mHrCz5YcFjisiAZdVYLi7x6FPowr6ZUkxnayhFotcfWw==}
+  /websocketfs@0.7.0:
+    resolution: {integrity: sha512-Xxxcf5VDuYJuQFTnXDGO7zSByduyUMCjFc6dO/eAkemclJk9zPRp0E+2algLn74GTsleZ+clZ7Z2Wk9dCS4vfQ==}
     engines: {node: '>=0.16.0'}
     hasBin: true
     requiresBuild: true
@@ -20276,7 +20311,7 @@ packages:
       cookie: 0.5.0
       debug: 4.3.4
       port-get: 1.0.0
-      websocket-sftp: 0.6.0
+      websocket-sftp: 0.7.0
     transitivePeerDependencies:
       - bufferutil
       - supports-color
