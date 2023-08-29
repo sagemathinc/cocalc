@@ -7,20 +7,26 @@
 Terminal server
 */
 
-import { callback, delay } from "awaiting";
+import { delay } from "awaiting";
 import { isEqual, throttle } from "lodash";
 import { spawn } from "node-pty";
-import { readFile, writeFile } from "node:fs";
-import { readlink, realpath } from "node:fs/promises";
-
+import { readlink, realpath, readFile, writeFile } from "node:fs/promises";
 import { envForSpawn } from "@cocalc/backend/misc";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import {
-  console_init_filename,
-  len,
-  merge,
-  path_split,
-} from "@cocalc/util/misc";
+import { console_init_filename, len, path_split } from "@cocalc/util/misc";
+import { getLogger } from "@cocalc/backend/logger";
+
+const logger = getLogger("terminal");
+
+interface Options {
+  // path -- the "original" path to the terminal, not the derived "term_path"
+  path?: string;
+  command?: string;
+  args?: string[];
+  env?: { [key: string]: string };
+  // cwd -- if not set, the cwd is directory of "path"
+  cwd?: string;
+}
 
 interface Terminal {
   channel: any;
@@ -29,23 +35,15 @@ interface Terminal {
   last_truncate_time: number;
   truncating: number;
   last_exit: number;
-  options: {
-    path?: string; // this is the "original" path to the terminal, not the derived "term_path"
-    command?: string;
-    args?: string[];
-    env?: { [key: string]: string };
-    cwd?: string; // if not set, the cwd is directory of "path"
-  };
+  options: Options;
   size?: any;
   term?: any; // node-pty
 }
 
 const PREFIX = "terminal:";
-const terminals: { [name: string]: Terminal } = {};
-
 const MAX_HISTORY_LENGTH: number = 10000000;
-const truncate_thresh_ms: number = 10000;
-const check_interval_ms: number = 5000;
+const TRUNCATE_THRESH_MS: number = 10000;
+const CHECK_INTERVAL_MS: number = 5000;
 
 // this is used to know which process belongs to which terminal
 export function pid2path(pid: number): string | undefined {
@@ -56,7 +54,7 @@ export function pid2path(pid: number): string | undefined {
   }
 }
 
-function getCWD(path_head, cwd?): string {
+function getCWD(pathHead, cwd?): string {
   // working dir can be set explicitly, and either be an empty string or $HOME
   if (cwd != null) {
     const HOME = process.env.HOME ?? "/home/user";
@@ -68,14 +66,17 @@ function getCWD(path_head, cwd?): string {
       return cwd;
     }
   }
-  return path_head;
+  return pathHead;
 }
 
+const terminals: { [name: string]: Terminal } = {};
+
+// INPUT: primus and description of a terminal session (the path)
+// OUTPUT: the name of a websocket channel that serves that terminal session.
 export async function terminal(
   primus: any,
-  logger: any,
   path: string,
-  options: Terminal["options"]
+  options: Options,
 ): Promise<string> {
   const name = `${PREFIX}${path}`;
   if (terminals[name] !== undefined) {
@@ -97,30 +98,33 @@ export async function terminal(
     options: options ?? {},
   };
 
-  async function init_term() {
+  async function initTerminal() {
     const args: string[] = [];
 
-    const options = terminals[name].options;
+    const { options } = terminals[name];
     if (options.args != null) {
       for (const arg of options.args) {
         if (typeof arg === "string") {
           args.push(arg);
+        } else {
+          logger.debug("WARNING -- discarding invalid non-string arg ", arg);
         }
       }
     } else {
-      const init_filename: string = console_init_filename(path);
-      if (await exists(init_filename)) {
+      const initFilename: string = console_init_filename(path);
+      if (await exists(initFilename)) {
         args.push("--init-file");
-        args.push(path_split(init_filename).tail);
+        args.push(path_split(initFilename).tail);
       }
     }
 
-    const { head: path_head, tail: path_tail } = path_split(path);
-    const env = merge({ COCALC_TERMINAL_FILENAME: path_tail }, envForSpawn());
-    if (options.env != null) {
-      merge(env, options.env);
-    }
-    if (env.TMUX) {
+    const { head: pathHead, tail: pathTail } = path_split(path);
+    const env = {
+      COCALC_TERMINAL_FILENAME: pathTail,
+      ...envForSpawn(),
+      ...options.env,
+    };
+    if (env["TMUX"]) {
       // If TMUX was set for some reason in the environment that setup
       // a cocalc project (e.g., start hub in dev mode from tmux), then
       // TMUX is set even though terminal hasn't started tmux yet, which
@@ -129,58 +133,48 @@ export async function terminal(
       delete env["TMUX"];
     }
 
-    const command = options.command ? options.command : "/bin/bash";
-    const cwd = getCWD(path_head, options.cwd);
+    const { command = "/bin/bash" } = options;
+    const cwd = getCWD(pathHead, options.cwd);
 
     try {
-      terminals[name].history = (await callback(readFile, path)).toString();
+      terminals[name].history = (await readFile(path)).toString();
     } catch (err) {
-      console.log(`failed to load ${path} from disk`);
+      logger.debug("WARNING: failed to load", path, err);
     }
     const term = spawn(command, args, { cwd, env });
-    logger.debug(
-      "terminal",
-      "init_term",
-      name,
-      "pid=",
-      term.pid,
-      "command=",
-      command,
-      "args",
-      args
-    );
+    logger.debug(name, "pid=", term.pid, { command, args });
     terminals[name].term = term;
 
-    const save_history_to_disk = throttle(async () => {
+    const saveHistoryToDisk = throttle(async () => {
       try {
-        await callback(writeFile, path, terminals[name].history);
+        await writeFile(path, terminals[name].history);
       } catch (err) {
-        console.log(`failed to save ${path} to disk`);
+        logger.debug("WARNING: failed to save", path, "to disk", err);
       }
     }, 15000);
 
     term.on("data", function (data): void {
       //logger.debug("terminal: term --> browsers", name, data);
-      handle_backend_messages(data);
+      handleBackendMessages(data);
       terminals[name].history += data;
-      save_history_to_disk();
+      saveHistoryToDisk();
       const n = terminals[name].history.length;
       if (n >= MAX_HISTORY_LENGTH) {
         logger.debug("terminal data -- truncating");
         terminals[name].history = terminals[name].history.slice(
-          n - MAX_HISTORY_LENGTH / 2
+          n - MAX_HISTORY_LENGTH / 2,
         );
         const last = terminals[name].last_truncate_time;
         const now = new Date().valueOf();
         terminals[name].last_truncate_time = now;
-        logger.debug("terminal", now, last, now - last, truncate_thresh_ms);
-        if (now - last <= truncate_thresh_ms) {
+        logger.debug(now, last, now - last, TRUNCATE_THRESH_MS);
+        if (now - last <= TRUNCATE_THRESH_MS) {
           // getting a huge amount of data quickly.
           if (!terminals[name].truncating) {
             channel.write({ cmd: "burst" });
           }
           terminals[name].truncating += data.length;
-          setTimeout(check_if_still_truncating, check_interval_ms);
+          setTimeout(checkIfStillTruncating, CHECK_INTERVAL_MS);
           if (terminals[name].truncating >= 5 * MAX_HISTORY_LENGTH) {
             // only start sending control+c if output has been completely stuck
             // being truncated several times in a row -- it has to be a serious non-stop burst...
@@ -196,50 +190,50 @@ export async function terminal(
       }
     });
 
-    let backend_messages_state: "NONE" | "READING" = "NONE";
-    let backend_messages_buffer: string = "";
-    function reset_backend_messages_buffer(): void {
-      backend_messages_buffer = "";
-      backend_messages_state = "NONE";
+    let backendMessagesState: "NONE" | "READING" = "NONE";
+    let backendMessagesBuffer: string = "";
+    function reset_backendMessagesBuffer(): void {
+      backendMessagesBuffer = "";
+      backendMessagesState = "NONE";
     }
-    function handle_backend_messages(data: string): void {
+    function handleBackendMessages(data: string): void {
       /* parse out messages like this:
             \x1b]49;"valid JSON string here"\x07
          and format and send them via our json channel.
          NOTE: such messages also get sent via the
          normal channel, but ignored by the client.
       */
-      if (backend_messages_state === "NONE") {
+      if (backendMessagesState === "NONE") {
         const i = data.indexOf("\x1b");
         if (i === -1) {
           return; // nothing to worry about
         }
         // stringify it so it is easy to see what is there:
-        backend_messages_state = "READING";
-        backend_messages_buffer = data.slice(i);
+        backendMessagesState = "READING";
+        backendMessagesBuffer = data.slice(i);
       } else {
-        backend_messages_buffer += data;
+        backendMessagesBuffer += data;
       }
       if (
-        backend_messages_buffer.length >= 5 &&
-        backend_messages_buffer.slice(1, 5) != "]49;"
+        backendMessagesBuffer.length >= 5 &&
+        backendMessagesBuffer.slice(1, 5) != "]49;"
       ) {
-        reset_backend_messages_buffer();
+        reset_backendMessagesBuffer();
         return;
       }
-      if (backend_messages_buffer.length >= 6) {
-        const i = backend_messages_buffer.indexOf("\x07");
+      if (backendMessagesBuffer.length >= 6) {
+        const i = backendMessagesBuffer.indexOf("\x07");
         if (i === -1) {
           // continue to wait... unless too long
-          if (backend_messages_buffer.length > 10000) {
-            reset_backend_messages_buffer();
+          if (backendMessagesBuffer.length > 10000) {
+            reset_backendMessagesBuffer();
           }
           return;
         }
-        const s = backend_messages_buffer.slice(5, i);
-        reset_backend_messages_buffer();
+        const s = backendMessagesBuffer.slice(5, i);
+        reset_backendMessagesBuffer();
         logger.debug(
-          `handle_backend_message: parsing JSON payload ${JSON.stringify(s)}`
+          `handle_backend_message: parsing JSON payload ${JSON.stringify(s)}`,
         );
         try {
           const payload = JSON.parse(s);
@@ -247,19 +241,19 @@ export async function terminal(
         } catch (err) {
           logger.warn(
             `handle_backend_message: error sending JSON payload ${JSON.stringify(
-              s
-            )}, ${err}`
+              s,
+            )}, ${err}`,
           );
           // Otherwise, ignore...
         }
       }
     }
 
-    function check_if_still_truncating(): void {
+    function checkIfStillTruncating(): void {
       if (!terminals[name].truncating) return;
       if (
         new Date().valueOf() - terminals[name].last_truncate_time >=
-        check_interval_ms
+        CHECK_INTERVAL_MS
       ) {
         // turn off truncating, and send recent data.
         const { truncating, history } = terminals[name];
@@ -267,32 +261,33 @@ export async function terminal(
         terminals[name].truncating = 0;
         channel.write({ cmd: "no-burst" });
       } else {
-        setTimeout(check_if_still_truncating, check_interval_ms);
+        setTimeout(checkIfStillTruncating, CHECK_INTERVAL_MS);
       }
     }
 
-    // Whenever term ends, we just respawn it.
+    // Whenever term ends, we just respawn it, but potentially
+    // with a pause to avoid weird crash loops bringing down the project.
     term.on("exit", async function () {
-      logger.debug("terminal", name, "EXIT -- spawning again");
+      logger.debug(name, "EXIT -- spawning again");
       const now = new Date().getTime();
       if (now - terminals[name].last_exit <= 15000) {
         // frequent exit; we wait a few seconds, since otherwisechannel
         // restarting could burn all cpu and break everything.
         logger.debug(
-          "terminal",
           name,
-          "EXIT -- waiting a few seconds before trying again..."
+          "EXIT -- waiting a few seconds before trying again...",
         );
         await delay(3000);
       }
       terminals[name].last_exit = now;
-      init_term();
+      initTerminal();
     });
 
     // set the size
     resize();
   }
-  await init_term();
+  
+  await initTerminal();
 
   function resize() {
     //logger.debug("resize");
@@ -329,7 +324,7 @@ export async function terminal(
       } catch (err) {
         logger.debug(
           "terminal channel",
-          `WARNING: unable to resize term ${err}`
+          `WARNING: unable to resize term ${err}`,
         );
       }
       channel.write({ cmd: "size", rows, cols });
@@ -340,29 +335,36 @@ export async function terminal(
     // Now handle the connection
     logger.debug(
       "terminal channel",
-      `new connection from ${spark.address.ip} -- ${spark.id}`
+      `new connection from ${spark.address.ip} -- ${spark.id}`,
     );
+
     // send current size info
     if (terminals[name].size !== undefined) {
       const { rows, cols } = terminals[name].size;
       spark.write({ cmd: "size", rows, cols });
     }
+
     // send burst info
     if (terminals[name].truncating) {
       spark.write({ cmd: "burst" });
     }
+
     // send history
     spark.write(terminals[name].history);
+
     // have history, so do not ignore commands now.
     spark.write({ cmd: "no-ignore" });
+
     spark.on("close", function () {
       delete terminals[name].client_sizes[spark.id];
       resize();
     });
+
     spark.on("end", function () {
       delete terminals[name].client_sizes[spark.id];
       resize();
     });
+
     spark.on("data", async function (data) {
       //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
       if (typeof data === "string") {
@@ -392,7 +394,7 @@ export async function terminal(
             if (
               isEqual(
                 [data.command, data.args],
-                [terminals[name].options.command, terminals[name].options.args]
+                [terminals[name].options.command, terminals[name].options.args],
               )
             ) {
               // no actual change.
