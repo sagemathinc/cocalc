@@ -32,7 +32,7 @@ describe("creates an account, then creates statements and corresponding emails a
       client: null,
       cost: -10,
     });
-    await delay(50); // so above purchase is on statement.
+    await delay(100); // so above purchase is on statement.
     await createStatements({ time: new Date(Date.now() - 1), interval: "day" });
   });
 
@@ -122,6 +122,7 @@ describe("creates an account, then creates statements and corresponding emails a
       client: null,
       cost: 11,
     });
+    await delay(100); // avoid clock issues
     await createStatements({
       time: new Date(Date.now() - 1),
       interval: "month",
@@ -148,6 +149,7 @@ describe("creates an account, then creates statements and corresponding emails a
       client: null,
       cost: 12,
     });
+    await delay(100); // avoid clock issues
     await createStatements({
       time: new Date(Date.now() - 1),
       interval: "month",
