@@ -36,12 +36,37 @@ import Help from "components/vouchers/help";
 import Copyable from "components/misc/copyable";
 import { DescriptionColumn } from "components/store/cart";
 
+function RedeemURL({ code }) {
+  const [url, setUrl] = useState<string>("");
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      let i = window.location.href.lastIndexOf("/");
+      i = window.location.href.lastIndexOf("/", i - 1);
+      setUrl(`${window.location.href.slice(0, i)}/redeem/${code}`);
+    }
+  }, []);
+
+  return (
+    <Space>
+      <A href={url}>
+        <Icon name="external-link" />
+      </A>{" "}
+      <Copyable display={`...${code}`} value={url} />
+    </Space>
+  );
+}
+
 const COLUMNS = [
   {
-    title: "Voucher Code",
+    title: "Redeem URL (share this)",
+    dataIndex: "code",
+    key: "redeem",
+    render: (code) => <RedeemURL code={code} />,
+  },
+  {
+    title: "Code",
     dataIndex: "code",
     key: "code",
-    render: (code) => <Copyable value={code} />,
   },
   {
     title: "Created",
@@ -269,7 +294,7 @@ function DownloadModal({ type, data, id, onClose }) {
     if (!type) return "";
     if (type == "csv") {
       const x = [COLUMNS.map((x) => x.title)].concat(
-        data.map((x) => COLUMNS.map((c) => x[c.dataIndex]))
+        data.map((x) => COLUMNS.map((c) => x[c.dataIndex])),
       );
       return csvStringify(x);
     } else if (type == "json") {
@@ -287,7 +312,7 @@ function DownloadModal({ type, data, id, onClose }) {
         <div style={{ margin: "30px", fontSize: "13pt", textAlign: "center" }}>
           <a
             href={URL.createObjectURL(
-              new Blob([content], { type: "text/plain" })
+              new Blob([content], { type: "text/plain" }),
             )}
             download={path}
           >

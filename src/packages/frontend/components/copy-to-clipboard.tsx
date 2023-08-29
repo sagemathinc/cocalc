@@ -12,6 +12,7 @@ import { CSS } from "@cocalc/frontend/app-framework";
 
 interface Props {
   value: string;
+  display?: string;
   style?: CSS;
   label?: ReactNode;
   labelStyle?: CSS;
@@ -34,6 +35,7 @@ const LABEL_STYLE: CSS = {
 
 export default function CopyToClipBoard({
   value,
+  display,
   style,
   size,
   label,
@@ -70,12 +72,12 @@ export default function CopyToClipBoard({
       {before ? copy : undefined}
       <Input
         style={{
-          width: inputWidth ?? `${value.length + 8}ex`,
+          width: inputWidth ?? `${(display ?? value).length + 8}ex`,
           fontFamily: "monospace",
         }}
         readOnly
         size={size}
-        value={value}
+        value={display ?? value}
         onFocus={(e) => e.target.select()}
       />
       {!before ? copy : undefined}
