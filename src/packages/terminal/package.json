@@ -2,7 +2,7 @@
   "name": "@cocalc/terminal",
   "version": "0.1.0",
   "description": "CoCalc's Nodejs Terminal Server",
-  "main": "./dist/lib/index.js",
+  "main": "./dist/index.js",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "npx tsc",
