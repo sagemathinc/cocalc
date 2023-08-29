@@ -37,6 +37,7 @@ export default async function getPurchases({
   }
   const pool = getPool(noCache ? undefined : "medium");
   const params: any[] = [];
+  const conditions: string[] = [];
   let query;
   if (group) {
     query =
@@ -45,39 +46,46 @@ export default async function getPurchases({
     query =
       "SELECT id, time, cost, period_start, period_end, cost_per_hour, service, description, invoice_id, project_id, pending, notes FROM purchases";
   }
+
   if (account_id) {
     // account_id is not specified in one case -- admin using api to get all transactions.
-    query += " WHERE account_id=$1";
+    conditions.push("account_id=$1");
     params.push(account_id);
   }
   if (service != null) {
     params.push(service);
-    query += ` AND service=$${params.length}`;
+    conditions.push(`service=$${params.length}`);
   }
   if (project_id != null) {
     params.push(project_id);
-    query += ` AND project_id=$${params.length}`;
+    conditions.push(`project_id=$${params.length}`);
   }
   if (day_statement_id != null) {
     params.push(day_statement_id);
-    query += ` AND day_statement_id=$${params.length}`;
+    conditions.push(`day_statement_id=$${params.length}`);
   }
   if (month_statement_id != null) {
     params.push(month_statement_id);
-    query += ` AND month_statement_id=$${params.length}`;
+    conditions.push(`month_statement_id=$${params.length}`);
   }
   if (thisMonth) {
     const date = await getLastClosingDate(account_id);
     params.push(date);
-    query += ` AND time >= $${params.length}`;
+    conditions.push(`time >= $${params.length}`);
   }
   if (cutoff) {
     params.push(cutoff);
-    query += ` AND time >= $${params.length}`;
+    conditions.push(`time >= $${params.length}`);
   }
   if (no_statement) {
-    query += " AND day_statement_id IS NULL AND month_statement_id IS NULL ";
+    conditions.push("day_statement_id IS NULL");
+    conditions.push("month_statement_id IS NULL");
   }
+
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
   if (group) {
     query += " GROUP BY service, project_id";
   }

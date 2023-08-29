@@ -29,8 +29,8 @@ export function prevDateWithDay(date: Date, day: number): Date {
     Date.UTC(
       lastClosingDayOfMonth.getFullYear(),
       lastClosingDayOfMonth.getMonth(),
-      lastClosingDayOfMonth.getDate()
-    )
+      lastClosingDayOfMonth.getDate(),
+    ),
   );
 }
 
@@ -45,7 +45,7 @@ export async function getNextClosingDate(account_id: string): Promise<Date> {
 
 export async function getNextClosingDateAfter(
   account_id: string,
-  date: Date
+  date: Date,
 ): Promise<Date> {
   const day = await getClosingDay(account_id);
   // Compute the next Date that is after date, is at midnight UTC,
@@ -79,7 +79,7 @@ export async function getClosingDay(account_id: string): Promise<number> {
   try {
     const { rows } = await pool.query(
       "SELECT purchase_closing_day FROM accounts WHERE account_id = $1",
-      [account_id]
+      [account_id],
     );
     closingDay = rows[0]?.["purchase_closing_day"];
     if (closingDay == null) {
@@ -107,17 +107,17 @@ export async function getClosingDay(account_id: string): Promise<number> {
 export async function setClosingDay(
   account_id: string,
   day: number,
-  client?
+  client?,
 ): Promise<void> {
   const pool = client ?? getPool();
   if (day < 1 || day > 28) {
-    throw Error("day must be between 1 and 28");
+    throw Error(`day (=${day}) must be between 1 and 28`);
   }
   try {
     closingDateCache.delete(account_id);
     await pool.query(
       "UPDATE accounts SET purchase_closing_day = $1 WHERE account_id = $2",
-      [day, account_id]
+      [day, account_id],
     );
   } catch (e) {
     logger.error(`Error setting closing day: ${e.message}`);
