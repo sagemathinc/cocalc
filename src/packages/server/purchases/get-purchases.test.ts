@@ -45,6 +45,20 @@ describe("creates and get purchases using various options", () => {
     expect(p[0].cost).toBe(-100);
   });
 
+  it("gets purchase along with email address", async () => {
+    const email_address = `${account_id}@cocalc.com`;
+    const pool = getPool();
+    await pool.query(
+      "UPDATE accounts SET email_address=$1 WHERE account_id=$2",
+      [email_address, account_id],
+    );
+    const p = await getPurchases({ account_id, includeName: true });
+    expect(p.length).toBe(1);
+    expect(p[0].email_address).toBe(email_address);
+    expect(p[0].first_name).toBe("Test");
+    expect(p[0].last_name).toBe("User");
+  });
+
   it("tests cutoff param by creating another older purchase then gets it and also filters it using cutoff", async () => {
     const purchase_id = await createPurchase({
       account_id,
