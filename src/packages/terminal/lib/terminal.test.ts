@@ -1,7 +1,7 @@
 import { Terminal } from "./terminal";
 import type { PrimusWithChannels } from "./types";
 import { EventEmitter } from "events";
-import { delay } from "awaiting";
+import { callback, delay } from "awaiting";
 import type { Spark } from "primus";
 import { uuid } from "@cocalc/util/misc";
 import { exec } from "child_process";
@@ -10,12 +10,32 @@ import { once } from "@cocalc/util/async-utils";
 import debug from "debug";
 const logger = debug("cocalc:test:terminal");
 
-const isPidRunning = async (pid: number) => {
-  return new Promise((resolve) => {
-    exec(`ps -p ${pid} -o pid=`, (_err, stdout, _stderr) => {
-      resolve(stdout.trim() !== "");
-    });
+const exec1 = (cmd: string, cb) => {
+  exec(cmd, (_err, stdout, stderr) => {
+    cb(undefined, { stdout, stderr });
   });
+};
+
+const isPidRunning = async (pid: number) => {
+  const { stdout } = await callback(exec1, `ps -p ${pid} -o pid=`);
+  return stdout.trim() != "";
+};
+
+const getCommandLine = async (pid) => {
+  const { stdout } = await callback(exec1, `ps -p ${pid} -o comm=`);
+  return stdout;
+};
+
+const waitForPidToChange = async (terminal, pid) => {
+  let i = 1;
+  while (true) {
+    const newPid = terminal.getPid();
+    if (newPid != null && newPid != pid) {
+      return newPid;
+    }
+    await delay(5 * i);
+    i += 1;
+  }
 };
 
 afterAll(() => {
@@ -24,7 +44,7 @@ afterAll(() => {
   // not figure this out after hours and hours, and we don't
   // need a guaranteed clean exit, so I'm putting this in for
   // now.  It would be nice if it wasn't needed.
-  setTimeout(process.exit, 1);
+  setTimeout(process.exit, 250);
 });
 
 class PrimusSparkMock extends EventEmitter {
@@ -66,14 +86,21 @@ class PrimusSparkMock extends EventEmitter {
     }
   };
 
-  waitForData = async (minLen: number) => {
+  waitForData = async (x: number | string) => {
     let data = "";
-    while (data.length < minLen) {
+    const isDone = () => {
+      if (typeof x == "number") {
+        return data.length >= x;
+      } else {
+        return data.includes(x);
+      }
+    };
+    while (!isDone()) {
       if (this.data.length > 0) {
         data += this.data;
         this.data = "";
       }
-      if (data.length < minLen) {
+      if (!isDone()) {
         await once(this, "write");
       }
     }
@@ -160,15 +187,7 @@ describe("very basic test of creating a terminal and changing shell", () => {
   it("changes the shell to /bin/sh and sees that the pid changes", async () => {
     const pid = terminal.getPid();
     terminal.setCommand("/bin/sh", []);
-    let newPid;
-    // there's no even or way to tell it restarted except by watching.
-    for (let i = 1; i < 30; i++) {
-      newPid = terminal.getPid();
-      if (typeof newPid != null && newPid != pid) {
-        break;
-      }
-      await delay(2 * i);
-    }
+    const newPid = await waitForPidToChange(terminal, pid);
     expect(pid).not.toBe(newPid);
     // check that original process is no longer running.
     expect(await isPidRunning(pid)).toBe(false);
@@ -228,7 +247,28 @@ describe("create a shell, connect a client, and communicate with it", () => {
   it("write pwd to terminal and get back the current working directory", async () => {
     spark.emit("data", "pwd\n");
     spark.data = "";
-    const resp = await spark.waitForData(10);
+    const resp = await spark.waitForData(process.cwd());
     expect(resp).toContain(process.cwd());
+  });
+
+  it("send kill command and see that pid changes", async () => {
+    const pid = terminal.getPid();
+    spark.emit("data", { cmd: "kill" });
+    const newPid = await waitForPidToChange(terminal, pid);
+    expect(pid).not.toBe(newPid);
+    expect(await isPidRunning(pid)).toBe(false);
+  });
+
+  it("set shell with set_command see that pid changes", async () => {
+    const pid = terminal.getPid();
+    spark.emit("data", {
+      cmd: "set_command",
+      command: "/usr/bin/sleep",
+      args: ["1000"],
+    });
+    const newPid = await waitForPidToChange(terminal, pid);
+    expect(pid).not.toBe(newPid);
+    expect(await isPidRunning(pid)).toBe(false);
+    expect(await getCommandLine(newPid)).toContain("sleep");
   });
 });
