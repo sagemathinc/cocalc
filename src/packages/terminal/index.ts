@@ -9,15 +9,13 @@ Terminal server
 
 import { isEqual } from "lodash";
 import { readlink, realpath } from "node:fs/promises";
-import { len } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/backend/logger";
 import Primus, { Spark } from "primus";
-import type { Terminal, Options } from "./lib/types";
-import initTerminal from "./lib/init-terminal";
+import type { Options } from "./lib/types";
+import { getName } from "./lib/util";
+import { Terminal } from "./lib/terminal";
 
-const logger = getLogger("terminal");
-
-const PREFIX = "terminal:";
+const logger = getLogger("terminal:index");
 
 const terminals: { [name: string]: Terminal } = {};
 
@@ -37,8 +35,8 @@ export async function terminal(
   path: string,
   options: Options,
 ): Promise<string> {
-  const name = `${PREFIX}${path}`;
-  if (terminals[name] !== undefined) {
+  const name = getName(path);
+  if (terminals[name] != null) {
     if (options.command != terminals[name].options.command) {
       terminals[name].options.command = options.command;
       terminals[name].options.args = options.args;
@@ -46,66 +44,13 @@ export async function terminal(
     }
     return name;
   }
-  const terminal = {
-    path,
-    // @ts-ignore: primus.channel is a plugin.
-    channel: primus.channel(name),
-    history: "",
-    client_sizes: {},
-    last_truncate_time: Date.now(),
-    truncating: 0,
-    last_exit: 0,
-    options: options ?? {},
-  } as Terminal;
 
+  const terminal = new Terminal(primus, path, options);
   terminals[name] = terminal;
-
-  function resize() {
-    //logger.debug("resize");
-    if (
-      terminal === undefined ||
-      terminal.client_sizes === undefined ||
-      terminal.term === undefined
-    ) {
-      return;
-    }
-    const sizes = terminal.client_sizes;
-    if (len(sizes) === 0) return;
-    const INFINITY = 999999;
-    let rows: number = INFINITY,
-      cols: number = INFINITY;
-    for (const id in sizes) {
-      if (sizes[id].rows) {
-        // if, since 0 rows or 0 columns means *ignore*.
-        rows = Math.min(rows, sizes[id].rows);
-      }
-      if (sizes[id].cols) {
-        cols = Math.min(cols, sizes[id].cols);
-      }
-    }
-    if (rows === INFINITY || cols === INFINITY) {
-      // no clients currently visible
-      delete terminal.size;
-      return;
-    }
-    //logger.debug("resize", "new size", rows, cols);
-    if (rows && cols) {
-      try {
-        terminal.term.resize(cols, rows);
-      } catch (err) {
-        logger.debug(
-          "terminal channel",
-          `WARNING: unable to resize term ${err}`,
-        );
-      }
-      terminal.channel.write({ cmd: "size", rows, cols });
-    }
-  }
-
-  await initTerminal(terminal);
+  await terminal.init();
 
   // set the size
-  resize();
+  terminal.resize();
 
   terminal.channel.on("connection", (spark: Spark) => {
     // Now handle the connection
@@ -133,7 +78,7 @@ export async function terminal(
 
     spark.on("end", () => {
       delete terminal.client_sizes[spark.id];
-      resize();
+      terminal.resize();
     });
 
     spark.on("data", async (data) => {
@@ -154,7 +99,7 @@ export async function terminal(
               cols: data.cols,
             };
             try {
-              resize();
+              terminal.resize();
             } catch (err) {
               // no-op -- can happen if terminal is restarting.
               logger.debug("terminal size", name, terminal.options, err);

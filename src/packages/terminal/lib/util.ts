@@ -1,3 +1,8 @@
+export function getName(path: string): string {
+  const PREFIX = "terminal:";
+  return `${PREFIX}${path}`;
+}
+
 export function getCWD(pathHead, cwd?): string {
   // working dir can be set explicitly, and either be an empty string or $HOME
   if (cwd != null) {
