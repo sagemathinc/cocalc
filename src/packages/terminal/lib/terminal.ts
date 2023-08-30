@@ -4,11 +4,13 @@ import { console_init_filename, len, path_split } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/backend/logger";
 import { envForSpawn } from "@cocalc/backend/misc";
 import { getCWD } from "./util";
-import { readFile, writeFile } from "node:fs/promises";
+import { readlink, realpath, readFile, writeFile } from "node:fs/promises";
 import { spawn } from "node-pty";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
+import { isEqual } from "lodash";
+import { Spark } from "primus";
 
 const logger = getLogger("terminal:terminal");
 
@@ -16,24 +18,25 @@ const CHECK_INTERVAL_MS: number = 5 * 1000;
 const MAX_HISTORY_LENGTH: number = 10 * 1000 * 1000;
 const TRUNCATE_THRESH_MS: number = 10 * 1000;
 const INFINITY = 999999;
+const DEFAULT_COMMAND = "/bin/bash";
 
 export class Terminal {
-  public options: Options;
-  public channel;
-  public history: string = "";
-  public path: string;
-  public client_sizes = {};
-  public last_truncate_time: number = Date.now();
-  public truncating: number = 0;
-  public last_exit: number = 0;
-  public size?: any;
-  public term?: any; // node-pty
+  private options: Options;
+  private channel;
+  private history: string = "";
+  private path: string;
+  private client_sizes = {};
+  private last_truncate_time: number = Date.now();
+  private truncating: number = 0;
+  private last_exit: number = 0;
+  private size?: any;
+  private term?: any; // node-pty
   private backendMessagesBuffer = "";
   private backendMessagesState: "NONE" | "READING" = "NONE";
 
   constructor(primus, path: string, options: Options) {
     const name = getName(path);
-    this.options = options;
+    this.options = { command: DEFAULT_COMMAND, ...options };
     this.path = path;
     this.channel = primus.channel(name);
   }
@@ -73,7 +76,10 @@ export class Terminal {
       delete env["TMUX"];
     }
 
-    const { command = "/bin/bash" } = options;
+    const { command } = options;
+    if (command == null) {
+      throw Error("bug");
+    }
     const cwd = getCWD(pathHead, options.cwd);
 
     try {
@@ -85,7 +91,7 @@ export class Terminal {
     logger.debug("pid=", term.pid, { command, args });
     this.term = term;
 
-    term.on("data", this.handleData);
+    term.on("data", this.handleDataFromTerminal);
 
     // Whenever term ends, we just respawn it, but potentially
     // with a pause to avoid weird crash loops bringing down the project.
@@ -101,6 +107,32 @@ export class Terminal {
       this.last_exit = now;
       this.init();
     });
+
+    this.channel.on("connection", this.handleNewClientConnection);
+
+    // set the size
+    this.resize();
+  };
+
+  getPid = (): number | undefined => {
+    return this.term?.pid;
+  };
+
+  // original path
+  getPath = () => {
+    return this.options.path;
+  };
+
+  getCommand = () => {
+    return this.options.command;
+  };
+
+  setCommand = (command: string, args?: string[]) => {
+    if (this.options.command != command) {
+      this.options.command = command;
+      this.options.args = args;
+      process.kill(this.term?.pid, "SIGKILL");
+    }
   };
 
   private saveHistoryToDisk = throttle(async () => {
@@ -116,7 +148,7 @@ export class Terminal {
     this.backendMessagesState = "NONE";
   };
 
-  private handleData = (data) => {
+  private handleDataFromTerminal = (data) => {
     //logger.debug("terminal: term --> browsers", data);
     this.handleBackendMessages(data);
     this.history += data;
@@ -221,7 +253,7 @@ export class Terminal {
     }
   };
 
-  resize = () => {
+  private resize = () => {
     //logger.debug("resize");
     if (this.client_sizes == null || this.term == null) {
       return;
@@ -258,5 +290,130 @@ export class Terminal {
       }
       this.channel.write({ cmd: "size", rows, cols });
     }
+  };
+
+  private handleDataFromClient = async (spark, data) => {
+    //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
+    if (typeof data === "string") {
+      try {
+        this.term.write(data);
+      } catch (err) {
+        spark.write(err.toString());
+      }
+    } else if (typeof data === "object") {
+      // control message
+      //logger.debug("terminal channel control message", JSON.stringify(data));
+      switch (data.cmd) {
+        case "size": {
+          this.client_sizes[spark.id] = {
+            rows: data.rows,
+            cols: data.cols,
+          };
+          try {
+            this.resize();
+          } catch (err) {
+            // no-op -- can happen if terminal is restarting.
+            logger.debug("WARNING: resizing terminal", this.path, err);
+          }
+          break;
+        }
+        case "set_command": {
+          if (
+            isEqual(
+              [data.command, data.args],
+              [this.options.command, this.options.args],
+            )
+          ) {
+            // no actual change.
+            break;
+          }
+          this.options.command = data.command;
+          this.options.args = data.args;
+          // Also kill it so will respawn with new command/args:
+          process.kill(this.term.pid, "SIGKILL");
+          break;
+        }
+
+        case "kill": {
+          // send kill signal
+          process.kill(this.term.pid, "SIGKILL");
+          break;
+        }
+        case "cwd": {
+          // we reply with the current working directory of the underlying terminal process
+          const pid = this.term.pid;
+          // [hsy/dev] wrapping in realpath, because I had the odd case, where the project's
+          // home included a symlink, hence the "startsWith" below didn't remove the home dir.
+          const home = await realpath(process.env.HOME ?? "/home/user");
+          try {
+            const cwd = await readlink(`/proc/${pid}/cwd`);
+            // we send back a relative path, because the webapp does not understand absolute paths
+            const path = cwd.startsWith(home)
+              ? cwd.slice(home.length + 1)
+              : cwd;
+            logger.debug(`terminal cwd sent back: cwd=${cwd} path=${path}`);
+            spark.write({ cmd: "cwd", payload: path });
+          } catch {
+            // ignoring errors
+          }
+          break;
+        }
+
+        case "boot": {
+          // delete all sizes except this one, so at least kick resets
+          // the sizes no matter what.
+          for (const id in this.client_sizes) {
+            if (id !== spark.id) {
+              delete this.client_sizes[id];
+            }
+          }
+          // next tell this client to go fullsize.
+          if (this.size !== undefined) {
+            const { rows, cols } = this.size;
+            if (rows && cols) {
+              spark.write({ cmd: "size", rows, cols });
+            }
+          }
+          // broadcast message to all other clients telling them to close.
+          this.channel.forEach((spark0, id, _) => {
+            if (id !== spark.id) {
+              spark0.write({ cmd: "close" });
+            }
+          });
+          break;
+        }
+      }
+    }
+  };
+
+  private handleNewClientConnection = (spark: Spark) => {
+    logger.debug(
+      "terminal channel",
+      `new connection from ${spark.address.ip} -- ${spark.id}`,
+    );
+
+    // send current size info
+    if (this.size !== undefined) {
+      const { rows, cols } = this.size;
+      spark.write({ cmd: "size", rows, cols });
+    }
+
+    // send burst info
+    if (this.truncating) {
+      spark.write({ cmd: "burst" });
+    }
+
+    // send history
+    spark.write(this.history);
+
+    // have history, so do not ignore commands now.
+    spark.write({ cmd: "no-ignore" });
+
+    spark.on("end", () => {
+      delete this.client_sizes[spark.id];
+      this.resize();
+    });
+
+    spark.on("data", (data) => this.handleDataFromClient(spark, data));
   };
 }
