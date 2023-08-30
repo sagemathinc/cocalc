@@ -1581,7 +1581,7 @@ importers:
         version: 8.6.0(eslint@7.32.0)
       eslint-plugin-prettier:
         specifier: ^3.4.1
-        version: 3.4.1(eslint-config-prettier@8.6.0)(eslint@7.32.0)(prettier@3.0.2)
+        version: 3.4.1(eslint-config-prettier@8.6.0)(eslint@7.32.0)(prettier@3.0.3)
       eslint-plugin-react:
         specifier: ^7.23.2
         version: 7.31.11(eslint@7.32.0)
@@ -1810,8 +1810,8 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
       node-pty:
-        specifier: ^0.10.1
-        version: 0.10.1
+        specifier: ^1.0.0
+        version: 1.0.0
       primus:
         specifier: ^8.0.7
         version: 8.0.7
@@ -2207,7 +2207,7 @@ packages:
       '@babel/helper-compilation-targets': 7.22.10
       '@babel/helper-module-transforms': 7.22.9(@babel/core@7.22.11)
       '@babel/helpers': 7.22.11
-      '@babel/parser': 7.22.13
+      '@babel/parser': 7.22.14
       '@babel/template': 7.22.5
       '@babel/traverse': 7.22.11
       '@babel/types': 7.22.11
@@ -2785,8 +2785,8 @@ packages:
     dependencies:
       '@babel/types': 7.22.5
 
-  /@babel/parser@7.22.13:
-    resolution: {integrity: sha512-3l6+4YOvc9wx7VlCSw4yQfcBo01ECA8TicQfbnCPuCEpRQrf+gTUyGdxNw+pyTUyywp6JRD1w0YQs9TpBXYlkw==}
+  /@babel/parser@7.22.14:
+    resolution: {integrity: sha512-1KucTHgOvaw/LzCVrEOAyXkr9rQlp0A1HiHRYnSUE9dmb8PvPW7o5sscg+5169r54n3vGlbx6GevTE/Iw/P3AQ==}
     engines: {node: '>=6.0.0'}
     hasBin: true
     dependencies:
@@ -4326,7 +4326,7 @@ packages:
       '@babel/helper-function-name': 7.22.5
       '@babel/helper-hoist-variables': 7.22.5
       '@babel/helper-split-export-declaration': 7.22.6
-      '@babel/parser': 7.22.13
+      '@babel/parser': 7.22.14
       '@babel/types': 7.22.11
       debug: 4.3.4(supports-color@8.1.1)
       globals: 11.12.0
@@ -7948,7 +7948,7 @@ packages:
     hasBin: true
     dependencies:
       caniuse-lite: 1.0.30001524
-      electron-to-chromium: 1.4.504
+      electron-to-chromium: 1.4.505
       node-releases: 2.0.13
       update-browserslist-db: 1.0.11(browserslist@4.21.10)
     dev: true
@@ -9646,8 +9646,8 @@ packages:
   /electron-to-chromium@1.4.468:
     resolution: {integrity: sha512-6M1qyhaJOt7rQtNti1lBA0GwclPH+oKCmsra/hkcWs5INLxfXXD/dtdnaKUYQu/pjOBP/8Osoe4mAcNvvzoFag==}
 
-  /electron-to-chromium@1.4.504:
-    resolution: {integrity: sha512-cSMwIAd8yUh54VwitVRVvHK66QqHWE39C3DRj8SWiXitEpVSY3wNPD9y1pxQtLIi4w3UdzF9klLsmuPshz09DQ==}
+  /electron-to-chromium@1.4.505:
+    resolution: {integrity: sha512-0A50eL5BCCKdxig2SsCXhpuztnB9PfUgRMojj5tMvt8O54lbwz3t6wNgnpiTRosw5QjlJB7ixhVyeg8daLQwSQ==}
     dev: true
 
   /element-size@1.1.1:
@@ -9970,7 +9970,7 @@ packages:
       supports-hyperlinks: 2.2.0
     dev: true
 
-  /eslint-plugin-prettier@3.4.1(eslint-config-prettier@8.6.0)(eslint@7.32.0)(prettier@3.0.2):
+  /eslint-plugin-prettier@3.4.1(eslint-config-prettier@8.6.0)(eslint@7.32.0)(prettier@3.0.3):
     resolution: {integrity: sha512-htg25EUYUeIhKHXjOinK4BgCcDwtLHjqaxCDsMy5nbnUMkKFvIhMVCp+5GFUXQ4Nr8lBsPqtGAqBenbpFqAA2g==}
     engines: {node: '>=6.0.0'}
     peerDependencies:
@@ -9983,7 +9983,7 @@ packages:
     dependencies:
       eslint: 7.32.0
       eslint-config-prettier: 8.6.0(eslint@7.32.0)
-      prettier: 3.0.2
+      prettier: 3.0.3
       prettier-linter-helpers: 1.0.0
     dev: true
 
@@ -12139,7 +12139,7 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       '@babel/core': 7.22.11
-      '@babel/parser': 7.22.13
+      '@babel/parser': 7.22.14
       '@istanbuljs/schema': 0.1.3
       istanbul-lib-coverage: 3.2.0
       semver: 7.5.4
@@ -14613,8 +14613,8 @@ packages:
     dependencies:
       process-on-spawn: 1.0.0
 
-  /node-pty@0.10.1:
-    resolution: {integrity: sha512-JTdtUS0Im/yRsWJSx7yiW9rtpfmxqxolrtnyKwPLI+6XqTAPW/O2MjS8FYL4I5TsMbH2lVgDb2VMjp+9LoQGNg==}
+  /node-pty@1.0.0:
+    resolution: {integrity: sha512-wtBMWWS7dFZm/VgqElrTvtfMq4GzJ6+edFI0Y0zyzygUSZMgZdraDUMUhCIvkjhJjme15qWmbyJbtAx4ot4uZA==}
     requiresBuild: true
     dependencies:
       nan: 2.17.0
@@ -15737,6 +15737,13 @@ packages:
     resolution: {integrity: sha512-o2YR9qtniXvwEZlOKbveKfDQVyqxbEIWn48Z8m3ZJjBjcCmUy3xZGIv+7AkaeuaTr6yPXJjwv07ZWlsWbEy1rQ==}
     engines: {node: '>=14'}
     hasBin: true
+    dev: false
+
+  /prettier@3.0.3:
+    resolution: {integrity: sha512-L/4pUDMxcNa8R/EthV08Zt42WBO4h1rarVtK0K+QJG0X187OLo7l699jWw0GKuwzkPQ//jMFA/8Xm6Fh3J/DAg==}
+    engines: {node: '>=14'}
+    hasBin: true
+    dev: true
 
   /pretty-error@4.0.0:
     resolution: {integrity: sha512-AoJ5YMAcXKYxKhuJGdcvse+Voc6v1RgnsR3nWcYU7q4t6z0Q6T86sv5Zq8VIRbOWWFpvdGE83LtdSMNd+6Y0xw==}

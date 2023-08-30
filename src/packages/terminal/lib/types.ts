@@ -1,3 +1,6 @@
+import type { EventEmitter } from "events";
+import Primus from "primus";
+
 export interface Options {
   // path -- the "original" path to the terminal, not the derived "term_path"
   path?: string;
@@ -8,15 +11,11 @@ export interface Options {
   cwd?: string;
 }
 
-export interface Terminal {
-  channel: any;
-  history: string;
-  path: string;
-  client_sizes?: any;
-  last_truncate_time: number;
-  truncating: number;
-  last_exit: number;
-  options: Options;
-  size?: any;
-  term?: any; // node-pty
+export interface PrimusChannel extends EventEmitter {
+  write: (data: object | string) => void;
+  forEach: (cb: (spark, id, connections) => void) => void;
+}
+
+export interface PrimusWithChannels extends Primus {
+  channel: (name: string) => PrimusChannel;
 }

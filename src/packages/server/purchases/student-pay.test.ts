@@ -16,22 +16,25 @@ afterAll(async () => {
 
 describe("test studentPay behaves at it should in various scenarios", () => {
   const account_id = uuid();
-  let project_id = uuid();
+  let project_id;
 
   it("fails with an error if the project doesn't exist", async () => {
     expect.assertions(1);
     try {
-      await studentPay({ account_id, project_id });
+      await studentPay({ account_id, project_id: uuid() });
     } catch (e) {
       expect(e.message).toMatch("no such project");
     }
   });
 
-  it("creates project, then fails because student pay not configured yet", async () => {
+  it("creates a project", async () => {
     project_id = await createProject({
       account_id,
       title: "My First Project",
     });
+  });
+
+  it("fails because student pay not configured yet", async () => {
     expect.assertions(1);
     try {
       await studentPay({ account_id, project_id });
@@ -44,7 +47,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     const pool = getPool();
     await pool.query(
       `UPDATE projects SET course='{"account_id":"${account_id}"}' WHERE project_id=$1`,
-      [project_id]
+      [project_id],
     );
     expect.assertions(1);
     try {
@@ -92,7 +95,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT course, site_license FROM projects WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     const { course, site_license } = rows[0];
     expect(course.paid.length).toBeGreaterThanOrEqual(10);
@@ -103,7 +106,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     // also check that site_license on target project is properly set
     const x = await pool.query(
       "SELECT description FROM purchases WHERE id=$1",
-      [purchase_id]
+      [purchase_id],
     );
     const license_id = x.rows[0].description.license_id;
     expect(site_license).toEqual({ [license_id]: {} });

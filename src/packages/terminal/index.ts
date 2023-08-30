@@ -8,8 +8,7 @@ Terminal server
 */
 
 import { getLogger } from "@cocalc/backend/logger";
-import Primus from "primus";
-import type { Options } from "./lib/types";
+import type { Options, PrimusWithChannels } from "./lib/types";
 import { getName } from "./lib/util";
 import { Terminal } from "./lib/terminal";
 
@@ -29,7 +28,7 @@ export function pidToPath(pid: number): string | undefined {
 // INPUT: primus and description of a terminal session (the path)
 // OUTPUT: the name of a websocket channel that serves that terminal session.
 export async function terminal(
-  primus: Primus,
+  primus: PrimusWithChannels,
   path: string,
   options: Options,
 ): Promise<string> {

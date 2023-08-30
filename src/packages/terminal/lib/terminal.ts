@@ -1,11 +1,11 @@
-import type { Options } from "./types";
+import type { PrimusChannel, PrimusWithChannels, Options } from "./types";
 import { getName } from "./util";
 import { console_init_filename, len, path_split } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/backend/logger";
 import { envForSpawn } from "@cocalc/backend/misc";
 import { getCWD } from "./util";
 import { readlink, realpath, readFile, writeFile } from "node:fs/promises";
-import { spawn } from "node-pty";
+import { spawn, IPty as IPty0 } from "node-pty";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
@@ -20,21 +20,28 @@ const TRUNCATE_THRESH_MS: number = 10 * 1000;
 const INFINITY = 999999;
 const DEFAULT_COMMAND = "/bin/bash";
 
+type MessagesState = "none" | "reading";
+
+// upstream typings not quite right
+interface IPty extends IPty0 {
+  on: (event: string, f: (...args) => void) => void;
+}
+
 export class Terminal {
   private options: Options;
-  private channel;
+  private channel: PrimusChannel;
   private history: string = "";
   private path: string;
   private client_sizes = {};
   private last_truncate_time: number = Date.now();
   private truncating: number = 0;
   private last_exit: number = 0;
-  private size?: any;
-  private term?: any; // node-pty
+  private size?: { rows: number; cols: number };
+  private term?: IPty;
   private backendMessagesBuffer = "";
-  private backendMessagesState: "NONE" | "READING" = "NONE";
+  private backendMessagesState: MessagesState = "none";
 
-  constructor(primus, path: string, options: Options) {
+  constructor(primus: PrimusWithChannels, path: string, options: Options = {}) {
     const name = getName(path);
     this.options = { command: DEFAULT_COMMAND, ...options };
     this.path = path;
@@ -87,7 +94,7 @@ export class Terminal {
     } catch (err) {
       logger.debug("WARNING: failed to load", this.path, err);
     }
-    const term = spawn(command, args, { cwd, env });
+    const term = spawn(command, args, { cwd, env }) as IPty;
     logger.debug("pid=", term.pid, { command, args });
     this.term = term;
 
@@ -131,7 +138,9 @@ export class Terminal {
     if (this.options.command != command) {
       this.options.command = command;
       this.options.args = args;
-      process.kill(this.term?.pid, "SIGKILL");
+      if (this.term != null) {
+        process.kill(this.term.pid, "SIGKILL");
+      }
     }
   };
 
@@ -145,7 +154,7 @@ export class Terminal {
 
   private resetBackendMessagesBuffer = () => {
     this.backendMessagesBuffer = "";
-    this.backendMessagesState = "NONE";
+    this.backendMessagesState = "none";
   };
 
   private handleDataFromTerminal = (data) => {
@@ -207,13 +216,13 @@ export class Terminal {
          NOTE: such messages also get sent via the
          normal channel, but ignored by the client.
       */
-    if (this.backendMessagesState === "NONE") {
+    if (this.backendMessagesState === "none") {
       const i = data.indexOf("\x1b");
       if (i === -1) {
         return; // nothing to worry about
       }
       // stringify it so it is easy to see what is there:
-      this.backendMessagesState = "READING";
+      this.backendMessagesState = "reading";
       this.backendMessagesBuffer = data.slice(i);
     } else {
       this.backendMessagesBuffer += data;
@@ -295,6 +304,10 @@ export class Terminal {
   private handleDataFromClient = async (spark, data) => {
     //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
     if (typeof data === "string") {
+      if (this.term == null) {
+        spark.write("\nTerminal is not initialized.\n");
+        return;
+      }
       try {
         this.term.write(data);
       } catch (err) {
@@ -330,16 +343,24 @@ export class Terminal {
           this.options.command = data.command;
           this.options.args = data.args;
           // Also kill it so will respawn with new command/args:
-          process.kill(this.term.pid, "SIGKILL");
+          if (this.term != null) {
+            process.kill(this.term.pid, "SIGKILL");
+          }
           break;
         }
 
         case "kill": {
           // send kill signal
-          process.kill(this.term.pid, "SIGKILL");
+          if (this.term != null) {
+            process.kill(this.term.pid, "SIGKILL");
+          }
           break;
         }
         case "cwd": {
+          if (this.term == null) {
+            spark.write("\nTerminal is not initialized.\n");
+            return;
+          }
           // we reply with the current working directory of the underlying terminal process
           const pid = this.term.pid;
           // [hsy/dev] wrapping in realpath, because I had the odd case, where the project's
@@ -368,7 +389,7 @@ export class Terminal {
             }
           }
           // next tell this client to go fullsize.
-          if (this.size !== undefined) {
+          if (this.size != null) {
             const { rows, cols } = this.size;
             if (rows && cols) {
               spark.write({ cmd: "size", rows, cols });
@@ -393,7 +414,7 @@ export class Terminal {
     );
 
     // send current size info
-    if (this.size !== undefined) {
+    if (this.size != null) {
       const { rows, cols } = this.size;
       spark.write({ cmd: "size", rows, cols });
     }

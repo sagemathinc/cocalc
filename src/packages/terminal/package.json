@@ -23,7 +23,7 @@
     "awaiting": "^3.0.0",
     "debug": "^4.3.2",
     "lodash": "^4.17.21",
-    "node-pty": "^0.10.1",
+    "node-pty": "^1.0.0",
     "primus": "^8.0.7",
     "primus-responder": "^1.0.4"
   },
