@@ -53,6 +53,7 @@ export class ProjectInfoServer extends EventEmitter {
   private ticks: number;
   private pagesize: number;
   private delay_s: number;
+  private cgroupFilesAreMissing: boolean = false;
 
   constructor(testing = false) {
     super();
@@ -206,10 +207,14 @@ export class ProjectInfoServer extends EventEmitter {
   }
 
   // this is specific to running a project in a CGroup container
-  // however, even without a container this shouldn't fail … just tells
-  // you what the whole system is doing, all your processes,…
-  // NOTE: most of this replaces kucalc.coffee
+  // Harald: however, even without a container this shouldn't fail … just tells
+  // you what the whole system is doing, all your processes.
+  // William: it's constantly failing in cocalc-docker every second, so to avoid
+  // clogging logs and wasting CPU, if the files are missing once, it stops updating.
   private async cgroup({ timestamp }): Promise<CGroup | undefined> {
+    if (this.cgroupFilesAreMissing) {
+      return;
+    }
     try {
       const [mem_stat_raw, cpu_raw, oom_raw, cfs_quota_raw, cfs_period_raw] =
         await Promise.all([
@@ -255,6 +260,16 @@ export class ProjectInfoServer extends EventEmitter {
       };
     } catch (err) {
       this.dbg("cgroup: error", err);
+      if (err.code == "ENOENT") {
+        // TODO: instead of shutting this down, we could maybe do a better job
+        // figuring out what the correct cgroups files are on a given system.
+        // E.g., in my cocalc-docker, I do NOT have /sys/fs/cgroup/memory/memory.stat
+        // but I do have /sys/fs/cgroup/memory.stat
+        this.cgroupFilesAreMissing = true;
+        this.dbg(
+          "cgroup: files are missing so cgroups info will no longer be updated",
+        );
+      }
       return undefined;
     }
   }
