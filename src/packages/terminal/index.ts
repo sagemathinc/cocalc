@@ -16,7 +16,9 @@ const logger = getLogger("terminal:index");
 
 const terminals: { [name: string]: Terminal } = {};
 
-// this is used to know which process belongs to which terminal
+// this is used to know which path belongs to which terminal
+// (this is the overall tab, not the individual frame -- it's
+// used for the processes page)
 export function pidToPath(pid: number): string | undefined {
   for (const terminal of Object.values(terminals)) {
     if (terminal.getPid() == pid) {

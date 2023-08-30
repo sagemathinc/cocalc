@@ -19,9 +19,10 @@ import { Spark } from "primus";
 
 const logger = getLogger("terminal:terminal");
 
-const CHECK_INTERVAL_MS: number = 5 * 1000;
-const MAX_HISTORY_LENGTH: number = 10 * 1000 * 1000;
-const TRUNCATE_THRESH_MS: number = 10 * 1000;
+const CHECK_INTERVAL_MS = 5 * 1000;
+const MAX_HISTORY_LENGTH = 10 * 1000 * 1000;
+const TRUNCATE_THRESH_MS = 10 * 1000;
+const FREQUENT_RESTART_DELAY_MS = 1.5 * 1000;
 const INFINITY = 999999;
 const DEFAULT_COMMAND = "/bin/bash";
 
@@ -115,13 +116,15 @@ export class Terminal {
       logger.debug("EXIT -- spawning again");
       const now = Date.now();
       if (now - this.last_exit <= 15000) {
-        // frequent exit; we wait a few seconds, since otherwisechannel
+        // frequent exit; we wait a few seconds, since otherwise channel
         // restarting could burn all cpu and break everything.
         logger.debug("EXIT -- waiting a few seconds before trying again...");
-        await delay(3000);
+        await delay(FREQUENT_RESTART_DELAY_MS);
       }
       this.last_exit = now;
-      this.init();
+      logger.debug("spawning...");
+      await this.init();
+      logger.debug("finished spawn");
     });
 
     this.channel.on("connection", this.handleNewClientConnection);
@@ -133,10 +136,9 @@ export class Terminal {
   };
 
   close = () => {
+    logger.debug("close");
     this.state = "closed";
-    if (this.term != null) {
-      process.kill(this.term.pid, "SIGKILL");
-    }
+    this.killTerm();
   };
 
   getPid = (): number | undefined => {
@@ -155,14 +157,25 @@ export class Terminal {
   setCommand = (command: string, args?: string[]) => {
     if (this.state == "closed") return;
     if (command == this.options.command && isEqual(args, this.options.args)) {
-      // no actual change.
+      logger.debug("setCommand: no actual change.");
       return;
     }
+    logger.debug(
+      "setCommand",
+      { command: this.options.command, args: this.options.args },
+      "-->",
+      { command, args },
+    );
     this.options.command = command;
     this.options.args = args;
-    if (this.term != null) {
-      process.kill(this.term.pid, "SIGKILL");
-    }
+    this.killTerm();
+  };
+
+  private killTerm = () => {
+    if (this.term == null) return;
+    logger.debug("killing ", this.term.pid);
+    process.kill(this.term.pid, "SIGKILL");
+    delete this.term;
   };
 
   private saveHistoryToDisk = throttle(async () => {
@@ -179,6 +192,7 @@ export class Terminal {
   };
 
   private handleDataFromTerminal = (data) => {
+    if (this.state == "closed") return;
     //logger.debug("terminal: term --> browsers", data);
     this.handleBackendMessages(data);
     this.history += data;
