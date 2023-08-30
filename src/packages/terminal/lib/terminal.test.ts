@@ -4,9 +4,28 @@ import { EventEmitter } from "events";
 import { delay } from "awaiting";
 import type { Spark } from "primus";
 import { uuid } from "@cocalc/util/misc";
+import { exec } from "child_process";
+import { once } from "@cocalc/util/async-utils";
 
 import debug from "debug";
 const logger = debug("cocalc:test:terminal");
+
+const isPidRunning = async (pid: number) => {
+  return new Promise((resolve) => {
+    exec(`ps -p ${pid} -o pid=`, (_err, stdout, _stderr) => {
+      resolve(stdout.trim() !== "");
+    });
+  });
+};
+
+afterAll(() => {
+  // TODO: Somehow pty-node or something else randomly doesn't
+  // allow jest for the terminal tests to exist.  I could
+  // not figure this out after hours and hours, and we don't
+  // need a guaranteed clean exit, so I'm putting this in for
+  // now.  It would be nice if it wasn't needed.
+  setTimeout(process.exit, 1);
+});
 
 class PrimusSparkMock extends EventEmitter {
   id: string = uuid();
@@ -26,6 +45,7 @@ class PrimusSparkMock extends EventEmitter {
     } else {
       this.data += data;
     }
+    this.emit("write");
   };
 
   end = () => {
@@ -38,25 +58,26 @@ class PrimusSparkMock extends EventEmitter {
   };
 
   waitForMessage = async () => {
-    for (let i = 1; i < 30; i++) {
+    while (true) {
       if (this.messages.length > 0) {
         return this.messages.shift();
       }
-      await delay(10 * i);
+      await once(this, "write");
     }
-    throw Error("message took too long to arrive");
   };
 
-  waitForData = async () => {
-    for (let i = 1; i < 30; i++) {
+  waitForData = async (minLen: number) => {
+    let data = "";
+    while (data.length < minLen) {
       if (this.data.length > 0) {
-        const data = this.data;
+        data += this.data;
         this.data = "";
-        return data;
       }
-      await delay(10 * i);
+      if (data.length < minLen) {
+        await once(this, "write");
+      }
     }
-    throw Error("data took too long to arrive");
+    return data;
   };
 }
 
@@ -70,6 +91,7 @@ class PrimusChannelMock extends EventEmitter {
   }
 
   write = (data) => {
+    if (this.sparks == null) return;
     for (const spark of Object.values(this.sparks)) {
       spark.write(data);
     }
@@ -140,12 +162,16 @@ describe("very basic test of creating a terminal and changing shell", () => {
     terminal.setCommand("/bin/sh", []);
     let newPid;
     // there's no even or way to tell it restarted except by watching.
-    for (let i = 0; i < 30; i++) {
+    for (let i = 1; i < 30; i++) {
       newPid = terminal.getPid();
-      if (typeof newPid != null && newPid != pid) break;
-      await delay(10 * i);
+      if (typeof newPid != null && newPid != pid) {
+        break;
+      }
+      await delay(2 * i);
     }
     expect(pid).not.toBe(newPid);
+    // check that original process is no longer running.
+    expect(await isPidRunning(pid)).toBe(false);
   });
 });
 
@@ -199,7 +225,10 @@ describe("create a shell, connect a client, and communicate with it", () => {
     expect(process.cwd().endsWith(mesg.payload)).toBe(true);
   });
 
-  //   it("write pwd to terminal and get back the current working directory", async () => {
-
-  //   });
+  it("write pwd to terminal and get back the current working directory", async () => {
+    spark.emit("data", "pwd\n");
+    spark.data = "";
+    const resp = await spark.waitForData(10);
+    expect(resp).toContain(process.cwd());
+  });
 });

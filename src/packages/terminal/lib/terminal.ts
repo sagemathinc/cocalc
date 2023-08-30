@@ -15,7 +15,7 @@ import { throttle } from "lodash";
 import { delay } from "awaiting";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { isEqual } from "lodash";
-import { Spark } from "primus";
+import type { Spark } from "primus";
 
 const logger = getLogger("terminal:terminal");
 
@@ -32,6 +32,7 @@ type State = "init" | "ready" | "closed";
 // upstream typings not quite right
 interface IPty extends IPty0 {
   on: (event: string, f: (...args) => void) => void;
+  destroy: () => void;
 }
 
 export class Terminal {
@@ -178,7 +179,8 @@ export class Terminal {
   private killTerm = () => {
     if (this.term == null) return;
     logger.debug("killing ", this.term.pid);
-    process.kill(this.term.pid, "SIGKILL");
+    this.term.kill("SIGKILL");
+    this.term.destroy();
     delete this.term;
   };
 
