@@ -150,7 +150,7 @@ export interface CodeEditorState {
 }
 
 export class Actions<
-  T extends CodeEditorState = CodeEditorState
+  T extends CodeEditorState = CodeEditorState,
 > extends BaseActions<T | CodeEditorState> {
   protected _state: "closed" | undefined;
   public _syncstring: SyncString;
@@ -201,11 +201,11 @@ export class Actions<
     project_id: string,
     path: string,
     is_public: boolean,
-    store: any
+    store: any,
   ): void {
     this._save_local_view_state = debounce(
       () => this.__save_local_view_state(),
-      1500
+      1500,
     );
 
     this.project_id = project_id;
@@ -213,10 +213,10 @@ export class Actions<
     this.store = store;
     this.is_public = is_public;
     this.terminals = new TerminalManager<CodeEditorState>(
-      this as unknown as Actions<CodeEditorState>
+      this as unknown as Actions<CodeEditorState>,
     );
     this.code_editors = new CodeEditorManager<CodeEditorState>(
-      this as unknown as Actions<CodeEditorState>
+      this as unknown as Actions<CodeEditorState>,
     );
 
     this.format = reuseInFlight(this.format);
@@ -273,7 +273,7 @@ export class Actions<
       "save-to-disk",
       reuseInFlight(async (time) => {
         await this.update_misspelled_words(time);
-      })
+      }),
     );
   }
 
@@ -313,15 +313,15 @@ export class Actions<
         if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
           throw Error(
             `search embedding primaryKey must be in ${JSON.stringify(
-              this.primary_keys
-            )}`
+              this.primary_keys,
+            )}`,
           );
         }
         if (!this.string_cols.includes(this.searchEmbeddings.textColumn)) {
           throw Error(
             `search embedding textColumn must be in ${JSON.stringify(
-              this.string_cols
-            )}`
+              this.string_cols,
+            )}`,
           );
         }
         enableSearchEmbeddings({
@@ -338,7 +338,7 @@ export class Actions<
     this._syncstring.once("ready", (err) => {
       if (err) {
         this.set_error(
-          `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`
+          `Fatal error opening file -- ${err}\nFix this, then try opening the file again.`,
         );
         return;
       }
@@ -358,20 +358,20 @@ export class Actions<
 
       this._syncstring.on(
         "metadata-change",
-        this._syncstring_metadata.bind(this)
+        this._syncstring_metadata.bind(this),
       );
       this._syncstring.on(
         "cursor_activity",
-        this._syncstring_cursor_activity.bind(this)
+        this._syncstring_cursor_activity.bind(this),
       );
     });
 
     this._syncstring.on("before-change", () =>
-      this.set_syncstring_to_codemirror(undefined, true)
+      this.set_syncstring_to_codemirror(undefined, true),
     );
     this._syncstring.on(
       "after-change",
-      this.set_codemirror_to_syncstring.bind(this)
+      this.set_codemirror_to_syncstring.bind(this),
     );
     this._syncstring.once("load-time-estimate", (est) => {
       return this.setState({ load_time_estimate: est });
@@ -385,7 +385,7 @@ export class Actions<
 
     this._syncstring.once("error", (err) => {
       this.set_error(
-        `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`
+        `Fatal error opening ${this.path} -- ${err}\nFix this, then try opening the file again.`,
       );
     });
 
@@ -400,7 +400,7 @@ export class Actions<
         if (!has_uncommitted_changes) {
           this.set_show_uncommitted_changes(false);
         }
-      }
+      },
     );
 
     this._syncstring.on("has-unsaved-changes", (has_unsaved_changes) => {
@@ -431,7 +431,7 @@ export class Actions<
   _init_syncdb(
     primary_keys: string[],
     string_cols?: string[],
-    path?: string
+    path?: string,
   ): void {
     if (primary_keys.length <= 0) {
       throw Error("primary_keys must be array of positive length");
@@ -446,7 +446,7 @@ export class Actions<
     });
     this._syncdb.once("error", (err) => {
       this.set_error(
-        `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`
+        `Fatal error opening config "${aux}" -- ${err}.\nFix this, then try opening the file again.`,
       );
     });
 
@@ -541,7 +541,7 @@ export class Actions<
     this._save_local_view_state = this.__save_local_view_state;
     if (this._key_handler != null) {
       (this.redux.getActions("page") as any).erase_active_key_handler(
-        this._key_handler
+        this._key_handler,
       );
       delete this._key_handler;
     }
@@ -578,7 +578,7 @@ export class Actions<
     if (!this.store?.get("local_view_state")) return;
     set_local_storage(
       this.name,
-      JSON.stringify(this.store.get("local_view_state"))
+      JSON.stringify(this.store.get("local_view_state")),
     );
   }
 
@@ -604,7 +604,7 @@ export class Actions<
     if (!local_view_state.has("font_size")) {
       local_view_state = local_view_state.set(
         "font_size",
-        get_default_font_size()
+        get_default_font_size(),
       );
     }
 
@@ -621,7 +621,7 @@ export class Actions<
     if (active_id == null || !tree_ops.is_leaf_id(frame_tree, active_id)) {
       local_view_state = local_view_state.set(
         "active_id",
-        tree_ops.get_some_leaf_id(frame_tree)
+        tree_ops.get_some_leaf_id(frame_tree),
       );
     }
 
@@ -654,7 +654,7 @@ export class Actions<
   _is_leaf_id(id: string): boolean {
     return tree_ops.is_leaf_id(
       this.store.getIn(["local_view_state", "frame_tree"]) as any,
-      id
+      id,
     );
   }
 
@@ -689,7 +689,7 @@ export class Actions<
     this._active_id_history.push(active_id);
     if (this._active_id_history.length > 100) {
       this._active_id_history = this._active_id_history.slice(
-        this._active_id_history.length - 100
+        this._active_id_history.length - 100,
       );
     }
 
@@ -982,7 +982,7 @@ export class Actions<
     type?: string, // type of new frame
     extra?: object, // set this data in the new frame immediately.
     first?: boolean, // if true, new frame is left or top instead of right or bottom.
-    no_focus?: boolean // do not change active frame
+    no_focus?: boolean, // do not change active frame
   ): string | undefined {
     if (!id) {
       id = this.store.getIn(["local_view_state", "active_id"]);
@@ -1021,7 +1021,7 @@ export class Actions<
   public new_frame(
     type: string, // type of new frame
     direction?: FrameDirection, // default "col"
-    first?: boolean // if true, new frame is left or top instead of right or bottom.
+    first?: boolean, // if true, new frame is left or top instead of right or bottom.
   ): string {
     const before = this._get_leaf_ids();
     this._tree_op("new_frame", type, direction ?? "col", first ?? false);
@@ -1385,13 +1385,13 @@ export class Actions<
 
   _get_most_recent_cm_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      (node) => node.get("type").slice(0, 2) == "cm"
+      (node) => node.get("type").slice(0, 2) == "cm",
     );
   }
 
   _get_most_recent_terminal_id(): string | undefined {
     return this._get_most_recent_active_frame_id(
-      (node) => node.get("type").slice(0, 8) == "terminal"
+      (node) => node.get("type").slice(0, 8) == "terminal",
     );
   }
 
@@ -1400,7 +1400,7 @@ export class Actions<
     return this._get_most_recent_active_frame_id(
       (node) =>
         node.get("type").slice(0, 8) == "terminal" &&
-        node.get("command") == command
+        node.get("command") == command,
     );
   }
 
@@ -1414,7 +1414,7 @@ export class Actions<
 
   public _get_terminal(
     id: string,
-    parent: HTMLElement
+    parent: HTMLElement,
   ): Terminal<CodeEditorState> {
     return this.terminals.get_terminal(id, parent);
   }
@@ -1507,7 +1507,7 @@ export class Actions<
 
   set_syncstring_to_codemirror(
     id?: string,
-    do_not_exit_undo_mode?: boolean
+    do_not_exit_undo_mode?: boolean,
   ): void {
     const cm = this._get_cm(id);
     if (!cm) {
@@ -1693,7 +1693,7 @@ export class Actions<
     cursor?: boolean,
     focus?: boolean,
     frameId?: string, // if given scroll the frame with this id
-    ch?: number // specific character in line
+    ch?: number, // specific character in line
   ): Promise<void> {
     if (!(await this.wait_until_syncdoc_ready())) {
       return;
@@ -1822,7 +1822,7 @@ export class Actions<
   public set_error(
     error?: object | string,
     style?: ErrorStyles,
-    id?: string
+    id?: string,
   ): void {
     id = id; // id - not currently used, but would be for frame-specific error.
     if (error === undefined) {
@@ -1998,7 +1998,7 @@ export class Actions<
     }
     const gutter_markers: GutterMarkers = this.store.get(
       "gutter_markers",
-      Map()
+      Map(),
     );
     const info = new GutterMarker({
       line: opts.line,
@@ -2011,7 +2011,7 @@ export class Actions<
   delete_gutter_marker(id: string): void {
     const gutter_markers: GutterMarkers = this.store.get(
       "gutter_markers",
-      Map()
+      Map(),
     );
     if (gutter_markers.has(id)) {
       this.setState({ gutter_markers: gutter_markers.delete(id) });
@@ -2072,7 +2072,7 @@ export class Actions<
 
   public format_support_for_syntax(
     available_features: AvailableFeatures,
-    syntax: FormatterSyntax
+    syntax: FormatterSyntax,
   ): false | FormatterTool {
     if (syntax == null) return false;
     // first, check if there exists a tool for that syntax
@@ -2088,7 +2088,7 @@ export class Actions<
 
   public format_support_for_extension(
     available_features: AvailableFeatures,
-    ext: string
+    ext: string,
   ): false | FormatterTool {
     const syntax = ext2syntax[ext];
     return this.format_support_for_syntax(available_features, syntax);
@@ -2097,7 +2097,7 @@ export class Actions<
   // Not an action, but works to make code clean
   has_format_support(
     id: string,
-    available_features?: AvailableFeatures // is in project store
+    available_features?: AvailableFeatures, // is in project store
   ): false | string {
     if (available_features == null) return false;
     const leaf = this._get_frame_node(id);
@@ -2211,7 +2211,7 @@ export class Actions<
 
   _get_most_recent_active_frame_id_of_type(type: string): string | undefined {
     return this._get_most_recent_active_frame_id(
-      (node) => node.get("type") == type
+      (node) => node.get("type") == type,
     );
   }
 
@@ -2447,7 +2447,7 @@ export class Actions<
 
   // Overload this in a derived class to have a possibly more complicated spec.
   protected async get_shell_spec(
-    id: string
+    id: string,
   ): Promise<undefined | string | { command: string; args: string[] }> {
     id = id; // not used.
     return SHELLS[filename_extension(this.path)];
@@ -2522,20 +2522,29 @@ export class Actions<
   }
 
   public clear_terminal_command(id: string): void {
-    this.set_frame_tree({ id, command: undefined, args: undefined });
-    // also, restart that terminal...
-    this.terminals.set_command(id, undefined, undefined);
     this.terminals.kill(id);
   }
 
   public async clear(id: string) {
     // this is for terminals only
-    const type = this._get_frame_node(id)?.get("type");
+    const node = this._get_frame_node(id);
+    if (node == null) return;
+    const type = node.get("type");
     if (type == "terminal") {
       this.clear_terminal_command(id);
+      console.log(node.toJS());
+      if (node.get("command") == "jupyter") {
+        // not reseting jupyter
+        console.log("not resetting jupyter");
+        return;
+      }
+      // we also wait until it is "back again with a prompt"
+      // and issue the reset command, but that doesn't
+      // make sense for Jupyter.
       const t = this.terminals.get(id);
-      // we also wait until it is "back again with a prompt" and issue the reset command
-      if (t == null) return;
+      if (t == null) {
+        return;
+      }
       await t.wait_for_next_render();
       await delay(1); // also wait a little bit
       t.conn_write("reset\n");
@@ -2548,14 +2557,14 @@ export class Actions<
     (this.redux.getActions("page") as PageActions).set_active_key_handler(
       key_handler,
       this.project_id,
-      this.path
+      this.path,
     );
     this._key_handler = key_handler;
   }
 
   public erase_active_key_handler(key_handler: (e: any) => void): void {
     (this.redux.getActions("page") as PageActions).erase_active_key_handler(
-      key_handler
+      key_handler,
     );
   }
 
@@ -2572,7 +2581,7 @@ export class Actions<
     type: string,
     dir: FrameDirection = "col",
     first?: boolean,
-    pos?: number
+    pos?: number,
   ): string {
     let id: string | undefined =
       this._get_most_recent_active_frame_id_of_type(type);
@@ -2603,7 +2612,7 @@ export class Actions<
     type: string,
     dir: FrameDirection = "col",
     first: boolean = false,
-    pos: number | undefined = undefined
+    pos: number | undefined = undefined,
   ): string {
     const id = this.show_recently_focused_frame_of_type(type, dir, first, pos);
     this.set_active_id(id);
@@ -2618,7 +2627,7 @@ export class Actions<
   }
 
   public async show_overview(
-    _id: string | undefined = undefined
+    _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type("overview", "col", true, 0.3);
     await delay(0);
@@ -2627,7 +2636,7 @@ export class Actions<
   }
 
   public async show_slideshow(
-    _id: string | undefined = undefined
+    _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type("slideshow", "col", true, 0.3);
     await delay(0);
@@ -2636,13 +2645,13 @@ export class Actions<
   }
 
   public async show_speaker_notes(
-    _id: string | undefined = undefined
+    _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
       "speaker_notes",
       "row",
       false,
-      0.8
+      0.8,
     );
     await delay(0);
     if (this._state === "closed") return;
@@ -2659,7 +2668,7 @@ export class Actions<
 
   // Closes the most recently focused frame of the given type.
   public close_recently_focused_frame_of_type(
-    type: string
+    type: string,
   ): string | undefined {
     const id: string | undefined =
       this._get_most_recent_active_frame_id_of_type(type);
@@ -2684,7 +2693,7 @@ export class Actions<
     path: string,
     dir: FrameDirection = "col",
     first: boolean = false,
-    pos: number | undefined = undefined
+    pos: number | undefined = undefined,
   ): string {
     // See if there is already a frame for path, and if so show
     // display and focus it.
@@ -2759,7 +2768,7 @@ export class Actions<
   // Init actions and set our new cm frame to the given path.
   private async set_frame_to_code_editor(
     id: string,
-    path: string
+    path: string,
   ): Promise<void> {
     const node = this._get_frame_node(id);
     if (node == null) throw Error(`no frame with id ${id}`);
@@ -2888,7 +2897,7 @@ export class Actions<
   // This is used by the chatgpt function.
   protected chatgptGetText(
     frameId: string,
-    scope: ChatGPTScope = "all"
+    scope: ChatGPTScope = "all",
   ): string {
     switch (scope) {
       case "selection":

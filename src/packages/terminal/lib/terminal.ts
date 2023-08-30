@@ -135,12 +135,14 @@ export class Terminal {
   };
 
   setCommand = (command: string, args?: string[]) => {
-    if (this.options.command != command) {
-      this.options.command = command;
-      this.options.args = args;
-      if (this.term != null) {
-        process.kill(this.term.pid, "SIGKILL");
-      }
+    if (command == this.options.command && isEqual(args, this.options.args)) {
+      // no actual change.
+      return;
+    }
+    this.options.command = command;
+    this.options.args = args;
+    if (this.term != null) {
+      process.kill(this.term.pid, "SIGKILL");
     }
   };
 
@@ -262,6 +264,16 @@ export class Terminal {
     }
   };
 
+  private setSize = (spark: Spark, newSize: { rows; cols }) => {
+    this.client_sizes[spark.id] = newSize;
+    try {
+      this.resize();
+    } catch (err) {
+      // no-op -- can happen if terminal is restarting.
+      logger.debug("WARNING: resizing terminal", this.path, err);
+    }
+  };
+
   private resize = () => {
     //logger.debug("resize");
     if (this.client_sizes == null || this.term == null) {
@@ -301,6 +313,49 @@ export class Terminal {
     }
   };
 
+  private sendCurrentWorkingDirectory = async (spark: Spark) => {
+    if (this.term == null) {
+      return;
+    }
+    // we reply with the current working directory of the underlying terminal process
+    const pid = this.term.pid;
+    // [hsy/dev] wrapping in realpath, because I had the odd case, where the project's
+    // home included a symlink, hence the "startsWith" below didn't remove the home dir.
+    const home = await realpath(process.env.HOME ?? "/home/user");
+    try {
+      const cwd = await readlink(`/proc/${pid}/cwd`);
+      // we send back a relative path, because the webapp does not understand absolute paths
+      const path = cwd.startsWith(home) ? cwd.slice(home.length + 1) : cwd;
+      logger.debug(`terminal cwd sent back: cwd=${cwd} path=${path}`);
+      spark.write({ cmd: "cwd", payload: path });
+    } catch (err) {
+      logger.debug("WARNING: cwd", err);
+    }
+  };
+
+  private bootAllOtherClients = (spark: Spark) => {
+    // delete all sizes except this one, so at least kick resets
+    // the sizes no matter what.
+    for (const id in this.client_sizes) {
+      if (id !== spark.id) {
+        delete this.client_sizes[id];
+      }
+    }
+    // next tell this client to go fullsize.
+    if (this.size != null) {
+      const { rows, cols } = this.size;
+      if (rows && cols) {
+        spark.write({ cmd: "size", rows, cols });
+      }
+    }
+    // broadcast message to all other clients telling them to close.
+    this.channel.forEach((spark0, id, _) => {
+      if (id !== spark.id) {
+        spark0.write({ cmd: "close" });
+      }
+    });
+  };
+
   private handleDataFromClient = async (spark, data) => {
     //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
     if (typeof data === "string") {
@@ -317,90 +372,27 @@ export class Terminal {
       // control message
       //logger.debug("terminal channel control message", JSON.stringify(data));
       switch (data.cmd) {
-        case "size": {
-          this.client_sizes[spark.id] = {
-            rows: data.rows,
-            cols: data.cols,
-          };
-          try {
-            this.resize();
-          } catch (err) {
-            // no-op -- can happen if terminal is restarting.
-            logger.debug("WARNING: resizing terminal", this.path, err);
-          }
+        case "size":
+          this.setSize(spark, { rows: data.rows, cols: data.cols });
           break;
-        }
-        case "set_command": {
-          if (
-            isEqual(
-              [data.command, data.args],
-              [this.options.command, this.options.args],
-            )
-          ) {
-            // no actual change.
-            break;
-          }
-          this.options.command = data.command;
-          this.options.args = data.args;
-          // Also kill it so will respawn with new command/args:
-          if (this.term != null) {
-            process.kill(this.term.pid, "SIGKILL");
-          }
-          break;
-        }
 
-        case "kill": {
+        case "set_command":
+          this.setCommand(data.command, data.args);
+          break;
+
+        case "kill":
           // send kill signal
           if (this.term != null) {
             process.kill(this.term.pid, "SIGKILL");
           }
           break;
-        }
-        case "cwd": {
-          if (this.term == null) {
-            spark.write("\nTerminal is not initialized.\n");
-            return;
-          }
-          // we reply with the current working directory of the underlying terminal process
-          const pid = this.term.pid;
-          // [hsy/dev] wrapping in realpath, because I had the odd case, where the project's
-          // home included a symlink, hence the "startsWith" below didn't remove the home dir.
-          const home = await realpath(process.env.HOME ?? "/home/user");
-          try {
-            const cwd = await readlink(`/proc/${pid}/cwd`);
-            // we send back a relative path, because the webapp does not understand absolute paths
-            const path = cwd.startsWith(home)
-              ? cwd.slice(home.length + 1)
-              : cwd;
-            logger.debug(`terminal cwd sent back: cwd=${cwd} path=${path}`);
-            spark.write({ cmd: "cwd", payload: path });
-          } catch {
-            // ignoring errors
-          }
+
+        case "cwd":
+          this.sendCurrentWorkingDirectory(spark);
           break;
-        }
 
         case "boot": {
-          // delete all sizes except this one, so at least kick resets
-          // the sizes no matter what.
-          for (const id in this.client_sizes) {
-            if (id !== spark.id) {
-              delete this.client_sizes[id];
-            }
-          }
-          // next tell this client to go fullsize.
-          if (this.size != null) {
-            const { rows, cols } = this.size;
-            if (rows && cols) {
-              spark.write({ cmd: "size", rows, cols });
-            }
-          }
-          // broadcast message to all other clients telling them to close.
-          this.channel.forEach((spark0, id, _) => {
-            if (id !== spark.id) {
-              spark0.write({ cmd: "close" });
-            }
-          });
+          this.bootAllOtherClients(spark);
           break;
         }
       }
