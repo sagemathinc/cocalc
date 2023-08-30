@@ -2532,10 +2532,8 @@ export class Actions<
     const type = node.get("type");
     if (type == "terminal") {
       this.clear_terminal_command(id);
-      console.log(node.toJS());
       if (node.get("command") == "jupyter") {
         // not reseting jupyter
-        console.log("not resetting jupyter");
         return;
       }
       // we also wait until it is "back again with a prompt"

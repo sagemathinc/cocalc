@@ -1,4 +1,9 @@
-import type { PrimusChannel, PrimusWithChannels, Options } from "./types";
+import type {
+  ClientCommand,
+  PrimusChannel,
+  PrimusWithChannels,
+  Options,
+} from "./types";
 import { getName } from "./util";
 import { console_init_filename, len, path_split } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/backend/logger";
@@ -356,45 +361,52 @@ export class Terminal {
     });
   };
 
-  private handleDataFromClient = async (spark, data) => {
-    //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
-    if (typeof data === "string") {
-      if (this.term == null) {
-        spark.write("\nTerminal is not initialized.\n");
-        return;
-      }
-      try {
-        this.term.write(data);
-      } catch (err) {
-        spark.write(err.toString());
-      }
-    } else if (typeof data === "object") {
-      // control message
-      //logger.debug("terminal channel control message", JSON.stringify(data));
-      switch (data.cmd) {
-        case "size":
-          this.setSize(spark, { rows: data.rows, cols: data.cols });
-          break;
-
-        case "set_command":
-          this.setCommand(data.command, data.args);
-          break;
-
-        case "kill":
-          // send kill signal
-          if (this.term != null) {
-            process.kill(this.term.pid, "SIGKILL");
-          }
-          break;
-
-        case "cwd":
-          this.sendCurrentWorkingDirectory(spark);
-          break;
-
-        case "boot": {
-          this.bootAllOtherClients(spark);
-          break;
+  private handleDataFromClient = async (
+    spark,
+    data: string | ClientCommand,
+  ) => {
+    try {
+      //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
+      if (typeof data === "string") {
+        if (this.term == null) {
+          spark.write("\nTerminal is not initialized.\n");
+          return;
         }
+        this.term.write(data);
+      } else if (typeof data === "object") {
+        this.handleCommandFromClient(spark, data);
+      }
+    } catch (err) {
+      spark.write(`${err}`);
+    }
+  };
+
+  private handleCommandFromClient = (spark: Spark, data: ClientCommand) => {
+    // control message
+    //logger.debug("terminal channel control message", JSON.stringify(data));
+    switch (data.cmd) {
+      case "size":
+        this.setSize(spark, { rows: data.rows, cols: data.cols });
+        break;
+
+      case "set_command":
+        this.setCommand(data.command, data.args);
+        break;
+
+      case "kill":
+        // send kill signal
+        if (this.term != null) {
+          process.kill(this.term.pid, "SIGKILL");
+        }
+        break;
+
+      case "cwd":
+        this.sendCurrentWorkingDirectory(spark);
+        break;
+
+      case "boot": {
+        this.bootAllOtherClients(spark);
+        break;
       }
     }
   };

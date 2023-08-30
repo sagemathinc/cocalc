@@ -19,3 +19,34 @@ export interface PrimusChannel extends EventEmitter {
 export interface PrimusWithChannels extends Primus {
   channel: (name: string) => PrimusChannel;
 }
+
+interface SizeClientCommand {
+  cmd: "size";
+  rows: number;
+  cols: number;
+}
+
+interface SetClientCommand {
+  cmd: "set_command";
+  command: string;
+  args: string[];
+}
+
+interface KillClientCommand {
+  cmd: "kill";
+}
+
+interface CWDClientCommand {
+  cmd: "cwd";
+}
+
+interface BootClientCommand {
+  cmd: "boot";
+}
+
+export type ClientCommand =
+  | SizeClientCommand
+  | SetClientCommand
+  | KillClientCommand
+  | CWDClientCommand
+  | BootClientCommand;
