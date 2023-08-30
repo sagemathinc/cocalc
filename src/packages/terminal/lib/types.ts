@@ -14,6 +14,7 @@ export interface Options {
 export interface PrimusChannel extends EventEmitter {
   write: (data: object | string) => void;
   forEach: (cb: (spark, id, connections) => void) => void;
+  destroy: () => void;
 }
 
 export interface PrimusWithChannels extends Primus {

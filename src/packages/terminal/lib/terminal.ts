@@ -137,8 +137,12 @@ export class Terminal {
 
   close = () => {
     logger.debug("close");
+    if ((this.state as State) == "closed") {
+      return;
+    }
     this.state = "closed";
     this.killTerm();
+    this.channel.destroy();
   };
 
   getPid = (): number | undefined => {
@@ -310,7 +314,8 @@ export class Terminal {
   private resize = () => {
     if (this.state == "closed") return;
     //logger.debug("resize");
-    if (this.client_sizes == null || this.term == null) {
+    if (this.term == null) {
+      // nothing to do
       return;
     }
     const sizes = this.client_sizes;
@@ -333,8 +338,8 @@ export class Terminal {
       delete this.size;
       return;
     }
-    //logger.debug("resize", "new size", rows, cols);
     if (rows && cols) {
+      logger.debug("resize", "new size", rows, cols);
       try {
         this.term.resize(cols, rows);
       } catch (err) {
@@ -351,21 +356,18 @@ export class Terminal {
     if (this.term == null) {
       return;
     }
-    // we reply with the current working directory of the underlying terminal process
+    // we reply with the current working directory of the underlying terminal process,
+    // which is why we use readlink and proc below.
     const pid = this.term.pid;
     // [hsy/dev] wrapping in realpath, because I had the odd case, where the project's
     // home included a symlink, hence the "startsWith" below didn't remove the home dir.
     const home = await realpath(process.env.HOME ?? "/home/user");
-    try {
-      const cwd = await readlink(`/proc/${pid}/cwd`);
-      // try to send back a relative path, because the webapp does not
-      // understand absolute paths
-      const path = cwd.startsWith(home) ? cwd.slice(home.length + 1) : cwd;
-      logger.debug("terminal cwd sent back", { path });
-      spark.write({ cmd: "cwd", payload: path });
-    } catch (err) {
-      logger.debug("WARNING: cwd", err);
-    }
+    const cwd = await readlink(`/proc/${pid}/cwd`);
+    // try to send back a relative path, because the webapp does not
+    // understand absolute paths
+    const path = cwd.startsWith(home) ? cwd.slice(home.length + 1) : cwd;
+    logger.debug("terminal cwd sent back", { path });
+    spark.write({ cmd: "cwd", payload: path });
   };
 
   private bootAllOtherClients = (spark: Spark) => {
@@ -395,23 +397,22 @@ export class Terminal {
     spark,
     data: string | ClientCommand,
   ) => {
-    try {
-      //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
-      if (typeof data === "string") {
-        if (this.term == null) {
-          spark.write("\nTerminal is not initialized.\n");
-          return;
-        }
-        this.term.write(data);
-      } else if (typeof data === "object") {
-        this.handleCommandFromClient(spark, data);
+    //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
+    if (typeof data === "string") {
+      if (this.term == null) {
+        spark.write("\nTerminal is not initialized.\n");
+        return;
       }
-    } catch (err) {
-      spark.write(`${err}`);
+      this.term.write(data);
+    } else if (typeof data === "object") {
+      await this.handleCommandFromClient(spark, data);
     }
   };
 
-  private handleCommandFromClient = (spark: Spark, data: ClientCommand) => {
+  private handleCommandFromClient = async (
+    spark: Spark,
+    data: ClientCommand,
+  ) => {
     // control message
     //logger.debug("terminal channel control message", JSON.stringify(data));
     switch (data.cmd) {
@@ -425,13 +426,11 @@ export class Terminal {
 
       case "kill":
         // send kill signal
-        if (this.term != null) {
-          process.kill(this.term.pid, "SIGKILL");
-        }
+        this.killTerm();
         break;
 
       case "cwd":
-        this.sendCurrentWorkingDirectory(spark);
+        await this.sendCurrentWorkingDirectory(spark);
         break;
 
       case "boot": {
@@ -470,9 +469,15 @@ export class Terminal {
       this.resize();
     });
 
-    spark.on("data", (data) => {
-      if (this.state == "closed") return;
-      this.handleDataFromClient(spark, data);
+    spark.on("data", async (data) => {
+      if ((this.state as State) == "closed") return;
+      try {
+        await this.handleDataFromClient(spark, data);
+      } catch (err) {
+        if (this.state != "closed") {
+          spark.write(`${err}`);
+        }
+      }
     });
   };
 }
