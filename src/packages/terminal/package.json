@@ -6,14 +6,11 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "npx tsc",
+    "test": "pnpm exec jest dist",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter",
-    "terminal"
-  ],
+  "keywords": ["cocalc", "jupyter", "terminal"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",

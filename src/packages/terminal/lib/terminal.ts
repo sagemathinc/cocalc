@@ -26,6 +26,7 @@ const INFINITY = 999999;
 const DEFAULT_COMMAND = "/bin/bash";
 
 type MessagesState = "none" | "reading";
+type State = "init" | "ready" | "closed";
 
 // upstream typings not quite right
 interface IPty extends IPty0 {
@@ -33,6 +34,7 @@ interface IPty extends IPty0 {
 }
 
 export class Terminal {
+  private state: State = "init";
   private options: Options;
   private channel: PrimusChannel;
   private history: string = "";
@@ -54,6 +56,7 @@ export class Terminal {
   }
 
   init = async () => {
+    if (this.state == "closed") return;
     const args: string[] = [];
 
     const { options } = this;
@@ -108,6 +111,7 @@ export class Terminal {
     // Whenever term ends, we just respawn it, but potentially
     // with a pause to avoid weird crash loops bringing down the project.
     term.on("exit", async () => {
+      if (this.state == "closed") return;
       logger.debug("EXIT -- spawning again");
       const now = Date.now();
       if (now - this.last_exit <= 15000) {
@@ -122,8 +126,17 @@ export class Terminal {
 
     this.channel.on("connection", this.handleNewClientConnection);
 
+    this.state = "ready";
+
     // set the size
     this.resize();
+  };
+
+  close = () => {
+    this.state = "closed";
+    if (this.term != null) {
+      process.kill(this.term.pid, "SIGKILL");
+    }
   };
 
   getPid = (): number | undefined => {
@@ -140,6 +153,7 @@ export class Terminal {
   };
 
   setCommand = (command: string, args?: string[]) => {
+    if (this.state == "closed") return;
     if (command == this.options.command && isEqual(args, this.options.args)) {
       // no actual change.
       return;
@@ -280,6 +294,7 @@ export class Terminal {
   };
 
   private resize = () => {
+    if (this.state == "closed") return;
     //logger.debug("resize");
     if (this.client_sizes == null || this.term == null) {
       return;
@@ -329,9 +344,10 @@ export class Terminal {
     const home = await realpath(process.env.HOME ?? "/home/user");
     try {
       const cwd = await readlink(`/proc/${pid}/cwd`);
-      // we send back a relative path, because the webapp does not understand absolute paths
+      // try to send back a relative path, because the webapp does not
+      // understand absolute paths
       const path = cwd.startsWith(home) ? cwd.slice(home.length + 1) : cwd;
-      logger.debug(`terminal cwd sent back: cwd=${cwd} path=${path}`);
+      logger.debug("terminal cwd sent back", { path });
       spark.write({ cmd: "cwd", payload: path });
     } catch (err) {
       logger.debug("WARNING: cwd", err);
@@ -435,10 +451,14 @@ export class Terminal {
     spark.write({ cmd: "no-ignore" });
 
     spark.on("end", () => {
+      if (this.state == "closed") return;
       delete this.client_sizes[spark.id];
       this.resize();
     });
 
-    spark.on("data", (data) => this.handleDataFromClient(spark, data));
+    spark.on("data", (data) => {
+      if (this.state == "closed") return;
+      this.handleDataFromClient(spark, data);
+    });
   };
 }
