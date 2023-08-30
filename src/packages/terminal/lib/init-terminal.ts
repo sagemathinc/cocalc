@@ -12,7 +12,6 @@ import { spawn } from "node-pty";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import Primus from "primus";
 
 const logger = getLogger("terminal:init-terminal");
 
@@ -20,15 +19,7 @@ const CHECK_INTERVAL_MS: number = 5 * 1000;
 const MAX_HISTORY_LENGTH: number = 10 * 1000 * 1000;
 const TRUNCATE_THRESH_MS: number = 10 * 1000;
 
-export default async function initTerminal({
-  channel,
-  terminal,
-  path,
-}: {
-  channel: Primus;
-  terminal: Terminal;
-  path: string;
-}) {
+export default async function initTerminal(terminal: Terminal) {
   const args: string[] = [];
 
   const { options } = terminal;
@@ -41,14 +32,14 @@ export default async function initTerminal({
       }
     }
   } else {
-    const initFilename: string = console_init_filename(path);
+    const initFilename: string = console_init_filename(terminal.path);
     if (await exists(initFilename)) {
       args.push("--init-file");
       args.push(path_split(initFilename).tail);
     }
   }
 
-  const { head: pathHead, tail: pathTail } = path_split(path);
+  const { head: pathHead, tail: pathTail } = path_split(terminal.path);
   const env = {
     COCALC_TERMINAL_FILENAME: pathTail,
     ...envForSpawn(),
@@ -67,9 +58,9 @@ export default async function initTerminal({
   const cwd = getCWD(pathHead, options.cwd);
 
   try {
-    terminal.history = (await readFile(path)).toString();
+    terminal.history = (await readFile(terminal.path)).toString();
   } catch (err) {
-    logger.debug("WARNING: failed to load", path, err);
+    logger.debug("WARNING: failed to load", terminal.path, err);
   }
   const term = spawn(command, args, { cwd, env });
   logger.debug("pid=", term.pid, { command, args });
@@ -77,7 +68,7 @@ export default async function initTerminal({
 
   const saveHistoryToDisk = throttle(async () => {
     try {
-      await writeFile(path, terminal.history);
+      await writeFile(terminal.path, terminal.history);
     } catch (err) {
       logger.debug("WARNING: failed to save terminal history to disk", err);
     }
@@ -99,7 +90,7 @@ export default async function initTerminal({
       if (now - last <= TRUNCATE_THRESH_MS) {
         // getting a huge amount of data quickly.
         if (!terminal.truncating) {
-          channel.write({ cmd: "burst" });
+          terminal.channel.write({ cmd: "burst" });
         }
         terminal.truncating += data.length;
         setTimeout(checkIfStillTruncating, CHECK_INTERVAL_MS);
@@ -114,7 +105,7 @@ export default async function initTerminal({
       }
     }
     if (!terminal.truncating) {
-      channel.write(data);
+      terminal.channel.write(data);
     }
   });
 
@@ -167,7 +158,7 @@ export default async function initTerminal({
       );
       try {
         const payload = JSON.parse(s);
-        channel.write({ cmd: "message", payload });
+        terminal.channel.write({ cmd: "message", payload });
       } catch (err) {
         logger.warn(
           `handle_backend_message: error sending JSON payload ${JSON.stringify(
@@ -187,9 +178,9 @@ export default async function initTerminal({
     ) {
       // turn off truncating, and send recent data.
       const { truncating, history } = terminal;
-      channel.write(history.slice(Math.max(0, history.length - truncating)));
+      terminal.channel.write(history.slice(Math.max(0, history.length - truncating)));
       terminal.truncating = 0;
-      channel.write({ cmd: "no-burst" });
+      terminal.channel.write({ cmd: "no-burst" });
     } else {
       setTimeout(checkIfStillTruncating, CHECK_INTERVAL_MS);
     }
@@ -207,6 +198,6 @@ export default async function initTerminal({
       await delay(3000);
     }
     terminal.last_exit = now;
-    initTerminal({ channel, terminal, path });
+    initTerminal(terminal);
   });
 }

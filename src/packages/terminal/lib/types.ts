@@ -11,6 +11,7 @@ export interface Options {
 export interface Terminal {
   channel: any;
   history: string;
+  path: string;
   client_sizes?: any;
   last_truncate_time: number;
   truncating: number;

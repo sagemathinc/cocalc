@@ -46,10 +46,10 @@ export async function terminal(
     }
     return name;
   }
-  // @ts-ignore: primus.channel is a plugin.
-  const channel = primus.channel(name);
   const terminal = {
-    channel,
+    path,
+    // @ts-ignore: primus.channel is a plugin.
+    channel: primus.channel(name),
     history: "",
     client_sizes: {},
     last_truncate_time: Date.now(),
@@ -98,16 +98,16 @@ export async function terminal(
           `WARNING: unable to resize term ${err}`,
         );
       }
-      channel.write({ cmd: "size", rows, cols });
+      terminal.channel.write({ cmd: "size", rows, cols });
     }
   }
 
-  await initTerminal({ channel, terminal, path });
+  await initTerminal(terminal);
 
   // set the size
   resize();
 
-  channel.on("connection", (spark: Spark) => {
+  terminal.channel.on("connection", (spark: Spark) => {
     // Now handle the connection
     logger.debug(
       "terminal channel",
@@ -217,7 +217,7 @@ export async function terminal(
               }
             }
             // broadcast message to all other clients telling them to close.
-            channel.forEach(function (spark0, id, _) {
+            terminal.channel.forEach((spark0, id, _) => {
               if (id !== spark.id) {
                 spark0.write({ cmd: "close" });
               }
