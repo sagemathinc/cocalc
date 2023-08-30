@@ -17,7 +17,7 @@ import { join } from "node:path";
 
 // import { getOptions } from "../init-program";
 import { get_kernel_by_pid } from "@cocalc/jupyter/kernel";
-import { pid2path as terminal_pid2path } from "@cocalc/terminal";
+import { pidToPath as terminalPidToPath } from "@cocalc/terminal";
 import { get_path_for_pid as x11_pid2path } from "../x11/server";
 import {
   CGroup,
@@ -140,7 +140,7 @@ export class ProjectInfoServer extends EventEmitter {
     if (jupyter_kernel != null) {
       return { type: "jupyter", path: jupyter_kernel.get_path() };
     }
-    const termpath = terminal_pid2path(pid);
+    const termpath = terminalPidToPath(pid);
     if (termpath != null) {
       return { type: "terminal", path: termpath };
     }
