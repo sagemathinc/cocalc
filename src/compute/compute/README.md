@@ -8,19 +8,10 @@ Concern: I want this package to remain lightweight if at all possible, so it's f
 
 ## Build
 
-**Do NOT do** `pnpm install .` directly here. That will mess things up! Instead do `pnpm make.`
-
-Note that this is not built as part of the rest of cocalc and this directory is not one of the
-workspace packages. This is intentional, since the websocketfs dependency dependson libfuse support
-on the host machine, which can be a pain to build, and we don't need @cocalc/compute for running
-most of cocalc. In any case, after building cocalc, you can install deps and build this via
-this in the current directory:
-
 ```sh
-pnpm make
+pnpm install
+pnpm build
 ```
-
-I might have to move @cocalc/compute to a separate git repo to avoid confusion.  We'll see...
 
 ## Examples of where to run this
 
