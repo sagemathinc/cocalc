@@ -117,16 +117,8 @@ def all_packages() -> List[str]:
         'packages/hub',
         'packages/server',  # packages/next assumes this is built
         'packages/database',  # packages/next also assumes this is built
-
-        # We do NOT build packages/compute, since it indirectly depends on libfuse,
-        # and is not needed in most applications of cocalc.
-        #'packages/compute',
     ]
     for x in os.listdir('packages'):
-        if x.endswith('compute'):
-            # see note above
-            print("skipping ", x)
-            continue
         path = os.path.join("packages", x)
         if path not in v and os.path.isdir(path) and os.path.exists(
                 os.path.join(path, 'package.json')):

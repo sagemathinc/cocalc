@@ -8,6 +8,8 @@ Concern: I want this package to remain lightweight if at all possible, so it's f
 
 ## Build
 
+**Do NOT do** `pnpm install .` directly here. That will mess things up! Instead do `pnpm make.`
+
 Note that this is not built as part of the rest of cocalc and this directory is not one of the
 workspace packages. This is intentional, since the websocketfs dependency dependson libfuse support
 on the host machine, which can be a pain to build, and we don't need @cocalc/compute for running
@@ -17,6 +19,8 @@ this in the current directory:
 ```sh
 pnpm make
 ```
+
+I might have to move @cocalc/compute to a separate git repo to avoid confusion.  We'll see...
 
 ## Examples of where to run this
 
@@ -62,6 +66,7 @@ node ./bin/kernel.js
 ### Tweaks
 
 Do this if you want to see VERY verbose logs:
+
 ```sh
 export DEBUG=*
 export DEBUG_CONSOLE=yes
@@ -74,8 +79,6 @@ export BASE_PATH="/"
 export API_SERVER="https://cocalc.com"
 export API_BASE_PATH="/"
 ```
-
-
 
 ### Mounting just the project home directory
 
@@ -103,3 +106,4 @@ await require("@cocalc/compute").jupyter({
 });
 0;
 ```
+
