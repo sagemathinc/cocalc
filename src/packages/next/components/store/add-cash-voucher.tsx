@@ -5,6 +5,7 @@ import A from "components/misc/A";
 import SiteName from "components/share/site-name";
 import { currency } from "@cocalc/util/misc";
 import apiPost from "lib/api/post";
+import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 
 interface Props {
   onAdd: () => void;
@@ -54,7 +55,7 @@ export default function AddCashVoucher({ onAdd, defaultExpand, style }: Props) {
       <Space>
         <InputNumber
           min={0}
-          max={9999}
+          max={MAX_COST}
           defaultValue={amount}
           onChange={(value) => setAmount(value ?? 0)}
           precision={2} // for two decimal places

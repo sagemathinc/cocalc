@@ -7,6 +7,7 @@ import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { getMaxCost, Model } from "@cocalc/util/db-schema/openai";
 import { currency, round2up } from "@cocalc/util/misc";
+import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 
 // Throws an exception if purchase is not allowed.  Code should
 // call this before giving the thing and doing createPurchase.
@@ -15,6 +16,7 @@ import { currency, round2up } from "@cocalc/util/misc";
 // NOTE: user is not supposed to ever see these errors, in that the
 // frontend should do the same checks and present an error there.
 // This is a backend safety check.
+
 interface Options {
   account_id: string;
   service: Service;
@@ -41,7 +43,7 @@ export async function isPurchaseAllowed({
     return {
       allowed: false,
       reason: `unknown service "${service}". The valid services are: ${Object.keys(
-        QUOTA_SPEC
+        QUOTA_SPEC,
       ).join(", ")}`,
     };
   }
@@ -54,6 +56,12 @@ export async function isPurchaseAllowed({
       reason: `cost estimate for service "${service}" not implemented`,
     };
   }
+  if (cost > MAX_COST) {
+    return {
+      allowed: false,
+      reason: `Cost exceeds the maximum allowed cost of ${currency(MAX_COST)}. Please contact support.`,
+    };
+  }
   if (!Number.isFinite(cost)) {
     return { allowed: false, reason: `cost must be finite` };
   }
@@ -63,7 +71,7 @@ export async function isPurchaseAllowed({
       return {
         allowed: false,
         reason: `must credit account with at least ${currency(
-          pay_as_you_go_min_payment
+          pay_as_you_go_min_payment,
         )}, but you're trying to credit ${currency(-cost)}`,
       };
     }
@@ -90,13 +98,13 @@ export async function isPurchaseAllowed({
       allowed: false,
       chargeAmount,
       reason: `You do not have enough credits to spend up to ${currency(
-        cost
+        cost,
       )} since your balance is ${currency(
-        balance
+        balance,
       )}, and spending up to ${currency(
-        cost
+        cost,
       )} would cause your balance to go below your allowed minimum balance of ${currency(
-        minBalance
+        minBalance,
       )}.  Please add at least ${currency(chargeAmount)} to your account.${
         required < pay_as_you_go_min_payment
           ? " There is a minimum payment of " +
@@ -126,7 +134,7 @@ export async function isPurchaseAllowed({
     const chargesForService = await getTotalChargesThisMonth(
       account_id,
       service,
-      client
+      client,
     );
     if (chargesForService + cost > quotaForService) {
       return {
@@ -134,7 +142,7 @@ export async function isPurchaseAllowed({
         reason: `You need to increase your ${
           QUOTA_SPEC[service]?.display ?? service
         } spending limit (this month charges: ${currency(
-          chargesForService
+          chargesForService,
         )}).  Your limit ${currency(quotaForService)} for "${
           QUOTA_SPEC[service]?.display ?? service
         }" is not sufficient to make a purchase of up to ${currency(cost)}.`,
