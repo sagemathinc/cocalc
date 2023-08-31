@@ -9,7 +9,7 @@ Terminal server
 
 import { getLogger } from "@cocalc/backend/logger";
 import type { Options, PrimusWithChannels } from "./lib/types";
-import { getName } from "./lib/util";
+import { getChannelName } from "./lib/util";
 import { Terminal } from "./lib/terminal";
 
 const logger = getLogger("terminal:index");
@@ -34,7 +34,7 @@ export async function terminal(
   path: string,
   options: Options,
 ): Promise<string> {
-  const name = getName(path);
+  const name = getChannelName(path);
   if (terminals[name] != null) {
     if (
       options.command != null &&

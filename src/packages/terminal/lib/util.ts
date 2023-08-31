@@ -1,6 +1,9 @@
-export function getName(path: string): string {
-  const PREFIX = "terminal:";
-  return `${PREFIX}${path}`;
+export function getChannelName(path: string): string {
+  return `terminal:${path}`;
+}
+
+export function getRemotePtyChannelName(path: string): string {
+  return `terminal-pty:${path}`;
 }
 
 export function getCWD(pathHead, cwd?): string {

@@ -4,7 +4,7 @@ import type {
   PrimusWithChannels,
   Options,
 } from "./types";
-import { getName } from "./util";
+import { getChannelName, getRemotePtyChannelName } from "./util";
 import { console_init_filename, len, path_split } from "@cocalc/util/misc";
 import { getLogger } from "@cocalc/backend/logger";
 import { envForSpawn } from "@cocalc/backend/misc";
@@ -39,6 +39,7 @@ export class Terminal {
   private state: State = "init";
   private options: Options;
   private channel: PrimusChannel;
+  private remotePtyChannel: PrimusChannel;
   private history: string = "";
   private path: string;
   private client_sizes = {};
@@ -46,15 +47,19 @@ export class Terminal {
   private truncating: number = 0;
   private last_exit: number = 0;
   private size?: { rows: number; cols: number };
-  private term?: IPty;
   private backendMessagesBuffer = "";
   private backendMessagesState: MessagesState = "none";
+  // two different ways of providing the backend support -- local or remote
+  private localPty?: IPty;
+  private remotePty?: Spark;
 
   constructor(primus: PrimusWithChannels, path: string, options: Options = {}) {
-    const name = getName(path);
     this.options = { command: DEFAULT_COMMAND, ...options };
     this.path = path;
-    this.channel = primus.channel(name);
+    this.channel = primus.channel(getChannelName(path));
+    this.channel.on("connection", this.handleClientConnection);
+    this.remotePtyChannel = primus.channel(getRemotePtyChannelName(path));
+    this.remotePtyChannel.on("connection", this.handleRemotePtyConnection);
   }
 
   init = async () => {
@@ -104,16 +109,20 @@ export class Terminal {
     } catch (err) {
       logger.debug("WARNING: failed to load", this.path, err);
     }
-    const term = spawn(command, args, { cwd, env }) as IPty;
-    logger.debug("pid=", term.pid, { command, args });
-    this.term = term;
+    const localPty = spawn(command, args, { cwd, env }) as IPty;
+    logger.debug("pid=", localPty.pid, { command, args });
+    this.localPty = localPty;
 
-    term.on("data", this.handleDataFromTerminal);
+    localPty.on("data", this.handleDataFromTerminal);
 
-    // Whenever term ends, we just respawn it, but potentially
+    // Whenever localPty ends, we just respawn it, but potentially
     // with a pause to avoid weird crash loops bringing down the project.
-    term.on("exit", async () => {
+    localPty.on("exit", async () => {
       if (this.state == "closed") return;
+      if (this.remotePty != null) {
+        // do not create a new localPty since we're switching to a remotePty.
+        return;
+      }
       logger.debug("EXIT -- spawning again");
       const now = Date.now();
       if (now - this.last_exit <= 15000) {
@@ -128,8 +137,6 @@ export class Terminal {
       logger.debug("finished spawn");
     });
 
-    this.channel.on("connection", this.handleNewClientConnection);
-
     this.state = "ready";
 
     // set the size
@@ -142,12 +149,13 @@ export class Terminal {
       return;
     }
     this.state = "closed";
-    this.killTerm();
+    this.killPty();
     this.channel.destroy();
+    this.remotePtyChannel.destroy();
   };
 
   getPid = (): number | undefined => {
-    return this.term?.pid;
+    return this.localPty?.pid;
   };
 
   // original path
@@ -173,15 +181,20 @@ export class Terminal {
     );
     this.options.command = command;
     this.options.args = args;
-    this.killTerm();
+    this.killPty();
   };
 
-  private killTerm = () => {
-    if (this.term == null) return;
-    logger.debug("killing ", this.term.pid);
-    this.term.kill("SIGKILL");
-    this.term.destroy();
-    delete this.term;
+  private killPty = () => {
+    if (this.localPty == null) return;
+    this.killLocalPty();
+  };
+
+  private killLocalPty = () => {
+    if (this.localPty == null) return;
+    logger.debug("killing ", this.localPty.pid);
+    this.localPty.kill("SIGKILL");
+    this.localPty.destroy();
+    delete this.localPty;
   };
 
   private saveHistoryToDisk = throttle(async () => {
@@ -221,7 +234,7 @@ export class Terminal {
         if (this.truncating >= 5 * MAX_HISTORY_LENGTH) {
           // only start sending control+c if output has been completely stuck
           // being truncated several times in a row -- it has to be a serious non-stop burst...
-          this.term?.write("\u0003");
+          this.localPty?.write("\u0003");
         }
         return;
       } else {
@@ -316,7 +329,7 @@ export class Terminal {
   private resize = () => {
     if (this.state == "closed") return;
     //logger.debug("resize");
-    if (this.term == null) {
+    if (this.localPty == null) {
       // nothing to do
       return;
     }
@@ -343,7 +356,7 @@ export class Terminal {
     if (rows && cols) {
       logger.debug("resize", "new size", rows, cols);
       try {
-        this.term.resize(cols, rows);
+        this.localPty.resize(cols, rows);
       } catch (err) {
         logger.debug(
           "terminal channel",
@@ -355,12 +368,12 @@ export class Terminal {
   };
 
   private sendCurrentWorkingDirectory = async (spark: Spark) => {
-    if (this.term == null) {
+    if (this.localPty == null) {
       return;
     }
     // we reply with the current working directory of the underlying terminal process,
     // which is why we use readlink and proc below.
-    const pid = this.term.pid;
+    const pid = this.localPty.pid;
     // [hsy/dev] wrapping in realpath, because I had the odd case, where the project's
     // home included a symlink, hence the "startsWith" below didn't remove the home dir.
     const home = await realpath(process.env.HOME ?? "/home/user");
@@ -395,17 +408,21 @@ export class Terminal {
     });
   };
 
+  private writeToPty = (data) => {
+    if (this.localPty != null) {
+      this.localPty.write(data);
+    } else if (this.remotePty != null) {
+      this.remotePty.write(data);
+    }
+  };
+
   private handleDataFromClient = async (
     spark,
     data: string | ClientCommand,
   ) => {
     //logger.debug("terminal: browser --> term", name, JSON.stringify(data));
     if (typeof data === "string") {
-      if (this.term == null) {
-        spark.write("\nTerminal is not initialized.\n");
-        return;
-      }
-      this.term.write(data);
+      this.writeToPty(data);
     } else if (typeof data === "object") {
       await this.handleCommandFromClient(spark, data);
     }
@@ -428,7 +445,7 @@ export class Terminal {
 
       case "kill":
         // send kill signal
-        this.killTerm();
+        this.killPty();
         break;
 
       case "cwd":
@@ -442,10 +459,10 @@ export class Terminal {
     }
   };
 
-  private handleNewClientConnection = (spark: Spark) => {
+  private handleClientConnection = (spark: Spark) => {
     logger.debug(
-      "terminal channel",
-      `new connection from ${spark.address.ip} -- ${spark.id}`,
+      this.path,
+      `new client connection from ${spark.address.ip} -- ${spark.id}`,
     );
 
     // send current size info
@@ -481,5 +498,26 @@ export class Terminal {
         }
       }
     });
+  };
+
+  private handleRemotePtyConnection = (remotePty: Spark) => {
+    logger.debug(
+      this.path,
+      `new pty connection from ${remotePty.address.ip} -- ${remotePty.id}`,
+    );
+
+    remotePty.on("end", () => {
+      if (this.state == "closed") return;
+    });
+
+    remotePty.on("data", async (data) => {
+      if ((this.state as State) == "closed") return;
+      logger.debug("pty data", data);
+    });
+
+    remotePty.on("data", this.handleDataFromTerminal);
+
+    this.remotePty = remotePty;
+    this.killLocalPty();
   };
 }

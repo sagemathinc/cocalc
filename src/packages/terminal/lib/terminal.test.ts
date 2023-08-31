@@ -1,42 +1,10 @@
 import { Terminal } from "./terminal";
-import type { PrimusWithChannels } from "./types";
-import { EventEmitter } from "events";
-import { callback, delay } from "awaiting";
-import type { Spark } from "primus";
-import { uuid } from "@cocalc/util/misc";
-import { exec } from "child_process";
-import { once } from "@cocalc/util/async-utils";
-
-import debug from "debug";
-const logger = debug("cocalc:test:terminal");
-
-const exec1 = (cmd: string, cb) => {
-  exec(cmd, (_err, stdout, stderr) => {
-    cb(undefined, { stdout, stderr });
-  });
-};
-
-const isPidRunning = async (pid: number) => {
-  const { stdout } = await callback(exec1, `ps -p ${pid} -o pid=`);
-  return stdout.trim() != "";
-};
-
-const getCommandLine = async (pid) => {
-  const { stdout } = await callback(exec1, `ps -p ${pid} -o comm=`);
-  return stdout;
-};
-
-const waitForPidToChange = async (terminal, pid) => {
-  let i = 1;
-  while (true) {
-    const newPid = terminal.getPid();
-    if (newPid != null && newPid != pid) {
-      return newPid;
-    }
-    await delay(5 * i);
-    i += 1;
-  }
-};
+import {
+  getPrimusMock,
+  isPidRunning,
+  getCommandLine,
+  waitForPidToChange,
+} from "./support";
 
 afterAll(() => {
   // TODO: Somehow pty-node or something else randomly doesn't
@@ -46,121 +14,6 @@ afterAll(() => {
   // now.  It would be nice if it wasn't needed.
   setTimeout(process.exit, 250);
 });
-
-class PrimusSparkMock extends EventEmitter {
-  id: string = uuid();
-  address: { ip: string };
-  data: string = "";
-  messages: object[] = [];
-
-  constructor(ip: string) {
-    super();
-    this.address = { ip };
-  }
-
-  write = (data) => {
-    logger("spark write", data);
-    if (typeof data == "object") {
-      this.messages.push(data);
-    } else {
-      this.data += data;
-    }
-    this.emit("write");
-  };
-
-  end = () => {
-    this.emit("end");
-    this.removeAllListeners();
-    const t = this as any;
-    delete t.id;
-    delete t.address;
-    delete t.data;
-    delete t.messages;
-  };
-
-  waitForMessage = async () => {
-    while (true) {
-      if (this.messages.length > 0) {
-        return this.messages.shift();
-      }
-      await once(this, "write");
-    }
-  };
-
-  waitForData = async (x: number | string) => {
-    let data = "";
-    const isDone = () => {
-      if (typeof x == "number") {
-        return data.length >= x;
-      } else {
-        return data.includes(x);
-      }
-    };
-    while (!isDone()) {
-      if (this.data.length > 0) {
-        data += this.data;
-        // console.log("so far", { data });
-        this.data = "";
-      }
-      if (!isDone()) {
-        await once(this, "write");
-      }
-    }
-    return data;
-  };
-}
-
-class PrimusChannelMock extends EventEmitter {
-  name: string;
-  sparks: { [id: string]: Spark } = {};
-
-  constructor(name) {
-    super();
-    this.name = name;
-  }
-
-  write = (data) => {
-    if (this.sparks == null) return;
-    for (const spark of Object.values(this.sparks)) {
-      spark.write(data);
-    }
-  };
-
-  createSpark = (address) => {
-    const spark = new PrimusSparkMock(address) as unknown as Spark;
-    this.sparks[spark.id] = spark;
-    this.emit("connection", spark);
-    this.on("end", () => {
-      delete this.sparks[spark.id];
-    });
-    return spark;
-  };
-
-  destroy = () => {
-    this.removeAllListeners();
-    for (const spark of Object.values(this.sparks)) {
-      spark.end();
-    }
-    const t = this as any;
-    delete t.name;
-    delete t.sparks;
-  };
-}
-
-class PrimusMock {
-  channels: PrimusChannelMock[] = [];
-
-  channel = (name) => {
-    const c = new PrimusChannelMock(name);
-    this.channels.push(c);
-    return c;
-  };
-}
-
-function getPrimusMock(): PrimusWithChannels {
-  const primus = new PrimusMock();
-  return primus as unknown as PrimusWithChannels;
-}
 
 describe("very basic test of creating a terminal and changing shell", () => {
   let terminal;
@@ -307,18 +160,15 @@ describe("collaboration -- two clients connected to the same terminal session", 
     terminal.close();
   });
 
-  it("initialize the terminal", async () => {
-    await terminal.init();
-  });
-
   let spark1, spark2;
   it("create two clients connection to the terminal", async () => {
+    await terminal.init();
     spark1 = (primus as any).channels[0].createSpark("192.168.2.1");
     spark2 = (primus as any).channels[0].createSpark("192.168.2.2");
-    const mesg1 = await spark1.waitForMessage();
-    expect(mesg1).toEqual({ cmd: "no-ignore" });
-    const mesg2 = await spark2.waitForMessage();
-    expect(mesg2).toEqual({ cmd: "no-ignore" });
+    for (const s of [spark1, spark2]) {
+      const mesg = await s.waitForMessage();
+      expect(mesg).toEqual({ cmd: "no-ignore" });
+    }
   });
 
   it("have one client send something, and both clients see the input and result", async () => {
@@ -345,7 +195,7 @@ describe("collaboration -- two clients connected to the same terminal session", 
     const mesg1 = await spark1.waitForMessage();
     expect(mesg1).toEqual({ cmd: "size", rows: rows1, cols: cols1 });
     const mesg1a = await spark2.waitForMessage();
-    expect(mesg1).toEqual({ cmd: "size", rows: rows1, cols: cols1 });
+    expect(mesg1a).toEqual({ cmd: "size", rows: rows1, cols: cols1 });
     spark2.emit("data", { cmd: "size", rows: rows2, cols: cols2 });
     const mesg2 = await spark2.waitForMessage();
     expect(mesg2).toEqual({
