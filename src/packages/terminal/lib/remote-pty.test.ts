@@ -95,4 +95,17 @@ describe("basic tests of a remotePty connecting and handling data", () => {
     spark1.emit("data", mesg);
     expect(await remoteSpark.waitForMessage()).toEqual(mesg);
   });
+
+  it("sends a cwd message from a client, then responds to that from the remoteSpark, and finally checks that the client gets it", async () => {
+    spark1.emit("data", { cmd: "cwd" });
+    spark1.messages = [];
+    // wait for the message to get sent to our remote spark:
+    expect(await remoteSpark.waitForMessage()).toEqual({ cmd: "cwd" });
+    // send back a cwd
+    remoteSpark.emit("data", { cmd: "cwd", payload: "/home/user" });
+    expect(await spark1.waitForMessage()).toEqual({
+      cmd: "cwd",
+      payload: "/home/user",
+    });
+  });
 });

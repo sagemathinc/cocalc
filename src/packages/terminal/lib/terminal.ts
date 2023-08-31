@@ -400,6 +400,14 @@ export class Terminal {
   };
 
   private sendCurrentWorkingDirectory = async (spark: Spark) => {
+    if (this.localPty != null) {
+      this.sendCurrentWorkingDirectoryLocalPty(spark);
+    } else if (this.remotePty != null) {
+      this.sendCurrentWorkingDirectoryRemotePty(spark);
+    }
+  };
+
+  private sendCurrentWorkingDirectoryLocalPty = async (spark: Spark) => {
     if (this.localPty == null) {
       return;
     }
@@ -415,6 +423,22 @@ export class Terminal {
     const path = cwd.startsWith(home) ? cwd.slice(home.length + 1) : cwd;
     logger.debug("terminal cwd sent back", { path });
     spark.write({ cmd: "cwd", payload: path });
+  };
+
+  private sendCurrentWorkingDirectoryRemotePty = async (spark: Spark) => {
+    if (this.remotePty == null) {
+      return;
+    }
+    // Write cwd command, then wait for a cmd:'cwd' response, and
+    // forward it to the spark.
+    this.remotePty.write({ cmd: "cwd" });
+    const handle = (mesg) => {
+      if (typeof mesg == "object" && mesg.cmd == "cwd") {
+        spark.write(mesg);
+        this.remotePty?.removeListener("data", handle);
+      }
+    };
+    this.remotePty.addListener("data", handle);
   };
 
   private bootAllOtherClients = (spark: Spark) => {
@@ -546,10 +570,11 @@ export class Terminal {
 
     remotePty.on("data", async (data) => {
       if ((this.state as State) == "closed") return;
-      logger.debug("pty data", data);
+      if (typeof data == "string") {
+        this.handleDataFromTerminal(data);
+      }
+      // objects are handled in particular cases -- basically the cwd message
     });
-
-    remotePty.on("data", this.handleDataFromTerminal);
 
     this.remotePty = remotePty;
 
