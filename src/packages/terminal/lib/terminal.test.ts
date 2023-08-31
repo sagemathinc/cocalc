@@ -69,6 +69,7 @@ class PrimusSparkMock extends EventEmitter {
   };
 
   end = () => {
+    this.emit("end");
     this.removeAllListeners();
     const t = this as any;
     delete t.id;
@@ -98,6 +99,7 @@ class PrimusSparkMock extends EventEmitter {
     while (!isDone()) {
       if (this.data.length > 0) {
         data += this.data;
+        // console.log("so far", { data });
         this.data = "";
       }
       if (!isDone()) {
@@ -128,6 +130,9 @@ class PrimusChannelMock extends EventEmitter {
     const spark = new PrimusSparkMock(address) as unknown as Spark;
     this.sparks[spark.id] = spark;
     this.emit("connection", spark);
+    this.on("end", () => {
+      delete this.sparks[spark.id];
+    });
     return spark;
   };
 
@@ -234,7 +239,6 @@ describe("create a shell, connect a client, and communicate with it", () => {
     // also confirm receipt of size message
     const mesg = await spark.waitForMessage();
     expect(mesg).toEqual({ cmd: "size", rows, cols });
-    spark.messages.shift();
   });
 
   it("gets the current working directory via a command", async () => {
@@ -270,5 +274,84 @@ describe("create a shell, connect a client, and communicate with it", () => {
     expect(pid).not.toBe(newPid);
     expect(await isPidRunning(pid)).toBe(false);
     expect(await getCommandLine(newPid)).toContain("sleep");
+  });
+
+  it("send some data, then disconnect and reconnect, and verify that history contains that data, and also that terminal continues to work", async () => {
+    spark.emit("data", "echo 'hello cocalc'\n");
+    const resp = await spark.waitForData("hello cocalc");
+    expect(resp).toContain("hello cocalc");
+    spark.end();
+    const id = spark.id;
+    spark = (primus as any).channels[0].createSpark("192.168.2.1");
+    expect(id).not.toEqual(spark.id);
+    const mesg = await spark.waitForMessage();
+    expect(mesg).toEqual({ cmd: "no-ignore" });
+    expect(spark.data).toContain("hello cocalc");
+    spark.data = "";
+  });
+});
+
+describe("collaboration -- two clients connected to the same terminal session", () => {
+  let terminal;
+  const path = ".a.term-0.term";
+  const options = {
+    path: "a.term",
+  };
+  const primus = getPrimusMock();
+
+  beforeAll(() => {
+    terminal = new Terminal(primus, path, options);
+  });
+
+  afterAll(() => {
+    terminal.close();
+  });
+
+  it("initialize the terminal", async () => {
+    await terminal.init();
+  });
+
+  let spark1, spark2;
+  it("create two clients connection to the terminal", async () => {
+    spark1 = (primus as any).channels[0].createSpark("192.168.2.1");
+    spark2 = (primus as any).channels[0].createSpark("192.168.2.2");
+    const mesg1 = await spark1.waitForMessage();
+    expect(mesg1).toEqual({ cmd: "no-ignore" });
+    const mesg2 = await spark2.waitForMessage();
+    expect(mesg2).toEqual({ cmd: "no-ignore" });
+  });
+
+  it("have one client send something, and both clients see the input and result", async () => {
+    const input = "expr 5077 \\* 389\n";
+    const output = `${5077 * 389}`;
+    spark1.emit("data", input);
+    const out1 = await spark1.waitForData(output);
+    expect(out1).toContain("5077");
+    expect(out1).toContain(output);
+    const out2 = await spark2.waitForData(output);
+    expect(out2).toContain("5077");
+    expect(out2).toContain(output);
+    // also check that output only appears once:
+    let i = out2.indexOf(output);
+    expect(out2.indexOf(output, i + 1)).toBe(-1);
+  });
+
+  it("set the sizes of the two clients; verify that the min size is returned", async () => {
+    const rows1 = 15,
+      cols1 = 90;
+    const rows2 = 20,
+      cols2 = 70;
+    spark1.emit("data", { cmd: "size", rows: rows1, cols: cols1 });
+    const mesg1 = await spark1.waitForMessage();
+    expect(mesg1).toEqual({ cmd: "size", rows: rows1, cols: cols1 });
+    const mesg1a = await spark2.waitForMessage();
+    expect(mesg1).toEqual({ cmd: "size", rows: rows1, cols: cols1 });
+    spark2.emit("data", { cmd: "size", rows: rows2, cols: cols2 });
+    const mesg2 = await spark2.waitForMessage();
+    expect(mesg2).toEqual({
+      cmd: "size",
+      rows: Math.min(rows1, rows2),
+      cols: Math.min(cols1, cols2),
+    });
   });
 });
