@@ -63,7 +63,12 @@ export class Terminal {
   }
 
   init = async () => {
+    await this.initLocalPty();
+  };
+
+  private initLocalPty = async () => {
     if (this.state == "closed") return;
+
     const args: string[] = [];
 
     const { options } = this;
@@ -133,7 +138,7 @@ export class Terminal {
       }
       this.last_exit = now;
       logger.debug("spawning...");
-      await this.init();
+      await this.initLocalPty();
       logger.debug("finished spawn");
     });
 
@@ -506,8 +511,9 @@ export class Terminal {
       `new pty connection from ${remotePty.address.ip} -- ${remotePty.id}`,
     );
 
-    remotePty.on("end", () => {
+    remotePty.on("end", async () => {
       if (this.state == "closed") return;
+      await this.initLocalPty();
     });
 
     remotePty.on("data", async (data) => {

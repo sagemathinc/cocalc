@@ -1,5 +1,8 @@
 /*
 Some mocking and other funtionality that is very useful for unit testing.
+
+The code below does not use Primus *at all* to implement anything -- it's just
+a lightweight mocking of the same thing in process for unit testing purposes.
 */
 
 import type { PrimusWithChannels } from "./types";
@@ -40,7 +43,6 @@ export const waitForPidToChange = async (terminal, pid) => {
     i += 1;
   }
 };
-
 
 class PrimusSparkMock extends EventEmitter {
   id: string = uuid();
@@ -143,12 +145,13 @@ class PrimusChannelMock extends EventEmitter {
 }
 
 class PrimusMock {
-  channels: PrimusChannelMock[] = [];
+  channels: { [name: string]: PrimusChannelMock } = {};
 
   channel = (name) => {
-    const c = new PrimusChannelMock(name);
-    this.channels.push(c);
-    return c;
+    if (this.channels[name] == null) {
+      this.channels[name] = new PrimusChannelMock(name);
+    }
+    return this.channels[name];
   };
 }
 

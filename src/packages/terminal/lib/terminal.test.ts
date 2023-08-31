@@ -5,6 +5,7 @@ import {
   getCommandLine,
   waitForPidToChange,
 } from "./support";
+import { getChannelName } from "./util";
 
 afterAll(() => {
   // TODO: Somehow pty-node or something else randomly doesn't
@@ -59,6 +60,7 @@ describe("create a shell, connect a client, and communicate with it", () => {
     path: "a.term",
   };
   const primus = getPrimusMock();
+  const channel = primus.channel(getChannelName(path));
 
   beforeAll(() => {
     terminal = new Terminal(primus, path, options);
@@ -75,7 +77,7 @@ describe("create a shell, connect a client, and communicate with it", () => {
 
   let spark;
   it("create a client connection to the terminal", () => {
-    spark = (primus as any).channels[0].createSpark("192.168.2.1");
+    spark = channel.createSpark("192.168.2.1");
   });
 
   it("waits to receive no-ignore command", async () => {
@@ -135,7 +137,7 @@ describe("create a shell, connect a client, and communicate with it", () => {
     expect(resp).toContain("hello cocalc");
     spark.end();
     const id = spark.id;
-    spark = (primus as any).channels[0].createSpark("192.168.2.1");
+    spark = channel.createSpark("192.168.2.1");
     expect(id).not.toEqual(spark.id);
     const mesg = await spark.waitForMessage();
     expect(mesg).toEqual({ cmd: "no-ignore" });
@@ -151,6 +153,7 @@ describe("collaboration -- two clients connected to the same terminal session", 
     path: "a.term",
   };
   const primus = getPrimusMock();
+  const channel = primus.channel(getChannelName(path));
 
   beforeAll(() => {
     terminal = new Terminal(primus, path, options);
@@ -163,8 +166,8 @@ describe("collaboration -- two clients connected to the same terminal session", 
   let spark1, spark2;
   it("create two clients connection to the terminal", async () => {
     await terminal.init();
-    spark1 = (primus as any).channels[0].createSpark("192.168.2.1");
-    spark2 = (primus as any).channels[0].createSpark("192.168.2.2");
+    spark1 = channel.createSpark("192.168.2.1");
+    spark2 = channel.createSpark("192.168.2.2");
     for (const s of [spark1, spark2]) {
       const mesg = await s.waitForMessage();
       expect(mesg).toEqual({ cmd: "no-ignore" });

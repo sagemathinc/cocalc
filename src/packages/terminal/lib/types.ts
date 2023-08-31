@@ -1,5 +1,6 @@
 import type { EventEmitter } from "events";
 import Primus from "primus";
+import type { Spark } from "primus";
 
 export interface Options {
   // path -- the "original" path to the terminal, not the derived "term_path"
@@ -15,6 +16,9 @@ export interface PrimusChannel extends EventEmitter {
   write: (data: object | string) => void;
   forEach: (cb: (spark, id, connections) => void) => void;
   destroy: () => void;
+  // createSpark is not on the real PrimusChannel, but it's part of our mock version for
+  // unit testing in support.ts
+  createSpark: (address: string) => Spark;
 }
 
 export interface PrimusWithChannels extends Primus {
