@@ -68,6 +68,10 @@ export class Terminal {
 
   private initLocalPty = async () => {
     if (this.state == "closed") return;
+    if (this.remotePty != null) {
+      // don't init local pty if there is a remote one.
+      return;
+    }
 
     const args: string[] = [];
 
@@ -154,7 +158,9 @@ export class Terminal {
       return;
     }
     this.state = "closed";
-    this.killPty();
+    if (this.localPty != null) {
+      this.killPty();
+    }
     this.channel.destroy();
     this.remotePtyChannel.destroy();
   };
@@ -184,14 +190,23 @@ export class Terminal {
       "-->",
       { command, args },
     );
+    // we track change
     this.options.command = command;
     this.options.args = args;
-    this.killPty();
+    if (this.remotePty != null) {
+      // remote pty
+      this.remotePty.write({ cmd: "set_command", command, args });
+    } else if (this.localPty != null) {
+      this.killLocalPty();
+    }
   };
 
   private killPty = () => {
-    if (this.localPty == null) return;
-    this.killLocalPty();
+    if (this.localPty != null) {
+      this.killLocalPty();
+    } else if (this.remotePty != null) {
+      this.killRemotePty();
+    }
   };
 
   private killLocalPty = () => {
@@ -200,6 +215,19 @@ export class Terminal {
     this.localPty.kill("SIGKILL");
     this.localPty.destroy();
     delete this.localPty;
+  };
+
+  private killRemotePty = () => {
+    if (this.remotePty == null) return;
+    this.remotePty.write({ cmd: "kill" });
+  };
+
+  private setSizePty = (rows: number, cols: number) => {
+    if (this.localPty != null) {
+      this.localPty.resize(cols, rows);
+    } else if (this.remotePty != null) {
+      this.remotePty.write({ cmd: "size", rows, cols });
+    }
   };
 
   private saveHistoryToDisk = throttle(async () => {
@@ -334,7 +362,7 @@ export class Terminal {
   private resize = () => {
     if (this.state == "closed") return;
     //logger.debug("resize");
-    if (this.localPty == null) {
+    if (this.localPty == null && this.remotePty == null) {
       // nothing to do
       return;
     }
@@ -358,17 +386,16 @@ export class Terminal {
       delete this.size;
       return;
     }
-    if (rows && cols) {
-      logger.debug("resize", "new size", rows, cols);
-      try {
-        this.localPty.resize(cols, rows);
-      } catch (err) {
-        logger.debug(
-          "terminal channel",
-          `WARNING: unable to resize term ${err}`,
-        );
-      }
+    // ensure valid values
+    rows = Math.max(rows ?? 1, rows);
+    cols = Math.max(cols ?? 1, cols);
+    logger.debug("resize", "new size", rows, cols);
+    try {
+      this.setSizePty(rows, cols);
+      // broadcast out new size to all clients
       this.channel.write({ cmd: "size", rows, cols });
+    } catch (err) {
+      logger.debug("terminal channel -- WARNING: unable to resize term", err);
     }
   };
 
@@ -513,6 +540,7 @@ export class Terminal {
 
     remotePty.on("end", async () => {
       if (this.state == "closed") return;
+      delete this.remotePty;
       await this.initLocalPty();
     });
 
@@ -524,6 +552,13 @@ export class Terminal {
     remotePty.on("data", this.handleDataFromTerminal);
 
     this.remotePty = remotePty;
+
+    // inform our new client of the exact options that are current here.
+    this.remotePty.write({
+      cmd: "init",
+      options: this.options,
+    });
+
     this.killLocalPty();
   };
 }

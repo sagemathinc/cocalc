@@ -65,4 +65,34 @@ describe("basic tests of a remotePty connecting and handling data", () => {
     const pid = terminal.getPid();
     expect(await isPidRunning(pid)).toBe(true);
   });
+
+  it("connect a remote pty again, send a kill command from one of the spark clients, and check that remote pty receives kill command", async () => {
+    remoteSpark = ptyChannel.createSpark("192.168.2.2");
+    expect((await remoteSpark.waitForMessage()).cmd).toBe("init");
+    spark1.emit("data", { cmd: "kill" });
+    expect(await remoteSpark.waitForMessage()).toEqual({ cmd: "kill" });
+  });
+
+  it("sends a change of commands and args from client and sees remote pty receives that", async () => {
+    const command = "/usr/bin/python3";
+    const args = ["-b"];
+    spark1.emit("data", {
+      cmd: "set_command",
+      command,
+      args,
+    });
+    expect(await remoteSpark.waitForMessage()).toEqual({
+      cmd: "set_command",
+      command,
+      args,
+    });
+  });
+
+  it("sends a size message from a client, and observes that remote pty receives a size message", async () => {
+    const rows = 10;
+    const cols = 50;
+    const mesg = { cmd: "size", rows, cols };
+    spark1.emit("data", mesg);
+    expect(await remoteSpark.waitForMessage()).toEqual(mesg);
+  });
 });
