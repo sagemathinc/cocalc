@@ -143,6 +143,10 @@ export type Description =
 // max number of purchases a user can get in one query.
 export const MAX_API_LIMIT = 500;
 
+// maximum for any single purchase ever.  Any frontend
+// ui or api should use this constant to define a check.
+export const MAX_COST = 99999;
+
 export function getAmountStyle(amount: number) {
   return {
     fontWeight: "bold",
