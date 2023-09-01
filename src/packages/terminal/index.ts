@@ -11,9 +11,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import type { Options, PrimusWithChannels } from "./lib/types";
 import { getChannelName, getRemotePtyChannelName } from "./lib/util";
 import { Terminal } from "./lib/terminal";
-import type { IPty } from "./lib/terminal";
-
-export type { IPty };
+export { RemoteTerminal } from "./lib/remote-terminal";
 export { getRemotePtyChannelName };
 
 const logger = getLogger("terminal:index");

@@ -1,5 +1,6 @@
 import type {
   ClientCommand,
+  IPty,
   PrimusChannel,
   PrimusWithChannels,
   Options,
@@ -10,7 +11,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import { envForSpawn } from "@cocalc/backend/misc";
 import { getCWD } from "./util";
 import { readlink, realpath, readFile, writeFile } from "node:fs/promises";
-import { spawn, IPty as IPty0 } from "node-pty";
+import { spawn } from "node-pty";
 import { throttle } from "lodash";
 import { delay } from "awaiting";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
@@ -28,12 +29,6 @@ const DEFAULT_COMMAND = "/bin/bash";
 
 type MessagesState = "none" | "reading";
 type State = "init" | "ready" | "closed";
-
-// upstream typings not quite right
-export interface IPty extends IPty0 {
-  on: (event: string, f: (...args) => void) => void;
-  destroy: () => void;
-}
 
 export class Terminal {
   private state: State = "init";

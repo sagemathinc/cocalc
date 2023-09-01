@@ -1,6 +1,13 @@
 import type { EventEmitter } from "events";
 import Primus from "primus";
 import type { Spark } from "primus";
+import type { IPty as IPty0 } from "node-pty";
+
+// upstream typings not quite right
+export interface IPty extends IPty0 {
+  on: (event: string, f: (...args) => void) => void;
+  destroy: () => void;
+}
 
 export interface Options {
   // path -- the "original" path to the terminal, not the derived "term_path"
