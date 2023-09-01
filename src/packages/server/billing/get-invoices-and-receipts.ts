@@ -11,7 +11,7 @@ export default async function getInvoicesAndReceipts(account_id: string) {
   }
   const customer = await getStripeCustomerId({ account_id, create: false });
   if (!customer) {
-    return { data: {} };
+    return { data: [] };
   }
   const stripe = await getConn();
   const invoices = await stripe.invoices.list({
@@ -35,7 +35,7 @@ export async function getInvoice(invoice_id: string) {
 }
 
 export async function getInvoiceUrl(
-  invoice_id: string
+  invoice_id: string,
 ): Promise<string | null | undefined> {
   log.debug("getInvoice", invoice_id);
   const stripe = await getConn();
