@@ -9,8 +9,10 @@ Terminal server
 
 import { getLogger } from "@cocalc/backend/logger";
 import type { Options, PrimusWithChannels } from "./lib/types";
-import { getChannelName } from "./lib/util";
+import { getChannelName, getRemotePtyChannelName } from "./lib/util";
 import { Terminal } from "./lib/terminal";
+
+export { getRemotePtyChannelName };
 
 const logger = getLogger("terminal:index");
 
