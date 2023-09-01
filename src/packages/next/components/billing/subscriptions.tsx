@@ -261,17 +261,15 @@ export default function Subscriptions() {
     let numLicense = 0,
       numUpgrade = 0,
       subs: any[] = [];
-    if (subscriptions.result != null) {
-      for (const sub of subscriptions.result.data) {
-        if (sub.metadata?.service != null || sub.automatic_tax?.enabled) {
-          // new automatic payment subscriptions
-        } else if (sub.metadata?.license_id != null) {
-          numLicense += 1;
-          subs.push(sub);
-        } else {
-          numUpgrade += 1;
-          subs.push(sub);
-        }
+    for (const sub of subscriptions.result?.data ?? []) {
+      if (sub.metadata?.service != null || sub.automatic_tax?.enabled) {
+        // new automatic payment subscriptions
+      } else if (sub.metadata?.license_id != null) {
+        numLicense += 1;
+        subs.push(sub);
+      } else {
+        numUpgrade += 1;
+        subs.push(sub);
       }
     }
     return { numLicense, numUpgrade, subs };
