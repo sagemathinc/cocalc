@@ -13,7 +13,10 @@
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",
@@ -26,6 +29,7 @@
     "@cocalc/util": "workspace:*",
     "@types/cookie": "^0.5.1",
     "cookie": "^0.5.0",
+    "node-pty": "^1.0.0",
     "tmp-promise": "^3.0.3",
     "websocketfs": "^0.7.0"
   },

@@ -30,7 +30,7 @@ type MessagesState = "none" | "reading";
 type State = "init" | "ready" | "closed";
 
 // upstream typings not quite right
-interface IPty extends IPty0 {
+export interface IPty extends IPty0 {
   on: (event: string, f: (...args) => void) => void;
   destroy: () => void;
 }
@@ -359,13 +359,7 @@ export class Terminal {
     }
   };
 
-  private resize = () => {
-    if (this.state == "closed") return;
-    //logger.debug("resize");
-    if (this.localPty == null && this.remotePty == null) {
-      // nothing to do
-      return;
-    }
+  getSize = (): { rows: number; cols: number } | undefined => {
     const sizes = this.client_sizes;
     if (len(sizes) == 0) {
       return;
@@ -382,13 +376,27 @@ export class Terminal {
       }
     }
     if (rows === INFINITY || cols === INFINITY) {
-      // no clients currently visible
-      delete this.size;
+      // no clients with known sizes currently visible
       return;
     }
     // ensure valid values
     rows = Math.max(rows ?? 1, rows);
     cols = Math.max(cols ?? 1, cols);
+    return { rows, cols };
+  };
+
+  private resize = () => {
+    if (this.state == "closed") return;
+    //logger.debug("resize");
+    if (this.localPty == null && this.remotePty == null) {
+      // nothing to do
+      return;
+    }
+    const size = this.getSize();
+    if (size == null) {
+      return;
+    }
+    const { rows, cols } = size;
     logger.debug("resize", "new size", rows, cols);
     try {
       this.setSizePty(rows, cols);
@@ -582,6 +590,7 @@ export class Terminal {
     this.remotePty.write({
       cmd: "init",
       options: this.options,
+      size: this.getSize(),
     });
 
     this.killLocalPty();
