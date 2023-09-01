@@ -267,9 +267,10 @@ async function doManageApiKeys({
 Get the account that has the given api key, or returns undefined
 if there is no such account.
 
-If the api_key is not an account wide key and the project_id argument
-is given, return the project_id if the key is a valid key for that
-project and record the access.
+If the api_key is not an account wide key, instead return the project_id
+if the key is a valid key for a project.
+
+Record that access happened by updating last_active.
 */
 export async function getAccountWithApiKey(
   secret: string

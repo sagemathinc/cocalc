@@ -60,7 +60,6 @@ export default async function hasAccess(opts: Options): Promise<boolean> {
       dbg,
     });
   } catch (err) {
-    dbg(`api_key=${api_key}`);
     dbg("error trying to determine access; denying for now", err);
     access = false;
   }

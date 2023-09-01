@@ -36,8 +36,8 @@ We are also focusing initially on a single Jupyter notebook. However, this could
 Define the following three environment variables:
 
 ```sh
-export API_KEY="sk-xxxxxxxxxxxxxxxxxxxx"
-export PROJECT_ID="10f0e544-313c-4efe-8718-2142ac97ad11"
+export API_KEY="sk-gEWEutsR9tK9q2Dd000002"
+export PROJECT_ID="34ce85cd-b4ad-4786-a8f0-67fa9c729b4f"
 export IPYNB_PATH="Untitled.ipynb"
 ```
 
@@ -71,6 +71,14 @@ export API_SERVER="https://cocalc.com"
 export API_BASE_PATH="/"
 ```
 
+E.g., for local dev these might be
+
+```sh
+export BASE_PATH='/ab3c2e56-32c4-4fa5-a3ee-6fd980d10fbf/port/5000'
+export API_SERVER='http://localhost:5000'
+export API_BASE_PATH='/ab3c2e56-32c4-4fa5-a3ee-6fd980d10fbf/port/5000'
+```
+
 ### Mounting just the project home directory
 
 Mount the project's HOME directory at /tmp/project by
@@ -97,4 +105,3 @@ await require("@cocalc/compute").jupyter({
 });
 0;
 ```
-
