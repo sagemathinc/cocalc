@@ -4,7 +4,6 @@
  */
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Typography } from "antd";
 import A from "components/misc/A";
 import {
   OverviewRow,
@@ -13,7 +12,8 @@ import {
   Product,
 } from "lib/styles/layouts";
 import useCustomize from "lib/use-customize";
-const { Text } = Typography;
+import basePath from "lib/base-path";
+import { join } from "path";
 
 export default function Overview() {
   const { isCommercial } = useCustomize();
@@ -24,33 +24,28 @@ export default function Overview() {
       <h2 style={{ marginBottom: "30px" }}>License management</h2>
 
       <OverviewRow>
-        <Product icon="key" title="Manage licenses" href="/licenses/managed">
-          View and manage your licenses
-        </Product>
-
         <Product
           icon="edit"
-          href="/licenses/projects"
-          title="Licensed projects"
+          title="Manage Licenses"
+          href={join(basePath, "/settings/licenses")}
+          external
         >
-          Browse licensed projects you collaborate on
+          View and manage your licenses and see licensed projects you
+          collaborate on
         </Product>
 
         <Product icon="rocket" href="/licenses/how-used" title="How used">
-          See how a specific site license is being used
+          See how a specific license is being used
         </Product>
 
         {isCommercial && (
           <Product
             icon="ban"
-            title="Cancel subscription"
-            href="/billing/subscriptions"
+            title="Cancel Subscription"
+            href={join(basePath, "/settings/subscriptions")}
+            external
           >
             Cancel an ongoing subscription
-            <br />
-            <Text type="secondary">
-              (in <A href={"/billing"}>Billing</A>)
-            </Text>
           </Product>
         )}
       </OverviewRow>
