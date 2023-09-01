@@ -13,25 +13,35 @@ This works in conjunction with src/compute/compute/terminal
 
 import getLogger from "@cocalc/backend/logger";
 import { spawn } from "node-pty";
-import type { Options, PrimusChannel, IPty } from "./types";
+import type { Options, IPty } from "./types";
+import type { Spark } from "primus";
 
 const logger = getLogger("terminal:remote");
 
+type State = "init" | "ready" | "closed";
+
 export class RemoteTerminal {
-  private channel: PrimusChannel;
+  private state: State = "init";
+  private conn: Spark;
   private cwd?: string;
   private localPty?: IPty;
   private options?: Options;
   private size?: { rows: number; cols: number };
 
-  constructor(channel, cwd) {
-    this.channel = channel;
-    this.channel.on("data", this.handleData);
+  constructor(conn, cwd?) {
+    this.conn = conn;
+    this.conn.on("data", this.handleData);
     this.cwd = cwd;
     logger.debug("create ", { cwd });
   }
 
+  close = () => {
+    this.state = "closed";
+    this.conn.end();
+  };
+
   private handleData = async (data) => {
+    if (this.state == "closed") return;
     if (typeof data == "string") {
       if (this.localPty != null) {
         this.localPty.write(data);
@@ -54,6 +64,7 @@ export class RemoteTerminal {
   };
 
   private initLocalPty = async () => {
+    if (this.state == "closed") return;
     if (this.options == null) {
       return;
     }
@@ -65,9 +76,10 @@ export class RemoteTerminal {
       this.options.args ?? [],
       { cwd: this.cwd ?? this.options.cwd, env: this.options.env },
     ) as IPty;
+    this.state = "ready";
     logger.debug("initLocalPty: pid=", localPty.pid);
     localPty.on("data", (data) => {
-      this.channel.write(data);
+      this.conn.write(data);
     });
     this.localPty = localPty;
     if (this.size) {

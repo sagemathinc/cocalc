@@ -1,12 +1,13 @@
 import { Terminal } from "./terminal";
 import { getPrimusMock, isPidRunning, waitForPidToChange } from "./support";
 import { getRemotePtyChannelName, getChannelName } from "./util";
+import { RemoteTerminal } from "./remote-terminal";
 
 afterAll(() => {
   setTimeout(process.exit, 250);
 });
 
-describe("basic tests of a remotePty connecting and handling data", () => {
+describe("tests remotePty connecting and handling data with **simulated** pty", () => {
   let terminal;
   const path = ".a.term-0.term";
   const options = {
@@ -31,7 +32,6 @@ describe("basic tests of a remotePty connecting and handling data", () => {
 
   let spark1, spark2;
   it("create two clients connection to the terminal", async () => {
-    await terminal.init();
     spark1 = channel.createSpark("192.168.2.1");
     spark2 = channel.createSpark("192.168.2.2");
     for (const s of [spark1, spark2]) {
@@ -107,5 +107,78 @@ describe("basic tests of a remotePty connecting and handling data", () => {
       cmd: "cwd",
       payload: "/home/user",
     });
+  });
+});
+
+describe("test remotePty using actual pty", () => {
+  let terminal, remote;
+  const path = ".a.term-0.term";
+  const options = {
+    path: "a.term",
+  };
+  const primus = getPrimusMock();
+  const channel = primus.channel(getChannelName(path));
+  const ptyChannel = primus.channel(getRemotePtyChannelName(path));
+
+  beforeAll(() => {
+    terminal = new Terminal(primus, path, options);
+  });
+
+  afterAll(() => {
+    terminal.close();
+    if (remote != null) {
+      remote.close();
+    }
+  });
+
+  it("initialize the terminal", async () => {
+    await terminal.init();
+    expect(typeof terminal.getPid()).toBe("number");
+  });
+
+  let spark;
+  it("create a normal client connected to the terminal", async () => {
+    spark = channel.createSpark("192.168.2.1");
+    const mesg = await spark.waitForMessage();
+    expect(mesg).toEqual({ cmd: "no-ignore" });
+  });
+
+  let remoteSpark;
+  it("create remote terminal, and observe that local terminal process terminates", async () => {
+    const pid = terminal.getPid();
+    remoteSpark = ptyChannel.createSpark("192.168.2.2");
+    remote = new RemoteTerminal(remoteSpark);
+    expect(terminal.getPid()).toBe(undefined);
+    // check that original process is no longer running.
+    expect(await isPidRunning(pid)).toBe(false);
+  });
+
+  it("observe that remote terminal process gets created", async () => {
+    // NOTE: we have to explicitly shuffle the messages along,
+    // since our spark mock is VERY minimal and is the same object
+    // for both the client and the server.
+    const mesg = await remoteSpark.waitForMessage();
+    remote.handleData(mesg);
+    expect(remote.localPty).not.toEqual(null);
+    const pid = remote.localPty.pid;
+    expect(await isPidRunning(pid)).toBe(true);
+  });
+
+  it("use bash to compute something", async () => {
+    const input = "expr 5077 \\* 389\n";
+    const output = `${5077 * 389}`;
+    spark.emit("data", input);
+
+    // shuttle the data along (because our spark mock is so minimal)
+    const data = await remoteSpark.waitForData(input);
+    remote.handleData(data);
+
+    // now push it back
+    const out = await remoteSpark.waitForData(output);
+    remoteSpark.emit("data", out);
+
+    const out2 = await spark.waitForData(output);
+    expect(out2).toContain("5077");
+    expect(out2).toContain(output);
   });
 });
