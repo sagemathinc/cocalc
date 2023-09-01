@@ -135,8 +135,10 @@ class PrimusChannelMock extends EventEmitter {
 
   destroy = () => {
     this.removeAllListeners();
-    for (const spark of Object.values(this.sparks)) {
-      spark.end();
+    if (this.sparks != null) {
+      for (const spark of Object.values(this.sparks)) {
+        spark.end();
+      }
     }
     const t = this as any;
     delete t.name;
