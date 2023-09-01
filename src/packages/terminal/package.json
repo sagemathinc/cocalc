@@ -6,6 +6,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "npx tsc",
+    "clean": "rm -rf dist node_modules",
     "test": "pnpm exec jest dist",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },

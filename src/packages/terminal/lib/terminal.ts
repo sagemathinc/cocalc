@@ -239,6 +239,7 @@ export class Terminal {
   };
 
   private handleDataFromTerminal = (data) => {
+    //console.log("handleDataFromTerminal", { data });
     if (this.state == "closed") return;
     //logger.debug("terminal: term --> browsers", data);
     this.handleBackendMessages(data);

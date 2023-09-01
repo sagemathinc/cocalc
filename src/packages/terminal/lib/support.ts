@@ -161,3 +161,12 @@ export function getPrimusMock(): PrimusWithChannels {
   const primus = new PrimusMock();
   return primus as unknown as PrimusWithChannels;
 }
+
+export function getOpts() {
+  const name = uuid();
+  const path = `.${name}.term-0.term`;
+  const options = {
+    path: `${name}.term`,
+  };
+  return { path, options };
+}

@@ -1,5 +1,10 @@
 import { Terminal } from "./terminal";
-import { getPrimusMock, isPidRunning, waitForPidToChange } from "./support";
+import {
+  getOpts,
+  getPrimusMock,
+  isPidRunning,
+  waitForPidToChange,
+} from "./support";
 import { getRemotePtyChannelName, getChannelName } from "./util";
 import { RemoteTerminal } from "./remote-terminal";
 
@@ -9,10 +14,7 @@ afterAll(() => {
 
 describe("tests remotePty connecting and handling data with **simulated** pty", () => {
   let terminal;
-  const path = ".a.term-0.term";
-  const options = {
-    path: "a.term",
-  };
+  const { path, options } = getOpts();
   const primus = getPrimusMock();
   const channel = primus.channel(getChannelName(path));
   const ptyChannel = primus.channel(getRemotePtyChannelName(path));
@@ -112,10 +114,7 @@ describe("tests remotePty connecting and handling data with **simulated** pty", 
 
 describe("test remotePty using actual pty", () => {
   let terminal, remote;
-  const path = ".a.term-0.term";
-  const options = {
-    path: "a.term",
-  };
+  const { path, options } = getOpts();
   const primus = getPrimusMock();
   const channel = primus.channel(getChannelName(path));
   const ptyChannel = primus.channel(getRemotePtyChannelName(path));

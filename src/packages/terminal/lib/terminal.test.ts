@@ -1,5 +1,6 @@
 import { Terminal } from "./terminal";
 import {
+  getOpts,
   getPrimusMock,
   isPidRunning,
   getCommandLine,
@@ -18,10 +19,7 @@ afterAll(() => {
 
 describe("very basic test of creating a terminal and changing shell", () => {
   let terminal;
-  const path = ".a.term-0.term";
-  const options = {
-    path: "a.term",
-  };
+  const { path, options } = getOpts();
 
   beforeAll(() => {
     const primus = getPrimusMock();
@@ -55,10 +53,7 @@ describe("very basic test of creating a terminal and changing shell", () => {
 
 describe("create a shell, connect a client, and communicate with it", () => {
   let terminal;
-  const path = ".a.term-0.term";
-  const options = {
-    path: "a.term",
-  };
+  const { path, options } = getOpts();
   const primus = getPrimusMock();
   const channel = primus.channel(getChannelName(path));
 
@@ -148,10 +143,7 @@ describe("create a shell, connect a client, and communicate with it", () => {
 
 describe("collaboration -- two clients connected to the same terminal session", () => {
   let terminal;
-  const path = ".a.term-0.term";
-  const options = {
-    path: "a.term",
-  };
+  const { path, options } = getOpts();
   const primus = getPrimusMock();
   const channel = primus.channel(getChannelName(path));
 
