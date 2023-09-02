@@ -63,7 +63,7 @@
     "tmp": "0.0.33",
     "uglify-js": "^3.14.1",
     "uuid": "^8.3.2",
-    "websocket-sftp": "^0.5.4",
+    "websocket-sftp": "^0.7.0",
     "which": "^2.0.2",
     "ws": "^8.13.0",
     "zeromq": "^5.2.8"
@@ -84,7 +84,9 @@
     "clean": "rm -rf dist"
   },
   "author": "SageMath, Inc.",
-  "contributors": ["William Stein <wstein@sagemath.com>"],
+  "contributors": [
+    "William Stein <wstein@sagemath.com>"
+  ],
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
