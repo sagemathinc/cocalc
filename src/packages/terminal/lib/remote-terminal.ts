@@ -78,9 +78,16 @@ export class RemoteTerminal {
     ) as IPty;
     this.state = "ready";
     logger.debug("initLocalPty: pid=", localPty.pid);
+
     localPty.on("data", (data) => {
       this.conn.write(data);
     });
+
+    localPty.on("exit", () => {
+      delete this.localPty; // no longer valid
+      this.conn.write({ cmd: "exit" });
+    });
+
     this.localPty = localPty;
     if (this.size) {
       this.localPty.resize(this.size.cols, this.size.rows);

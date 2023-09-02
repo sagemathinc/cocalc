@@ -1,3 +1,9 @@
+/*
+
+NOTE: these tests are pretty low level.  We don't actually use a websocket at all,
+and explicitly shuffle messages around.
+*/
+
 import { Terminal } from "./terminal";
 import {
   getOpts,
@@ -12,7 +18,7 @@ afterAll(() => {
   setTimeout(process.exit, 250);
 });
 
-describe("tests remotePty connecting and handling data with **simulated** pty", () => {
+describe("tests remotePty connecting and handling data with **simulated** pty and explicitly pushing messages back and forth (for low level tests)", () => {
   let terminal;
   const { path, options } = getOpts();
   const primus = getPrimusMock();
@@ -156,9 +162,11 @@ describe("test remotePty using actual pty", () => {
     // NOTE: we have to explicitly shuffle the messages along,
     // since our spark mock is VERY minimal and is the same object
     // for both the client and the server.
+
     const mesg = await remoteSpark.waitForMessage();
     remote.handleData(mesg);
-    expect(remote.localPty).not.toEqual(null);
+
+    expect(remote.localPty).not.toEqual(undefined);
     const pid = remote.localPty.pid;
     expect(await isPidRunning(pid)).toBe(true);
   });
@@ -168,16 +176,68 @@ describe("test remotePty using actual pty", () => {
     const output = `${5077 * 389}`;
     spark.emit("data", input);
 
-    // shuttle the data along (because our spark mock is so minimal)
+    // shuttle the data along:
     const data = await remoteSpark.waitForData(input);
     remote.handleData(data);
-
-    // now push it back
     const out = await remoteSpark.waitForData(output);
     remoteSpark.emit("data", out);
 
     const out2 = await spark.waitForData(output);
     expect(out2).toContain("5077");
     expect(out2).toContain(output);
+  });
+
+  it("have client send a size, and see the remote terminal gets that size", async () => {
+    spark.emit("data", { cmd: "size", rows: 10, cols: 69 });
+    const mesg = await remoteSpark.waitForMessage();
+    remote.handleData(mesg);
+    expect(mesg).toEqual({ cmd: "size", rows: 10, cols: 69 });
+    // now ask the terminal for its size
+    spark.emit("data", "stty size\n");
+
+    const data = await remoteSpark.waitForData("stty size\n");
+    remote.handleData(data);
+    const out = await remoteSpark.waitForData("10 69");
+    remoteSpark.emit("data", out);
+
+    const out2 = await spark.waitForData("10 69");
+    expect(out2.trim().slice(-5)).toBe("10 69");
+  });
+
+  it("terminates the remote pty process, and see that it automatically gets spawned again", async () => {
+    const origPid = remote.localPty.pid;
+    spark.emit("data", "exit\n");
+    const data = await remoteSpark.waitForData("exit\n");
+    // this will cause the pty to terminate
+    remote.handleData(data);
+    // it then generates an exit message
+    const mesg = await remoteSpark.waitForMessage();
+    expect(mesg).toEqual({ cmd: "exit" });
+    expect(remote.localPty).toEqual(undefined);
+    // forward it along to the project:
+    remoteSpark.emit("data", mesg);
+
+    // which should spawn the other end to send a message telling it to init again.
+    const mesg2 = await remoteSpark.waitForMessage();
+    expect(mesg2.cmd).toBe("init");
+    remote.handleData(mesg2);
+
+    // now it should be running again as a new process
+    expect(remote.localPty).not.toEqual(undefined);
+    const pid = remote.localPty.pid;
+    expect(await isPidRunning(pid)).toBe(true);
+    expect(pid).not.toEqual(origPid);
+  });
+
+  //   it("tests the cwd command", async ()=> {
+
+  //   })
+
+  // do this last!
+  it("close the RemoteTerminal, and see that a local pty is spawned again", async () => {
+    remote.close();
+    await waitForPidToChange(terminal, 0);
+    const pid = terminal.getPid();
+    expect(await isPidRunning(pid)).toBe(true);
   });
 });

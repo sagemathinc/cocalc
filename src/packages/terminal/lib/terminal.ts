@@ -24,6 +24,7 @@ const CHECK_INTERVAL_MS = 5 * 1000;
 const MAX_HISTORY_LENGTH = 10 * 1000 * 1000;
 const TRUNCATE_THRESH_MS = 10 * 1000;
 const FREQUENT_RESTART_DELAY_MS = 1.5 * 1000;
+const FREQUENT_RESTART_INTERVAL_MS = 10 * 1000;
 const INFINITY = 999999;
 const DEFAULT_COMMAND = "/bin/bash";
 
@@ -129,14 +130,14 @@ export class Terminal {
       }
       logger.debug("EXIT -- spawning again");
       const now = Date.now();
-      if (now - this.last_exit <= 15000) {
+      if (now - this.last_exit <= FREQUENT_RESTART_INTERVAL_MS) {
         // frequent exit; we wait a few seconds, since otherwise channel
         // restarting could burn all cpu and break everything.
-        logger.debug("EXIT -- waiting a few seconds before trying again...");
+        logger.debug("EXIT -- waiting a few seconds...");
         await delay(FREQUENT_RESTART_DELAY_MS);
       }
       this.last_exit = now;
-      logger.debug("spawning...");
+      logger.debug("spawning local pty...");
       await this.initLocalPty();
       logger.debug("finished spawn");
     });
@@ -560,6 +561,16 @@ export class Terminal {
     });
   };
 
+  // inform remote pty client of the exact options that are current here.
+  private initRemotePty = () => {
+    if (this.remotePty == null) return;
+    this.remotePty.write({
+      cmd: "init",
+      options: this.options,
+      size: this.getSize(),
+    });
+  };
+
   private handleRemotePtyConnection = (remotePty: Spark) => {
     logger.debug(
       this.path,
@@ -576,19 +587,31 @@ export class Terminal {
       if ((this.state as State) == "closed") return;
       if (typeof data == "string") {
         this.handleDataFromTerminal(data);
+      } else {
+        switch (data.cmd) {
+          case "exit": {
+            // the pty exited.
+            if (this.localPty != null) {
+              // do not create a new remotePty since we're switching back to local one
+              return;
+            }
+            const now = Date.now();
+            if (now - this.last_exit <= FREQUENT_RESTART_INTERVAL_MS) {
+              logger.debug("EXIT -- waiting a few seconds...");
+              await delay(FREQUENT_RESTART_DELAY_MS);
+            }
+            this.last_exit = now;
+            logger.debug("spawning remote pty...");
+            this.initRemotePty();
+            logger.debug("finished spawn");
+            break;
+          }
+        }
       }
-      // objects are handled in particular cases -- basically the cwd message
     });
 
     this.remotePty = remotePty;
-
-    // inform our new client of the exact options that are current here.
-    this.remotePty.write({
-      cmd: "init",
-      options: this.options,
-      size: this.getSize(),
-    });
-
+    this.initRemotePty();
     this.killLocalPty();
   };
 }
