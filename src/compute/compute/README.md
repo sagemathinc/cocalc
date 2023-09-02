@@ -4,7 +4,9 @@
 
 The minimal goal of this package is to connect from a nodejs process to a cocalc project, open a Jupyter notebook sync session, and provide the output. I.e., instead of the project itself running a kernel and providing output, the kernel will be provided by whatever client is running this `@cocalc/compute` package!
 
-Concern: I want this package to remain lightweight if at all possible, so it's fast to install and uses little space. Also, we eventually plan to run a variant of it in a web browser, which is another reason to keep it small. On the other hand, to offer a really useful Jupyter kernel environment, this will probably be part of a big Docker container or something...
+Concern: I want this package to remain lightweight if at all possible, so it's fast to install and uses little space. Also, we eventually plan to run a variant of it in a web browser, which is another reason to keep it small. On the other hand, to offer a really useful Jupyter kernel environment, this will probably be part of a big Docker container or something.
+
+This is used by [cocalc\-compute\-docker](https://github.com/sagemathinc/cocalc-compute-docker).
 
 ## Build
 
@@ -101,6 +103,20 @@ Then set all the above env variables in another terminal and run the following c
 await require("@cocalc/compute").jupyter({
   project_id: process.env.PROJECT_ID,
   path: "Untitled.ipynb",
+  cwd: "/tmp/project",
+});
+0;
+```
+
+### Terminal
+
+You should open the notebook Untitled.ipynb on [cocalc.com](http://cocalc.com).
+Then set all the above env variables in another terminal and run the following code in node.js. **Running of that first \(if you split frame\) command line terminal will then switch to your local machine.**
+
+```js
+await require("@cocalc/compute").terminal({
+  project_id: process.env.PROJECT_ID,
+  path: "term.term",
   cwd: "/tmp/project",
 });
 0;
