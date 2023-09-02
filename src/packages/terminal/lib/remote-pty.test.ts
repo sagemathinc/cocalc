@@ -229,9 +229,18 @@ describe("test remotePty using actual pty", () => {
     expect(pid).not.toEqual(origPid);
   });
 
-  //   it("tests the cwd command", async ()=> {
-
-  //   })
+  it("tests the cwd command", async () => {
+    spark.messages = [];
+    // first from browser client to project:
+    spark.emit("data", { cmd: "cwd" });
+    const mesg = await remoteSpark.waitForMessage();
+    remote.handleData(mesg);
+    const mesg2 = await remoteSpark.waitForMessage();
+    expect(mesg2.payload).toContain("terminal");
+    remoteSpark.emit("data", mesg2);
+    const mesg3 = await spark.waitForMessage();
+    expect(mesg3).toEqual(mesg2);
+  });
 
   // do this last!
   it("close the RemoteTerminal, and see that a local pty is spawned again", async () => {

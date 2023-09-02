@@ -1,6 +1,8 @@
 /*
 Terminal instance that runs on a remote machine.
 
+This is a sort of simpler mirror image of terminal.ts.
+
 This provides a terminal via the "remotePty" mechanism to a project.
 The result feels a bit like "ssh'ing to a remote machine", except
 the connection comes from the outside over a websocket.  When you're
@@ -15,6 +17,7 @@ import getLogger from "@cocalc/backend/logger";
 import { spawn } from "node-pty";
 import type { Options, IPty } from "./types";
 import type { Spark } from "primus";
+import { readlink, realpath } from "node:fs/promises";
 
 const logger = getLogger("terminal:remote");
 
@@ -54,10 +57,15 @@ export class RemoteTerminal {
           this.size = data.size;
           await this.initLocalPty();
           break;
+
         case "size":
           if (this.localPty != null) {
             this.localPty.resize(data.cols, data.rows);
           }
+          break;
+
+        case "cwd":
+          this.sendCurrentWorkingDirectoryLocalPty();
           break;
       }
     }
@@ -92,5 +100,20 @@ export class RemoteTerminal {
     if (this.size) {
       this.localPty.resize(this.size.cols, this.size.rows);
     }
+  };
+
+  private sendCurrentWorkingDirectoryLocalPty = async () => {
+    if (this.localPty == null) {
+      return;
+    }
+    // we reply with the current working directory of the underlying terminal process,
+    // which is why we use readlink and proc below.
+    // ** TODO: process.env.HOME probably doesn't make any sense here.. not sure?! **
+    const pid = this.localPty.pid;
+    const home = await realpath(process.env.HOME ?? "/home/user");
+    const cwd = await readlink(`/proc/${pid}/cwd`);
+    const path = cwd.startsWith(home) ? cwd.slice(home.length + 1) : cwd;
+    logger.debug("terminal cwd sent back", { path });
+    this.conn.write({ cmd: "cwd", payload: path });
   };
 }

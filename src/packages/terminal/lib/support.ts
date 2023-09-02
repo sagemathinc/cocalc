@@ -56,6 +56,7 @@ class PrimusSparkMock extends EventEmitter {
   }
 
   write = (data) => {
+    if (this.messages == null) return;
     logger("spark write", data);
     if (typeof data == "object") {
       this.messages.push(data);
