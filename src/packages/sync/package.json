@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/sync",
-  "version": "0.10.1",
+  "version": "0.11.1",
   "description": "CoCalc realtime synchronization framework",
   "exports": {
     "./*": "./dist/*.js",
@@ -14,11 +14,9 @@
     "test": "npx jest ./dist",
     "prepublishOnly": "pnpm test"
   },
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "realtime synchronization"
-  ],
+  "keywords": ["cocalc", "realtime synchronization"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/sync": "workspace:*",

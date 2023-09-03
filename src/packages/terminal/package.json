@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/terminal",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CoCalc's Nodejs Terminal Server",
   "main": "./dist/index.js",
   "scripts": {
@@ -10,6 +10,7 @@
     "test": "pnpm exec jest dist",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
   "keywords": ["cocalc", "jupyter", "terminal"],
   "license": "SEE LICENSE.md",
