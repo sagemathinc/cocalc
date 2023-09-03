@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/util",
-  "version": "1.77.1",
+  "version": "1.77.2",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
@@ -20,9 +20,19 @@
     "test": "pnpm exec jest dist",
     "prepublishOnly": "pnpm test"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "mathjax", "markdown", "cocalc"],
+  "keywords": [
+    "utilities",
+    "mathjax",
+    "markdown",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@ant-design/colors": "^6.0.0",

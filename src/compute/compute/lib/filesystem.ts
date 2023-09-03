@@ -33,6 +33,9 @@ export async function mountProject({
   if (!project_id) {
     throw Error("project_id or process.env.PROJECT_ID must be given");
   }
+  if (!apiKey) {
+    throw Error("api key must be set (e.g., set API_KEY env variable)");
+  }
 
   // Ping to start the project:
   await project.ping({ project_id });

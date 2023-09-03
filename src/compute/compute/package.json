@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/compute",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "description": "CoCalc remote compute provider -- connects to project and provides remote compute",
   "exports": {
     ".": "./dist/lib/index.js"
@@ -15,9 +15,17 @@
   "bin": {
     "cocalc-compute-start": "./bin/start.js"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",
