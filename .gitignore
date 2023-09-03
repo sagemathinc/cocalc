@@ -22,6 +22,7 @@ node_modules
 err
 log
 out
+go
 
 src/cocalc-testcafe/package-lock.json
 
