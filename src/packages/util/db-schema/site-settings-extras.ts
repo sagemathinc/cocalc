@@ -47,7 +47,7 @@ export const pii_retention_parse = (retention: string): number | false => {
   const secs = num * (mult * 24 * 60 * 60);
   if (isNaN(secs) || secs == null) {
     throw new Error(
-      `pii_expire problem: cannot derive future time from "{retention}"`
+      `pii_expire problem: cannot derive future time from "{retention}"`,
     );
   }
   return secs;
@@ -119,6 +119,8 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_openai_markup_percentage"
   | "pay_as_you_go_max_project_upgrades"
   | "pay_as_you_go_price_project_upgrades"
+  | "compute_servers_section"
+  | "enable_compute_servers"
   | "subscription_maintenance";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
@@ -493,5 +495,19 @@ export const EXTRAS: SettingsExtras = {
     show: only_commercial,
     to_val: toFloat,
     valid: onlyNonnegFloat,
+  },
+  compute_servers_section: {
+    name: "Compute Servers",
+    desc: "",
+    default: "",
+    show: only_cocalc_com,
+    type: "header",
+  },
+  enable_compute_servers: {
+    name: "Enable Compute Servers",
+    desc: "Whether or not to include user interface elements and backend functionality related to compute servers.  Set to 'yes' to include these elements.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
   },
 } as const;

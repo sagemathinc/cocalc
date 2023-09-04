@@ -241,7 +241,7 @@ export default function SiteSettings({ close }) {
   }
 
   async function sendTestEmail(
-    type: "password_reset" | "invite_email" | "mention" | "verification"
+    type: "password_reset" | "invite_email" | "mention" | "verification",
   ): Promise<void> {
     const email = testEmailRef.current?.input?.value;
     if (!email) {
@@ -393,7 +393,7 @@ export default function SiteSettings({ close }) {
               isHeader={isHeader(name)}
               saveSingleSetting={saveSingleSetting}
             />
-          ))
+          )),
         )}
       </>
     );
@@ -455,6 +455,7 @@ export default function SiteSettings({ close }) {
               "zendesk",
               "github",
               "pay as you go",
+              "compute",
             ].map((name) => (
               <CheckableTag
                 key={name}
