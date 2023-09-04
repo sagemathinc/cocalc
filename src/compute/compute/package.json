@@ -39,7 +39,7 @@
     "@types/cookie": "^0.5.1",
     "cookie": "^0.5.0",
     "tmp-promise": "^3.0.3",
-    "websocketfs": "^0.7.0"
+    "websocketfs": "^0.7.1"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
   "repository": {
