@@ -25,9 +25,14 @@ import { currency } from "@cocalc/util/misc";
 
 type State = "input" | "redeeming" | "redeemed";
 
-export default function Redeem({ customize }) {
+interface Props {
+  customize;
+  id?: string;
+}
+
+export default function Redeem({ customize, id }: Props) {
   const isMounted = useIsMounted();
-  const [code, setCode] = useState<string>("");
+  const [code, setCode] = useState<string>(id ?? "");
   const [error, setError] = useState<string>("");
   const [state, setState] = useState<State>("input");
   const profile = useProfile({ noCache: true });

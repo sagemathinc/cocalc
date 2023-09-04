@@ -102,20 +102,26 @@ export default function Home(props: Props) {
                 <A href="/store" style={topLinkStyle}>
                   Store
                 </A>{" "}
-                <A href={"/licenses"} style={topLinkStyle}>
+                <a
+                  href={join(basePath, "settings/licenses")}
+                  style={topLinkStyle}
+                >
                   Licenses
-                </A>{" "}
-                <A href={"/billing"} style={topLinkStyle}>
-                  Billing
-                </A>{" "}
+                </a>{" "}
+                <a
+                  href={join(basePath, "settings/purchases")}
+                  style={topLinkStyle}
+                >
+                  Purchases
+                </a>{" "}
                 <A href={"/vouchers"} style={topLinkStyle}>
                   Vouchers
                 </A>{" "}
               </>
             )}
-          <A href={join(basePath, "projects")} external style={topLinkStyle}>
+          <a href={join(basePath, "projects")} style={topLinkStyle}>
             Projects
-          </A>{" "}
+          </a>{" "}
           {customize.landingPages && (
             <>
               <A href="/features/" style={topLinkStyle}>
@@ -254,7 +260,7 @@ export async function getServerSideProps(context) {
     WHERE vhost IS NULL AND disabled IS NOT TRUE AND unlisted IS NOT TRUE AND
     ((authenticated IS TRUE AND $1 IS TRUE) OR (authenticated IS NOT TRUE))
     ORDER BY last_edited DESC LIMIT $2`,
-      [isAuthenticated, 150]
+      [isAuthenticated, 150],
     );
     publicPaths = rows;
   } else {
@@ -271,6 +277,6 @@ export async function getServerSideProps(context) {
 
   return await withCustomize(
     { context, props: { publicPaths, recentHeadlines, headlineIndex } },
-    { name: true }
+    { name: true },
   );
 }

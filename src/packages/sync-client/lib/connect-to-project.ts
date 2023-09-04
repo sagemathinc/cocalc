@@ -13,11 +13,14 @@ import { toCookieHeader } from "./cookies";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 
 export default async function connectToProject(
-  project_id
+  project_id,
 ): Promise<ProjectWebsocket> {
   const log = debug("cocalc:compute:sync:connect");
   if (!apiServer) {
     throw Error("API_SERVER must be set");
+  }
+  if (!apiKey) {
+    throw Error("api key must be set (e.g., set API_KEY env variable)");
   }
   const server = apiServer;
   const pathname = join(apiBasePath, project_id, "raw/.smc/ws");
@@ -29,6 +32,7 @@ export default async function connectToProject(
     plugin: { responder, multiplex },
   } as const;
   const Socket = Primus.createSocket(opts);
+  log("API_COOKIE_NAME = ", API_COOKIE_NAME);
   const Cookie = toCookieHeader({
     ...versionCookie(),
     [API_COOKIE_NAME]: apiKey,

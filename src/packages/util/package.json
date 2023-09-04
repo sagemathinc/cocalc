@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/util",
-  "version": "1.76.5",
+  "version": "1.77.2",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
     "./*": "./dist/*.js",
@@ -20,6 +20,12 @@
     "test": "pnpm exec jest dist",
     "prepublishOnly": "pnpm test"
   },
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
   "keywords": [
     "utilities",

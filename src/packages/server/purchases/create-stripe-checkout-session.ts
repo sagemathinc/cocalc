@@ -13,6 +13,8 @@ import getLogger from "@cocalc/backend/logger";
 import type { Stripe } from "stripe";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
+import { MAX_COST } from "@cocalc/util/db-schema/purchases";
+import { currency } from "@cocalc/util/misc";
 
 const logger = getLogger("purchases:create-stripe-checkout-session");
 
@@ -27,7 +29,7 @@ interface Options {
 }
 
 export default async function createStripeCheckoutSession(
-  opts: Options
+  opts: Options,
 ): Promise<Stripe.Checkout.Session> {
   let { amount } = opts;
   const { account_id, description, success_url, cancel_url, force, token } =
@@ -49,6 +51,11 @@ export default async function createStripeCheckoutSession(
     if (!amount || amount < 0.5) {
       amount = 0.5;
     }
+  }
+  if (amount > MAX_COST) {
+    throw Error(
+      `Amount exceeds the maximum allowed amount of ${currency(MAX_COST)}. Please contact support.`,
+    );
   }
   if (!description?.trim()) {
     throw Error("description must be nontrivial");
@@ -110,7 +117,7 @@ export async function setStripeCheckoutSession({ account_id, session }) {
   const db = getPool();
   await db.query(
     "UPDATE accounts SET stripe_checkout_session=$2 WHERE account_id=$1",
-    [account_id, { id: session.id, url: session.url }]
+    [account_id, { id: session.id, url: session.url }],
   );
 }
 
@@ -124,14 +131,14 @@ export async function getStripeCustomerId({
   const db = getPool();
   const { rows } = await db.query(
     "SELECT stripe_customer_id FROM accounts WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   const stripe_customer_id = rows[0]?.stripe_customer_id;
   if (stripe_customer_id) {
     logger.debug(
       "getStripeCustomerId",
       "customer already exists",
-      stripe_customer_id
+      stripe_customer_id,
     );
     return stripe_customer_id;
   }
@@ -147,7 +154,7 @@ async function createStripeCustomer(account_id: string): Promise<string> {
   const db = getPool();
   const { rows } = await db.query(
     "SELECT email_address, first_name, last_name FROM accounts WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   if (rows.length == 0) {
     throw Error(`no account ${account_id}`);
@@ -174,26 +181,26 @@ async function createStripeCustomer(account_id: string): Promise<string> {
 }
 
 async function getSession(
-  session_id: string
+  session_id: string,
 ): Promise<Stripe.Checkout.Session> {
   const stripe = await getConn();
   return await stripe.checkout.sessions.retrieve(session_id);
 }
 
 async function getSessionStatus(
-  session_id: string
+  session_id: string,
 ): Promise<"open" | "complete" | "expired" | null> {
   const session = await getSession(session_id);
   return session.status;
 }
 
 export async function getCurrentSession(
-  account_id: string
+  account_id: string,
 ): Promise<{ id: string; url: string } | undefined> {
   const db = getPool();
   const { rows } = await db.query(
     "SELECT stripe_checkout_session FROM accounts WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   if (rows.length == 0) {
     throw Error(`no such account ${account_id}`);
@@ -206,7 +213,7 @@ export async function getCurrentSession(
     // changing this to update the frontend state.
     await db.query(
       "UPDATE accounts SET stripe_checkout_session='{}' WHERE account_id=$1",
-      [account_id]
+      [account_id],
     );
     return undefined;
   }

@@ -66,7 +66,7 @@ export default function Overview({ customize }) {
                 exports your vouchers to CSV or JSON.
               </Product>
               <Product
-                href={"/store/site-license"}
+                href={"/store/vouchers"}
                 icon="shopping-cart"
                 title="Create New Vouchers"
               >

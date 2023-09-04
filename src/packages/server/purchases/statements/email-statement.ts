@@ -40,7 +40,11 @@ export default async function emailStatement(opts: {
   dryRun?: boolean; // if set, returns html content of email only, but doesn't send email (useful for unit testing)
 }): Promise<Message> {
   logger.debug("emailStatement ", opts);
-  const { help_email, site_name: siteName } = await getServerSettings();
+  const {
+    help_email,
+    site_name: siteName,
+    pay_as_you_go_min_payment,
+  } = await getServerSettings();
   const { account_id, statement_id, force, dryRun } = opts;
   const { name, email_address: to } = await getUser(account_id);
   if (!isValidEmailAddress(to)) {
@@ -49,7 +53,7 @@ export default async function emailStatement(opts: {
   const statement = await getStatement(statement_id);
   if (statement.account_id != account_id) {
     throw Error(
-      `statement ${statement_id} does not belong to your account. Sign into the correct account.`
+      `statement ${statement_id} does not belong to your account. Sign into the correct account.`,
     );
   }
   if (!force && statement.last_sent != null) {
@@ -66,15 +70,15 @@ export default async function emailStatement(opts: {
     const toPay = currency(-statement.balance);
     if (usageSub == null) {
       const totalBalance = await getTotalBalance(account_id);
-      if (totalBalance >= 0) {
-        pay = "Your balance is no longer negative, so no payment is required.";
+      if (totalBalance >= -pay_as_you_go_min_payment) {
+        pay = "No payment is currently required.";
       } else {
         const payUrl = await makePayment({
           account_id,
           amount: -statement.balance,
-          reason: `Pay the balance on statement ${statement_id}.`
+          reason: `Pay the balance on statement ${statement_id}.`,
         });
-        pay = `<b><a href="${payUrl}">Click here to pay ${toPay}</a>, since you do NOT have automatic payments setup and your statement balance is negative.  You can also sign in and add money on <a href="${await siteURL()}/settings/purchases">the purchases page</a>.</b>`;
+        pay = `<b>Payment required. <a href="${payUrl}">Click here to pay ${toPay}</a>, since you do NOT have automatic payments setup and your statement balance is negative.  You can also sign in and add money on <a href="${await siteURL()}/settings/purchases">the purchases page</a>.</b>`;
       }
     } else {
       pay = "You have automatic payments setup. ";
@@ -186,7 +190,7 @@ async function getStatement(statement_id: number): Promise<Statement> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT id, interval, account_id, time, balance, total_charges, num_charges, total_credits, num_credits, last_sent, automatic_payment FROM statements WHERE id=$1",
-    [statement_id]
+    [statement_id],
   );
   if (rows.length != 1) {
     throw Error(`no statement with id ${statement_id}`);
@@ -195,12 +199,12 @@ async function getStatement(statement_id: number): Promise<Statement> {
 }
 
 async function getPreviousStatement(
-  statement: Statement
+  statement: Statement,
 ): Promise<Statement | null> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT id, interval, account_id, time, balance, total_charges, num_charges, total_credits, num_credits, last_sent FROM statements WHERE id<$1 AND account_id=$2 AND interval=$3 ORDER BY id DESC",
-    [statement.id, statement.account_id, statement.interval]
+    [statement.id, statement.account_id, statement.interval],
   );
   if (rows.length != 1) {
     null;
@@ -209,23 +213,23 @@ async function getPreviousStatement(
 }
 
 async function getPurchasesOnStatement(
-  statement_id: number
+  statement_id: number,
 ): Promise<Purchase[]> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT id, time, cost, cost_per_hour, period_start, period_end, pending, service, description, project_id FROM purchases WHERE day_statement_id=$1 OR month_statement_id=$1 ORDER BY time desc",
-    [statement_id]
+    [statement_id],
   );
   return rows;
 }
 
 export async function getUser(
-  account_id: string
+  account_id: string,
 ): Promise<{ name: string; email_address: string }> {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT first_name, last_name, email_address FROM accounts WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   if (rows.length != 1) {
     throw Error(`no account with id ${account_id}`);

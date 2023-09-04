@@ -23,7 +23,7 @@ import { jupyter_strip_notebook } from "@cocalc/jupyter/nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "@cocalc/jupyter/nbgrader/jupyter-run";
 import { synctable_channel } from "../sync/server";
 import { syncdoc_call } from "../sync/sync-doc";
-import { terminal } from "../terminal/server";
+import { terminal } from "@cocalc/terminal";
 import { x11_channel } from "../x11/server";
 import { canonical_paths } from "./canonical-path";
 import { delete_files } from "./delete-files";
@@ -66,7 +66,7 @@ export function init_websocket_api(_primus: any): void {
         "primus-api",
         "request",
         data,
-        `FINISHED: time=${new Date().valueOf() - t0}ms`
+        `FINISHED: time=${new Date().valueOf() - t0}ms`,
       );
     });
   });
@@ -74,7 +74,7 @@ export function init_websocket_api(_primus: any): void {
   primus.on("disconnection", function (spark) {
     log.debug(
       "primus-api",
-      `end connection from ${spark.address.ip} -- ${spark.id}`
+      `end connection from ${spark.address.ip} -- ${spark.id}`,
     );
   });
 }
@@ -109,7 +109,7 @@ async function handleApiCall0(data: Mesg): Promise<any> {
     case "eval_code":
       return eval_code(data.code);
     case "terminal":
-      return await terminal(primus, log, data.path, data.options);
+      return await terminal(primus, data.path, data.options);
     case "lean":
       return await lean(client, primus, log, data.opts);
     case "jupyter_strip_notebook":
@@ -128,7 +128,7 @@ async function handleApiCall0(data: Mesg): Promise<any> {
         primus,
         log,
         data.query,
-        data.options
+        data.options,
       );
     case "syncdoc_call":
       return await syncdoc_call(data.path, log, data.mesg);
@@ -142,7 +142,7 @@ async function handleApiCall0(data: Mesg): Promise<any> {
       throw Error(
         `command "${
           (data as any).cmd
-        }" not implemented -- restart your project (in Project --> Settings)`
+        }" not implemented -- restart your project (in Project --> Settings)`,
       );
   }
 }
@@ -154,7 +154,7 @@ import { DirectoryListingEntry } from "@cocalc/util/types";
 import { get_listing } from "../directory-listing";
 async function listing(
   path: string,
-  hidden?: boolean
+  hidden?: boolean,
 ): Promise<DirectoryListingEntry[]> {
   return await get_listing(path, hidden);
 }
@@ -170,7 +170,7 @@ import type {
 } from "@cocalc/util/types/execute-code";
 
 export async function exec(
-  opts: ExecuteCodeOptions
+  opts: ExecuteCodeOptions,
 ): Promise<ExecuteCodeOutput> {
   return await executeCode(opts);
 }

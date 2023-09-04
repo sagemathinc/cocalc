@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/backend",
-  "version": "1.21.1",
+  "version": "1.22.2",
   "description": "CoCalc backend functionality: functionality used by either the hub, the next.js server or the project.",
   "exports": {
     "./*": "./dist/*.js",
@@ -21,6 +21,12 @@
     "test": "pnpm exec jest dist/",
     "prepublishOnly": "pnpm test"
   },
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {

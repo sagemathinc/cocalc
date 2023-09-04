@@ -7,7 +7,7 @@
     "make-dev": "pnpm run build-dev",
     "build": "./workspaces.py install && ./workspaces.py build",
     "build-dev": "./workspaces.py install && ./workspaces.py build --dev",
-    "clean": "./workspaces.py clean",
+    "clean": "./workspaces.py clean && cd compute/compute && pnpm clean ",
     "hub": "cd packages/hub && npm run hub-project-dev-nobuild",
     "static": "cd packages/static && npm run webpack",
     "psql": "export PGHOST=${PGHOST:=$INIT_CWD/data/postgres/socket}; PGUSER='smc' psql",
