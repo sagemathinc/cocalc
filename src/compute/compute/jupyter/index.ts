@@ -5,17 +5,18 @@ import { redux } from "@cocalc/jupyter/redux/app";
 import getLogger from "@cocalc/backend/logger";
 import { COMPUTE_THRESH_MS } from "@cocalc/jupyter/redux/project-actions";
 import { project } from "@cocalc/api-client";
+import { isValidUUID } from "@cocalc/util/misc";
 
 const logger = getLogger("compute:jupyter");
 
 // path should be something like "foo/bar.ipynb"
 export async function jupyter({
-  project_id,
   path,
+  project_id = process.env.PROJECT_ID ?? "",
   cwd,
 }: {
-  project_id: string;
   path: string;
+  project_id?: string;
   cwd?: string;
 }) {
   const log = (...args) => logger.debug(path, ...args);
@@ -23,8 +24,13 @@ export async function jupyter({
   if (cwd != null) {
     process.chdir(cwd);
   }
+  if (!isValidUUID(project_id)) {
+    throw Error(
+      "specify the project id or set the PROJECT_ID env variable; it must be a valid uuid",
+    );
+  }
   const syncdb_path = meta_file(path, "jupyter2");
-  const client = new SyncClient();
+  const client = new SyncClient({ project_id });
 
   // Calling the api-client ping will start the project *and* ensure
   // there is a hub connected to it, so we can initialize sync, and

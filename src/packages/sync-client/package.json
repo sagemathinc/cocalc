@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/sync-client",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "CoCalc Lightweight Nodejs Sync Client",
   "main": "./dist/lib/index.js",
   "files": [

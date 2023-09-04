@@ -38,7 +38,7 @@ export async function terminal({
   await project.ping({ project_id });
 
   // Get a websocket connection to the project:
-  const client = new SyncClient();
+  const client = new SyncClient({ project_id });
   log("getting websocket connection to project", project_id);
   const ws = await client.project_client.websocket(project_id);
 

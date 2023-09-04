@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/compute",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "CoCalc remote compute provider -- connects to project and provides remote compute",
   "exports": {
     ".": "./dist/lib/index.js"

@@ -69,8 +69,8 @@ If you're using a different server, these could be relevant:
 
 ```sh
 export BASE_PATH="/"
-export API_SERVER="https://cocalc.com"
 export API_BASE_PATH="/"
+export API_SERVER="https://cocalc.com"
 ```
 
 E.g., for local dev these might be
