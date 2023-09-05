@@ -122,6 +122,7 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_max_project_upgrades"
   | "pay_as_you_go_price_project_upgrades"
   | "compute_servers_section"
+  | "compute_servers_markup_percentage"
   | "lambda_cloud_api_key"
   | "coreweave_api_key"
   | "google_cloud_service_account_json"
@@ -506,11 +507,19 @@ export const EXTRAS: SettingsExtras = {
     valid: onlyNonnegFloat,
   },
   compute_servers_section: {
-    name: "Compute Servers -- remote cloud services",
-    desc: "",
+    name: "Cloud Compute Service Providers",
+    desc: "Configure the cloud services that provide computer servers.",
     default: "",
     show: compute_servers_enabled,
     type: "header",
+  },
+  compute_servers_markup_percentage: {
+    name: "Compute Servers -- Markup Percentage",
+    desc: "The markup percentage that we add to the cost we pay to the cloud service providers.  This accounts for maintenance, dev, servers, and *bandwidth* (which can be massive). For example, '30' would mean we add 30% to the price that the cloud service provides charge us for compute, and we currently gamble regarding bandwidth costs.",
+    default: "30",
+    show: (conf) => only_commercial(conf) && compute_servers_enabled(conf),
+    to_val: toFloat,
+    valid: onlyNonnegFloat,
   },
   lambda_cloud_api_key: {
     name: "Compute Servers - Lambda Cloud API Key (not implemented)",
