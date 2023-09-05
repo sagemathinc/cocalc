@@ -16,8 +16,8 @@ export default async function handle(req, res) {
 }
 
 async function get(req) {
-  const created_by = await getAccountId(req);
-  if (!created_by) {
+  const account_id = await getAccountId(req);
+  if (!account_id) {
     throw Error("must be signed in");
   }
   const {
@@ -35,7 +35,7 @@ async function get(req) {
     spot,
   } = getParams(req);
   return await createServer({
-    created_by,
+    account_id,
     project_id,
     name,
     color,

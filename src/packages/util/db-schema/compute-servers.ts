@@ -6,16 +6,16 @@
 import { Table } from "./types";
 import { ID } from "./crm";
 
-type State = "off" | "starting" | "running" | "stopping";
+export type State = "off" | "starting" | "running" | "stopping" | "unknown";
 
 export type Cloud =
-  | "user"
   | "any"
-  | "coreweave"
-  | "lambda"
+  | "user"
+  | "core-weave"
+  | "lambda-cloud"
   | "gcp"
   | "aws"
-  | "fluidstack";
+  | "fluid-stack";
 
 // todo
 export type GPU = "any" | "a40" | "a10" | "a100_pcie_40gb" | "quadro_rtx_4000";
@@ -24,14 +24,15 @@ export type CPU = "any" | "xeon-v3" | "xeon-v4" | "xeon-scalable" | "amd-mylan";
 
 export interface ComputeServer {
   id: number;
+  account_id: string;
   project_id: string;
   name: string;
-  created_by: string;
   color?: string;
   cost_per_hour?: number;
   deleted?: boolean;
-  started?: Date;
+  state_changed?: Date;
   started_by?: string;
+  error?: string;
   state?: State;
   idle_timeout?: number;
   autorestart?: boolean;
@@ -52,9 +53,9 @@ Table({
   },
   fields: {
     id: ID,
-    created_by: {
+    account_id: {
       type: "uuid",
-      desc: "User that originally created this compute server.",
+      desc: "User that owns this compute server.",
       render: { type: "account" },
     },
     name: {
@@ -83,14 +84,13 @@ Table({
       type: "uuid",
       desc: "The project id that this compute server provides compute for.",
     },
-    started: {
+    state_changed: {
       type: "timestamp",
-      desc: "When this compute server was started.",
+      desc: "When the state last changed.",
     },
-    started_by: {
-      type: "uuid",
-      desc: "User that started this compute server, if it is currently running.  They are the one paying for it.",
-      render: { type: "account" },
+    error: {
+      type: "string",
+      desc: "In case something went wrong, e.g., in starting this compute server, this field will get set with a string error message to show the user. It's also cleared right when we try to start server.",
     },
     state: {
       type: "string",

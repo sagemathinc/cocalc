@@ -14,9 +14,9 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import type { Cloud, GPU, CPU } from "@cocalc/util/db-schema/compute-servers";
 
 interface Options {
+  account_id: string;
   project_id: string;
   name?: string;
-  created_by: string;
   color?: string;
   idle_timeout?: number;
   autorestart?: boolean;
@@ -30,25 +30,18 @@ interface Options {
 }
 
 const FIELDS =
-  "project_id,name,created_by,color,idle_timeout,autorestart,cloud,gpu,gpu_count,cpu,core_count,memory,spot".split(
+  "project_id,name,account_id,color,idle_timeout,autorestart,cloud,gpu,gpu_count,cpu,core_count,memory,spot".split(
     ",",
   );
 
-export default async function createServer(
-  opts: Options,
-): Promise<number> {
-  if (!isValidUUID(opts.created_by)) {
+export default async function createServer(opts: Options): Promise<number> {
+  if (!isValidUUID(opts.account_id)) {
     throw Error("created_by must be a valid uuid");
   }
   if (!isValidUUID(opts.project_id)) {
     throw Error("project_id must be a valid uuid");
   }
-  if (
-    !(await isCollaborator({
-      account_id: opts.created_by,
-      project_id: opts.project_id,
-    }))
-  ) {
+  if (!(await isCollaborator(opts))) {
     throw Error("user must be a collaborator on project");
   }
 

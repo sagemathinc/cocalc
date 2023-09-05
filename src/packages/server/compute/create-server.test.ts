@@ -34,7 +34,7 @@ describe("creates account, project and then compute servers in various ways", ()
 
   it("creates a compute server for project one and gets it", async () => {
     const id = await createServer({
-      created_by: account_id,
+      account_id,
       project_id,
     });
 
@@ -42,7 +42,7 @@ describe("creates account, project and then compute servers in various ways", ()
       await getServers({
         account_id,
       }),
-    ).toEqual([{ id, created_by: account_id, project_id }]);
+    ).toEqual([{ id, account_id, project_id }]);
 
     // get by id:
     expect(
@@ -50,7 +50,7 @@ describe("creates account, project and then compute servers in various ways", ()
         account_id,
         id,
       }),
-    ).toEqual([{ id, created_by: account_id, project_id }]);
+    ).toEqual([{ id, account_id, project_id }]);
   });
 
   it("creates compute server with every parameters set to something", async () => {
@@ -68,7 +68,7 @@ describe("creates account, project and then compute servers in various ways", ()
       spot: true,
     } as const;
     const id = await createServer({
-      created_by: account_id,
+      account_id,
       project_id,
       ...s,
     });
@@ -77,13 +77,13 @@ describe("creates account, project and then compute servers in various ways", ()
         account_id,
         id,
       }),
-    ).toEqual([{ id, created_by: account_id, project_id, ...s }]);
+    ).toEqual([{ id, account_id, project_id, ...s }]);
   });
 
   it("a user can't create a compute server on a project they aren't a collaborator on", async () => {
     await expect(
       createServer({
-        created_by: account_id,
+        account_id,
         project_id: uuid(),
       }),
     ).rejects.toThrow("must be a collaborator");
