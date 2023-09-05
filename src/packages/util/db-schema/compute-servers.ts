@@ -8,12 +8,12 @@ import { ID } from "./crm";
 
 type State = "off" | "starting" | "running" | "stopping";
 
-type Cloud = "user" | "coreweave" | "lambda" | "gcp" | "aws" | "fluidstack";
+export type Cloud = "user" | "coreweave" | "lambda" | "gcp" | "aws" | "fluidstack";
 
 // todo
-type GPU = "a40" | "a10" | "a100_pcie_40gb" | "quadro_rtx_4000";
+export type GPU = "a40" | "a10" | "a100_pcie_40gb" | "quadro_rtx_4000";
 
-type CPU = "xeon-v3" | "xeon-v4" | "xeon-scalable" | "amd-mylan";
+export type CPU = "xeon-v3" | "xeon-v4" | "xeon-scalable" | "amd-mylan";
 
 export interface ComputeServer {
   id: number;

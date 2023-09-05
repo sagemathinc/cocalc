@@ -1,5 +1,5 @@
 import type { ComputeServer } from "@cocalc/util/db-schema/compute-servers";
-import getPool from "@cocalc/database/pool";
+import { getPool, stripNullFields } from "@cocalc/database";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
@@ -11,7 +11,7 @@ interface Options {
 }
 
 // Get all compute servers associated to a given project
-export async function getComputeServers({
+export default async function getComputeServers({
   account_id,
   project_id,
   created_by,
@@ -33,17 +33,17 @@ export async function getComputeServers({
     if (!(await isCollaborator({ project_id, account_id }))) {
       throw Error("user must be collaborator on project");
     }
-    where.push(`project_id=${n}`);
+    where.push(`project_id=$${n}`);
     params.push(project_id);
     n += 1;
   }
   if (created_by) {
-    where.push(`created_by=${n}`);
+    where.push(`created_by=$${n}`);
     params.push(account_id);
     n += 1;
   }
   if (started_by) {
-    where.push(`started_by=${n}`);
+    where.push(`started_by=$${n}`);
     params.push(account_id);
     n += 1;
   }
@@ -51,21 +51,21 @@ export async function getComputeServers({
     throw Error("bug");
   }
   const pool = getPool();
-  const { rows } = await pool.query(
-    `${query} WHERE ${where.join(" AND ")}`,
-    params,
-  );
-  return rows;
+  query = `${query} WHERE ${where.join(" AND ")}`;
+  const { rows } = await pool.query(query, params);
+  return stripNullFields(rows);
 }
 
 async function getAllComputeServers(
   account_id: string,
 ): Promise<ComputeServer[]> {
+  const pool = getPool();
   const { rows } = await pool.query(
     `
-SELECT compute_servers.* FROM compute_servers INNER JOIN projects ON compute_servers.project_id = projects.project_id WHERE
+SELECT compute_servers.* FROM compute_servers INNER JOIN
+projects ON compute_servers.project_id = projects.project_id WHERE
 projects.DELETED IS NOT true AND projects.users ? $1`,
     [account_id],
   );
-  return rows;
+  return stripNullFields(rows);
 }

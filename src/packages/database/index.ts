@@ -42,7 +42,7 @@ export function db(opts = {}) {
       "ops",
     ]) {
       PostgreSQL = require(`./postgres-${module}`).extend_PostgreSQL(
-        PostgreSQL
+        PostgreSQL,
       );
     }
     theDB = new PostgreSQL(opts);
@@ -51,3 +51,7 @@ export function db(opts = {}) {
 
   return theDB;
 }
+
+import getPool from "./pool";
+export { getPool };
+export { stripNullFields } from "./postgres/util";
