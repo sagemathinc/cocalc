@@ -3,17 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-/*
- * license
- */
-
-// This is a table of the compute servers.
-//   It was mainly used long, long ago before
-//   we switched to Kubernetes for our main
-//   backend.  It is *still* used now in some
-//   special case (with localhost), e.g., for
-//   the docker image.  So don't get rid of it!
-
 import { Table } from "./types";
 
 Table({

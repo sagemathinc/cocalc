@@ -865,7 +865,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             (cb) =>
                 dbg("get project")
                 try
-                    project = await @compute_server(opts.project_id)
+                    project = await @projectControl(opts.project_id)
                     cb()
                 catch err
                     cb(err)
@@ -985,12 +985,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         account_id : account_id
                         cb         : cb
                 (cb) =>
-                    if not @compute_server?
+                    if not @projectControl?
                         cb()
                     else
                         dbg("get project")
                         try
-                            project = await @compute_server(new_val.project_id)
+                            project = await @projectControl(new_val.project_id)
                             cb()
                         catch err
                             cb(err)
@@ -1739,14 +1739,14 @@ awaken_project = (db, project_id, cb) ->
         return
     _last_awaken_time[project_id] = now
     dbg = db._dbg("_awaken_project(project_id=#{project_id})")
-    if not db.compute_server?
-        dbg("skipping since no compute_server defined")
+    if not db.getProject?
+        dbg("skipping since no getProject defined")
         return
     dbg("doing it...")
     async.series([
         (cb) ->
             try
-                project = db.compute_server(project_id)
+                project = db.getProject(project_id)
                 await project.start()
                 cb()
             catch err

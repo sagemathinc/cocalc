@@ -22,17 +22,17 @@ misc_node = require('@cocalc/backend/misc_node')
 # with our message protocol.
 
 _project_cache = {}
-exports.new_project = (project_id, database, compute_server) ->
+exports.new_project = (project_id, database, projectControl) ->
     P = _project_cache[project_id]
     if not P?
-        P = new Project(project_id, database, compute_server)
+        P = new Project(project_id, database, projectControl)
         _project_cache[project_id] = P
     return P
 
 class Project
-    constructor: (@project_id, @database, @compute_server) ->
+    constructor: (@project_id, @database, @projectControl) ->
         @dbg("instantiating Project class")
-        @local_hub = local_hub_connection.new_local_hub(@project_id, @database, @compute_server)
+        @local_hub = local_hub_connection.new_local_hub(@project_id, @database, @projectControl)
         # we always look this up and cache it
         @get_info()
 
