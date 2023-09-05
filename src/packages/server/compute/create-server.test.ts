@@ -1,9 +1,9 @@
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
-import getComputeServers from "./get-compute-servers";
+import getServers from "./get-servers";
 import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
-import createComputeServer from "./create-compute-server";
+import createServer from "./create-server";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -33,20 +33,20 @@ describe("creates account, project and then compute servers in various ways", ()
   });
 
   it("creates a compute server for project one and gets it", async () => {
-    const id = await createComputeServer({
+    const id = await createServer({
       created_by: account_id,
       project_id,
     });
 
     expect(
-      await getComputeServers({
+      await getServers({
         account_id,
       }),
     ).toEqual([{ id, created_by: account_id, project_id }]);
 
     // get by id:
     expect(
-      await getComputeServers({
+      await getServers({
         account_id,
         id,
       }),
@@ -67,13 +67,13 @@ describe("creates account, project and then compute servers in various ways", ()
       memory: 16,
       spot: true,
     } as const;
-    const id = await createComputeServer({
+    const id = await createServer({
       created_by: account_id,
       project_id,
       ...s,
     });
     expect(
-      await getComputeServers({
+      await getServers({
         account_id,
         id,
       }),
@@ -82,7 +82,7 @@ describe("creates account, project and then compute servers in various ways", ()
 
   it("a user can't create a compute server on a project they aren't a collaborator on", async () => {
     await expect(
-      createComputeServer({
+      createServer({
         created_by: account_id,
         project_id: uuid(),
       }),

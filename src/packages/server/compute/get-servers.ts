@@ -12,7 +12,7 @@ interface Options {
 }
 
 // Get all compute servers associated to a given project
-export default async function getComputeServers({
+export default async function getServers({
   account_id,
   id,
   project_id,
@@ -24,7 +24,7 @@ export default async function getComputeServers({
   }
   if (!project_id && !created_by && !started_by && !id) {
     // get all compute servers across all projects that account_id is a collaborator on.
-    return await getAllComputeServers(account_id);
+    return await getAllServers(account_id);
   }
 
   let query = "SELECT * FROM compute_servers";
@@ -75,9 +75,7 @@ export default async function getComputeServers({
   return stripNullFields(rows);
 }
 
-async function getAllComputeServers(
-  account_id: string,
-): Promise<ComputeServer[]> {
+async function getAllServers(account_id: string): Promise<ComputeServer[]> {
   const pool = getPool();
   const { rows } = await pool.query(
     `

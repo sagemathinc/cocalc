@@ -3,7 +3,7 @@ Let compute servers
 */
 
 import getAccountId from "lib/account/get-account";
-import getComputeServers from "@cocalc/server/compute/get-compute-servers";
+import getServers from "@cocalc/server/compute/get-servers";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
@@ -23,7 +23,7 @@ async function get(req) {
   const { project_id, created_by, started_by, id } = getParams(req, {
     allowGet: true,
   });
-  return await getComputeServers({
+  return await getServers({
     account_id,
     project_id,
     created_by,

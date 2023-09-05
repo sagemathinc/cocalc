@@ -34,7 +34,7 @@ const FIELDS =
     ",",
   );
 
-export default async function createComputeServer(
+export default async function createServer(
   opts: Options,
 ): Promise<number> {
   if (!isValidUUID(opts.created_by)) {

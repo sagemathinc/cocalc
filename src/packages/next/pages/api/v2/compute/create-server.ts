@@ -3,7 +3,7 @@ Create a compute server
 */
 
 import getAccountId from "lib/account/get-account";
-import createComputeServer from "@cocalc/server/compute/create-compute-server";
+import createServer from "@cocalc/server/compute/create-server";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
@@ -34,7 +34,7 @@ async function get(req) {
     memory,
     spot,
   } = getParams(req);
-  return await createComputeServer({
+  return await createServer({
     created_by,
     project_id,
     name,
