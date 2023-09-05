@@ -9,6 +9,7 @@ It's of course easy to make a compute serve that can't be started due to invalid
 
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 import type { Cloud, GPU, CPU } from "@cocalc/util/db-schema/compute-servers";
 
@@ -18,18 +19,18 @@ interface Options {
   created_by: string;
   color?: string;
   idle_timeout?: number;
-  autorestart?: number;
+  autorestart?: boolean;
   cloud?: Cloud;
   gpu?: GPU;
   gpu_count?: number;
   cpu?: CPU;
-  cpu_count?: number;
+  core_count?: number;
   memory?: number;
   spot?: boolean;
 }
 
 const FIELDS =
-  "project_id,name,created_by,color,idle_timeout,autorestart,cloud,gpu,gpu_count,cpu,cpu_count,memory,spot".split(
+  "project_id,name,created_by,color,idle_timeout,autorestart,cloud,gpu,gpu_count,cpu,core_count,memory,spot".split(
     ",",
   );
 
@@ -42,7 +43,14 @@ export default async function createComputeServer(
   if (!isValidUUID(opts.project_id)) {
     throw Error("project_id must be a valid uuid");
   }
-  const pool = getPool();
+  if (
+    !(await isCollaborator({
+      account_id: opts.created_by,
+      project_id: opts.project_id,
+    }))
+  ) {
+    throw Error("user must be a collaborator on project");
+  }
 
   const fields: string[] = [];
   const params: any[] = [];
@@ -58,6 +66,7 @@ export default async function createComputeServer(
   const query = `INSERT INTO compute_servers(${fields.join(
     ",",
   )}) VALUES(${dollars.join(",")}) RETURNING id`;
+  const pool = getPool();
   const { rows } = await pool.query(query, params);
   const { id } = rows[0];
   return id;

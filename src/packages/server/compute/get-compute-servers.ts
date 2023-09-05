@@ -5,6 +5,7 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 interface Options {
   account_id: string; // user making the request
+  id?: number; // id of the compute server
   project_id?: string;
   created_by?: boolean;
   started_by?: boolean;
@@ -13,6 +14,7 @@ interface Options {
 // Get all compute servers associated to a given project
 export default async function getComputeServers({
   account_id,
+  id,
   project_id,
   created_by,
   started_by,
@@ -20,15 +22,20 @@ export default async function getComputeServers({
   if (!(await isValidUUID(account_id))) {
     throw Error("account_id is not a valid uuid");
   }
-  if (!project_id && !created_by && !started_by) {
+  if (!project_id && !created_by && !started_by && !id) {
     // get all compute servers across all projects that account_id is a collaborator on.
     return await getAllComputeServers(account_id);
   }
 
   let query = "SELECT * FROM compute_servers";
-  const params: string[] = [];
+  const params: (string | number)[] = [];
   const where: string[] = [];
   let n = 1;
+  if (id != null) {
+    where.push(`id=$${n}`);
+    params.push(id);
+    n += 1;
+  }
   if (project_id) {
     if (!(await isCollaborator({ project_id, account_id }))) {
       throw Error("user must be collaborator on project");
@@ -53,6 +60,18 @@ export default async function getComputeServers({
   const pool = getPool();
   query = `${query} WHERE ${where.join(" AND ")}`;
   const { rows } = await pool.query(query, params);
+  if (id != null && !project_id) {
+    // We grabbed a compute server by its id, and the project_id was not
+    // specified, so user has to be collab on project to get this result back,
+    // so we check that.
+    if (
+      !(await isCollaborator({ project_id: rows[0]?.project_id, account_id }))
+    ) {
+      throw Error(
+        "user must be collaborator on project to get compute server with given id",
+      );
+    }
+  }
   return stripNullFields(rows);
 }
 

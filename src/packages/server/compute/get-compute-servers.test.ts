@@ -125,10 +125,25 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
 
     expect(
       await getComputeServers({
+        account_id: account_id1,
+        id: id1,
+      }),
+    ).toEqual([{ id: id1, created_by: account_id1, project_id: project_id1 }]);
+
+    expect(
+      await getComputeServers({
         account_id: account_id2,
         project_id: project_id2,
       }),
     ).toEqual([]);
+
+    // user 2 can't get compute server with id id1, since not a collab on project_id1.
+    await expect(
+      getComputeServers({
+        account_id: account_id2,
+        id: id1,
+      }),
+    ).rejects.toThrow("user must");
 
     expect(
       await getComputeServers({

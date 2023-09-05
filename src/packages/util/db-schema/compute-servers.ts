@@ -8,12 +8,19 @@ import { ID } from "./crm";
 
 type State = "off" | "starting" | "running" | "stopping";
 
-export type Cloud = "user" | "coreweave" | "lambda" | "gcp" | "aws" | "fluidstack";
+export type Cloud =
+  | "user"
+  | "any"
+  | "coreweave"
+  | "lambda"
+  | "gcp"
+  | "aws"
+  | "fluidstack";
 
 // todo
-export type GPU = "a40" | "a10" | "a100_pcie_40gb" | "quadro_rtx_4000";
+export type GPU = "any" | "a40" | "a10" | "a100_pcie_40gb" | "quadro_rtx_4000";
 
-export type CPU = "xeon-v3" | "xeon-v4" | "xeon-scalable" | "amd-mylan";
+export type CPU = "any" | "xeon-v3" | "xeon-v4" | "xeon-scalable" | "amd-mylan";
 
 export interface ComputeServer {
   id: number;
@@ -35,6 +42,7 @@ export interface ComputeServer {
   core_count?: number;
   memory?: number;
   spot?: boolean;
+  ip_address?: string;
 }
 
 Table({
@@ -127,6 +135,10 @@ Table({
     spot: {
       type: "boolean",
       desc: "If true, tries to run this as a spot instance, so it may get killed, but costs less.",
+    },
+    ip_address: {
+      type: "string",
+      pg_type: "inet",
     },
   },
 });

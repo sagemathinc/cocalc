@@ -20,7 +20,7 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  const { project_id, created_by, started_by } = getParams(req, {
+  const { project_id, created_by, started_by, id } = getParams(req, {
     allowGet: true,
   });
   return await getComputeServers({
@@ -28,5 +28,6 @@ async function get(req) {
     project_id,
     created_by,
     started_by,
+    id,
   });
 }
