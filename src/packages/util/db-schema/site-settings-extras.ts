@@ -122,7 +122,6 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_max_project_upgrades"
   | "pay_as_you_go_price_project_upgrades"
   | "compute_servers_section"
-  | "compute_servers_enabled"
   | "lambda_cloud_api_key"
   | "coreweave_api_key"
   | "google_cloud_service_account_json"
@@ -507,18 +506,11 @@ export const EXTRAS: SettingsExtras = {
     valid: onlyNonnegFloat,
   },
   compute_servers_section: {
-    name: "Compute Servers",
+    name: "Compute Servers -- remote cloud services",
     desc: "",
     default: "",
-    show: only_cocalc_com,
+    show: compute_servers_enabled,
     type: "header",
-  },
-  compute_servers_enabled: {
-    name: "Enable Compute Servers",
-    desc: "Whether or not to include user interface elements and backend functionality related to compute servers.  Set to 'yes' to include these elements.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
   },
   lambda_cloud_api_key: {
     name: "Compute Servers - Lambda Cloud API Key (not implemented)",

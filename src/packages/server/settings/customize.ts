@@ -75,7 +75,7 @@ export default async function getCustomize(): Promise<Customize> {
     siteName: fallback(settings.site_name, "On Premises CoCalc"),
     siteDescription: fallback(
       settings.site_description,
-      "Collaborative Calculation using Python, Sage, R, Julia, and more."
+      "Collaborative Calculation using Python, Sage, R, Julia, and more.",
     ),
 
     organizationName: settings.organization_name,
