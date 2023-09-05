@@ -79,4 +79,13 @@ describe("creates account, project and then compute servers in various ways", ()
       }),
     ).toEqual([{ id, created_by: account_id, project_id, ...s }]);
   });
+
+  it("a user can't create a compute server on a project they aren't a collaborator on", async () => {
+    await expect(
+      createComputeServer({
+        created_by: account_id,
+        project_id: uuid(),
+      }),
+    ).rejects.toThrow("must be a collaborator");
+  });
 });
