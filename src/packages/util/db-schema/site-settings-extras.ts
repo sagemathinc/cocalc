@@ -64,6 +64,8 @@ const pii_retention_display = (retention: string) => {
 
 const openai_enabled = (conf) => to_bool(conf.openai_enabled);
 
+const compute_servers_enabled = (conf) => to_bool(conf.compute_servers_enabled);
+
 const neural_search_enabled = (conf) =>
   openai_enabled(conf) && to_bool(conf.neural_search_enabled);
 
@@ -120,7 +122,15 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_max_project_upgrades"
   | "pay_as_you_go_price_project_upgrades"
   | "compute_servers_section"
-  | "enable_compute_servers"
+  | "compute_servers_enabled"
+  | "lambda_cloud_api_key"
+  | "coreweave_api_key"
+  | "google_cloud_service_account_json"
+  | "fluidstack_api_key"
+  | "fluidstack_api_token"
+  | "amazon_web_services_access_key"
+  | "amazon_web_services_secret_access_key"
+  | "fluidstack_api_token"
   | "subscription_maintenance";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
@@ -503,11 +513,59 @@ export const EXTRAS: SettingsExtras = {
     show: only_cocalc_com,
     type: "header",
   },
-  enable_compute_servers: {
+  compute_servers_enabled: {
     name: "Enable Compute Servers",
     desc: "Whether or not to include user interface elements and backend functionality related to compute servers.  Set to 'yes' to include these elements.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+  },
+  lambda_cloud_api_key: {
+    name: "Compute Servers - Lambda Cloud API Key (not implemented)",
+    desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambdalabs.com/api-keys.  This supports managing compute servers on Lambda Cloud.",
+    default: "",
+    password: true,
+    show: compute_servers_enabled,
+  },
+  coreweave_api_key: {
+    name: "Compute Servers - CoreWeave API Key (not implemented)",
+    desc: "Your [CoreWeave](https://cloud.coreweave.com/) API Key from https://cloud.coreweave.com/tokens/api-access.  This supports managing compute servers on CoreWeave Cloud.",
+    default: "",
+    password: true,
+    show: compute_servers_enabled,
+  },
+  google_cloud_service_account_json: {
+    name: "Compute Servers - Google Cloud Service Account Json (not implemented)",
+    desc: 'Your Google Cloud Service Account created at https://console.cloud.google.com/iam-admin/serviceaccounts with permission to manipulate virtual machines.  This supports managing compute servers on Google Cloud.  This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
+    default: "",
+    multiline: 2,
+    show: compute_servers_enabled,
+  },
+  fluidstack_api_key: {
+    name: "Compute Servers - FluidStack API Key (not implemented)",
+    desc: "Your [FluidStack](https://www.fluidstack.io/) API Key from https://console2.fluidstack.io/.  Be sure to also enter your API token below. This supports managing compute servers on FluidStack Cloud.",
+    default: "",
+    show: compute_servers_enabled,
+  },
+  fluidstack_api_token: {
+    name: "Compute Servers - FluidStack API Token (not implemented)",
+    desc: "Your [FluidStack](https://www.fluidstack.io/) API Token from https://console2.fluidstack.io/, to support creating compute servers.",
+    default: "",
+    password: true,
+    show: compute_servers_enabled,
+  },
+  amazon_web_services_access_key: {
+    name: "Compute Servers - Amazon Web Services IAM Access Key (not implemented)",
+    desc: "Your AWS API Key from the AWS console.  Be sure to also enter your secret access key below. This supports managing compute servers on Amazon Web Services EC2 Cloud.",
+    default: "",
+    password: true,
+    show: compute_servers_enabled,
+  },
+  amazon_web_services_secret_access_key: {
+    name: "Compute Servers - Amazon Web Services IAM Secret Access Key",
+    desc: "Your [FluidStack](https://www.fluidstack.io/) API Token from https://console2.fluidstack.io/, to support creating compute servers.",
+    default: "",
+    password: true,
+    show: compute_servers_enabled,
   },
 } as const;

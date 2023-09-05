@@ -69,7 +69,7 @@ export function RowEntryInner({
         return (
           <Input.TextArea
             autoComplete="off"
-            rows={4}
+            rows={multiline}
             style={style}
             defaultValue={value}
             disabled={disabled}

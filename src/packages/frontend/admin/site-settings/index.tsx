@@ -455,7 +455,7 @@ export default function SiteSettings({ close }) {
               "zendesk",
               "github",
               "pay as you go",
-              "compute",
+              "compute servers",
             ].map((name) => (
               <CheckableTag
                 key={name}
