@@ -57,6 +57,7 @@
     "gpt3-tokenizer": "^1.1.5",
     "json-stable-stringify": "^1.0.1",
     "jwt-decode": "^3.1.2",
+    "lambda-cloud-node-api": "^1.0.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "node-zendesk": "^2.2.0",

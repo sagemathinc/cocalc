@@ -45,7 +45,7 @@ export interface ComputeServer {
   memory?: number;
   spot?: boolean;
   ip_address?: string;
-  data?: object;
+  data?: any;
 }
 
 Table({

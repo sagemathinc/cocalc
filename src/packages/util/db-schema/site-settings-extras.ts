@@ -124,7 +124,7 @@ export type SiteSettingsExtrasKeys =
   | "compute_servers_section"
   | "compute_servers_markup_percentage"
   | "lambda_cloud_api_key"
-  | "coreweave_api_key"
+  | "coreweave_kubeconfig"
   | "google_cloud_service_account_json"
   | "fluidstack_api_key"
   | "fluidstack_api_token"
@@ -528,11 +528,11 @@ export const EXTRAS: SettingsExtras = {
     password: true,
     show: compute_servers_enabled,
   },
-  coreweave_api_key: {
-    name: "Compute Servers - CoreWeave API Key (not implemented)",
-    desc: "Your [CoreWeave](https://cloud.coreweave.com/) API Key from https://cloud.coreweave.com/tokens/api-access.  This supports managing compute servers on CoreWeave Cloud.",
+  coreweave_kubeconfig: {
+    name: "Compute Servers - CoreWeave Kubeconfig File (not implemented)",
+    desc: "Your [CoreWeave](https://cloud.coreweave.com/) KubeConfig from https://cloud.coreweave.com/tokens/api-access.  This supports managing compute servers on CoreWeave Cloud.",
     default: "",
-    password: true,
+    multiline: 2,
     show: compute_servers_enabled,
   },
   google_cloud_service_account_json: {
