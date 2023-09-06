@@ -12,10 +12,12 @@ import * as fluidStack from "./cloud/fluid-stack";
 import * as coreWeave from "./cloud/core-weave";
 import * as lambdaCloud from "./cloud/lambda-cloud";
 import type {
+  Cloud,
   ComputeServer,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { delay } from "awaiting";
+import { reuseInFlight } from "async-await-utils/hof";
 
 const MIN_STATE_UPDATE_INTERVAL_MS = 10 * 1000;
 
@@ -51,10 +53,10 @@ export async function start({
       default:
         throw Error(`cloud '${server.cloud}' not currently supported`);
     }
-    // do not block onthis
+    // do not block on this
     (async () => {
       try {
-        await waitForStableState({ account_id, id, maxTime: 5 * 60 * 1000 });
+        await waitForStableState({ account_id, id, maxTime: 10 * 60 * 1000 });
       } catch (err) {
         await setError(id, `error waiting for stable state -- ${err}`);
       }
@@ -100,7 +102,7 @@ export async function stop({
     // do not block on this
     (async () => {
       try {
-        await waitForStableState({ account_id, id, maxTime: 5 * 60 * 1000 });
+        await waitForStableState({ account_id, id, maxTime: 10 * 60 * 1000 });
       } catch (err) {
         await setError(id, `error waiting for stable state -- ${err}`);
       }
@@ -111,74 +113,98 @@ export async function stop({
   }
 }
 
-export async function state({
-  account_id,
-  id,
-}: {
+const lastCalled: { [id: number]: { time: number; state: State } } = {};
+
+export const state: (opts: {
   account_id: string;
   id: number;
-}): Promise<State> {
-  const server = await getServer({ account_id, id });
-  let state: State = "unknown";
-  try {
-    await setError(id, "");
-    state = await getCloudServerState(server);
-    await setState(id, state);
-  } catch (err) {
-    await setState(id, "unknown");
-    await setError(id, `${err}`);
-    throw err;
-  }
-  return state;
-}
-
-const lastCalled: { [id: number]: number } = {};
-async function getCloudServerState(server: ComputeServer): Promise<State> {
+}) => Promise<State> = reuseInFlight(async ({ account_id, id }) => {
   const now = Date.now();
-  if (
-    lastCalled[server.id] != null &&
-    now - lastCalled[server.id] < MIN_STATE_UPDATE_INTERVAL_MS
-  ) {
-    throw Error(
-      `call state update at most once every ${MIN_STATE_UPDATE_INTERVAL_MS} ms`,
-    );
+  const last = lastCalled[id];
+  if (now - last?.time < MIN_STATE_UPDATE_INTERVAL_MS) {
+    return last.state;
   }
+  const server = await getServer({ account_id, id });
+  const state = await getCloudServerState(server);
+  lastCalled[id] = { time: now, state };
+  return state;
+});
 
-  lastCalled[server.id] = now;
-  switch (server.cloud) {
-    case "test":
-      return await testCloud.state(server);
-    case "core-weave":
-      return await coreWeave.state(server);
-    case "fluid-stack":
-      return await fluidStack.state(server);
-    case "lambda-cloud":
-      return await lambdaCloud.state(server);
-    default:
-      throw Error(`cloud '${server.cloud}' not currently supported`);
+async function getCloudServerState(server: ComputeServer): Promise<State> {
+  try {
+    let state;
+    switch (server.cloud) {
+      case "test":
+        state = await testCloud.state(server);
+        break;
+      case "core-weave":
+        state = await coreWeave.state(server);
+        break;
+      case "fluid-stack":
+        state = await fluidStack.state(server);
+        break;
+      case "lambda-cloud":
+        state = await lambdaCloud.state(server);
+        break;
+      default:
+        throw Error(`cloud '${server.cloud}' not currently supported`);
+    }
+    await setState(server.id, state);
+    return state;
+  } catch (err) {
+    await setError(server.id, `${err}`);
+    await setState(server.id, "unknown");
+    return "unknown";
   }
 }
 
-export async function waitForStableState({
-  account_id,
-  id,
-  maxTime = 1000 * 60 * 5,
-}: {
-  account_id: string;
-  id: number;
-  maxTime?: number; // max time in ms
-}) {
-  let s0 = Date.now();
-  while (Date.now() - s0 < maxTime) {
-    let current = await state({ account_id, id });
-    if (
-      current != "starting" &&
-      current != "stopping" &&
-      current != "unknown"
-    ) {
-      return;
+export const waitForStableState = reuseInFlight(
+  async ({
+    account_id,
+    id,
+    maxTime = 1000 * 60 * 5,
+  }: {
+    account_id: string;
+    id: number;
+    maxTime?: number; // max time in ms
+  }) => {
+    let s0 = Date.now();
+    const server = await getServer({ account_id, id });
+    const { startDelay, maxDelay, backoff } = backoffParams(server.cloud);
+    let interval = startDelay;
+
+    while (Date.now() - s0 < maxTime) {
+      const state = await getCloudServerState(server);
+      if (state != "starting" && state != "stopping" && state != "unknown") {
+        return state;
+      }
+      await delay(interval);
+      interval = Math.min(interval * backoff, maxDelay);
     }
-    await delay(MIN_STATE_UPDATE_INTERVAL_MS + 2000);
-  }
-  throw Error("timeout waiting for stable state");
+    throw Error("timeout waiting for stable state");
+  },
+  { createKey: (args) => `${args[0].id}` },
+);
+
+// Different clouds may have different policies about how
+// frequently we should ping them for machine state information.
+const BACKOFF_PARAMS = {
+  default: {
+    startDelay: 1000,
+    maxDelay: 10000,
+    backoff: 1.3,
+  },
+  test: {
+    startDelay: 10,
+    maxDelay: 150,
+    backoff: 1.3,
+  },
+};
+
+function backoffParams(cloud: Cloud): {
+  startDelay: number;
+  maxDelay: number;
+  backoff: number;
+} {
+  return BACKOFF_PARAMS[cloud] ?? BACKOFF_PARAMS["default"];
 }
