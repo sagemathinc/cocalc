@@ -13,7 +13,7 @@ export async function stop(server: ComputeServer) {
   throw Error("not implemented");
 }
 
-export async function getState(server: ComputeServer): Promise<State> {
+export async function state(server: ComputeServer): Promise<State> {
   console.log(server);
   throw Error("not implemented");
 }

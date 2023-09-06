@@ -44,6 +44,7 @@ export interface ComputeServer {
   memory?: number;
   spot?: boolean;
   ip_address?: string;
+  data?: object;
 }
 
 Table({
@@ -139,6 +140,11 @@ Table({
     ip_address: {
       type: "string",
       pg_type: "inet",
+    },
+    data: {
+      type: "map",
+      pg_type: "jsonb",
+      desc: "Arbitrary data about this server that is cloud provider specific.  Store data here to facilitate working with the virtual machine, e.g., the id of the server when it is running, etc.  This won't be returned to the user.",
     },
   },
 });

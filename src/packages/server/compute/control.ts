@@ -7,13 +7,16 @@ over time, with multiple clouds, heuristics, api client code, etc.
 
 import { getServer } from "./get-servers";
 import { setState, setError } from "./util";
-import * as fluidStack from "./fluid-stack";
-import * as coreWeave from "./core-weave";
-import * as lambdaCloud from "./lambda-cloud";
+import * as fluidStack from "./cloud/fluid-stack";
+import * as coreWeave from "./cloud/core-weave";
+import * as lambdaCloud from "./cloud/lambda-cloud";
 import type {
   ComputeServer,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
+import { delay } from "awaiting";
+
+const MIN_STATE_UPDATE_INTERVAL_MS = 10 * 1000;
 
 export async function start({
   account_id,
@@ -42,7 +45,14 @@ export async function start({
       default:
         throw Error(`cloud '${server.cloud}' not currently supported`);
     }
-    await setState(id, "running");
+    // do not block onthis
+    (async () => {
+      try {
+        await waitForStableState({ account_id, id, maxTime: 5 * 60 * 1000 });
+      } catch (err) {
+        await setError(id, `error waiting for stable state -- ${err}`);
+      }
+    })();
   } catch (err) {
     await setState(id, "unknown");
     await setError(id, `${err}`);
@@ -76,7 +86,14 @@ export async function stop({
       default:
         throw Error(`cloud '${server.cloud}' not currently supported`);
     }
-    await setState(id, "off");
+    // do not block on this
+    (async () => {
+      try {
+        await waitForStableState({ account_id, id, maxTime: 5 * 60 * 1000 });
+      } catch (err) {
+        await setError(id, `error waiting for stable state -- ${err}`);
+      }
+    })();
   } catch (err) {
     await setState(id, "unknown");
     await setError(id, `${err}`);
@@ -94,7 +111,7 @@ export async function state({
   let state: State = "unknown";
   try {
     await setError(id, "");
-    state = await getState(server);
+    state = await getCloudServerState(server);
     await setState(id, state);
   } catch (err) {
     await setState(id, "unknown");
@@ -103,15 +120,51 @@ export async function state({
   return state;
 }
 
-async function getState(server: ComputeServer): Promise<State> {
+const lastCalled: { [id: number]: number } = {};
+async function getCloudServerState(server: ComputeServer): Promise<State> {
+  const now = Date.now();
+  if (
+    lastCalled[server.id] != null &&
+    now - lastCalled[server.id] < MIN_STATE_UPDATE_INTERVAL_MS
+  ) {
+    throw Error(
+      `call state update at most once ever ${MIN_STATE_UPDATE_INTERVAL_MS} ms`,
+    );
+  }
+
+  lastCalled[server.id] = now;
   switch (server.cloud) {
     case "core-weave":
-      return await coreWeave.getState(server);
+      return await coreWeave.state(server);
     case "fluid-stack":
-      return await fluidStack.getState(server);
+      return await fluidStack.state(server);
     case "lambda-cloud":
-      return await lambdaCloud.getState(server);
+      return await lambdaCloud.state(server);
     default:
       throw Error(`cloud '${server.cloud}' not currently supported`);
   }
+}
+
+export async function waitForStableState({
+  account_id,
+  id,
+  maxTime,
+}: {
+  account_id: string;
+  id: number;
+  maxTime: number; // max time in ms
+}) {
+  let s0 = Date.now();
+  while (Date.now() - s0 < maxTime) {
+    let current = await state({ account_id, id });
+    if (
+      current != "starting" &&
+      current != "stopping" &&
+      current != "unknown"
+    ) {
+      return;
+    }
+    await delay(MIN_STATE_UPDATE_INTERVAL_MS + 2000);
+  }
+  throw Error("timeout waiting for stable state");
 }

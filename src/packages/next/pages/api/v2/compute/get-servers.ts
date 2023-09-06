@@ -23,9 +23,14 @@ async function get(req) {
   const { project_id, id } = getParams(req, {
     allowGet: true,
   });
-  return await getServers({
+  let servers = await getServers({
     account_id,
     project_id,
     id,
   });
+  // strip data, which is not meant to be visible to the user (?).
+  for (const server of servers) {
+    delete server.data;
+  }
+  return servers;
 }
