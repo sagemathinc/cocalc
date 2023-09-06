@@ -7,6 +7,7 @@ over time, with multiple clouds, heuristics, api client code, etc.
 
 import { getServer } from "./get-servers";
 import { setState, setError } from "./util";
+import * as testCloud from "./cloud/testcloud";
 import * as fluidStack from "./cloud/fluid-stack";
 import * as coreWeave from "./cloud/core-weave";
 import * as lambdaCloud from "./cloud/lambda-cloud";
@@ -26,13 +27,18 @@ export async function start({
   id: number;
 }) {
   const server = await getServer({ account_id, id });
-  if (server.state != "off") {
-    throw Error("server must be in state 'off' before starting it");
+  if (server.state != null && server.state != "off") {
+    throw Error(
+      "server must be in state 'off' (or not set) before starting it",
+    );
   }
   try {
     await setError(id, "");
     await setState(id, "starting");
     switch (server.cloud) {
+      case "test":
+        await testCloud.start(server);
+        break;
       case "core-weave":
         await coreWeave.start(server);
         break;
@@ -67,13 +73,18 @@ export async function stop({
   id: number;
 }) {
   const server = await getServer({ account_id, id });
-  if (server.state != "running") {
-    throw Error("server must be in state 'running' before stopping it");
+  if (server.state != null && server.state != "running") {
+    throw Error(
+      "server must be in state 'running' (or null) before stopping it",
+    );
   }
   try {
     await setError(id, "");
     await setState(id, "stopping");
     switch (server.cloud) {
+      case "test":
+        await testCloud.stop(server);
+        break;
       case "core-weave":
         await coreWeave.stop(server);
         break;
@@ -116,6 +127,7 @@ export async function state({
   } catch (err) {
     await setState(id, "unknown");
     await setError(id, `${err}`);
+    throw err;
   }
   return state;
 }
@@ -128,12 +140,14 @@ async function getCloudServerState(server: ComputeServer): Promise<State> {
     now - lastCalled[server.id] < MIN_STATE_UPDATE_INTERVAL_MS
   ) {
     throw Error(
-      `call state update at most once ever ${MIN_STATE_UPDATE_INTERVAL_MS} ms`,
+      `call state update at most once every ${MIN_STATE_UPDATE_INTERVAL_MS} ms`,
     );
   }
 
   lastCalled[server.id] = now;
   switch (server.cloud) {
+    case "test":
+      return await testCloud.state(server);
     case "core-weave":
       return await coreWeave.state(server);
     case "fluid-stack":
@@ -148,11 +162,11 @@ async function getCloudServerState(server: ComputeServer): Promise<State> {
 export async function waitForStableState({
   account_id,
   id,
-  maxTime,
+  maxTime = 1000 * 60 * 5,
 }: {
   account_id: string;
   id: number;
-  maxTime: number; // max time in ms
+  maxTime?: number; // max time in ms
 }) {
   let s0 = Date.now();
   while (Date.now() - s0 < maxTime) {

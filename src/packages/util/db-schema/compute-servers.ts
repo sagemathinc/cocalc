@@ -15,7 +15,8 @@ export type Cloud =
   | "lambda-cloud"
   | "gcp"
   | "aws"
-  | "fluid-stack";
+  | "fluid-stack"
+  | "test";
 
 // todo
 export type GPU = "any" | "a40" | "a10" | "a100_pcie_40gb" | "quadro_rtx_4000";
