@@ -20,6 +20,7 @@ import {
   IconName,
   SelectorInput,
   Text,
+  Tip,
 } from "@cocalc/frontend/components";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import { file_options } from "@cocalc/frontend/editor-tmp";
@@ -35,8 +36,17 @@ import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { delayShow } from "../../new/file-type-selector";
+import { NewFileButton } from "../../new/new-file-button";
 import { ChatGPTGenerateNotebookButton } from "../home-page/chatgpt-generate-jupyter";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
+
+function getFileExtension(filename: string): string | null {
+  if (filename.endsWith(" ")) {
+    return null;
+  }
+  return separate_file_extension(filename).ext;
+}
 
 export function NewFlyout({
   project_id,
@@ -95,9 +105,12 @@ export function NewFlyout({
   useEffect(() => {
     if (manual) {
       if (isFile) {
-        const { ext: newExt } = separate_file_extension(filename);
+        const newExt = getFileExtension(filename);
         if (newExt) {
           setExt(newExt);
+          setManualExt(true);
+        } else if (newExt === null) {
+          setExt("");
           setManualExt(true);
         } else {
           setExt(DEFAULT_EXT);
@@ -118,7 +131,11 @@ export function NewFlyout({
         // extension is typed in explicitly
         return filename;
       } else {
-        return `${filename}.${ext}`;
+        if (ext === "") {
+          return filename;
+        } else {
+          return `${filename}.${ext}`;
+        }
       }
     } else {
       return `${filename}/`;
@@ -176,7 +193,10 @@ export function NewFlyout({
       ? NEW_FILETYPE_ICONS[ext!]
       : file_options(`foo.${ext}`)?.icon ?? "file";
     return (
-      <Icon name={name} style={{ fontSize: "150%", marginRight: FLYOUT_PADDING }} />
+      <Icon
+        name={name}
+        style={{ fontSize: "150%", marginRight: FLYOUT_PADDING }}
+      />
     );
   }
 
@@ -184,6 +204,12 @@ export function NewFlyout({
     if (ext === nextExt) {
       createFile();
     } else {
+      // if we had a "/" at the end and now we don't, remove it from the base filename
+      if (nextExt !== "/" && filename.endsWith("/")) {
+        setFilename(filename.slice(0, filename.length - 1));
+      } else if (nextExt === "/" && !filename.endsWith("/")) {
+        setFilename(`${filename}/`);
+      }
       setExt(nextExt ?? "");
     }
   }
@@ -213,11 +239,12 @@ export function NewFlyout({
   }
 
   function renderExtAddon(): JSX.Element {
+    const title = ext === "/" ? `/` : ext === "" ? "" : `.${ext}`;
     return (
       <NewFileDropdown
         mode="flyout"
         create_file={(ext) => ext && setExt(ext)}
-        title={`.${ext}`}
+        title={title}
         hide_down={true}
         button={false}
       />
@@ -257,7 +284,7 @@ export function NewFlyout({
           <Button
             style={{ flex: "1 0 auto" }}
             type="primary"
-            disabled={creating || !filename || !ext}
+            disabled={creating || !filename}
             onClick={createFile}
           >
             Create {isFile ? "File" : "Folder"}
@@ -298,7 +325,35 @@ export function NewFlyout({
             />
           }
         />
-        <Tag color={COLORS.ANTD_ORANGE}>More file types</Tag>
+        <Tag color={COLORS.ANTD_ORANGE}>Additional types</Tag>
+        <Tip
+          delayShow={delayShow}
+          title="Directory"
+          icon={"folder"}
+          tip="Create a subdirectory in the current directory. You can also type in a '/' character at the end of the filename to create a directory."
+        >
+          <NewFileButton
+            name="Directory"
+            on_click={selectType}
+            ext="/"
+            size="small"
+            active={ext === "/"}
+          />
+        </Tip>
+        <Tip
+          delayShow={delayShow}
+          title="No file extension"
+          icon={"file"}
+          tip="Create the file without a file extension, for example a 'Makefile'. You can also type in a space character at the end of the filename to create a file without an extension."
+        >
+          <NewFileButton
+            name="No file extension"
+            on_click={selectType}
+            ext=""
+            size="small"
+            active={ext === ""}
+          />
+        </Tip>
         <NewFileDropdown mode="flyout" create_file={selectType} />
         <hr />
         <Tag color={COLORS.GRAY_L}>Name generator</Tag>

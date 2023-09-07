@@ -95,6 +95,9 @@ function useStrippedPublicPaths(project_id: string) {
 }
 
 function searchToFilename(search: string): string {
+  if (search.endsWith(" ")) {
+    return search.trim(); // base name, without extension
+  }
   search = search.trim();
   if (search === "") return "";
   // if last character is "/" return the search string
