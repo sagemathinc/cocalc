@@ -40,18 +40,15 @@ function getServerName(server: ComputeServer) {
 
 export async function start(server: ComputeServer) {
   logger.debug("start", server);
-  const instance_type_name = server.data?.instance_type_name;
-  if (!instance_type_name) {
-    throw Error("instance_type_name field of server data object must be set");
+  if (server.configuration?.cloud != "lambda-cloud") {
+    throw Error("must have a lambda-cloud configuration");
   }
-  const region_name = await getRegion(instance_type_name);
   // TODO:
   const ssh_key_names: [string] = ["cocalc-gpu"];
   const name = getServerName(server);
 
   const configuration = {
-    instance_type_name,
-    region_name,
+    ...server.configuration,
     ssh_key_names,
     name,
   };
@@ -63,20 +60,6 @@ export async function start(server: ComputeServer) {
     throw Error("failed to launch any instances");
   }
   await setData(server.id, { instance_id: instance_ids[0] });
-}
-
-async function getRegion(instance_type_name: string) {
-  for (const instance of await getAvailableInstances()) {
-    if (instance.name == instance_type_name) {
-      for (const region of instance.regions) {
-        if (region.name.includes("east")) {
-          return region.name;
-        }
-      }
-      return instance.regions[0].name;
-    }
-  }
-  throw Error("no available regions");
 }
 
 export async function stop(server: ComputeServer) {

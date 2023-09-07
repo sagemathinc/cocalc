@@ -18,10 +18,15 @@ export type Cloud =
   | "fluid-stack"
   | "test";
 
-// todo
-export type GPU = "any" | "a40" | "a10" | "a100_pcie_40gb" | "quadro_rtx_4000";
+interface LambdaConfiguration {
+  cloud: "lambda-cloud";
+  instance_type_name: string;
+  region_name: string;
+}
 
-export type CPU = "any" | "xeon-v3" | "xeon-v4" | "xeon-scalable" | "amd-mylan";
+export type Configuration = LambdaConfiguration;
+
+export type Data = any;
 
 export interface ComputeServer {
   id: number;
@@ -38,14 +43,8 @@ export interface ComputeServer {
   idle_timeout?: number;
   autorestart?: boolean;
   cloud: Cloud;
-  gpu?: GPU;
-  gpu_count?: number;
-  cpu?: CPU;
-  core_count?: number;
-  memory?: number;
-  spot?: boolean;
-  ip_address?: string;
-  data?: any;
+  configuration: Configuration;
+  data?: Data;
 }
 
 Table({
@@ -112,35 +111,10 @@ Table({
       pg_type: "varchar(30)",
       desc: "The cloud where this compute server runs: 'user', 'coreweave', 'lambda', 'gcp', 'aws', 'fluidstack'.",
     },
-    gpu: {
-      type: "string",
-      pg_type: "varchar(128)",
-      desc: "The GPU: 'a40', 'a10', 'a100_pcie_40gb', 'quadro_rtx_4000', etc.",
-    },
-    gpu_count: {
-      type: "number",
-      desc: "The number of GPU's",
-    },
-    cpu: {
-      type: "string",
-      pg_type: "varchar(128)",
-      desc: "The cpu type: 'xeon-v3', 'xeon-v4', 'xeon-scalable', 'amd-mylan', etc.",
-    },
-    core_count: {
-      type: "number",
-      desc: "The number of CPU cores",
-    },
-    memory: {
-      type: "number",
-      desc: "Memory in GB",
-    },
-    spot: {
-      type: "boolean",
-      desc: "If true, tries to run this as a spot instance, so it may get killed, but costs less.",
-    },
-    ip_address: {
-      type: "string",
-      pg_type: "inet",
+    configuration: {
+      type: "map",
+      pg_type: "jsonb",
+      desc: "Cloud specific configuration of the computer at the cloud host. The format depends on the cloud",
     },
     data: {
       type: "map",

@@ -60,12 +60,6 @@ describe("creates account, project and then compute servers in various ways", ()
       idle_timeout: 60 * 15,
       autorestart: true,
       cloud: "gcp",
-      gpu: "a10",
-      gpu_count: 1,
-      cpu: "any",
-      core_count: 4,
-      memory: 16,
-      spot: true,
     } as const;
     const id = await createServer({
       account_id,

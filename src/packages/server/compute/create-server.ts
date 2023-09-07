@@ -11,27 +11,26 @@ import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
-import type { Cloud, GPU, CPU } from "@cocalc/util/db-schema/compute-servers";
+import type {
+  Cloud,
+  Configuration,
+  Data,
+} from "@cocalc/util/db-schema/compute-servers";
 
 interface Options {
   account_id: string;
   project_id: string;
+  cloud?: Cloud;
+  configuration?: Configuration;
   name?: string;
   color?: string;
   idle_timeout?: number;
   autorestart?: boolean;
-  cloud?: Cloud;
-  gpu?: GPU;
-  gpu_count?: number;
-  cpu?: CPU;
-  core_count?: number;
-  memory?: number;
-  spot?: boolean;
-  data?: object;
+  data?: Data;
 }
 
 const FIELDS =
-  "project_id,name,account_id,color,idle_timeout,autorestart,cloud,gpu,gpu_count,cpu,core_count,memory,spot,data".split(
+  "project_id,name,account_id,color,idle_timeout,autorestart,cloud,configuration,data".split(
     ",",
   );
 
@@ -46,6 +45,11 @@ export default async function createServer(opts: Options): Promise<number> {
     throw Error("user must be a collaborator on project");
   }
 
+  if (opts.configuration != null) {
+    if (opts.configuration.cloud != opts.cloud) {
+      throw Error("configuration must be for the same cloud");
+    }
+  }
   const fields: string[] = [];
   const params: any[] = [];
   const dollars: string[] = [];
