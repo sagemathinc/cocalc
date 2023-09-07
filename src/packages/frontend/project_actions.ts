@@ -3099,7 +3099,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   async set_compute_image(compute_image: string): Promise<void> {
     const projects_store = this.redux.getStore("projects");
-    const previous_compute_image: string =
+    const previous: string =
       projects_store.getIn(["project_map", this.project_id, "compute_image"]) ??
       "";
 
@@ -3115,7 +3115,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // if the above is successful, we log it
     const event: SoftwareEnvironmentEvent = {
       event: "software_environment",
-      previous: previous_compute_image,
+      previous,
       next: compute_image,
     };
     this.log(event);
