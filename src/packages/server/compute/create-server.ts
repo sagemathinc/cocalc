@@ -27,10 +27,11 @@ interface Options {
   core_count?: number;
   memory?: number;
   spot?: boolean;
+  data?: object;
 }
 
 const FIELDS =
-  "project_id,name,account_id,color,idle_timeout,autorestart,cloud,gpu,gpu_count,cpu,core_count,memory,spot".split(
+  "project_id,name,account_id,color,idle_timeout,autorestart,cloud,gpu,gpu_count,cpu,core_count,memory,spot,data".split(
     ",",
   );
 

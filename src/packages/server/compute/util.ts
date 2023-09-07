@@ -16,3 +16,14 @@ export async function setError(id: number, error: string) {
     id,
   ]);
 }
+
+// merges the object newData into the current data in the database
+// (i.e., doesn't delete keys not mentioned in newData)
+
+export async function setData(id: number, newData: object) {
+  const pool = getPool();
+  await pool.query(
+    `UPDATE compute_servers SET data = COALESCE(data, '{}'::jsonb) || $1::jsonb WHERE id=$2`,
+    [JSON.stringify(newData), id],
+  );
+}

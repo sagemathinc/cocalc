@@ -190,8 +190,8 @@ export const waitForStableState = reuseInFlight(
 // frequently we should ping them for machine state information.
 const BACKOFF_PARAMS = {
   default: {
-    startDelay: 1000,
-    maxDelay: 10000,
+    startDelay: 5000,
+    maxDelay: 15000,
     backoff: 1.3,
   },
   test: {

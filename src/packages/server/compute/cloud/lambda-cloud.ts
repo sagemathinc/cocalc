@@ -5,6 +5,7 @@ import type {
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { LambdaCloudAPI } from "lambda-cloud-node-api";
 import getLogger from "@cocalc/backend/logger";
+import { setData } from "../util";
 
 const logger = getLogger("server:compute:lambda-cloud");
 
@@ -48,7 +49,6 @@ export async function start(server: ComputeServer) {
   const ssh_key_names: [string] = ["cocalc-gpu"];
   const name = getServerName(server);
 
-  const client = await getClient();
   const configuration = {
     instance_type_name,
     region_name,
@@ -57,7 +57,12 @@ export async function start(server: ComputeServer) {
   };
   logger.debug("start", { configuration });
 
-  await client.launchInstance(configuration);
+  const client = await getClient();
+  const { instance_ids } = await client.launchInstance(configuration);
+  if (instance_ids.length == 0) {
+    throw Error("failed to launch any instances");
+  }
+  await setData(server.id, { instance_id: instance_ids[0] });
 }
 
 async function getRegion(instance_type_name: string) {
@@ -76,13 +81,34 @@ async function getRegion(instance_type_name: string) {
 
 export async function stop(server: ComputeServer) {
   logger.debug("top", server);
-  // const name = getServerName(server);
-  throw Error("not implemented");
+  const instance_id = server.data?.instance_id;
+  if (!instance_id) {
+    return;
+  }
+  const client = await getClient();
+  await client.terminateInstances([instance_id]);
 }
 
 export async function state(server: ComputeServer): Promise<State> {
-  console.log(server);
-  throw Error("not implemented");
+  logger.debug("state", server);
+  const instance_id = server.data?.instance_id;
+  if (!instance_id) {
+    return "off";
+  }
+
+  const client = await getClient();
+  const instance = await client.getRunningInstance(instance_id);
+  logger.debug("state", instance);
+  await setData(server.id, { instance });
+  if (instance.status == "booting") {
+    return "starting";
+  } else if (instance.status == "active") {
+    return "running";
+  } else if (instance.status == "terminated") {
+    return "off";
+  } else {
+    return "unknown";
+  }
 }
 
 export const test = { getClient, getAvailableInstances };
