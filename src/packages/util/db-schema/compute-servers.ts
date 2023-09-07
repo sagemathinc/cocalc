@@ -24,7 +24,60 @@ interface LambdaConfiguration {
   region_name: string;
 }
 
-export type Configuration = LambdaConfiguration;
+const COREWEAVE_CPU_TYPES = [
+  "amd-epyc-rome",
+  "amd-epyc-milan",
+  "intel-xeon-v1",
+  "intel-xeon-v2",
+  "intel-xeon-v3",
+  "intel-xeon-v4",
+  "intel-xeon-scalable",
+] as const;
+
+const COREWEAVE_GPU_TYPES = [
+  "Quadro_RTX_4000",
+  "Quadro_RTX_5000",
+  "RTX_A4000",
+  "RTX_A5000",
+  "RTX_A6000",
+  "A40",
+  "Tesla_V100_PCIE",
+  "Tesla_V100_NVLINK",
+  "A100_PCIE_40GB",
+  "A100_PCIE_80GB",
+  "A100_NVLINK_40GB",
+  "A100_NVLINK_80GB",
+] as const;
+
+interface CoreWeaveConfiguration {
+  cloud: "core-weave";
+  gpu: {
+    type: (typeof COREWEAVE_GPU_TYPES)[number];
+    count: number;
+  };
+  cpu: {
+    count: number;
+    type?: (typeof COREWEAVE_CPU_TYPES)[number];
+  };
+  memory: string; // e.g., "12Gi"
+  storage?: {
+    root: {
+      size: string; // e.g., '40Gi'
+    };
+  };
+}
+
+interface FluidStackConfiguration {
+  cloud: "fluid-stack";
+  plan: string;
+  region: string;
+  os: string;
+}
+
+export type Configuration =
+  | LambdaConfiguration
+  | CoreWeaveConfiguration
+  | FluidStackConfiguration;
 
 export type Data = any;
 
@@ -41,6 +94,8 @@ export interface ComputeServer {
   error?: string;
   state?: State;
   idle_timeout?: number;
+  // GCP has a new "Time limit" either by hour or by date, which seems like a great idea!
+  // time_limit
   autorestart?: boolean;
   cloud: Cloud;
   configuration: Configuration;

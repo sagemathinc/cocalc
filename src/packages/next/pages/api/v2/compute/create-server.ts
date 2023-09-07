@@ -27,12 +27,7 @@ async function get(req) {
     idle_timeout,
     autorestart,
     cloud,
-    gpu,
-    gpu_count,
-    cpu,
-    core_count,
-    memory,
-    spot,
+    configuration,
   } = getParams(req);
   return await createServer({
     account_id,
@@ -42,11 +37,6 @@ async function get(req) {
     idle_timeout,
     autorestart,
     cloud,
-    gpu,
-    gpu_count,
-    cpu,
-    core_count,
-    memory,
-    spot,
+    configuration,
   });
 }

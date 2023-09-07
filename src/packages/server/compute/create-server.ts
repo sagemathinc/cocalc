@@ -14,7 +14,6 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import type {
   Cloud,
   Configuration,
-  Data,
 } from "@cocalc/util/db-schema/compute-servers";
 
 interface Options {
@@ -26,11 +25,10 @@ interface Options {
   color?: string;
   idle_timeout?: number;
   autorestart?: boolean;
-  data?: Data;
 }
 
 const FIELDS =
-  "project_id,name,account_id,color,idle_timeout,autorestart,cloud,configuration,data".split(
+  "project_id,name,account_id,color,idle_timeout,autorestart,cloud,configuration".split(
     ",",
   );
 
