@@ -5,11 +5,11 @@
 
 import { Map as ImmutableMap } from "immutable";
 import { Button, ButtonToolbar, FormControl, Well } from "../antd-bootstrap";
-import { Component, Rendered, redux } from "../app-framework";
+import { Component, Rendered } from "../app-framework";
 import { ErrorDisplay, Loading, ProfileIcon } from "../components";
 import Pica from "pica";
 import gravatarUrl from "./gravatar-url";
-
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ReactCropComponent from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
@@ -60,9 +60,17 @@ export class ProfileImageSelector extends Component<
 
   set_image = async (src: string) => {
     this.setState({ is_loading: true });
-    const table = redux.getTable("account");
     try {
-      await table.set({ profile: { image: src } }, "none");
+      await webapp_client.async_query({
+        query: {
+          accounts: {
+            account_id: this.props.account_id,
+            profile: { image: src },
+          },
+        },
+      });
+      // const table = redux.getTable("account");
+      // await table.set({ profile: { image: src } }, "none");
     } catch (err) {
       if (this.is_mounted) {
         this.setState({ error: `${err}` });
@@ -304,16 +312,16 @@ export class ProfileImageSelector extends Component<
         <ButtonToolbar>
           <Button
             style={{ marginTop: "5px" }}
+            onClick={() => this.setState({ custom_image_src: undefined })}
+          >
+            Cancel
+          </Button>
+          <Button
+            style={{ marginTop: "5px" }}
             onClick={() => this.handle_save_cropping()}
             bsStyle="success"
           >
             Save
-          </Button>
-          <Button
-            style={{ marginTop: "5px" }}
-            onClick={() => this.setState({ custom_image_src: undefined })}
-          >
-            Cancel
           </Button>
         </ButtonToolbar>
       </>
@@ -388,7 +396,7 @@ async function getCroppedImg(image, crop): Promise<string> {
     0,
     0,
     crop.width,
-    crop.height
+    crop.height,
   );
 
   // Resize to at most AVATAR_SIZE.

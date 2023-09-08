@@ -51,7 +51,9 @@ export const COLUMNS = [
     title: "Created",
     dataIndex: "created",
     key: "created",
-    render: (_, { created }) => <TimeAgo datetime={created} />,
+    render: (_, { id, created }) => (
+      <A href={`/vouchers/${id}`}>{<TimeAgo datetime={created} />}</A>
+    ),
   },
   {
     title: (
@@ -72,39 +74,27 @@ export const COLUMNS = [
     dataIndex: "cost",
     key: "cost",
     align: "center",
-    render: (_, { cost, tax }) => (
-      <>
+    render: (_, { id, cost, tax }) => (
+      <A href={`/vouchers/${id}`}>
         {money(cost, true)}
         {tax ? ` (+ ${money(tax, true)} tax)` : ""} each
-      </>
+      </A>
     ),
   },
   {
     title: "Status",
-    render: (_, { when_pay, purchased }) => {
-      if (when_pay == "now") {
-        return "Paid";
-      }
-      if (when_pay == "invoice") {
-        return purchased?.time ? (
-          <>
-            Paid <TimeAgo datetime={purchased.time} />
-          </>
-        ) : (
-          "Invoice at Expiration"
-        );
-      }
-      if (when_pay == "admin") {
-        return "Admin (free)";
-      }
-    },
+    render: (_, { id, when_pay, purchased }) => (
+      <A href={`/vouchers/${id}`}>
+        <Status when_pay={when_pay} purchased={purchased} />
+      </A>
+    ),
   },
   {
     title: "Description",
     dataIndex: "title",
     key: "title",
-    render: (_, { title }) => {
-      return title;
+    render: (_, { title, id }) => {
+      return <A href={`/vouchers/${id}`}>{title}</A>;
     },
   },
   {
@@ -112,21 +102,33 @@ export const COLUMNS = [
     dataIndex: "active",
     key: "active",
     align: "center",
-    render: (_, { active }) => <TimeAgo datetime={active} />,
+    render: (_, { id, active }) => (
+      <A href={`/vouchers/${id}`}>
+        <TimeAgo datetime={active} />
+      </A>
+    ),
   },
   {
     title: "Expire",
     dataIndex: "expire",
     key: "expire",
     align: "center",
-    render: (_, { expire }) => <TimeAgo datetime={expire} />,
+    render: (_, { id, expire }) => (
+      <A href={`/vouchers/${id}`}>
+        <TimeAgo datetime={expire} />
+      </A>
+    ),
   },
   {
     title: "Cancel By",
     dataIndex: "cancel_by",
     key: "cancel_by",
     align: "center",
-    render: (_, { cancel_by }) => <TimeAgo datetime={cancel_by} />,
+    render: (_, { id, cancel_by }) => (
+      <A href={`/vouchers/${id}`}>
+        <TimeAgo datetime={cancel_by} />
+      </A>
+    ),
   },
 ] as any;
 
@@ -212,4 +214,23 @@ export default function Created({ customize }) {
 
 export async function getServerSideProps(context) {
   return await withCustomize({ context });
+}
+
+function Status({ when_pay, purchased }) {
+  if (when_pay == "now") {
+    return <>Paid</>;
+  }
+  if (when_pay == "invoice") {
+    return purchased?.time ? (
+      <>
+        Paid <TimeAgo datetime={purchased.time} />
+      </>
+    ) : (
+      <>Invoice at Expiration</>
+    );
+  }
+  if (when_pay == "admin") {
+    return <>Admin (free)</>;
+  }
+  return null;
 }

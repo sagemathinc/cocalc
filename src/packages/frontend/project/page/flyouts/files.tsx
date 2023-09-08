@@ -95,6 +95,9 @@ function useStrippedPublicPaths(project_id: string) {
 }
 
 function searchToFilename(search: string): string {
+  if (search.endsWith(" ")) {
+    return search.trim(); // base name, without extension
+  }
   search = search.trim();
   if (search === "") return "";
   // if last character is "/" return the search string
@@ -279,7 +282,8 @@ export function FilesFlyout({
     const isEmpty = procFiles.length === 0;
 
     // the ".." dir does not change the isEmpty state
-    if (current_path != "") {
+    // hide ".." if there is a search -- https://github.com/sagemathinc/cocalc/issues/6877
+    if (file_search === "" && current_path != "") {
       procFiles.unshift({
         name: "..",
         isdir: true,

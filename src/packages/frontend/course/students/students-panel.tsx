@@ -90,19 +90,19 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
 
     const expanded_students: Set<string> | undefined = useRedux(
       name,
-      "expanded_students"
+      "expanded_students",
     );
     const active_student_sort: SortDescription | undefined = useRedux(
       name,
-      "active_student_sort"
+      "active_student_sort",
     );
     const active_feedback_edits: IsGradingMap = useRedux(
       name,
-      "active_feedback_edits"
+      "active_feedback_edits",
     );
     const nbgrader_run_info: NBgraderRunInfo | undefined = useRedux(
       name,
-      "nbgrader_run_info"
+      "nbgrader_run_info",
     );
 
     const isMounted = useIsMountedRef();
@@ -170,7 +170,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
 
       if (active_student_sort != null) {
         students_ordered.sort(
-          util.pick_student_sorter(active_student_sort.toJS())
+          util.pick_student_sorter(active_student_sort.toJS()),
         );
         if (active_student_sort.get("is_descending")) {
           students_ordered.reverse();
@@ -267,7 +267,8 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       // contains the course.
       const users = redux.getStore("projects").get_users(project_id);
       // Make a map with keys the email or account_id is already part of the course.
-      const already_added : {[key:string]:boolean} = (users?.toJS() ?? {}) as any; // start with collabs on project
+      const already_added: { [key: string]: boolean } = (users?.toJS() ??
+        {}) as any; // start with collabs on project
       // also track **which** students are already part of the course
       const existing_students: any = {};
       existing_students.account = {};
@@ -295,14 +296,14 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         return aa;
       };
       const select2 = select.filter(
-        (x) => !exclude_add(x.account_id, x.email_address)
+        (x) => !exclude_add(x.account_id, x.email_address),
       );
       // Put at the front of the list any email addresses not known to CoCalc (sorted in order) and also not invited to course.
       // NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
       // the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we end up
       // bringing back everything in the search, which is a bug.
       const unknown = noncloud_emails(select, add_search).filter(
-        (x) => !exclude_add(null, x.email_address)
+        (x) => !exclude_add(null, x.email_address),
       );
       const select3 = concat(unknown, select2);
       // We are no longer searching, but now show an options selector.
@@ -409,7 +410,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         v.push(
           <option key={key} value={key} label={student_name}>
             {student_name}
-          </option>
+          </option>,
         );
       }
       return v;
@@ -521,7 +522,12 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         }
         for (const account_id in existing_students.account) {
           const user = user_map.get(account_id);
-          existing.push(`${user.get("first_name")} ${user.get("last_name")}`);
+          // user could be null, since there is no guaranteee about what is in user_map.
+          if (user != null) {
+            existing.push(`${user.get("first_name")} ${user.get("last_name")}`);
+          } else {
+            existing.push(`Student with account ${account_id}`);
+          }
         }
         if (existing.length > 0) {
           const existingStr = existing.join(", ");
@@ -643,7 +649,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
 
     function render_sort_link(
       column_name: string,
-      display_name: string
+      display_name: string,
     ): Rendered {
       return (
         <a
@@ -832,7 +838,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       );
     }
   },
-  isSame
+  isSame,
 );
 
 // Given a list v of user_search results, and a search string s,
@@ -841,7 +847,9 @@ function noncloud_emails(v, s) {
   const { email_queries } = misc.parse_user_search(s);
 
   const result_emails = misc.dict(
-    v.filter((r) => r.email_address != null).map((r) => [r.email_address, true])
+    v
+      .filter((r) => r.email_address != null)
+      .map((r) => [r.email_address, true]),
   );
 
   return sortBy(
@@ -850,6 +858,6 @@ function noncloud_emails(v, s) {
       .map((r) => {
         return { email_address: r };
       }),
-    "email_address"
+    "email_address",
   );
 }

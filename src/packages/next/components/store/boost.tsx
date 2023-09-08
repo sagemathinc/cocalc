@@ -6,7 +6,7 @@
 /*
 Create a new site license.
 */
-import { Form, Input, Space, Switch } from "antd";
+import { Alert, Form, Input, Space, Switch } from "antd";
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -81,6 +81,23 @@ export default function Boost(props: Props) {
             it to your <A href="/store/cart">shopping cart</A>.
           </Paragraph>
           <Paragraph>
+            <Alert
+              showIcon
+              type="info"
+              message="Pay As You Go"
+              description={
+                <div>
+                  If you just need to upgrade your project for a few minutes or
+                  a few hours, you can use{" "}
+                  <A href="https://doc.cocalc.com/paygo.html" external>
+                    Pay As You Go
+                  </A>{" "}
+                  instead of a boost license.
+                </div>
+              }
+            />
+          </Paragraph>
+          <Paragraph>
             <Icon name="lightbulb" style={{ color: COLORS.ANTD_ORANGE }} /> If
             you are teaching a course and have to cover more students, you need
             to get an additional <A href="./site-license">Site License</A> with
@@ -116,7 +133,7 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
   const router = useRouter();
   // if we "edit", we don't have to check the confirmation
   const [confirmWarning, setConfirmWarning] = useState<boolean>(
-    router.query.id != null
+    router.query.id != null,
   );
 
   const LS_BOOST_CONFIRM_KEY = "store_boost_confirm";
@@ -152,7 +169,7 @@ function CreateBooster({ showInfoBar = false, noAccount = false }) {
 
   useEffect(() => {
     const store_site_license_show_explanations = get_local_storage(
-      "store_site_license_show_explanations"
+      "store_site_license_show_explanations",
     );
     if (store_site_license_show_explanations != null) {
       setShowExplanations(!!store_site_license_show_explanations);

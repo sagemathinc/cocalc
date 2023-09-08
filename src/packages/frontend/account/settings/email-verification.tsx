@@ -5,39 +5,34 @@
 
 import { Map } from "immutable";
 
-import { Component, Rendered } from "../../app-framework";
-import { alert_message } from "../../alerts";
-import { Button } from "../../antd-bootstrap";
-import { webapp_client } from "../../webapp-client";
-import { LabeledRow } from "../../components";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
+import {
+  Rendered,
+  useEffect,
+  useIsMountedRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
+import { LabeledRow } from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props {
   email_address?: string;
   email_address_verified?: Map<string, boolean>;
 }
 
-interface State {
-  disabled_button: boolean;
-}
+export function EmailVerification({
+  email_address,
+  email_address_verified,
+}: Props) {
+  const is_mounted = useIsMountedRef();
+  const [disabled_button, set_disabled_button] = useState(false);
 
-export class EmailVerification extends Component<Props, State> {
-  private is_mounted: boolean = true;
-  constructor(props, state) {
-    super(props, state);
-    this.state = { disabled_button: false };
-  }
+  useEffect(() => {
+    set_disabled_button(false);
+  }, [email_address]);
 
-  componentWillUnmount() {
-    this.is_mounted = false;
-  }
-
-  componentWillReceiveProps(next) {
-    if (next.email_address !== this.props.email_address) {
-      this.setState({ disabled_button: false });
-    }
-  }
-
-  private async verify(): Promise<void> {
+  async function verify(): Promise<void> {
     try {
       await webapp_client.account_client.send_verification_email();
     } catch (err) {
@@ -45,17 +40,17 @@ export class EmailVerification extends Component<Props, State> {
       console.log(err_msg);
       alert_message({ type: "error", message: err_msg });
     } finally {
-      if (this.is_mounted) {
-        this.setState({ disabled_button: true });
+      if (is_mounted.current) {
+        set_disabled_button(true);
       }
     }
   }
 
-  private render_status(): Rendered {
-    if (this.props.email_address == null) {
+  function render_status(): Rendered {
+    if (email_address == null) {
       return <span>Unknown</span>;
     } else {
-      if (this.props.email_address_verified?.get(this.props.email_address)) {
+      if (email_address_verified?.get(email_address)) {
         return <span style={{ color: "green" }}>Verified</span>;
       } else {
         return (
@@ -64,13 +59,11 @@ export class EmailVerification extends Component<Props, State> {
               Not Verified
             </span>
             <Button
-              onClick={this.verify.bind(this)}
+              onClick={verify}
               bsStyle="success"
-              disabled={this.state.disabled_button}
+              disabled={disabled_button}
             >
-              {this.state.disabled_button
-                ? "Email Sent"
-                : "Send Verification Email"}
+              {disabled_button ? "Email Sent" : "Send Verification Email"}
             </Button>
           </>
         );
@@ -78,11 +71,9 @@ export class EmailVerification extends Component<Props, State> {
     }
   }
 
-  render() {
-    return (
-      <LabeledRow label="Email verification" style={{ marginBottom: "15px" }}>
-        <div>Status: {this.render_status()}</div>
-      </LabeledRow>
-    );
-  }
+  return (
+    <LabeledRow label="Email verification" style={{ marginBottom: "15px" }}>
+      <div>Status: {render_status()}</div>
+    </LabeledRow>
+  );
 }

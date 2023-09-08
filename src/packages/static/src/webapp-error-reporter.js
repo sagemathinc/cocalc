@@ -62,7 +62,10 @@ const reportException = function (exception, name, severity, comment) {
 const WHITELIST = [
   "componentWillMount has been renamed",
   "componentWillReceiveProps has been renamed",
+  // Ignore this antd message in browser:
   "a whole package of antd",
+  // we can't do anything about bokeh crashes in their own code
+  "cdn.bokeh.org",
 ];
 const isWhitelisted = function (opts) {
   const s = JSON.stringify(opts);
@@ -92,7 +95,6 @@ var sendError = function (opts) {
       let webapp_client;
       if (isWhitelisted(opts)) {
         //console.log 'sendError: whitelisted'
-        // Ignore this antd message in browser.
         return;
       }
       const misc = require("@cocalc/util/misc");
@@ -108,7 +110,7 @@ var sendError = function (opts) {
         severity: "default",
       });
       const fingerprint = misc.uuidsha1(
-        [opts.name, opts.message, opts.comment].join("::")
+        [opts.name, opts.message, opts.comment].join("::"),
       );
       if (already_reported.includes(fingerprint) && !DEBUG) {
         return;
@@ -146,7 +148,7 @@ var sendError = function (opts) {
         console.info(
           "failed to report error; trying again in 30 seconds",
           err,
-          opts
+          opts,
         );
         const { delay } = require("awaiting");
         await delay(30000);
@@ -285,7 +287,7 @@ if (ENABLED) {
               } catch (err) {}
               //console.log(err)
               return _super.call(this, e, wrap(f), capture, secure);
-            }
+            },
         );
 
         return polyFill(
@@ -295,10 +297,10 @@ if (ENABLED) {
             function (e, f, capture, secure) {
               _super.call(this, e, f, capture, secure);
               return _super.call(this, e, wrap(f), capture, secure);
-            }
+            },
         );
       }
-    }
+    },
   );
 }
 
@@ -337,7 +339,7 @@ if (ENABLED) {
         if (_super) {
           return _super(message, url, lineNo, charNo, exception);
         }
-      }
+      },
   );
 }
 
@@ -365,7 +367,7 @@ if (ENABLED && window.requestAnimationFrame) {
   polyFill(
     window,
     "requestAnimationFrame",
-    (_super) => (callback) => _super(wrap(callback))
+    (_super) => (callback) => _super(wrap(callback)),
   );
 }
 
@@ -378,7 +380,7 @@ if (ENABLED && window.setImmediate) {
         const args = Array.prototype.slice.call(arguments);
         args[0] = wrap(args[0]);
         return _super.apply(this, args);
-      }
+      },
   );
 }
 
@@ -462,7 +464,7 @@ if (ENABLED) {
       }
       e.message = `unhandledrejection: ${reason}`;
       return reportException(e, "unhandledrejection");
-    })
+    }),
   );
 }
 

@@ -5,6 +5,7 @@ import { currency } from "@cocalc/util/misc";
 import { zIndex as zIndexPayAsGo } from "./pay-as-you-go/consts";
 import * as api from "./api";
 import MoneyStatistic from "./money-statistic";
+import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
@@ -96,7 +97,7 @@ export default function PaymentConfig({
         <Space>
           <InputNumber
             min={Math.max(minAmount, minPayment)}
-            max={100000} // maximum payment amount is $100,000
+            max={MAX_COST}
             precision={2} // for two decimal places
             step={5}
             value={paymentAmount}

@@ -4,9 +4,7 @@
  */
 
 import { Alert, Checkbox, Spin } from "antd";
-
-import { join } from "path";
-
+import { load_target } from "@cocalc/frontend/history";
 import {
   CSS,
   React,
@@ -17,8 +15,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, ErrorDisplay, Title } from "@cocalc/frontend/components";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { ErrorDisplay, Title } from "@cocalc/frontend/components";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import type { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
 
@@ -139,11 +136,16 @@ function CancelSubscriptionBanner() {
       type="info"
       message={
         <>
-          To cancel a subscription, visit{" "}
-          <A href={join(appBasePath, "billing", "subscriptions")}>
-            Subscription Management
-          </A>
-          .
+          To cancel a subscription,{" "}
+          <a
+            onClick={() => {
+              load_target("settings/subscriptions");
+            }}
+          >
+            visit the Subscription tab above
+          </a>
+          . To edit a license <i>that you purchases</i> expand the license
+          below, then click on the "Edit License..." button.
         </>
       }
     />

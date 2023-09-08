@@ -539,26 +539,44 @@ export class AccountSettings extends Component<Props, State> {
         <TextSetting
           label="Username (optional)"
           value={this.props.name}
-          onChange={(e) => this.handle_change(e, "name")}
+          onChange={(e) => {
+            const name = e.target.value?.trim();
+            this.actions().setState({ name });
+          }}
           onBlur={(e) => {
             this.setState({ username: false });
-            this.save_change(e, "name");
+            const name = e.target.value?.trim();
+            if (name) {
+              set_account_table({ name });
+            }
           }}
           onFocus={() => {
             this.setState({ username: true });
           }}
-          onPressEnter={(e) => this.save_change(e, "name")}
+          onPressEnter={(e) => {
+            const name = e.target.value?.trim();
+            if (name) {
+              set_account_table({ name });
+            }
+          }}
           maxLength={39}
           disabled={this.props.is_anonymous && !this.state.terms_checkbox}
         />
         {this.state.username && (
           <AntdAlert
+            showIcon
             style={{ margin: "15px 0" }}
             message={
-              "Setting your username provides much nicer URL's for shared public documents. Leave the above box blank to not have a username." +
-              (this.props.name
-                ? " TEMPORARY WARNING: If you change your username, existing links using the previous username will no longer work, so change with caution."
-                : "")
+              <>
+                Setting a username provides optional nicer URL's for shared
+                public documents. Your username can be between 1 and 39
+                characters, contain upper and lower case letters, numbers, and
+                dashes.
+                <br />
+                WARNING: If you change your username, existing links using the
+                previous username will no longer work (automatic redirects are
+                not implemented), so change with caution.
+              </>
             }
             type="info"
           />

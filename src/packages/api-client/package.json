@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/api-client",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "CoCalc api client - use cocalc from nodejs",
   "main": "./dist/index.js",
   "scripts": {
@@ -8,11 +8,21 @@
     "build": "npx tsc",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "jupyter"],
+  "keywords": [
+    "cocalc",
+    "jupyter"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/api-client": "workspace:*",
     "got": "^12.6.0",
     "tsimportlib": "^0.0.5"
   },

@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { useState } from "react";
 import { join } from "path";
-import { Card } from "antd";
+import { Button, Card, Checkbox, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useCustomize from "lib/use-customize";
 import OpenDirectly from "./open-directly";
@@ -29,17 +30,36 @@ export default function EditOptions({
   description,
   has_site_license,
 }: EditOptionsProps) {
+  const { isCollaborator } = useCustomize();
+  const [everything, setEverything] = useState<boolean>(true);
+  const [copied, setCopied] = useState<boolean>(false);
   const { account } = useCustomize();
   return (
     <Card
       style={{ margin: "30px 0" }}
       title={
         <>
-          <div
-            style={{ position: "absolute", right: "30px", cursor: "pointer" }}
-            onClick={onClose}
-          >
-            <Icon name="times-circle" />
+          <div style={{ float: "right", display: "flex" }}>
+            {!(!url && isCollaborator) && (
+              <div>
+                <Tooltip title="When checked, additional files may be copied to your project, which uses more spaces but ensures everything works.">
+                  <Checkbox
+                    disabled={copied}
+                    checked={everything}
+                    onChange={(e) => setEverything(e.target.checked)}
+                  >
+                    Copy Everything
+                  </Checkbox>
+                </Tooltip>
+              </div>
+            )}
+            <Button
+              type="text"
+              onClick={onClose}
+              style={{ marginLeft: "30px" }}
+            >
+              <Icon name="times" />
+            </Button>
           </div>
           <Icon style={{ marginRight: "10px" }} name="pencil" /> Edit{" "}
           <b>{trunc_middle(join(path, relativePath), 60)}</b>
@@ -52,9 +72,12 @@ export default function EditOptions({
           path={path}
           url={url}
           relativePath={relativePath}
+          everything={everything}
           project_id={project_id}
           image={image}
           description={description}
+          isCollaborator={isCollaborator}
+          onCopied={() => setCopied(true)}
         />
       )}
       {account?.account_id == null && (
@@ -77,8 +100,10 @@ function SignedInOptions({
   project_id,
   image,
   description,
+  everything,
+  isCollaborator,
+  onCopied,
 }) {
-  const { isCollaborator } = useCustomize();
   return !url && isCollaborator ? (
     <OpenDirectly
       id={id}
@@ -93,8 +118,10 @@ function SignedInOptions({
       path={path}
       url={url}
       relativePath={relativePath}
+      everything={everything}
       image={image}
       description={description ? description : path ? path : relativePath}
+      onCopied={onCopied}
     />
   );
 }

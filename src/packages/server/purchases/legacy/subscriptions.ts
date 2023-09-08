@@ -33,7 +33,7 @@ export async function migrateAllActiveLicenseSubscriptions() {
 }
 
 export async function migrateActiveLicenseSubscriptions(account_id: string) {
-  const subs = await getActiveLicenseSubscriptions(account_id);
+  const subs = await getNonCanceledLicenseSubscriptions(account_id);
   logger.debug(
     "migrateActiveLicenseSubscriptions",
     { account_id },
@@ -54,14 +54,13 @@ Get all of the current active stripe subscriptions for the given account.
 This ignores non-active subscriptions, since there is no need to do anything
 with them anymore.
 */
-export async function getActiveLicenseSubscriptions(account_id: string) {
+export async function getNonCanceledLicenseSubscriptions(account_id: string) {
   const stripe = await getConn();
   const customer = await getStripeCustomerId({ account_id, create: false });
   if (!customer) return [];
   const resp = await stripe.subscriptions.list({
     limit: 100,
     customer,
-    status: "active",
   });
   if (resp.has_more) {
     throw Error("TODO: have to handle paging");
@@ -69,7 +68,8 @@ export async function getActiveLicenseSubscriptions(account_id: string) {
   return resp.data.filter(
     (sub) =>
       (sub as any).plan?.product.startsWith("license") &&
-      sub.metadata.license_id
+      sub.metadata.license_id &&
+      !sub.canceled_at // because it might still be canceled.
   );
 }
 
@@ -113,10 +113,13 @@ export async function migrateSubscription(sub) {
     logger.debug("create the new subscription that manages this license", {
       license_id,
     });
+    const cost_per_unit = sub.plan.amount / 100;
+    const cost = cost_per_unit * (sub.quantity ?? 1);
+
     const subscription_id = await createSubscription(
       {
         account_id,
-        cost: sub.plan.amount / 100, // grandfathered pricing <-- THIS IS WRONG -- see updateMigratedSubscriptionPrice below.
+        cost,
         interval: sub.plan.interval,
         current_period_start,
         current_period_end,
@@ -182,10 +185,16 @@ export async function cancelStripeSubscription(id: string) {
 }
 
 export async function updateAllMigratedSubscriptionPrices() {
-    const pool = getPool();
-  const { rows } = await pool.query("SELECT id FROM subscriptions where notes like 'Created by migrating legacy stripe license%' AND notes not like '%Pricing updated.'");
-  logger.debug("updateAllMigratedSubscriptionPrices: got ", rows.length, ' subscriptions')
-  for(const row of rows) {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT id FROM subscriptions where notes like 'Created by migrating legacy stripe license%' AND notes not like '%Pricing updated.'"
+  );
+  logger.debug(
+    "updateAllMigratedSubscriptionPrices: got ",
+    rows.length,
+    " subscriptions"
+  );
+  for (const row of rows) {
     await updateMigratedSubscriptionPrice(row.id);
   }
 }
@@ -208,7 +217,7 @@ export async function updateMigratedSubscriptionPrice(subscription_id: number) {
     logger.debug("not a migrated subscription");
     return;
   }
-  const stripe_id = notes.slice(i, notes.length-1);
+  const stripe_id = notes.slice(i, notes.length - 1);
   const stripe = await getConn();
   const sub = await stripe.subscriptions.retrieve(stripe_id);
   logger.debug({ sub });
