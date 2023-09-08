@@ -8,7 +8,15 @@ export async function apiCall(endpoint: string, params: object): Promise<any> {
     .default as typeof import("got").default;
   const url = siteUrl(join("api", endpoint));
   const response = (await got
-    .post(url, { username: apiKey, json: params })
+    .post(url, {
+      username: apiKey,
+      json: params,
+      // In case of localhost allow connection even if self signed
+      // leaving this in since might be useful later?
+      //       ...(url.startsWith("https://localhost")
+      //         ? { https: { rejectUnauthorized: false } }
+      //         : undefined),
+    })
     .json()) as any;
   if (response?.event == "error") {
     throw Error(response.error ?? "error");

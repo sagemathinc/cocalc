@@ -3,13 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { assertPurchaseAllowed, isPurchaseAllowed} from "./is-purchase-allowed";
+import {
+  assertPurchaseAllowed,
+  isPurchaseAllowed,
+} from "./is-purchase-allowed";
 import createPurchase from "./create-purchase";
 import createAccount from "../accounts/create-account";
 import { uuid } from "@cocalc/util/misc";
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { setPurchaseQuota } from "./purchase-quotas";
+import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -107,7 +111,7 @@ describe("test checking whether or not purchase is allowed under various conditi
       cost: 1 / 0,
     });
     expect(allowed).toBe(false);
-    expect(reason).toContain("finite");
+    expect(reason).toContain("exceeds the maximum allowed cost");
   });
 
   it("refuses to allow credit less than the minimum, but does allow if >= min", async () => {
@@ -177,12 +181,26 @@ describe("test checking whether or not purchase is allowed under various conditi
     await setPurchaseQuota({
       account_id,
       service: "openai-gpt-4",
-      value: 100000,
+      value: 5000,
     });
     const { allowed } = await isPurchaseAllowed({
       account_id,
       service: "openai-gpt-4",
-      cost: 100000,
+      cost: 5000,
+    });
+    expect(allowed).toBe(false); // because balance
+  });
+
+  it("raise the quota to well beyond the purchase limit, and now purchase *is* not allowed because of purchase limit", async () => {
+    await setPurchaseQuota({
+      account_id,
+      service: "openai-gpt-4",
+      value: 10 * MAX_COST,
+    });
+    const { allowed } = await isPurchaseAllowed({
+      account_id,
+      service: "openai-gpt-4",
+      cost: MAX_COST,
     });
     expect(allowed).toBe(false); // because balance
   });
@@ -194,8 +212,7 @@ describe("test checking whether or not purchase is allowed under various conditi
           account_id,
           service: "openai-gpt-4",
           cost: 100000,
-        })
+        }),
     ).rejects.toThrow();
   });
 });
-

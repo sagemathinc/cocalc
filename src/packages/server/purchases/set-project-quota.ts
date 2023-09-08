@@ -47,7 +47,9 @@ export default async function setProjectQuota({
   }
   // Security/abuse: we do NOT trust that the cost from the frontend client is valid.
   // An abuse vector would be to make a call with a faked cost.
-  quota1.cost = await getPricePerHour(quota1);
+  if (Object.keys(quota1).length > 0) {
+    quota1.cost = await getPricePerHour(quota1);
+  }
 
   const db = getPool();
   await db.query(

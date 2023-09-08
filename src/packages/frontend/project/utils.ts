@@ -112,7 +112,11 @@ export class NewFilenames {
       const new_name = this.new_filename(false);
       const rnd = uuid().split("-");
       const name = [new_name, ...rnd].join(this.filler());
-      return `${name}.${this.ext}`;
+      if (this.ext === "") {
+        return name;
+      } else {
+        return `${name}.${this.ext}`;
+      }
     }
   }
 
@@ -137,7 +141,7 @@ export class NewFilenames {
       default:
         // e.g. for python, join using "_"
         let fn = tokens.join(this.filler());
-        if (fullname && this.ext != null) {
+        if (fullname && this.ext != null && this.ext !== "") {
           fn += `.${this.ext}`;
         }
         return fn;

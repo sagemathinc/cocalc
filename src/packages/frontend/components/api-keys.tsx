@@ -294,6 +294,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
               ]}
             >
               <DatePicker
+                changeOnBlur
                 showTime
                 disabledDate={(current) => {
                   // disable all dates before today

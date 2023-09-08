@@ -12,6 +12,7 @@ import maintainAutomaticPayments, {
 import { uuid } from "@cocalc/util/misc";
 import { createTestAccount } from "./test-data";
 import createCredit from "./create-credit";
+import { getServerSettings } from "@cocalc/server/settings";
 
 const collect: { account_id: string; amount: number }[] = [];
 beforeAll(async () => {
@@ -38,13 +39,13 @@ describe("testing automatic payments in several situations", () => {
     await createTestAccount(account_id1);
     await pool.query(
       "UPDATE accounts SET stripe_usage_subscription='foo' WHERE account_id=$1",
-      [account_id1]
+      [account_id1],
     );
     await pool.query(
       `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
                       values('month',NOW(),$1,-25,25,1,0,0)
       `,
-      [account_id1]
+      [account_id1],
     );
     collect.length = 0;
     await maintainAutomaticPayments();
@@ -57,7 +58,7 @@ describe("testing automatic payments in several situations", () => {
       `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
                       values('month',NOW(),$1,-25,25,1,0,0)
       `,
-      [account_id2]
+      [account_id2],
     );
     collect.length = 0;
     await maintainAutomaticPayments();
@@ -69,7 +70,7 @@ describe("testing automatic payments in several situations", () => {
       `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
                       values('month',NOW(),$1,25,0,0,25,1)
       `,
-      [account_id1]
+      [account_id1],
     );
     collect.length = 0;
     await maintainAutomaticPayments();
@@ -81,11 +82,11 @@ describe("testing automatic payments in several situations", () => {
       `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
                       values('month',NOW(),$1,-389,389,1,0,0)
       `,
-      [account_id1]
+      [account_id1],
     );
     await pool.query(
       "UPDATE accounts SET stripe_usage_subscription='bar' WHERE account_id=$1",
-      [account_id2]
+      [account_id2],
     );
     collect.length = 0;
     await maintainAutomaticPayments();
@@ -93,7 +94,7 @@ describe("testing automatic payments in several situations", () => {
       new Set([
         { account_id: account_id1, amount: 389 },
         { account_id: account_id2, amount: 25 },
-      ])
+      ]),
     );
   });
 
@@ -105,13 +106,13 @@ describe("testing automatic payments in several situations", () => {
       `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
                       values('month',NOW()-interval '1 day',$1,-3890,3890,1,0,0)
       `,
-      [account_id1]
+      [account_id1],
     );
     await pool.query(
       `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
                       values('month',NOW()-interval '1 day',$1,-250,250,1,0,0)
       `,
-      [account_id2]
+      [account_id2],
     );
 
     // the newest ones that both need to be paid
@@ -119,13 +120,13 @@ describe("testing automatic payments in several situations", () => {
       `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
                       values('month',NOW()+interval '1 day',$1,-389,389,1,0,0)
       `,
-      [account_id1]
+      [account_id1],
     );
     await pool.query(
       `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
                       values('month',NOW()+interval '1 day',$1,-25,25,1,0,0)
       `,
-      [account_id2]
+      [account_id2],
     );
 
     collect.length = 0;
@@ -134,7 +135,7 @@ describe("testing automatic payments in several situations", () => {
       new Set([
         { account_id: account_id1, amount: 389 },
         { account_id: account_id2, amount: 25 },
-      ])
+      ]),
     );
   });
 
@@ -144,20 +145,20 @@ describe("testing automatic payments in several situations", () => {
     // clean up all the statements for these two accounts
     await pool.query(
       "DELETE from statements WHERE account_id=$1 OR account_id=$2",
-      [account_id1, account_id2]
+      [account_id1, account_id2],
     );
     await pool.query(
       `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
                       values('month',NOW()-interval '1 day',$1,-25,25,1,0,0)
       `,
-      [account_id1]
+      [account_id1],
     );
 
     await createCredit({ account_id: account_id1, amount: 10 });
     collect.length = 0;
     await maintainAutomaticPayments();
     expect(new Set(collect)).toEqual(
-      new Set([{ account_id: account_id1, amount: 25 }])
+      new Set([{ account_id: account_id1, amount: 25 }]),
     );
   });
 
@@ -165,16 +166,54 @@ describe("testing automatic payments in several situations", () => {
     // clean up all the statements for these two accounts
     await pool.query(
       "DELETE from statements WHERE account_id=$1 OR account_id=$2",
-      [account_id1, account_id2]
+      [account_id1, account_id2],
     );
     await pool.query(
       `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
                       values('day',NOW()-interval '1 day',$1,-389,389,1,0,0)
       `,
-      [account_id1]
+      [account_id1],
     );
     collect.length = 0;
     await maintainAutomaticPayments();
     expect(collect).toEqual([]);
+  });
+
+  it("creates a new user with a statement that has a |balance| less than pay_as_you_go_min_payment, and sees that it dos not get automatically billed because it is so small. Then make a second statement so the new running |balance| is 1+pay_as_you_go_min_payment, and see that user DOES get billed.", async () => {
+    const { pay_as_you_go_min_payment } = await getServerSettings();
+    const account_id = uuid();
+    await createTestAccount(account_id);
+    await pool.query(
+      "UPDATE accounts SET stripe_usage_subscription='foo' WHERE account_id=$1",
+      [account_id],
+    );
+    await pool.query(
+      `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
+                      values('month',NOW(),$1,$2,$3,1,0,0)
+      `,
+      [
+        account_id,
+        -(pay_as_you_go_min_payment - 1),
+        pay_as_you_go_min_payment - 1,
+      ],
+    );
+    collect.length = 0;
+    await maintainAutomaticPayments();
+    expect(collect).toEqual([]);
+
+    await pool.query(
+      `INSERT INTO statements(interval,time,account_id,balance,total_charges,num_charges,total_credits,num_credits)
+                      values('month',NOW(),$1,$2,2,1,0,0)
+      `,
+      [account_id, -(pay_as_you_go_min_payment + 1)],
+    );
+    collect.length = 0;
+    await maintainAutomaticPayments();
+    expect(collect).toEqual([
+      {
+        account_id,
+        amount: pay_as_you_go_min_payment + 1,
+      },
+    ]);
   });
 });

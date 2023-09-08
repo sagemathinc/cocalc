@@ -24,7 +24,7 @@ export async function setPurchaseQuota({
       `you cannot change the quota for the service "${QUOTA_SPEC[service].display}"`
     );
   }
-  if (typeof value != "number" || !isFinite(value) || value < 0) {
+  if (typeof value != "number" || !Number.isFinite(value) || value < 0) {
     throw Error(`value must be a nonnegative number but it is "${value}"`);
   }
   const { services } = await getPurchaseQuotas(account_id);

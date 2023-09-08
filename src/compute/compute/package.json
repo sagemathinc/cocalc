@@ -1,18 +1,26 @@
 {
   "name": "@cocalc/compute",
-  "version": "0.1.0",
+  "version": "0.1.6",
   "description": "CoCalc remote compute provider -- connects to project and provides remote compute",
   "exports": {
-    "./*": "./dist/*.js",
-    "./jupyter": "./dist/jupyter/index.js",
-    "./jupyter/*": "./dist/jupyter/*.js"
+    ".": "./dist/lib/index.js"
   },
-  "main": "./dist/lib/index.js",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "clean": "rm -rf dist node_modules",
+    "make": "pnpm install && pnpm run build",
     "build": "npx tsc",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
+  "bin": {
+    "cocalc-compute-start": "./bin/start.js"
+  },
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
   "keywords": [
     "cocalc",
@@ -20,12 +28,18 @@
   ],
   "license": "SEE LICENSE.md",
   "dependencies": {
+    "@cocalc/api-client": "workspace:*",
     "@cocalc/backend": "workspace:*",
+    "@cocalc/compute": "link:",
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
-    "@cocalc/api-client": "workspace:*",
-    "@cocalc/util": "workspace:*"
+    "@cocalc/terminal": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "@types/cookie": "^0.5.1",
+    "cookie": "^0.5.0",
+    "tmp-promise": "^3.0.3",
+    "websocketfs": "^0.7.1"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/compute",
   "repository": {
@@ -33,6 +47,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/node": "^18.16.14"
+    "@types/node": "^18.16.14",
+    "typescript": "^5.2.2"
   }
 }

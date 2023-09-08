@@ -8,7 +8,7 @@ export function tasks({
   project_id: string;
   path: string;
 }): SyncDB {
-  const c = new SyncClient();
+  const c = new SyncClient({ project_id });
   const s = c.sync_client.sync_db({
     project_id,
     path,

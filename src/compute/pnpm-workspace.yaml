@@ -1,0 +1,9 @@
+packages:
+  - "api-client"
+  - "backend"
+  - "jupyter"
+  - "sync"
+  - "sync-client"
+  - "util"
+  - "terminal"
+  - "compute"

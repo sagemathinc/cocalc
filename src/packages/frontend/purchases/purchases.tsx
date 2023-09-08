@@ -273,7 +273,7 @@ export function PurchasesTable({
       </div>
       {showTotal && total != null && (
         <div style={{ fontSize: "12pt", marginTop: "15px" }}>
-          Total of Displayed Costs: ${total.toFixed(2)}
+          Total of Displayed Costs: ${(-total).toFixed(2)}
         </div>
       )}
     </div>

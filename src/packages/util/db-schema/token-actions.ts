@@ -40,14 +40,19 @@ import tokenGenerator from "voucher-code-generator";
 
 interface CancelSubscription {
   type: "cancel-subscription";
-  account_id: string;
   subscription_id: number;
+}
+
+interface Error {
+  type: "error";
 }
 
 export interface MakePayment {
   type: "make-payment";
-  account_id: string;
-  amount: number;
+  account_id: string; // account in which to put the money
+  amount: number; // amount of credit to create
+  reason: string; // description of why making the payment
+  paid?: number; // time in ms since epoch when payment completed
 }
 
 interface DisableDailyStatements {
@@ -55,10 +60,19 @@ interface DisableDailyStatements {
   account_id: string;
 }
 
+export interface StudentPay {
+  type: "student-pay";
+  account_id: string;
+  project_id: string;
+  paid?: number; // time in ms since epoch when payment completed
+}
+
 export type Description =
+  | Error
   | CancelSubscription
   | MakePayment
-  | DisableDailyStatements;
+  | DisableDailyStatements
+  | StudentPay;
 
 export interface TokenAction {
   token: string;

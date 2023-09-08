@@ -25,7 +25,7 @@ interface Props {
   selectedExt?: string;
 }
 
-const delayShow = 1500;
+export const delayShow = 1500;
 
 // Use Rows and Cols to append more buttons to this class.
 // Could be changed to auto adjust to a list of pre-defined button names.

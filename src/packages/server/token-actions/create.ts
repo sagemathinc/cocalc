@@ -7,14 +7,14 @@ import siteURL from "@cocalc/server/settings/site-url";
 export default async function createTokenAction(
   description: Description,
   expire?: Date
-): Promise<{ token: string; type: string }> {
+): Promise<string> {
   const pool = getPool();
   const token = generateToken();
   await pool.query(
     "INSERT INTO token_actions(token, expire, description) VALUES($1,$2,$3)",
     [token, expire ?? dayjs().add(3, "days").toDate(), description]
   );
-  return { token, type: description.type };
+  return token;
 }
 
 export async function disableDailyStatements(
@@ -28,16 +28,8 @@ export async function disableDailyStatements(
   );
 }
 
-export async function getTokenUrl({
-  token,
-  type,
-}: {
-  token: string;
-  type: string;
-}): Promise<string> {
-  return `${await siteURL()}/token?token=${token}&type=${encodeURIComponent(
-    type
-  )}`;
+export async function getTokenUrl(token: string): Promise<string> {
+  return `${await siteURL()}/token/${token}`;
 }
 
 export async function getResultUrl(result: string): Promise<string> {
@@ -47,6 +39,7 @@ export async function getResultUrl(result: string): Promise<string> {
 export async function makePayment(opts: {
   account_id: string;
   amount: number;
+  reason: string;
 }): Promise<string> {
   return await getTokenUrl(
     await createTokenAction({
@@ -56,14 +49,13 @@ export async function makePayment(opts: {
   );
 }
 
-export async function cancelSubscription(opts: {
-  account_id: string;
-  subscription_id: number;
-}): Promise<string> {
+export async function cancelSubscription(
+  subscription_id: number
+): Promise<string> {
   return await getTokenUrl(
     await createTokenAction({
       type: "cancel-subscription",
-      ...opts,
+      subscription_id,
     })
   );
 }

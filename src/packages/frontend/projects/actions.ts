@@ -31,6 +31,7 @@ import { load_all_projects, switch_to_project } from "./table";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import api from "@cocalc/frontend/client/api";
 import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
+import startProjectPayg from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 
 import type {
   CourseInfo,
@@ -906,7 +907,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   // return true, if it actually started the project
-  public async start_project(project_id: string): Promise<boolean> {
+  public async start_project(
+    project_id: string,
+    options: { disablePayAsYouGo?: boolean } = {}
+  ): Promise<boolean> {
     if (!(await allow_project_to_run(project_id))) {
       return false;
     }
@@ -914,6 +918,20 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (state == "starting" || state == "running" || state == "stopping") {
       return false;
     }
+    if (!options.disablePayAsYouGo) {
+      const quota = store
+        .getIn([
+          "project_map",
+          project_id,
+          "pay_as_you_go_quotas",
+          webapp_client.account_id ?? "",
+        ])
+        ?.toJS();
+      if (quota?.enabled) {
+        return await startProjectPayg({ project_id, quota });
+      }
+    }
+
     let did_start = false;
     const t0 = webapp_client.server_time().getTime();
     const action_request = this.current_action_request(project_id);
@@ -986,7 +1004,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     return did_stop;
   }
 
-  public async restart_project(project_id: string): Promise<void> {
+  public async restart_project(project_id: string, options?): Promise<void> {
     if (!(await allow_project_to_run(project_id))) {
       return;
     }
@@ -997,7 +1015,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     if (state == "running") {
       await this.stop_project(project_id);
     }
-    await this.start_project(project_id);
+    await this.start_project(project_id, options);
   }
 
   // Explcitly set whether or not project is hidden for the given account

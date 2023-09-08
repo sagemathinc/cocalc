@@ -13,6 +13,8 @@ import {
   Product,
 } from "lib/styles/layouts";
 const { Text } = Typography;
+import basePath from "lib/base-path";
+import { join } from "path";
 
 export default function Overview() {
   return (
@@ -22,14 +24,6 @@ export default function Overview() {
       <h2 style={{ marginBottom: "30px" }}>Billing Management</h2>
 
       <OverviewRow>
-        <Product
-          icon="credit-card"
-          title="Payment Methods"
-          href="/billing/cards"
-        >
-          Add, remove, or change your <Text strong>credit cards</Text>
-        </Product>
-
         <Product
           icon="calendar"
           title="Subscriptions"
@@ -48,20 +42,32 @@ export default function Overview() {
           <Text strong>receipts</Text>
         </Product>
 
-        <Product icon="key" title="Manage Licenses" href="/licenses/managed">
-          View and manage your licenses
-          <br />
-          <Text type="secondary">
-            (in <A href={"/licenses"}>Licenses</A>)
-          </Text>
+        <Product
+          icon="edit"
+          title="Manage Licenses"
+          href={join(basePath, "/settings/licenses")}
+          external
+        >
+          View and manage your licenses and see licensed projects you
+          collaborate on
+        </Product>
+
+        <Product
+          icon="credit-card"
+          title="Payment Methods"
+          href="/billing/cards"
+        >
+          Add, remove, or change your <Text strong>credit cards</Text>
         </Product>
       </OverviewRow>
 
       <p>
         You can also <A href="/store/site-license">buy a license</A> at{" "}
         <A href="/store">the store</A> and browse{" "}
-        <A href="/licenses/managed">your existing licenses</A> and{" "}
-        <A href="/vouchers/redeemed">vouchers you have redeemed</A>.
+        <A external href="/settings/licenses">
+          your existing licenses
+        </A>{" "}
+        and <A href="/vouchers/redeemed">vouchers you have redeemed</A>.
       </p>
       <p>
         More general, you can also read{" "}

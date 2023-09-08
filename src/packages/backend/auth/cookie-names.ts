@@ -12,16 +12,23 @@ setting the following environment variable:
 */
 
 import basePath from "@cocalc/backend/base-path";
+import getLogger from "@cocalc/backend/logger";
+
+const log = getLogger("cookie-names");
 
 // Name of user provided remember_me cookie -- this is http-only and gets set
 // when the user is signed in.
-export const REMEMBER_ME_COOKIE_NAME = process.env.COCALC_REMEMBER_ME_COOKIE_NAME ?? `${
-  basePath.length <= 1 ? "" : encodeURIComponent(basePath)
-}remember_me`;
+export const REMEMBER_ME_COOKIE_NAME =
+  process.env.COCALC_REMEMBER_ME_COOKIE_NAME ??
+  `${basePath.length <= 1 ? "" : encodeURIComponent(basePath)}remember_me`;
+
+log.debug("REMEMBER_ME_COOKIE_NAME", REMEMBER_ME_COOKIE_NAME);
 
 // Name of user provided api key cookie, with appropriate base path.
 // This is set by the user when using the api from node.js, especially
 // via a websocket.
-export const API_COOKIE_NAME = process.env.COCALC_API_COOKIE_NAME ?? `${
-  basePath.length <= 1 ? "" : encodeURIComponent(basePath)
-}api_key`;
+export const API_COOKIE_NAME =
+  process.env.COCALC_API_COOKIE_NAME ??
+  `${basePath.length <= 1 ? "" : encodeURIComponent(basePath)}api_key`;
+
+log.debug("API_COOKIE_NAME", API_COOKIE_NAME);

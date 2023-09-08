@@ -5,7 +5,7 @@ with that license exactly as prescribed by "student pay" for a course.
 This fails if:
 
  - The user doesn't have sufficient funds on their account to pay for the license.
- - The user is not the STUDENT that the project is meant for.
+ - The user is not the STUDENT that the project is meant for, or allowOther is set.
  - The course fee was already paid.
 
 Everything is done in a single atomic transaction.
@@ -23,17 +23,24 @@ import { assertPurchaseAllowed } from "./is-purchase-allowed";
 import setCourseInfo from "@cocalc/server/projects/course/set-course-info";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
+import type { StudentPay } from "@cocalc/util/db-schema/token-actions";
+import createTokenAction, {
+  getTokenUrl,
+} from "@cocalc/server/token-actions/create";
+import dayjs from "dayjs";
 
 const logger = getLogger("purchases:student-pay");
 
 interface Options {
   account_id: string;
   project_id: string;
+  allowOther?: boolean; //
 }
 
 export default async function studentPay({
   account_id,
   project_id,
+  allowOther,
 }: Options): Promise<{ purchase_id: number }> {
   logger.debug({ account_id, project_id });
   const client = await getTransactionClient();
@@ -50,8 +57,11 @@ export default async function studentPay({
       throw Error("no such project");
     }
     const currentCourse: CourseInfo | undefined = rows[0].course;
+    if (currentCourse == null) {
+      throw Error("course fee not configured for this project");
+    }
     // ensure account_id matches the student; this also ensures that currentCourse is not null.
-    if (currentCourse?.account_id != account_id) {
+    if (!allowOther && currentCourse?.account_id != account_id) {
       throw Error(`only ${account_id} can pay the course fee`);
     }
     if (currentCourse.paid) {
@@ -130,7 +140,9 @@ export default async function studentPay({
   }
 }
 
-export function getCost(purchaseInfo: PurchaseInfo): number {
+export function getCost(
+  purchaseInfo: PurchaseInfo = DEFAULT_PURCHASE_INFO
+): number {
   const cost = purchaseInfo?.cost;
   if (cost == null) {
     return compute_cost(purchaseInfo).discounted_cost;
@@ -140,4 +152,16 @@ export function getCost(purchaseInfo: PurchaseInfo): number {
     return cost;
   }
   return cost.discounted_cost;
+}
+
+export async function studentPayLink({
+  account_id,
+  project_id,
+}: Options): Promise<string> {
+  return await getTokenUrl(
+    await createTokenAction(
+      { type: "student-pay", account_id, project_id } as StudentPay,
+      dayjs().add(1, "week").toDate()
+    )
+  );
 }

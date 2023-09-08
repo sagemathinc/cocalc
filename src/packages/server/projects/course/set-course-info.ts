@@ -3,11 +3,11 @@ Set the course info about a student project.
 
 This is the course field in the projects table.
 
-For security reasons, this function does a lot more than 
+For security reasons, this function does a lot more than
 just set the course field as requested:
 
 - If the account_id requesting the change is not a collaborator on
-course.project_id, for the current value of the course filed, then
+course.project_id, for the current value of the course field, then
 the request is rejected.   This is because the teacher and TA's
 are the collaborators on course.project_id, and only they should
 be able to change the course field.

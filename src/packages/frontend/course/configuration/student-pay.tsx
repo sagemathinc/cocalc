@@ -190,6 +190,7 @@ export default function StudentPay({ actions, settings }) {
                     </div>
                     <Divider>Configuration</Divider>
                     <LicenseEditor
+                      noCancel
                       cellStyle={{ padding: 0, margin: "-10px 0" }}
                       info={info}
                       onChange={setInfo}

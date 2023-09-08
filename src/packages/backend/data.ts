@@ -52,7 +52,14 @@ export let apiServer: string = process.env.API_SERVER ?? "";
 export let apiBasePath: string = process.env.API_BASE_PATH
   ? process.env.API_BASE_PATH
   : "/";
-delete process.env.API_KEY; // reduce chances of it leaking.
+
+// Delete API_KEY from environment to reduce chances of it leaking, e.g., to
+// spawned terminal subprocess.
+// Important note: It's critical that only one version of the @cocalc/backend
+// package is being used, or some parts of the code will get the API_KEY and
+// others will not.
+delete process.env.API_KEY;
+
 export function setApi({
   key,
   server,
@@ -79,12 +86,12 @@ function sanityChecks() {
   // Do a sanity check on projects:
   if (!projects.includes("[project_id]")) {
     throw Error(
-      `${DEFINITION}\n\nenv variable PROJECTS must contain "[project_id]" but it is "${process.env.PROJECTS}"`
+      `${DEFINITION}\n\nenv variable PROJECTS must contain "[project_id]" but it is "${process.env.PROJECTS}"`,
     );
   }
   if ((blobstore as any) != "sqlite" && (blobstore as any) != "disk") {
     throw Error(
-      "If set, COCALC_JUPYTER_BLOBSTORE_IMPL must be 'sqlite' or 'disk'"
+      "If set, COCALC_JUPYTER_BLOBSTORE_IMPL must be 'sqlite' or 'disk'",
     );
   }
   checkApiServer(apiServer);

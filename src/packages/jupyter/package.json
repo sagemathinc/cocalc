@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/jupyter",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "CoCalc Jupyter -- code to support using Jupyter in cocalc, mainly across all clients",
   "exports": {
     "./*": "./dist/*.js",
@@ -24,6 +24,12 @@
     "test": "pnpm exec jest dist",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
   "keywords": [
     "cocalc",

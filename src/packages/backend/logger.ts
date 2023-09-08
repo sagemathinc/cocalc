@@ -23,6 +23,9 @@ const COCALC = debug("cocalc");
 
 let _trimLogFileSizePath = "";
 export function trimLogFileSize() {
+  // THIS JUST DOESN'T REALLY WORK!
+  return;
+  
   if (!_trimLogFileSizePath) return;
   let stats;
   try {

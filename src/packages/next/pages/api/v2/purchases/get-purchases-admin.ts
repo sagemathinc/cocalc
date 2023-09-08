@@ -38,7 +38,9 @@ async function get(req) {
     day_statement_id,
     month_statement_id,
     no_statement,
-  } = getParams(req);
+    includeName,
+  } = getParams(req, { allowGet: true });
+
   return await getPurchases({
     cutoff,
     thisMonth,
@@ -51,5 +53,6 @@ async function get(req) {
     day_statement_id,
     month_statement_id,
     no_statement,
+    includeName,
   });
 }
