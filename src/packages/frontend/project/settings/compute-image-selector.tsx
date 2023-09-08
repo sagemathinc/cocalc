@@ -6,14 +6,15 @@
 // This is for selecting the "standard" compute images Ubuntu XX.YY, etc.
 
 import { DownOutlined } from "@ant-design/icons";
-import { Button, Dropdown, MenuProps, Col, Row } from "antd";
+import { Button, Col, Dropdown, MenuProps, Row } from "antd";
 import { fromJS } from "immutable";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Gap, Text } from "@cocalc/frontend/components";
+import { Gap, Icon, Loading, Text } from "@cocalc/frontend/components";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -172,7 +173,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
       return (
         <Row gutter={[10, 10]} style={{ marginRight: 0, marginLeft: 0 }}>
           <Col xs={24}>
-            <Icon name={"hdd"} style={{ marginTop: "5px" }} />
+            <Icon name={SOFTWARE_ENVIRONMENT_ICON} style={{ marginTop: "5px" }} />
             <Gap />
             Selected image
             <Gap />
@@ -191,7 +192,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
       return (
         <Row gutter={[10, 10]}>
           <Col xs={24}>
-            <Icon name={"hdd"} />
+            <Icon name={SOFTWARE_ENVIRONMENT_ICON} />
             <Gap />
             <span style={{ fontSize: "12pt", fontWeight: "bold" }}>
               {render_selector()}
