@@ -49,7 +49,7 @@ export default function init(
         api_key,
         logger,
         database,
-        compute_server: projectControl,
+        projectControl,
         ip_address: req.ip,
       });
       res.send(resp);

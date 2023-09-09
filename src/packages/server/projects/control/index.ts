@@ -58,7 +58,7 @@ export default function init(mode?: CocalcMode): ProjectControlFunction {
   }
   winston.info(`project controller created with mode ${mode}`);
   const database = db();
-  database.compute_server = getProject;
+  database.getProject = getProject;
 
   // This is used by the database when handling certain writes to make sure
   // that the there is a connection to the corresponding project, so that

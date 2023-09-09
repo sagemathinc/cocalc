@@ -6,10 +6,10 @@
 import { reuseInFlight } from "async-await-utils/hof";
 import LRU from "lru-cache";
 import { Pool } from "pg";
-
 import { sha1 } from "@cocalc/backend/misc_node";
 import getPool from "@cocalc/database/pool";
 import { is_array } from "@cocalc/util/misc";
+import lodash from "lodash";
 
 /* Some random little utils */
 
@@ -61,10 +61,10 @@ export class LRUQueryCache {
   }
 
   public query = reuseInFlight(
-    async <T>(
+    async <T,>(
       query: string,
       args: (string | number | Date)[] = [],
-      cached = true
+      cached = true,
     ): Promise<T[]> => {
       const key = sha1(JSON.stringify([query, ...args]));
 
@@ -76,13 +76,13 @@ export class LRUQueryCache {
       const { rows } = await this.pool.query(query, args);
       this.cache.set(key, rows);
       return rows;
-    }
+    },
   );
 
   public async queryOne<T = any>(
     query: string,
     args: (string | number | Date)[] = [],
-    cached = true
+    cached = true,
   ): Promise<T | null> {
     const rows = await this.query(query, args, cached);
     // NOTE: fallback to "null" is there to avoid serialization errors with next.js
@@ -92,4 +92,9 @@ export class LRUQueryCache {
   public clear(): void {
     this.cache.clear();
   }
+}
+
+// removes the field:null to reduce bandwidth usage
+export function stripNullFields(rows) {
+  return rows.map((row) => lodash.omitBy(row, lodash.isNull)) as any[];
 }

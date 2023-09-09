@@ -19,12 +19,10 @@
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
+    "clean": "rm -rf node_modules dist",
     "build": "npx tsc",
     "tsc": "npx tsc --watch",
     "test": "npx jest dist/",
@@ -35,9 +33,11 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/database": "workspace:*",
+    "@cocalc/gcloud-pricing-calculator": "^0.6.0",
     "@cocalc/hub": "workspace:*",
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@google-cloud/compute": "^4.0.1",
     "@passport-next/passport-google-oauth2": "^1.0.0",
     "@passport-next/passport-oauth2": "^2.1.4",
     "@sendgrid/mail": "^7.5.0",
@@ -57,6 +57,7 @@
     "gpt3-tokenizer": "^1.1.5",
     "json-stable-stringify": "^1.0.1",
     "jwt-decode": "^3.1.2",
+    "lambda-cloud-node-api": "^1.0.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "node-zendesk": "^2.2.0",
