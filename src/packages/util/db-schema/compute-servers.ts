@@ -13,7 +13,7 @@ export type Cloud =
   | "user"
   | "core-weave"
   | "lambda-cloud"
-  | "gcp"
+  | "google-cloud"
   | "aws"
   | "fluid-stack"
   | "test";
@@ -94,7 +94,7 @@ export interface ComputeServer {
   error?: string;
   state?: State;
   idle_timeout?: number;
-  // GCP has a new "Time limit" either by hour or by date, which seems like a great idea!
+  // google-cloud has a new "Time limit" either by hour or by date, which seems like a great idea!
   // time_limit
   autorestart?: boolean;
   cloud: Cloud;
@@ -164,7 +164,7 @@ Table({
     cloud: {
       type: "string",
       pg_type: "varchar(30)",
-      desc: "The cloud where this compute server runs: 'user', 'coreweave', 'lambda', 'gcp', 'aws', 'fluidstack'.",
+      desc: "The cloud where this compute server runs: 'user', 'coreweave', 'lambda', 'google-cloud', 'aws', 'fluidstack'.",
     },
     configuration: {
       type: "map",

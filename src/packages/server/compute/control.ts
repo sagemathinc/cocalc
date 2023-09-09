@@ -11,6 +11,7 @@ import * as testCloud from "./cloud/testcloud";
 import * as fluidStack from "./cloud/fluid-stack";
 import * as coreWeave from "./cloud/core-weave";
 import * as lambdaCloud from "./cloud/lambda-cloud";
+import * as googleCloud from "./cloud/google-cloud";
 import type {
   Cloud,
   ComputeServer,
@@ -37,22 +38,7 @@ export async function start({
   try {
     await setError(id, "");
     await setState(id, "starting");
-    switch (server.cloud) {
-      case "test":
-        await testCloud.start(server);
-        break;
-      case "core-weave":
-        await coreWeave.start(server);
-        break;
-      case "fluid-stack":
-        await fluidStack.start(server);
-        break;
-      case "lambda-cloud":
-        await lambdaCloud.start(server);
-        break;
-      default:
-        throw Error(`cloud '${server.cloud}' not currently supported`);
-    }
+    await doStart(server);
     // do not block on this
     (async () => {
       try {
@@ -64,6 +50,23 @@ export async function start({
   } catch (err) {
     await setState(id, "unknown");
     await setError(id, `${err}`);
+  }
+}
+
+async function doStart(server: ComputeServer) {
+  switch (server.cloud) {
+    case "test":
+      return await testCloud.start(server);
+    case "core-weave":
+      return await coreWeave.start(server);
+    case "fluid-stack":
+      return await fluidStack.start(server);
+    case "google-cloud":
+      return await googleCloud.start(server);
+    case "lambda-cloud":
+      return await lambdaCloud.start(server);
+    default:
+      throw Error(`cloud '${server.cloud}' not currently supported`);
   }
 }
 
@@ -83,22 +86,7 @@ export async function stop({
   try {
     await setError(id, "");
     await setState(id, "stopping");
-    switch (server.cloud) {
-      case "test":
-        await testCloud.stop(server);
-        break;
-      case "core-weave":
-        await coreWeave.stop(server);
-        break;
-      case "fluid-stack":
-        await fluidStack.stop(server);
-        break;
-      case "lambda-cloud":
-        await lambdaCloud.stop(server);
-        break;
-      default:
-        throw Error(`cloud '${server.cloud}' not currently supported`);
-    }
+    await doStop(server);
     // do not block on this
     (async () => {
       try {
@@ -110,6 +98,23 @@ export async function stop({
   } catch (err) {
     await setState(id, "unknown");
     await setError(id, `${err}`);
+  }
+}
+
+async function doStop(server: ComputeServer) {
+  switch (server.cloud) {
+    case "test":
+      return await testCloud.stop(server);
+    case "core-weave":
+      return await coreWeave.stop(server);
+    case "fluid-stack":
+      return await fluidStack.stop(server);
+    case "google-cloud":
+      return await googleCloud.stop(server);
+    case "lambda-cloud":
+      return await lambdaCloud.stop(server);
+    default:
+      throw Error(`cloud '${server.cloud}' not currently supported`);
   }
 }
 
@@ -132,29 +137,30 @@ export const state: (opts: {
 
 async function getCloudServerState(server: ComputeServer): Promise<State> {
   try {
-    let state;
-    switch (server.cloud) {
-      case "test":
-        state = await testCloud.state(server);
-        break;
-      case "core-weave":
-        state = await coreWeave.state(server);
-        break;
-      case "fluid-stack":
-        state = await fluidStack.state(server);
-        break;
-      case "lambda-cloud":
-        state = await lambdaCloud.state(server);
-        break;
-      default:
-        throw Error(`cloud '${server.cloud}' not currently supported`);
-    }
+    const state = await doState(server);
     await setState(server.id, state);
     return state;
   } catch (err) {
     await setError(server.id, `${err}`);
     await setState(server.id, "unknown");
     return "unknown";
+  }
+}
+
+async function doState(server: ComputeServer): Promise<State> {
+  switch (server.cloud) {
+    case "test":
+      return await testCloud.state(server);
+    case "core-weave":
+      return await coreWeave.state(server);
+    case "fluid-stack":
+      return await fluidStack.state(server);
+    case "google-cloud":
+      return await googleCloud.state(server);
+    case "lambda-cloud":
+      return await lambdaCloud.state(server);
+    default:
+      throw Error(`cloud '${server.cloud}' not currently supported`);
   }
 }
 
