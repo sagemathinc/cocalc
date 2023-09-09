@@ -126,7 +126,6 @@ export type SiteSettingsExtrasKeys =
   | "lambda_cloud_api_key"
   | "coreweave_kubeconfig"
   | "google_cloud_service_account_json"
-  | "google_cloud_project_id"
   | "fluidstack_api_key"
   | "fluidstack_api_token"
   | "amazon_web_services_access_key"

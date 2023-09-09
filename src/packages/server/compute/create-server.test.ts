@@ -59,7 +59,7 @@ describe("creates account, project and then compute servers in various ways", ()
       color: "red",
       idle_timeout: 60 * 15,
       autorestart: true,
-      cloud: "gcp",
+      cloud: "google-cloud",
     } as const;
     const id = await createServer({
       account_id,
