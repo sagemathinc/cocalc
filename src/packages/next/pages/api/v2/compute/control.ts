@@ -3,8 +3,8 @@ Controlling compute servers
 */
 
 import getAccountId from "lib/account/get-account";
-import { start, stop, state } from "@cocalc/server/compute/control";
-import getParams from "lib/api/get-params";
+//import { start, stop, state } from "@cocalc/server/compute/control";
+//import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
   try {
@@ -20,16 +20,19 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  const { id, action } = getParams(req);
+  throw Error("NOT implemented yet");
+  //   const { id, action } = getParams(req);
 
-  switch (action) {
-    case "start":
-      return await start({ id, account_id });
-    case "stop":
-      return await stop({ id, account_id });
-    case "state": // update the state by using the cloud provider api
-      return { state: await state({ id, account_id }) };
-    default:
-      throw Error(`unknown action ${action}`);
-  }
+  //   // disable this for now, obviously!
+
+  //   switch (action) {
+  //     case "start":
+  //       return await start({ id, account_id });
+  //     case "stop":
+  //       return await stop({ id, account_id });
+  //     case "state": // update the state by using the cloud provider api
+  //       return { state: await state({ id, account_id }) };
+  //     default:
+  //       throw Error(`unknown action ${action}`);
+  //   }
 }

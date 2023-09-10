@@ -186,7 +186,6 @@ export async function state(server: ComputeServer): Promise<State> {
       instance,
     });
   } catch (err) {
-    console.log(err.message);
     if (err.message.includes("not found")) {
       return "off";
     }
