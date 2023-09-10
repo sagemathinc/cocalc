@@ -74,13 +74,29 @@ interface FluidStackConfiguration {
   os: string;
 }
 
+const GOOGLE_CLOUD_ACCELERATOR_TYPES = [
+  "nvidia-a100-80gb",
+  "nvidia-tesla-a100",
+  "nvidia-l4",
+  "nvidia-tesla-t4",
+  "nvidia-tesla-v100",
+  "nvidia-tesla-p4",
+  "nvidia-tesla-p100",
+  "nvidia-tesla-k80",
+];
+
 interface GoogleCloudConfiguration {
   cloud: "google-cloud";
-  machineType: string;
   zone: string;
   region: string;
+  machineType: string;
+  // Ues a spot instance if spot is true.
   spot?: boolean;
+  // diskSizeGb is an integer >= 10.  It defaults to 10. It's the size of the boot disk.
   diskSizeGb?: number;
+  acceleratorType?: (typeof GOOGLE_CLOUD_ACCELERATOR_TYPES)[number];
+  // the allowed number depends on the accelerator; it defaults to 1.
+  acceleratorCount?: number;
 }
 
 export type Configuration =

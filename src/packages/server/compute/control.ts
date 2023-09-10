@@ -31,11 +31,16 @@ export async function start({
   account_id: string;
   id: number;
 }) {
-  const server = await getServer({ account_id, id });
+  let server = await getServer({ account_id, id });
   if (server.state != null && server.state != "off") {
-    throw Error(
-      "server must be in state 'off' (or not set) before starting it",
-    );
+    // try one more time:
+    await state({ account_id, id });
+    server = await getServer({ account_id, id });
+    if (server.state != null && server.state != "off") {
+      throw Error(
+        "server must be in state 'off' (or not set) before starting it",
+      );
+    }
   }
   try {
     await setError(id, "");
@@ -74,11 +79,11 @@ export async function stop({
   id: number;
 }) {
   const server = await getServer({ account_id, id });
-  if (server.state != null && server.state != "running") {
-    throw Error(
-      "server must be in state 'running' (or null) before stopping it",
-    );
-  }
+  //   if (server.state != null && server.state != "running") {
+  //     throw Error(
+  //       "server must be in state 'running' (or null) before stopping it",
+  //     );
+  //   }
   try {
     await setError(id, "");
     await setState(id, "stopping");

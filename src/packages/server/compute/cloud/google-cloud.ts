@@ -1,7 +1,10 @@
 /*
-> a = require('./dist/compute/create-server')
-> await a.default({account_id:'15143a10-43f2-48d6-b9cb-63c6111524ba',project_id:'34ce85cd-b4ad-4786-a8f0-67fa9c729b4f',cloud:'google-cloud',configuration:{machineType:'e2-highmem-2',region:'us-west4',zone:'us-west4-a',spot:true, diskSizeGb:15,cloud:'google-cloud'}})
-3
+a = require('./dist/compute/create-server'); await a.default({account_id:'15143a10-43f2-48d6-b9cb-63c6111524ba',project_id:'34ce85cd-b4ad-4786-a8f0-67fa9c729b4f',cloud:'google-cloud',configuration:{machineType:'n1-standard-4',region:'us-central1',zone:'us-central1-c'',spot:true, diskSizeGb:15,cloud:'google-cloud'}})
+
+
+
+a = require('./dist/compute/create-server'); await a.default({account_id:'15143a10-43f2-48d6-b9cb-63c6111524ba',project_id:'34ce85cd-b4ad-4786-a8f0-67fa9c729b4f',cloud:'google-cloud',configuration: {"spot": true, "zone": "us-central1-a", "cloud": "google-cloud", "region": "us-central1", "diskSizeGb": 50, "machineType": "n1-standard-2", "acceleratorType": "nvidia-tesla-t4", "acceleratorCount": 1}});
+
 */
 
 import type {
@@ -63,6 +66,10 @@ export async function start(server: ComputeServer) {
   const name = getServerName(server);
   logger.debug("creating google cloud instance ", name);
 
+  if (conf.acceleratorType == "nvidia-tesla-k80") {
+    throw Error("the nvidia-tesla-k80 GPU is NOT supported");
+  }
+
   const disks = [
     {
       autoDelete: true,
@@ -114,10 +121,18 @@ export async function start(server: ComputeServer) {
       }
     : {
         automaticRestart: true,
-        instanceTerminationAction: "STOP",
-        onHostMaintenance: "MIGRATE",
+        onHostMaintenance: !conf.acceleratorType ? "MIGRATE" : "TERMINATE",
         provisioningModel: "STANDARD",
       };
+
+  const guestAccelerators = !conf.acceleratorType
+    ? []
+    : [
+        {
+          acceleratorCount: conf.acceleratorCount ?? 1,
+          acceleratorType: `projects/${googleProjectId}/zones/${conf.zone}/acceleratorTypes/${conf.acceleratorType}`,
+        },
+      ];
 
   const instanceResource = {
     name,
@@ -126,6 +141,7 @@ export async function start(server: ComputeServer) {
     networkInterfaces,
     metadata,
     scheduling,
+    guestAccelerators,
   };
 
   await client.insert({
@@ -225,7 +241,32 @@ export async function cost(server: ComputeServer): Promise<number> {
     );
   }
 
-  const total = diskCost * (conf.diskSizeGb ?? 10) + vmCost;
+  let acceleratorCost;
+  if (conf.acceleratorType) {
+    // we have 1 or more GPU!
+    const acceleratorCount = conf.acceleratorCount ?? 1;
+    // sometimes google has "tesla-" in the name, sometimest they don't,
+    // but our pricing data doesn't.
+    const acceleratorData =
+      priceData[conf.acceleratorType] ??
+      priceData[conf.acceleratorType.replace("tesla-", "")];
+    if (acceleratorData == null) {
+      throw Error(`unknown GPU accelerator ${conf.acceleratorType}`);
+    }
+    const costPer =
+      acceleratorData[conf.spot ? "spot" : "prices"]?.[conf.region];
+    logger.debug("accelerator cost per", { costPer });
+    if (costPer == null) {
+      throw Error(
+        `GPU accelerator ${conf.acceleratorType} not available in region ${conf.region}`,
+      );
+    }
+    acceleratorCost = costPer * acceleratorCount;
+  } else {
+    acceleratorCost = 0;
+  }
+
+  const total = diskCost * (conf.diskSizeGb ?? 10) + vmCost + acceleratorCost;
   logger.debug("cost", { total });
   return total;
 }
