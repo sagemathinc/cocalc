@@ -1,3 +1,9 @@
+/*
+> await a.default({account_id:'15143a10-43f2-48d6-b9cb-63c6111524ba',project_id:'34ce85cd-b4ad-4786-a8f0-67fa9c729b4f',cloud:'google-cloud',configuration:{machineType:'e2-highmem-2',region:'us-west4',zone:'us-west4-a',spot:true, diskSizeGb:15,cloud:'google-cloud'}})
+3
+> a = require('./dist/compute/create-server')
+*/
+
 import type {
   ComputeServer,
   State,
@@ -5,7 +11,7 @@ import type {
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { setData } from "../util";
 import { InstancesClient } from "@google-cloud/compute";
-import pricing from "@cocalc/gcloud-pricing-calculator";
+import * as pricing from "@cocalc/gcloud-pricing-calculator";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("server:compute:google-cloud");
@@ -180,19 +186,20 @@ export async function state(server: ComputeServer): Promise<State> {
       instance,
     });
   } catch (err) {
-    if (err.message == "not found") {
+    console.log(err.message);
+    if (err.message.includes("not found")) {
       return "off";
     }
   }
-  const { state } = response;
-  logger.debug("got GCP state", state);
-  if (state == "booting") {
+  const { status } = response;
+  logger.debug("got GCP status", status);
+  if (status == "booting") {
     return "starting";
-  } else if (state == "RUNNING") {
+  } else if (status == "RUNNING") {
     return "running";
-  } else if (state == "STOPPING") {
+  } else if (status == "STOPPING") {
     return "stopping";
-  } else if (state == "STOP") {
+  } else if (status == "STOP") {
     // TODO
     return "off";
   } else {
@@ -221,7 +228,7 @@ export async function cost(server: ComputeServer): Promise<number> {
     );
   }
 
-  const diskCost = data["disk-standard"]?.[conf.region];
+  const diskCost = priceData["disk-standard"]?.prices[conf.region];
   logger.debug("disk cost per GB", { diskCost });
   if (diskCost == null) {
     throw Error(
