@@ -42,14 +42,7 @@ export async function start({
     await setState(id, "starting");
     await setProjectApiKey({ account_id, server });
     await doStart(server);
-    // do not block on this
-    (async () => {
-      try {
-        await waitForStableState({ account_id, id, maxTime: 10 * 60 * 1000 });
-      } catch (err) {
-        await setError(id, `error waiting for stable state -- ${err}`);
-      }
-    })();
+    waitStableNoError({ account_id, id });
   } catch (err) {
     await setState(id, "unknown");
     await setError(id, `${err}`);
@@ -91,14 +84,7 @@ export async function stop({
     await setState(id, "stopping");
     await deleteProjectApiKey({ account_id, server });
     await doStop(server);
-    // do not block on this
-    (async () => {
-      try {
-        await waitForStableState({ account_id, id, maxTime: 10 * 60 * 1000 });
-      } catch (err) {
-        await setError(id, `error waiting for stable state -- ${err}`);
-      }
-    })();
+    waitStableNoError({ account_id, id });
   } catch (err) {
     await setState(id, "unknown");
     await setError(id, `${err}`);
@@ -169,6 +155,18 @@ async function doState(server: ComputeServer): Promise<State> {
       return await lambdaCloud.state(server);
     default:
       throw Error(`cloud '${server.cloud}' not currently supported`);
+  }
+}
+
+async function waitStableNoError({ account_id, id }) {
+  for (let i = 0; i < 2; i++) {
+    // wait a little for stop to not be running before querying
+    await delay(3000);
+    try {
+      await waitForStableState({ account_id, id, maxTime: 10 * 60 * 1000 });
+    } catch (err) {
+      await setError(id, `error waiting for stable state -- ${err}`);
+    }
   }
 }
 
