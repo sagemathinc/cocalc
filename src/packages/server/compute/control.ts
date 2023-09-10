@@ -51,6 +51,7 @@ export async function start({
   } catch (err) {
     await setState(id, "unknown");
     await setError(id, `${err}`);
+    throw err;
   }
 }
 
@@ -93,6 +94,7 @@ export async function stop({
   } catch (err) {
     await setState(id, "unknown");
     await setError(id, `${err}`);
+    throw err;
   }
 }
 

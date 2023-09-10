@@ -5,6 +5,9 @@ a = require('./dist/compute/create-server'); await a.default({account_id:'15143a
 
 a = require('./dist/compute/create-server'); await a.default({account_id:'15143a10-43f2-48d6-b9cb-63c6111524ba',project_id:'34ce85cd-b4ad-4786-a8f0-67fa9c729b4f',cloud:'google-cloud',configuration: {"spot": true, "zone": "us-central1-a", "cloud": "google-cloud", "region": "us-central1", "diskSizeGb": 50, "machineType": "n1-standard-2", "acceleratorType": "nvidia-tesla-t4", "acceleratorCount": 1}});
 
+
+a = require('./dist/compute/create-server'); await a.default({account_id:'15143a10-43f2-48d6-b9cb-63c6111524ba',project_id:'34ce85cd-b4ad-4786-a8f0-67fa9c729b4f',cloud:'google-cloud',configuration: {"spot": true, "zone": "us-central1-a", "cloud": "google-cloud", "region": "us-central1", "machineType": "t2a-standard-2"}});
+
 */
 
 import type {
@@ -12,11 +15,12 @@ import type {
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import { setData } from "../util";
+import { setData } from "@cocalc/server/compute/util";
 import { InstancesClient } from "@google-cloud/compute";
 import * as pricing from "@cocalc/gcloud-pricing-calculator";
-import startupScript from "./startup-script";
+import startupScript from "@cocalc/server/compute/cloud/startup-script";
 import getLogger from "@cocalc/backend/logger";
+import { supportsStandardNetworkTier } from "./util";
 
 const logger = getLogger("server:compute:google-cloud");
 
@@ -78,11 +82,9 @@ export async function start(server: ComputeServer) {
         diskSizeGb: `${conf.diskSizeGb ?? 10}`,
         diskType: `projects/${googleProjectId}/zones/${conf.zone}/diskTypes/pd-balanced`,
         labels: {},
-        sourceImage:
-          "projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20230829",
-        // TODO
-        //             sourceImage:
-        //               "projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-arm64-v20230829",
+        sourceImage: `projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-${
+          conf.machineType.startsWith("t2a-") ? "arm64-" : ""
+        }v20230829`,
       },
       mode: "READ_WRITE",
       type: "PERSISTENT",
@@ -94,7 +96,9 @@ export async function start(server: ComputeServer) {
       accessConfigs: [
         {
           name: "External NAT",
-          networkTier: "PREMIUM",
+          networkTier: supportsStandardNetworkTier(conf.region)
+            ? "STANDARD"
+            : "PREMIUM",
         },
       ],
       stackType: "IPV4_ONLY",
@@ -143,6 +147,7 @@ export async function start(server: ComputeServer) {
     scheduling,
     guestAccelerators,
   };
+  logger.debug("create instance", instanceResource);
 
   await client.insert({
     project: googleProjectId,
