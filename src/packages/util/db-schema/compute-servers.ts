@@ -74,10 +74,20 @@ interface FluidStackConfiguration {
   os: string;
 }
 
+interface GoogleCloudConfiguration {
+  cloud: "google-cloud";
+  machineType: string;
+  zone: string;
+  region: string;
+  spot?: boolean;
+  diskSizeGb?: number;
+}
+
 export type Configuration =
   | LambdaConfiguration
   | CoreWeaveConfiguration
-  | FluidStackConfiguration;
+  | FluidStackConfiguration
+  | GoogleCloudConfiguration;
 
 export type Data = any;
 

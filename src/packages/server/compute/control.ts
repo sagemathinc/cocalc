@@ -19,6 +19,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
+import getPool from "@cocalc/database/pool";
 
 const MIN_STATE_UPDATE_INTERVAL_MS = 10 * 1000;
 
@@ -213,4 +214,40 @@ function backoffParams(cloud: Cloud): {
   backoff: number;
 } {
   return BACKOFF_PARAMS[cloud] ?? BACKOFF_PARAMS["default"];
+}
+
+// Computes and returns the upstream cost we incur in usd per hour for this compute server.
+// This is often a lower bound, due to bandwidth and other hidden costs.
+export async function cost({
+  account_id,
+  id,
+}: {
+  account_id: string;
+  id: number;
+}): Promise<number> {
+  const server = await getServer({ account_id, id });
+  const cost_per_hour = await doCost(server);
+  const pool = getPool();
+  await pool.query("UPDATE compute_servers SET cost_per_hour=$1 WHERE id=$2", [
+    cost_per_hour,
+    id,
+  ]);
+  return cost_per_hour;
+}
+
+async function doCost(server: ComputeServer) {
+  switch (server.cloud) {
+    case "test":
+      return await testCloud.cost(server);
+    case "core-weave":
+      return await coreWeave.cost(server);
+    case "fluid-stack":
+      return await fluidStack.cost(server);
+    case "google-cloud":
+      return await googleCloud.cost(server);
+    case "lambda-cloud":
+      return await lambdaCloud.cost(server);
+    default:
+      throw Error(`cloud '${server.cloud}' not currently supported`);
+  }
 }

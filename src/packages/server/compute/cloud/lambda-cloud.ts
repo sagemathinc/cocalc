@@ -4,8 +4,8 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { LambdaCloudAPI } from "lambda-cloud-node-api";
-import getLogger from "@cocalc/backend/logger";
 import { setData } from "../util";
+import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("server:compute:lambda-cloud");
 
@@ -92,6 +92,11 @@ export async function state(server: ComputeServer): Promise<State> {
   } else {
     return "unknown";
   }
+}
+
+export async function cost(server: ComputeServer): Promise<number> {
+  logger.debug("cost", server);
+  throw Error("not implemented");
 }
 
 export const test = { getClient, getAvailableInstances };

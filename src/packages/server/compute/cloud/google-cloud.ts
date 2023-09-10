@@ -3,14 +3,15 @@ import type {
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import getLogger from "@cocalc/backend/logger";
 import { setData } from "../util";
-import pricing from "@cocalc/gcloud-pricing-calculator";
 import { InstancesClient } from "@google-cloud/compute";
+import pricing from "@cocalc/gcloud-pricing-calculator";
+import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("server:compute:google-cloud");
 
-let client: null | InstancesClient = null;
+let client: undefined | InstancesClient = undefined;
+let googleProjectId: undefined | string = undefined;
 export async function getClient() {
   if (client != null) {
     return client;
@@ -27,8 +28,9 @@ export async function getClient() {
   } catch (err) {
     throw Error(`The Google Cloud service account must be valid JSON - ${err}`);
   }
+  googleProjectId = serviceAccount.project_id;
   client = new InstancesClient({
-    projectId: serviceAccount.project_id,
+    projectId: googleProjectId,
     credentials: {
       client_email: serviceAccount.client_email,
       private_key: serviceAccount.private_key,
@@ -43,10 +45,14 @@ function getServerName(server: ComputeServer) {
 
 export async function start(server: ComputeServer) {
   logger.debug("start", server);
-  if (server.configuration?.cloud != "google-cloud") {
+  // make sure we can compute cost before starting
+  const cost_per_hour = await cost(server);
+  logger.debug("starting server with cost $", cost_per_hour, "/hour");
+  const conf = server.configuration;
+  if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  // TODO:
+  const client = await getClient();
   const name = getServerName(server);
   logger.debug("creating google cloud instance ", name);
 
@@ -65,18 +71,71 @@ docker run  \
    sagemathinc/compute
 `;
 
-  const zone = "us-west4-a";
-  const machineType = "e2-highmem-2";
+  const disks = [
+    {
+      autoDelete: true,
+      boot: true,
+      initializeParams: {
+        diskSizeGb: `${conf.diskSizeGb ?? 10}`,
+        diskType: `projects/${googleProjectId}/zones/${conf.zone}/diskTypes/pd-balanced`,
+        labels: {},
+        sourceImage:
+          "projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20230829",
+        // TODO
+        //             sourceImage:
+        //               "projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-arm64-v20230829",
+      },
+      mode: "READ_WRITE",
+      type: "PERSISTENT",
+    },
+  ];
+  const machineType = `zones/${conf.zone}/machineTypes/${conf.machineType}`;
+  const networkInterfaces = [
+    {
+      accessConfigs: [
+        {
+          name: "External NAT",
+          networkTier: "PREMIUM",
+        },
+      ],
+      stackType: "IPV4_ONLY",
+      subnetwork: `projects/${googleProjectId}/regions/${conf.region}/subnetworks/default`,
+    },
+  ];
+  const metadata = {
+    items: [
+      {
+        key: "startup-script",
+        value: startupScript,
+      },
+    ],
+  };
+  const scheduling = conf.spot
+    ? {
+        automaticRestart: false,
+        instanceTerminationAction: "STOP",
+        onHostMaintenance: "TERMINATE",
+        provisioningModel: "SPOT",
+      }
+    : {
+        automaticRestart: true,
+        instanceTerminationAction: "STOP",
+        onHostMaintenance: "MIGRATE",
+        provisioningModel: "STANDARD",
+      };
 
   const instanceResource = {
     name,
     disks,
-    machineType: `zones/${zone}/machineTypes/${machineType}`,
+    machineType,
+    networkInterfaces,
+    metadata,
+    scheduling,
   };
 
-  const [response] = await instancesClient.insert({
-    project: client._opts.projectId,
-    zone,
+  await client.insert({
+    project: googleProjectId,
+    zone: conf.zone,
     instanceResource,
   });
 
@@ -84,35 +143,95 @@ docker run  \
 }
 
 export async function stop(server: ComputeServer) {
-  logger.debug("top", server);
-  const instance_id = server.data?.instance_id;
-  if (!instance_id) {
+  logger.debug("stop", server);
+  const conf = server.configuration;
+  if (conf?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  const instance = server.data?.name;
+  if (!instance) {
     return;
   }
   const client = await getClient();
-  await client.terminateInstances([instance_id]);
+  await client.delete({
+    project: googleProjectId,
+    zone: conf.zone,
+    instance,
+  });
 }
 
 export async function state(server: ComputeServer): Promise<State> {
   logger.debug("state", server);
-  const instance_id = server.data?.instance_id;
-  if (!instance_id) {
+  const conf = server.configuration;
+  if (conf?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  const instance = server.data?.name;
+  if (!instance) {
     return "off";
   }
 
   const client = await getClient();
-  const instance = await client.getRunningInstance(instance_id);
-  logger.debug("state", instance);
-  await setData(server.id, { instance });
-  if (instance.status == "booting") {
+  let response;
+  try {
+    [response] = await client.get({
+      project: googleProjectId,
+      zone: conf.zone,
+      instance,
+    });
+  } catch (err) {
+    if (err.message == "not found") {
+      return "off";
+    }
+  }
+  const { state } = response;
+  logger.debug("got GCP state", state);
+  if (state == "booting") {
     return "starting";
-  } else if (instance.status == "active") {
+  } else if (state == "RUNNING") {
     return "running";
-  } else if (instance.status == "terminated") {
+  } else if (state == "STOPPING") {
+    return "stopping";
+  } else if (state == "STOP") {
+    // TODO
     return "off";
   } else {
     return "unknown";
   }
 }
 
-export const test = { getClient, getAvailableInstances };
+export async function cost(server: ComputeServer): Promise<number> {
+  logger.debug("cost", server);
+  const conf = server.configuration;
+  if (conf?.cloud != "google-cloud") {
+    throw Error("must have a google-cloud configuration");
+  }
+  const priceData = await pricing.getData();
+  const data = priceData[conf.machineType];
+  if (data == null) {
+    throw Error(
+      `unable to determine cost since machine type ${conf.machineType} is unknown`,
+    );
+  }
+  const vmCost = data[conf.spot ? "spot" : "prices"]?.[conf.region];
+  logger.debug("vm cost", { vmCost });
+  if (vmCost == null) {
+    throw Error(
+      `unable to determine cost since region pricing for machine type ${conf.machineType} is unknown`,
+    );
+  }
+
+  const diskCost = data["disk-standard"]?.[conf.region];
+  logger.debug("disk cost per GB", { diskCost });
+  if (diskCost == null) {
+    throw Error(
+      `unable to determine cost since disk cost in region ${conf.region} is unknown`,
+    );
+  }
+
+  const total = diskCost * (conf.diskSizeGb ?? 10) + vmCost;
+  logger.debug("cost", { total });
+  return total;
+}
+
+export const test = { getClient };
