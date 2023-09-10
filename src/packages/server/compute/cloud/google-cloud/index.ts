@@ -18,6 +18,8 @@ import { setData } from "@cocalc/server/compute/util";
 import getClient from "./client";
 import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
+import deleteInstance from "./delete-instance";
+import getInstanceState from "./get-instance-state";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
 import computeCost from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import getLogger from "@cocalc/backend/logger";
@@ -55,16 +57,11 @@ export async function stop(server: ComputeServer) {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const instance = server.data?.name;
-  if (!instance) {
+  const name = server.data?.name;
+  if (!name) {
     return;
   }
-  const client = await getClient();
-  await client.delete({
-    project: client.googleProjectId,
-    zone: conf.zone,
-    instance,
-  });
+  await deleteInstance({ name, zone: conf.zone });
 }
 
 export async function state(server: ComputeServer): Promise<State> {
@@ -73,39 +70,11 @@ export async function state(server: ComputeServer): Promise<State> {
   if (conf?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const instance = server.data?.name;
-  if (!instance) {
+  const name = server.data?.name;
+  if (!name) {
     return "off";
   }
-
-  const client = await getClient();
-  let response;
-  try {
-    [response] = await client.get({
-      project: client.googleProjectId,
-      zone: conf.zone,
-      instance,
-    });
-  } catch (err) {
-    if (err.message.includes("not found")) {
-      return "off";
-    }
-  }
-  const { status } = response;
-  logger.debug("got GCP status", status);
-  switch (status) {
-    case "PROVISIONING":
-    case "STAGING":
-      return "starting";
-    case "RUNNING":
-      return "running";
-    case "STOPPING":
-      return "stopping";
-    case "STOP": // ??
-      return "off";
-    default:
-      return "unknown";
-  }
+  return await getInstanceState({ name, zone: conf.zone });
 }
 
 export async function cost(server: ComputeServer): Promise<number> {
