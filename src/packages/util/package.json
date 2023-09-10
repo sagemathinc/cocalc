@@ -37,10 +37,12 @@
   "dependencies": {
     "@ant-design/colors": "^6.0.0",
     "@cocalc/util": "workspace:*",
+    "@types/debug": "^4.1.7",
     "async": "^1.5.2",
     "async-await-utils": "^3.0.1",
     "awaiting": "^3.0.0",
     "dayjs": "^1.11.7",
+    "debug": "^4.3.2",
     "events": "3.3.0",
     "get-random-values": "^1.2.0",
     "immutable": "^4.3.0",

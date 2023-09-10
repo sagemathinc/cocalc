@@ -85,7 +85,7 @@ const GOOGLE_CLOUD_ACCELERATOR_TYPES = [
   "nvidia-tesla-k80",
 ];
 
-interface GoogleCloudConfiguration {
+export interface GoogleCloudConfiguration {
   cloud: "google-cloud";
   zone: string;
   region: string;
