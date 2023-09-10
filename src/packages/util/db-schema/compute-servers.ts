@@ -96,6 +96,8 @@ export interface ComputeServer {
   account_id: string;
   project_id: string;
   name: string;
+  api_key?: string; // project level api key for the project
+  api_key_id?: number; // id of the api key (needed so we can delete it from database).
   color?: string;
   cost_per_hour?: number;
   deleted?: boolean;
@@ -149,6 +151,15 @@ Table({
     project_id: {
       type: "uuid",
       desc: "The project id that this compute server provides compute for.",
+    },
+    api_key: {
+      type: "string",
+      pg_type: "VARCHAR(128)",
+      desc: "api key to connect to the project.  This is created by the system right when we are going to create the VM, and gets deleted when we stop it.  It's not set by the user and should not be revealed to the user.",
+    },
+    api_key_id: {
+      type: "number",
+      desc: "id of the api key; needed so we can delete it from database",
     },
     state_changed: {
       type: "timestamp",

@@ -1,7 +1,7 @@
 /*
+> a = require('./dist/compute/create-server')
 > await a.default({account_id:'15143a10-43f2-48d6-b9cb-63c6111524ba',project_id:'34ce85cd-b4ad-4786-a8f0-67fa9c729b4f',cloud:'google-cloud',configuration:{machineType:'e2-highmem-2',region:'us-west4',zone:'us-west4-a',spot:true, diskSizeGb:15,cloud:'google-cloud'}})
 3
-> a = require('./dist/compute/create-server')
 */
 
 import type {
@@ -12,6 +12,7 @@ import { getServerSettings } from "@cocalc/server/settings/server-settings";
 import { setData } from "../util";
 import { InstancesClient } from "@google-cloud/compute";
 import * as pricing from "@cocalc/gcloud-pricing-calculator";
+import startupScript from "./startup-script";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("server:compute:google-cloud");
@@ -62,21 +63,6 @@ export async function start(server: ComputeServer) {
   const name = getServerName(server);
   logger.debug("creating google cloud instance ", name);
 
-  const startupScript = `
-#!/bin/bash
-
-apt update -y
-apt install -y docker.io
-docker run  \
-   -e API_KEY=${process.env.API_KEY} \
-   -e PROJECT_ID=${server.project_id} \
-   -e TERM_PATH=a.term \
-   --privileged \
-   --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
-   -v /var/run/docker.sock:/var/run/docker.sock \
-   sagemathinc/compute
-`;
-
   const disks = [
     {
       autoDelete: true,
@@ -112,7 +98,10 @@ docker run  \
     items: [
       {
         key: "startup-script",
-        value: startupScript,
+        value: startupScript({
+          api_key: server.api_key,
+          project_id: server.project_id,
+        }),
       },
     ],
   };
@@ -192,17 +181,18 @@ export async function state(server: ComputeServer): Promise<State> {
   }
   const { status } = response;
   logger.debug("got GCP status", status);
-  if (status == "booting") {
-    return "starting";
-  } else if (status == "RUNNING") {
-    return "running";
-  } else if (status == "STOPPING") {
-    return "stopping";
-  } else if (status == "STOP") {
-    // TODO
-    return "off";
-  } else {
-    return "unknown";
+  switch (status) {
+    case "PROVISIONING":
+    case "STAGING":
+      return "starting";
+    case "RUNNING":
+      return "running";
+    case "STOPPING":
+      return "stopping";
+    case "STOP": // ??
+      return "off";
+    default:
+      return "unknown";
   }
 }
 

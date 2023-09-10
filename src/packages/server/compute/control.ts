@@ -19,6 +19,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { delay } from "awaiting";
 import { reuseInFlight } from "async-await-utils/hof";
+import { setProjectApiKey, deleteProjectApiKey } from "./project-api-key";
 import getPool from "@cocalc/database/pool";
 
 const MIN_STATE_UPDATE_INTERVAL_MS = 10 * 1000;
@@ -39,6 +40,7 @@ export async function start({
   try {
     await setError(id, "");
     await setState(id, "starting");
+    await setProjectApiKey({ account_id, server });
     await doStart(server);
     // do not block on this
     (async () => {
@@ -87,6 +89,7 @@ export async function stop({
   try {
     await setError(id, "");
     await setState(id, "stopping");
+    await deleteProjectApiKey({ account_id, server });
     await doStop(server);
     // do not block on this
     (async () => {
@@ -132,6 +135,10 @@ export const state: (opts: {
   }
   const server = await getServer({ account_id, id });
   const state = await getCloudServerState(server);
+  if (state == "stopping" || state == "off") {
+    // don't need it anymore.
+    await deleteProjectApiKey({ account_id, server });
+  }
   lastCalled[id] = { time: now, state };
   return state;
 });

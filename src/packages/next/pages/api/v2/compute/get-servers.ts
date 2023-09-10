@@ -29,8 +29,10 @@ async function get(req) {
     id,
   });
   // strip data, which is not meant to be visible to the user (?).
+  // [ ] TODO: better to not do it this way but make getServers not use SELECT *
   for (const server of servers) {
     delete server.data;
+    delete server.api_key;
   }
   return servers;
 }
