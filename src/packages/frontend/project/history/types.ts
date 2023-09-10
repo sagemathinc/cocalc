@@ -43,6 +43,7 @@ export type ProjectEvent =
   | SetDescriptionEvent
   | SetNameEvent
   | SetAvatarEvent
+  | SoftwareEnvironmentEvent
   | PublicPathEvent
   | { event: "open_project" }
   | { event: "delete_project" }
@@ -179,6 +180,12 @@ export type PublicPathEvent = {
   disabled?: boolean;
   authenticated?: boolean;
   site_license_id?: string;
+};
+
+export type SoftwareEnvironmentEvent = {
+  event: "software_environment";
+  previous: string;
+  next: string;
 };
 
 export type SystemEvent = { event: ""; by: string };
