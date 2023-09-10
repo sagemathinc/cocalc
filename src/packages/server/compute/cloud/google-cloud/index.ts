@@ -15,8 +15,8 @@ import type {
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { setData } from "@cocalc/server/compute/util";
-import * as pricing from "@cocalc/gcloud-pricing-calculator";
 import getClient from "./client";
+import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
 import computeCost from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
@@ -114,7 +114,7 @@ export async function cost(server: ComputeServer): Promise<number> {
   if (configuration?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
   }
-  const priceData = await pricing.getData();
+  const priceData = await getPricingData();
   return computeCost({ priceData, configuration });
 }
 
