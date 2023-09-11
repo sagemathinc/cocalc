@@ -34,6 +34,7 @@ export async function start(server: ComputeServer) {
     startupScript: startupScript({
       api_key: server.api_key,
       project_id: server.project_id,
+      gpu: !!configuration.acceleratorType,
     }),
   });
   await setData(server.id, { name });

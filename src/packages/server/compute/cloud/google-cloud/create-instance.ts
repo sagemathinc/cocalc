@@ -30,9 +30,13 @@ export default async function createInstance({
   }
 
   if (!sourceImage) {
-    sourceImage = `projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-${
-      configuration.machineType.startsWith("t2a-") ? "arm64-" : ""
-    }v20230829`;
+    if (configuration.acceleratorType) {
+      sourceImage = `projects/${client.googleProjectId}/global/images/cuda-test`;
+    } else {
+      sourceImage = `projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-${
+        configuration.machineType.startsWith("t2a-") ? "arm64-" : ""
+      }v20230829`;
+    }
   }
 
   const disks = [

@@ -1,9 +1,11 @@
 export default function startupScript({
   api_key,
   project_id,
+  gpu,
 }: {
   api_key?: string;
   project_id?: string;
+  gpu?: boolean;
 }) {
   if (!api_key) {
     throw Error("api_key must be specified");
@@ -16,12 +18,12 @@ export default function startupScript({
 
 ${installDocker()}
 
-${runCoCalcCompute({ api_key, project_id })}
+${runCoCalcCompute({ api_key, project_id, gpu })}
 `;
 }
 
-function runCoCalcCompute({ api_key, project_id }) {
-  return `docker run  \
+function runCoCalcCompute({ api_key, project_id, gpu }) {
+  return `docker run  ${gpu ? " --gpus all " : ""} \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
    -e TERM_PATH=a.term \
@@ -66,16 +68,19 @@ https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&D
 
 (NOTE: K80's don't work since they are too old and not supported!)
 
-It takes about 15-20 minutes and 15GB of disk space are used on / afterwards.  The other approaches don't
+It takes about 10 minutes and 15GB of disk space are used on / afterwards.  The other approaches don't
 seem to work.
+
+NOTE: We also install nvidia-container-toolkit, which isn't in the instructions linked to above,
+because we want to support using Nvidia inside of Docker.
 */
 
 export function installCuda() {
   return `
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
-dpkg -i cuda-keyring_1.1-1_all.deb
+curl -o cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+dpkg -i cuda-keyring.deb
 apt-get update -y
-apt-get -y install cuda
-rm cuda-keyring_1.1-1_all.deb
+apt-get -y install cuda nvidia-container-toolkit
+rm cuda-keyring.deb
 `;
 }

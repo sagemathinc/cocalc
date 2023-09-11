@@ -87,8 +87,8 @@ const GOOGLE_CLOUD_ACCELERATOR_TYPES = [
 
 export interface GoogleCloudConfiguration {
   cloud: "google-cloud";
-  zone: string;
   region: string;
+  zone: string;
   machineType: string;
   // Ues a spot instance if spot is true.
   spot?: boolean;
@@ -97,6 +97,7 @@ export interface GoogleCloudConfiguration {
   acceleratorType?: (typeof GOOGLE_CLOUD_ACCELERATOR_TYPES)[number];
   // the allowed number depends on the accelerator; it defaults to 1.
   acceleratorCount?: number;
+  // minCpuPlatform
 }
 
 export type Configuration =

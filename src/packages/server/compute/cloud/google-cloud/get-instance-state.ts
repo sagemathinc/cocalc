@@ -36,7 +36,7 @@ export default async function getInstanceState({
       return "running";
     case "STOPPING":
       return "stopping";
-    case "STOP": // ??
+    case "TERMINATED":
       return "off";
     default:
       return "unknown";
