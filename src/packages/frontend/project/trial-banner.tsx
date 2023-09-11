@@ -233,7 +233,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       <Alert
         type="warning"
         closable={closable}
-        closeText={
+        closeIcon={
           closable ? (
             <Tag
               style={{ marginTop: "10px", fontSize: style.fontSize }}

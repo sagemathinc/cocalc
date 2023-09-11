@@ -6,6 +6,7 @@
 import { Col, Grid, Row } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
 import { AvailableTools, Tool } from "components/landing/available-tools";
@@ -194,7 +195,7 @@ export default function CoCalcComFeatures(props: CCFeatures) {
         <Row>
           <Col md={8}>
             <Tool
-              icon="hdd"
+              icon={SOFTWARE_ENVIRONMENT_ICON}
               href="/software"
               title="Available Software"
               alt="Available Software"

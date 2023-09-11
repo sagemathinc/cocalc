@@ -35,7 +35,7 @@ exports.http_message_api_v1 = (opts) ->
             body           : required
             api_key        : required
             database       : required
-            compute_server : required
+            projectControl : required
             ip_address     : required
             logger         : required
             cb             : required
@@ -74,7 +74,7 @@ exports.http_message_api_v1 = (opts) ->
                 api_key        : opts.api_key
                 logger         : opts.logger
                 database       : opts.database
-                compute_server : opts.compute_server
+                projectControl : opts.projectControl
                 ip_address     : opts.ip_address
                 cb      : (err, c) ->
                     client = c; cb(err)
@@ -96,7 +96,7 @@ get_client = (opts) ->
         api_key        : required
         logger         : required
         database       : required
-        compute_server : required
+        projectControl : required
         ip_address     : required
         cb             : required
     dbg = log('get_client', opts.logger)
@@ -140,7 +140,7 @@ get_client = (opts) ->
         options =
             logger         : opts.logger
             database       : opts.database
-            compute_server : opts.compute_server
+            projectControl : opts.projectControl
         client = new Client(options)
         client.push_to_client = (mesg, cb) =>
             client.emit('push_to_client', mesg)

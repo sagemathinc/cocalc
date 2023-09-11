@@ -56,7 +56,7 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
         opts.cb(err)
 
 _local_hub_cache = {}
-exports.new_local_hub = (project_id, database, compute_server) ->
+exports.new_local_hub = (project_id, database, projectControl) ->
     if not project_id?
         throw "project_id must be specified (it is undefined)"
     H  = _local_hub_cache[project_id]
@@ -64,12 +64,12 @@ exports.new_local_hub = (project_id, database, compute_server) ->
         winston.debug("new_local_hub('#{project_id}') -- using cached version")
     else
         winston.debug("new_local_hub('#{project_id}') -- creating new one")
-        H = new LocalHub(project_id, database, compute_server)
+        H = new LocalHub(project_id, database, projectControl)
         _local_hub_cache[project_id] = H
     return H
 
-exports.connect_to_project = (project_id, database, compute_server, cb) ->
-    hub = exports.new_local_hub(project_id, database, compute_server)
+exports.connect_to_project = (project_id, database, projectControl, cb) ->
+    hub = exports.new_local_hub(project_id, database, projectControl)
     hub.local_hub_socket (err) ->
         if err
             winston.debug("connect_to_project: error ensuring connection to #{project_id} -- #{err}")
@@ -101,7 +101,7 @@ init_server_settings = () ->
     server_settings.table.on('change', update)
 
 class LocalHub # use the function "new_local_hub" above; do not construct this directly!
-    constructor: (@project_id, @database, @compute_server) ->
+    constructor: (@project_id, @database, @projectControl) ->
         if not server_settings?  # module being used -- make sure server_settings is initialized
             init_server_settings()
         @_local_hub_socket_connecting = false
@@ -129,7 +129,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
 
     project: (cb) =>
         try
-            cb(undefined, await @compute_server(@project_id))
+            cb(undefined, await @projectControl(@project_id))
         catch err
             cb(err)
 
@@ -142,7 +142,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @dbg("restart")
         @free_resources()
         try
-            await (await @compute_server(@project_id)).restart()
+            await (await @projectControl(@project_id)).restart()
             cb()
         catch err
             cb(err)
@@ -150,14 +150,14 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     status: (cb) =>
         @dbg("status: get status of a project")
         try
-            cb(undefined, await (await @compute_server(@project_id)).status())
+            cb(undefined, await (await @projectControl(@project_id)).status())
         catch err
             cb(err)
 
     state: (cb) =>
         @dbg("state: get state of a project")
         try
-            cb(undefined, await (await @compute_server(@project_id)).state())
+            cb(undefined, await (await @projectControl(@project_id)).state())
         catch err
             cb(err)
 
@@ -549,7 +549,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 if not @address?
                     @dbg("get address of a working local hub")
                     try
-                        @address = await (await @compute_server(@project_id)).address()
+                        @address = await (await @projectControl(@project_id)).address()
                         cb()
                     catch err
                         cb(err)
@@ -564,7 +564,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     else
                         @dbg("failed to get address of a working local hub -- #{err}")
                         try
-                            @address = await (await @compute_server(@project_id)).address()
+                            @address = await (await @projectControl(@project_id)).address()
                             cb()
                         catch err
                             cb(err)

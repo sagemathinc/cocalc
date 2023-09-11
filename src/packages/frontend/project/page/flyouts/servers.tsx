@@ -3,13 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Space } from "antd";
+import { Divider, Space } from "antd";
 
 import { Icon, Paragraph, Title } from "@cocalc/frontend/components";
 import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
 import { SagewsControl } from "../../settings/sagews-control";
 import { FIX_BORDER } from "../common";
 import { FLYOUT_PADDING } from "./consts";
+import {
+  computeServersEnabled,
+  ManageComputeServers,
+} from "@cocalc/frontend/compute-servers";
 
 export function ServersFlyout({ project_id, wrap }) {
   const servers = [
@@ -23,7 +27,7 @@ export function ServersFlyout({ project_id, wrap }) {
     return (
       <div style={{ padding: FLYOUT_PADDING }}>
         <Title level={5}>
-          <Icon name="server" /> Additonal Servers
+          <Icon name="server" /> Notebook and Code Editing Servers
         </Title>
         <Paragraph>
           When launched, these servers run inside this project. They should open
@@ -61,7 +65,16 @@ export function ServersFlyout({ project_id, wrap }) {
   return wrap(
     <>
       {renderEmbeddedServers()}
+      {computeServersEnabled() && (
+        <div>
+          <Divider />
+          <Title level={5}>
+            <Icon name="server" /> Compute Servers
+          </Title>
+          <ManageComputeServers project_id={project_id} />
+        </div>
+      )}
       {renderSageServerControl()}
-    </>
+    </>,
   );
 }

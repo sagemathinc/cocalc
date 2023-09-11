@@ -23,6 +23,7 @@ import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
 import { useRunQuota } from "./run-quota/hooks";
+import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -201,7 +202,10 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
       return (
         <>
           <Col xs={24}>
-            <Icon name={"hdd"} style={{ marginTop: "5px" }} />
+            <Icon
+              name={SOFTWARE_ENVIRONMENT_ICON}
+              style={{ marginTop: "5px" }}
+            />
             <Gap />
             Selected image
             <Gap />
@@ -225,7 +229,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
       return (
         <>
           <Col xs={24}>
-            <Icon name={"hdd"} />
+            <Icon name={SOFTWARE_ENVIRONMENT_ICON} />
             <Gap />
             <span style={{ fontSize: "12pt", fontWeight: "bold" }}>
               {render_selector()}
