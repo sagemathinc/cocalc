@@ -32,7 +32,10 @@ function runCoCalcCompute({ api_key, project_id }) {
 }
 
 function installDocker() {
+  // See https://docs.docker.com/engine/install/ubuntu/
   return `
+# Uninstall old versions
+apt-get remove -y  docker.io docker-doc docker-compose podman-docker containerd runc
 
 # Add Docker's official GPG key:
 apt-get update -y

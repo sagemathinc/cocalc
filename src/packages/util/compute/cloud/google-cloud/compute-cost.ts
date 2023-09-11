@@ -3,11 +3,39 @@ import debug from "debug";
 
 const log = debug("cocalc:util:compute-cost");
 
+// copy-pasted from my @cocalc/gcloud-pricing-calculator package to help with sanity in code below.
+
+interface PriceData {
+  prices?: { [region: string]: number };
+  spot?: { [region: string]: number };
+  vcpu?: number;
+  memory?: number;
+  count?: number; // for gpu's only
+  max?: number; // for gpu's only
+}
+
+interface ZoneData {
+  machineTypes: string; // ['e2','n1','n2', 't2d' ... ] -- array of machine type prefixes
+  location: string; // description of where it is
+  lowC02: boolean; // if true, low c02 emissions
+  gpus: boolean; // if true, has gpus
+}
+
+interface GoogleCloudData {
+  machineTypes: { [machineType: string]: PriceData };
+  disks: {
+    standard: { prices: { [zone: string]: number } };
+    ssd: { prices: { [zone: string]: number } };
+  };
+  accelerators: { [acceleratorType: string]: PriceData };
+  zones: { [zone: string]: ZoneData };
+}
+
 interface Options {
   configuration: GoogleCloudConfiguration;
   // output of getData from this package -- https://www.npmjs.com/package/@cocalc/gcloud-pricing-calculator
   // except that package is backend only (it caches to disk), so data is obtained via an api, then used here.
-  priceData;
+  priceData: GoogleCloudData;
 }
 
 /*
@@ -18,7 +46,7 @@ export default function computeCost({
   configuration,
   priceData,
 }: Options): Promise<number> {
-  const data = priceData[configuration.machineType];
+  const data = priceData.machineTypes[configuration.machineType];
   if (data == null) {
     throw Error(
       `unable to determine cost since machine type ${configuration.machineType} is unknown`,
@@ -33,7 +61,7 @@ export default function computeCost({
     );
   }
 
-  const diskCost = priceData["disk-standard"]?.prices[configuration.region];
+  const diskCost = priceData.disks["standard"]?.prices[configuration.region];
   log("disk cost per GB", { diskCost });
   if (diskCost == null) {
     throw Error(
@@ -48,8 +76,10 @@ export default function computeCost({
     // sometimes google has "tesla-" in the name, sometimest they don't,
     // but our pricing data doesn't.
     const acceleratorData =
-      priceData[configuration.acceleratorType] ??
-      priceData[configuration.acceleratorType.replace("tesla-", "")];
+      priceData.accelerators[configuration.acceleratorType] ??
+      priceData.accelerators[
+        configuration.acceleratorType.replace("tesla-", "")
+      ];
     if (acceleratorData == null) {
       throw Error(`unknown GPU accelerator ${configuration.acceleratorType}`);
     }
