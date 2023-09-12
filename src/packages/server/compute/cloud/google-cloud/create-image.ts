@@ -2,12 +2,7 @@ import type { ImageType } from "./images";
 import { imageName, getImagesClient, Architecture } from "./images";
 import getLogger from "@cocalc/backend/logger";
 import createInstance from "./create-instance";
-import {
-  getSerialPortOutput,
-  deleteInstance,
-  stopInstance,
-  waitUntilOperationComplete,
-} from "./client";
+import { getSerialPortOutput, deleteInstance, stopInstance } from "./client";
 import { installCuda, installDocker } from "../install";
 import { delay } from "awaiting";
 import getInstanceState from "./get-instance-state";
@@ -90,12 +85,17 @@ function createStandardConf_x86_64() {
     region: "us-east1",
     machineType: "c2-standard-4",
     metadata: { "serial-port-logging-enable": true },
-    bootDiskSizeGb: 10,
+    diskSizeGb: 20,
   } as const;
   const startupScript = `
 #!/bin/bash
 set -ev
 ${installDocker()}
+
+docker pull sagemathinc/cocalc
+docker pull sagemathinc/cocalc-python3
+
+df -h /
 `;
   return {
     configuration,
@@ -114,12 +114,18 @@ function createStandardConf_arm64() {
     zone: "us-central1-a",
     machineType: "t2a-standard-4",
     metadata: { "serial-port-logging-enable": true },
-    bootDiskSizeGb: 10,
+    diskSizeGb: 20,
   } as const;
   const startupScript = `
 #!/bin/bash
 set -ev
 ${installDocker()}
+
+docker pull sagemathinc/cocalc
+docker pull sagemathinc/cocalc-python3
+
+df -h /
+
 `;
   return {
     configuration,
@@ -137,16 +143,20 @@ function createCudaConf() {
     zone: "us-east1-b",
     region: "us-east1",
     machineType: "c2-standard-4",
-    bootDiskSizeGb: 25,
+    diskSizeGb: 40,
   } as const;
   const startupScript = `
 #!/bin/bash
 
 ${installDocker()}
 
+docker pull sagemathinc/cocalc
+docker pull sagemathinc/cocalc-python3
+docker pull sagemathinc/cocalc-pytorch
+
 ${installCuda()}
 
-echo "COCALC COMPUTE FINISHED!"
+df -h /
 `;
   return {
     configuration,
@@ -212,10 +222,27 @@ export async function createImageFromInstance({ zone, name }) {
     sourceDisk: `/zones/${zone}/disks/${name}`,
   };
   logger.debug("create ", { imageResource });
-  const [response] = await client.insert({
+
+  await client.insert({
     project: projectId,
     imageResource,
     forceCreate: true,
   });
-  await waitUntilOperationComplete({ response, zone });
+
+  const t0 = Date.now();
+  let n = 3000;
+  while (Date.now() - t0 <= 1000 * 60 * 5) {
+    const [response] = await client.list({
+      project: projectId,
+      maxResults: 1000,
+      filter: `name:${imageResource.name}`,
+    });
+    if (response[0].status == "READY") {
+      return;
+    }
+    n = Math.min(15000, n * 1.3);
+    logger.debug("waiting ", n / 1000, "seconds for image to be created...");
+    await delay(n);
+  }
+  throw Error(`image creation did not finish -- ${name}`);
 }

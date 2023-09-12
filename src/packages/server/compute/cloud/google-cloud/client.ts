@@ -83,13 +83,13 @@ export async function getSerialPortOutput({ name, zone }: Options) {
 
 export async function waitUntilOperationComplete({ response, zone }) {
   let operation = response.latestResponse;
-  const operationsClient = new ZoneOperationsClient();
-  const { googleProjectId } = await getClient();
+  const credentials = await getCredentials();
+  const operationsClient = new ZoneOperationsClient(credentials);
   logger.debug("Wait for the operation to complete...", operation);
   while (operation.status !== "DONE") {
     [operation] = await operationsClient.wait({
       operation: operation.name,
-      project: googleProjectId,
+      project: credentials.projectId,
       zone,
     });
   }
