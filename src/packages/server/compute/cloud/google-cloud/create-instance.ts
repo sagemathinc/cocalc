@@ -33,11 +33,12 @@ export default async function createInstance({
 
   if (!sourceImage) {
     if (configuration.acceleratorType) {
-      sourceImage = `projects/${client.googleProjectId}/global/images/cuda-test`;
+      sourceImage = `projects/${client.googleProjectId}/global/images/cocalc-image-cuda-x86-20230912-142433-first-try-gpu`;
     } else {
-      sourceImage = `projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-${
-        configuration.machineType.startsWith("t2a-") ? "arm64-" : ""
-      }v20230829`;
+      sourceImage = `projects/${client.googleProjectId}/global/images/cocalc-image-standard-x86-20230912-141740-try8-right-repo`;
+      //       sourceImage = `projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-${
+      //         configuration.machineType.startsWith("t2a-") ? "arm64-" : ""
+      //       }v20230829`;
     }
   }
 
@@ -86,7 +87,7 @@ export default async function createInstance({
     });
   }
 
-  const scheduling = configuration.spot
+  const schedulingModel = configuration.spot
     ? {
         automaticRestart: false,
         instanceTerminationAction: "STOP",
@@ -100,6 +101,21 @@ export default async function createInstance({
           : "TERMINATE",
         provisioningModel: "STANDARD",
       };
+
+  const maxRunDuration = configuration.maxRunDurationSeconds
+    ? {
+        seconds: configuration.maxRunDurationSeconds,
+      }
+    : undefined;
+  const terminationTime = configuration.terminationTime
+    ? { terminationTime: configuration.terminationTime.toISOString() }
+    : undefined;
+
+  const scheduling = {
+    ...schedulingModel,
+    ...maxRunDuration,
+    ...terminationTime,
+  };
 
   const guestAccelerators = !configuration.acceleratorType
     ? []

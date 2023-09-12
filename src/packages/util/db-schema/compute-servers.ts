@@ -98,6 +98,8 @@ export interface GoogleCloudConfiguration {
   // the allowed number depends on the accelerator; it defaults to 1.
   acceleratorCount?: number;
   // minCpuPlatform
+  terminationTime?: Date;
+  maxRunDurationSeconds?: number;
 }
 
 export type Configuration =

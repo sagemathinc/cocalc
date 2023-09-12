@@ -31,27 +31,24 @@ export async function createImage({
     });
     const name = imageName({ type, date: new Date(), tag, arch });
     let zone = "";
-    try {
-      zone = configuration.zone;
-      await createInstance({
-        name,
-        configuration,
-        startupScript,
-        metadata: { "serial-port-logging-enable": true },
-      });
-      logger.debug("createImage: wait until startup script finishes");
-      await waitForInstallToFinish({
-        name,
-        zone,
-        maxTimeMinutes,
-      });
-      logger.debug("createImage: create image from instance");
-      await createImageFromInstance({ zone, name });
-    } finally {
-      if (zone && !noDelete) {
-        logger.debug("createImage: delete the instance no matter what");
-        await deleteInstance({ zone, name });
-      }
+    zone = configuration.zone;
+    await createInstance({
+      name,
+      configuration,
+      startupScript,
+      metadata: { "serial-port-logging-enable": true },
+    });
+    logger.debug("createImage: wait until startup script finishes");
+    await waitForInstallToFinish({
+      name,
+      zone,
+      maxTimeMinutes,
+    });
+    logger.debug("createImage: create image from instance");
+    await createImageFromInstance({ zone, name, maxTimeMinutes });
+    if (!noDelete) {
+      logger.debug("createImage: delete the instance");
+      await deleteInstance({ zone, name });
     }
     names.push(name);
   }
@@ -78,6 +75,7 @@ function getConf(type: ImageType): BuildConfig[] {
 
 function createStandardConf_x86_64() {
   logger.debug("createStandardConf");
+  const maxTimeMinutes = 30;
   const configuration = {
     cloud: "google-cloud",
     spot: true,
@@ -85,28 +83,30 @@ function createStandardConf_x86_64() {
     region: "us-east1",
     machineType: "c2-standard-4",
     metadata: { "serial-port-logging-enable": true },
-    diskSizeGb: 20,
+    diskSizeGb: 10,
+    maxRunDurationSeconds: 60 * maxTimeMinutes,
   } as const;
   const startupScript = `
 #!/bin/bash
 set -ev
 ${installDocker()}
 
-docker pull sagemathinc/cocalc
-docker pull sagemathinc/cocalc-python3
+docker pull sagemathinc/compute
+docker pull sagemathinc/compute-python3
 
 df -h /
 `;
   return {
     configuration,
     startupScript,
-    maxTimeMinutes: 10,
+    maxTimeMinutes,
     arch: "x86_64",
   } as const;
 }
 
 function createStandardConf_arm64() {
   logger.debug("createStandardConf");
+  const maxTimeMinutes = 30;
   const configuration = {
     cloud: "google-cloud",
     spot: true,
@@ -114,15 +114,16 @@ function createStandardConf_arm64() {
     zone: "us-central1-a",
     machineType: "t2a-standard-4",
     metadata: { "serial-port-logging-enable": true },
-    diskSizeGb: 20,
+    diskSizeGb: 10,
+    maxRunDurationSeconds: 60 * maxTimeMinutes,
   } as const;
   const startupScript = `
 #!/bin/bash
 set -ev
 ${installDocker()}
 
-docker pull sagemathinc/cocalc
-docker pull sagemathinc/cocalc-python3
+docker pull sagemathinc/compute
+docker pull sagemathinc/compute-python3
 
 df -h /
 
@@ -130,29 +131,38 @@ df -h /
   return {
     configuration,
     startupScript,
-    maxTimeMinutes: 10,
+    maxTimeMinutes,
     arch: "arm64",
   } as const;
 }
 
 function createCudaConf() {
   logger.debug("createCudaConf");
+  const maxTimeMinutes = 60;
   const configuration = {
     cloud: "google-cloud",
     spot: true,
     zone: "us-east1-b",
     region: "us-east1",
-    machineType: "c2-standard-4",
     diskSizeGb: 40,
+    maxRunDurationSeconds: 60 * maxTimeMinutes,
+    // lots of cores are helpful, cuda drivers get built from
+    // source for the kernel.
+    machineType: "c2-standard-8",
+    // We do NOT need a GPU to install the GPU libraries, but if for some
+    // reason we did, use this instead:
+    //     machineType: "n1-standard-4",
+    //     acceleratorType: "nvidia-tesla-t4",
+    //     acceleratorCount: 1,
   } as const;
   const startupScript = `
 #!/bin/bash
 
 ${installDocker()}
 
-docker pull sagemathinc/cocalc
-docker pull sagemathinc/cocalc-python3
-docker pull sagemathinc/cocalc-pytorch
+docker pull sagemathinc/compute
+docker pull sagemathinc/compute-python3
+docker pull sagemathinc/compute-pytorch
 
 ${installCuda()}
 
@@ -161,7 +171,7 @@ df -h /
   return {
     configuration,
     startupScript,
-    maxTimeMinutes: 30,
+    maxTimeMinutes,
     arch: "x86_64",
   } as const;
 }
@@ -207,7 +217,7 @@ async function waitForInstallToFinish({ zone, name, maxTimeMinutes }) {
   throw Error("timed out waiting for install to finish");
 }
 
-export async function createImageFromInstance({ zone, name }) {
+export async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
   logger.debug("createImageFromInstance", { zone, name });
   if ((await getInstanceState({ zone, name })) != "off") {
     logger.debug("createImageFromInstance: stopping instance...");
@@ -231,7 +241,8 @@ export async function createImageFromInstance({ zone, name }) {
 
   const t0 = Date.now();
   let n = 3000;
-  while (Date.now() - t0 <= 1000 * 60 * 5) {
+  // this can take a long time!
+  while (Date.now() - t0 <= 1000 * 60 * maxTimeMinutes) {
     const [response] = await client.list({
       project: projectId,
       maxResults: 1000,
