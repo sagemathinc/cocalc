@@ -1739,14 +1739,14 @@ awaken_project = (db, project_id, cb) ->
         return
     _last_awaken_time[project_id] = now
     dbg = db._dbg("_awaken_project(project_id=#{project_id})")
-    if not db.getProject?
-        dbg("skipping since no getProject defined")
+    if not db.projectControl?
+        dbg("skipping since no projectControl defined")
         return
     dbg("doing it...")
     async.series([
         (cb) ->
             try
-                project = db.getProject(project_id)
+                project = db.projectControl(project_id)
                 await project.start()
                 cb()
             catch err
