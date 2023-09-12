@@ -389,7 +389,7 @@ class SiteLicenseHook {
         );
         return "exhausted";
       } else {
-        if (this.paygoActive) {
+        if (this.paygoActive && this.isNotDedicatedDisk(license)) {
           this.dbg.info(`due to PAYGO, license ${license_id} is ineffective`);
           return "ineffective";
         } else {
@@ -398,6 +398,15 @@ class SiteLicenseHook {
         }
       }
     }
+  }
+
+  // Return true, if the license is not a dedicated disk license.
+  private isNotDedicatedDisk(license: LicenseMap): boolean {
+    const quota = license.get("quota");
+    if (quota == null) return true;
+    const disk = quota.get("dedicated_disk");
+    if (disk == null) return true;
+    return false;
   }
 
   /**
