@@ -42,9 +42,9 @@ export async function init_start_always_running_projects(
       for (const project_id of await projects_that_need_to_be_started(
         database,
       )) {
-        const getProject = (database as any).getProject;
-        if (getProject == null) continue; // not initialized (?)
-        const project = getProject(project_id);
+        const projectControl = (database as any).projectControl;
+        if (projectControl == null) continue; // not initialized (?)
+        const project = projectControl(project_id);
         project.start(); // we fire this off, but do not wait on it
       }
     } catch (err) {
