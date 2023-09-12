@@ -1,5 +1,8 @@
 import { getServerSettings } from "@cocalc/server/settings/server-settings";
-import { InstancesClient } from "@google-cloud/compute";
+import { InstancesClient, ZoneOperationsClient } from "@google-cloud/compute";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("server:compute:google-cloud:client");
 
 interface Client extends InstancesClient {
   googleProjectId: string;
@@ -36,4 +39,58 @@ export async function getCredentials() {
       private_key: serviceAccount.private_key,
     },
   };
+}
+
+interface Options {
+  name: string;
+  zone: string;
+  wait?: boolean;
+}
+
+export async function deleteInstance({ name, zone, wait }: Options) {
+  const client = await getClient();
+  const [response] = await client.delete({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+  });
+  if (wait) {
+    await waitUntilOperationComplete({ response, zone });
+  }
+}
+
+export async function stopInstance({ name, zone, wait }: Options) {
+  const client = await getClient();
+  const [response] = await client.stop({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+  });
+  if (wait) {
+    await waitUntilOperationComplete({ response, zone });
+  }
+}
+
+export async function getSerialPortOutput({ name, zone }: Options) {
+  const client = await getClient();
+  const [response] = await client.getSerialPortOutput({
+    project: client.googleProjectId,
+    zone,
+    instance: name,
+  });
+  return response.contents;
+}
+
+export async function waitUntilOperationComplete({ response, zone }) {
+  let operation = response.latestResponse;
+  const operationsClient = new ZoneOperationsClient();
+  const { googleProjectId } = await getClient();
+  logger.debug("Wait for the operation to complete...", operation);
+  while (operation.status !== "DONE") {
+    [operation] = await operationsClient.wait({
+      operation: operation.name,
+      project: googleProjectId,
+      zone,
+    });
+  }
 }

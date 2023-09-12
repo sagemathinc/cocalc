@@ -10,6 +10,7 @@ interface Options {
   configuration: GoogleCloudConfiguration;
   startupScript?: string;
   sourceImage?: string;
+  metadata?: object;
 }
 
 export default async function createInstance({
@@ -17,6 +18,7 @@ export default async function createInstance({
   name,
   startupScript,
   sourceImage,
+  metadata,
 }: Options) {
   if (configuration?.cloud != "google-cloud") {
     throw Error("must have a google-cloud configuration");
@@ -71,16 +73,18 @@ export default async function createInstance({
     },
   ];
 
-  const metadata = startupScript
-    ? {
-        items: [
-          {
-            key: "startup-script",
-            value: startupScript,
-          },
-        ],
-      }
-    : {};
+  const configMetadata = { items: [] as { key: string; value: any }[] };
+  if (metadata != null) {
+    for (const key in metadata) {
+      configMetadata.items.push({ key, value: metadata[key] });
+    }
+  }
+  if (startupScript) {
+    configMetadata.items.push({
+      key: "startup-script",
+      value: startupScript,
+    });
+  }
 
   const scheduling = configuration.spot
     ? {
@@ -111,12 +115,13 @@ export default async function createInstance({
     disks,
     machineType,
     networkInterfaces,
-    metadata,
+    metadata: configMetadata,
     scheduling,
     guestAccelerators,
   };
 
   logger.debug("create instance", instanceResource);
+  console.log(JSON.stringify(instanceResource, undefined, 2));
 
   await client.insert({
     project: client.googleProjectId,

@@ -3,10 +3,9 @@ import type {
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { setData } from "@cocalc/server/compute/util";
-import getClient from "./client";
+import getClient, { deleteInstance } from "./client";
 import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
-import deleteInstance from "./delete-instance";
 import getInstanceState from "./get-instance-state";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
 import computeCost from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
