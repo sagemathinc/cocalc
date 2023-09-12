@@ -7,6 +7,8 @@ import { installCuda, installDocker } from "../install";
 import { delay } from "awaiting";
 import getInstanceState from "./get-instance-state";
 import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
+import { appendFile, mkdir } from "fs/promises";
+import { join } from "path";
 
 const logger = getLogger("server:compute:google-cloud:create-image");
 
@@ -14,45 +16,88 @@ interface Options {
   type: ImageType;
   tag?: string;
   noDelete?: boolean;
+  noParallel?: boolean;
+  onlyArch?: Architecture;
 }
 
 export async function createImage({
   type,
   tag = "",
   noDelete,
+  noParallel,
+  onlyArch,
 }: Options): Promise<string[]> {
+  const t0 = Date.now();
   const names: string[] = [];
-  for (const { configuration, startupScript, maxTimeMinutes, arch } of getConf(
-    type,
-  )) {
-    logger.debug("createImage: create instance", {
-      arch,
-      configuration,
-    });
-    const name = imageName({ type, date: new Date(), tag, arch });
-    let zone = "";
-    zone = configuration.zone;
-    await createInstance({
-      name,
+  const vms = new Set<string>();
+  let maxTime = 0;
+  try {
+    async function build({
       configuration,
       startupScript,
-      metadata: { "serial-port-logging-enable": true },
-    });
-    logger.debug("createImage: wait until startup script finishes");
-    await waitForInstallToFinish({
-      name,
-      zone,
+      sourceImage,
       maxTimeMinutes,
-    });
-    logger.debug("createImage: create image from instance");
-    await createImageFromInstance({ zone, name, maxTimeMinutes });
-    if (!noDelete) {
-      logger.debug("createImage: delete the instance");
-      await deleteInstance({ zone, name });
+      arch,
+    }) {
+      maxTime = Math.max(maxTime, maxTimeMinutes);
+      if (onlyArch && onlyArch != arch) {
+        console.log("Skipping ", arch);
+        return;
+      }
+      const name = imageName({ type, date: new Date(), tag, arch });
+      console.log("logging to ", logFile(name));
+      await logToFile(name, { arch, configuration, sourceImage });
+      let zone = "";
+      zone = configuration.zone;
+      vms.add(name);
+      await createInstance({
+        name,
+        configuration,
+        sourceImage,
+        startupScript,
+        metadata: { "serial-port-logging-enable": true },
+      });
+      await logToFile(name, "createImage: wait until startup script finishes");
+      await waitForInstallToFinish({
+        name,
+        zone,
+        maxTimeMinutes,
+      });
+      await logToFile(name, "createImage: create image from instance");
+      await createImageFromInstance({ zone, name, maxTimeMinutes });
+      if (!noDelete) {
+        await logToFile(name, "createImage: delete the instance");
+        await deleteInstance({ zone, name });
+        vms.delete(name);
+        await logToFile(name, "createImage: DONE!");
+      }
+      names.push(name);
     }
-    names.push(name);
+    const configs = getConf(type);
+    if (noParallel) {
+      // serial
+      for (const config of configs) {
+        await build(config);
+      }
+    } else {
+      await Promise.all(configs.map(build));
+    }
+    console.log("CREATED", names);
+    console.log("DONE", (Date.now() - t0) / 1000 / 60, "minutes");
+    return names;
+  } finally {
+    if (vms.size > 0) {
+      console.log(
+        "\n-----------------------\n",
+        "WARNING: the following VM's were NOT deleted due to errors or options -- ",
+        Array.from(vms),
+        `Note that each instance will still be automatically deleted after about ${
+          2 * maxTime
+        } minutes.`,
+        "\n-----------------------\n",
+      );
+    }
   }
-  return names;
 }
 
 interface BuildConfig {
@@ -60,6 +105,7 @@ interface BuildConfig {
   startupScript: string;
   maxTimeMinutes: number;
   arch: Architecture;
+  sourceImage: string;
 }
 
 function getConf(type: ImageType): BuildConfig[] {
@@ -71,6 +117,12 @@ function getConf(type: ImageType): BuildConfig[] {
     default:
       throw Error(`type ${type} not supported`);
   }
+}
+
+function getSourceImage(arch: Architecture) {
+  return `projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-${
+    arch == "arm64" ? "arm64-" : ""
+  }v20230829`;
 }
 
 function createStandardConf_x86_64() {
@@ -101,6 +153,7 @@ df -h /
     startupScript,
     maxTimeMinutes,
     arch: "x86_64",
+    sourceImage: getSourceImage("x86_64"),
   } as const;
 }
 
@@ -133,6 +186,7 @@ df -h /
     startupScript,
     maxTimeMinutes,
     arch: "arm64",
+    sourceImage: getSourceImage("arm64"),
   } as const;
 }
 
@@ -173,7 +227,35 @@ df -h /
     startupScript,
     maxTimeMinutes,
     arch: "x86_64",
+    sourceImage: getSourceImage("x86_64"),
   } as const;
+}
+
+const LOGDIR = "logs";
+function logFile(name) {
+  return join(LOGDIR, `${name}.log`);
+}
+async function logToFile(name: string, ...args) {
+  try {
+    await mkdir(LOGDIR);
+  } catch (_) {}
+  for (const data of args) {
+    if (typeof data == "string") {
+      await appendFile(
+        logFile(name),
+        `${new Date().toISOString()}\n${data.trim()}\n`,
+      );
+    } else {
+      await appendFile(
+        logFile(name),
+        `${new Date().toISOString()}\n${JSON.stringify(
+          data,
+          undefined,
+          2,
+        ).trim()}\n`,
+      );
+    }
+  }
 }
 
 /*
@@ -188,10 +270,18 @@ async function waitForInstallToFinish({ zone, name, maxTimeMinutes }) {
   logger.debug("waitForInstallToFinish", { zone, name, maxTimeMinutes });
   const t0 = Date.now();
   let n = 3000;
+  let log = "";
   while (Date.now() - t0 <= maxTimeMinutes * 1000 * 60) {
-    let log;
     try {
+      const prev = log;
       log = await getSerialPortOutput({ name, zone });
+      if (!prev) {
+        // don't write first few characters of output since it clears file
+        // due to a control code...
+        await logToFile(name, log.slice(100));
+      } else {
+        await logToFile(name, log.slice(prev.length));
+      }
     } catch (err) {
       log = `${err}`;
     }
@@ -224,6 +314,7 @@ export async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
     await stopInstance({ zone, name, wait: true });
   }
   logger.debug("createImageFromInstance: creating image");
+  await logToFile(name, "createImageFromInstance: creating image...");
 
   // https://cloud.google.com/compute/docs/images/create-custom#api_1
   const { client, projectId } = await getImagesClient();

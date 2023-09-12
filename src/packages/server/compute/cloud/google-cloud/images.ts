@@ -25,7 +25,8 @@ export function imageName({
     return prefix;
   }
 
-  const dateFormatted = dayjs(date).format("YYYYMMDD-HHmmss");
+  // this format matches with what we use internally on cocalc.com for docker images in Kubernetes:
+  const dateFormatted = dayjs(date).format("YYYY-MM-DD-HHmmss");
   return `${prefix}-${dateFormatted}${tag ? "-" + tag : ""}`;
 }
 

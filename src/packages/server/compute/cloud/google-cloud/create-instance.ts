@@ -137,7 +137,7 @@ export default async function createInstance({
   };
 
   logger.debug("create instance", instanceResource);
-  console.log(JSON.stringify(instanceResource, undefined, 2));
+  //console.log(JSON.stringify(instanceResource, undefined, 2));
 
   await client.insert({
     project: client.googleProjectId,

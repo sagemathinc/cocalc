@@ -71,14 +71,17 @@ export async function stopInstance({ name, zone, wait }: Options) {
   }
 }
 
-export async function getSerialPortOutput({ name, zone }: Options) {
+export async function getSerialPortOutput({
+  name,
+  zone,
+}: Options): Promise<string> {
   const client = await getClient();
   const [response] = await client.getSerialPortOutput({
     project: client.googleProjectId,
     zone,
     instance: name,
   });
-  return response.contents;
+  return response.contents ?? "";
 }
 
 export async function waitUntilOperationComplete({ response, zone }) {

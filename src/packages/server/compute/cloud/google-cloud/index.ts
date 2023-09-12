@@ -35,6 +35,7 @@ export async function start(server: ComputeServer) {
       project_id: server.project_id,
       gpu: !!configuration.acceleratorType,
     }),
+    metadata: { "serial-port-logging-enable": true },
   });
   await setData(server.id, { name });
 }
