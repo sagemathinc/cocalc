@@ -389,7 +389,7 @@ class SiteLicenseHook {
         );
         return "exhausted";
       } else {
-        if (this.paygoActive && this.isNotDedicatedDisk(license)) {
+        if (this.paygoActive && this.disallowUnderPAYGO(license)) {
           this.dbg.info(`due to PAYGO, license ${license_id} is ineffective`);
           return "ineffective";
         } else {
@@ -401,12 +401,16 @@ class SiteLicenseHook {
   }
 
   // Return true, if the license is not a dedicated disk license.
-  private isNotDedicatedDisk(license: LicenseMap): boolean {
+  private disallowUnderPAYGO(license: LicenseMap): boolean {
     const quota = license.get("quota");
     if (quota == null) return true;
-    const disk = quota.get("dedicated_disk");
-    if (disk == null) return true;
-    return false;
+    // there are some exceptions. dedicated disks do work under PAYGO.
+    const hasDisk = quota.get("dedicated_disk") != null;
+    // ext_rw and patch are for Cocalc Cloud, adding them just in case...
+    const hasExtRW = quota.get("ext_rw") === true;
+    const hasPatch = quota.get("patch") != null;
+    if (hasDisk || hasExtRW || hasPatch) return false;
+    return true;
   }
 
   /**
