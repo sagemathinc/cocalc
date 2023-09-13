@@ -167,33 +167,6 @@ const API = (obj) =>
   (exports.api_messages[obj.event] = true);
 
 //###########################################
-// Compute server messages
-//############################################
-
-message({
-  event: "compute_server_status",
-  status: undefined,
-});
-
-// Message for actions using a compute server
-message({
-  event: "compute",
-  project_id: undefined,
-  action: required, // open, save, ...
-  args: undefined,
-  param: undefined, // deprecate
-  id: undefined,
-});
-
-message({
-  event: "project_state_update",
-  project_id: required,
-  state: required,
-  time: required,
-  state_error: undefined,
-}); // error if there was one transitioning to this state
-
-//###########################################
 // Sage session management; executing code
 //############################################
 

@@ -40,6 +40,7 @@ import { RestartProject } from "./restart-project";
 import { SoftwareImageDisplay } from "./software-image-display";
 import { StopProject } from "./stop-project";
 import { Project } from "./types";
+import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 
 interface ReactProps {
   project: Project;
@@ -269,7 +270,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       <div style={{ color: COLORS.GRAY_M }}>
         <div style={{ fontSize: "11pt" }}>
           <div>
-            <Icon name={"hdd"} /> Custom image:
+            <Icon name={SOFTWARE_ENVIRONMENT_ICON} /> Custom image:
           </div>
           <SoftwareImageDisplay image={project.get("compute_image")} />
           &nbsp;

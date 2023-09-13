@@ -522,7 +522,6 @@ export const AddCollaborators: React.FC<Props> = ({
           ref={select_ref}
           mode="multiple"
           allowClear
-          showArrow
           autoFocus={autoFocus}
           open={autoFocus ? true : undefined}
           filterOption={(s, opt) => {
