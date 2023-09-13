@@ -2,6 +2,7 @@ import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-se
 import getClient from "./client";
 import getLogger from "@cocalc/backend/logger";
 import { supportsStandardNetworkTier } from "./util";
+import { getNewestProdSourceImage } from "./images";
 
 const logger = getLogger("server:compute:google-cloud:create-instance");
 
@@ -31,21 +32,19 @@ export default async function createInstance({
     throw Error("the nvidia-tesla-k80 GPU is deprecated");
   }
 
+  let diskSizeGb = 10;
   if (!sourceImage) {
-    const arch = configuration.machineType.startsWith("t2a-") ? "arm64" : "x86"; // no _64 since no _ in name.
-    if (configuration.acceleratorType) {
-      sourceImage = `projects/${client.googleProjectId}/global/images/cocalc-image-cuda-x86-20230912-142433-first-try-gpu`;
-    } else {
-      sourceImage = `projects/${client.googleProjectId}/global/images/cocalc-image-standard-${arch}-20230912-141740-try8-right-repo`;
-    }
+    ({ diskSizeGb, sourceImage } =
+      await getNewestProdSourceImage(configuration));
   }
 
+  diskSizeGb = Math.max(diskSizeGb, configuration.diskSizeGb ?? diskSizeGb);
   const disks = [
     {
       autoDelete: true,
       boot: true,
       initializeParams: {
-        diskSizeGb: `${configuration.diskSizeGb ?? 10}`,
+        diskSizeGb: `${diskSizeGb}`,
         diskType: `projects/${client.googleProjectId}/zones/${configuration.zone}/diskTypes/pd-balanced`,
         labels: {},
         sourceImage,
@@ -142,4 +141,6 @@ export default async function createInstance({
     zone: configuration.zone,
     instanceResource,
   });
+
+  return { diskSizeGb };
 }

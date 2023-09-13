@@ -32,7 +32,6 @@ const GPU_FLAGS =
 
 function runCoCalcCompute({ api_key, project_id, gpu }) {
   return `
-docker pull sagemathinc/compute
 docker run  ${gpu ? GPU_FLAGS : ""} \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \

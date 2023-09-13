@@ -127,7 +127,7 @@ function getSourceImage(arch: Architecture) {
 
 function createStandardConf_x86_64() {
   logger.debug("createStandardConf");
-  const maxTimeMinutes = 30;
+  const maxTimeMinutes = 45;
   const configuration = {
     cloud: "google-cloud",
     spot: true,
@@ -159,7 +159,7 @@ df -h /
 
 function createStandardConf_arm64() {
   logger.debug("createStandardConf");
-  const maxTimeMinutes = 30;
+  const maxTimeMinutes = 45;
   const configuration = {
     cloud: "google-cloud",
     spot: true,
@@ -192,7 +192,7 @@ df -h /
 
 function createCudaConf() {
   logger.debug("createCudaConf");
-  const maxTimeMinutes = 60;
+  const maxTimeMinutes = 120;
   const configuration = {
     cloud: "google-cloud",
     spot: true,
@@ -284,7 +284,7 @@ async function waitForInstallToFinish({ zone, name, maxTimeMinutes }) {
         await logToFile(name, log.slice(prev.length));
       }
     } catch (err) {
-      log = `${err}`;
+      log = `WARNING -- ${err}`;
     }
     logger.debug("waitForInstallToFinish", log?.slice(-500));
     if (log != null) {
@@ -308,7 +308,7 @@ async function waitForInstallToFinish({ zone, name, maxTimeMinutes }) {
   throw Error("timed out waiting for install to finish");
 }
 
-export async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
+async function createImageFromInstance({ zone, name, maxTimeMinutes }) {
   logger.debug("createImageFromInstance", { zone, name });
   if ((await getInstanceState({ zone, name })) != "off") {
     logger.debug("createImageFromInstance: stopping instance...");

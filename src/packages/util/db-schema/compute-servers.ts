@@ -100,6 +100,16 @@ export interface GoogleCloudConfiguration {
   // minCpuPlatform
   terminationTime?: Date;
   maxRunDurationSeconds?: number;
+  // if true, use newest image, whether or not it is labeled with prod=true.
+  test?: boolean;
+  // an image name of the form "2023-09-13-063355-test", i.e., a timestamp in that format
+  // followed by an optional string.  Whether or not to use cuda and and the arch are
+  // determined by parameters above.  This is meant to be used for two purposes (1) testing
+  // before deploying to production, and (2) stability, so a given compute server has the
+  // exact same base image every time it is started, instead of being updated. Regarding (2),
+  // this might not be needed, but we'll see.  If image is not set, we use the newest
+  // image that is tagged prod:true, or its an error if no such image exists.
+  image?: string;
 }
 
 export type Configuration =

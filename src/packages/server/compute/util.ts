@@ -27,3 +27,11 @@ export async function setData(id: number, newData: object) {
     [JSON.stringify(newData), id],
   );
 }
+
+export async function setConfiguration(id: number, newConfiguration: object) {
+  const pool = getPool();
+  await pool.query(
+    `UPDATE compute_servers SET configuration = COALESCE(configuration, '{}'::jsonb) || $1::jsonb WHERE id=$2`,
+    [JSON.stringify(newConfiguration), id],
+  );
+}

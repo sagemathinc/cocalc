@@ -2,7 +2,7 @@ import type {
   ComputeServer,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
-import { setData } from "@cocalc/server/compute/util";
+import { setConfiguration, setData } from "@cocalc/server/compute/util";
 import getClient, { deleteInstance } from "./client";
 import getPricingData from "./pricing-data";
 import createInstance from "./create-instance";
@@ -27,7 +27,7 @@ export async function start(server: ComputeServer) {
     throw Error("must have a google-cloud configuration");
   }
   const name = getServerName(server);
-  await createInstance({
+  const { diskSizeGb } = await createInstance({
     name,
     configuration,
     startupScript: startupScript({
@@ -37,6 +37,10 @@ export async function start(server: ComputeServer) {
     }),
     metadata: { "serial-port-logging-enable": true },
   });
+  if (configuration.diskSizeGb != diskSizeGb) {
+    // update config to reflect actual disk size used, so pricing matches this.
+    await setConfiguration(server.id, { ...configuration, diskSizeGb });
+  }
   await setData(server.id, { name });
 }
 
