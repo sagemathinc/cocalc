@@ -217,6 +217,7 @@ ${installDocker()}
 docker pull sagemathinc/compute
 docker pull sagemathinc/compute-python3
 docker pull sagemathinc/compute-pytorch
+docker pull sagemathinc/compute-tensorflow
 
 ${installCuda()}
 

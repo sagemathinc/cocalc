@@ -70,7 +70,10 @@ export default function computeCost({
   }
 
   let acceleratorCost;
-  if (configuration.acceleratorType) {
+  if (
+    configuration.acceleratorType &&
+    !configuration.acceleratorType.includes("a100") // [ ] TODO - BIG WARNING -- our current code just uses the prices from the public price page, which is quite wrong for a100's.  That page doesn't separate out pricing for a100's from the instance type also. TODO TODO!  Don't sell a dollar for $0.75!  It's nvidia-a100-80gb and nvidia-tesla-a100
+  ) {
     // we have 1 or more GPU's:
     const acceleratorCount = configuration.acceleratorCount ?? 1;
     // sometimes google has "tesla-" in the name, sometimest they don't,

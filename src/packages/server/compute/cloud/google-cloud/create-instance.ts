@@ -32,13 +32,11 @@ export default async function createInstance({
   }
 
   if (!sourceImage) {
+    const arch = configuration.machineType.startsWith("t2a-") ? "arm64" : "x86"; // no _64 since no _ in name.
     if (configuration.acceleratorType) {
       sourceImage = `projects/${client.googleProjectId}/global/images/cocalc-image-cuda-x86-20230912-142433-first-try-gpu`;
     } else {
-      sourceImage = `projects/${client.googleProjectId}/global/images/cocalc-image-standard-x86-20230912-141740-try8-right-repo`;
-      //       sourceImage = `projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-${
-      //         configuration.machineType.startsWith("t2a-") ? "arm64-" : ""
-      //       }v20230829`;
+      sourceImage = `projects/${client.googleProjectId}/global/images/cocalc-image-standard-${arch}-20230912-141740-try8-right-repo`;
     }
   }
 
