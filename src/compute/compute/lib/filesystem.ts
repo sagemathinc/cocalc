@@ -62,7 +62,7 @@ export async function mountProject({
   const headers = { Cookie: serialize(API_COOKIE_NAME, apiKey) };
   // SECURITY: DO NOT log headers and connectOptions, obviously!
   const connectOptions = { perMessageDeflate: false, headers };
-  if (options.connectOptions) {
+  if (options?.connectOptions) {
     // ensure that connectOptions contains perMessageDeflate: false, headers no matter what:
     options = {
       ...options,
