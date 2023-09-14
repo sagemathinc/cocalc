@@ -1,4 +1,5 @@
 import type { Architecture } from "./google-cloud/images";
+import { UID } from "./install";
 
 export default function startupScript({
   api_key,
@@ -26,28 +27,84 @@ ${runCoCalcCompute({ api_key, project_id, gpu, arch, hostname })}
 `;
 }
 
+// TODO: add tag for image to impose sanity...
+// TODO: we could set the hostname in a more useful way!
+function runCoCalcCompute(opts) {
+  return `
+# Mount the filesystem
+${mountFilesystems(opts)}
+
+# Start the manager
+${computeManager(opts)}
+`;
+}
+
+function mountFilesystems({ api_key, project_id, arch }) {
+  const image = `sagemathinc/compute-filesystem${
+    arch == "arm64" ? "-arm64" : ""
+  }`;
+
+  return `
+
+# Pull latest image
+docker pull ${image}
+
+# Make the home directory
+rm -rf /home/user && mkdir /home/user && chown ${UID}:${UID} -R /home/user
+
+# Mount the home directory using websocketfs by running a docker container.
+# That is all the following container is supposed to do.  The mount line
+# makes it so the mount is seen outside the container.
+docker run \
+   -d \
+   --name=compute-filesystem \
+   -e API_KEY=${api_key} \
+   -e PROJECT_ID=${project_id} \
+   --privileged \
+   --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
+   ${image}
+ `;
+}
+
 /* The additional flags beyond just '--gpus all' are because Nvidia's tensorflow
    image says this on startup:
 
 NOTE: The SHMEM allocation limit is set to the default of 64MB.  This may be
 insufficient for TensorFlow.  NVIDIA recommends the use of the following flags:
 docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ...
-*/
 const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
-
-// TODO: we could set the hostname in a more useful way!
-
-function runCoCalcCompute({ api_key, project_id, gpu, arch, hostname }) {
-  return `
 docker run  ${gpu ? GPU_FLAGS : ""} \
-   --name=base \
+
+TODO: I don't think we need gpu here but will for things this launches.
+*/
+
+function computeManager({ api_key, project_id, arch, hostname }) {
+  const image = `sagemathinc/compute-manager${arch == "arm64" ? "-arm64" : ""}`;
+
+  // Start a container that connects to the project
+  // and manages other containers that provide terminals,
+  // jupyter kernels, etc.
+
+  // for now it just connects to hostname.term as a demo.
+
+  // The special mount line is necessary in case the filesystem has mounted when this
+  // container starts (which is likely).
+
+  return `
+# Pull latest image
+docker pull ${image}
+
+docker run \
+   -d \
+   --name=compute-manager \
    --hostname="${hostname}" \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
    --privileged \
+   -e TERM_PATH=${hostname}.term \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -v /var/run/docker.sock:/var/run/docker.sock \
-   sagemathinc/compute${arch == "arm64" ? "-arm64" : ""}
+   ${image}
  `;
 }

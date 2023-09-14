@@ -3,7 +3,7 @@ import { imageName, getImagesClient, Architecture } from "./images";
 import getLogger from "@cocalc/backend/logger";
 import createInstance from "./create-instance";
 import { getSerialPortOutput, deleteInstance, stopInstance } from "./client";
-import { installCuda, installDocker } from "../install";
+import { installCuda, installDocker, dockerWithoutSudo } from "../install";
 import { delay } from "awaiting";
 import getInstanceState from "./get-instance-state";
 import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
@@ -142,9 +142,11 @@ function createStandardConf_x86_64() {
 #!/bin/bash
 set -ev
 ${installDocker()}
+${dockerWithoutSudo()}
 
-docker pull sagemathinc/compute
-docker pull sagemathinc/compute-python3
+docker pull sagemathinc/compute-filesystem
+docker pull sagemathinc/compute-manager
+docker pull sagemathinc/compute-python
 
 df -h /
 `;
@@ -174,9 +176,11 @@ function createStandardConf_arm64() {
 #!/bin/bash
 set -ev
 ${installDocker()}
+${dockerWithoutSudo()}
 
-docker pull sagemathinc/compute
-docker pull sagemathinc/compute-python3
+docker pull sagemathinc/compute-filesystem-arm64
+docker pull sagemathinc/compute-manager-arm64
+docker pull sagemathinc/compute-python-arm64
 
 df -h /
 
@@ -213,9 +217,12 @@ function createCudaConf() {
 #!/bin/bash
 
 ${installDocker()}
+${dockerWithoutSudo()}
 
-docker pull sagemathinc/compute
-docker pull sagemathinc/compute-python3
+docker pull sagemathinc/compute-filesystem
+docker pull sagemathinc/compute-manager
+docker pull sagemathinc/compute-python
+
 docker pull sagemathinc/compute-pytorch
 docker pull sagemathinc/compute-tensorflow
 

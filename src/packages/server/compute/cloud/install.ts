@@ -2,6 +2,9 @@
 This all assume Ubuntu 22.04.
 */
 
+// for consistency with cocalc.com
+export const UID = 2001;
+
 export function installDocker() {
   // See https://docs.docker.com/engine/install/ubuntu/
   return `
@@ -27,6 +30,15 @@ apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin do
 
 service docker start
 
+`;
+}
+
+export function dockerWithoutSudo() {
+  return `
+# Add user to the docker group, so that they can
+# use docker without having to do "sudo".
+
+sed -i 's/docker:x:999:/docker:x:999:${UID}/' /etc/group
 `;
 }
 
