@@ -22,7 +22,7 @@ export default function startupScript({
   return `
 #!/bin/bash
 
-${runCoCalcCompute({ api_key, project_id, gpu, arch })}
+${runCoCalcCompute({ api_key, project_id, gpu, arch, hostname })}
 `;
 }
 
@@ -45,7 +45,6 @@ docker run  ${gpu ? GPU_FLAGS : ""} \
    --hostname="${hostname}" \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
-   -e TERM_PATH=a.term \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -v /var/run/docker.sock:/var/run/docker.sock \
