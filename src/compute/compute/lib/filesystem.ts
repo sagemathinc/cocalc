@@ -21,11 +21,14 @@ interface Options {
   project_id?: string;
   // path to mount at -- defaults to '/home/user'
   path?: string;
+  // passed on to the websocketfs mount command
+  options?;
 }
 
 export async function mountProject({
   project_id = process.env.PROJECT_ID,
   path = "/home/user", // where to mount the project's HOME directory
+  options,
 }: Options = {}) {
   const log = (...args) => logger.debug(path, ...args);
   log();
@@ -59,7 +62,23 @@ export async function mountProject({
   const headers = { Cookie: serialize(API_COOKIE_NAME, apiKey) };
   // SECURITY: DO NOT log headers and connectOptions, obviously!
   const connectOptions = { perMessageDeflate: false, headers };
+  if (options.connectOptions) {
+    // ensure that connectOptions contains perMessageDeflate: false, headers no matter what:
+    options = {
+      ...options,
+      connectOptions: {
+        ...options.connectOptions,
+        perMessageDeflate: false,
+        headers,
+      },
+    };
+  }
 
-  const { unmount } = await mount({ remote, path, connectOptions });
+  const { unmount } = await mount({
+    remote,
+    path,
+    connectOptions,
+    ...options,
+  });
   return unmount;
 }
