@@ -3,7 +3,7 @@ import { imageName, getImagesClient, Architecture } from "./images";
 import getLogger from "@cocalc/backend/logger";
 import createInstance from "./create-instance";
 import { getSerialPortOutput, deleteInstance, stopInstance } from "./client";
-import { installCuda, installDocker, dockerWithoutSudo } from "../install";
+import { installCuda, installDocker, installUser } from "../install";
 import { delay } from "awaiting";
 import getInstanceState from "./get-instance-state";
 import type { GoogleCloudConfiguration } from "@cocalc/util/db-schema/compute-servers";
@@ -13,20 +13,54 @@ import { join } from "path";
 const logger = getLogger("server:compute:google-cloud:create-image");
 
 interface Options {
-  type: ImageType;
+  type?: ImageType;
   tag?: string;
   noDelete?: boolean;
   noParallel?: boolean;
   onlyArch?: Architecture;
 }
 
-export async function createImage({
+const TYPES = ["standard", "cuda"];
+async function createAllTypesOfImages(opts) {
+  async function build(type) {
+    return await createImages({ ...opts, type });
+  }
+  const t0 = Date.now();
+
+  let names: string[] = [];
+  if (opts.noParallel) {
+    // serial
+    for (const type of TYPES) {
+      names = names.concat(await build(type));
+    }
+  } else {
+    for (const r of await Promise.all(TYPES.map(build))) {
+      names = names.concat(r);
+    }
+  }
+  console.log("CREATED", names);
+  console.log("DONE", (Date.now() - t0) / 1000 / 60, "minutes");
+  return names;
+
+  return names;
+}
+
+export async function createImages({
   type,
   tag = "",
   noDelete,
   noParallel,
   onlyArch,
-}: Options): Promise<string[]> {
+}: Options = {}): Promise<string[]> {
+  if (type == null) {
+    // create all types
+    return await createAllTypesOfImages({
+      tag,
+      noDelete,
+      noParallel,
+      onlyArch,
+    });
+  }
   const t0 = Date.now();
   const names: string[] = [];
   const vms = new Set<string>();
@@ -43,6 +77,9 @@ export async function createImage({
       if (onlyArch && onlyArch != arch) {
         console.log("Skipping ", arch);
         return;
+      }
+      if (type == null) {
+        throw Error("bug -- type must not be null");
       }
       const name = imageName({ type, date: new Date(), tag, arch });
       console.log("logging to ", logFile(name));
@@ -142,7 +179,7 @@ function createStandardConf_x86_64() {
 #!/bin/bash
 set -ev
 ${installDocker()}
-${dockerWithoutSudo()}
+${installUser()}
 
 docker pull sagemathinc/compute-filesystem
 docker pull sagemathinc/compute-manager
@@ -176,7 +213,7 @@ function createStandardConf_arm64() {
 #!/bin/bash
 set -ev
 ${installDocker()}
-${dockerWithoutSudo()}
+${installUser()}
 
 docker pull sagemathinc/compute-filesystem-arm64
 docker pull sagemathinc/compute-manager-arm64
@@ -217,12 +254,13 @@ function createCudaConf() {
 #!/bin/bash
 
 ${installDocker()}
-${dockerWithoutSudo()}
+${installUser()}
 
 docker pull sagemathinc/compute-filesystem
 docker pull sagemathinc/compute-manager
 docker pull sagemathinc/compute-python
 
+docker pull sagemathinc/compute-cuda
 docker pull sagemathinc/compute-pytorch
 docker pull sagemathinc/compute-tensorflow
 

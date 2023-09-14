@@ -33,13 +33,25 @@ service docker start
 `;
 }
 
-export function dockerWithoutSudo() {
-  return `
+export function installUser() {
+return `
+# Create the "user".
+
+/usr/sbin/groupadd --gid=${UID} -o user
+/usr/sbin/useradd  --home-dir=/home/user --gid=${UID} --uid=${UID} --shell=/bin/bash user
+rm -rf /home/user && mkdir /home/user &&  chown ${UID}:${UID} -R /home/user
+
+# Allow to be root
+echo '%user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+# Allow to use FUSE
+sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
+
 # Add user to the docker group, so that they can
 # use docker without having to do "sudo".
 
-sed -i 's/docker:x:999:/docker:x:999:${UID}/' /etc/group
-`;
+sed -i 's/docker:x:999:/docker:x:999:user/' /etc/group
+`
 }
 
 /*
