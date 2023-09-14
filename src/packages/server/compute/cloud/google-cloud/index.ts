@@ -10,6 +10,7 @@ import getInstanceState from "./get-instance-state";
 import startupScript from "@cocalc/server/compute/cloud/startup-script";
 import computeCost from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import getLogger from "@cocalc/backend/logger";
+import { getArchitecture } from "./images";
 
 const logger = getLogger("server:compute:google-cloud");
 
@@ -34,6 +35,7 @@ export async function start(server: ComputeServer) {
       api_key: server.api_key,
       project_id: server.project_id,
       gpu: !!configuration.acceleratorType,
+      arch: getArchitecture(configuration.machineType),
     }),
     metadata: { "serial-port-logging-enable": true },
   });

@@ -114,7 +114,7 @@ export async function getAllImages({
   return images as ImageList;
 }
 
-function getArchitecture(machineType: string): Architecture {
+export function getArchitecture(machineType: string): Architecture {
   return machineType.startsWith("t2a-") ? "arm64" : "x86_64";
 }
 
@@ -166,7 +166,11 @@ export async function setImageLabel({
     project: projectId,
     image: name,
   });
-  const { labels, labelFingerprint } = image;
+  let labels, labelFingerprint;
+  ({ labels, labelFingerprint } = image);
+  if (labels == null) {
+    labels = {};
+  }
   if (value == null) {
     if (labels[key] == null) {
       // nothing to do

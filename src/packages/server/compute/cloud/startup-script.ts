@@ -1,11 +1,15 @@
+import type { Architecture } from "./google-cloud/images";
+
 export default function startupScript({
   api_key,
   project_id,
   gpu,
+  arch,
 }: {
   api_key?: string;
   project_id?: string;
   gpu?: boolean;
+  arch: Architecture;
 }) {
   if (!api_key) {
     throw Error("api_key must be specified");
@@ -16,7 +20,7 @@ export default function startupScript({
   return `
 #!/bin/bash
 
-${runCoCalcCompute({ api_key, project_id, gpu })}
+${runCoCalcCompute({ api_key, project_id, gpu, arch })}
 `;
 }
 
@@ -30,7 +34,7 @@ docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ...
 const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
-function runCoCalcCompute({ api_key, project_id, gpu }) {
+function runCoCalcCompute({ api_key, project_id, gpu, arch }) {
   return `
 docker run  ${gpu ? GPU_FLAGS : ""} \
    -e API_KEY=${api_key} \
@@ -39,6 +43,6 @@ docker run  ${gpu ? GPU_FLAGS : ""} \
    --privileged \
    --mount type=bind,source=/home,target=/home,bind-propagation=rshared \
    -v /var/run/docker.sock:/var/run/docker.sock \
-   sagemathinc/compute
+   sagemathinc/compute${arch == "arm64" ? "-arm64" : ""}
  `;
 }
