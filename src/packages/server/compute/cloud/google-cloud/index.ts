@@ -36,6 +36,7 @@ export async function start(server: ComputeServer) {
       project_id: server.project_id,
       gpu: !!configuration.acceleratorType,
       arch: getArchitecture(configuration.machineType),
+      hostname: `compute-server-${server.id}`,
     }),
     metadata: { "serial-port-logging-enable": true },
   });

@@ -5,11 +5,13 @@ export default function startupScript({
   project_id,
   gpu,
   arch,
+  hostname,
 }: {
   api_key?: string;
   project_id?: string;
   gpu?: boolean;
   arch: Architecture;
+  hostname: string;
 }) {
   if (!api_key) {
     throw Error("api_key must be specified");
@@ -34,9 +36,13 @@ docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ...
 const GPU_FLAGS =
   " --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ";
 
-function runCoCalcCompute({ api_key, project_id, gpu, arch }) {
+// TODO: we could set the hostname in a more useful way!
+
+function runCoCalcCompute({ api_key, project_id, gpu, arch, hostname }) {
   return `
 docker run  ${gpu ? GPU_FLAGS : ""} \
+   --name=base \
+   --hostname="${hostname}" \
    -e API_KEY=${api_key} \
    -e PROJECT_ID=${project_id} \
    -e TERM_PATH=a.term \
