@@ -42,13 +42,12 @@ const log = getLogger("websocket-api");
 let primus: any = undefined;
 export function init_websocket_api(_primus: any): void {
   primus = _primus;
-  primus.plugin("responder", require("primus-responder"));
 
   primus.on("connection", function (spark) {
     // Now handle the connection
     log.debug(`new connection from ${spark.address.ip} -- ${spark.id}`);
 
-    spark.on("request", async function (data, done) {
+    spark.on("request", async (data, done) => {
       log.debug("primus-api", "request", data, "REQUEST");
       const t0 = new Date().valueOf();
       try {

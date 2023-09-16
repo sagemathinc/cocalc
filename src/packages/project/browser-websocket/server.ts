@@ -35,6 +35,14 @@ export default function init(server: Server, basePath: string): Router {
   // add multiplex to Primus so we have channels.
   primus.plugin("multiplex", require("@cocalc/primus-multiplex"));
 
+  /* Add responder plugin, which adds a 'request' event to sparks,
+    spark.on("request", (data, done) => { done({'thanks for':data}) })
+    and
+    primus.writeAndWait({event:'foo'}, (response) => console.log("got", response))
+    See: https://github.com/swissmanu/primus-responder
+  */
+  primus.plugin("responder", require("primus-responder"));
+
   init_websocket_api(primus);
   initManager(primus);
 
