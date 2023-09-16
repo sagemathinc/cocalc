@@ -13,7 +13,8 @@ import {
 const logger = getLogger("project:compute-server:manager");
 
 interface ComputeServer {
-  id: number;
+  spark_id: string;
+  compute_server_id: number;
 }
 
 class Manager {
@@ -43,6 +44,15 @@ class Manager {
     spark.on("data", (mesg) =>
       this.handleMessageFromComputeServer(spark, mesg),
     );
+    spark.on("end", () => {
+      for (const id in this.computeServers) {
+        if (this.computeServers[id]?.spark_id == spark.id) {
+          delete this.computeServers[id];
+          this.broadcastComputeServers();
+          return;
+        }
+      }
+    });
   };
 
   private handleMessageFromComputeServer = (spark: Spark, message) => {
@@ -50,8 +60,10 @@ class Manager {
     switch (message.event) {
       case "register":
         this.computeServers[message.compute_server_id] = {
-          id: message.compute_server_id,
+          ...message,
+          spark_id: spark.id,
         };
+        this.broadcastComputeServers();
         return;
       default:
         spark.write({
@@ -63,20 +75,13 @@ class Manager {
 
   private handleWebBrowserConnection = (spark: Spark) => {
     logger.debug(
-      `new web browser connection from ${spark.address.ip} -- ${spark.id}`,
+      `handleWebBrowserConnection -- ${spark.address.ip} -- ${spark.id}`,
     );
-    spark.write({ status: "ok", type: "web browser" });
-    spark.on("data", (mesg) => this.handleMessageFromWebBrowser(spark, mesg));
-    // @ts-ignore: extensions
-    spark.on("request", (mesg, done) => {
-      let resp;
-      try {
-        resp = this.handleRequestFromWebBrowser(spark, mesg);
-      } catch (err) {
-        resp = { event: "error", message: err.message };
-      }
-      done(resp);
+    spark.write({
+      event: "compute-servers",
+      computeServers: this.computeServers,
     });
+    spark.on("data", (mesg) => this.handleMessageFromWebBrowser(spark, mesg));
   };
 
   private handleMessageFromWebBrowser = (spark: Spark, mesg) => {
@@ -84,13 +89,11 @@ class Manager {
     spark.write({ response: "message received from web browser", mesg });
   };
 
-  private handleRequestFromWebBrowser = (spark: Spark, mesg) => {
-    logger.debug("handleRequestFromWebBrowser", spark.id, mesg);
-    switch (mesg.event) {
-      case "get-compute-servers":
-        return this.computeServers;
-    }
-    throw Error(`unknown event ${mesg.event}`);
+  private broadcastComputeServers = () => {
+    this.webBrowserChannel.write({
+      event: "compute-servers",
+      computeServers: this.computeServers,
+    });
   };
 }
 

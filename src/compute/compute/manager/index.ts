@@ -40,7 +40,9 @@ export async function manager({ project_id, compute_server_id }: Options) {
 class Manager {
   private project_id: string;
   private compute_server_id: number;
-  private channel;
+  private conn?;
+  private channel?;
+  private registered?;
 
   constructor({ project_id, compute_server_id }: Options) {
     this.project_id = project_id;
@@ -58,19 +60,47 @@ class Manager {
 
     this.log("init", "Get a websocket connection to project ", project_id);
     const client = new SyncClient({ project_id });
-    const ws = await client.project_client.websocket(project_id);
+    this.conn = await client.project_client.websocket(project_id);
 
-    this.log("init", "opening channel", COMPUTE_SERVER_CHANNEL_NAME);
-    this.channel = ws.channel(COMPUTE_SERVER_CHANNEL_NAME);
+    this.initChannel();
+    this.conn.on("open", () => {
+      console.log("connection open");
+      this.initChannel();
+    });
+    this.conn.on("end", () => {
+      console.log("connection ended");
+      this.channel?.end();
+      delete this.channel;
+      delete this.registered;
+    });
+    this.conn.on("reconnect", () => {
+      console.log("connection reconnecting");
+      this.channel?.end();
+      delete this.channel;
+      delete this.registered;
+    });
+  };
+
+  private initChannel = () => {
+    this.log("initChannel", "creating channel", COMPUTE_SERVER_CHANNEL_NAME);
+    this.channel = this.conn.channel(COMPUTE_SERVER_CHANNEL_NAME);
     this.channel.on("data", this.handleMessageFromProject);
-    this.sendMessageToProject(register(this.compute_server_id));
+    if (!this.registered) {
+      this.register();
+    }
   };
 
-  sendMessageToProject = (message) => {
-    this.channel.write("data", message);
+  private register = () => {
+    if (this.channel == null) return;
+    this.registered = register(this.compute_server_id);
+    this.sendMessageToProject(this.registered);
   };
 
-  handleMessageFromProject = (message) => {
+  private sendMessageToProject = (message) => {
+    this.channel.write(message);
+  };
+
+  private handleMessageFromProject = (message) => {
     this.log("GOT ", message);
   };
 }
