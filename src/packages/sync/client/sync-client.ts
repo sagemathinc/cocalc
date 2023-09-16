@@ -44,7 +44,7 @@ export class SyncClient {
   public sync_table(
     query: Query,
     options: QueryOptions,
-    throttle_changes?: number
+    throttle_changes?: number,
   ): SyncTable {
     return synctable(query, options, this.client, throttle_changes);
   }
@@ -52,7 +52,7 @@ export class SyncClient {
   public async synctable_database(
     query: Query,
     options: QueryOptions,
-    throttle_changes?: number
+    throttle_changes?: number,
   ): Promise<SyncTable> {
     const s = this.sync_table(query, options, throttle_changes);
     await once(s, "connected");
@@ -62,13 +62,13 @@ export class SyncClient {
   public synctable_no_changefeed(
     query: Query,
     options: QueryOptions,
-    throttle_changes?: number
+    throttle_changes?: number,
   ): SyncTable {
     return synctable_no_changefeed(
       query,
       options,
       this.client,
-      throttle_changes
+      throttle_changes,
     );
   }
 
@@ -77,7 +77,7 @@ export class SyncClient {
     query: Query,
     options: QueryOptions,
     throttle_changes: number | undefined = undefined,
-    id: string = ""
+    id: string = "",
   ): Promise<SyncTable> {
     return await synctable_project({
       project_id,
@@ -92,13 +92,13 @@ export class SyncClient {
   // NOT currently used.
   public async symmetric_channel(
     name: string,
-    project_id: string
+    project_id: string,
   ): Promise<Channel> {
     if (!is_valid_uuid_string(project_id) || typeof name !== "string") {
       throw Error("project_id must be a valid uuid and name must be a string");
     }
     return (await this.client.project_client.api(project_id)).symmetric_channel(
-      name
+      name,
     );
   }
 
@@ -114,6 +114,7 @@ export class SyncClient {
       persistent: false,
       data_server: undefined,
       client: this.client,
+      ephemeral: false,
     });
     return new SyncString(opts0);
   }
@@ -135,6 +136,8 @@ export class SyncClient {
       string_cols: [],
 
       client: this.client,
+
+      ephemeral: false,
     });
     return new SyncDB(opts0);
   }
@@ -161,7 +164,7 @@ export class SyncClient {
       throw Error(`no document '${opts.path}' in project '${opts.project_id}'`);
     }
     const doctype = JSON.parse(
-      resp.query.syncstrings.doctype ?? '{"type":"string"}'
+      resp.query.syncstrings.doctype ?? '{"type":"string"}',
     );
     let opts2: any = {
       project_id: opts.project_id,

@@ -1,2 +1,7 @@
-export const COMPUTE_SERVER_CHANNEL_NAME = "compute-server";
-export const WEB_BROWSER_CHANNEL_NAME = "compute-web-browser";
+export const COMPUTER_SERVER_DB_NAME = ".compute-server.syncdb";
+
+export const SYNCDB_PARAMS = {
+  path: COMPUTER_SERVER_DB_NAME,
+  primary_keys: ["id", "table"],
+  ephemeral: true, // do NOT need to store state longterm in any database, obviously!
+};

@@ -19,8 +19,6 @@ import type { PrimusWithChannels } from "@cocalc/terminal";
 //const UglifyJS = require("uglify-js");
 import { init_websocket_api } from "./api";
 
-import { initManager } from "@cocalc/project/compute/manager";
-
 import { getLogger } from "@cocalc/project/logger";
 
 export default function init(server: Server, basePath: string): Router {
@@ -44,7 +42,6 @@ export default function init(server: Server, basePath: string): Router {
   primus.plugin("responder", require("primus-responder"));
 
   init_websocket_api(primus);
-  initManager(primus);
 
   const router = Router();
   const library: string = primus.library();

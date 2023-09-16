@@ -8,10 +8,9 @@
 - compute server
 */
 
-import { project } from "@cocalc/api-client";
 import SyncClient from "@cocalc/sync-client";
+import { SYNCDB_PARAMS } from "@cocalc/util/compute/manager";
 import getLogger from "@cocalc/backend/logger";
-import { COMPUTE_SERVER_CHANNEL_NAME } from "@cocalc/util/compute/manager";
 
 const logger = getLogger("compute:manager");
 
@@ -21,90 +20,40 @@ interface Options {
   compute_server_id: number;
 }
 
-// path should be something like "foo/.bar.term"
-// This particular code for now is just about making one single frame
-// use a remote terminal.  We will of course be building much more on this.
-// This is basically the foundational proof of concept step.
-export async function manager({ project_id, compute_server_id }: Options) {
-  if (!project_id) {
-    throw Error("project_id must be given");
-  }
-  if (!compute_server_id) {
-    throw Error("compute_server_id must be given");
-  }
-  const m = new Manager({ project_id, compute_server_id });
-  await m.init();
-  return m;
+export function manager({ project_id, compute_server_id }: Options) {
+  return new Manager({ project_id, compute_server_id });
 }
 
 class Manager {
-  private project_id: string;
+  private sync;
   private compute_server_id: number;
-  private conn?;
-  private channel?;
-  private registered?;
 
   constructor({ project_id, compute_server_id }: Options) {
-    this.project_id = project_id;
     this.compute_server_id = compute_server_id;
+    const client = new SyncClient({ project_id });
+    console.log(SYNCDB_PARAMS);
+    this.sync = client.sync_client.sync_db({
+      project_id,
+      ...SYNCDB_PARAMS,
+    });
+    this.sync.on("ready", () => {
+      this.log("sync is ready");
+      this.setState("ready");
+    });
   }
 
+  setState = (state) => {
+    this.log("setState", state);
+    this.sync.set({
+      id: this.compute_server_id,
+      table: "server-state",
+      state,
+      time: Date.now(),
+    });
+    this.sync.commit();
+  };
+
   log = (func, ...args) => {
-    logger.debug({ id: this.compute_server_id }, `Manager.${func}`, ...args);
+    logger.debug(`Manager.${func}`, ...args);
   };
-
-  init = async () => {
-    const { project_id } = this;
-    this.log("init", "ping project to wake it up:", project_id);
-    await project.ping({ project_id });
-
-    this.log("init", "Get a websocket connection to project ", project_id);
-    const client = new SyncClient({ project_id });
-    this.conn = await client.project_client.websocket(project_id);
-
-    this.initChannel();
-    this.conn.on("open", () => {
-      console.log("connection open");
-      this.initChannel();
-    });
-    this.conn.on("end", () => {
-      console.log("connection ended");
-      this.channel?.end();
-      delete this.channel;
-      delete this.registered;
-    });
-    this.conn.on("reconnect", () => {
-      console.log("connection reconnecting");
-      this.channel?.end();
-      delete this.channel;
-      delete this.registered;
-    });
-  };
-
-  private initChannel = () => {
-    this.log("initChannel", "creating channel", COMPUTE_SERVER_CHANNEL_NAME);
-    this.channel = this.conn.channel(COMPUTE_SERVER_CHANNEL_NAME);
-    this.channel.on("data", this.handleMessageFromProject);
-    if (!this.registered) {
-      this.register();
-    }
-  };
-
-  private register = () => {
-    if (this.channel == null) return;
-    this.registered = register(this.compute_server_id);
-    this.sendMessageToProject(this.registered);
-  };
-
-  private sendMessageToProject = (message) => {
-    this.channel.write(message);
-  };
-
-  private handleMessageFromProject = (message) => {
-    this.log("GOT ", message);
-  };
-}
-
-function register(compute_server_id: number) {
-  return { event: "register", compute_server_id };
 }
