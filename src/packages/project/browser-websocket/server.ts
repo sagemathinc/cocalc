@@ -11,12 +11,15 @@ import { join } from "node:path";
 import { Router } from "express";
 import { Server } from "http";
 import Primus from "primus";
+import type { PrimusWithChannels } from "@cocalc/terminal";
 
 // We are NOT using UglifyJS because it can easily take 3 blocking seconds of cpu
 // during project startup to save 100kb -- it just isn't worth it.  Obviously, it
 // would be optimal to build this one and for all into the project image.  TODO.
 //const UglifyJS = require("uglify-js");
 import { init_websocket_api } from "./api";
+
+import { initManager } from "@cocalc/project/compute-server/manager";
 
 import { getLogger } from "@cocalc/project/logger";
 
@@ -27,12 +30,13 @@ export default function init(server: Server, basePath: string): Router {
     transformer: "websockets",
   } as const;
   winston.info(`Initalizing primus websocket server at "${opts.pathname}"...`);
-  const primus = new Primus(server, opts);
+  const primus = new Primus(server, opts) as PrimusWithChannels;
 
   // add multiplex to Primus so we have channels.
   primus.plugin("multiplex", require("@cocalc/primus-multiplex"));
 
   init_websocket_api(primus);
+  initManager(primus);
 
   const router = Router();
   const library: string = primus.library();
@@ -44,7 +48,7 @@ export default function init(server: Server, basePath: string): Router {
     res.send(library);
   });
   winston.info(
-    `waiting for clients to request primus.js (length=${library.length})...`
+    `waiting for clients to request primus.js (length=${library.length})...`,
   );
 
   return router;

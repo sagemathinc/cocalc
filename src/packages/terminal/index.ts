@@ -8,7 +8,8 @@ Terminal server
 */
 
 import { getLogger } from "@cocalc/backend/logger";
-import type { Options, PrimusWithChannels } from "./lib/types";
+import type { Options, PrimusChannel, PrimusWithChannels } from "./lib/types";
+export { PrimusChannel, PrimusWithChannels };
 import { getChannelName, getRemotePtyChannelName } from "./lib/util";
 import { Terminal } from "./lib/terminal";
 export { RemoteTerminal } from "./lib/remote-terminal";
