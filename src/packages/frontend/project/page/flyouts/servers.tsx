@@ -13,7 +13,7 @@ import { FLYOUT_PADDING } from "./consts";
 import {
   computeServersEnabled,
   ManageComputeServers,
-} from "@cocalc/frontend/compute-servers";
+} from "@cocalc/frontend/compute";
 
 export function ServersFlyout({ project_id, wrap }) {
   const servers = [

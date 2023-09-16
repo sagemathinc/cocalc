@@ -11,8 +11,7 @@
 import { project } from "@cocalc/api-client";
 import SyncClient from "@cocalc/sync-client";
 import getLogger from "@cocalc/backend/logger";
-
-const CHANNEL_NAME = "compute-server";
+import { COMPUTE_SERVER_CHANNEL_NAME } from "@cocalc/util/compute/manager";
 
 const logger = getLogger("compute:manager");
 
@@ -26,7 +25,7 @@ interface Options {
 // This particular code for now is just about making one single frame
 // use a remote terminal.  We will of course be building much more on this.
 // This is basically the foundational proof of concept step.
-export async function startManager({ project_id, compute_server_id }: Options) {
+export async function manager({ project_id, compute_server_id }: Options) {
   if (!project_id) {
     throw Error("project_id must be given");
   }
@@ -43,8 +42,8 @@ export async function startManager({ project_id, compute_server_id }: Options) {
   const client = new SyncClient({ project_id });
   const ws = await client.project_client.websocket(project_id);
 
-  log("opening channel", CHANNEL_NAME);
-  const channel = ws.channel(CHANNEL_NAME);
+  log("opening channel", COMPUTE_SERVER_CHANNEL_NAME);
+  const channel = ws.channel(COMPUTE_SERVER_CHANNEL_NAME);
   channel.on("data", (data) => {
     console.log("GOT ", data);
   });

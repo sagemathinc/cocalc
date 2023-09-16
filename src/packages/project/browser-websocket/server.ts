@@ -19,7 +19,7 @@ import type { PrimusWithChannels } from "@cocalc/terminal";
 //const UglifyJS = require("uglify-js");
 import { init_websocket_api } from "./api";
 
-import { initManager } from "@cocalc/project/compute-server/manager";
+import { initManager } from "@cocalc/project/compute/manager";
 
 import { getLogger } from "@cocalc/project/logger";
 

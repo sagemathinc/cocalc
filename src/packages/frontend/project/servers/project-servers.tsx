@@ -18,7 +18,7 @@ import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
 import {
   computeServersEnabled,
   ManageComputeServers,
-} from "@cocalc/frontend/compute-servers";
+} from "@cocalc/frontend/compute";
 
 // Antd's 24 grid system
 const md = 6;
