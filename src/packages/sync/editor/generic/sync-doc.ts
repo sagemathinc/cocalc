@@ -69,7 +69,6 @@ import {
   is_date,
   keys,
   minutes_ago,
-  server_minutes_ago,
   uuid,
 } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
@@ -257,6 +256,14 @@ export class SyncDoc extends EventEmitter {
       // or not patches are written to the database by the
       // project.
       this.doctype.opts = { ...this.doctype.opts, ephemeral: true };
+    }
+    if (this.cursors) {
+      // similarly to ephemeral, but for cursors.   We track them
+      // on the backend since they can also be very useful, e.g.,
+      // with jupyter they are used for connecting remote compute,
+      // and **should** also be used for broadcasting load and other
+      // status information (TODO).
+      this.doctype.opts = { ...this.doctype.opts, cursors: true };
     }
     this._from_str = opts.from_str;
 
@@ -1480,10 +1487,6 @@ export class SyncDoc extends EventEmitter {
 
   private async init_cursors(): Promise<void> {
     const dbg = this.dbg("init_cursors");
-    if (this.client.is_project()) {
-      dbg("done -- only users care about cursors.");
-      return;
-    }
     if (!this.cursors) {
       dbg("done -- do not care about cursors for this syncdoc.");
       return;
@@ -1568,28 +1571,39 @@ export class SyncDoc extends EventEmitter {
   /* Returns *immutable* Map from account_id to list
      of cursor positions, if cursors are enabled.
   */
-  public get_cursors(oldMinutes: number = 1): Map<string, any> {
+  public get_cursors({
+    maxAge = 60 * 1000,
+    excludeSelf = true,
+  }: {
+    maxAge?: number;
+    excludeSelf?: boolean;
+  } = {}): Map<string, any> {
     if (!this.cursors) {
       throw Error("cursors are not enabled");
     }
     if (this.cursors_table == null) {
       return Map(); // not loaded yet -- so no info yet.
     }
-    const account_id: string = this.client.client_id();
+    const account_id: string = this.client_id();
     let map = this.cursor_map;
     if (
+      excludeSelf &&
       map.has(account_id) &&
       this.cursor_last_time >=
         (map.getIn([account_id, "time"], new Date(0)) as Date)
     ) {
       map = map.delete(account_id);
     }
-    if (oldMinutes) {
-      // Remove any old cursors, where "old" is by default more than 1 minute old; this is never useful.
-      const cutoff = server_minutes_ago(oldMinutes);
-      for (const [a] of map as any) {
-        if ((map.getIn([a, "time"], new Date(0)) as Date) < cutoff) {
-          map = map.delete(a);
+    if (maxAge) {
+      // Remove any old cursors, where "old" is by default more than 1 minute old, since
+      // old cursors are not useful
+      const now = Date.now();
+      for (const [client_id, value] of map as any) {
+        const time = value.get("time");
+        // we use abs to implicitly exclude a bad value that is somehow in the future,
+        // if that were to happen.
+        if (time == null || Math.abs(now - time.valueOf()) >= maxAge) {
+          map = map.delete(client_id);
         }
       }
     }
@@ -1609,6 +1623,10 @@ export class SyncDoc extends EventEmitter {
     });
     await this.syncstring_table.save();
   }
+
+  client_id = () => {
+    return this.client.client_id();
+  };
 
   // get settings object
   public get_settings(): Map<string, any> {
@@ -2219,7 +2237,7 @@ export class SyncDoc extends EventEmitter {
     }
 
     // Ensure that this client is in the list of clients
-    const client_id: string = this.client.client_id();
+    const client_id: string = this.client_id();
     this.my_user_id = this.users.indexOf(client_id);
     if (this.my_user_id === -1) {
       this.my_user_id = this.users.length;

@@ -112,7 +112,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     this.setState({});
     this._syncstring.on(
       "change",
-      debounce(this.updateTableOfContents.bind(this), 1500)
+      debounce(this.updateTableOfContents.bind(this), 1500),
     );
     const handleChange = (keys) => {
       const elements0 = this.store.get("elements");
@@ -129,7 +129,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         handleChange(
           this._syncstring.get().map((x) => {
             return fromJS({ id: x.get("id") });
-          })
+          }),
         );
         // and don't do the handling below, obviously.
         return;
@@ -179,7 +179,10 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
           // this is a page
           somePageChanged = true;
           if (!pages.has(id)) {
-            pages = pages.set(id, ImmutableMap(fromJS(this.fixedElements)) as any);
+            pages = pages.set(
+              id,
+              ImmutableMap(fromJS(this.fixedElements)) as any,
+            );
           }
           elements = elements.set(id, element);
         } else {
@@ -191,7 +194,10 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
           if (newPage) {
             const elementsOnNewPage =
               pages.get(newPage) ?? ImmutableMap(fromJS(this.fixedElements));
-            pages = pages.set(newPage, elementsOnNewPage.set(id, element) as any);
+            pages = pages.set(
+              newPage,
+              elementsOnNewPage.set(id, element) as any,
+            );
           }
           if (oldPage && oldPage != newPage) {
             // change page, so delete element from the old page
@@ -266,7 +272,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   createAdjacentElement(
     id: string, // id of existing element
     placement: Placement = "bottom",
-    commit: boolean = true
+    commit: boolean = true,
   ): string | undefined {
     if (this._syncstring == null) return;
     const element = this._syncstring.get_one({ id })?.toJS();
@@ -431,7 +437,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   createElement(
     frameId: string | undefined,
     obj: Partial<Element>,
-    commit: boolean = true
+    commit: boolean = true,
   ): Element {
     log("createElement", frameId, obj, commit);
     if (obj.id == null || this.store.getIn(["elements", obj.id])) {
@@ -535,7 +541,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     frameId: string,
     id: string,
     type: "add" | "remove" | "only" | "toggle" = "only",
-    expandGroups: boolean = true // for internal use when we recurse
+    expandGroups: boolean = true, // for internal use when we recurse
   ): void {
     const node = this._get_frame_node(frameId);
     if (node == null) return;
@@ -595,7 +601,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     frameId: string,
     ids: string[],
     type: "add" | "remove" | "only" = "only",
-    expandGroups: boolean = true
+    expandGroups: boolean = true,
   ): void {
     const X = new Set(ids);
     if (expandGroups) {
@@ -725,7 +731,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   setEdgeCreateStart(
     id: string,
     eltId: string,
-    position?: EdgeCreatePosition
+    position?: EdgeCreatePosition,
   ): void {
     this.set_frame_tree({ id, edgeStart: { id: eltId, position } });
   }
@@ -739,7 +745,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     frameId: string,
     from: string,
     to: string,
-    data?: Data
+    data?: Data,
   ): Element | undefined {
     if (from == to) {
       // no loops
@@ -766,7 +772,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   insertElements(
     frameId: string | undefined,
     elements: Element[],
-    center?: Point
+    center?: Point,
   ): string[] {
     elements = cloneDeep(elements); // we will mutate it a lot
     if (center != null) {
@@ -966,7 +972,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   paste(
     frameId?: string,
     _value?: string | true | undefined,
-    nextTo?: Element[]
+    nextTo?: Element[],
   ): void {
     if (frameId && this._get_frame_type(frameId) != this.mainFrameType) return;
     const pastedElements = pasteFromInternalClipboard();
@@ -990,7 +996,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   scrollElementIntoView(
     id: string,
     frameId: string | undefined = undefined,
-    loc: "center" | "top" = "top"
+    loc: "center" | "top" = "top",
   ) {
     const element = this.getElement(id);
     if (element == null) return;
@@ -1018,7 +1024,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
 
   gotoUser(account_id: string, frameId?: string) {
     const locs = this._syncstring
-      .get_cursors(0)
+      .get_cursors({ maxAge: 0 })
       ?.getIn([account_id, "locs"])
       ?.toJS();
     if (locs == null) return; // no info
@@ -1034,7 +1040,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   hideElements(
     elements: Element[],
     commit: boolean = true,
-    frame: string = ""
+    frame: string = "",
   ): void {
     if (elements.length == 0) return;
     for (const element of elements) {
@@ -1059,7 +1065,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         // the frame, except the frame itself
         const contents = getOverlappingElements(
           this.getElements(),
-          element
+          element,
         ).filter((element) => element.id != id);
         this.hideElements(contents, false, id);
       } else {
@@ -1106,7 +1112,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         // unhiding a frame, so also unhide everything that was hidden
         // as part of hiding this frame.
         const v: Element[] = this.getElements().filter(
-          (elt) => elt.hide?.["frame"] == element.id
+          (elt) => elt.hide?.["frame"] == element.id,
         );
         this.unhideElements(v, false);
       }
@@ -1148,7 +1154,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     elements: (Element | string)[],
     offset: Point,
     commit: boolean = true,
-    moved: Set<string> = new Set()
+    moved: Set<string> = new Set(),
   ): void {
     let allElements: undefined | Element[] = undefined;
     const tx = Math.round(offset.x);
@@ -1180,7 +1186,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
           overlapping = allElements.filter((elt) => elt.hide?.["frame"] == id);
         } else {
           overlapping = getOverlappingElements(allElements, element).filter(
-            (elt) => elt.type != "frame"
+            (elt) => elt.type != "frame",
           );
         }
         this.moveElements(overlapping, offset, false, moved);
@@ -1254,14 +1260,14 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   increase_font_size(id: string): void {
     this.set_font_size(
       id,
-      (this._get_frame_node(id)?.get("font_size") ?? DEFAULT_FONT_SIZE) + 1
+      (this._get_frame_node(id)?.get("font_size") ?? DEFAULT_FONT_SIZE) + 1,
     );
   }
 
   decrease_font_size(id: string): void {
     this.set_font_size(
       id,
-      (this._get_frame_node(id)?.get("font_size") ?? DEFAULT_FONT_SIZE) - 1
+      (this._get_frame_node(id)?.get("font_size") ?? DEFAULT_FONT_SIZE) - 1,
     );
   }
 
@@ -1297,7 +1303,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     line: string | number,
     _cursor?: boolean,
     _focus?: boolean,
-    frameId?: string // if given scroll this particular frame
+    frameId?: string, // if given scroll this particular frame
   ) {
     // NOTE: This function is a bit different in that it is often called before
     // the sync stuff is initialized. So unlike most functions above, we
@@ -1340,13 +1346,13 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   }
 
   public async show_table_of_contents(
-    _id: string | undefined = undefined
+    _id: string | undefined = undefined,
   ): Promise<void> {
     const id = this.show_focused_frame_of_type(
       "table_of_contents",
       "col",
       true,
-      0.2
+      0.2,
     );
     await delay(0);
     if (this._state === "closed") return;
@@ -1369,7 +1375,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     if (elements == null) return;
 
     const contents = fromJS(
-      parseTableOfContents(elements, this.store.get("sortedPageIds"))
+      parseTableOfContents(elements, this.store.get("sortedPageIds")),
     ) as any;
     this.setState({ contents });
   }
@@ -1422,7 +1428,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   newPage(
     frameId: string,
     afterPageId: string = "",
-    commit: boolean = true
+    commit: boolean = true,
   ): string {
     const n = this.store.get("pages")?.size ?? 1;
     const page = this.createPage(false);
@@ -1436,7 +1442,11 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         // Complexity: we don't just move the newly inserted page by calling
         // movePage, since the store isn't updated yet (that only happens in
         // response to commit), and movePage works on what is in the store.
-        const curPos = elements.getIn([pages.get(cur) ?? "", "data", "pos"]) as number;
+        const curPos = elements.getIn([
+          pages.get(cur) ?? "",
+          "data",
+          "pos",
+        ]) as number;
         const nextPos = elements.getIn([
           pages.get(cur + 1) ?? "",
           "data",
@@ -1488,7 +1498,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       getPos: (index) =>
         this.store.getIn(
           ["elements", pages.get(index) ?? "", "data", "pos"],
-          0
+          0,
         ),
     });
     this.setElement({
@@ -1510,7 +1520,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     const sortedPageIds = this.store.get("sortedPageIds");
     if (sortedPageIds == null) return;
     const positions = sortedPageIds.map((pageId) =>
-      elements.getIn([pageId, "data", "pos"])
+      elements.getIn([pageId, "data", "pos"]),
     ) as any;
     let tooClose = false;
     for (let i = 1; i < positions.size; i++) {
@@ -1560,8 +1570,8 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       const pageId = this.store.getIn(["sortedPageIds", page - 1]) ?? "";
       return toMarkdown(
         elements.filter(
-          (element) => element.page == pageId || element.type == "page"
-        )
+          (element) => element.page == pageId || element.type == "page",
+        ),
       );
     } else if (scope == "selection") {
       const selection = node.get("selection");
@@ -1583,7 +1593,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
 }
 
 export function elementsList(
-  elements?: ImmutableMap<string, any>
+  elements?: ImmutableMap<string, any>,
 ): Element[] | undefined {
   return elements
     ?.valueSeq()
@@ -1596,7 +1606,7 @@ export function elementsList(
 // two elements of selected.
 export function extendToIncludeEdges(
   selection: Element[],
-  elements: Element[]
+  elements: Element[],
 ) {
   const vertices = new Set(selection.map((element) => element.id));
   for (const element of elements) {

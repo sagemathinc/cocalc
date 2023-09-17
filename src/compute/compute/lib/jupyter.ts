@@ -7,7 +7,7 @@ import SyncClient from "@cocalc/sync-client";
 import { meta_file } from "@cocalc/util/misc";
 import { initJupyterRedux } from "@cocalc/jupyter/kernel";
 import { redux } from "@cocalc/jupyter/redux/app";
-import { COMPUTE_THRESH_MS } from "@cocalc/jupyter/redux/project-actions";
+import { COMPUTE_THRESH_MS } from "@cocalc/jupyter/redux/actions";
 import debug from "debug";
 import { once } from "@cocalc/util/async-utils";
 
@@ -20,7 +20,7 @@ export function jupyter({ client, path }) {
 class RemoteJupyter {
   private client: SyncClient;
   private path: string;
-  private syncdb;
+  private sync_db;
   private actions;
   private store;
 
@@ -30,14 +30,14 @@ class RemoteJupyter {
     this.log("constructor");
     const syncdb_path = meta_file(path, "jupyter2");
 
-    this.syncdb = client.sync_client.sync_db({
+    this.sync_db = client.sync_client.sync_db({
       project_id: client.project_id,
       path: syncdb_path,
       change_throttle: 50,
       patch_interval: 50,
       primary_keys: ["type", "id"],
       string_cols: ["input"],
-      cursors: false,
+      cursors: true,
       persistent: true,
     });
 
@@ -50,19 +50,22 @@ class RemoteJupyter {
   };
 
   close = () => {
+    if (this.sync_db == null) {
+      return;
+    }
     this.log("close");
-    this.syncdb.close();
-    delete this.syncdb;
+    this.sync_db.set_cursor_locs([]);
+    this.sync_db.close();
+    delete this.sync_db;
     // TODO
-    throw Error("todo");
     this.actions;
     this.store;
   };
 
   private initClaimSession = async () => {
     this.log("initializing session claim protocol");
-    if (this.syncdb.get_state() == "init") {
-      await once(this.syncdb, "ready");
+    if (this.sync_db.get_state() == "init") {
+      await once(this.sync_db, "ready");
     }
 
     // [ ] TODO: Reset the execution
@@ -70,20 +73,19 @@ class RemoteJupyter {
     // from other backend would just be stuck, which is bad.
 
     const claimSession = () => {
-      if (this.syncdb == null) {
+      if (this.sync_db == null) {
         return;
       }
-      // TODO: instead of changing doc state, make a cursor instead
-      // to accomplish this.
-      this.syncdb.set({
-        type: "compute",
-        id: this.client.client_id(),
-        time: Date.now(),
-      });
-      this.syncdb.commit();
+      console.log("Setting compute server cursor");
+      this.sync_db.set_cursor_locs([
+        {
+          type: "compute",
+          time: Date.now(),
+        },
+      ]);
     };
     const interval = setInterval(claimSession, COMPUTE_THRESH_MS / 2);
-    this.syncdb.once("closed", () => {
+    this.sync_db.once("closed", () => {
       clearInterval(interval);
     });
     claimSession();
@@ -91,7 +93,7 @@ class RemoteJupyter {
 
   private initRedux = () => {
     this.log("initializing jupyter redux...");
-    initJupyterRedux(this.syncdb, this.client);
+    initJupyterRedux(this.sync_db, this.client);
     const { project_id } = this.client;
     const { path } = this;
     this.actions = redux.getEditorActions(project_id, path);

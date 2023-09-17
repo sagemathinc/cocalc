@@ -10,6 +10,8 @@ backend/project, which "manages" everything.
 This code should not *explicitly* require anything that is only
 available in the project or requires node to run, so that we can
 fully unit test it via mocking of components.
+
+NOTE: this is also now the actions used by remote compute servers as well.
 */
 
 import * as immutable from "immutable";
@@ -24,8 +26,7 @@ import nbconvertChange from "./handle-nbconvert-change";
 import type Client from "@cocalc/sync-client";
 import type { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
 import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
-
-export const COMPUTE_THRESH_MS = 30 * 1000; // 30s
+import { decodeUUIDtoNum } from "@cocalc/util/compute/manager";
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
@@ -65,7 +66,7 @@ export class JupyterActions extends JupyterActions0 {
   public run_cell(
     id: string,
     save: boolean = true,
-    no_halt: boolean = false
+    no_halt: boolean = false,
   ): void {
     if (this.store.get("read_only")) return;
     const cell = this.store.getIn(["cells", id]);
@@ -108,7 +109,7 @@ export class JupyterActions extends JupyterActions0 {
     // Check just in case Typescript doesn't catch something:
     if (
       ["init", "ready", "spawning", "starting", "running"].indexOf(
-        backend_state
+        backend_state,
       ) === -1
     ) {
       throw Error(`invalid backend state '${backend_state}'`);
@@ -116,7 +117,7 @@ export class JupyterActions extends JupyterActions0 {
     if (backend_state == "init" && this._backend_state != "init") {
       // Do NOT allow changing the state to init from any other state.
       throw Error(
-        `illegal state change '${this._backend_state}' --> '${backend_state}'`
+        `illegal state change '${this._backend_state}' --> '${backend_state}'`,
       );
     }
     this._backend_state = backend_state;
@@ -168,7 +169,7 @@ export class JupyterActions extends JupyterActions0 {
     this.sync_exec_state = debounce(this.sync_exec_state, 2000);
     this._throttled_ensure_positions_are_unique = debounce(
       this.ensure_positions_are_unique,
-      5000
+      5000,
     );
     // Listen for changes...
     this.syncdb.on("change", this._backend_syncdb_change.bind(this));
@@ -201,7 +202,7 @@ export class JupyterActions extends JupyterActions0 {
     }
     this.syncdb.ipywidgets_state.on(
       "change",
-      this.handle_ipywidgets_state_change.bind(this)
+      this.handle_ipywidgets_state_change.bind(this),
     );
   }
 
@@ -263,7 +264,7 @@ export class JupyterActions extends JupyterActions0 {
                 if (this.run_all_loop == null) {
                   this.run_all_loop = new RunAllLoop(
                     this,
-                    record.get("run_all_loop_s")
+                    record.get("run_all_loop_s"),
                   );
                 } else {
                   // ensure interval is correct
@@ -593,12 +594,12 @@ export class JupyterActions extends JupyterActions0 {
       v.sort((a, b) =>
         misc.cmp(
           a != null ? a.get("start") : undefined,
-          b != null ? b.get("start") : undefined
-        )
+          b != null ? b.get("start") : undefined,
+        ),
       );
 
       dbg(
-        `found ${v.length} non-running cell that should be running, so ensuring kernel is running...`
+        `found ${v.length} non-running cell that should be running, so ensuring kernel is running...`,
       );
       this.ensure_backend_kernel_setup();
       try {
@@ -610,7 +611,7 @@ export class JupyterActions extends JupyterActions0 {
       }
 
       dbg(
-        `kernel is now running; requesting that each ${v.length} cell gets executed`
+        `kernel is now running; requesting that each ${v.length} cell gets executed`,
       );
       for (const cell of v) {
         if (cell != null) {
@@ -655,8 +656,9 @@ export class JupyterActions extends JupyterActions0 {
     // we are done waiting for output from this cell.
     // The output handler removes all listeners whenever it is
     // finished, so we don't have to remove this listener for done.
-    handler.once("done", () =>
-      this.jupyter_kernel?.removeListener("closed", handleKernelClose)
+    handler.once(
+      "done",
+      () => this.jupyter_kernel?.removeListener("closed", handleKernelClose),
     );
 
     handler.on("more_output", (mesg, mesg_length) => {
@@ -887,7 +889,7 @@ export class JupyterActions extends JupyterActions0 {
           // doing this, the message is at least need shorter than it was before.
           output.messages[0].text = misc.trunc(
             output.messages[0].text,
-            len - need
+            len - need,
           );
           did_truncate = true;
         }
@@ -1140,7 +1142,7 @@ export class JupyterActions extends JupyterActions0 {
         // This should never happen, but maybe could in case of a very
         // messed up compute environment where the kernelspecs can't be listed.
         throw Error(
-          "kernel info not known and can't be determined, so can't save"
+          "kernel info not known and can't be determined, so can't save",
         );
       }
     }
@@ -1251,7 +1253,7 @@ export class JupyterActions extends JupyterActions0 {
         this.jupyter_kernel.send_comm_message_to_kernel(
           misc.uuid(),
           model_id,
-          data
+          data,
         );
       } else if (type === "buffers") {
         // nothing to do on the backend (?)
@@ -1310,46 +1312,23 @@ export class JupyterActions extends JupyterActions0 {
     nbconvertChange(this, oldVal?.toJS(), newVal?.toJS());
   }
 
-  private numComputeClients(): number {
-    // [ ] TODO: this info should be in the cursors table instead
-    // with a smaller COMPUTE_THRESH_MS, to avoid wasting
-    // space in the database!
-    const compute = this.syncdb.get({ type: "compute" });
-    if (compute.size == 0) {
-      // definitely no compute
-      return 0;
-    }
-    const now = Date.now();
-    let numClients = 0;
-    for (const node of compute) {
-      const time = node.get("time");
-      if (
-        typeof time != "number" ||
-        !isFinite(time) ||
-        Math.abs(time - now) > COMPUTE_THRESH_MS
-      ) {
-        this.syncdb.delete({ type: "compute", id: node.get("id") });
-        this.syncdb.commit();
-      } else {
-        numClients += 1;
-      }
-    }
-    const dbg = this.dbg("numComputeClients");
-    dbg(numClients);
-    return numClients;
-  }
-
-  private isCellRunner(): boolean {
-    if (!this.is_project) {
-      // not the project -- for now that means this is a compute
-      // client, so it will definitely try to evaluate code.
-      // TODO: [ ] will maybe only allow a specifically selected
-      // one or the newest or something.  This depends on how
-      // we end up fleshing out the rest of the architecture.
+  private isCellRunner = (): boolean => {
+    const dbg = this.dbg("isCellRunner");
+    const id = this.getRemoteComputeServerId();
+    dbg("id = ", id);
+    if (id == 0 && this.is_project) {
+      // when no remote compute servers are configured, the project is
+      // responsible for evaluating code.
       return true;
     }
-    // It is a project, so we return code exactly if there are no
-    // actively registered compute clients.
-    return this.numComputeClients() == 0;
-  }
+    // a remote compute server is supposed to be responsible. Are we it?
+    try {
+      const myId = decodeUUIDtoNum(this.syncdb.client_id());
+      dbg("myId", myId);
+      return myId == id;
+    } catch (err) {
+      dbg(err);
+    }
+    return false;
+  };
 }

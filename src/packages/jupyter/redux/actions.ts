@@ -13,6 +13,7 @@ This can be used both on the frontend and the backend.
 // It seems like 50000 provides a better tradeoff.  With 10000 we got about
 // four support messages *per year* about this...
 const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
+export const COMPUTE_THRESH_MS = 30 * 1000; // 30s
 
 declare const localStorage: any;
 
@@ -31,7 +32,6 @@ import {
 } from "@cocalc/jupyter/redux/store";
 import { Cell, KernelInfo } from "@cocalc/jupyter/types";
 import { get_kernels_by_name_or_language } from "@cocalc/jupyter/util/misc";
-import debug from "debug";
 import { Kernel, Kernels } from "@cocalc/jupyter/util/misc";
 import { IPynbImporter } from "@cocalc/jupyter/ipynb/import-from-ipynb";
 import type { JupyterKernelInterface } from "@cocalc/jupyter/types/project-interface";
@@ -42,8 +42,8 @@ import {
 } from "@cocalc/jupyter/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type Client from "@cocalc/sync-client";
+import { decodeUUIDtoNum } from "@cocalc/util/compute/manager";
 
-const log = debug("cocalc:jupyter:actions");
 const { close, required, defaults } = misc;
 
 // local cache: map project_id (string) -> kernels (immutable)
@@ -84,8 +84,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     path: string,
     syncdb: SyncDB,
     store: any,
-    client: Client
+    client: Client,
   ): void {
+    this._client = client;
+    this.dbg("_init")("Initializing Jupyter Actions");
     if (project_id == null || path == null) {
       // typescript should ensure this, but just in case.
       throw Error("type error -- project_id and path can't be null");
@@ -102,7 +104,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.path = path;
     store.syncdb = syncdb;
     this.syncdb = syncdb;
-    this._client = client;
     // the project client is designated to manage execution/conflict, etc.
     this.is_project = client.is_project();
     store._is_project = this.is_project;
@@ -173,7 +174,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   protected async api_call(
     endpoint: string,
     query?: any,
-    timeout_ms?: number
+    timeout_ms?: number,
   ): Promise<any> {
     if (this._state === "closed") {
       throw Error("closed");
@@ -182,17 +183,15 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     return await api.jupyter(this.path, endpoint, query, timeout_ms);
   }
 
-  protected dbg(f: string): (...args) => void {
-    return (...args) => {
-      if (this.store == null) {
-        // calling dbg after the actions are closed is possible; this.store would
-        // be undefined, and then this log message would crash, which sucks.  It happened to me.
-        // See https://github.com/sagemathinc/cocalc/issues/6788
-        return;
-      }
-      log(`JupyterActions('${this.store.get("path")}').${f}`, ...args);
-    };
-  }
+  protected dbg = (f: string) => {
+    if (this.is_closed()) {
+      // calling dbg after the actions are closed is possible; this.store would
+      // be undefined, and then this log message would crash, which sucks.  It happened to me.
+      // See https://github.com/sagemathinc/cocalc/issues/6788
+      return (..._) => {};
+    }
+    return this._client.dbg(`JupyterActions("${this.path}").${f}`);
+  };
 
   protected close_client_only(): void {
     throw Error("must define in derived client class");
@@ -309,7 +308,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         start: null,
         end: null,
       },
-      save
+      save,
     );
   }
 
@@ -320,7 +319,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         id,
         output,
       },
-      save
+      save,
     );
   };
 
@@ -358,7 +357,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     this.set_error(
       `${n} ${noun} ${verb} protected from ${x}${
         reason ? " when " + reason : ""
-      }.`
+      }.`,
     );
   }
 
@@ -376,7 +375,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
   public toggle_outputs(
     cell_ids: string[],
-    property: "collapsed" | "scrolled"
+    property: "collapsed" | "scrolled",
   ): void {
     const cells = this.store.get("cells");
     if (cells == null) {
@@ -405,7 +404,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public moveCell(
     oldIndex: number,
     newIndex: number,
-    save: boolean = true
+    save: boolean = true,
   ): void {
     if (oldIndex == newIndex) return; // nothing to do
     // Move the cell that is currently at position oldIndex to
@@ -424,7 +423,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public set_cell_type(
     id: string,
     cell_type: string = "code",
-    save: boolean = true
+    save: boolean = true,
   ): void {
     if (this.check_edit_protection(id, "changing cell type")) return;
     if (
@@ -433,7 +432,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       cell_type !== "code"
     ) {
       throw Error(
-        `cell type (='${cell_type}') must be 'markdown', 'raw', or 'code'`
+        `cell type (='${cell_type}') must be 'markdown', 'raw', or 'code'`,
       );
     }
     const obj: any = {
@@ -581,7 +580,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
                 record.get("max_output_length"),
                 100,
                 250000,
-                DEFAULT_MAX_OUTPUT_LENGTH
+                DEFAULT_MAX_OUTPUT_LENGTH,
               ),
             };
             if (kernel !== orig_kernel) {
@@ -650,7 +649,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
                 record.get("max_output_length"),
                 100,
                 250000,
-                DEFAULT_MAX_OUTPUT_LENGTH
+                DEFAULT_MAX_OUTPUT_LENGTH,
               ),
             };
             if (kernel !== orig_kernel) {
@@ -779,7 +778,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
     // ensure that we update locally immediately for our own changes.
     this._syncdb_change(
-      immutable.fromJS([misc.copy_with(obj, ["id", "type"])])
+      immutable.fromJS([misc.copy_with(obj, ["id", "type"])]),
     );
   };
 
@@ -837,7 +836,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       }
       if (err.toString().indexOf("unknown endpoint") != -1) {
         this.set_error(
-          "You MUST restart your project to run the latest Jupyter server! Click 'Restart Project' in your project's settings."
+          "You MUST restart your project to run the latest Jupyter server! Click 'Restart Project' in your project's settings.",
         );
         return;
       }
@@ -881,7 +880,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   insert_cell_at(
     pos: number,
     save: boolean = true,
-    id: string | undefined = undefined // dangerous since could conflict (used by whiteboard)
+    id: string | undefined = undefined, // dangerous since could conflict (used by whiteboard)
   ): string {
     if (this.store.get("read_only")) {
       throw Error("document is read only");
@@ -894,7 +893,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         pos,
         input: "",
       },
-      save
+      save,
     );
     return new_id; // violates CQRS... (this *is* used elsewhere)
   }
@@ -904,13 +903,13 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   insert_cell_adjacent(
     id: string,
     delta: -1 | 1,
-    save: boolean = true
+    save: boolean = true,
   ): string {
     const pos = cell_utils.new_cell_pos(
       this.store.get("cells"),
       this.store.get_cell_list(),
       id,
-      delta
+      delta,
     );
     return this.insert_cell_at(pos, save);
   }
@@ -979,7 +978,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public run_code_cell(
     id: string,
     save: boolean = true,
-    no_halt: boolean = false
+    no_halt: boolean = false,
   ): void {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
@@ -991,7 +990,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       this._set({ type: "cell", id, state: "done" });
       // don't attempt to run a code-cell if there is no kernel defined
       this.set_error(
-        "No kernel set for running cells. Therefore it is not possible to run a code cell. You have to select a kernel!"
+        "No kernel set for running cells. Therefore it is not possible to run a code cell. You have to select a kernel!",
       );
       return;
     }
@@ -1023,7 +1022,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         collapsed: null,
         no_halt: no_halt ? no_halt : null,
       },
-      save
+      save,
     );
     this.set_trust_notebook(true, save);
   }
@@ -1040,7 +1039,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         exec_count: null,
         collapsed: null,
       },
-      save
+      save,
     );
   };
 
@@ -1051,7 +1050,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         id,
         state: "done",
       },
-      save
+      save,
     );
   };
 
@@ -1205,7 +1204,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         start: null,
         end: null,
       },
-      save
+      save,
     );
   }
 
@@ -1249,7 +1248,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
      instruction cell in any way. */
   public toggle_write_protection_on_cells(
     cell_ids: string[],
-    save: boolean = true
+    save: boolean = true,
   ): void {
     this.requireToggleReadonly();
     this.toggle_metadata_boolean_on_cells(cell_ids, "editable", true, save);
@@ -1259,7 +1258,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   // example: teacher handout notebook and student should not be able to modify an instruction cell in any way
   public toggle_delete_protection_on_cells(
     cell_ids: string[],
-    save: boolean = true
+    save: boolean = true,
   ): void {
     this.requireToggleReadonly();
     this.toggle_metadata_boolean_on_cells(cell_ids, "deletable", true, save);
@@ -1273,7 +1272,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     cell_ids: string[],
     key: string,
     default_value: boolean, // default metadata value, if the metadata field is not set.
-    save: boolean = true
+    save: boolean = true,
   ): void {
     for (const id of cell_ids) {
       this.set_cell_metadata({
@@ -1281,7 +1280,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         metadata: {
           [key]: !this.store.getIn(
             ["cells", id, "metadata", key],
-            default_value
+            default_value,
           ),
         },
         merge: true,
@@ -1297,7 +1296,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public toggle_jupyter_metadata_boolean(
     id: string,
     key: string,
-    save: boolean = true
+    save: boolean = true,
   ): void {
     const jupyter = this.store
       .getIn(["cells", id, "metadata", "jupyter"], immutable.Map())
@@ -1315,7 +1314,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     id: string,
     key: string,
     value: any,
-    save: boolean = true
+    save: boolean = true,
   ): void {
     const jupyter = this.store
       .getIn(["cells", id, "metadata", "jupyter"], immutable.Map())
@@ -1396,7 +1395,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       const positions = cell_utils.positions_between(
         before_pos,
         after_pos,
-        clipboard.size
+        clipboard.size,
       );
       clipboard.forEach((cell, i) => {
         cell = cell.set("id", this.new_id()); // randomize the id of the cell
@@ -1421,7 +1420,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   file_new = (): void => {
     if (this.redux == null) return;
     const project_actions = this.redux.getProjectActions(
-      this.store.get("project_id")
+      this.store.get("project_id"),
     );
     project_actions.set_active_tab("new");
   };
@@ -1493,7 +1492,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     code: string,
     pos?: { line: number; ch: number } | number,
     id?: string,
-    offset?: any
+    offset?: any,
   ): Promise<boolean> {
     let cursor_pos;
     const req = (this._complete_request =
@@ -1583,7 +1582,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public select_complete(
     id: string,
     item: string,
-    complete?: immutable.Map<string, any>
+    complete?: immutable.Map<string, any>,
   ): void {
     if (complete == null) {
       complete = this.store.get("complete");
@@ -1610,7 +1609,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     id: string,
     base: string,
     input: string,
-    save: boolean = true
+    save: boolean = true,
   ): void {
     const remote = this.store.getIn(["cells", id, "input"]);
     if (remote == null || base == null || input == null) {
@@ -1639,7 +1638,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     complete.pos += 1;
     const target = complete.code.slice(
       complete.cursor_start,
-      complete.cursor_end
+      complete.cursor_end,
     );
     complete.matches = (() => {
       const result: any = [];
@@ -1674,7 +1673,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   introspect_at_pos = async (
     code: string,
     level: 0 | 1 = 0,
-    pos: { ch: number; line: number }
+    pos: { ch: number; line: number },
   ): Promise<void> => {
     if (code === "") return; // no-op if there is no code (should never happen)
     await this.introspect(code, level, codemirror_to_jupyter_pos(code, pos));
@@ -1683,7 +1682,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   introspect = async (
     code: string,
     level: 0 | 1,
-    cursor_pos?: number
+    cursor_pos?: number,
   ): Promise<immutable.Map<string, any> | undefined> => {
     const req = (this._introspect_request =
       (this._introspect_request != null ? this._introspect_request : 0) + 1);
@@ -1776,7 +1775,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       let backend_kernel_info: KernelInfo;
       try {
         backend_kernel_info = immutable.fromJS(
-          await this.jupyter_kernel.kernel_info()
+          await this.jupyter_kernel.kernel_info(),
         );
       } catch (err) {
         dbg(`error = ${err}`);
@@ -1919,7 +1918,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         type: "settings",
         trust: !!trust,
       },
-      save
+      save,
     ); // case to bool
   };
 
@@ -1978,7 +1977,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
   set_in_backend_key_value_store = async (
     key: any,
-    value: any
+    value: any,
   ): Promise<void> => {
     try {
       await this.api_call("store", { key, value });
@@ -1989,7 +1988,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
   public async set_to_ipynb(
     ipynb: any,
-    data_only: boolean = false
+    data_only: boolean = false,
   ): Promise<void> {
     /*
      * set_to_ipynb - set from ipynb object.  This is
@@ -2120,7 +2119,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     const changes = cell_utils.ensure_positions_are_unique(
-      this.store.get("cells")
+      this.store.get("cells"),
     );
     if (changes != null) {
       for (const id in changes) {
@@ -2190,7 +2189,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     id: string,
     name: string,
     val: any,
-    save: boolean = true
+    save: boolean = true,
   ): void {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
@@ -2205,7 +2204,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         id,
         attachments,
       },
-      save
+      save,
     );
   }
 
@@ -2214,7 +2213,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     let name: string = encodeURIComponent(
-      misc.path_split(path).tail.toLowerCase()
+      misc.path_split(path).tail.toLowerCase(),
     );
     name = name.replace(/\(/g, "%28").replace(/\)/g, "%29");
     this.set_cell_attachment(id, name, { type: "load", value: path });
@@ -2239,8 +2238,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       misc.replace_all(
         this._get_cell_input(id),
         this._attachment_markdown(name),
-        ""
-      )
+        "",
+      ),
     );
   };
 
@@ -2254,7 +2253,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         id,
         tags: { [tag]: true },
       },
-      save
+      save,
     );
   }
 
@@ -2268,7 +2267,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         id,
         tags: { [tag]: null },
       },
-      save
+      save,
     );
   }
 
@@ -2288,7 +2287,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   edit_cell_metadata = (id: string): void => {
     const metadata = this.store.getIn(
       ["cells", id, "metadata"],
-      immutable.Map()
+      immutable.Map(),
     );
     this.setState({ edit_cell_metadata: { id, metadata } });
   };
@@ -2337,7 +2336,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
           id,
           metadata: null,
         },
-        save
+        save,
       );
       return;
     }
@@ -2345,7 +2344,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (merge) {
       const current = this.store.getIn(
         ["cells", id, "metadata"],
-        immutable.Map()
+        immutable.Map(),
       );
       metadata = current.merge(immutable.fromJS(metadata)).toJS();
     }
@@ -2374,7 +2373,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
           id,
           metadata: null,
         },
-        false
+        false,
       );
     }
     // now set
@@ -2384,7 +2383,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         id,
         metadata,
       },
-      save
+      save,
     );
     if (this.store.getIn(["edit_cell_metadata", "id"]) === id) {
       this.edit_cell_metadata(id); // updates the state while editing
@@ -2469,7 +2468,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   async show_select_kernel(
-    reason: show_kernel_selector_reasons
+    reason: show_kernel_selector_reasons,
   ): Promise<void> {
     await this.update_select_kernel_data();
     // we might not have the "kernels" data yet (but we will, once fetching it is complete)
@@ -2529,6 +2528,36 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   handle_nbconvert_change(_oldVal, _newVal): void {
     throw Error("define this in derived class");
   }
+
+  // Return id of ACTIVE remote compute server, if one is connected, or 0
+  // if none is connected.
+  getRemoteComputeServerId = (): number => {
+    // This info is in the "cursors" table instead of the document itself
+    // to avoid wasting space in the database longterm.  Basically a remote
+    // Jupyter client that can provide compute announces this by reporting it's
+    // cursor to look a certain way.
+    const cursors = this.syncdb.get_cursors({
+      maxAge: COMPUTE_THRESH_MS,
+      // don't exclude self since getRemoteComputeServerId called from the compute
+      // server also to know if it is the chosen one.
+      excludeSelf: false,
+    });
+    this.dbg("getRemoteComputeServerId")(cursors?.toJS());
+    for (const [client_id, cursor] of cursors) {
+      if (cursor.getIn(["locs", 0, "type"]) == "compute") {
+        try {
+          return decodeUUIDtoNum(client_id);
+        } catch (err) {
+          // this should never happen unless a client were being malicious.
+          console.warn(
+            `getRemoteComputeServerId -- client_id should encode server id, but is ${client_id}`,
+          );
+          return 0;
+        }
+      }
+    }
+    return 0;
+  };
 }
 
 function bounded_integer(n: any, min: any, max: any, def: any) {
