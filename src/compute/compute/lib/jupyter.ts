@@ -10,6 +10,8 @@ import { redux } from "@cocalc/jupyter/redux/app";
 import { COMPUTE_THRESH_MS } from "@cocalc/jupyter/redux/actions";
 import debug from "debug";
 import { once } from "@cocalc/util/async-utils";
+import { COMPUTER_SERVER_CURSOR_TYPE } from "@cocalc/util/compute/manager";
+import { SYNCDB_OPTIONS } from "@cocalc/jupyter/redux/sync";
 
 const log = debug("cocalc:compute:jupyter");
 
@@ -31,14 +33,9 @@ class RemoteJupyter {
     const syncdb_path = meta_file(path, "jupyter2");
 
     this.sync_db = client.sync_client.sync_db({
+      ...SYNCDB_OPTIONS,
       project_id: client.project_id,
       path: syncdb_path,
-      change_throttle: 50,
-      patch_interval: 50,
-      primary_keys: ["type", "id"],
-      string_cols: ["input"],
-      cursors: true,
-      persistent: true,
     });
 
     this.initClaimSession();
@@ -77,13 +74,7 @@ class RemoteJupyter {
       if (this.sync_db == null) {
         return;
       }
-      console.log("Setting compute server cursor");
-      this.sync_db.set_cursor_locs([
-        {
-          type: "compute",
-          time: Date.now(),
-        },
-      ]);
+      this.sync_db.set_cursor_locs([{ type: COMPUTER_SERVER_CURSOR_TYPE }]);
     };
     const interval = setInterval(claimSession, COMPUTE_THRESH_MS / 2);
     this.sync_db.once("closed", () => {

@@ -43,6 +43,7 @@ import {
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type Client from "@cocalc/sync-client";
 import { decodeUUIDtoNum } from "@cocalc/util/compute/manager";
+import { COMPUTER_SERVER_CURSOR_TYPE } from "@cocalc/util/compute/manager";
 
 const { close, required, defaults } = misc;
 
@@ -2530,7 +2531,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   // Return id of ACTIVE remote compute server, if one is connected, or 0
-  // if none is connected.
+  // if none is connected.  We always take the smallest id of the remote
+  // compute servers, in case there is more than one, so exactly one of them
+  // takes control.
   getRemoteComputeServerId = (): number => {
     // This info is in the "cursors" table instead of the document itself
     // to avoid wasting space in the database longterm.  Basically a remote
@@ -2542,21 +2545,23 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       // server also to know if it is the chosen one.
       excludeSelf: false,
     });
-    this.dbg("getRemoteComputeServerId")(cursors?.toJS());
+    const dbg = this.dbg("getRemoteComputeServerId");
+    dbg("num cursors = ", cursors.size);
+    let minId = Infinity;
     for (const [client_id, cursor] of cursors) {
-      if (cursor.getIn(["locs", 0, "type"]) == "compute") {
+      if (cursor.getIn(["locs", 0, "type"]) == COMPUTER_SERVER_CURSOR_TYPE) {
         try {
-          return decodeUUIDtoNum(client_id);
+          minId = Math.min(minId, decodeUUIDtoNum(client_id));
         } catch (err) {
           // this should never happen unless a client were being malicious.
-          console.warn(
-            `getRemoteComputeServerId -- client_id should encode server id, but is ${client_id}`,
+          dbg(
+            "WARNING -- client_id should encode server id, but is",
+            client_id,
           );
-          return 0;
         }
       }
     }
-    return 0;
+    return isFinite(minId) ? minId : 0;
   };
 }
 

@@ -7,6 +7,8 @@ export const SYNCDB_PARAMS = {
   cursors: true,
 };
 
+export const COMPUTER_SERVER_CURSOR_TYPE = "compute-server";
+
 /*
 For sync, we make the id of each compute server a uuid that is a simple
 function of the id, so the client_id is stable and easy to identify.

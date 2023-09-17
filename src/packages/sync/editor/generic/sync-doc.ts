@@ -1544,7 +1544,8 @@ export class SyncDoc extends EventEmitter {
     );
 
     if (this.cursors_table.setOnDisconnect != null) {
-      console.log("CALLING setOnDisconnect on cursors table");
+      // setOnDisconnect is available, so clear our
+      // cursor positions when we disconnect for any reason.
       this.cursors_table.setOnDisconnect(
         {
           string_id: this.string_id,
@@ -1553,8 +1554,6 @@ export class SyncDoc extends EventEmitter {
         },
         "none",
       );
-    } else {
-      console.log("NOT CALLING setOnDisconnect on cursors table");
     }
 
     dbg("done");
