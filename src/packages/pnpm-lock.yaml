@@ -279,6 +279,9 @@ importers:
       '@speed-highlight/core':
         specifier: ^1.1.11
         version: 1.1.11
+      '@types/debug':
+        specifier: ^4.1.7
+        version: 4.1.7
       '@uiw/react-textarea-code-editor':
         specifier: ^2.1.1
         version: 2.1.1(@babel/runtime@7.22.15)(react-dom@18.2.0)(react@18.2.0)

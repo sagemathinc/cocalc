@@ -16,7 +16,7 @@
     "./billing": "./dist/billing/index.js",
     "./landing-page": "./dist/landing-page/index.js",
     "./admin/users/projects": "./dist/admin/users/projects.js",
-    "./editors/slate/elements/elements.css": "./editors/slate/elements/elements.css"
+    "./editors/slate/elements/elements.css": "./dist/editors/slate/elements/elements.css"
   },
   "keywords": [
     "cocalc",
@@ -57,6 +57,7 @@
     "@microlink/react-json-view": "^1.22.2",
     "@react-hook/mouse-position": "^4.1.3",
     "@speed-highlight/core": "^1.1.11",
+    "@types/debug": "^4.1.7",
     "@uiw/react-textarea-code-editor": "^2.1.1",
     "@use-gesture/react": "^10.2.24",
     "@zippytech/react-notify-resize": "^4.0.4",

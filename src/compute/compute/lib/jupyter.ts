@@ -49,14 +49,15 @@ class RemoteJupyter {
     log(this.path, ...args);
   };
 
-  close = () => {
+  close = async () => {
     if (this.sync_db == null) {
       return;
     }
     this.log("close");
-    this.sync_db.set_cursor_locs([]);
-    this.sync_db.close();
+    const { sync_db } = this;
     delete this.sync_db;
+    sync_db.set_cursor_locs([]);
+    sync_db.close();
     // TODO
     this.actions;
     this.store;

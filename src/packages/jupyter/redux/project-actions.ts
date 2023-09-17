@@ -163,8 +163,8 @@ export class JupyterActions extends JupyterActions0 {
     dbg("initialize the manager...");
     this._initialize_manager_already_done = true;
 
-    let cells = this.store.get("cells")?.toJS();
-    dbg(`cells at manage_init = ${JSON.stringify(cells)}`);
+    // This could be HUGE:
+    // dbg(`cell count at manage_init`, this.store.get("cells")?.toJS());
 
     this.sync_exec_state = debounce(this.sync_exec_state, 2000);
     this._throttled_ensure_positions_are_unique = debounce(

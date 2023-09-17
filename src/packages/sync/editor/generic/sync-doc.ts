@@ -330,7 +330,10 @@ export class SyncDoc extends EventEmitter {
   }
 
   /* Set this user's cursors to the given locs. */
-  public set_cursor_locs(locs: any[], side_effect: boolean = false): void {
+  public async set_cursor_locs(
+    locs: any[],
+    side_effect: boolean = false,
+  ): Promise<void> {
     if (this.state != "ready") return;
     if (this.cursors_table == null) {
       throw Error("cursors are not enabled");
@@ -352,7 +355,7 @@ export class SyncDoc extends EventEmitter {
       this.cursor_last_time = x.time;
     }
     this.cursors_table.set(x, "none");
-    this.cursors_table.save();
+    await this.cursors_table.save();
   }
 
   private init_file_use_interval(): void {

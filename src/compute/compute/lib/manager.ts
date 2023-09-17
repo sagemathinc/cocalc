@@ -27,7 +27,11 @@ interface Options {
 }
 
 export function manager({ project_id, compute_server_id }: Options) {
-  return new Manager({ project_id, compute_server_id });
+  const m = new Manager({ project_id, compute_server_id });
+  process.on("exit", () => {
+    m.disconnectAll();
+  });
+  return m;
 }
 
 class Manager {
@@ -58,6 +62,12 @@ class Manager {
       await once(this.sync_db, "ready");
     }
     setInterval(this.reportStatus, STATUS_INTERVAL_MS);
+  };
+
+  disconnectAll = () => {
+    for (const path in this.connections) {
+      this.ensureDisconnected(path);
+    }
   };
 
   private log = (func, ...args) => {
