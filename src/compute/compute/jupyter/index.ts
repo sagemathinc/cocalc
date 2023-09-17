@@ -10,14 +10,16 @@ import { isValidUUID } from "@cocalc/util/misc";
 const logger = getLogger("compute:jupyter");
 
 // path should be something like "foo/bar.ipynb"
-export async function jupyter({
+export function jupyter({
   path,
   project_id = process.env.PROJECT_ID ?? "",
   cwd,
+  client,
 }: {
   path: string;
   project_id?: string;
   cwd?: string;
+  client?;
 }) {
   const log = (...args) => logger.debug(path, ...args);
   log();
@@ -30,12 +32,12 @@ export async function jupyter({
     );
   }
   const syncdb_path = meta_file(path, "jupyter2");
-  const client = new SyncClient({ project_id });
+  client = client ?? new SyncClient({ project_id });
 
   // Calling the api-client ping will start the project *and* ensure
   // there is a hub connected to it, so we can initialize sync, and
   // the project can store data longterm in the database.
-  await project.ping({ project_id });
+  project.ping({ project_id });
 
   // [ ] TODO: we need to listen for syncdb.error event,
   // and if that happens reset syncdb, but do NOT get
@@ -55,7 +57,7 @@ export async function jupyter({
     persistent: true,
   });
 
-  syncdb.once("ready", () => {
+  const init = () => {
     const f = () => {
       syncdb.set({
         type: "compute",
@@ -69,7 +71,13 @@ export async function jupyter({
     syncdb.once("closed", () => {
       clearInterval(i);
     });
-  });
+  };
+
+  if (syncdb.get_state() == "init") {
+    syncdb.once("ready", init);
+  } else {
+    init();
+  }
 
   log("initializing jupyter notebook redux...");
   initJupyterRedux(syncdb, client);
@@ -84,5 +92,15 @@ export async function jupyter({
     await project.ping({ project_id });
   }, 60000);
 
-  return { syncdb, client, actions, store, redux };
+  const close = () => {
+    syncdb.set({
+      type: "compute",
+      id: client.client_id(),
+      time: 0,
+    });
+    syncdb.commit();
+    syncdb.close();
+  };
+
+  return { syncdb, client, actions, store, redux, close };
 }

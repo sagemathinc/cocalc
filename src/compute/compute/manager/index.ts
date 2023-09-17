@@ -10,9 +10,14 @@
 
 import SyncClient from "@cocalc/sync-client";
 import { SYNCDB_PARAMS, encodeIntToUUID } from "@cocalc/util/compute/manager";
-import getLogger from "@cocalc/backend/logger";
+import debug from "debug";
+import { jupyter } from "../jupyter";
+import { connectToTerminal } from "../terminal";
+import { once } from "@cocalc/util/async-utils";
 
-const logger = getLogger("compute:manager");
+const logger = debug("cocalc:compute:manager");
+
+const PROJECT_HOME = "/home/user";
 
 const STATUS_INTERVAL_MS = 15000;
 
@@ -28,22 +33,96 @@ export function manager({ project_id, compute_server_id }: Options) {
 
 class Manager {
   private sync_db;
+  private project_id: string;
+  private compute_server_id: number;
+  private connections: { [path: string]: any } = {};
+  private websocket;
+  private client;
 
   constructor({ project_id, compute_server_id }: Options) {
-    const client_id = encodeIntToUUID(compute_server_id);
-    const client = new SyncClient({ project_id, client_id });
-    this.sync_db = client.sync_client.sync_db({
-      project_id,
-      ...SYNCDB_PARAMS,
-    });
-    this.sync_db.on("ready", () => {
-      this.log("sync is ready");
-      this.reportStatus();
-    });
-    setInterval(this.reportStatus, STATUS_INTERVAL_MS);
+    this.project_id = project_id;
+    this.compute_server_id = compute_server_id;
   }
 
-  reportStatus = () => {
+  init = async () => {
+    const client_id = encodeIntToUUID(this.compute_server_id);
+    this.client = new SyncClient({ project_id: this.project_id, client_id });
+    this.websocket = await this.client.project_client.websocket(
+      this.project_id,
+    );
+    this.sync_db = this.client.sync_client.sync_db({
+      project_id: this.project_id,
+      ...SYNCDB_PARAMS,
+    });
+    this.sync_db.on("change", this.handleSyncdbChange);
+    if (this.sync_db.get_state() == "init") {
+      await once(this.sync_db, "ready");
+    }
+    setInterval(this.reportStatus, STATUS_INTERVAL_MS);
+  };
+
+  private log = (func, ...args) => {
+    logger(`Manager.${func}`, ...args);
+  };
+
+  private handleSyncdbChange = (changes) => {
+    this.log("handleSyncdbChange", "changes = ", changes.toJS());
+    for (const key of changes) {
+      const record = this.sync_db.get_one(key);
+      const id = record?.get("id");
+      if (id == this.compute_server_id) {
+        this.ensureConnected(key.get("path"));
+      } else if (id == null) {
+        this.ensureDisconnected(key.get("path"));
+      }
+    }
+  };
+
+  private ensureConnected = (path) => {
+    this.log("ensureConnected", { path });
+    if (this.connections[path] == null) {
+      this.connections[path] = "connecting";
+      if (path.endsWith(".term")) {
+        this.connections[path] = connectToTerminal({
+          websocket: this.websocket,
+          path,
+          cwd: PROJECT_HOME,
+        });
+      } else if (path.endsWith(".ipynb")) {
+        this.connections[path] = jupyter({
+          client: this.client,
+          project_id: this.project_id,
+          path,
+          cwd: PROJECT_HOME, // todo
+        });
+      } else {
+        delete this.connections[path];
+        this.setError({
+          path,
+          message: "only term and ipynb files are supported",
+        });
+      }
+    }
+  };
+
+  private setError = ({ path, message }) => {
+    this.sync_db.set({
+      path,
+      error: message,
+    });
+    this.sync_db.commit();
+  };
+
+  private ensureDisconnected = (path) => {
+    this.log("ensureDisconnected", { path });
+    const conn = this.connections[path];
+    if (conn != null) {
+      delete this.connections[path];
+      conn.close();
+    }
+  };
+
+  private reportStatus = () => {
     this.log("reportStatus");
     // todo -- will put system load and other info here too
     this.sync_db.set_cursor_locs([
@@ -54,9 +133,5 @@ class Manager {
           "00:04:17 up 10 days,  6:39,  0 users,  load average: 2.65, 2.74, 2.72",
       },
     ]);
-  };
-
-  log = (func, ...args) => {
-    logger.debug(`Manager.${func}`, ...args);
   };
 }

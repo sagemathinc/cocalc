@@ -40,11 +40,12 @@ export async function terminal({
   // Get a websocket connection to the project:
   const client = new SyncClient({ project_id });
   log("getting websocket connection to project", project_id);
-  const ws = await client.project_client.websocket(project_id);
+  const websocket = await client.project_client.websocket(project_id);
+  return connectToTerminal({ websocket, path, cwd });
+}
 
+export function connectToTerminal({ websocket, path, cwd }) {
   const name = getRemotePtyChannelName(path);
-  log("opening channel", name);
-  const channel = ws.channel(name);
-  const term = new RemoteTerminal(channel, cwd);
-  return term;
+  const channel = websocket.channel(name);
+  return new RemoteTerminal(channel, cwd);
 }
