@@ -38,6 +38,8 @@ export type { Client };
 export type Query = any; // TODO typing
 export type QueryOptions = any[]; // TODO typing
 
+export type MergeType = "deep" | "shallow" | "none";
+
 export interface VersionedChange {
   obj: { [key: string]: any };
   version: number;
@@ -70,6 +72,13 @@ export class SyncTable extends EventEmitter {
   private throttled_emit_changes?: Function;
   private last_server_time: number = 0;
   private error: { error: string; query: Query } | undefined = undefined;
+
+  // This can optionally be set on a SyncTable implementation.
+  // E.g., it is supported for the version in
+  //    packages/sync/client/synctable-project
+  // so that a table connected to a project can make a change based
+  // on fact client disconnected (e.g., clear its cursor).
+  public setOnDisconnect?: (changes: any, merge) => void;
 
   // Immutable map -- the value of this synctable.
   private value?: Map<string, Map<string, any>>;
@@ -127,7 +136,7 @@ export class SyncTable extends EventEmitter {
     throttle_changes?: number,
     coerce_types?: boolean,
     no_db_set?: boolean,
-    project_id?: string
+    project_id?: string,
   ) {
     super();
 
@@ -340,8 +349,8 @@ export class SyncTable extends EventEmitter {
   */
   public set(
     changes: any,
-    merge: "deep" | "shallow" | "none" = "deep",
-    fire_change_event: boolean = true
+    merge: MergeType = "deep",
+    fire_change_event: boolean = true,
   ): any {
     if (this.value == null) {
       throw Error("can't set until table is initialized");
@@ -351,7 +360,7 @@ export class SyncTable extends EventEmitter {
       changes = fromJS(changes);
       if (!is_object(changes)) {
         throw Error(
-          "type error -- changes must be an immutable.js Map or JS map"
+          "type error -- changes must be an immutable.js Map or JS map",
         );
       }
     }
@@ -384,8 +393,8 @@ export class SyncTable extends EventEmitter {
       if (key == null) {
         throw Error(
           `must specify primary key ${this.primary_keys.join(
-            ","
-          )}, have at least one record, or have a computed primary key`
+            ",",
+          )}, have at least one record, or have a computed primary key`,
         );
       }
       // Now key is defined
@@ -450,7 +459,7 @@ export class SyncTable extends EventEmitter {
     for (const field in this.required_set_fields) {
       if (!new_val.has(field)) {
         throw Error(
-          `missing required set field ${field} of table ${this.table}`
+          `missing required set field ${field} of table ${this.table}`,
         );
       }
     }
@@ -554,7 +563,7 @@ export class SyncTable extends EventEmitter {
     } catch (err) {
       console.warn(
         `synctable: failed to connect (table=${this.table}), error=${err}`,
-        this.query
+        this.query,
       );
       this.close(true);
     }
@@ -611,7 +620,7 @@ export class SyncTable extends EventEmitter {
     };
     this.throttled_emit_changes = throttle(
       do_emit_changes,
-      this.throttle_changes
+      this.throttle_changes,
     );
     this.emit_change = (changed_keys) => {
       //console.log("emit_change", changed_keys);
@@ -633,7 +642,7 @@ export class SyncTable extends EventEmitter {
     }
     if (this.client.is_project()) {
       return this.client.dbg(
-        `SyncTable('${JSON.stringify(this.query)}').${_f}`
+        `SyncTable('${JSON.stringify(this.query)}').${_f}`,
       );
     } else {
       return (...args) => {
@@ -723,7 +732,7 @@ export class SyncTable extends EventEmitter {
         // This can happen because we might suddenly NOT be ready
         // to query db immediately after we are ready...
         console.warn(
-          `${this.table} -- failed to connect -- ${err}; will retry`
+          `${this.table} -- failed to connect -- ${err}; will retry`,
         );
         await delay(delay_ms);
         if (delay_ms < 8000) {
@@ -833,7 +842,7 @@ export class SyncTable extends EventEmitter {
     for (const primary_key of this.primary_keys) {
       if (this.query[this.table][0][primary_key] === undefined) {
         throw Error(
-          `must include each primary key in query of table '${this.table}', but you missed '${primary_key}'`
+          `must include each primary key in query of table '${this.table}', but you missed '${primary_key}'`,
         );
       }
     }
@@ -842,7 +851,7 @@ export class SyncTable extends EventEmitter {
       if (this.client_query.get.fields[query_key] === undefined) {
         throw Error(
           `every key in query of table '${this.table}' must` +
-            ` be a valid user get field in the schema but '${query_key}' is not`
+            ` be a valid user get field in the schema but '${query_key}' is not`,
         );
       }
     }
@@ -1031,7 +1040,7 @@ export class SyncTable extends EventEmitter {
           query[0],
           "...",
           query.length - 1,
-          " omitted"
+          " omitted",
         );
         return true;
       }
@@ -1082,7 +1091,7 @@ export class SyncTable extends EventEmitter {
 
   private async wait_until_versions_are_updated(
     proposed_keys: { [key: string]: boolean },
-    timeout_ms: number
+    timeout_ms: number,
   ): Promise<void> {
     const start_ms = new Date().valueOf();
     while (len(proposed_keys) > 0) {
@@ -1096,7 +1105,7 @@ export class SyncTable extends EventEmitter {
         const keys: string[] = await once(
           this,
           "increased-versions",
-          timeout_ms - elapsed_ms
+          timeout_ms - elapsed_ms,
         );
         for (const key of keys) {
           delete proposed_keys[key];
@@ -1108,7 +1117,7 @@ export class SyncTable extends EventEmitter {
   // Return modified immutable Map, with all types coerced to be
   // as specified in the schema, if possible, or throw an exception.
   private do_coerce_types(
-    changes: Map<string | number, any>
+    changes: Map<string | number, any>,
   ): Map<string | number, any> {
     if (!Map.isMap(changes)) {
       changes = Map(changes);
@@ -1167,7 +1176,7 @@ export class SyncTable extends EventEmitter {
         if (fields[field] == null) {
           //console.warn(changes, fields);
           throw Error(
-            `Cannot coerce: no field '${field}' in table ${this.table}`
+            `Cannot coerce: no field '${field}' in table ${this.table}`,
           );
         }
         const spec = specs[field];
@@ -1211,8 +1220,8 @@ export class SyncTable extends EventEmitter {
             if (!List.isList(value)) {
               throw Error(
                 `field ${field} of table ${this.table} (value=${changes.get(
-                  field
-                )}) must convert to an immutable.js List`
+                  field,
+                )}) must convert to an immutable.js List`,
               );
             }
           }
@@ -1224,8 +1233,8 @@ export class SyncTable extends EventEmitter {
             if (!Map.isMap(value)) {
               throw Error(
                 `field ${field} of table ${this.table} (value=${changes.get(
-                  field
-                )}) must convert to an immutable.js Map`
+                  field,
+                )}) must convert to an immutable.js Map`,
               );
             }
           }
@@ -1240,7 +1249,7 @@ export class SyncTable extends EventEmitter {
           return value;
         }
         return value;
-      })
+      }),
     );
   }
 
@@ -1523,7 +1532,7 @@ export class SyncTable extends EventEmitter {
       change.new_val,
       change.old_val,
       change.action,
-      this.coerce_types
+      this.coerce_types,
     );
     if (key != null) {
       changed_keys.push(key);
@@ -1554,7 +1563,7 @@ export class SyncTable extends EventEmitter {
     new_val: any,
     old_val: any,
     action: string,
-    coerce: boolean
+    coerce: boolean,
   ): string | undefined {
     if (this.value == null) {
       // to satisfy typescript.
@@ -1639,7 +1648,7 @@ export class SyncTable extends EventEmitter {
     if (this.state === "closed") {
       //console.trace();
       throw Error(
-        `the synctable "${this.table}" must not be closed -- ${desc}`
+        `the synctable "${this.table}" must not be closed -- ${desc}`,
       );
     }
   }

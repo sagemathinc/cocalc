@@ -66,6 +66,7 @@ import { register_listings_table } from "./listings";
 import { register_project_info_table } from "./project-info";
 import { register_project_status_table } from "./project-status";
 import { register_usage_info_table } from "./usage-info";
+import type { MergeType } from "@cocalc/sync/table/synctable";
 
 type Query = { [key: string]: any };
 
@@ -118,6 +119,9 @@ class SyncTableChannel {
   private channel: Channel;
   private closed: boolean = false;
   private closing: boolean = false;
+  private setOnDisconnect: {
+    [spark_id: string]: { changes: any; merge: MergeType }[];
+  } = {};
   private num_connections: { n: number; changed: Date } = {
     n: 0,
     changed: new Date(),
@@ -168,7 +172,7 @@ class SyncTableChannel {
     this.query_string = stringify(query); // used only for logging
     this.channel = primus.channel(this.name);
     this.log(
-      `creating new sync channel (persistent=${this.persistent}, ephemeral=${this.ephemeral})`
+      `creating new sync channel (persistent=${this.persistent}, ephemeral=${this.ephemeral})`,
     );
   }
 
@@ -206,7 +210,7 @@ class SyncTableChannel {
       `SyncTableChannel('${this.name}', '${this.query_string}'${
         this.closed ? ",CLOSED" : ""
       }): `,
-      ...args
+      ...args,
     );
   }
 
@@ -243,7 +247,7 @@ class SyncTableChannel {
 
     this.synctable.on(
       "versioned-changes",
-      this.send_versioned_changes_to_browsers.bind(this)
+      this.send_versioned_changes_to_browsers.bind(this),
     );
 
     this.log("created synctable -- waiting for connected state");
@@ -269,7 +273,7 @@ class SyncTableChannel {
     }
     return (this.connections_from_one_client[spark.conn.id] = Math.max(
       0,
-      m - 1
+      m - 1,
     ));
   }
 
@@ -282,13 +286,13 @@ class SyncTableChannel {
     const m = this.increment_connection_count(spark);
 
     this.log(
-      `new connection from (address=${spark.address.ip}, conn=${spark.conn.id}) -- ${spark.id} -- num_connections = ${n} (from this client = ${m})`
+      `new connection from (address=${spark.address.ip}, conn=${spark.conn.id}) -- ${spark.id} -- num_connections = ${n} (from this client = ${m})`,
     );
 
     if (m > MAX_CONNECTIONS_FROM_ONE_CLIENT) {
       const error = `Too many connections (${m} > ${MAX_CONNECTIONS_FROM_ONE_CLIENT}) from this client.  You might need to refresh your browser.`;
       this.log(
-        `${error}  Waiting 15s, then killing new connection from ${spark.id}...`
+        `${error}  Waiting 15s, then killing new connection from ${spark.id}...`,
       );
       await delay(15000); // minimize impact of client trying again, which it should do...
       this.decrement_connection_count(spark);
@@ -299,7 +303,7 @@ class SyncTableChannel {
     if (n > MAX_CONNECTIONS) {
       const error = `Too many connections (${n} > ${MAX_CONNECTIONS})`;
       this.log(
-        `${error} Waiting 5s, then killing new connection from ${spark.id}`
+        `${error} Waiting 5s, then killing new connection from ${spark.id}`,
       );
       await delay(5000); // minimize impact of client trying again, which it should do
       this.decrement_connection_count(spark);
@@ -352,8 +356,24 @@ class SyncTableChannel {
 
     const m = this.decrement_connection_count(spark);
     this.log(
-      `spark event -- end connection ${spark.address.ip} -- ${spark.id}  -- num_connections = ${n}  (from this client = ${m})`
+      `spark event -- end connection ${spark.address.ip} -- ${spark.id}  -- num_connections = ${n}  (from this client = ${m})`,
     );
+
+    if (!this.closed) {
+      try {
+        const x = this.setOnDisconnect[spark.id];
+        this.log("do setOnDisconnect", x);
+        if (x != null) {
+          for (const { changes, merge } of x) {
+            this.synctable.set(changes, merge);
+          }
+          delete this.setOnDisconnect[spark.id];
+        }
+      } catch (err) {
+        this.log("setOnDisconnect error", err);
+      }
+    }
+
     this.check_if_should_close();
   }
 
@@ -386,8 +406,8 @@ class SyncTableChannel {
   }
 
   private async handle_mesg_from_browser(
-    _spark: Spark,
-    mesg: any
+    spark: Spark,
+    mesg: any,
   ): Promise<void> {
     // do not log the actual mesg, since it can be huge and make the logfile dozens of MB.
     // Temporarily enable as needed for debugging purposes.
@@ -398,6 +418,14 @@ class SyncTableChannel {
     if (mesg == null) {
       throw Error("mesg must not be null");
     }
+    if (mesg.event == "set-on-disconnect") {
+      this.log("set-on-disconnect", mesg, spark.id);
+      if (this.setOnDisconnect[spark.id] == null) {
+        this.setOnDisconnect[spark.id] = [];
+      }
+      this.setOnDisconnect[spark.id].push(mesg);
+      return;
+    }
     if (mesg.timed_changes != null) {
       this.synctable.apply_changes_from_browser_client(mesg.timed_changes);
     }
@@ -405,7 +433,7 @@ class SyncTableChannel {
   }
 
   private send_versioned_changes_to_browsers(
-    versioned_changes: VersionedChange[]
+    versioned_changes: VersionedChange[],
   ): void {
     if (this.closed) return;
     this.log("send_versioned_changes_to_browsers");
@@ -422,18 +450,18 @@ class SyncTableChannel {
     const { n, changed } = this.num_connections;
     const delay = Date.now() - changed.valueOf();
     this.log(
-      `save_and_close_if_possible: after save there are ${n} connections and delay=${delay}`
+      `save_and_close_if_possible: after save there are ${n} connections and delay=${delay}`,
     );
     if (n === 0) {
       if (delay < CLOSE_DELAY_MS) {
         this.log(`save_and_close_if_possible: wait a bit then try again`);
         setTimeout(
           this.check_if_should_close.bind(this),
-          1000 + CLOSE_DELAY_MS - delay
+          1000 + CLOSE_DELAY_MS - delay,
         );
       } else {
         this.log(
-          `save_and_close_if_possible: close this SyncTableChannel atomically`
+          `save_and_close_if_possible: close this SyncTableChannel atomically`,
         );
         // actually close
         this.close();
@@ -500,7 +528,7 @@ async function synctable_channel0(
   primus: any,
   logger: any,
   query: any,
-  options: any[]
+  options: any[],
 ): Promise<string> {
   const name = channel_name(query, options);
   logger.debug("synctable_channel", JSON.stringify(query), name);
@@ -518,24 +546,24 @@ async function synctable_channel0(
       register_listings_table(
         synctable_channels[name].get_synctable(),
         logger,
-        client.client_id()
+        client.client_id(),
       );
     } else if (query?.project_info != null) {
       register_project_info_table(
         synctable_channels[name].get_synctable(),
         logger,
-        client.client_id()
+        client.client_id(),
       );
     } else if (query?.project_status != null) {
       register_project_status_table(
         synctable_channels[name].get_synctable(),
         logger,
-        client.client_id()
+        client.client_id(),
       );
     } else if (query?.usage_info != null) {
       register_usage_info_table(
         synctable_channels[name].get_synctable(),
-        client.client_id()
+        client.client_id(),
       );
     }
   }

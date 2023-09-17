@@ -1542,6 +1542,21 @@ export class SyncDoc extends EventEmitter {
       CURSOR_THROTTLE_MS,
       { leading: true, trailing: true },
     );
+
+    if (this.cursors_table.setOnDisconnect != null) {
+      console.log("CALLING setOnDisconnect on cursors table");
+      this.cursors_table.setOnDisconnect(
+        {
+          string_id: this.string_id,
+          user_id: this.my_user_id,
+          locs: [],
+        },
+        "none",
+      );
+    } else {
+      console.log("NOT CALLING setOnDisconnect on cursors table");
+    }
+
     dbg("done");
   }
 

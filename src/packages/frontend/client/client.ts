@@ -174,7 +174,9 @@ class Client extends EventEmitter implements WebappClient {
     if (DEBUG) {
       this.dbg = this.dbg.bind(this);
     } else {
-      this.dbg = (..._) => {};
+      this.dbg = (..._) => {
+        return (..._) => {};
+      };
     }
 
     this.hub_client = bind_methods(new HubClient(this));
