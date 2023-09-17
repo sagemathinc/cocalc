@@ -35,6 +35,7 @@ import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
+import computeServers from "@cocalc/frontend/compute/manager";
 
 export interface ExecOpts {
   project_id: string;
@@ -66,7 +67,7 @@ export class ProjectClient {
   constructor(client: WebappClient) {
     this.client = client;
     this.ipywidgetsGetBuffer = reuseInFlight(
-      this.ipywidgetsGetBuffer.bind(this)
+      this.ipywidgetsGetBuffer.bind(this),
     );
   }
 
@@ -153,7 +154,7 @@ export class ProjectClient {
     // enough; sometimes client code provides strings, which can cause lots of trouble).
     const x = coerce_codomain_to_numbers(copy_without(opts, ["project_id"]));
     await this.call(
-      message.project_set_quotas({ ...x, ...{ project_id: opts.project_id } })
+      message.project_set_quotas({ ...x, ...{ project_id: opts.project_id } }),
     );
   }
 
@@ -223,7 +224,7 @@ export class ProjectClient {
     if (
       !(await ensure_project_running(
         opts.project_id,
-        `execute the command ${opts.command}`
+        `execute the command ${opts.command}`,
       ))
     ) {
       return {
@@ -279,7 +280,7 @@ export class ProjectClient {
     const listing = await api.listing(
       opts.path,
       opts.hidden,
-      opts.timeout * 1000
+      opts.timeout * 1000,
     );
     return { files: listing };
   }
@@ -329,7 +330,7 @@ export class ProjectClient {
     if (opts.exclusions != null) {
       for (const excluded_path of opts.exclusions) {
         args.push(
-          `-a -not \\( -path '${opts.path}/${excluded_path}' -prune \\)`
+          `-a -not \\( -path '${opts.path}/${excluded_path}' -prune \\)`,
         );
       }
     }
@@ -364,7 +365,7 @@ export class ProjectClient {
   public async configuration(
     project_id: string,
     aspect: ConfigurationAspect,
-    no_cache: boolean
+    no_cache: boolean,
   ): Promise<Configuration> {
     if (!is_valid_uuid_string(project_id)) {
       throw Error("project_id must be a valid uuid");
@@ -481,17 +482,17 @@ export class ProjectClient {
   // are used via the API, and this is a convenient way to test them.
   public async add_license_to_project(
     project_id: string,
-    license_id: string
+    license_id: string,
   ): Promise<void> {
     await this.call(message.add_license_to_project({ project_id, license_id }));
   }
 
   public async remove_license_from_project(
     project_id: string,
-    license_id: string
+    license_id: string,
   ): Promise<void> {
     await this.call(
-      message.remove_license_from_project({ project_id, license_id })
+      message.remove_license_from_project({ project_id, license_id }),
     );
   }
 
@@ -512,7 +513,7 @@ export class ProjectClient {
     project_id: string,
     path: string,
     model_id: string,
-    buffer_path: string
+    buffer_path: string,
   ): Promise<ArrayBuffer> {
     const url = ipywidgetsGetBufferUrl(project_id, path, model_id, buffer_path);
     return await (await fetch(url)).arrayBuffer();
@@ -537,9 +538,13 @@ export class ProjectClient {
       throw Error("must provide password for non-project api key");
     }
     // because message always uses id, so we have to use something else!
-    const opts2 : any = { ...opts };
+    const opts2: any = { ...opts };
     delete opts2.id;
     opts2.key_id = opts.id;
     return (await this.call(message.api_keys(opts2))).response;
+  }
+
+  public computeServers(project_id) {
+    return computeServers(project_id);
   }
 }

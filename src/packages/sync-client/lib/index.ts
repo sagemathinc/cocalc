@@ -25,11 +25,12 @@ import type { AppClient } from "@cocalc/sync/client/types";
 import { SyncClient } from "@cocalc/sync/client/sync-client";
 import ProjectClient from "./project-client";
 import debug from "debug";
-import { bind_methods, isValidUUID } from "@cocalc/util/misc";
+import { bind_methods, isValidUUID, uuid } from "@cocalc/util/misc";
 import { project } from "@cocalc/api-client";
 
 interface Options {
   project_id: string;
+  client_id?: string;
 }
 
 export default class Client extends EventEmitter implements AppClient {
@@ -37,10 +38,13 @@ export default class Client extends EventEmitter implements AppClient {
   sync_client: SyncClient;
   synctable_project: Function;
   project_id: string;
+  _client_id: string;
 
-  constructor({ project_id }: Options) {
+  constructor({ project_id, client_id = uuid() }: Options) {
     super();
+    this._client_id = client_id;
     this.project_id = project_id;
+
     if (!isValidUUID(project_id)) {
       throw Error("project_id must be a valid uuid");
     }
@@ -53,9 +57,7 @@ export default class Client extends EventEmitter implements AppClient {
   }
 
   client_id = () => {
-    // [ ] TODO: I haven't decided *what* this should be yet.
-    // Maybe the project_id?  this is just a random uuid:
-    return "10f0e544-313c-4efe-8718-2142ac97ad99";
+    return this._client_id;
   };
 
   // [ ] TODO: is this something we should worry about?  Probably yes.

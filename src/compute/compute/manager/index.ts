@@ -9,10 +9,12 @@
 */
 
 import SyncClient from "@cocalc/sync-client";
-import { SYNCDB_PARAMS } from "@cocalc/util/compute/manager";
+import { SYNCDB_PARAMS, encodeIntToUUID } from "@cocalc/util/compute/manager";
 import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("compute:manager");
+
+const STATUS_INTERVAL_MS = 15000;
 
 interface Options {
   project_id: string;
@@ -25,32 +27,33 @@ export function manager({ project_id, compute_server_id }: Options) {
 }
 
 class Manager {
-  private sync;
-  private compute_server_id: number;
+  private sync_db;
 
   constructor({ project_id, compute_server_id }: Options) {
-    this.compute_server_id = compute_server_id;
-    const client = new SyncClient({ project_id });
-    console.log(SYNCDB_PARAMS);
-    this.sync = client.sync_client.sync_db({
+    const client_id = encodeIntToUUID(compute_server_id);
+    const client = new SyncClient({ project_id, client_id });
+    this.sync_db = client.sync_client.sync_db({
       project_id,
       ...SYNCDB_PARAMS,
     });
-    this.sync.on("ready", () => {
+    this.sync_db.on("ready", () => {
       this.log("sync is ready");
-      this.setState("ready");
+      this.reportStatus();
     });
+    setInterval(this.reportStatus, STATUS_INTERVAL_MS);
   }
 
-  setState = (state) => {
-    this.log("setState", state);
-    this.sync.set({
-      id: this.compute_server_id,
-      table: "server-state",
-      state,
-      time: Date.now(),
-    });
-    this.sync.commit();
+  reportStatus = () => {
+    this.log("reportStatus");
+    // todo -- will put system load and other info here too
+    this.sync_db.set_cursor_locs([
+      {
+        status: "running",
+        // fake for dev
+        uptime:
+          "00:04:17 up 10 days,  6:39,  0 users,  load average: 2.65, 2.74, 2.72",
+      },
+    ]);
   };
 
   log = (func, ...args) => {

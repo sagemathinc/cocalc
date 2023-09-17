@@ -112,8 +112,10 @@ export interface SyncOpts0 {
   // backend when explicitly requested:
   persistent?: boolean;
 
-  // If true, entire sync-doc is assumed completely ephemeral
-  // This option should be set only in the project.
+  // If true, entire sync-doc is assumed ephemeral, in the
+  // sense that no edit history gets saved via patches to
+  // the database.  The one syncstring record for coordinating
+  // users does get created in the database.
   ephemeral?: boolean;
 
   // which data/changefeed server to use
