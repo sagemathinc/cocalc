@@ -29,6 +29,27 @@ class ComputeServersManager {
     }
     return servers;
   }
+
+  // Want compute server with given id to connect and handle being the server for the given path.
+  connect({ id, path }: { id: number; path: string }) {
+    assertSupportedPath(path);
+    this.sync_db.set({ id, path });
+    this.sync_db.commit();
+  }
+
+  // Want no compute servers to provide server for given path.
+  disconnect({ path }: { path: string }) {
+    assertSupportedPath(path);
+    this.sync_db.delete({ path });
+    this.sync_db.commit();
+  }
+}
+
+function assertSupportedPath(path: string) {
+  if (!path.endsWith(".ipynb") && !path.endsWith(".term")) {
+    throw Error("only ipynb and term paths are supported");
+  }
+  return true;
 }
 
 const computeServerManagerCache: {
