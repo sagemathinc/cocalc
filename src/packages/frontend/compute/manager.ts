@@ -1,8 +1,15 @@
 /*
- */
+Client side compute servers manager
+
+Used from a browser client frontend to manage what compute servers
+are available and how they are used for a given project.
+*/
 
 import { SYNCDB_PARAMS, decodeUUIDtoNum } from "@cocalc/util/compute/manager";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import debug from "debug";
+
+const log = debug("cocalc:frontend:compute:manager");
 
 class ComputeServersManager {
   private sync_db;
@@ -14,10 +21,10 @@ class ComputeServersManager {
       project_id,
       ...SYNCDB_PARAMS,
     });
-    console.log("created", this.sync_db, this.project_id);
+    log("created", this.project_id);
   }
 
-  getComputeServers() {
+  getComputeServers = () => {
     const servers = {};
     const cursors = this.sync_db.get_cursors().toJS();
     for (const client_id in cursors) {
@@ -28,21 +35,28 @@ class ComputeServersManager {
       };
     }
     return servers;
-  }
+  };
 
-  // Want compute server with given id to connect and handle being the server for the given path.
-  connect({ id, path }: { id: number; path: string }) {
+  // Call this if you want the compute server with given id to
+  // connect and handle being the server for the given path.
+  connectComputeServerToPath = ({ id, path }: { id: number; path: string }) => {
     assertSupportedPath(path);
     this.sync_db.set({ id, path });
     this.sync_db.commit();
-  }
+  };
 
-  // Want no compute servers to provide server for given path.
-  disconnect({ path }: { path: string }) {
+  // Call this if you want no compute servers to provide the backend server
+  // for given path.
+  disconnectComputeServer = ({ path }: { path: string }) => {
     assertSupportedPath(path);
     this.sync_db.delete({ path });
     this.sync_db.commit();
-  }
+  };
+
+  // For interactive debugging -- display in the console how things are configured.
+  showStatus = () => {
+    console.log(JSON.stringify(this.sync_db.get().toJS(), undefined, 2));
+  };
 }
 
 function assertSupportedPath(path: string) {

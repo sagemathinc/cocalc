@@ -11,13 +11,12 @@
 import SyncClient from "@cocalc/sync-client";
 import { SYNCDB_PARAMS, encodeIntToUUID } from "@cocalc/util/compute/manager";
 import debug from "debug";
-import { jupyter } from "../jupyter";
-import { connectToTerminal } from "../terminal";
+import { jupyter } from "./jupyter";
+import { terminal } from "./terminal";
 import { once } from "@cocalc/util/async-utils";
+import { dirname } from "path";
 
 const logger = debug("cocalc:compute:manager");
-
-const PROJECT_HOME = "/home/user";
 
 const STATUS_INTERVAL_MS = 15000;
 
@@ -83,17 +82,15 @@ class Manager {
     if (this.connections[path] == null) {
       this.connections[path] = "connecting";
       if (path.endsWith(".term")) {
-        this.connections[path] = connectToTerminal({
+        this.connections[path] = terminal({
           websocket: this.websocket,
           path,
-          cwd: PROJECT_HOME,
+          cwd: dirname(path),
         });
       } else if (path.endsWith(".ipynb")) {
         this.connections[path] = jupyter({
           client: this.client,
-          project_id: this.project_id,
           path,
-          cwd: PROJECT_HOME, // todo
         });
       } else {
         delete this.connections[path];
