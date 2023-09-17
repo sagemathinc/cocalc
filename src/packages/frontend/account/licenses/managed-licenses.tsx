@@ -144,7 +144,7 @@ function CancelSubscriptionBanner() {
           >
             visit the Subscription tab above
           </a>
-          . To edit a license <i>that you purchases</i> expand the license
+          . To edit a license <i>that you purchased</i> expand the license
           below, then click on the "Edit License..." button.
         </>
       }
