@@ -224,6 +224,13 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       query,
     });
     const waitForResponse = (cb) => {
+      if (timeout_ms) {
+        setTimeout(() => {
+          if (responseCallbacks[id] == null) return;
+          cb("timeout");
+          delete responseCallbacks[id];
+        }, timeout_ms);
+      }
       responseCallbacks[id] = cb;
     };
     console.log("waiting for response...");

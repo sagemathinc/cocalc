@@ -148,9 +148,6 @@ export class JupyterActions extends JupyterActions0 {
     dbg("initialize the manager...");
     this._initialize_manager_already_done = true;
 
-    // This could be HUGE:
-    // dbg(`cell count at manage_init`, this.store.get("cells")?.toJS());
-
     this.sync_exec_state = debounce(this.sync_exec_state, 2000);
     this._throttled_ensure_positions_are_unique = debounce(
       this.ensure_positions_are_unique,
@@ -164,22 +161,20 @@ export class JupyterActions extends JupyterActions0 {
       start_time: this._client.server_time().valueOf(),
     });
 
-    if (this.is_project) {
-      // stuff only done by the project:
+    // stuff only done by the project:
 
-      // clear nbconvert start on init, since no nbconvert can be running yet
-      this.syncdb.delete({ type: "nbconvert" });
+    // clear nbconvert start on init, since no nbconvert can be running yet
+    this.syncdb.delete({ type: "nbconvert" });
 
-      // Initialize info about available kernels, which is used e.g., for
-      // saving to ipynb format.
-      this.init_kernel_info();
+    // Initialize info about available kernels, which is used e.g., for
+    // saving to ipynb format.
+    this.init_kernel_info();
 
-      // We try once to load from disk.  If it fails, then
-      // a record with type:'fatal'
-      // is created in the database; if it succeeds, that record is deleted.
-      // Try again only when the file changes.
-      await this._first_load();
-    }
+    // We try once to load from disk.  If it fails, then
+    // a record with type:'fatal'
+    // is created in the database; if it succeeds, that record is deleted.
+    // Try again only when the file changes.
+    await this._first_load();
 
     // Listen for model state changes...
     if (this.syncdb.ipywidgets_state == null) {

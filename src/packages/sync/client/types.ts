@@ -29,7 +29,6 @@ export interface NodejsClient extends Client {
     interval?: number;
     debounce?: number;
   }) => any;
-  jupyter_kernel: (opts) => any; // todo typing
   server_time: () => Date;
   client_id: () => string | undefined;
 }

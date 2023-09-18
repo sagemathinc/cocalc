@@ -54,7 +54,7 @@ import * as sage_session from "./sage_session";
 import { get_listings_table } from "./sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
-import { Watcher } from "./watcher";
+import { Watcher } from "@cocalc/backend/watcher";
 
 const winston = getLogger("client");
 
@@ -649,7 +649,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
   public path_stat(opts: { path: string; cb: CB }) {
     // see https://nodejs.org/api/fs.html#fs_class_fs_stats
-    return fs.stat(opts.path, opts.cb);
+    fs.stat(opts.path, opts.cb);
   }
 
   // Size of file in bytes (divide by 1000 for K, by 10^6 for MB.)

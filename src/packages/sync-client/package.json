@@ -3,22 +3,19 @@
   "version": "0.1.4",
   "description": "CoCalc Lightweight Nodejs Sync Client",
   "main": "./dist/lib/index.js",
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "exports": {
+    ".": "./dist/lib/index.js",
+    "./*": "./dist/*.js",
+    "./lib/*": "./dist/lib/*.js"
+  },
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "npx tsc",
     "tsc": "npx tsc --watch --pretty --preserveWatchOutput"
   },
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",
