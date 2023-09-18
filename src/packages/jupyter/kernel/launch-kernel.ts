@@ -21,6 +21,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import * as uuid from "uuid";
+import { mkdir } from "fs/promises";
 
 import { findAll } from "kernelspecs";
 import * as jupyter_paths from "jupyter-paths";
@@ -138,10 +139,10 @@ async function launchKernelSpec(
   kernel_spec,
   config: ConnectionInfo,
   connectionFile: string,
-  spawn_options: LaunchJupyterOpts
+  spawn_options: LaunchJupyterOpts,
 ): Promise<SpawnedKernel> {
   const argv = kernel_spec.argv.map((x) =>
-    x.replace("{connection_file}", connectionFile)
+    x.replace("{connection_file}", connectionFile),
   );
 
   const full_spawn_options = {
@@ -158,10 +159,16 @@ async function launchKernelSpec(
 
   const { execa, execaCommand } = (await dynamicImport(
     "execa",
-    module
+    module,
   )) as typeof import("execa");
 
+  console.log("full_spawn_options = ", full_spawn_options);
   let running_kernel;
+
+  if (full_spawn_options.cwd != null) {
+    await ensureDirectoryExists(full_spawn_options.cwd);
+  }
+
   if (spawn_options.ulimit) {
     // Convert the ulimit arguments to a string
     const ulimitCmd = `ulimit ${spawn_options.ulimit}`;
@@ -196,15 +203,15 @@ async function launchKernelSpec(
 // For a given kernel name and launch options: prepare the kernel file and launch the process
 export default async function launchJupyterKernel(
   name: string,
-  spawn_options: LaunchJupyterOpts
+  spawn_options: LaunchJupyterOpts,
 ): Promise<SpawnedKernel> {
   const specs = await findAll();
   const kernel_spec = specs[name];
   if (kernel_spec == null) {
     throw new Error(
       `No spec available for kernel "${name}".  Available specs: ${JSON.stringify(
-        Object.keys(specs)
-      )}`
+        Object.keys(specs),
+      )}`,
     );
   }
   const { config, connectionFile } = await writeConnectionFile();
@@ -212,6 +219,16 @@ export default async function launchJupyterKernel(
     kernel_spec.spec,
     config,
     connectionFile,
-    spawn_options
+    spawn_options,
   );
+}
+
+async function ensureDirectoryExists(path: string) {
+  try {
+    await mkdir(path, { recursive: true });
+  } catch (error) {
+    if (error.code !== "EEXIST") {
+      throw error;
+    }
+  }
 }

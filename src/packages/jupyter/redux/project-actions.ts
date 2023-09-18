@@ -345,7 +345,7 @@ export class JupyterActions extends JupyterActions0 {
 
     if (this.jupyter_kernel == null) {
       // to satisfy compiler.
-      throw Error("Jupter kernel must be defined");
+      throw Error("jupyter_kernel must be defined");
     }
 
     // Since we just made a new kernel, clearly no cells are running on the backend.
