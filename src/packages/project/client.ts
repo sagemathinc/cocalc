@@ -33,8 +33,6 @@ import { join, join as path_join } from "node:path";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
-import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
-import { KernelSpec } from "@cocalc/jupyter/types";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import type { ProjectClient as ProjectClientInterface } from "@cocalc/sync/editor/generic/types";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
@@ -686,10 +684,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     path: string; // the path to the *worksheet* file
   }): sage_session.SageSessionType {
     return sage_session.sage_session({ path, client: this });
-  }
-
-  public async jupyter_kernel_info(): Promise<KernelSpec[]> {
-    return await get_kernel_data();
   }
 
   public watch_file({

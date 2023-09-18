@@ -1,4 +1,5 @@
 import type { EventEmitter } from "events";
+import type { CB } from "@cocalc/util/types/callback";
 
 // What we need the client to implement so we can use
 // it to support a table.
@@ -13,6 +14,24 @@ export interface Client extends EventEmitter {
   is_signed_in: () => boolean;
   touch_project: (project_id: string) => void;
   set_connected?: Function;
+}
+
+export interface NodejsClient extends Client {
+  write_file: (opts: { path: string; data: string; cb: CB<void> }) => void;
+  path_read: (opts: {
+    path: string;
+    maxsize_MB?: number; // in megabytes; if given and file would be larger than this, then cb(err)
+    cb: CB<string>; // cb(err, file content as string (not Buffer!))
+  }) => Promise<void>;
+  path_stat: (opts: { path: string; cb: CB }) => any;
+  watch_file: (opts: {
+    path: string;
+    interval?: number;
+    debounce?: number;
+  }) => any;
+  jupyter_kernel: (opts) => any; // todo typing
+  server_time: () => Date;
+  client_id: () => string | undefined;
 }
 
 export interface Channel {
@@ -40,11 +59,11 @@ export interface ProjectWebsocket extends EventEmitter {
   on(event: "open" | "end", handler: () => void): this;
   on(
     event: "reconnect" | "reconnect scheduled" | "reconnected",
-    handler: (opts: ReconnectEventOpts) => void
+    handler: (opts: ReconnectEventOpts) => void,
   ): this;
   on(
     event: "reconnect timeout" | "reconnect failed",
-    handler: (err: Error, opts: ReconnectEventOpts) => void
+    handler: (err: Error, opts: ReconnectEventOpts) => void,
   ): this;
   on(event: "data", handler: (message: any) => void): this;
   on(event: "error", handler: (err: Error) => void): this;
@@ -65,7 +84,7 @@ export interface API {
   symmetric_channel(name: string): Promise<Channel>;
   synctable_channel(
     query: { [field: string]: any },
-    options: { [field: string]: any }[]
+    options: { [field: string]: any }[],
   ): Promise<Channel>;
 }
 

@@ -79,7 +79,7 @@ class SyncDocs extends EventEmitter {
     const path = opts.path;
     if (this.closing.has(path)) {
       log(
-        `create ${path} -- waiting for previous version to completely finish closing...`
+        `create ${path} -- waiting for previous version to completely finish closing...`,
       );
       await once(this, `close-${path}`);
       log(`create ${path} -- successfully closed.`);
@@ -114,7 +114,7 @@ const syncDocs = new SyncDocs();
 export function init_syncdoc(
   client: Client,
   synctable: SyncTable,
-  logger: any
+  logger: any,
 ): void {
   if (synctable.get_table() !== "syncstrings") {
     throw Error("table must be 'syncstrings'");
@@ -137,7 +137,7 @@ export function get_syncdoc(path: string): SyncDoc | undefined {
 async function init_syncdoc_async(
   client: Client,
   synctable: SyncTable,
-  logger: any
+  logger: any,
 ): Promise<void> {
   function log(...args): void {
     logger.debug("init_syncdoc -- ", ...args);
@@ -148,8 +148,8 @@ async function init_syncdoc_async(
   log("synctable ready.  Now getting type and opts");
   const { type, opts } = get_type_and_opts(synctable);
   opts.project_id = client.client_id();
-  log("type = ", type);
-  log("opts = ", JSON.stringify(opts));
+  //   log("type = ", type);
+  //   log("opts = ", JSON.stringify(opts));
   opts.client = client;
   log(`now creating syncdoc ${opts.path}...`);
   let syncdoc;
@@ -183,7 +183,7 @@ async function init_syncdoc_async(
 
 async function wait_until_synctable_ready(
   synctable: SyncTable,
-  log: Function
+  log: Function,
 ): Promise<void> {
   if (synctable.get_state() == "disconnected") {
     log("wait for synctable be connected");
@@ -247,7 +247,7 @@ function get_type_and_opts(synctable: SyncTable): { type: string; opts: any } {
 export async function syncdoc_call(
   path: string,
   logger: any,
-  mesg: any
+  mesg: any,
 ): Promise<string> {
   logger.debug("syncdoc_call", path, mesg);
   const doc = syncDocs.get(path);
@@ -269,7 +269,7 @@ export async function syncdoc_call(
 // This is used when deleting a file/directory
 // filename may be a directory or actual filename
 export async function close_all_syncdocs_in_tree(
-  filename: string
+  filename: string,
 ): Promise<void> {
   return await syncDocs.closeAll(filename);
 }

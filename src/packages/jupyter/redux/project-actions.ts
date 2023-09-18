@@ -14,6 +14,7 @@ fully unit test it via mocking of components.
 NOTE: this is also now the actions used by remote compute servers as well.
 */
 
+import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 import * as immutable from "immutable";
 import json_stable from "json-stable-stringify";
 import { debounce } from "lodash";
@@ -23,8 +24,7 @@ import * as misc from "@cocalc/util/misc";
 import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
 import { RunAllLoop } from "./run-all-loop";
 import nbconvertChange from "./handle-nbconvert-change";
-import type Client from "@cocalc/sync-client";
-import type { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
+import type { NodejsClient } from "@cocalc/sync/client/types";
 import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
 import {
   decodeUUIDtoNum,
@@ -34,26 +34,6 @@ import { handle_request as handleApiRequestFromBrowser } from "@cocalc/jupyter/k
 import { callback } from "awaiting";
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
-
-import type { CB } from "@cocalc/util/types/callback";
-
-interface NodejsClient extends Client {
-  write_file: (opts: { path: string; data: string; cb: CB<void> }) => void;
-  path_read: (opts: {
-    path: string;
-    maxsize_MB?: number; // in megabytes; if given and file would be larger than this, then cb(err)
-    cb: CB<string>; // cb(err, file content as string (not Buffer!))
-  }) => Promise<void>;
-  path_stat: (opts: { path: string; cb: CB }) => any;
-  watch_file: (opts: {
-    path: string;
-    interval?: number;
-    debounce?: number;
-  }) => any;
-  jupyter_kernel_info: () => Promise<KernelSpec[]>;
-  jupyter_kernel: (opts) => any; // todo typing
-  server_time: () => Date;
-}
 
 export class JupyterActions extends JupyterActions0 {
   private _backend_state: BackendState = "init";
@@ -419,7 +399,7 @@ export class JupyterActions extends JupyterActions0 {
     dbg("getting");
     let kernels;
     try {
-      kernels = await this._client.jupyter_kernel_info();
+      kernels = await get_kernel_data();
       dbg("success");
     } catch (err) {
       dbg(`FAILED to get kernel info: ${err}`);
@@ -1170,7 +1150,7 @@ export class JupyterActions extends JupyterActions0 {
     if (data == null) {
       throw Error("ipynb not defined yet; can't save");
     }
-    //dbg("got string version '#{data}'")
+    //dbg(`got string version '${data}'`)
     try {
       await callback2(this._client.write_file, {
         path: this.store.get("path"),
@@ -1501,7 +1481,7 @@ export class JupyterActions extends JupyterActions0 {
       const waitForResponse = (cb) => {
         responseCallbacks[id] = cb;
       };
-      return await callback(waitForResponse);
+      return (await callback(waitForResponse)).response;
     } catch (err) {
       return { event: "error", message: err.message };
     }

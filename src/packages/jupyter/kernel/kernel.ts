@@ -77,7 +77,7 @@ import { redux_name } from "@cocalc/util/redux/name";
 import { redux } from "@cocalc/jupyter/redux/app";
 import { VERSION } from "@cocalc/jupyter/kernel/version";
 import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
-import type Client from "@cocalc/sync-client";
+import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
 
 const log = getLogger("jupyter");
@@ -109,10 +109,7 @@ const SAGE_JUPYTER_ENV = merge(copy(process.env), {
 // the ipynb file, and this function creates the corresponding
 // actions and store, which make it possible to work with this
 // notebook.
-export function initJupyterRedux(
-  syncdb: SyncDB,
-  client: Client,
-): void {
+export function initJupyterRedux(syncdb: SyncDB, client: Client): void {
   const dbg = getLogger("jupyter-redux");
   dbg.debug();
 
@@ -145,7 +142,7 @@ export function initJupyterRedux(
 // and also close the kernel if it is running.
 export async function removeJupyterRedux(
   path: string,
-  project_id: string
+  project_id: string,
 ): Promise<void> {
   // if there is a kernel, close it
   try {
@@ -219,7 +216,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     name: string | undefined,
     _path: string,
     _actions: JupyterActions | undefined,
-    ulimit: string | undefined
+    ulimit: string | undefined,
   ) {
     super();
 
@@ -402,7 +399,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     this.channel = await createMainChannel(
       this._kernel.config,
       "",
-      this.identity
+      this.identity,
     );
     dbg("created main channel");
 
@@ -445,18 +442,18 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
     this._kernel.spawn.on("exit", (exit_code, signal) => {
       this.dbg("kernel_exit")(
-        `spawned kernel terminated with exit code ${exit_code} (signal=${signal}); stderr=${this.stderr}`
+        `spawned kernel terminated with exit code ${exit_code} (signal=${signal}); stderr=${this.stderr}`,
       );
       const stderr = this.stderr ? `\n...\n${this.stderr}` : "";
       if (signal != null) {
         this.emit(
           "kernel_error",
-          `Kernel last terminated by signal ${signal}.${stderr}`
+          `Kernel last terminated by signal ${signal}.${stderr}`,
         );
       } else if (exit_code != null) {
         this.emit(
           "kernel_error",
-          `Kernel last exited with code ${exit_code}.${stderr}`
+          `Kernel last exited with code ${exit_code}.${stderr}`,
         );
       }
       this.close();
@@ -525,7 +522,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         `jupyter.Kernel('${this.name ?? "no kernel"}',path='${
           this._path
         }').${f}`,
-        ...args
+        ...args,
       );
     };
   }
@@ -535,7 +532,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     dbg("Enabling");
     if (this._kernel) {
       this._kernel.spawn.all?.on("data", (data) =>
-        dbg("STDIO", data.toString())
+        dbg("STDIO", data.toString()),
       );
     }
     // for low level debugging only...
@@ -568,7 +565,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
   execute_code(
     opts: ExecOpts,
-    skipToFront = false
+    skipToFront = false,
   ): CodeExecutionEmitterInterface {
     if (opts.halt_on_error === undefined) {
       // if not specified, default to true.
@@ -604,7 +601,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     }
     if (this._execute_code_queue.length > 1) {
       dbg(
-        "mutate this._execute_code_queue removing everything with the given id"
+        "mutate this._execute_code_queue removing everything with the given id",
       );
       for (let i = this._execute_code_queue.length - 1; i--; i >= 1) {
         const code = this._execute_code_queue[i];
@@ -641,7 +638,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     }
     dbg(
       `queue has ${n} items; ensure kernel running`,
-      this._execute_code_queue
+      this._execute_code_queue,
     );
     try {
       await this.ensure_running();
@@ -728,7 +725,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
           //  {iframe: sha1 of srcdoc}
           content.data["iframe"] = iframe_process(
             content.data[type],
-            get_blob_store_sync()
+            get_blob_store_sync(),
           );
           delete content.data[type];
         }
@@ -804,7 +801,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
   }): Promise<any> {
     const dbg = this.dbg("introspect");
     dbg(
-      `code='${opts.code}', cursor_pos='${opts.cursor_pos}', detail_level=${opts.detail_level}`
+      `code='${opts.code}', cursor_pos='${opts.cursor_pos}', detail_level=${opts.detail_level}`,
     );
     return await this.call("inspect_request", opts);
   }
@@ -902,18 +899,18 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
   public ipywidgetsGetBuffer(
     model_id: string,
-    buffer_path: string
+    buffer_path: string,
   ): Buffer | undefined {
     return this._actions?.syncdb.ipywidgets_state?.getBuffer(
       model_id,
-      buffer_path
+      buffer_path,
     );
   }
 
   public send_comm_message_to_kernel(
     msg_id: string,
     comm_id: string,
-    data: any
+    data: any,
   ): void {
     const dbg = this.dbg("send_comm_message_to_kernel");
 

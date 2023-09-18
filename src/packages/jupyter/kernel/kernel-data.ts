@@ -18,7 +18,7 @@ import type { KernelSpec } from "@cocalc/jupyter/types/types";
 import { field_cmp } from "@cocalc/util/misc";
 
 const cache = new LRU<"kernel_data", KernelSpec[]>({
-  ttl: 10 * 1000,
+  ttl: 15 * 1000,
   max: 5 /* silly since only one possible key */,
 });
 

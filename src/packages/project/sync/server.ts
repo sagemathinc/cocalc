@@ -67,6 +67,7 @@ import { register_project_info_table } from "./project-info";
 import { register_project_status_table } from "./project-status";
 import { register_usage_info_table } from "./usage-info";
 import type { MergeType } from "@cocalc/sync/table/synctable";
+import Client from "@cocalc/sync-client";
 
 type Query = { [key: string]: any };
 
@@ -92,7 +93,6 @@ interface Channel {
   destroy: Function;
 }
 
-import Client from "@cocalc/sync-client";
 
 interface Primus {
   channel: (str: string) => Channel;

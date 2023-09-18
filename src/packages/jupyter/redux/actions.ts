@@ -23,7 +23,7 @@ import { Actions } from "@cocalc/util/redux/Actions";
 import { three_way_merge } from "@cocalc/sync/editor/generic/util";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
-import * as awaiting from "awaiting";
+import { callback, delay } from "awaiting";
 import * as cell_utils from "@cocalc/jupyter/util/cell-utils";
 import {
   JupyterStore,
@@ -41,9 +41,10 @@ import {
   js_idx_to_char_idx,
 } from "@cocalc/jupyter/util/misc";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
-import type Client from "@cocalc/sync-client";
+import type { Client } from "@cocalc/sync/client/types";
 import { decodeUUIDtoNum } from "@cocalc/util/compute/manager";
 import { COMPUTER_SERVER_CURSOR_TYPE } from "@cocalc/util/compute/manager";
+import { once } from "@cocalc/util/async-utils";
 
 const { close, required, defaults } = misc;
 
@@ -66,9 +67,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   private _last_start?: number;
   public jupyter_kernel?: JupyterKernelInterface;
   private last_cursor_move_time: Date = new Date(0);
-
-  public _account_id: string; // Note: this is used in test
-
   private _cursor_locs?: any;
   private _introspect_request?: any;
   protected set_save_status: any;
@@ -108,7 +106,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // the project client is designated to manage execution/conflict, etc.
     this.is_project = client.is_project();
     store._is_project = this.is_project;
-    this._account_id = client.client_id(); // project or account's id
 
     let directory: any;
     const split_path = misc.path_split(path);
@@ -172,16 +169,69 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
   };
 
+  private apiCallHandler: {
+    id: number; // this is a sequential id used for request/response pairing
+    // when get response from computer server, one of these callbacks gets called:
+    responseCallbacks: { [id: number]: (err: any, response?: any) => void };
+  } | null = null;
+
+  private initApiCallHandler = () => {
+    this.apiCallHandler = { id: 0, responseCallbacks: {} };
+    const { responseCallbacks } = this.apiCallHandler;
+    this.syncdb.on("message", (data) => {
+      const cb = responseCallbacks[data.id];
+      console.log("message", cb != null, data);
+      if (cb != null) {
+        delete responseCallbacks[data.id];
+        if (data.response.event == "error") {
+          cb(data.response.message ?? "error");
+        } else {
+          cb(undefined, data.response);
+        }
+      }
+    });
+  };
+
   protected async api_call(
     endpoint: string,
     query?: any,
     timeout_ms?: number,
   ): Promise<any> {
-    if (this._state === "closed") {
+    if (this._state === "closed" || this.syncdb == null) {
       throw Error("closed");
     }
-    const api = await this._client.project_client.api(this.project_id);
-    return await api.jupyter(this.path, endpoint, query, timeout_ms);
+    console.log("api_call", endpoint, query);
+    console.log("waiting to be ready");
+    if (this.syncdb.get_state() == "init") {
+      await once(this.syncdb, "ready");
+    }
+
+    if (this.apiCallHandler == null) {
+      this.initApiCallHandler();
+    }
+    if (this.apiCallHandler == null) {
+      throw Error("bug");
+    }
+
+    this.apiCallHandler.id += 1;
+    const { id, responseCallbacks } = this.apiCallHandler;
+    console.log("making call");
+    this.syncdb.sendMessageToProject({
+      event: "api-request",
+      id,
+      path: this.path,
+      endpoint,
+      query,
+    });
+    const waitForResponse = (cb) => {
+      responseCallbacks[id] = cb;
+    };
+    console.log("waiting for response...");
+    const resp = await callback(waitForResponse);
+    console.log("got ", resp);
+    return resp;
+    //     const api = await this._client.project_client.api(this.project_id);
+    //     return await api.jupyter(this.path, endpoint, query, timeout_ms);
   }
 
   protected dbg = (f: string) => {
@@ -1844,7 +1894,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       a.close_file(path);
       // ensure the side effects from changing registered
       // editors in project_file.* finish happening
-      await awaiting.delay(0);
+      await delay(0);
       a.open_file({ path });
       return;
     }
@@ -2225,7 +2275,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
     // This has to happen in the next render loop, since changing immediately
     // can update before the attachments props are updated.
-    await awaiting.delay(10);
+    await delay(10);
     this.insert_input_at_cursor(id, this._attachment_markdown(name), true);
   }
 
