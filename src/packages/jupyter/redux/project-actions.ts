@@ -1399,7 +1399,7 @@ export class JupyterActions extends JupyterActions0 {
     dbg(data);
     switch (data.event) {
       case "register-to-handle-api": {
-        // a client is volunteering to handle all api requests until they disconnect
+        // a compute server client is volunteering to handle all api requests until they disconnect
         this.remoteApiHandler = { spark, id: 0, responseCallbacks: {} };
         spark.on("end", () => {
           if (this.remoteApiHandler?.spark.id == spark.id) {
@@ -1460,7 +1460,7 @@ export class JupyterActions extends JupyterActions0 {
     // This call in the the remote compute server to handle api requests.
     this.dbg("message from project")(data);
     if (data.event == "api-request") {
-      const response = await this.handleApiRequest(data);
+      const response = await this.handleApiRequest(data.request);
       this.syncdb.sendMessageToProject({
         event: "api-response",
         id: data.id,
@@ -1496,7 +1496,7 @@ export class JupyterActions extends JupyterActions0 {
       const { id, spark, responseCallbacks } = this.remoteApiHandler;
       spark.write({
         event: "message",
-        data: { event: "api-request", data, id },
+        data: { event: "api-request", request: data, id },
       });
       const waitForResponse = (cb) => {
         responseCallbacks[id] = cb;
