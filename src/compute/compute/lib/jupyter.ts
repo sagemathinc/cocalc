@@ -28,6 +28,8 @@ class RemoteJupyter {
 
   constructor({ client, path }: { client: SyncClient; path: string }) {
     this.client = client;
+    // @ts-ignore: TODO
+    this.client.is_compute_server = true;
     this.path = path;
     this.log("constructor");
     const syncdb_path = meta_file(path, "jupyter2");

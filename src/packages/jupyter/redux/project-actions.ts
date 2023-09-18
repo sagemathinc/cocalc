@@ -30,7 +30,7 @@ import {
   decodeUUIDtoNum,
   isEncodedNumUUID,
 } from "@cocalc/util/compute/manager";
-import { handle_request as handleApiRequestFromBrowser } from "@cocalc/jupyter/kernel/websocket-api";
+import { handleApiRequest } from "@cocalc/jupyter/kernel/websocket-api";
 import { callback } from "awaiting";
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
@@ -107,27 +107,29 @@ export class JupyterActions extends JupyterActions0 {
     }
     this._backend_state = backend_state;
 
-    this._set({
-      type: "settings",
-      backend_state,
-    });
-    this.save_asap();
+    if (this.isCellRunner()) {
+      this._set({
+        type: "settings",
+        backend_state,
+      });
+      this.save_asap();
 
-    // The following is to clear kernel_error if things are working only.
-    if (backend_state == "running") {
-      // clear kernel error if kernel successfully starts and stays
-      // in running state for a while.
-      this.clear_kernel_error = setTimeout(() => {
-        this._set({
-          type: "settings",
-          kernel_error: "",
-        });
-      }, 3000);
-    } else {
-      // change to a different state; cancel attempt to clear kernel error
-      if (this.clear_kernel_error) {
-        clearTimeout(this.clear_kernel_error);
-        delete this.clear_kernel_error;
+      // The following is to clear kernel_error if things are working only.
+      if (backend_state == "running") {
+        // clear kernel error if kernel successfully starts and stays
+        // in running state for a while.
+        this.clear_kernel_error = setTimeout(() => {
+          this._set({
+            type: "settings",
+            kernel_error: "",
+          });
+        }, 3000);
+      } else {
+        // change to a different state; cancel attempt to clear kernel error
+        if (this.clear_kernel_error) {
+          clearTimeout(this.clear_kernel_error);
+          delete this.clear_kernel_error;
+        }
       }
     }
   }
@@ -160,8 +162,6 @@ export class JupyterActions extends JupyterActions0 {
       // used by the kernel_info function of this.jupyter_kernel
       start_time: this._client.server_time().valueOf(),
     });
-
-    // stuff only done by the project:
 
     // clear nbconvert start on init, since no nbconvert can be running yet
     this.syncdb.delete({ type: "nbconvert" });
@@ -459,7 +459,7 @@ export class JupyterActions extends JupyterActions0 {
 
   protected __syncdb_change_post_hook(doInit: boolean) {
     if (doInit) {
-      if (this.is_project) {
+      if (this.isCellRunner()) {
         // Since just opening the actions in the project, definitely the kernel
         // isn't running so set this fact in the shared database.  It will make
         // things always be in the right initial state.
@@ -929,6 +929,9 @@ export class JupyterActions extends JupyterActions0 {
     });
 
     this._file_watcher.on("change", async () => {
+      if (!this.isCellRunner()) {
+        return;
+      }
       dbg("change");
       if (new Date().getTime() - this._last_save_ipynb_file <= 10000) {
         // Guard against reacting to saving file to disk, which would
@@ -940,10 +943,6 @@ export class JupyterActions extends JupyterActions0 {
       } catch (err) {
         dbg("failed to load on change", err);
       }
-    });
-
-    return this._file_watcher.on("delete", () => {
-      return dbg("delete");
     });
   }
 
@@ -1302,7 +1301,7 @@ export class JupyterActions extends JupyterActions0 {
     nbconvertChange(this, oldVal?.toJS(), newVal?.toJS());
   }
 
-  private isCellRunner = (): boolean => {
+  protected isCellRunner = (): boolean => {
     const dbg = this.dbg("isCellRunner");
     const id = this.getRemoteComputeServerId();
     dbg("id = ", id);
@@ -1311,13 +1310,15 @@ export class JupyterActions extends JupyterActions0 {
       // responsible for evaluating code.
       return true;
     }
-    // a remote compute server is supposed to be responsible. Are we it?
-    try {
-      const myId = decodeUUIDtoNum(this.syncdb.client_id());
-      dbg("myId", myId);
-      return myId == id;
-    } catch (err) {
-      dbg(err);
+    if (this.is_compute_server) {
+      // a remote compute server is supposed to be responsible. Are we it?
+      try {
+        const myId = decodeUUIDtoNum(this.syncdb.client_id());
+        dbg("myId", myId);
+        return myId == id;
+      } catch (err) {
+        dbg(err);
+      }
     }
     return false;
   };
@@ -1350,8 +1351,8 @@ export class JupyterActions extends JupyterActions0 {
     if (this.is_project) {
       // only the project receives these messages from clients.
       this.syncdb.on("message", this.handleMessageFromClient);
-    } else {
-      // non-project (so compute servers) receive messages from the project,
+    } else if (this.is_compute_server) {
+      // compute servers receive messages from the project,
       // proxying an api request from a client.
       this.syncdb.on("message", this.handleMessageFromProject);
     }
@@ -1451,7 +1452,7 @@ export class JupyterActions extends JupyterActions0 {
     }
     const { path, endpoint, query } = data;
     try {
-      return await handleApiRequestFromBrowser(path, endpoint, query);
+      return await handleApiRequest(path, endpoint, query);
     } catch (err) {
       return { event: "error", message: err.message };
     }

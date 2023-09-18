@@ -62,6 +62,7 @@ const CellDeleteProtectedException = new Error("CellDeleteProtectedException");
 
 export abstract class JupyterActions extends Actions<JupyterStoreState> {
   protected is_project: boolean;
+  protected is_compute_server?: boolean;
   readonly path: string;
   readonly project_id: string;
   private _last_start?: number;
@@ -106,6 +107,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // the project client is designated to manage execution/conflict, etc.
     this.is_project = client.is_project();
     store._is_project = this.is_project;
+
+    // @ts-ignore (TODO):
+    this.is_compute_server = !!client.is_compute_server;
 
     let directory: any;
     const split_path = misc.path_split(path);
@@ -275,10 +279,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (this._file_watcher != null) {
       this._file_watcher.close();
     }
-    if (!this.is_project) {
-      this.close_client_only();
-    } else {
+    if (this.is_project || this.is_compute_server) {
       this.close_project_only();
+    } else {
+      this.close_client_only();
     }
     close(this);
     this._state = "closed";
@@ -647,7 +651,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
               obj.backend_kernel_info = undefined;
             }
             this.setState(obj);
-            if (!this.is_project && orig_kernel !== kernel) {
+            if (
+              !this.is_project &&
+              !this.is_compute_server &&
+              orig_kernel !== kernel
+            ) {
               this.set_cm_options();
             }
 
@@ -682,7 +690,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
             break;
 
           case "nbconvert":
-            if (this.is_project) {
+            if (this.is_project || this.is_compute_server) {
               // before setting in store, let backend start reacting to change
               this.handle_nbconvert_change(this.store.get("nbconvert"), record);
             }
@@ -717,7 +725,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
             }
             const prev_backend_state = this.store.get("backend_state");
             this.setState(obj);
-            if (!this.is_project) {
+            if (!this.is_project && !this.is_compute_server) {
               // if the kernel changes or it just started running – we set the codemirror options!
               // otherwise, just when computing them without the backend information, only a crude
               // heuristic sets the values and we end up with "C" formatting for custom python kernels.
@@ -762,7 +770,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // console.log("jupyter::_syncdb_init_kernel", this.store.get("kernel"));
     if (this.store.get("kernel") == null) {
       // Creating a new notebook with no kernel set
-      if (!this.is_project) {
+      if (!this.is_project && !this.is_compute_server) {
         // we either let the user select a kernel, or use a stored one
         let using_default_kernel = false;
 
@@ -1820,7 +1828,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
 
-    if (this.is_project) {
+    if (this.isCellRunner() && (this.is_project || this.is_compute_server)) {
       const dbg = this.dbg(`set_backend_kernel_info ${misc.uuid()}`);
       if (
         this.jupyter_kernel == null ||
@@ -2191,7 +2199,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public set_default_kernel(kernel?: string): void {
     if (kernel == null || kernel === "") return;
     // doesn't make sense for project (right now at least)
-    if (this.is_project) return;
+    if (this.is_project || this.is_compute_server) return;
     const account_store = this.redux.getStore("account") as any;
     if (account_store == null) return;
     const cur: any = {};
@@ -2619,6 +2627,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       }
     }
     return isFinite(minId) ? minId : 0;
+  };
+
+  protected isCellRunner = (): boolean => {
+    return false;
   };
 }
 

@@ -11,7 +11,7 @@ various messages related to working with Jupyter.
 import { get_existing_kernel } from "@cocalc/jupyter/kernel";
 import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
 
-export async function handle_request(
+export async function handleApiRequest(
   path: string,
   endpoint: string,
   query?: any
