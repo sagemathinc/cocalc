@@ -212,6 +212,13 @@ export class JupyterActions extends JupyterActions0 {
       "cursor_activity",
       this.checkForRemoteComputeServerStateChange,
     );
+
+    //     if (this.is_project) {
+    //       this.syncdb.on("message", ({ data, write }) => {
+    //         this.dbg("message from client")(data);
+    //         write({ got: data });
+    //       });
+    //     }
   }
 
   private async _first_load() {

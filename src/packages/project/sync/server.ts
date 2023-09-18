@@ -411,7 +411,7 @@ class SyncTableChannel {
   ): Promise<void> {
     // do not log the actual mesg, since it can be huge and make the logfile dozens of MB.
     // Temporarily enable as needed for debugging purposes.
-    this.log("handle_mesg_from_browser ", (this.channel as any).channel); // , mesg);
+    this.log("handle_mesg_from_browser ", { mesg });
     if (this.closed) {
       throw Error("received mesg from browser AFTER close");
     }
@@ -424,6 +424,15 @@ class SyncTableChannel {
         this.setOnDisconnect[spark.id] = [];
       }
       this.setOnDisconnect[spark.id].push(mesg);
+      return;
+    }
+    if (mesg.event == "message") {
+      // generic messages from any client to the project can be
+      // handled by backend code by listening for message events.
+      this.synctable.emit("message", {
+        data: mesg.data,
+        write: (data) => spark.write({ event: "message", data }),
+      });
       return;
     }
     if (mesg.timed_changes != null) {

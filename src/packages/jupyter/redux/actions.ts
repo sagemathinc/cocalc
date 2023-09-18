@@ -1724,7 +1724,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public async signal(signal = "SIGINT"): Promise<void> {
     // TODO: some setStates, awaits, and UI to reflect this happening...
     try {
-      await this.api_call("signal", { signal: signal }, 5000);
+      await this.api_call("signal", { signal }, 5000);
     } catch (err) {
       this.set_error(err);
     }

@@ -162,7 +162,6 @@ async function launchKernelSpec(
     module,
   )) as typeof import("execa");
 
-  console.log("full_spawn_options = ", full_spawn_options);
   let running_kernel;
 
   if (full_spawn_options.cwd != null) {

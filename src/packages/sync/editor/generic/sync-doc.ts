@@ -424,6 +424,18 @@ export class SyncDoc extends EventEmitter {
     return this.my_user_id != null ? this.my_user_id : 0;
   }
 
+  // This gets used by clients that are connected to a backend
+  // with state in the project (e.g., jupyter).  Basically this
+  // is a special websocket channel just for this syncdoc, which
+  // uses the cursors table.
+  public sendMessageToProject(data) {
+    const send = this.patches_table?.sendMessageToProject;
+    if (send == null) {
+      throw Error("sending messages to project not available");
+    }
+    send(data);
+  }
+
   private assert_not_closed(desc: string): void {
     if (this.state === "closed") {
       //console.trace();
@@ -1420,6 +1432,14 @@ export class SyncDoc extends EventEmitter {
     this.patches_table.on("change", this.handle_patch_update.bind(this));
     this.patches_table.on("saved", this.handle_offline.bind(this));
     this.patch_list = patch_list;
+
+    // this only potentially happens for tables in the project, e.g., jupyter.
+    // see packages/project/sync/server.ts
+    this.patches_table.on("message", (...args) => {
+      dbg("received message", args);
+      this.emit("message", ...args);
+    });
+
     dbg("done");
 
     /*

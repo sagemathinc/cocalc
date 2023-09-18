@@ -66,6 +66,9 @@ class SyncTableChannel extends EventEmitter {
     this.synctable.setOnDisconnect = (changes, merge) => {
       this.send_mesg_to_project({ event: "set-on-disconnect", changes, merge });
     };
+    this.synctable.sendMessageToProject = (data) => {
+      this.send_mesg_to_project({ event: "message", data });
+    };
     this.project_id = project_id;
     this.client = client;
     this.query = query;
@@ -224,6 +227,10 @@ class SyncTableChannel extends EventEmitter {
       } else {
         console.warn(message);
       }
+    }
+    if (mesg.event == "message") {
+      this.synctable.emit("message", mesg.data);
+      return;
     }
     if (mesg.init != null) {
       this.log("project --> client: init_browser_client");

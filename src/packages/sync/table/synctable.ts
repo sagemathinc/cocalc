@@ -79,6 +79,12 @@ export class SyncTable extends EventEmitter {
   // so that a table connected to a project can make a change based
   // on fact client disconnected (e.g., clear its cursor).
   public setOnDisconnect?: (changes: any, merge) => void;
+  // Optional function that is available for direct
+  // communication with project, in case synctable is backed
+  // by a project.  Clients can send a message using
+  // this function, and the project synctable will
+  // emit a 'message-from-project' event when it receives such a message.
+  public sendMessageToProject?: (data) => void;
 
   // Immutable map -- the value of this synctable.
   private value?: Map<string, Map<string, any>>;
