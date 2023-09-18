@@ -30,6 +30,8 @@ import {
   decodeUUIDtoNum,
   isEncodedNumUUID,
 } from "@cocalc/util/compute/manager";
+import { handle_request as handleApiRequestFromBrowser } from "@cocalc/jupyter/kernel/websocket-api";
+import { callback } from "awaiting";
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
@@ -213,12 +215,8 @@ export class JupyterActions extends JupyterActions0 {
       this.checkForRemoteComputeServerStateChange,
     );
 
-    //     if (this.is_project) {
-    //       this.syncdb.on("message", ({ data, write }) => {
-    //         this.dbg("message from client")(data);
-    //         write({ got: data });
-    //       });
-    //     }
+    // initialize the websocket api
+    this.initWebsocketApi();
   }
 
   private async _first_load() {
@@ -1362,4 +1360,152 @@ export class JupyterActions extends JupyterActions0 {
     }
     this.lastRemoteComputeServerId = id;
   };
+
+  /*
+  WebSocket API
+
+  1. Handles api requests from the user via the generic websocket message channel
+     provided by the syncdb.
+
+  2. In case a remote compuete server connectsand registers to handle api messages,
+     then those are proxied to the remote server, handled there, and proxied back.
+  */
+
+  private initWebsocketApi = () => {
+    if (this.is_project) {
+      // only the project receives these messages from clients.
+      this.syncdb.on("message", this.handleMessageFromClient);
+    } else {
+      // non-project (so compute servers) receive messages from the project,
+      // proxying an api request from a client.
+      this.syncdb.on("message", this.handleMessageFromProject);
+    }
+  };
+
+  private remoteApiHandler: null | {
+    spark: any; // the spark channel connection between project and compute server
+    id: number; // this is a sequential id used for request/response pairing
+    // when get response from computer server, one of these callbacks gets called:
+    responseCallbacks: { [id: number]: (err: any, response: any) => void };
+  } = null;
+
+  private handleMessageFromClient = async ({ data, spark }) => {
+    // This is call in the project to handle api requests.
+    // It either handles them directly, or if there is a remote
+    // compute server, it forwards them to the remote compute server,
+    // then proxies the response back to the client.
+
+    const dbg = this.dbg("message from client");
+    dbg(data);
+    switch (data.event) {
+      case "register-to-handle-api": {
+        // a client is volunteering to handle all api requests until they disconnect
+        this.remoteApiHandler = { spark, id: 0, responseCallbacks: {} };
+        spark.on("end", () => {
+          if (this.remoteApiHandler?.spark.id == spark.id) {
+            this.remoteApiHandler = null;
+          }
+        });
+        return;
+      }
+
+      case "api-request": {
+        // browser client made an api request.  This will get handled
+        // either locally or via a remote compute server, depending on
+        // whether this.remoteApiHandler is set (via the
+        // register-to-handle-api event above).
+        const response = await this.handleApiRequest(data);
+        spark.write({
+          event: "message",
+          data: { event: "api-response", response, id: data.id },
+        });
+        return;
+      }
+
+      case "api-response": {
+        // handling api request that we proxied to a remote compute server.
+        // We are handling the response from the remote compute server.
+        if (this.remoteApiHandler == null) {
+          dbg("WARNING: api-response event but there is no remote api handler");
+          // api-response event can't be handled because no remote api handler is registered
+          // This should only happen if the requesting spark just disconnected, so there's no way to
+          // responsd anyways.
+          return;
+        }
+        const cb = this.remoteApiHandler.responseCallbacks[data.id];
+        if (cb != null) {
+          delete this.remoteApiHandler.responseCallbacks[data.id];
+          cb(undefined, data);
+        } else {
+          dbg("WARNING: api-response event for unknown id", data.id);
+        }
+        return;
+      }
+
+      default: {
+        // unknown event so send back error
+        spark.write({
+          event: "message",
+          data: {
+            event: "error",
+            message: `unknown event ${data.event}`,
+            id: data.id,
+          },
+        });
+      }
+    }
+  };
+
+  private handleMessageFromProject = async (data) => {
+    // This call in the the remote compute server to handle api requests.
+    this.dbg("message from project")(data);
+    if (data.event == "api-request") {
+      const response = await this.handleApiRequest(data);
+      this.syncdb.sendMessageToProject({
+        event: "api-response",
+        id: data.id,
+        response,
+      });
+      return;
+    }
+  };
+
+  private handleApiRequest = async (data) => {
+    if (this.remoteApiHandler != null) {
+      return await this.handleApiRequestViaRemoteApiHandler(data);
+    }
+    const { path, endpoint, query } = data;
+    try {
+      return await handleApiRequestFromBrowser(path, endpoint, query);
+    } catch (err) {
+      return { event: "error", message: err.message };
+    }
+  };
+
+  private handleApiRequestViaRemoteApiHandler = async (data) => {
+    try {
+      if (!this.is_project) {
+        throw Error("BUG -- remote api requests only make sense in a project");
+      }
+      if (this.remoteApiHandler == null) {
+        throw Error("BUG -- remote api handler not registered");
+      }
+      // Send a message to the remote asking it to handle this api request,
+      // which calls the function handleMessageFromProject from above in that remote process.
+      this.remoteApiHandler.spark.id += 1;
+      const { id, spark, responseCallbacks } = this.remoteApiHandler;
+      spark.write({
+        event: "message",
+        data: { event: "api-request", data, id },
+      });
+      const waitForResponse = (cb) => {
+        responseCallbacks[id] = cb;
+      };
+      return await callback(waitForResponse);
+    } catch (err) {
+      return { event: "error", message: err.message };
+    }
+  };
+
+  // End Websocket API
 }

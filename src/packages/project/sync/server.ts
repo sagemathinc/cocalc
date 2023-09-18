@@ -411,7 +411,7 @@ class SyncTableChannel {
   ): Promise<void> {
     // do not log the actual mesg, since it can be huge and make the logfile dozens of MB.
     // Temporarily enable as needed for debugging purposes.
-    this.log("handle_mesg_from_browser ", { mesg });
+    //this.log("handle_mesg_from_browser ", { mesg });
     if (this.closed) {
       throw Error("received mesg from browser AFTER close");
     }
@@ -431,7 +431,8 @@ class SyncTableChannel {
       // handled by backend code by listening for message events.
       this.synctable.emit("message", {
         data: mesg.data,
-        write: (data) => spark.write({ event: "message", data }),
+        spark,
+        channel: this.channel,
       });
       return;
     }
