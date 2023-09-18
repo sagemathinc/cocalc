@@ -14,18 +14,22 @@ For sync, we make the id of each compute server a uuid that is a simple
 function of the id, so the client_id is stable and easy to identify.
 */
 
-const CONSTANT_PART = "0000-4000-8000-000000000000";
+const COMPUTER_SERVER_UUID_END = "0000-4000-8000-000000000000";
+export function isEncodedNumUUID(uuid: string): boolean {
+  return uuid.endsWith(COMPUTER_SERVER_UUID_END);
+}
+
 export function encodeIntToUUID(num: number): string {
   // Convert to hexadecimal
   let hex = num.toString(16);
   while (hex.length < 8) {
     hex = "0" + hex;
   }
-  return `${hex}-${CONSTANT_PART}`;
+  return `${hex}-${COMPUTER_SERVER_UUID_END}`;
 }
 
 export function decodeUUIDtoNum(uuid: string): number {
-  if (!uuid.endsWith(CONSTANT_PART)) {
+  if (!isEncodedNumUUID(uuid)) {
     throw Error(`uuid is not an encoded number -- ${uuid}`);
   }
   return parseInt(uuid.slice(0, 8), 16);

@@ -14,7 +14,7 @@ interface Props {
   name: string; // redux name
 }
 
-const DELAY = 5000;
+const DELAY = 7500;
 
 export default function KernelWarning({ name }: Props) {
   const [warning, setWarning] = useState<string>("");

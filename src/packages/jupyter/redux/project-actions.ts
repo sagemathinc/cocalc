@@ -26,7 +26,10 @@ import nbconvertChange from "./handle-nbconvert-change";
 import type Client from "@cocalc/sync-client";
 import type { KernelSpec } from "@cocalc/jupyter/ipynb/parse";
 import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
-import { decodeUUIDtoNum } from "@cocalc/util/compute/manager";
+import {
+  decodeUUIDtoNum,
+  isEncodedNumUUID,
+} from "@cocalc/util/compute/manager";
 
 type BackendState = "init" | "ready" | "spawning" | "starting" | "running";
 
@@ -203,6 +206,11 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.ipywidgets_state.on(
       "change",
       this.handle_ipywidgets_state_change.bind(this),
+    );
+
+    this.syncdb.on(
+      "cursor_activity",
+      this.checkForRemoteComputeServerStateChange,
     );
   }
 
@@ -1330,5 +1338,19 @@ export class JupyterActions extends JupyterActions0 {
       dbg(err);
     }
     return false;
+  };
+
+  private lastRemoteComputeServerId = 0;
+  private checkForRemoteComputeServerStateChange = (client_id) => {
+    if (!isEncodedNumUUID(client_id)) {
+      return;
+    }
+    const id = this.getRemoteComputeServerId();
+    if (id != this.lastRemoteComputeServerId) {
+      // reset all run state
+      this.halt();
+      this.clear_all_cell_run_state();
+    }
+    this.lastRemoteComputeServerId = id;
   };
 }
