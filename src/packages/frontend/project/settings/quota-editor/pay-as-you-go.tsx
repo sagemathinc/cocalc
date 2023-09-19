@@ -3,23 +3,24 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Popconfirm, Tag } from "antd";
-import { Icon, Loading } from "@cocalc/frontend/components";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import QuotaRow from "./quota-row";
-import Information from "./information";
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
+
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import CostPerHour from "./cost-per-hour";
-import { copy_without } from "@cocalc/util/misc";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import { load_target } from "@cocalc/frontend/history";
 import DynamicallyUpdatingCost from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
 import startProject from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 import stopProject from "@cocalc/frontend/purchases/pay-as-you-go/stop-project";
 import track0 from "@cocalc/frontend/user-tracking";
 import { User } from "@cocalc/frontend/users";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import { copy_without } from "@cocalc/util/misc";
+import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import CostPerHour from "./cost-per-hour";
+import Information from "./information";
+import QuotaRow from "./quota-row";
 
 function track(obj) {
   track0("pay-as-you-go-project-upgrade", obj);
@@ -48,6 +49,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
           .getIn(["pay_as_you_go_quotas", webapp_client.account_id])
           ?.toJS() ?? {};
   const [editing, setEditing] = useState<boolean>(false);
+
   // one we are editing:
   const [quotaState, setQuotaState0] = useState<ProjectQuota | null>(
     savedQuotaState
@@ -495,7 +497,7 @@ export function PayAsYouGoCost({ project_id }) {
     // only show this when YOU are paying.
     return null;
   }
-  const quota = PAYG.get("quota")?.toJS();
+  const quota = PAYG?.get("quota")?.toJS();
   if (!quota || !quota.cost || !quota.start) {
     return null;
   }
