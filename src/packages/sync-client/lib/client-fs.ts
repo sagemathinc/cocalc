@@ -10,7 +10,26 @@ import { Watcher } from "@cocalc/backend/watcher";
 const HOME = process.env.HOME ?? "/home/user";
 
 export class ClientFs extends Client implements ClientFsType {
+  private filesystemClient = new FileSystemClient(this.dbg);
+
+  write_file = this.filesystemClient.write_file;
+  path_read = this.filesystemClient.path_read;
+  path_stat = this.filesystemClient.path_stat;
+  file_size_async = this.filesystemClient.file_size_async;
+  file_stat_async = this.filesystemClient.file_stat_async;
+  watch_file = this.filesystemClient.watch_file;
+}
+
+// Some functions for reading and writing files under node.js
+// where the read and write is aware of other reading and writing,
+// motivated by the needs of realtime sync.
+export class FileSystemClient {
   private _file_io_lock?: { [key: string]: number }; // file → timestamps
+  private dbg;
+
+  constructor(dbg) {
+    this.dbg = dbg;
+  }
 
   // Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
   // If file is currently being written or read in this process, will result in error (instead of silently corrupt data).

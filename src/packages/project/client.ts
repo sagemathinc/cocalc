@@ -23,14 +23,8 @@ as a result.
 */
 import EventEmitter from "node:events";
 import fs from "node:fs";
-import {
-  readFile as readFileAsync,
-  stat as statFileAsync,
-  writeFile,
-} from "node:fs/promises";
-import { join, join as path_join } from "node:path";
-
-import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
+import { join } from "node:path";
+import { FileSystemClient } from "@cocalc/sync-client/lib/client-fs";
 import { execute_code, uuidsha1 } from "@cocalc/backend/misc_node";
 import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
@@ -54,7 +48,6 @@ import * as sage_session from "./sage_session";
 import { get_listings_table } from "./sync/listings";
 import { get_synctable } from "./sync/open-synctables";
 import { get_syncdoc } from "./sync/sync-doc";
-import { Watcher } from "@cocalc/backend/watcher";
 
 const winston = getLogger("client");
 
@@ -112,9 +105,26 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     };
   };
   private _changefeed_sockets: any;
-
   private _open_syncstrings?: { [key: string]: SyncString };
-  private _file_io_lock?: { [key: string]: number }; // file → timestamps
+
+  // use to define a logging function that is cleanly used internally
+  dbg = (f: string) => {
+    if (DEBUG && winston) {
+      return (...m) => {
+        return winston.debug(`Client.${f}`, ...m);
+      };
+    } else {
+      return function (..._) {};
+    }
+  };
+  
+  private filesystemClient = new FileSystemClient(this.dbg);
+  write_file = this.filesystemClient.write_file;
+  path_read = this.filesystemClient.path_read;
+  path_stat = this.filesystemClient.path_stat;
+  file_size_async = this.filesystemClient.file_size_async;
+  file_stat_async = this.filesystemClient.file_stat_async;
+  watch_file = this.filesystemClient.watch_file;
 
   constructor() {
     super();
@@ -144,17 +154,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
 
     initJupyter();
   }
-
-  // use to define a logging function that is cleanly used internally
-  dbg = (f: string) => {
-    if (DEBUG && winston) {
-      return (...m) => {
-        return winston.debug(`Client.${f}`, ...m);
-      };
-    } else {
-      return function (..._) {};
-    }
-  };
 
   public alert_message({
     type = "default",
@@ -498,133 +497,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return symmetric_channel(name);
   }
 
-  // Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
-  // If file is currently being written or read in this process, will result in error (instead of silently corrupt data).
-  // WARNING: See big comment below for path_read.
-  public async write_file(opts: {
-    path: string;
-    data: string;
-    cb: CB<void>;
-  }): Promise<void> {
-    // WARNING: despite being async, this returns nothing!
-    const path = join(HOME, opts.path);
-    if (this._file_io_lock == null) {
-      this._file_io_lock = {};
-    }
-    const dbg = this.dbg(`write_file(path='${opts.path}')`);
-    dbg();
-    const now = Date.now();
-    if (now - (this._file_io_lock[path] ?? 0) < 15000) {
-      // lock automatically expires after 15 seconds (see https://github.com/sagemathinc/cocalc/issues/1147)
-      dbg("LOCK");
-      // Try again in about 1s.
-      setTimeout(() => this.write_file(opts), 500 + 500 * Math.random());
-      return;
-    }
-    this._file_io_lock[path] = now;
-    dbg(`@_file_io_lock = ${misc.to_json(this._file_io_lock)}`);
-    try {
-      await ensureContainingDirectoryExists(path);
-      await writeFile(path, opts.data);
-      dbg("success");
-      opts.cb();
-    } catch (error) {
-      const err = error;
-      dbg(`error -- ${err}`);
-      opts.cb(err);
-    } finally {
-      delete this._file_io_lock[path];
-    }
-  }
-
-  // Read file as a string from disk.
-  // If file is currently being written or read in this process,
-  // will retry until it isn't, so we do not get an error and we
-  // do NOT get silently corrupted data.
-  // TODO and HUGE AWARNING: Despite this function being async, it DOES NOT
-  // RETURN ANYTHING AND DOES NOT THROW EXCEPTIONS!  Just use it like any
-  // other old cb function.  Todo: rewrite this and anything that uses it.
-  // This is just a halfway step toward rewriting project away from callbacks and coffeescript.
-  public async path_read(opts: {
-    path: string;
-    maxsize_MB?: number; // in megabytes; if given and file would be larger than this, then cb(err)
-    cb: CB<string>; // cb(err, file content as string (not Buffer!))
-  }): Promise<void> {
-    // WARNING: despite being async, this returns nothing!
-    let content: string | undefined = undefined;
-    const path = join(HOME, opts.path);
-    const dbg = this.dbg(
-      `path_read(path='${opts.path}', maxsize_MB=${opts.maxsize_MB})`,
-    );
-    dbg();
-    if (this._file_io_lock == null) {
-      this._file_io_lock = {};
-    }
-
-    const now = Date.now();
-    if (now - (this._file_io_lock[path] ?? 0) < 15000) {
-      // lock expires after 15 seconds (see https://github.com/sagemathinc/cocalc/issues/1147)
-      dbg("LOCK");
-      // Try again in 1s.
-      setTimeout(
-        async () => await this.path_read(opts),
-        500 + 500 * Math.random(),
-      );
-      return;
-    }
-    this._file_io_lock[path] = now;
-
-    dbg(`@_file_io_lock = ${misc.to_json(this._file_io_lock)}`);
-
-    // checking filesize limitations
-    if (opts.maxsize_MB != null) {
-      dbg("check if file too big");
-      let size: number | undefined = undefined;
-      try {
-        size = await this.file_size_async(opts.path);
-      } catch (err) {
-        dbg(`error checking -- ${err}`);
-        opts.cb(err);
-        return;
-      }
-
-      if (size > opts.maxsize_MB * 1000000) {
-        dbg("file is too big!");
-        opts.cb(
-          new Error(
-            `file '${opts.path}' size (=${
-              size / 1000000
-            }MB) too large (must be at most ${
-              opts.maxsize_MB
-            }MB); try opening it in a Terminal with vim instead or click Help in the upper right to open a support request`,
-          ),
-        );
-        return;
-      } else {
-        dbg("file is fine");
-      }
-    }
-
-    // if the above passes, actually reading file
-
-    try {
-      const data = await readFileAsync(path);
-      dbg("read file");
-      content = data.toString();
-    } catch (err) {
-      dbg(`error reading file -- ${err}`);
-      opts.cb(err);
-      return;
-    }
-
-    // release lock
-    if (this._file_io_lock) {
-      delete this._file_io_lock[path];
-    }
-
-    opts.cb(undefined, content);
-  }
-
   public path_access(opts: { path: string; mode: string; cb: CB }): void {
     // mode: sub-sequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
     // cb(err); err = if any access fails; err=undefined if all access is OK
@@ -647,11 +519,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     }); // err actually never happens with node.js, so we change api to be more consistent
   }
 
-  public path_stat(opts: { path: string; cb: CB }) {
-    // see https://nodejs.org/api/fs.html#fs_class_fs_stats
-    fs.stat(opts.path, opts.cb);
-  }
-
   // Size of file in bytes (divide by 1000 for K, by 10^6 for MB.)
   public file_size(opts: { filename: string; cb: CB }): void {
     this.path_stat({
@@ -660,15 +527,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
         opts.cb(err, stat?.size);
       },
     });
-  }
-
-  public async file_size_async(filename: string): Promise<number> {
-    const stat = await this.file_stat_async(filename);
-    return stat.size;
-  }
-
-  public async file_stat_async(filename: string): Promise<fs.Stats> {
-    return await statFileAsync(filename);
   }
 
   // execute a command using the shell or a subprocess -- see docs for execute_code in misc_node.
@@ -684,21 +542,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     path: string; // the path to the *worksheet* file
   }): sage_session.SageSessionType {
     return sage_session.sage_session({ path, client: this });
-  }
-
-  public watch_file({
-    path: relPath,
-    interval = 1500, // polling interval in ms
-    debounce = 500, // don't fire until at least this many ms after the file has REMAINED UNCHANGED
-  }: {
-    path: string;
-    interval?: number;
-    debounce?: number;
-  }): Watcher {
-    const path = path_join(HOME, relPath);
-    const dbg = this.dbg(`watch_file(path='${path}')`);
-    dbg(`watching file '${path}'`);
-    return new Watcher(path, interval, debounce);
   }
 
   // Save a blob to the central db blobstore.
