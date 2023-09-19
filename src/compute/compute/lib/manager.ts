@@ -8,7 +8,7 @@
 - compute server
 */
 
-import { NodejsClient as SyncClient } from "@cocalc/sync-client/lib/node";
+import { ClientFs as SyncClient } from "@cocalc/sync-client/lib/client-fs";
 import { SYNCDB_PARAMS, encodeIntToUUID } from "@cocalc/util/compute/manager";
 import debug from "debug";
 import { jupyter } from "./jupyter";

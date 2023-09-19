@@ -24,7 +24,7 @@ import * as misc from "@cocalc/util/misc";
 import { OutputHandler } from "@cocalc/jupyter/execute/output-handler";
 import { RunAllLoop } from "./run-all-loop";
 import nbconvertChange from "./handle-nbconvert-change";
-import type { NodejsClient } from "@cocalc/sync/client/types";
+import type { ClientFs } from "@cocalc/sync/client/types";
 import { kernel as createJupyterKernel } from "@cocalc/jupyter/kernel";
 import {
   decodeUUIDtoNum,
@@ -46,7 +46,7 @@ export class JupyterActions extends JupyterActions0 {
   private run_all_loop?: RunAllLoop;
   private clear_kernel_error?: any;
   private running_manager_run_cell_process_queue: boolean = false;
-  protected _client: NodejsClient; // this has filesystem access, etc.
+  protected _client: ClientFs; // this has filesystem access, etc.
 
   public run_cell(
     id: string,

@@ -16,7 +16,7 @@ export interface Client extends EventEmitter {
   set_connected?: Function;
 }
 
-export interface NodejsClient extends Client {
+export interface ClientFs extends Client {
   write_file: (opts: { path: string; data: string; cb: CB<void> }) => void;
   path_read: (opts: {
     path: string;

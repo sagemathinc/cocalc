@@ -1,4 +1,4 @@
-import type { NodejsClient as NodejsClientType } from "@cocalc/sync/client/types";
+import type { ClientFs as ClientFsType } from "@cocalc/sync/client/types";
 import Client from "./index";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { join } from "node:path";
@@ -9,7 +9,7 @@ import { Watcher } from "@cocalc/backend/watcher";
 
 const HOME = process.env.HOME ?? "/home/user";
 
-export class NodejsClient extends Client implements NodejsClientType {
+export class ClientFs extends Client implements ClientFsType {
   private _file_io_lock?: { [key: string]: number }; // file → timestamps
 
   // Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
