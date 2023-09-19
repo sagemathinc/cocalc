@@ -147,7 +147,7 @@ export class JupyterActions extends JupyterActions0 {
       return;
     }
     const dbg = this.dbg("initialize_manager");
-    dbg("initialize the manager...");
+    dbg();
     this._initialize_manager_already_done = true;
 
     this.sync_exec_state = debounce(this.sync_exec_state, 2000);
@@ -1372,7 +1372,9 @@ export class JupyterActions extends JupyterActions0 {
     // then proxies the response back to the client.
 
     const dbg = this.dbg("message from client");
-    dbg(data);
+    dbg();
+    // potentially very verbose
+    // dbg(data);
     switch (data.event) {
       case "register-to-handle-api": {
         // a compute server client is volunteering to handle all api requests until they disconnect
@@ -1434,7 +1436,10 @@ export class JupyterActions extends JupyterActions0 {
 
   private handleMessageFromProject = async (data) => {
     // This call in the the remote compute server to handle api requests.
-    this.dbg("message from project")(data);
+    const dbg = this.dbg("message from project");
+    dbg();
+    // BIG
+    // dbg(data);
     if (data.event == "api-request") {
       const response = await this.handleApiRequest(data.request);
       this.syncdb.sendMessageToProject({
