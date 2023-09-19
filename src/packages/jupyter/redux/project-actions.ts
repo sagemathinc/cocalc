@@ -135,6 +135,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   set_kernel_state = (state: any, save = false) => {
+    if (!this.isCellRunner()) return;
     this._kernel_state = state;
     this._set({ type: "settings", kernel_state: state }, save);
   };
@@ -358,13 +359,10 @@ export class JupyterActions extends JupyterActions0 {
       }
     });
 
-    this.jupyter_kernel.on("execution_state", this.set_kernel_state.bind(this));
-
-    this.jupyter_kernel.on("kernel_error", (err) => {
-      // save so gets reported to frontend, and surfaced to user:
-      // https://github.com/sagemathinc/cocalc/issues/4847
-      this.set_kernel_error(err);
-    });
+    this.jupyter_kernel.on("execution_state", this.set_kernel_state);
+    // save so gets reported to frontend, and surfaced to user:
+    // https://github.com/sagemathinc/cocalc/issues/4847
+    this.jupyter_kernel.on("kernel_error", this.set_kernel_error);
 
     this.handle_all_cell_attachments();
     this.set_backend_state("ready");
@@ -379,6 +377,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   set_kernel_error = (err) => {
+    if (!this.isCellRunner()) return;
     this._set({
       type: "settings",
       kernel_error: `${err}`,
@@ -1314,7 +1313,6 @@ export class JupyterActions extends JupyterActions0 {
       // a remote compute server is supposed to be responsible. Are we it?
       try {
         const myId = decodeUUIDtoNum(this.syncdb.client_id());
-        dbg("myId", myId);
         return myId == id;
       } catch (err) {
         dbg(err);

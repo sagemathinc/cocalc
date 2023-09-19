@@ -204,8 +204,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (this._state === "closed" || this.syncdb == null) {
       throw Error("closed");
     }
-    console.log("api_call", endpoint, query);
-    console.log("waiting to be ready");
     if (this.syncdb.get_state() == "init") {
       await once(this.syncdb, "ready");
     }
@@ -219,7 +217,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
 
     this.apiCallHandler.id += 1;
     const { id, responseCallbacks } = this.apiCallHandler;
-    console.log("making call");
     this.syncdb.sendMessageToProject({
       event: "api-request",
       id,
@@ -237,9 +234,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       }
       responseCallbacks[id] = cb;
     };
-    console.log("waiting for response...");
     const resp = await callback(waitForResponse);
-    console.log("got ", resp);
     return resp;
     //     const api = await this._client.project_client.api(this.project_id);
     //     return await api.jupyter(this.path, endpoint, query, timeout_ms);
