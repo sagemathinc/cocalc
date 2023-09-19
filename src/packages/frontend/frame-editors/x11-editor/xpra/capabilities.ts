@@ -24,6 +24,7 @@
 import { md } from "node-forge";
 import { CHARCODE_TO_NAME } from "./constants";
 import { supportsWebp, calculateColorGamut, calculateScreens } from "./util";
+import * as lz4 from "@cocalc/xpra-lz4";
 
 const platformMap = {
   Win: {
@@ -268,7 +269,7 @@ export function getCapabilities(config, soundCodecs) {
       lzi: false,
       lz4: config.lz4,
       "encoding.rgb_lz4": true,
-      "lz4.js.version": (window as any).lz4.version,
+      "lz4.js.version": lz4.version,
       compression_level: config.compression_level,
 
       // Packet encoders

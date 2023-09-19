@@ -34,7 +34,7 @@
  *  limitations under the License.
  */
 
-exports.tex2jax = {
+export const tex2jax: any = {
   config: {
     inlineMath: [
       // The start/stop pairs for in-line math
@@ -101,8 +101,8 @@ exports.tex2jax = {
   },
 
   createPatterns: function () {
-    let starts = [],
-      parts = [],
+    let starts:any[]  = [],
+      parts :any[] = [],
       i,
       m,
       config = this.config;
@@ -137,7 +137,7 @@ exports.tex2jax = {
     }
     this.start = new RegExp(parts.join("|"), "g");
     this.skipTags = new RegExp("^(" + config.skipTags.join("|") + ")$", "i");
-    const ignore = [];
+    const ignore :any[] = [];
     if (config.ignoreClass) {
       ignore.push(config.ignoreClass);
     }
@@ -294,10 +294,10 @@ exports.tex2jax = {
       }
       span = $("<span>").text(span.join(""))[0];
       const text = document.createTextNode(
-        element.nodeValue.substr(0, match.index)
+        element.nodeValue.substr(0, match.index),
       );
       element.nodeValue = element.nodeValue.substr(
-        match.index + match[0].length - n
+        match.index + match[0].length - n,
       );
       element.parentNode.insertBefore(span, element);
       element.parentNode.insertBefore(text, span);
@@ -352,7 +352,7 @@ exports.tex2jax = {
     }
     if (!close) {
       CLOSE = close = search.close.parentNode.appendChild(
-        document.createTextNode("")
+        document.createTextNode(""),
       );
     }
     search.close = close;
@@ -362,7 +362,7 @@ exports.tex2jax = {
         if (next.nodeName === "#comment") {
           math.nodeValue += next.nodeValue.replace(
             /^\[CDATA\[((.|\n|\r)*)\]\]$/,
-            "$1"
+            "$1",
           );
         } else {
           math.nodeValue += next.nodeValue;
@@ -375,7 +375,7 @@ exports.tex2jax = {
     }
     const TeX = math.nodeValue.substr(
       search.olen,
-      math.nodeValue.length - search.olen - search.clen
+      math.nodeValue.length - search.olen - search.clen,
     );
     math.parentNode.removeChild(math);
     math = this.createMathTag(search.mode, TeX);

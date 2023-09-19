@@ -2,12 +2,12 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "composite": false,
-    "incremental": false,
+    "incremental": true,
     "rootDir": "./",
     "outDir": "dist",
     "sourceMap": true,
     "lib": ["es5", "es6", "es2017", "dom"],
-    "declaration": false
+    "declaration": true
   },
   "exclude": [
     "dist",

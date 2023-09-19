@@ -3,10 +3,10 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import React from "react";
+import type { CSSProperties } from "react";
 import { merge } from "@cocalc/util/misc";
 
-export const OUT_STYLE: React.CSSProperties = {
+export const OUT_STYLE: CSSProperties = {
   whiteSpace: "pre-wrap",
   wordWrap: "break-word",
   fontFamily: "monospace",
@@ -14,19 +14,19 @@ export const OUT_STYLE: React.CSSProperties = {
   paddingBottom: "5px",
 };
 
-export const STDOUT_STYLE: React.CSSProperties = OUT_STYLE;
+export const STDOUT_STYLE: CSSProperties = OUT_STYLE;
 
-export const STDERR_STYLE: React.CSSProperties = merge(
+export const STDERR_STYLE: CSSProperties = merge(
   { backgroundColor: "#fdd" },
-  STDOUT_STYLE
+  STDOUT_STYLE,
 );
 
-export const TRACEBACK_STYLE: React.CSSProperties = merge(
+export const TRACEBACK_STYLE: CSSProperties = merge(
   { backgroundColor: "#f9f2f4" },
-  OUT_STYLE
+  OUT_STYLE,
 );
 
-export const OUTPUT_STYLE: React.CSSProperties = {
+export const OUTPUT_STYLE: CSSProperties = {
   flex: 1,
   overflowX: "auto",
   lineHeight: "normal",
@@ -36,12 +36,12 @@ export const OUTPUT_STYLE: React.CSSProperties = {
   marginLeft: "1px",
 };
 
-export const OUTPUT_STYLE_SCROLLED = {
+export const OUTPUT_STYLE_SCROLLED: CSSProperties = {
   ...OUTPUT_STYLE,
   maxHeight: "40vh",
 };
 
-export const INPUT_STYLE: React.CSSProperties = {
+export const INPUT_STYLE: CSSProperties = {
   padding: "0em 0.25em",
   margin: "0em 0.25em",
 };
