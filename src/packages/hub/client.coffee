@@ -1146,7 +1146,7 @@ class exports.Client extends EventEmitter
                     admin  : mesg.admin
                     active : mesg.active
                 try
-                    local.results = await user_search(opts)
+                    locals.results = await user_search(opts)
                     cb(undefined)
                 catch err
                     cb(err)
