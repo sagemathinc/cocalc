@@ -13,6 +13,8 @@
     "./postgres/schema/*": "./dist/postgres/schema/*.js",
     "./postgres/stripe": "./dist/postgres/stripe/index.js",
     "./projects/*": "./dist/projects/*.js",
+    "./settings": "./dist/settings/index.js",
+    "./settings/*": "./dist/settings/*.js",
     "./user-query": "./dist/user-query/index.js"
   },
   "dependencies": {
@@ -58,10 +60,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "keywords": [
-    "postgresql",
-    "cocalc"
-  ],
+  "keywords": ["postgresql", "cocalc"],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {
