@@ -7,18 +7,21 @@
 
 import { fromPairs } from "lodash";
 
-import { SoftwareEnvNames, SOFTWARE_ENV_NAMES } from "@cocalc/util/consts/software-envs";
+import {
+  SoftwareEnvNames,
+  SOFTWARE_ENV_NAMES,
+} from "@cocalc/util/consts/software-envs";
 import { EnvData } from "./types";
 
-import SOFTWARE_1804 from "dist/software-inventory/18.04.json";
-import SOFTWARE_2004 from "dist/software-inventory/20.04.json";
-import SOFTWARE_2204 from "dist/software-inventory/22.04.json";
+import SOFTWARE_1804 from "software-inventory/18.04.json";
+import SOFTWARE_2004 from "software-inventory/20.04.json";
+import SOFTWARE_2204 from "software-inventory/22.04.json";
 
 export const SOFTWARE_URLS: { [key in SoftwareEnvNames]: string } = fromPairs(
   SOFTWARE_ENV_NAMES.map((name) => [
     name,
     `https://storage.googleapis.com/cocalc-compute-environment/software-inventory-${name}.json`,
-  ])
+  ]),
 );
 
 // Note: we need to be explicit with these rougher types, because TS can't infer them from the JSON files since they're too large.
