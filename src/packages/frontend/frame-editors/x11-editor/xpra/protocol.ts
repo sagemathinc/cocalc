@@ -27,8 +27,7 @@ import { inflateSync } from "zlibjs";
 import { ord } from "./util";
 import { bencode, bdecode } from "./bencode";
 import { HEADER_SIZE } from "./constants";
-
-require("./lz4");
+import * as lz4 from "@cocalc/xpra-lz4";
 
 let debug;
 if (DEBUG) {
@@ -41,7 +40,7 @@ if (DEBUG) {
 function inflate(
   level: number,
   size: number,
-  data: Uint8Array
+  data: Uint8Array,
 ): Uint8Array | null {
   if (level !== 0) {
     if (level & 0x10) {
@@ -53,16 +52,12 @@ function inflate(
       const length = d[0] | (d[1] << 8) | (d[2] << 16) | (d[3] << 24);
       // decode the LZ4 block
       const inflated = new Uint8Array(length);
-      const uncompressedSize = (window as any).lz4.decodeBlock(
-        data,
-        inflated,
-        4
-      );
+      const uncompressedSize = lz4.decodeBlock(data, inflated, 4);
       // if lz4 errors out at the end of the buffer, ignore it:
       if (uncompressedSize <= 0 && size + uncompressedSize != 0) {
         console.error(
           "failed to decompress lz4 data, error code",
-          uncompressedSize
+          uncompressedSize,
         );
         return null;
       }
@@ -119,7 +114,7 @@ interface Proto {
 // Parses an incoming packet
 function parsePacket(
   header: number[],
-  queue
+  queue,
 ):
   | false
   | {
@@ -238,7 +233,7 @@ export class ReceiveQueue {
   private processData(
     level: number,
     _: Proto,
-    packetSize: number
+    packetSize: number,
   ): Uint8Array | null {
     let packetData;
     // exact match: the payload is in a buffer already:

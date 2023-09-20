@@ -248,7 +248,7 @@ interface Options {
   editor_spec: EditorSpec;
 }
 
-interface EditorProps {
+export interface EditorProps {
   actions: any;
   name: string;
   path: string;

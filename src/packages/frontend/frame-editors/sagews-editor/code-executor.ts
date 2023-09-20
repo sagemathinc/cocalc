@@ -37,8 +37,10 @@ Emits:
   - 'state', state -- for each state change
 */
 
-abstract class CodeExecutorAbstract extends EventEmitter
-  implements CodeExecutor {
+abstract class CodeExecutorAbstract
+  extends EventEmitter
+  implements CodeExecutor
+{
   protected state: States = "init";
   protected request: ExecutionRequest;
 
@@ -53,10 +55,10 @@ abstract class CodeExecutorAbstract extends EventEmitter
   }
 
   // start code running
-  abstract async start(): Promise<void>;
+  abstract start(): Promise<void>;
 
   // interrupt running code
-  abstract async interrupt(): Promise<void>;
+  abstract interrupt(): Promise<void>;
 
   // call to close and free any used space
   abstract close(): void;

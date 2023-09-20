@@ -46,7 +46,7 @@ const STYLE = {
   background: "#fff",
 } as CSS;
 
-interface Props {
+export interface Props {
   id: string;
   actions: any;
   path: string;
