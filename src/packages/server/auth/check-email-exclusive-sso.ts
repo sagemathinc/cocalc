@@ -4,7 +4,7 @@
  */
 
 import { PostgreSQL } from "@cocalc/database/postgres/types";
-import getStrategies from "@cocalc/server/auth/sso/get-strategies";
+import getStrategies from "@cocalc/database/settings/get-sso-strategies";
 import { checkRequiredSSO } from "@cocalc/server/auth/sso/check-required-sso";
 
 export async function checkEmailExclusiveSSO(

@@ -12,7 +12,7 @@ upstream SSO provider.
 import getPool from "@cocalc/database/pool";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { checkRequiredSSO } from "./check-required-sso";
-import getStrategies from "./get-strategies";
+import getStrategies from "@cocalc/database/settings/get-sso-strategies";
 
 // The name should be something like "google-9999601658192", i.e., a key
 // of the passports field.
