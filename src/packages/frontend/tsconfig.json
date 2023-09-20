@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "composite": false,
+    "composite": true,
     "incremental": true,
     "rootDir": "./",
     "outDir": "dist",
@@ -15,7 +15,6 @@
     "account/test",
     "jupyter/test",
     "app-framework/__tests__/",
-    "frame-editors/sagews-editor",
     "frame-editors/generic/mocha-tests",
     "frame-editors/settings/__tests__",
     "jupyter/output-messages/__test__",
@@ -25,7 +24,5 @@
     "test",
     "*__tests__*",
     "*__test__*",
-    "admin",
-    "app"
   ]
 }
