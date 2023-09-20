@@ -34,8 +34,6 @@ required = defaults.required
 
 { quota } = require("@cocalc/util/upgrades/quota")
 
-{ DEFAULT_COMPUTE_IMAGE } = require("@cocalc/util/db-schema/defaults")
-
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 read = require('read')
@@ -67,12 +65,6 @@ passwordHash = require("@cocalc/backend/auth/password-hash").default;
 registrationTokens = require('./postgres/registration-tokens').default;
 
 stripe_name = require('@cocalc/util/stripe/name').default;
-
-create_project = require("@cocalc/server/projects/create").default;
-
-{Stripe} = require("@cocalc/server/stripe/client")
-
-user_search = require("@cocalc/server/accounts/search").default;
 
 # log events, which contain personal information (email, account_id, ...)
 PII_EVENTS = ['create_account',
@@ -894,12 +886,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         f(account_id, username)
                     opts.cb(undefined, usernames)
 
-    user_search: (opts) =>
-        try
-            opts.cb(undefined, await user_search(opts))
-        catch err
-            opts.cb(err.message)
-
     _account_where: (opts) =>
         # account_id > email_address > lti_id
         if opts.account_id
@@ -1427,23 +1413,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'account_id = $::UUID' : opts.account_id
                 'filename   = $::TEXT' : opts.filename
             cb   : all_results(opts.cb)
-
-    # Create a new project with given owner.  Returns the generated project_id.
-    create_project: (opts) =>
-        opts = defaults opts,
-            account_id  : required    # initial owner
-            title       : undefined
-            description : undefined
-            lti_id      : undefined   # array of strings
-            image       : DEFAULT_COMPUTE_IMAGE   # probably ok to leave it undefined
-            license     : undefined   # string -- "license_id1,license_id2,..."
-            noPool      : undefined   # if true, don't use pool
-            cb          : required    # cb(err, project_id)
-        if not @_validate_opts(opts) then return
-        try
-            opts.cb(undefined, await create_project(opts))
-        catch err
-            opts.cb(err)
 
     ###
     File editing activity -- users modifying files in any way

@@ -43,6 +43,9 @@ chatgpt        = require('@cocalc/server/openai/chatgpt');
 embeddings_api   = require('@cocalc/server/openai/embeddings-api');
 jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
 jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
+create_project = require("@cocalc/server/projects/create").default;
+user_search = require("@cocalc/server/accounts/search").default;
+
 
 {one_result} = require("@cocalc/database")
 
@@ -949,15 +952,18 @@ class exports.Client extends EventEmitter
         async.series([
             (cb) =>
                 dbg("create project entry in database")
-                @database.create_project
-                    account_id  : @account_id
-                    title       : mesg.title
-                    description : mesg.description
-                    image       : mesg.image
-                    license     : mesg.license
-                    noPool      : mesg.noPool
-                    cb          : (err, _project_id) =>
-                        project_id = _project_id; cb(err)
+                try
+                    opts =
+                        account_id  : @account_id
+                        title       : mesg.title
+                        description : mesg.description
+                        image       : mesg.image
+                        license     : mesg.license
+                        noPool      : mesg.noPool
+                    project_id = await create_project(opts)
+                    cb(undefined)
+                catch err
+                    cb(err)
             (cb) =>
                 cb() # we don't need to wait for project to start running before responding to user that project was created.
                 dbg("open project...")
@@ -1131,14 +1137,16 @@ class exports.Client extends EventEmitter
                     cb()
             (cb) =>
                 @touch()
-                @database.user_search
+                opts =
                     query  : mesg.query
                     limit  : mesg.limit
                     admin  : mesg.admin
                     active : mesg.active
-                    cb     : (err, results) =>
-                        locals.results = results
-                        cb(err)
+                try
+                    local.results = await user_search(opts)
+                    cb(undefined)
+                catch err
+                    cb(err)
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
