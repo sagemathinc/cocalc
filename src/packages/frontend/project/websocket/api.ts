@@ -16,10 +16,10 @@ import {
   isMainConfiguration,
   ProjectConfiguration,
 } from "@cocalc/frontend/project_configuration";
-import {
+import type {
   Config as FormatterConfig,
   Options as FormatterOptions,
-} from "@cocalc/project/formatters";
+} from "@cocalc/util/code-formatter";
 import { syntax2tool } from "@cocalc/util/code-formatter";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { reuseInFlight } from "async-await-utils/hof";

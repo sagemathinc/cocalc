@@ -29,7 +29,6 @@
     { "path": "../comm" },
     { "path": "../hub" },
     { "path": "../jupyter" },
-    { "path": "../project" },
     { "path": "../sync" },
     { "path": "../util" }
   ]

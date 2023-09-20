@@ -35,7 +35,7 @@ import {
   ComponentName,
   ProjectStatus,
 } from "@cocalc/comm/project-status/types";
-import { cgroup_stats } from "./utils";
+import { cgroup_stats } from "@cocalc/comm/project-status/utils";
 
 // TODO: only return the "next" value, if it is significantly different from "prev"
 //function threshold(prev?: number, next?: number): number | undefined {

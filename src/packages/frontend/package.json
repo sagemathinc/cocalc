@@ -43,7 +43,6 @@
     "@cocalc/hub": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/local-storage-lru": "^2.1.1",
-    "@cocalc/project": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@cocalc/xpra-lz4": "^1.1.0",

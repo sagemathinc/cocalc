@@ -26,7 +26,7 @@ import {
   Process,
   ProjectInfo as ProjectInfoType,
 } from "@cocalc/comm/project-info/types";
-import { cgroup_stats } from "@cocalc/project/project-status/utils";
+import { cgroup_stats } from "@cocalc/comm/project-status/utils";
 import { unreachable } from "@cocalc/util/misc";
 import { CoCalcFile, render_cocalc_btn } from "./components";
 import { Flyout } from "./flyout";
@@ -93,7 +93,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
     const [idle_timeout, set_idle_timeout] = useState<number>(30 * 60);
     const show_explanation =
       useTypedRedux({ project_id }, "show_project_info_explanation") ?? false;
-    // this is @cocalc/project/project-status/types::ProjectStatus
+    // this is @cocalc/conn/project-status/types::ProjectStatus
     const project_status = useTypedRedux({ project_id }, "status");
     const project_map = useTypedRedux("projects", "project_map");
     const [project, set_project] = useState(project_map?.get(project_id));
