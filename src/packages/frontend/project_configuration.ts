@@ -10,7 +10,7 @@
  * calling certain operations which are not possible (e.g. spellcheck requires aspell)
  */
 
-import { TypedMap } from "@cocalc/frontend/app-framework";
+import { TypedMap } from "@cocalc/util/redux/TypedMap";
 import { KNITR_EXTS } from "@cocalc/frontend/frame-editors/latex-editor/constants";
 import { WebappClient } from "@cocalc/frontend/webapp-client";
 import { Map as iMap } from "immutable";
@@ -122,7 +122,7 @@ export const ALL_AVAIL: Readonly<Available> = {
 
 // detecting certain datastructures, only used for TS typing
 function isMainCapabilities(
-  caps: MainCapabilities | Capabilities
+  caps: MainCapabilities | Capabilities,
 ): caps is MainCapabilities {
   const mcaps = <MainCapabilities>caps;
   return (
@@ -135,7 +135,7 @@ function isMainCapabilities(
 }
 
 export function isMainConfiguration(
-  config: MainConfiguration | X11Configuration
+  config: MainConfiguration | X11Configuration,
 ): config is MainConfiguration {
   const mconf = <MainConfiguration>config;
   // don't test for disabled_ext, because that's added later
@@ -234,14 +234,14 @@ export async function get_configuration(
   project_id: string,
   aspect: ConfigurationAspect = "main",
   prev: ProjectConfiguration,
-  no_cache = false
+  no_cache = false,
 ): Promise<ProjectConfiguration | undefined> {
   // the actual API call, returning an object
   const config: Configuration =
     await webapp_client.project_client.configuration(
       project_id,
       aspect,
-      no_cache
+      no_cache,
     );
   if (config == null) return prev;
   // console.log("project_actions::init_configuration", aspect, config);

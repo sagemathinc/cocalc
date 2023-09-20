@@ -23,7 +23,7 @@ import {
 import { syntax2tool } from "@cocalc/util/code-formatter";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { reuseInFlight } from "async-await-utils/hof";
-import { Channel, Mesg, NbconvertParams } from "./types";
+import { Channel, Mesg, NbconvertParams } from "@cocalc/comm/websocket/types";
 import call from "@cocalc/sync/client/call";
 
 export class API {
@@ -61,7 +61,7 @@ export class API {
   async listing(
     path: string,
     hidden: boolean = false,
-    timeout: number = 15000
+    timeout: number = 15000,
   ): Promise<DirectoryListingEntry[]> {
     return await this.call({ cmd: "listing", path, hidden }, timeout);
   }
@@ -85,7 +85,7 @@ export class API {
 
   async configuration(
     aspect: ConfigurationAspect,
-    no_cache = false
+    no_cache = false,
   ): Promise<Configuration> {
     return await this.call({ cmd: "configuration", aspect, no_cache }, 15000);
   }
@@ -95,7 +95,7 @@ export class API {
     const formatting = this.get_formatting();
     if (formatting == null) {
       throw new Error(
-        "Code formatting status not available. Please restart your project!"
+        "Code formatting status not available. Please restart your project!",
       );
     }
     // TODO refactor the assocated formatter and smc-project into a common configuration object
@@ -105,7 +105,7 @@ export class API {
     }
     if (formatting[tool] !== true) {
       throw new Error(
-        `For this project, the code formatter '${tool}' for language '${config.syntax}' is not available.`
+        `For this project, the code formatter '${tool}' for language '${config.syntax}' is not available.`,
       );
     }
     return { parser: tool };
@@ -114,7 +114,7 @@ export class API {
   get_formatting(): Capabilities | undefined {
     const project_store = redux.getProjectStore(this.project_id) as any;
     const configuration = project_store.get(
-      "configuration"
+      "configuration",
     ) as ProjectConfiguration;
     // configuration check only for backwards compatibility, i.e. newer clients and old projects
     if (configuration == null) {
@@ -142,7 +142,7 @@ export class API {
   async formatter_string(
     str: string,
     config: FormatterConfig,
-    timeout_ms: number = 15000
+    timeout_ms: number = 15000,
   ): Promise<any> {
     const options: FormatterOptions = this.check_formatter_available(config);
     // TODO change this to "formatter_string" at some point in the future (Sep 2020)
@@ -152,7 +152,7 @@ export class API {
         str,
         options,
       },
-      timeout_ms
+      timeout_ms,
     );
   }
 
@@ -160,11 +160,11 @@ export class API {
     path: string,
     endpoint: string,
     query: any = undefined,
-    timeout_ms: number = 20000
+    timeout_ms: number = 20000,
   ): Promise<any> {
     return await this.call(
       { cmd: "jupyter", path, endpoint, query },
-      timeout_ms
+      timeout_ms,
     );
   }
 
@@ -191,7 +191,7 @@ export class API {
         path: path,
         options,
       },
-      60000
+      60000,
     );
     //console.log(path, "got terminal channel", channel_name);
     return this.conn.channel(channel_name);
@@ -209,7 +209,7 @@ export class API {
         cmd: "lean_channel",
         path: path,
       },
-      60000
+      60000,
     );
     return this.conn.channel(channel_name);
   }
@@ -222,7 +222,7 @@ export class API {
         path,
         display,
       },
-      60000
+      60000,
     );
     return this.conn.channel(channel_name);
   }
@@ -230,7 +230,7 @@ export class API {
   // Get the sync *channel* for the given SyncTable project query.
   async synctable_channel(
     query: { [field: string]: any },
-    options: { [field: string]: any }[]
+    options: { [field: string]: any }[],
   ): Promise<Channel> {
     const channel_name = await this.call(
       {
@@ -238,7 +238,7 @@ export class API {
         query,
         options,
       },
-      10000
+      10000,
     );
     // console.log("synctable_channel", query, options, channel_name);
     return this.conn.channel(channel_name);
@@ -249,7 +249,7 @@ export class API {
   async syncdoc_call(
     path: string,
     mesg: { [field: string]: any },
-    timeout_ms: number = 30000 // ms timeout for call
+    timeout_ms: number = 30000, // ms timeout for call
   ): Promise<any> {
     return await this.call({ cmd: "syncdoc_call", path, mesg }, timeout_ms);
   }
@@ -269,7 +269,7 @@ export class API {
   async jupyter_nbconvert(opts: NbconvertParams): Promise<any> {
     return await this.call(
       { cmd: "jupyter_nbconvert", opts },
-      (opts.timeout ?? 60) * 1000 + 5000
+      (opts.timeout ?? 60) * 1000 + 5000,
     );
   }
 
@@ -277,7 +277,7 @@ export class API {
   async jupyter_strip_notebook(ipynb_path: string): Promise<any> {
     return await this.call(
       { cmd: "jupyter_strip_notebook", ipynb_path },
-      15000
+      15000,
     );
   }
 
@@ -290,7 +290,7 @@ export class API {
     const max_total_time_ms = opts.limits?.max_total_time_ms ?? 20 * 60 * 1000;
     return await this.call(
       { cmd: "jupyter_run_notebook", opts },
-      60 + 2 * max_total_time_ms
+      60 + 2 * max_total_time_ms,
       // a bit of extra time -- it's better to let the internal project
       // timer do the job, than have to wait for this generic timeout here,
       // since we want to at least get output for problems that ran.
@@ -306,7 +306,7 @@ export class API {
         cmd: "symmetric_channel",
         name,
       },
-      30000
+      30000,
     );
     return this.conn.channel(channel_name);
   }

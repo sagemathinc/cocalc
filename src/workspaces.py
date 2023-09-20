@@ -240,12 +240,9 @@ def install(args) -> None:
 
     # Do "pnpm i" not in parallel
     for path in v:
-        # filtering "There are cyclic workspace dependencies" since we know and it doesn't seem to be a problem for us.
-        # TODO: but can they be removed?
         c = "pnpm install "
         if args.prod:
             c += ' --prod '
-        c += " | grep -v 'There are cyclic workspace dependencies'"  # useless
         cmd(c, path)
 
 

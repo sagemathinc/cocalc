@@ -20,7 +20,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
-import { Channel } from "@cocalc/frontend/project/websocket/types";
+import type { Channel } from "@cocalc/comm/websocket/types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   Process,

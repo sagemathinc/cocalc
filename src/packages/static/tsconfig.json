@@ -7,6 +7,11 @@
     "rootDirs": ["./src", "./node_modules/@cocalc/frontend/"],
     "sourceMap": true
   },
+  "references": [
+    { "path": "../backend" },
+    { "path": "../frontend" },
+    { "path": "../util" }
+  ],
   "exclude": [
     "*__test__*",
     "*__tests__*",

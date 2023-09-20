@@ -2,13 +2,14 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
-import {
+
+import type {
   NBGraderAPIOptions,
   RunNotebookOptions,
-} from "@cocalc/frontend/jupyter/nbgrader/api";
-import { Options } from "@cocalc/project/formatters";
-import { ConfigurationAspect } from "@cocalc/frontend/project_configuration";
-import { Channel } from "@cocalc/sync/client/types";
+} from "@cocalc/jupyter/nbgrader/types";
+import type { Channel } from "@cocalc/sync/client/types";
+import type { Options } from "@cocalc/project/formatters";
+import type { ConfigurationAspect } from "@cocalc/frontend/project_configuration";
 
 export type { Channel };
 
@@ -154,7 +155,7 @@ interface MesgProjectInfo {
 }
 
 interface MesgQuery {
-  cmd: "query",
+  cmd: "query";
   opts: any;
 }
 

@@ -5,5 +5,10 @@
     "outDir": "dist"
   },
   "exclude": ["node_modules", "dist", "test"],
-  "references": [{ "path": "../util" }]
+  "references": [
+    { "path": "../sync" },
+    { "path": "../frontend" },
+    { "path": "../jupyter" },
+    { "path": "../project" }
+  ]
 }

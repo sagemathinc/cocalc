@@ -26,6 +26,7 @@
     "*__test__*"
   ],
   "references": [
+    { "path": "../comm" },
     { "path": "../hub" },
     { "path": "../jupyter" },
     { "path": "../project" },

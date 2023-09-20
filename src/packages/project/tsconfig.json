@@ -10,6 +10,7 @@
   "exclude": ["node_modules", "dist", "test", "jupyter/test"],
   "references": [
     { "path": "../backend" },
+    { "path": "../comm" },
     { "path": "../frontend" },
     { "path": "../jupyter" },
     { "path": "../sync" },

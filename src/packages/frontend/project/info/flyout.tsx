@@ -10,7 +10,7 @@ import { Alert, Table } from "antd";
 import { ProjectActions, useState } from "@cocalc/frontend/app-framework";
 import { Loading, Paragraph } from "@cocalc/frontend/components";
 import { ProjectInfo as WSProjectInfo } from "@cocalc/frontend/project/websocket/project-info";
-import { Channel } from "@cocalc/frontend/project/websocket/types";
+import type { Channel } from "@cocalc/comm/websocket/types";
 import {
   Process,
   ProjectInfo as ProjectInfoType,

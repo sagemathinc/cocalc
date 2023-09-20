@@ -38,6 +38,7 @@
     "@cocalc/ansi-to-react": "^7.0.0",
     "@cocalc/assets": "workspace:*",
     "@cocalc/cdn": "workspace:*",
+    "@cocalc/comm": "workspace:*",
     "@cocalc/frontend": "workspace:*",
     "@cocalc/hub": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
@@ -201,7 +202,7 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "rm -rf dist && NODE_OPTIONS=--max-old-space-size=8192 tsc && coffee  -m -c -o dist/ .",
+    "build": "rm -rf dist && NODE_OPTIONS=--max-old-space-size=8192 tsc  --build && coffee  -m -c -o dist/ .",
     "tsc": "npx tsc  --watch  --pretty --preserveWatchOutput ",
     "test": "npx jest dist/",
     "prepublishOnly": "pnpm test",

@@ -23,7 +23,7 @@ import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, TimeElapsed, Tip } from "@cocalc/frontend/components";
 import { FLYOUT_PADDING } from "@cocalc/frontend/project/page/flyouts/consts";
-import { Channel } from "@cocalc/frontend/project/websocket/types";
+import type { Channel } from "@cocalc/comm/websocket/types";
 import {
   Process,
   Processes,
