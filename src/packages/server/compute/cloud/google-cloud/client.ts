@@ -1,4 +1,4 @@
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { InstancesClient, ZoneOperationsClient } from "@google-cloud/compute";
 import getLogger from "@cocalc/backend/logger";
 

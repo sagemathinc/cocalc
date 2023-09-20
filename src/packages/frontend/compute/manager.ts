@@ -11,7 +11,7 @@ import debug from "debug";
 
 const log = debug("cocalc:frontend:compute:manager");
 
-class ComputeServersManager {
+export class ComputeServersManager {
   private sync_db;
   private project_id;
 
