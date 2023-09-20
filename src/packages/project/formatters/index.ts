@@ -29,26 +29,20 @@ import { rust_format } from "./rust-format";
 import { xml_format } from "./xml-format";
 // mathjax-utils is from upstream project Jupyter
 import { once } from "@cocalc/util/async-utils";
-import { Syntax as FormatterSyntax } from "@cocalc/util/code-formatter";
 import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
 import { get_prettier } from "./prettier-lib";
-
-export interface Config {
-  syntax: FormatterSyntax;
-  tabWidth?: number;
-  useTabs?: boolean;
-}
-
-export interface Options extends Omit<Config, "syntax"> {
-  parser: FormatterSyntax; // TODO refactor this to tool
-  tabWidth?: number;
-}
+import type {
+  Syntax as FormatterSyntax,
+  Config,
+  Options,
+} from "@cocalc/util/code-formatter";
+export type { Config, Options, FormatterSyntax };
 
 export async function run_formatter(
   client: any,
   path: string,
   options: Options,
-  logger: any
+  logger: any,
 ): Promise<object> {
   // What we do is edit the syncstring with the given path to be "prettier" if possible...
   const syncstring = client.syncdoc({ path });
@@ -88,7 +82,7 @@ export async function run_formatter_string(
   path: string | undefined,
   input: string,
   options: Options,
-  logger: any
+  logger: any,
 ): Promise<string> {
   let formatted;
   logger.debug(`run_formatter options.parser: "${options.parser}"`);

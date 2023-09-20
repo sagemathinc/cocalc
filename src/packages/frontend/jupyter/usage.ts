@@ -9,7 +9,7 @@ import {
   ALERT_HIGH_PCT,
   ALERT_MEDIUM_PCT,
   ALERT_LOW_PCT,
-} from "@cocalc/project/project-status/const";
+} from "@cocalc/comm/project-status/const";
 
 import { Usage, AlertLevel } from "@cocalc/jupyter/types";
 

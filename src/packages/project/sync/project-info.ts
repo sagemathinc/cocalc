@@ -7,7 +7,7 @@ import { reuseInFlight } from "async-await-utils/hof";
 import { close } from "@cocalc/util/misc";
 import { SyncTable } from "@cocalc/sync/table";
 import { get_ProjectInfoServer } from "../project-info";
-import { ProjectInfo } from "../project-info/types";
+import { ProjectInfo } from "@cocalc/comm/project-info/types";
 import { ProjectInfoServer } from "../project-info";
 
 class ProjectInfoTable {

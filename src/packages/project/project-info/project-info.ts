@@ -7,7 +7,7 @@
 Project information
 */
 
-import { ProjectInfoCmds } from "./types";
+import { ProjectInfoCmds } from "@cocalc/comm/project-info/types";
 import { ProjectInfoServer } from "./server";
 import { exec } from "./utils";
 

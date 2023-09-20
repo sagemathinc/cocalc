@@ -4,7 +4,7 @@ Get Salesloft client.
 
 import axios from "axios";
 import getLogger from "@cocalc/backend/logger";
-import { getServerSettings } from "@cocalc/server/settings/server-settings";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 const log = getLogger("salesloft:client");
 

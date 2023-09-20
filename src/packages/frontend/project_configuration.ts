@@ -10,119 +10,40 @@
  * calling certain operations which are not possible (e.g. spellcheck requires aspell)
  */
 
-import { TypedMap } from "@cocalc/frontend/app-framework";
+import { TypedMap } from "@cocalc/util/redux/TypedMap";
 import { KNITR_EXTS } from "@cocalc/frontend/frame-editors/latex-editor/constants";
 import { WebappClient } from "@cocalc/frontend/webapp-client";
 import { Map as iMap } from "immutable";
+import {
+  Available,
+  ConfigurationAspect,
+  Configuration,
+  MainCapabilities,
+  MainConfiguration,
+  Capabilities,
+  X11Configuration,
+  LIBRARY_INDEX_FILE,
+  ALL_AVAIL,
+  NO_AVAIL,
+} from "@cocalc/comm/project-configuration";
 
-export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";
+export { ALL_AVAIL, LIBRARY_INDEX_FILE };
 
-export type ConfigurationAspect = "main" | "x11";
-
-export interface MainConfiguration {
-  capabilities: MainCapabilities;
-  timestamp: string;
-  // disabled extensions, for opening/creating files
-  disabled_ext: string[];
-}
-
-export type Capabilities = { [key: string]: boolean };
-
-export interface X11Configuration {
-  timestamp: string;
-  capabilities: Capabilities;
-}
-
-export type Configuration = MainConfiguration | X11Configuration;
+export type {
+  Available,
+  Capabilities,
+  Configuration,
+  ConfigurationAspect,
+  MainConfiguration,
+  X11Configuration,
+};
 
 export type ProjectConfiguration = iMap<ConfigurationAspect, Configuration>;
-
-export interface MainCapabilities {
-  jupyter: boolean | Capabilities;
-  formatting: Capabilities; // yapf & co.
-  hashsums: Capabilities;
-  latex: boolean;
-  sage: boolean;
-  sage_version?: number[];
-  x11: boolean;
-  rmd: boolean;
-  qmd: boolean;
-  jq: boolean;
-  spellcheck: boolean;
-  library: boolean;
-  sshd: boolean;
-  html2pdf: boolean; // via chrome/chromium
-  pandoc: boolean; // e.g. for docx2md conversion
-  vscode: boolean; // "code-server"
-  julia: boolean; // julia programming language + Pluto package is installed (we assume it)
-  homeDirectory: string | null; // the home directory of the project
-}
-
-export interface Available {
-  jupyter_lab: boolean;
-  jupyter_notebook: boolean;
-  jupyter: boolean;
-  x11: boolean;
-  latex: boolean;
-  sage: boolean;
-  rmd: boolean; // TODO besides R, what's necessary? pandoc!
-  qmd: boolean; // also depends on pandoc
-  jq: boolean;
-  spellcheck: boolean;
-  library: boolean;
-  html2pdf: boolean;
-  pandoc: boolean;
-  vscode: boolean;
-  julia: boolean;
-  formatting: Capabilities | boolean;
-  homeDirectory: string | null;
-}
-
 export type AvailableFeatures = TypedMap<Available>;
-
-const NO_AVAIL: Readonly<Available> = {
-  jupyter_lab: false,
-  jupyter_notebook: false,
-  jupyter: false,
-  sage: false,
-  latex: false,
-  rmd: false,
-  qmd: false,
-  jq: false,
-  x11: false,
-  spellcheck: false,
-  library: false,
-  formatting: false,
-  html2pdf: false,
-  pandoc: false,
-  vscode: false,
-  julia: false,
-  homeDirectory: null,
-} as const;
-
-export const ALL_AVAIL: Readonly<Available> = {
-  jupyter_lab: true,
-  jupyter_notebook: true,
-  jupyter: true,
-  sage: true,
-  latex: true,
-  rmd: true,
-  qmd: true,
-  jq: true,
-  x11: true,
-  spellcheck: true,
-  library: true,
-  formatting: true,
-  html2pdf: true,
-  pandoc: true,
-  vscode: true,
-  julia: true,
-  homeDirectory: "/home/user", // sane default
-} as const;
 
 // detecting certain datastructures, only used for TS typing
 function isMainCapabilities(
-  caps: MainCapabilities | Capabilities
+  caps: MainCapabilities | Capabilities,
 ): caps is MainCapabilities {
   const mcaps = <MainCapabilities>caps;
   return (
@@ -135,7 +56,7 @@ function isMainCapabilities(
 }
 
 export function isMainConfiguration(
-  config: MainConfiguration | X11Configuration
+  config: MainConfiguration | X11Configuration,
 ): config is MainConfiguration {
   const mconf = <MainConfiguration>config;
   // don't test for disabled_ext, because that's added later
@@ -234,14 +155,14 @@ export async function get_configuration(
   project_id: string,
   aspect: ConfigurationAspect = "main",
   prev: ProjectConfiguration,
-  no_cache = false
+  no_cache = false,
 ): Promise<ProjectConfiguration | undefined> {
   // the actual API call, returning an object
   const config: Configuration =
     await webapp_client.project_client.configuration(
       project_id,
       aspect,
-      no_cache
+      no_cache,
     );
   if (config == null) return prev;
   // console.log("project_actions::init_configuration", aspect, config);

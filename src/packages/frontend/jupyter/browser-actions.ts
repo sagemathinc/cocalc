@@ -24,7 +24,7 @@ import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
 import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
 import * as parsing from "./parsing";
 import { Syntax } from "@cocalc/util/code-formatter";
-import { Config as FormatterConfig } from "@cocalc/project/formatters";
+import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import * as awaiting from "awaiting";
 import { cm_options } from "./cm_options";
 import track from "@cocalc/frontend/user-tracking";

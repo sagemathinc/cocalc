@@ -1,12 +1,13 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "incremental": false,
+    "composite": true,
+    "incremental": true,
     "rootDir": "./",
     "outDir": "dist",
     "sourceMap": true,
     "lib": ["es5", "es6", "es2017", "dom"],
-    "declaration": false
+    "declaration": true
   },
   "exclude": [
     "dist",
@@ -14,7 +15,6 @@
     "account/test",
     "jupyter/test",
     "app-framework/__tests__/",
-    "frame-editors/sagews-editor",
     "frame-editors/generic/mocha-tests",
     "frame-editors/settings/__tests__",
     "jupyter/output-messages/__test__",
@@ -23,8 +23,12 @@
     "test-mocha",
     "test",
     "*__tests__*",
-    "*__test__*",
-    "admin",
-    "app"
+    "*__test__*"
+  ],
+  "references": [
+    { "path": "../comm" },
+    { "path": "../jupyter" },
+    { "path": "../sync" },
+    { "path": "../util" }
   ]
 }

@@ -31,10 +31,10 @@ import { eval_code } from "./eval-code";
 import { move_files, rename_file } from "./move-files";
 import { realpath } from "./realpath";
 import { project_info_ws } from "../project-info";
-import { Mesg } from "@cocalc/frontend/project/websocket/types";
 import { reuseInFlight } from "async-await-utils/hof";
 import query from "./query";
 import { browser_symmetric_channel } from "./symmetric_channel";
+import type { Mesg } from "@cocalc/comm/websocket/types";
 
 import { getLogger } from "@cocalc/project/logger";
 const log = getLogger("websocket-api");

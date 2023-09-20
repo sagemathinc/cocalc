@@ -9,7 +9,7 @@ import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import createPurchase from "./create-purchase";
 import type { Reason, Refund } from "@cocalc/util/db-schema/purchases";
 import sendEmail from "@cocalc/server/email/send-email";
-import { getServerSettings } from "@cocalc/server/settings";
+import { getServerSettings } from "@cocalc/database/settings";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import { currency } from "@cocalc/util/misc";
 

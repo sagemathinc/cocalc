@@ -10,7 +10,7 @@ Client account creation and deletion
 const MAX_ACCOUNTS_PER_30MIN = 150;
 const MAX_ACCOUNTS_PER_30MIN_GOLD = 1500;
 
-const auth = require("@cocalc/hub/auth");
+import { verify_email_send_token } from "@cocalc/server/hub/auth";
 import passwordHash from "@cocalc/backend/auth/password-hash";
 import { get_server_settings } from "@cocalc/database/postgres/server-settings";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
@@ -75,7 +75,7 @@ async function get_db_client(db: PostgreSQL) {
 // THIS HAS BEEN REWRITTEN AT @cocalc/server/auth/is-domain-exclusive-sso
 async function is_domain_exclusive_sso(
   db: PostgreSQL,
-  email?: string
+  email?: string,
 ): Promise<string | undefined> {
   if (email == null) return undefined;
   const raw_domain = email.split("@")[1]?.trim().toLowerCase();
@@ -107,7 +107,7 @@ async function is_domain_exclusive_sso(
 // never committed or rolled back.
 async function check_registration_token(
   db: PostgreSQL,
-  token: string | undefined
+  token: string | undefined,
 ): Promise<string | undefined> {
   const have_tokens = await have_active_registration_tokens(db);
 
@@ -197,7 +197,7 @@ interface CreateAccountData {
 // This should not actually throw in case of trouble, but instead send
 // error directly to the client.
 export async function create_account(
-  opts: AccountCreationOptions
+  opts: AccountCreationOptions,
 ): Promise<void> {
   // we still use defaults/required due to coffeescript client.
   opts = defaults(opts, {
@@ -211,7 +211,7 @@ export async function create_account(
   const id: string = opts.mesg.id;
   let mesg1: { [key: string]: any };
   winston.info(
-    `create_account ${opts.mesg.first_name} ${opts.mesg.last_name} ${opts.mesg.email_address}`
+    `create_account ${opts.mesg.first_name} ${opts.mesg.last_name} ${opts.mesg.email_address}`,
   );
   function dbg(m): void {
     winston.debug(`create_account (${opts.mesg.email_address}): ${m}`);
@@ -300,7 +300,7 @@ export async function create_account(
     dbg("check if a registration token is required");
     const check_token = await check_registration_token(
       opts.database,
-      opts.mesg.token
+      opts.mesg.token,
     );
     if (check_token) {
       return { token: check_token };
@@ -309,7 +309,7 @@ export async function create_account(
     dbg("check if email domain has to go through an SSO mechanism");
     const check_domain = await is_domain_exclusive_sso(
       opts.database,
-      opts.mesg.email_address
+      opts.mesg.email_address,
     );
     if (check_domain != null) {
       return {
@@ -369,8 +369,8 @@ export async function create_account(
       });
       dbg(
         `send message back to user that they are logged in as the new user (in ${walltime(
-          tm
-        )}seconds)`
+          tm,
+        )}seconds)`,
       );
       // no analytics token is logged, because it is already done in the create_account entry above.
       mesg1 = message.signed_in({
@@ -390,7 +390,7 @@ export async function create_account(
     if (opts.mesg.email_address != null) {
       try {
         dbg("send email verification request");
-        await callback2(auth.verify_email_send_token, {
+        await callback2(verify_email_send_token, {
           account_id,
           database: opts.database,
         });
@@ -429,8 +429,8 @@ export async function create_account(
     // this, since they aren't setup to listen for it...
     dbg(
       `send message to user that there was an error (in ${walltime(
-        tm
-      )}seconds) -- ${JSON.stringify(reason)}`
+        tm,
+      )}seconds) -- ${JSON.stringify(reason)}`,
     );
     opts.client.push_to_client(message.account_creation_failed({ id, reason }));
   }
@@ -445,7 +445,7 @@ interface DeleteAccountOptions {
 // This should not actually throw in case of trouble, but instead send
 // error directly to the client.
 export async function delete_account(
-  opts: DeleteAccountOptions
+  opts: DeleteAccountOptions,
 ): Promise<void> {
   opts = defaults(opts, {
     client: undefined,
@@ -464,7 +464,7 @@ export async function delete_account(
   }
   if (opts.client != null) {
     opts.client.push_to_client(
-      message.account_deleted({ id: opts.mesg.id, error })
+      message.account_deleted({ id: opts.mesg.id, error }),
     );
   }
 }
