@@ -15,6 +15,10 @@ import { NewFileButton } from "../new/new-file-button";
 import { SagewsControl } from "../settings/sagews-control";
 import { useAvailableFeatures } from "../use-available-features";
 import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
+import {
+  computeServersEnabled,
+  ManageComputeServers,
+} from "@cocalc/frontend/compute-servers";
 
 // Antd's 24 grid system
 const md = 6;
@@ -33,7 +37,7 @@ export function ProjectServers(props: Props) {
   const available = useAvailableFeatures(project_id);
 
   const [showNamedServer, setShowNamedServer] = useState<"" | NamedServerName>(
-    ""
+    "",
   );
 
   function toggleShowNamedServer(name: NamedServerName): void {
@@ -148,6 +152,7 @@ export function ProjectServers(props: Props) {
       <Title level={2}>
         <Icon name={ICON_NAME} /> {TITLE}
       </Title>
+      <h2>Notebook and Code Editing Servers</h2>
       <Paragraph>
         You can run various servers inside this project. They run in the same
         environment, have access to the same files, and stop when the project
@@ -158,6 +163,13 @@ export function ProjectServers(props: Props) {
         .
       </Paragraph>
       {renderNamedServers()}
+      {computeServersEnabled() && (
+        <>
+          <Divider plain />
+          <h2>Compute Servers</h2>
+          <ManageComputeServers project_id={project_id} />
+        </>
+      )}
       <Divider plain />
       {renderSageServerControl()}
     </div>

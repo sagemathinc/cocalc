@@ -23,6 +23,7 @@
 
 import forge from "node-forge";
 import { CHUNK_SZ, DEFAULT_DPI } from "./constants";
+import * as lz4 from "@cocalc/xpra-lz4";
 
 export function ord(s: string): number {
   return s.charCodeAt(0);
@@ -155,7 +156,7 @@ export function lz4decode(data) {
 
   // decode the LZ4 block
   const inflated = new Uint8Array(length);
-  const uncompressedSize = (window as any).lz4.decodeBlock(data, inflated, 4);
+  const uncompressedSize = lz4.decodeBlock(data, inflated, 4);
   return { uncompressedSize, inflated };
 }
 

@@ -4,13 +4,7 @@
  */
 
 import { Map } from "immutable";
-import {
-  React,
-  Component,
-  Rendered,
-  rtypes,
-  rclass,
-} from "../../app-framework";
+import { Component, Rendered, rtypes, rclass } from "../../app-framework";
 
 import { input_is_hidden, output_is_hidden } from "./flags";
 
@@ -59,7 +53,7 @@ class CellWorksheet extends Component<Props, {}> {
         <div key={id}>
           <div>{this.render_input_cell(cell)}</div>
           <div>{this.render_output_cell(cell)}</div>
-        </div>
+        </div>,
       );
     });
     return v;

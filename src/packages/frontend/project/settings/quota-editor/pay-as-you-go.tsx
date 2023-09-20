@@ -49,7 +49,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
   const [editing, setEditing] = useState<boolean>(false);
   // one we are editing:
   const [quotaState, setQuotaState] = useState<ProjectQuota | null>(
-    savedQuotaState
+    savedQuotaState,
   );
 
   const runningWithUpgrade = useMemo(() => {
@@ -69,7 +69,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       try {
         setStatus("Loading quotas...");
         setMaxQuotas(
-          await webapp_client.purchases_client.getPayAsYouGoMaxProjectQuotas()
+          await webapp_client.purchases_client.getPayAsYouGoMaxProjectQuotas(),
         );
       } catch (err) {
         setError(`${err}`);
@@ -94,7 +94,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
       setError("");
       await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
         project_id,
-        quotaState
+        quotaState,
       );
     } catch (err) {
       setError(`${err}`);
@@ -310,7 +310,7 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                 setQuotaState(null);
                 await webapp_client.purchases_client.setPayAsYouGoProjectQuotas(
                   project_id,
-                  {}
+                  {},
                 );
               }}
             >
@@ -464,7 +464,7 @@ export function PayAsYouGoCost({ project_id }) {
     // only show this when YOU are paying.
     return null;
   }
-  const quota = PAYG.get("quota")?.toJS();
+  const quota = PAYG?.get("quota")?.toJS();
   if (!quota || !quota.cost || !quota.start) {
     return null;
   }

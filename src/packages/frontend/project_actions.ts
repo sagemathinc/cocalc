@@ -34,7 +34,10 @@ import { download_file, open_new_tab, open_popup_window } from "./misc";
 import * as project_file from "./project-file";
 import { delete_files } from "./project/delete-files";
 import { get_directory_listing2 as get_directory_listing } from "./project/directory-listing";
-import { ProjectEvent } from "./project/history/types";
+import {
+  ProjectEvent,
+  SoftwareEnvironmentEvent,
+} from "./project/history/types";
 import { log_file_open, log_opened_time, open_file } from "./project/open-file";
 import { OpenFiles } from "./project/open-files";
 import { FixedTab } from "./project/page/file-tab";
@@ -3095,6 +3098,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   async set_compute_image(compute_image: string): Promise<void> {
+    const projects_store = this.redux.getStore("projects");
+    const previous: string =
+      projects_store.getIn(["project_map", this.project_id, "compute_image"]) ??
+      "";
+
     await client_query({
       query: {
         projects: {
@@ -3103,6 +3111,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         },
       },
     });
+
+    // if the above is successful, we log it
+    const event: SoftwareEnvironmentEvent = {
+      event: "software_environment",
+      previous,
+      next: compute_image,
+    };
+    this.log(event);
   }
 
   async set_environment(env: object): Promise<void> {

@@ -57,15 +57,17 @@ export type SiteSettingsKeys =
   | "anonymous_signup_licensed_shares"
   | "share_server"
   | "landing_pages"
+  | "sandbox_projects_enabled"
   | "sandbox_project_id"
-  | "new_project_pool";
+  | "new_project_pool"
+  | "compute_servers_enabled";
 
 type Mapping = { [key: string]: string | number | boolean };
 
 type ToVal = boolean | string | number | string[] | Mapping;
 type ToValFunc<T> = (
   val?: string,
-  config?: { [key in SiteSettingsKeys]?: string }
+  config?: { [key in SiteSettingsKeys]?: string },
 ) => T;
 
 export interface Config {
@@ -93,7 +95,7 @@ export type SiteSettings = Record<SiteSettingsKeys, Config>;
 
 const fallback = (
   conf: { [key in SiteSettingsKeys]: string },
-  name: SiteSettingsKeys
+  name: SiteSettingsKeys,
 ): string => conf[name] ?? site_settings_conf[name].default;
 
 // little helper fuctions, used in the site settings & site settings extras
@@ -122,7 +124,7 @@ export const only_booleans = ["yes", "no"]; // we also understand true and false
 export const to_int = (val): number => parseInt(val);
 export const only_ints = (val) =>
   ((v) => !isNaN(v) && Number.isFinite(v) && Number.isInteger(val))(
-    to_int(val)
+    to_int(val),
   );
 export const only_nonneg_int = (val) =>
   ((v) => only_ints(v) && v >= 0)(to_int(val));
@@ -154,7 +156,8 @@ export const parsableJson = (conf): boolean => {
   }
 };
 
-export const displayJson = (conf) => JSON.stringify(from_json(conf), undefined, 2);
+export const displayJson = (conf) =>
+  JSON.stringify(from_json(conf), undefined, 2);
 
 // TODO a cheap'n'dirty validation is good enough
 const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
@@ -171,7 +174,7 @@ function num_dns_hosts(val): string {
 
 const commercial_to_val: ToValFunc<boolean> = (
   val?,
-  conf?: { [key in SiteSettingsKeys]: string }
+  conf?: { [key in SiteSettingsKeys]: string },
 ) => {
   // special case: only if we're in cocalc.com production mode, the commercial setting can be true at all
   const kucalc =
@@ -184,7 +187,7 @@ const commercial_to_val: ToValFunc<boolean> = (
 
 const gateway_dns_to_val: ToValFunc<string> = (
   val?,
-  conf?: { [key in SiteSettingsKeys]: string }
+  conf?: { [key in SiteSettingsKeys]: string },
 ): string => {
   // sensible default, in case ssh gateway dns is not set – fallback to the known value in prod/test or the DNS.
   const dns: string = to_trimmed_str(conf?.dns ?? "");
@@ -551,8 +554,15 @@ export const site_settings_conf: SiteSettings = {
     show: only_cocalc_com,
     cocalc_only: true,
   },
+  sandbox_projects_enabled: {
+    name: "Enable Public Sandbox Projects",
+    desc: "If enabled, this makes it possible for users to set a project to be a public sandbox.  There are significant negative security implications to sandbox projects, so only use this with a trusted group of users, e.g., on a private network.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
   sandbox_project_id: {
-    name: "Sandbox Project ID",
+    name: "Systemwide Public Sandbox Project ID",
     desc: "The `project_id` (a UUIDv4) of a sandbox project on your server for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
     default: "",
   },
@@ -580,6 +590,13 @@ export const site_settings_conf: SiteSettings = {
   jupyter_api_enabled: {
     name: "Jupyter API",
     desc: "If true, the public Jupyter API is enabled. This provides stateless evaluation of Jupyter code from the landing page and share server by users that may not be signed in.  This requires further configuration of the <i>Jupyter API Account Id</i>.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  compute_servers_enabled: {
+    name: "Enable Compute Servers",
+    desc: "Whether or not to include user interface elements related to compute servers.  Set to 'yes' to include these elements.  You may also want to configure 'Compute Servers -- remote cloud services' elsewhere.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

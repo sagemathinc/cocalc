@@ -48,7 +48,7 @@ export default function init({
       conn,
       logger,
       database,
-      compute_server: projectControl,
+      projectControl,
       host,
       port,
       personal: isPersonal,

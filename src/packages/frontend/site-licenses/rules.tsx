@@ -24,10 +24,15 @@ const RULES = (
       regular license.
     </li>
     <li>
-      A <b>Dedicated Disk</b> can only be attached to one project.
+      A <b>Dedicated Disk</b> can only be active with one project, since there
+      is only one physical disk.
     </li>
     <li>
       A <b>Dedicated VM</b> renders regular and boost licenses ineffective.
+    </li>
+    <li>
+      Active <b>"Pay as you go"</b> upgrades render regular and boost licenses
+      ineffective.
     </li>
   </ul>
 );

@@ -127,6 +127,10 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
       borderLeft: `4px solid ${
         isActive ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
       }`,
+      // highlight active flyout in flyout-only mode more -- see https://github.com/sagemathinc/cocalc/issues/6855
+      ...(isActive && vbar === "flyout"
+        ? { backgroundColor: COLORS.BLUE_LLLL }
+        : undefined),
     };
 
     items.push(
